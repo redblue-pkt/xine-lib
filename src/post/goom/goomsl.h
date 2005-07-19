@@ -21,12 +21,14 @@ int    gsl_malloc  (GoomSL *_this, int size);
 void  *gsl_get_ptr (GoomSL *_this, int id);
 void   gsl_free_ptr(GoomSL *_this, int id);
 
-#define gsl_local_ptr(gsl,local,name)   gsl_get_ptr(gsl, goom_hash_get(local,name)->i)
-#define gsl_local_int(gsl,local,name)   goom_hash_get(local,name)->i
-#define gsl_local_float(gsl,local,name) goom_hash_get(local,name)->i
+GoomHash *gsl_globals(GoomSL *_this);
 
-#define gsl_global_ptr(gsl,global,name)   gsl_get_ptr(gsl, goom_hash_get(global,name)->i)
-#define gsl_global_int(gsl,global,name)   goom_hash_get(global,name)->i
-#define gsl_global_float(gsl,global,name) goom_hash_get(global,name)->i
+#define GSL_LOCAL_PTR(gsl,local,name)   gsl_get_ptr(gsl, *(int*)goom_hash_get(local,name)->ptr)
+#define GSL_LOCAL_INT(gsl,local,name)   (*(int*)goom_hash_get(local,name)->ptr)
+#define GSL_LOCAL_FLOAT(gsl,local,name) (*(float*)goom_hash_get(local,name)->ptr)
+
+#define GSL_GLOBAL_PTR(gsl,name)   gsl_get_ptr(gsl, *(int*)goom_hash_get(gsl_globals(gsl),name)->ptr)
+#define GSL_GLOBAL_INT(gsl,name)   (*(int*)goom_hash_get(gsl_globals(gsl),name)->ptr)
+#define GSL_GLOBAL_FLOAT(gsl,name) (*(float*)goom_hash_get(gsl_globals(gsl),name)->ptr)
 
 #endif

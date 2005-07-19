@@ -26,6 +26,8 @@
 #include "goom_fx.h"
 #include "goomsl.h"
 
+#include "xine_internal.h"
+
 /* #define VERBOSE */
 
 #define STOP_SPEED 128
@@ -45,6 +47,8 @@ static void init_buffers(PluginInfo *goomInfo, int buffsize)
     bzero (goomInfo->back, buffsize * sizeof (guint32) + 128);
     goomInfo->conv = (Pixel *) malloc (buffsize * sizeof (guint32) + 128);
     bzero (goomInfo->conv, buffsize * sizeof (guint32) + 128);
+
+    goomInfo->outputBuf = goomInfo->conv;
     
     goomInfo->p1 = (Pixel *) ((1 + ((uintptr_t) (goomInfo->pixel)) / 128) * 128);
     goomInfo->p2 = (Pixel *) ((1 + ((uintptr_t) (goomInfo->back)) / 128) * 128);
@@ -64,16 +68,16 @@ PluginInfo *goom_init (guint32 resx, guint32 resy)
     plugin_info_init(goomInfo,4);
     
     goomInfo->star_fx = flying_star_create();
-    goomInfo->star_fx.init(&goomInfo->star_fx);
+    goomInfo->star_fx.init(&goomInfo->star_fx, goomInfo);
     
     goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create ();
-    goomInfo->zoomFilter_fx.init(&goomInfo->zoomFilter_fx);
+    goomInfo->zoomFilter_fx.init(&goomInfo->zoomFilter_fx, goomInfo);
     
     goomInfo->tentacles_fx = tentacle_fx_create();
-    goomInfo->tentacles_fx.init(&goomInfo->tentacles_fx);
+    goomInfo->tentacles_fx.init(&goomInfo->tentacles_fx, goomInfo);
     
     goomInfo->convolve_fx = convolve_create();
-    goomInfo->convolve_fx.init(&goomInfo->convolve_fx);
+    goomInfo->convolve_fx.init(&goomInfo->convolve_fx, goomInfo);
     
     plugin_info_add_visual (goomInfo, 0, &goomInfo->zoomFilter_fx);
     plugin_info_add_visual (goomInfo, 1, &goomInfo->tentacles_fx);
@@ -90,7 +94,7 @@ PluginInfo *goom_init (guint32 resx, guint32 resy)
     goomInfo->cycle = 0;
     
     goomInfo->ifs_fx = ifs_visualfx_create();
-    goomInfo->ifs_fx.init(&goomInfo->ifs_fx);
+    goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
     
     goomInfo->gmline1 = goom_lines_init (goomInfo, resx, goomInfo->screen.height,
                                          GML_HLINE, goomInfo->screen.height, GML_BLACK,
@@ -107,6 +111,7 @@ PluginInfo *goom_init (guint32 resx, guint32 resy)
 }
 
 
+
 void goom_set_resolution (PluginInfo *goomInfo, guint32 resx, guint32 resy)
 {
     free (goomInfo->pixel);
@@ -121,10 +126,16 @@ void goom_set_resolution (PluginInfo *goomInfo, guint32 resx, guint32 resy)
     
     /* init_ifs (goomInfo, resx, goomInfo->screen.height); */
     goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
-    goomInfo->ifs_fx.init(&goomInfo->ifs_fx);
+    goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
     
     goom_lines_set_res (goomInfo->gmline1, resx, goomInfo->screen.height);
     goom_lines_set_res (goomInfo->gmline2, resx, goomInfo->screen.height);
+}
+
+int goom_set_screenbuffer(PluginInfo *goomInfo, void *buffer)
+{
+  goomInfo->outputBuf = (Pixel*)buffer;
+  return 1;
 }
 
 /********************************************
@@ -230,7 +241,7 @@ guint32 *goom_update (PluginInfo *goomInfo, gint16 data[2][512],
         
         /* changement eventuel de mode */
         if (goom_irand(goomInfo->gRandom,16) == 0)
-            switch (goom_irand(goomInfo->gRandom,32)) {
+            switch (goom_irand(goomInfo->gRandom,34)) {
                 case 0:
                 case 10:
                     goomInfo->update.zoomFilterData.hypercosEffect = goom_irand(goomInfo->gRandom,2);
@@ -298,6 +309,7 @@ guint32 *goom_update (PluginInfo *goomInfo, gint16 data[2][512],
                     break;
                 case 31:
                 case 32:
+                case 33:
                     goomInfo->update.zoomFilterData.mode = SPEEDWAY_MODE;
                     break;
                 default:
@@ -588,14 +600,10 @@ guint32 *goom_update (PluginInfo *goomInfo, gint16 data[2][512],
         /*
          * Affichage tentacule
          */
-        
-        /* if (goomInfo.sound.goomlimit > 0.0001f) */
+
         goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo->p1, goomInfo->p2, goomInfo);
-        /*	tentacle_update(goomInfo, goomInfo->p2, goomInfo->p1, goomInfo->screen.width, goomInfo->screen.height,
-            data, (float)goomInfo->sound.accelvar, goomInfo->curGState->drawTentacle); */
-        
         goomInfo->star_fx.apply (&goomInfo->star_fx,goomInfo->p2,goomInfo->p1,goomInfo);
-        
+ 
         /*
          * Affichage de texte
          */
@@ -730,9 +738,14 @@ guint32 *goom_update (PluginInfo *goomInfo, gint16 data[2][512],
         /* affichage et swappage des buffers.. */
         goomInfo->cycle++;
         
-        goomInfo->convolve_fx.apply(&goomInfo->convolve_fx,return_val,goomInfo->conv,goomInfo);
+        /* xine: no convolve_fx */
+        /*
+        goomInfo->convolve_fx.apply(&goomInfo->convolve_fx,return_val,goomInfo->outputBuf,goomInfo);
+        */
+        xine_fast_memcpy(goomInfo->outputBuf, return_val, goomInfo->screen.size * sizeof(Pixel));
+
         
-        return (guint32*)goomInfo->conv;
+        return (guint32*)goomInfo->outputBuf;
 }
 
 /****************************************

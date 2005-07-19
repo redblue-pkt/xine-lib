@@ -9,6 +9,8 @@
 #include "jitc_x86.h"
 #endif
 
+#include "goomsl_heap.h"
+
 /* {{{ type of nodes */
 #define EMPTY_NODE 0
 #define CONST_INT_NODE 1
@@ -41,6 +43,8 @@
 #define OPR_DIV_EQ 19
 #define OPR_CALL_EXPR 20
 #define OPR_AFFECT_LIST 21
+#define OPR_FOREACH 22
+#define OPR_VAR_LIST 23
 
 /* }}} */
 
@@ -71,35 +75,26 @@ typedef struct _NODE_TYPE { /* {{{ */
         OprNodeType opr;
     } unode;
 } NodeType; /* }}} */
-typedef union _INSTRUCTION_DATA { /* {{{ */
+typedef struct _INSTRUCTION_DATA { /* {{{ */
   
-  /* VAR - PTR */
-  struct {
-    HashValue *var;
-    int value;
-  } v_p;
-  /* VAR - INTEGER */
-  struct {
-    HashValue *var;
-    int value;
-  } v_i;
-  /* VAR - FLOAT */
-  struct {
-    HashValue *var;
-    float value;
-  } v_f;
-  /* VAR - VAR */
-  struct {
-    HashValue *var_src;
-    HashValue *var_dest;
-  } v_v;
-  /* VAR */
-  struct {
-    int jump_offset;
-    HashValue *var;
-  } v;
-  int jump_offset;
-  struct _ExternalFunctionStruct *external_function;
+  union {
+    void  *var;
+    int   *var_int;
+    int   *var_ptr;
+    float *var_float;
+    int    jump_offset;
+    struct _ExternalFunctionStruct *external_function;
+  } udest;
+
+  union {
+    void  *var;
+    int   *var_int;
+    int   *var_ptr;
+    float *var_float;
+    int    value_int;
+    int    value_ptr;
+    float  value_float;
+  } usrc;
 } InstructionData;
 /* }}} */
 typedef struct _INSTRUCTION { /* {{{ */
@@ -121,29 +116,52 @@ typedef struct _INSTRUCTION { /* {{{ */
 
     int line_number;
 
-} Instruction; /* }}} */
+} Instruction;
+/* }}} */
 typedef struct _INSTRUCTION_FLOW { /* {{{ */
 
     Instruction **instr;
     int number;
     int tabsize;
     GoomHash *labels;
-} InstructionFlow; /* }}} */
+} InstructionFlow;
+/* }}} */
 typedef struct _FAST_INSTRUCTION { /* {{{ */
   int id;
   InstructionData data;
   Instruction *proto;
-} FastInstruction; /* }}} */
+} FastInstruction;
+/* }}} */
 typedef struct _FastInstructionFlow { /* {{{ */
   int number;
   FastInstruction *instr;
   void *mallocedInstr;
-} FastInstructionFlow; /* }}} */
+} FastInstructionFlow;
+/* }}} */
 typedef struct _ExternalFunctionStruct { /* {{{ */
   GoomSL_ExternalFunction function;
   GoomHash *vars;
   int is_extern;
-} ExternalFunctionStruct; /* }}} */
+} ExternalFunctionStruct;
+/* }}} */
+typedef struct _Block {
+  int    data;
+  int    size;
+} Block;
+typedef struct _GSL_StructField { /* {{{ */
+  int  type;
+  char name[256];
+  int  offsetInStruct; /* Where this field is stored... */
+} GSL_StructField;
+ /* }}} */
+typedef struct _GSL_Struct { /* {{{ */
+  int nbFields;
+  GSL_StructField *fields[64];
+  int size;
+  Block iBlock[64];
+  Block fBlock[64];
+} GSL_Struct;
+ /* }}} */
 struct _GoomSL { /* {{{ */
     int num_lines;
     Instruction *instr;     /* instruction en cours de construction */
@@ -157,6 +175,13 @@ struct _GoomSL { /* {{{ */
     
     GoomHash *functions;    /* table des fonctions externes */
 
+    GoomHeap *data_heap; /* GSL Heap-like memory space */
+    
+    int nbStructID;
+    GoomHash   *structIDS;
+    GSL_Struct **gsl_struct;
+    int gsl_struct_size;
+    
     int    nbPtr;
     int    ptrArraySize;
     void **ptrArray;
@@ -177,21 +202,30 @@ void gsl_instr_set_namespace(Instruction *_this, GoomHash *ns);
 void gsl_declare_task(const char *name);
 void gsl_declare_external_task(const char *name);
 
+int gsl_type_of_var(GoomHash *namespace, const char *name);
+
 void gsl_enternamespace(const char *name);
-void gsl_leavenamespace(void);
+void gsl_reenternamespace(GoomHash *ns);
+GoomHash *gsl_leavenamespace(void);
 GoomHash *gsl_find_namespace(const char *name);
 
 void gsl_commit_compilation(void);
 
-/* #define TYPE_PARAM    1
-   #define TYPE_INTEGER  2
-   #define TYPE_FLOAT    3
-   #define TYPE_VAR      4 */
-#define TYPE_LABEL    5
+/* #define TYPE_PARAM    1 */
+
+#define FIRST_RESERVED 0x80000
+
+#define TYPE_INTEGER  0x90001
+#define TYPE_FLOAT    0x90002
+#define TYPE_VAR      0x90003
+#define TYPE_PTR      0x90004
+#define TYPE_LABEL    0x90005
+
 #define TYPE_OP_EQUAL 6
-#define TYPE_IVAR     7
-#define TYPE_FVAR     8 
-#define TYPE_PVAR     9
+#define TYPE_IVAR     0xa0001
+#define TYPE_FVAR     0xa0002
+#define TYPE_PVAR     0xa0003
+#define TYPE_SVAR     0xa0004
 
 #define INSTR_JUMP     6
 #define INSTR_JZERO    29
@@ -200,18 +234,18 @@ void gsl_commit_compilation(void);
 #define INSTR_EXT_CALL 38
 #define INSTR_JNZERO   40
 
-#define INSTR_SET     10001
-#define INSTR_INT     10002
-#define INSTR_FLOAT   10003
-#define INSTR_PTR     10004
-#define INSTR_LABEL   10005
-#define INSTR_ISLOWER 10006
-#define INSTR_ADD     10007
-#define INSTR_MUL     10008
-#define INSTR_DIV     10009
-#define INSTR_SUB     10010
-#define INSTR_ISEQUAL 10011
-#define INSTR_NOT     10012
+#define INSTR_SET     0x80001
+#define INSTR_INT     0x80002
+#define INSTR_FLOAT   0x80003
+#define INSTR_PTR     0x80004
+#define INSTR_LABEL   0x80005
+#define INSTR_ISLOWER 0x80006
+#define INSTR_ADD     0x80007
+#define INSTR_MUL     0x80008
+#define INSTR_DIV     0x80009
+#define INSTR_SUB     0x80010
+#define INSTR_ISEQUAL 0x80011
+#define INSTR_NOT     0x80012
 
 
 #endif

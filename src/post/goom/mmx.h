@@ -72,9 +72,9 @@ mm_support(void)
 	register int rval = 0;
 
 	__asm__ __volatile__ (
-                "push %%ebx\n\t"
 		/* See if CPUID instruction is supported ... */
 		/* ... Get copies of EFLAGS into eax and ecx */
+    "pushl %%ebx\n\t"
 		"pushf\n\t"
 		"popl %%eax\n\t"
 		"movl %%eax, %%ecx\n\t"
@@ -215,7 +215,7 @@ mm_support(void)
 		"movl $0, %0\n\n\t"
 
 		"Return:\n\t"
-                "pop %%ebx\n\t"
+    "popl %%ebx\n\t"
 		: "=X" (rval)
 		: /* no input */
 		: "eax", "ecx", "edx"

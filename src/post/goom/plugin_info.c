@@ -28,7 +28,7 @@ static void setOptimizedMethods(PluginInfo *p) {
     /* set default methods */
     p->methods.draw_line = draw_line;
     p->methods.zoom_filter = zoom_filter_c;
-    p->methods.create_output_with_brightness = create_output_with_brightness;
+/*    p->methods.create_output_with_brightness = create_output_with_brightness;*/
 
 #ifdef CPU_X86
 	if (cpuFlavour & CPU_OPTION_XMMX) {
@@ -54,16 +54,16 @@ static void setOptimizedMethods(PluginInfo *p) {
 #ifdef CPU_POWERPC
 
         if ((cpuFlavour & CPU_OPTION_64_BITS) != 0) {
-            p->methods.create_output_with_brightness = ppc_brightness_G5;        
+/*            p->methods.create_output_with_brightness = ppc_brightness_G5;        */
             p->methods.zoom_filter = ppc_zoom_generic;
         }
         else if ((cpuFlavour & CPU_OPTION_ALTIVEC) != 0) {
-            p->methods.create_output_with_brightness = ppc_brightness_G4;        
+/*            p->methods.create_output_with_brightness = ppc_brightness_G4;        */
             p->methods.zoom_filter = ppc_zoom_G4;
         }
         else
         {
-            p->methods.create_output_with_brightness = ppc_brightness_generic;
+/*            p->methods.create_output_with_brightness = ppc_brightness_generic;*/
             p->methods.zoom_filter = ppc_zoom_generic;
         }        
 #endif /* CPU_POWERPC */

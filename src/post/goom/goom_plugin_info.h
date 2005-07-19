@@ -104,6 +104,7 @@ struct _PLUGIN_INFO {
 	guint32 *back;
 	Pixel *p1, *p2;
 	Pixel *conv;
+  Pixel *outputBuf;
 
 	/** state of goom */
 	guint32 cycle;
@@ -158,7 +159,6 @@ struct _PLUGIN_INFO {
 	struct {
 		void (*draw_line) (Pixel *data, int x1, int y1, int x2, int y2, int col, int screenx, int screeny);
 		void (*zoom_filter) (int sizeX, int sizeY, Pixel *src, Pixel *dest, int *brutS, int *brutD, int buffratio, int precalCoef[16][16]);
-		void (*create_output_with_brightness) (Pixel *src, Pixel *dest, int screensize, int iff);
 	} methods;
 	
 	GoomRandom *gRandom;

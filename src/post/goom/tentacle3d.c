@@ -10,7 +10,7 @@
 #define D 256.0f
 
 #define nbgrid 6
-#define definitionx 15
+#define definitionx 9
 #define definitionz 45
 
 typedef struct _TENTACLE_FX_DATA {
@@ -21,7 +21,7 @@ typedef struct _TENTACLE_FX_DATA {
 	grid3d *grille[nbgrid];
 	float *vals;
 
-#define NB_TENTACLE_COLORS 3
+#define NB_TENTACLE_COLORS 4
 	int colors[NB_TENTACLE_COLORS];
 
 	int col;
@@ -47,7 +47,7 @@ static void tentacle_free (TentacleFXData *data);
  * VisualFX wrapper for the tentacles
  */
 
-static void tentacle_fx_init(VisualFX *_this) {
+static void tentacle_fx_init(VisualFX *_this, PluginInfo *info) {
 	
 	TentacleFXData *data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
 	
@@ -71,16 +71,22 @@ static void tentacle_fx_init(VisualFX *_this) {
 	data->colors[0] = (0x18<<(ROUGE*8))|(0x4c<<(VERT*8))|(0x2f<<(BLEU*8));
 	data->colors[1] = (0x48<<(ROUGE*8))|(0x2c<<(VERT*8))|(0x6f<<(BLEU*8));
 	data->colors[2] = (0x58<<(ROUGE*8))|(0x3c<<(VERT*8))|(0x0f<<(BLEU*8));
+	data->colors[3] = (0x87<<(ROUGE*8))|(0x55<<(VERT*8))|(0x74<<(BLEU*8));
 	tentacle_new(data);
 
 	_this->params = &data->params;
 	_this->fx_data = (void*)data;
 }
 
-static void tentacle_fx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInfo) {
-	
-	tentacle_update(goomInfo, dest, src, goomInfo->screen.width, goomInfo->screen.height, goomInfo->sound.samples,
-	                (float)goomInfo->sound.accelvar, goomInfo->curGState->drawTentacle, (TentacleFXData*)_this->fx_data);
+static void tentacle_fx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *goomInfo)
+{
+  TentacleFXData *data = (TentacleFXData*)_this->fx_data;
+  if (BVAL(data->enabled_bp)) {
+    tentacle_update(goomInfo, dest, src, goomInfo->screen.width,
+                    goomInfo->screen.height, goomInfo->sound.samples,
+                    (float)goomInfo->sound.accelvar,
+                    goomInfo->curGState->drawTentacle, data);
+  }
 }
 
 static void tentacle_fx_free(VisualFX *_this) {
@@ -172,7 +178,6 @@ static int evolutecolor (unsigned int src,unsigned int dest,
 
 static void pretty_move (PluginInfo *goomInfo, float cycle, float *dist, float *dist2, float *rotangle, TentacleFXData *fx_data) {
 
-	/* TODO: remove these STATICS !! */
 	float tmp;
 
 	/* many magic numbers here... I don't really like that. */

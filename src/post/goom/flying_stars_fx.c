@@ -4,8 +4,28 @@
 
 #include "mathtools.h"
 
-/* TODO:-- FAIRE PROPREMENT */
+/* TODO:-- FAIRE PROPREMENT... BOAH... */
 #define NCOL 15
+
+/*static const int colval[] = {
+0xfdf6f5,
+0xfae4e4,
+0xf7d1d1,
+0xf3b6b5,
+0xefa2a2,
+0xec9190,
+0xea8282,
+0xe87575,
+0xe46060,
+0xe14b4c,
+0xde3b3b,
+0xdc2d2f,
+0xd92726,
+0xd81619,
+0xd50c09,
+0
+};
+*/
 static const int colval[] = {
 	0x1416181a,
 	0x1419181a,
@@ -23,6 +43,7 @@ static const int colval[] = {
 	0x00050101,
 	0x0
 };
+
 
 /* The different modes of the visual FX.
  * Put this values on fx_mode */
@@ -58,7 +79,7 @@ typedef struct _FS_DATA{
 	PluginParameters params;
 } FSData;
 
-static void fs_init(VisualFX *_this) {
+static void fs_init(VisualFX *_this, PluginInfo *info) {
 	
 	FSData *data;
 	data = (FSData*)malloc(sizeof(FSData));
@@ -167,16 +188,29 @@ static void fs_sound_event_occured(VisualFX *_this, PluginInfo *info) {
 
 	int max = (int)((1.0f+info->sound.goomPower)*goom_irand(info->gRandom,150)) + 100;
 	float radius = (1.0f+info->sound.goomPower) * (float)(goom_irand(info->gRandom,150)+50)/300;
-	int mx = goom_irand(info->gRandom,info->screen.width);
+	int mx;
 	int my;
 	float vage, gravity = 0.02f;
 
 	switch (data->fx_mode) {
 		case FIREWORKS_FX:
-			my = goom_irand(info->gRandom,info->screen.height);
+      {  
+      double dx,dy;
+      do {
+        mx = goom_irand(info->gRandom,info->screen.width);
+	  		my = goom_irand(info->gRandom,info->screen.height);
+        dx = (mx - info->screen.width/2);
+        dy = (my - info->screen.height/2);
+      } while (dx*dx + dy*dy < (info->screen.height/2)*(info->screen.height/2));
 			vage = data->max_age * (1.0f - info->sound.goomPower);
+      }
 			break;
 		case RAIN_FX:
+      mx = goom_irand(info->gRandom,info->screen.width);
+      if (mx > info->screen.width/2)
+        mx = info->screen.width;
+      else
+        mx = 0;
 			my = -(info->screen.height/3)-goom_irand(info->gRandom,info->screen.width/3);
 			radius *= 1.5;
 			vage = 0.002f;

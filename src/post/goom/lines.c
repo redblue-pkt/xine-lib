@@ -82,19 +82,19 @@ static guint32 getcouleur (int mode)
 {
 	switch (mode) {
 	case GML_RED:
-		return (230 << (ROUGE * 8)) | (120 << (VERT * 8)) | (10 << (BLEU * 8));
+		return (230 << (ROUGE * 8)) | (120 << (VERT * 8)) | (18 << (BLEU * 8));
 	case GML_ORANGE_J:
-		return (120 << (VERT * 8)) | (252 << (ROUGE * 8)) | (10 << (BLEU * 8));
+		return (120 << (VERT * 8)) | (252 << (ROUGE * 8)) | (18 << (BLEU * 8));
 	case GML_ORANGE_V:
 		return (160 << (VERT * 8)) | (236 << (ROUGE * 8)) | (40 << (BLEU * 8));
 	case GML_BLEUBLANC:
 		return (40 << (BLEU * 8)) | (220 << (ROUGE * 8)) | (140 << (VERT * 8));
 	case GML_VERT:
-		return (200 << (VERT * 8)) | (80 << (ROUGE * 8)) | (10 << (BLEU * 8));
+		return (200 << (VERT * 8)) | (80 << (ROUGE * 8)) | (18 << (BLEU * 8));
 	case GML_BLEU:
 		return (250 << (BLEU * 8)) | (30 << (VERT * 8)) | (80 << (ROUGE * 8));
 	case GML_BLACK:
-		return 0x5 << (BLEU * 8);
+		return (16 << (BLEU * 8)) | (16 << (VERT * 8)) |  (16 << (ROUGE * 8));
 	}
 	return 0;
 }

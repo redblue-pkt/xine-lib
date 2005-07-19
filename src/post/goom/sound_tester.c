@@ -15,6 +15,7 @@ void evaluate_sound(gint16 data[2][512], SoundInfo *info) {
 
 	int i;
 	float difaccel;
+  float prevspeed;
 
 	/* find the max */
 	int incvar = 0;
@@ -55,8 +56,10 @@ void evaluate_sound(gint16 data[2][512], SoundInfo *info) {
 		difaccel = - difaccel;
 
 	/* mise a jour de la vitesse */
+  prevspeed = info->speedvar;
 	info->speedvar = (info->speedvar + difaccel * 0.5f) / 2;
 	info->speedvar *= SPEED_MULT;
+  info->speedvar = (info->speedvar + 3.0f * prevspeed) / 4.0f;
 	if (info->speedvar < 0)
 		info->speedvar = 0;
 	if (info->speedvar > 1)

@@ -1,30 +1,7 @@
---- goom_tools.c	2004-09-10 17:10:39.000000000 +0200
-+++ goom_tools.c	2004-11-21 15:28:12.000000000 +0100
-@@ -3,7 +3,6 @@
- 
- GoomRandom *goom_random_init(int i) {
- 	GoomRandom *grandom = (GoomRandom*)malloc(sizeof(GoomRandom));
--	srand (i);
- 	grandom->pos = 1;
- 	goom_random_update_array(grandom, GOOM_NB_RAND);
- 	return grandom;
---- convolve_fx.c	2004-09-10 17:10:38.000000000 +0200
-+++ convolve_fx.c	2004-11-21 15:48:24.729326912 +0100
-@@ -52,9 +52,9 @@
- 	data->light.param.fval.value = 100.0f;
- 
- 	data->factor_adj_p = secure_f_param("Flash Intensity");
--	data->factor_adj_p.param.fval.max = 200.0f;
-+	data->factor_adj_p.param.fval.max = 100.0f;
- 	data->factor_adj_p.param.fval.step = 1.0f;
--	data->factor_adj_p.param.fval.value = 100.0f;
-+	data->factor_adj_p.param.fval.value = 50.0f;
- 
- 	data->factor_p = secure_f_feedback("Factor");
- /*	FVAL(data->factor_p) = data->factor / MAX;*/
---- filters.c	2004-09-10 17:10:39.000000000 +0200
-+++ filters.c	2004-11-21 15:37:55.000000000 +0100
-@@ -705,7 +705,7 @@
+diff -ru goom2k4-0/src/filters.c xine-lib/src/post/goom/filters.c
+--- goom2k4-0/src/filters.c	2005-02-07 11:46:41.000000000 -0200
++++ xine-lib/src/post/goom/filters.c	2005-07-18 12:15:50.000000000 -0300
+@@ -704,7 +704,7 @@
      
      data->general_speed = 0.0f;
      data->reverse = 0;
@@ -33,29 +10,88 @@
      data->waveEffect = 0;
      data->hypercosEffect = 0;
      data->vPlaneEffect = 0;
---- goomsl_lex.c	2004-09-10 17:10:39.000000000 +0200
-+++ goomsl_lex.c	2004-11-21 15:42:50.306166960 +0100
-@@ -624,6 +624,7 @@
- 				(yytext[yyleng - 1] == '\n'); \
- 	YY_USER_ACTION
+diff -ru goom2k4-0/src/goom_core.c xine-lib/src/post/goom/goom_core.c
+--- goom2k4-0/src/goom_core.c	2005-02-07 11:46:41.000000000 -0200
++++ xine-lib/src/post/goom/goom_core.c	2005-07-19 12:39:22.000000000 -0300
+@@ -26,6 +26,8 @@
+ #include "goom_fx.h"
+ #include "goomsl.h"
  
-+YY_DECL;
- YY_DECL
- 	{
- 	register yy_state_type yy_current_state;
-diff -u -3 -p -r1.4 -r1.5
---- xmmx.c	2 May 2005 21:13:43 -0000	1.4
-+++ xmmx.c	28 May 2005 12:20:37 -0000	1.5
-@@ -242,7 +242,7 @@ void zoom_filter_xmmx (int prevX, int pr
++#include "xine_internal.h"
++
+ /* #define VERBOSE */
+ 
+ #define STOP_SPEED 128
+@@ -736,7 +738,12 @@
+         /* affichage et swappage des buffers.. */
+         goomInfo->cycle++;
+         
++        /* xine: no convolve_fx */
++        /*
+         goomInfo->convolve_fx.apply(&goomInfo->convolve_fx,return_val,goomInfo->outputBuf,goomInfo);
++        */
++        xine_fast_memcpy(goomInfo->outputBuf, return_val, goomInfo->screen.size * sizeof(Pixel));
++
+         
+         return (guint32*)goomInfo->outputBuf;
+ }
+diff -ru goom2k4-0/src/goom_tools.c xine-lib/src/post/goom/goom_tools.c
+--- goom2k4-0/src/goom_tools.c	2005-02-07 11:46:41.000000000 -0200
++++ xine-lib/src/post/goom/goom_tools.c	2005-07-18 14:30:02.000000000 -0300
+@@ -3,7 +3,6 @@
+ 
+ GoomRandom *goom_random_init(int i) {
+ 	GoomRandom *grandom = (GoomRandom*)malloc(sizeof(GoomRandom));
+-	srand (i);
+ 	grandom->pos = 1;
+ 	goom_random_update_array(grandom, GOOM_NB_RAND);
+ 	return grandom;
+diff -ru goom2k4-0/src/ifs.c xine-lib/src/post/goom/ifs.c
+--- goom2k4-0/src/ifs.c	2005-02-07 11:46:41.000000000 -0200
++++ xine-lib/src/post/goom/ifs.c	2005-07-19 14:20:20.000000000 -0300
+@@ -503,6 +503,13 @@
+ 
+ 		for (i = 0; i < 4; i++) {
+ 			*tmp = (*tmp) >> cycle10;
++
++      /* xine: make it darker */
++      if( *tmp && !((*tmp) >> 1) )
++        *tmp = 1;
++      else
++        *tmp = (*tmp) >> 1;
++
+ 			tmp++;
+ 		}
+ 	}
+diff -ru goom2k4-0/src/tentacle3d.c xine-lib/src/post/goom/tentacle3d.c
+--- goom2k4-0/src/tentacle3d.c	2005-02-07 11:46:41.000000000 -0200
++++ xine-lib/src/post/goom/tentacle3d.c	2005-07-19 14:04:57.000000000 -0300
+@@ -10,7 +10,7 @@
+ #define D 256.0f
+ 
+ #define nbgrid 6
+-#define definitionx 15
++#define definitionx 9
+ #define definitionz 45
+ 
+ typedef struct _TENTACLE_FX_DATA {
+diff -ru goom2k4-0/src/xmmx.c xine-lib/src/post/goom/xmmx.c
+--- goom2k4-0/src/xmmx.c	2005-02-07 11:46:41.000000000 -0200
++++ xine-lib/src/post/goom/xmmx.c	2005-07-18 15:26:23.000000000 -0300
+@@ -239,7 +239,11 @@
+ 
  		++loop;
  	}
- /*#ifdef HAVE_ATHLON*/
 -	__asm__ __volatile__ ("femms\n");
++/*#ifdef HAVE_ATHLON*/
 +	__asm__ __volatile__ ("emms\n");
- /*#else
- 	emms();
- #endif*/
-@@ -393,7 +393,7 @@ void draw_line_xmmx (Pixel *data, int x1
++/*#else
++	emms();
++#endif*/
+ }
+ 
+ #define DRAWMETHOD_PLUS_XMMX(_out,_backbuf,_col) \
+@@ -387,7 +391,7 @@
  		}
  	}
  end_of_line:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.57 2005/05/03 01:31:13 dsalt Exp $
+ * $Id: xine_goom.c,v 1.58 2005/07/19 18:10:31 miguelfreitas Exp $
  *
  * GOOM post plugin.
  *
@@ -44,7 +44,7 @@
 #include "goom.h"
 
 #define NUMSAMPLES  512
-#define FPS          10
+#define FPS          14
 
 #define GOOM_WIDTH  320
 #define GOOM_HEIGHT 240

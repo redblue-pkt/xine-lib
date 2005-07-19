@@ -70,7 +70,12 @@ IFSPoint;
 
 #define LRAND()            ((long) (goom_random(goomInfo->gRandom) & 0x7fffffff))
 #define NRAND(n)           ((int) (LRAND() % (n)))
+
+#if RAND_MAX < 0x10000
+#define MAXRAND (((float)(RAND_MAX<16)+((float)RAND_MAX)+1.0f)/127.0f)
+#else
 #define MAXRAND            (2147483648.0/127.0)           /* unsigned 1<<31 / 127.0 (cf goom_tools) as a float */
+#endif
 
 /*****************************************************/
 
@@ -498,6 +503,13 @@ static void ifs_update (PluginInfo *goomInfo, Pixel * data, Pixel * back, int in
 
 		for (i = 0; i < 4; i++) {
 			*tmp = (*tmp) >> cycle10;
+
+      /* xine: make it darker */
+      if( *tmp && !((*tmp) >> 1) )
+        *tmp = 1;
+      else
+        *tmp = (*tmp) >> 1;
+
 			tmp++;
 		}
 	}
@@ -735,7 +747,7 @@ static void ifs_vfx_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo *
 	/*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
 }
 
-static void ifs_vfx_init(VisualFX *_this) {
+static void ifs_vfx_init(VisualFX *_this, PluginInfo *info) {
 
 	IfsData *data = (IfsData*)malloc(sizeof(IfsData));
 	data->Root = (FRACTAL*)NULL;

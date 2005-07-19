@@ -14,7 +14,11 @@ void goom_random_free(GoomRandom *grandom) {
 
 void goom_random_update_array(GoomRandom *grandom, int numberOfValuesToChange) {
 	while (numberOfValuesToChange > 0) {
+#if RAND_MAX < 0x10000
+		grandom->array[grandom->pos++] = ((rand()<<16)+rand()) / 127;
+#else
 		grandom->array[grandom->pos++] = rand() / 127;
+#endif
 		numberOfValuesToChange--;
 	}
 }

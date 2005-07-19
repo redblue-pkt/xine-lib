@@ -684,7 +684,7 @@ static void generatePrecalCoef (int precalCoef[16][16])
 
 /* VisualFX Wrapper */
 
-static void zoomFilterVisualFXWrapper_init (struct _VISUAL_FX *_this)
+static void zoomFilterVisualFXWrapper_init (struct _VISUAL_FX *_this, PluginInfo *info)
 {
     ZoomFilterFXWrapperData *data = (ZoomFilterFXWrapperData*)malloc(sizeof(ZoomFilterFXWrapperData));
     

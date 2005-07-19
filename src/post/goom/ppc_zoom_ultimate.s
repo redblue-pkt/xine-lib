@@ -68,6 +68,8 @@ lwz	r29,4(r31)   ; py
 lwz	r8,0(r30)    ; px2
 lwz	r10,4(r30)   ; py2
 
+b       L1
+.align  5
 L1:
 
 ; computes dynamically the position to fetch
@@ -200,7 +202,19 @@ lwz	r10,4(r30)   ; py2
 ;*********************
 lis     r17,0x0F01
 
+b       L100
+.align  5
 L100:
+
+addi    r6,r6,4
+
+; Optimization to ensure the destination buffer
+; won't be loaded into the data cache
+rlwinm. r0,r6,0,27,31
+bne+    L500
+dcbz    0,r6
+;dcba    0,r6
+L500:
 
 ; computes dynamically the position to fetch
 ;mullw   r8,r8,r29
@@ -251,7 +265,8 @@ add	r2,r2,r20		; Adds one line for future load of col3 and col4
 and	r8, r25,r12		; Masks col1 channels 1 & 3 : 0x00XX00XX
 rlwinm  r24,r10,8,24,31		; Isolates coef4 (44?????? -> 00000044)
 dst     r2,r17,2
-andi.	r25,r25,0xFF00		; Masks col1 channel 2 : 0x0000XX00
+rlwinm  r25,r25,0,16,23		; Masks col1 channel 2 : 0x0000XX00
+;andi.	r25,r25,0xFF00		; Masks col1 channel 2 : 0x0000XX00
 mullw	r8, r8, r21		; Applies coef1 on col1 channels 1 & 3
 
 
@@ -260,14 +275,16 @@ and	r10,r26,r12		; Masks col2 channels 1 & 3 : 0x00XX00XX
 lwz	r27,0(r2)		; Loads col3 -> r27
 mullw	r10,r10,r22		; Applies coef2 on col2 channels 1 & 3
 mullw	r25,r25,r21		; Applies coef1 on col1 channel 2
-andi.	r29,r26,0xFF00		; Masks col2 channel 2 : 0x0000XX00
+rlwinm  r29,r26,0,16,23		; Masks col2 channel 2 : 0x0000XX00
+;andi.	r29,r26,0xFF00		; Masks col2 channel 2 : 0x0000XX00
 mullw	r29,r29,r22		; Applies coef2 on col2 channel 2
 lwz	r28,4(r2)		; Loads col4 -> r28
 add	r8 ,r8 ,r10		; Adds col1 & col2 channels 1 & 3
 and	r10,r27,r12		; Masks col3 channels 1 & 3 : 0x00XX00XX
 add	r25,r25,r29		; Adds col1 & col2 channel 2
 mullw	r10,r10,r23		; Applies coef3 on col3 channels 1 & 3
-andi.	r29,r27,0xFF00		; Masks col3 channel 2 : 0x0000XX00
+rlwinm  r29,r27,0,16,23		; Masks col3 channel 2 : 0x0000XX00
+;andi.	r29,r27,0xFF00		; Masks col3 channel 2 : 0x0000XX00
 mullw	r29,r29,r23		; Applies coef3 on col3 channel 2
 lwz	r2,0(r31)		; px
 add	r7 ,r8 ,r10		; Adds col3 to (col1 + col2) channels 1 & 3
@@ -275,7 +292,8 @@ and	r10,r28,r12		; Masks col4 channels 1 & 3 : 0x00XX00XX
 mullw	r10,r10,r24		; Applies coef4 on col4 channels 1 & 3
 add	r25,r25,r29		; Adds col 3 to (col1 + col2) channel 2
 lwz 	r8,0(r30)    		; px2
-andi.	r28,r28,0xFF00		; Masks col4 channel 2 : 0x0000XX00
+rlwinm  r28,r28,0,16,23		; Masks col4 channel 2 : 0x0000XX00
+;andi.	r28,r28,0xFF00		; Masks col4 channel 2 : 0x0000XX00
 add	r7 ,r7 ,r10		; Adds col4 to (col1 + col2 + col3) channels 1 & 3
 lwz	r10,4(r30)   		; py2
 mullw	r28,r28,r24		; Applies coef4 on col4 channel 2
@@ -283,14 +301,14 @@ srawi	r7, r7, 8		; (sum of channels 1 & 3) >> 8
 lwz	r29,4(r31)              ; py
 add	r25,r25,r28		; Adds col 4 to (col1 + col2 + col3) channel 2
 rlwimi  r7, r25, 24, 16, 23	; (((sum of channels 2) >> 8 ) & 0x0000FF00) | ((sum of channels 1 and 3) & 0xFFFF00FF)
-stwu	r7,4(r6)		; Stores the computed pixel
+stw	r7,0(r6)		; Stores the computed pixel
 bdnz	L100			; Iterate again if needed
 b       L300	;goto end	; If not, returns from the function
 
 
 ; if out of range
 L400:
-stwu	r18,4(r6)
+stw	r18,0(r6)
 lwz	r8,0(r30)    ; px2
 lwz	r10,4(r30)   ; py2
 lwz	r2,0(r31)    ; px

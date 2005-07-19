@@ -22,7 +22,7 @@ endif
 
 xineplug_post_goom_la_SOURCES = $(extra_files) xine_goom.c \
 	config_param.c convolve_fx.c cpu_info.c drawmethods.c filters.c flying_stars_fx.c \
-	gfontlib.c gfontrle.c goom_core.c goom_tools.c goomsl.c goomsl_hash.c \
+	gfontlib.c gfontrle.c goom_core.c goom_tools.c goomsl.c goomsl_hash.c goomsl_heap.c \
 	goomsl_lex.c goomsl_yacc.c graphic.c ifs.c lines.c mathtools.c \
 	plugin_info.c sound_tester.c surf3d.c tentacle3d.c v3d.c
 xineplug_post_goom_la_LIBADD = $(XINE_LIB) $(GOOM_LIBS)
@@ -31,5 +31,6 @@ xineplug_post_goom_la_LDFLAGS = -avoid-version -module $(XINE_PLUGIN_MIN_SYMS)
 noinst_HEADERS = cpu_info.h default_scripts.h drawmethods.h gfontlib.h gfontrle.h goom.h \
 	goom_config.h goom_config_param.h goom_filters.h goom_fx.h goom_graphic.h \
 	goom_plugin_info.h goom_tools.h goom_typedefs.h goom_visual_fx.h goomsl.h goomsl_hash.h \
-	goomsl_private.h goomsl_yacc.h ifs.h lines.h mathtools.h mmx.h \
-	ppc_drawings.h ppc_zoom_ultimate.h sound_tester.h surf3d.h tentacle3d.h v3d.h
+	goomsl_heap.h goomsl_private.h goomsl_yacc.h ifs.h lines.h mathtools.h mmx.h \
+	ppc_drawings.h ppc_zoom_ultimate.h sound_tester.h surf3d.h tentacle3d.h v3d.h \
+	motif_goom1.h motif_goom2.h

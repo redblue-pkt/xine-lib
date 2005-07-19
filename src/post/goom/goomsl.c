@@ -6,7 +6,7 @@
 #include "goomsl_private.h"
 #include "goomsl_yacc.h"
 
-/* #define TRACE_SCRIPT */
+/*#define TRACE_SCRIPT*/
 
  /* {{{ definition of the instructions number */
 #define INSTR_SETI_VAR_INTEGER     1
@@ -49,6 +49,13 @@
 /* #define INSTR_EXT_CALL          38 */
 #define INSTR_NOT_VAR              39
 /* #define INSTR_JNZERO            40 */
+#define  INSTR_SETS_VAR_VAR        41
+#define  INSTR_ISEQUALS_VAR_VAR    42
+#define  INSTR_ADDS_VAR_VAR        43
+#define  INSTR_SUBS_VAR_VAR        44
+#define  INSTR_MULS_VAR_VAR        45
+#define  INSTR_DIVS_VAR_VAR        46
+
  /* }}} */
 /* {{{ definition of the validation error types */
 static const char *VALIDATE_OK = "ok"; 
@@ -201,58 +208,67 @@ void gsl_instr_display(Instruction *_this)
 
 static const char *validate_v_v(Instruction *_this)
 { /* {{{ */
-  _this->data.v_v.var_dest = goom_hash_get(_this->vnamespace[1], _this->params[1]);
-  _this->data.v_v.var_src =  goom_hash_get(_this->vnamespace[0], _this->params[0]);
+  HashValue *dest = goom_hash_get(_this->vnamespace[1], _this->params[1]);
+  HashValue *src  = goom_hash_get(_this->vnamespace[0], _this->params[0]);
 
-  if (_this->data.v_v.var_dest == NULL) {
+  if (dest == NULL) {
     return VALIDATE_NO_SUCH_DEST_VAR;
   }
-  if (_this->data.v_v.var_src == NULL) {
+  if (src == NULL) {
     return VALIDATE_NO_SUCH_SRC_VAR;
   }
+  _this->data.udest.var = dest->ptr;
+  _this->data.usrc.var  = src->ptr;
   return VALIDATE_OK;
 } /* }}} */
 
 static const char *validate_v_i(Instruction *_this)
 { /* {{{ */
-  _this->data.v_i.var = goom_hash_get(_this->vnamespace[1], _this->params[1]);
-  _this->data.v_i.value = strtol(_this->params[0],NULL,0);
+  HashValue *dest            = goom_hash_get(_this->vnamespace[1], _this->params[1]);
+  _this->data.usrc.value_int = strtol(_this->params[0],NULL,0);
 
-  if (_this->data.v_i.var == NULL) {
+  if (dest == NULL) {
     return VALIDATE_NO_SUCH_INT;
   }
+  _this->data.udest.var = dest->ptr;
   return VALIDATE_OK;
 } /* }}} */
 
 static const char *validate_v_p(Instruction *_this)
 { /* {{{ */
-  _this->data.v_p.var = goom_hash_get(_this->vnamespace[1], _this->params[1]);
-  _this->data.v_p.value = strtol(_this->params[0],NULL,0);
+  HashValue *dest            = goom_hash_get(_this->vnamespace[1], _this->params[1]);
+  _this->data.usrc.value_ptr = strtol(_this->params[0],NULL,0);
 
-  if (_this->data.v_p.var == NULL) {
+  if (dest == NULL) {
     return VALIDATE_NO_SUCH_INT;
   }
+  _this->data.udest.var = dest->ptr;
   return VALIDATE_OK;
 } /* }}} */
 
 static const char *validate_v_f(Instruction *_this)
 { /* {{{ */
-  _this->data.v_f.var = goom_hash_get(_this->vnamespace[1], _this->params[1]);
-  _this->data.v_f.value = atof(_this->params[0]);
+  HashValue *dest            = goom_hash_get(_this->vnamespace[1], _this->params[1]);
+  _this->data.usrc.value_float = atof(_this->params[0]);
 
-  if (_this->data.v_f.var == NULL) {
+  if (dest == NULL) {
     return VALIDATE_NO_SUCH_VAR;
   }
+  _this->data.udest.var = dest->ptr;
   return VALIDATE_OK;
 } /* }}} */
 
-static const char *validate(Instruction *_this, int vf_f_id, int vf_v_id, int vi_i_id, int vi_v_id, int vp_p_id, int vp_v_id)
+static const char *validate(Instruction *_this,
+                            int vf_f_id, int vf_v_id,
+                            int vi_i_id, int vi_v_id,
+                            int vp_p_id, int vp_v_id,
+                            int vs_v_id)
 { /* {{{ */
   if ((_this->types[1] == TYPE_FVAR) && (_this->types[0] == TYPE_FLOAT)) {
     _this->id = vf_f_id;
     return validate_v_f(_this);
   }
-  else if ((_this->types[1] == TYPE_FVAR) && (_this->types[0] == TYPE_VAR)) {
+  else if ((_this->types[1] == TYPE_FVAR) && (_this->types[0] == TYPE_FVAR)) {
     _this->id = vf_v_id;
     return validate_v_v(_this);
   }
@@ -260,7 +276,7 @@ static const char *validate(Instruction *_this, int vf_f_id, int vf_v_id, int vi
     _this->id = vi_i_id;
     return validate_v_i(_this);
   }
-  else if ((_this->types[1] == TYPE_IVAR) && (_this->types[0] == TYPE_VAR)) {
+  else if ((_this->types[1] == TYPE_IVAR) && (_this->types[0] == TYPE_IVAR)) {
     _this->id = vi_v_id;
     return validate_v_v(_this);
   }
@@ -269,9 +285,14 @@ static const char *validate(Instruction *_this, int vf_f_id, int vf_v_id, int vi
     _this->id = vp_p_id;
     return validate_v_p(_this);
   }
-  else if ((_this->types[1] == TYPE_PVAR) && (_this->types[0] == TYPE_VAR)) {
+  else if ((_this->types[1] == TYPE_PVAR) && (_this->types[0] == TYPE_PVAR)) {
     _this->id = vp_v_id;
     if (vp_v_id == INSTR_NOP) return VALIDATE_ERROR;
+    return validate_v_v(_this);
+  }
+  else if ((_this->types[1] < FIRST_RESERVED) && (_this->types[1] >= 0) && (_this->types[0] == _this->types[1])) {
+    _this->id = vs_v_id;
+    if (vs_v_id == INSTR_NOP) return "Impossible operation to perform between two structs";
     return validate_v_v(_this);
   }
   return VALIDATE_ERROR;
@@ -280,19 +301,24 @@ static const char *validate(Instruction *_this, int vf_f_id, int vf_v_id, int vi
 const char *gsl_instr_validate(Instruction *_this)
 { /* {{{ */
   if (_this->id != INSTR_EXT_CALL) {
-    int i;
-    for (i=_this->nb_param-1;i>=0;--i)
+    int i = _this->nb_param;
+    while (i>0)
+    {
+      i--;
       if (_this->types[i] == TYPE_VAR) {
-        HashValue *val = goom_hash_get(_this->vnamespace[i], _this->params[i]);
-        if (val && val->i == INSTR_INT)
+        int type = gsl_type_of_var(_this->vnamespace[i], _this->params[i]);
+
+        if (type == INSTR_INT)
           _this->types[i] = TYPE_IVAR;
-        else if (val && val->i == INSTR_FLOAT)
+        else if (type == INSTR_FLOAT)
           _this->types[i] = TYPE_FVAR;
-        else if (val && val->i == INSTR_PTR)
+        else if (type == INSTR_PTR)
           _this->types[i] = TYPE_PVAR;
+        else if ((type >= 0) && (type < FIRST_RESERVED))
+          _this->types[i] = type;
         else fprintf(stderr,"WARNING: Line %d, %s has no namespace\n", _this->line_number, _this->params[i]);
-        break;
       }
+    }
   }
 
   switch (_this->id) {
@@ -302,14 +328,15 @@ const char *gsl_instr_validate(Instruction *_this)
       return validate(_this,
           INSTR_SETF_VAR_FLOAT, INSTR_SETF_VAR_VAR,
           INSTR_SETI_VAR_INTEGER, INSTR_SETI_VAR_VAR,
-          INSTR_SETP_VAR_PTR, INSTR_SETP_VAR_VAR);
+          INSTR_SETP_VAR_PTR, INSTR_SETP_VAR_VAR,
+          INSTR_SETS_VAR_VAR);
 
       /* extcall */
     case INSTR_EXT_CALL:
       if (_this->types[0] == TYPE_VAR) {
         HashValue *fval = goom_hash_get(_this->parent->functions, _this->params[0]);
         if (fval) {
-          _this->data.external_function = (struct _ExternalFunctionStruct*)fval->ptr;
+          _this->data.udest.external_function = (struct _ExternalFunctionStruct*)fval->ptr;
           return VALIDATE_OK;
         }
       }
@@ -362,7 +389,8 @@ const char *gsl_instr_validate(Instruction *_this)
       return validate(_this,
           INSTR_ISEQUALF_VAR_FLOAT, INSTR_ISEQUALF_VAR_VAR,
           INSTR_ISEQUALI_VAR_INTEGER, INSTR_ISEQUALI_VAR_VAR,
-          INSTR_ISEQUALP_VAR_PTR, INSTR_ISEQUALP_VAR_VAR);
+          INSTR_ISEQUALP_VAR_PTR, INSTR_ISEQUALP_VAR_VAR,
+          INSTR_ISEQUALS_VAR_VAR);
 
       /* not */
     case INSTR_NOT:
@@ -374,35 +402,39 @@ const char *gsl_instr_validate(Instruction *_this)
       return validate(_this,
           INSTR_ISLOWERF_VAR_FLOAT, INSTR_ISLOWERF_VAR_VAR,
           INSTR_ISLOWERI_VAR_INTEGER, INSTR_ISLOWERI_VAR_VAR,
-          INSTR_NOP, INSTR_NOP);
+          INSTR_NOP, INSTR_NOP, INSTR_NOP);
 
       /* add */
     case INSTR_ADD:
       return validate(_this,
           INSTR_ADDF_VAR_FLOAT, INSTR_ADDF_VAR_VAR,
           INSTR_ADDI_VAR_INTEGER, INSTR_ADDI_VAR_VAR,
-          INSTR_NOP, INSTR_NOP);
+          INSTR_NOP, INSTR_NOP,
+          INSTR_ADDS_VAR_VAR);
 
       /* mul */
     case INSTR_MUL:
       return validate(_this,
           INSTR_MULF_VAR_FLOAT, INSTR_MULF_VAR_VAR,
           INSTR_MULI_VAR_INTEGER, INSTR_MULI_VAR_VAR,
-          INSTR_NOP, INSTR_NOP);
+          INSTR_NOP, INSTR_NOP,
+          INSTR_MULS_VAR_VAR);
 
       /* sub */
     case INSTR_SUB:
       return validate(_this,
           INSTR_SUBF_VAR_FLOAT, INSTR_SUBF_VAR_VAR,
           INSTR_SUBI_VAR_INTEGER, INSTR_SUBI_VAR_VAR,
-          INSTR_NOP, INSTR_NOP);
+          INSTR_NOP, INSTR_NOP,
+          INSTR_SUBS_VAR_VAR);
 
       /* div */
     case INSTR_DIV:
       return validate(_this,
           INSTR_DIVF_VAR_FLOAT, INSTR_DIVF_VAR_VAR,
           INSTR_DIVI_VAR_INTEGER, INSTR_DIVI_VAR_VAR,
-          INSTR_NOP,INSTR_NOP);
+          INSTR_NOP,INSTR_NOP,
+          INSTR_DIVS_VAR_VAR);
 
     default:
       return VALIDATE_TODO;
@@ -423,7 +455,42 @@ void iflow_execute(FastInstructionFlow *_this, GoomSL *gsl)
 
   stack[stack_pointer++] = -1;
 
-  while (1) {
+  /* Quelques Macro pour rendre le code plus lisible */
+#define pSRC_VAR        instr[ip].data.usrc.var
+#define SRC_VAR_INT    *instr[ip].data.usrc.var_int
+#define SRC_VAR_FLOAT  *instr[ip].data.usrc.var_float
+#define SRC_VAR_PTR    *instr[ip].data.usrc.var_ptr
+
+#define pDEST_VAR       instr[ip].data.udest.var
+#define DEST_VAR_INT   *instr[ip].data.udest.var_int
+#define DEST_VAR_FLOAT *instr[ip].data.udest.var_float
+#define DEST_VAR_PTR   *instr[ip].data.udest.var_ptr
+
+#define VALUE_INT       instr[ip].data.usrc.value_int
+#define VALUE_FLOAT     instr[ip].data.usrc.value_float
+#define VALUE_PTR       instr[ip].data.usrc.value_ptr
+
+#define JUMP_OFFSET     instr[ip].data.udest.jump_offset
+
+#define SRC_STRUCT_ID  instr[ip].data.usrc.var_int[-1]
+#define DEST_STRUCT_ID instr[ip].data.udest.var_int[-1]
+#define SRC_STRUCT_IBLOCK(i)  gsl->gsl_struct[SRC_STRUCT_ID]->iBlock[i]
+#define SRC_STRUCT_FBLOCK(i)  gsl->gsl_struct[SRC_STRUCT_ID]->fBlock[i]
+#define DEST_STRUCT_IBLOCK(i) gsl->gsl_struct[DEST_STRUCT_ID]->iBlock[i]
+#define DEST_STRUCT_FBLOCK(i) gsl->gsl_struct[DEST_STRUCT_ID]->fBlock[i]
+#define DEST_STRUCT_IBLOCK_VAR(i,j) \
+  ((int*)((char*)pDEST_VAR   + gsl->gsl_struct[DEST_STRUCT_ID]->iBlock[i].data))[j]
+#define DEST_STRUCT_FBLOCK_VAR(i,j) \
+  ((float*)((char*)pDEST_VAR + gsl->gsl_struct[DEST_STRUCT_ID]->fBlock[i].data))[j]
+#define SRC_STRUCT_IBLOCK_VAR(i,j) \
+  ((int*)((char*)pSRC_VAR    + gsl->gsl_struct[SRC_STRUCT_ID]->iBlock[i].data))[j]
+#define SRC_STRUCT_FBLOCK_VAR(i,j) \
+  ((float*)((char*)pSRC_VAR  + gsl->gsl_struct[SRC_STRUCT_ID]->fBlock[i].data))[j]
+#define DEST_STRUCT_SIZE      gsl->gsl_struct[DEST_STRUCT_ID]->size
+
+  while (1)
+  {
+    int i;
 #ifdef TRACE_SCRIPT 
     printf("execute "); gsl_instr_display(instr[ip].proto); printf("\n");
 #endif
@@ -431,163 +498,163 @@ void iflow_execute(FastInstructionFlow *_this, GoomSL *gsl)
 
       /* SET.I */
       case INSTR_SETI_VAR_INTEGER:
-        instr[ip].data.v_i.var->i = instr[ip].data.v_i.value;
+        DEST_VAR_INT = VALUE_INT;
         ++ip; break;
 
       case INSTR_SETI_VAR_VAR:
-        instr[ip].data.v_v.var_dest->i = instr[ip].data.v_v.var_src->i;
+        DEST_VAR_INT = SRC_VAR_INT;
         ++ip; break;
 
         /* SET.F */
       case INSTR_SETF_VAR_FLOAT:
-        instr[ip].data.v_f.var->f = instr[ip].data.v_f.value;
+        DEST_VAR_FLOAT = VALUE_FLOAT;
         ++ip; break;
 
       case INSTR_SETF_VAR_VAR:
-        instr[ip].data.v_v.var_dest->f = instr[ip].data.v_v.var_src->f;
+        DEST_VAR_FLOAT = SRC_VAR_FLOAT;
         ++ip; break;
 
         /* SET.P */
       case INSTR_SETP_VAR_VAR:
-        instr[ip].data.v_v.var_dest->ptr = instr[ip].data.v_v.var_src->ptr;
+        DEST_VAR_PTR = SRC_VAR_PTR;
         ++ip; break;
 
       case INSTR_SETP_VAR_PTR:
-        instr[ip].data.v_p.var->i = instr[ip].data.v_p.value;
+        DEST_VAR_PTR = VALUE_PTR;
         ++ip; break;
 
         /* JUMP */
       case INSTR_JUMP:
-        ip += instr[ip].data.jump_offset; break;
+        ip += JUMP_OFFSET; break;
 
         /* JZERO */
       case INSTR_JZERO:
-        ip += (flag ? 1 : instr[ip].data.jump_offset); break;
+        ip += (flag ? 1 : JUMP_OFFSET); break;
 
       case INSTR_NOP:
         ++ip; break;
 
         /* ISEQUAL.P */
       case INSTR_ISEQUALP_VAR_VAR:
-        flag = (instr[ip].data.v_v.var_dest->i == instr[ip].data.v_v.var_src->i);
+        flag = (DEST_VAR_PTR == SRC_VAR_PTR);
         ++ip; break;
 
       case INSTR_ISEQUALP_VAR_PTR:
-        flag = (instr[ip].data.v_p.var->i == instr[ip].data.v_p.value);
+        flag = (DEST_VAR_PTR == VALUE_PTR);
         ++ip; break;
 
         /* ISEQUAL.I */
       case INSTR_ISEQUALI_VAR_VAR:
-        flag = (instr[ip].data.v_v.var_dest->i == instr[ip].data.v_v.var_src->i);
+        flag = (DEST_VAR_INT == SRC_VAR_INT);
         ++ip; break;
 
       case INSTR_ISEQUALI_VAR_INTEGER:
-        flag = (instr[ip].data.v_i.var->i == instr[ip].data.v_i.value);
+        flag = (DEST_VAR_INT == VALUE_INT);
         ++ip; break;
 
         /* ISEQUAL.F */
       case INSTR_ISEQUALF_VAR_VAR:
-        flag = (instr[ip].data.v_v.var_dest->f == instr[ip].data.v_v.var_src->f);
+        flag = (DEST_VAR_FLOAT == SRC_VAR_FLOAT);
         ++ip; break;
 
       case INSTR_ISEQUALF_VAR_FLOAT:
-        flag = (instr[ip].data.v_f.var->f == instr[ip].data.v_f.value);
+        flag = (DEST_VAR_FLOAT ==  VALUE_FLOAT);
         ++ip; break;
 
         /* ISLOWER.I */
       case INSTR_ISLOWERI_VAR_VAR:
-        flag = (instr[ip].data.v_v.var_dest->i < instr[ip].data.v_v.var_src->i);
+        flag = (DEST_VAR_INT < SRC_VAR_INT);
         ++ip; break;
 
       case INSTR_ISLOWERI_VAR_INTEGER:
-        flag = (instr[ip].data.v_i.var->i < instr[ip].data.v_i.value);
+        flag = (DEST_VAR_INT <  VALUE_INT);
         ++ip; break;
 
         /* ISLOWER.F */
       case INSTR_ISLOWERF_VAR_VAR:
-        flag = (instr[ip].data.v_v.var_dest->f < instr[ip].data.v_v.var_src->f);
+        flag = (DEST_VAR_FLOAT < SRC_VAR_FLOAT);
         ++ip; break;
 
       case INSTR_ISLOWERF_VAR_FLOAT:
-        flag = (instr[ip].data.v_f.var->f < instr[ip].data.v_f.value);
+        flag = (DEST_VAR_FLOAT <  VALUE_FLOAT);
         ++ip; break;
 
         /* ADD.I */
       case INSTR_ADDI_VAR_VAR:
-        instr[ip].data.v_v.var_dest->i += instr[ip].data.v_v.var_src->i;
+        DEST_VAR_INT += SRC_VAR_INT;
         ++ip; break;
 
       case INSTR_ADDI_VAR_INTEGER:
-        instr[ip].data.v_i.var->i += instr[ip].data.v_i.value;
+        DEST_VAR_INT += VALUE_INT;
         ++ip; break;
 
         /* ADD.F */
       case INSTR_ADDF_VAR_VAR:
-        instr[ip].data.v_v.var_dest->f += instr[ip].data.v_v.var_src->f;
+        DEST_VAR_FLOAT += SRC_VAR_FLOAT;
         ++ip; break;
 
       case INSTR_ADDF_VAR_FLOAT:
-        instr[ip].data.v_f.var->f += instr[ip].data.v_f.value;
+        DEST_VAR_FLOAT += VALUE_FLOAT;
         ++ip; break;
 
         /* MUL.I */
       case INSTR_MULI_VAR_VAR:
-        instr[ip].data.v_v.var_dest->i *= instr[ip].data.v_v.var_src->i;
+        DEST_VAR_INT *= SRC_VAR_INT;
         ++ip; break;
 
       case INSTR_MULI_VAR_INTEGER:
-        instr[ip].data.v_i.var->i *= instr[ip].data.v_i.value;
+        DEST_VAR_INT *= VALUE_INT;
         ++ip; break;
 
         /* MUL.F */
       case INSTR_MULF_VAR_FLOAT:
-        instr[ip].data.v_f.var->f *= instr[ip].data.v_f.value;
+        DEST_VAR_FLOAT *= VALUE_FLOAT;
         ++ip; break;
 
       case INSTR_MULF_VAR_VAR:
-        instr[ip].data.v_v.var_dest->f *= instr[ip].data.v_v.var_src->f;
+        DEST_VAR_FLOAT *= SRC_VAR_FLOAT;
         ++ip; break;
 
         /* DIV.I */
       case INSTR_DIVI_VAR_VAR:
-        instr[ip].data.v_v.var_dest->i /= instr[ip].data.v_v.var_src->i;
+        DEST_VAR_INT /= SRC_VAR_INT;
         ++ip; break;
 
       case INSTR_DIVI_VAR_INTEGER:
-        instr[ip].data.v_i.var->i /= instr[ip].data.v_i.value;
+        DEST_VAR_INT /= VALUE_INT;
         ++ip; break;
 
         /* DIV.F */
       case INSTR_DIVF_VAR_FLOAT:
-        instr[ip].data.v_f.var->f /= instr[ip].data.v_f.value;
+        DEST_VAR_FLOAT /= VALUE_FLOAT;
         ++ip; break;
 
       case INSTR_DIVF_VAR_VAR:
-        instr[ip].data.v_v.var_dest->f /= instr[ip].data.v_v.var_src->f;
+        DEST_VAR_FLOAT /= SRC_VAR_FLOAT;
         ++ip; break;
 
         /* SUB.I */
       case INSTR_SUBI_VAR_VAR:
-        instr[ip].data.v_v.var_dest->i -= instr[ip].data.v_v.var_src->i;
+        DEST_VAR_INT -= SRC_VAR_INT;
         ++ip; break;
 
       case INSTR_SUBI_VAR_INTEGER:
-        instr[ip].data.v_i.var->i -= instr[ip].data.v_i.value;
+        DEST_VAR_INT -= VALUE_INT;
         ++ip; break;
 
         /* SUB.F */
       case INSTR_SUBF_VAR_FLOAT:
-        instr[ip].data.v_f.var->f -= instr[ip].data.v_f.value;
+        DEST_VAR_FLOAT -= VALUE_FLOAT;
         ++ip; break;
 
       case INSTR_SUBF_VAR_VAR:
-        instr[ip].data.v_v.var_dest->f -= instr[ip].data.v_v.var_src->f;
+        DEST_VAR_FLOAT -= SRC_VAR_FLOAT;
         ++ip; break;
 
         /* CALL */
       case INSTR_CALL:
         stack[stack_pointer++] = ip + 1;
-        ip += instr[ip].data.jump_offset; break;
+        ip += JUMP_OFFSET; break;
 
         /* RET */
       case INSTR_RET:
@@ -597,7 +664,7 @@ void iflow_execute(FastInstructionFlow *_this, GoomSL *gsl)
 
         /* EXT_CALL */
       case INSTR_EXT_CALL:
-        instr[ip].data.external_function->function(gsl, gsl->vars, instr[ip].data.external_function->vars);
+        instr[ip].data.udest.external_function->function(gsl, gsl->vars, instr[ip].data.udest.external_function->vars);
         ++ip; break;
 
         /* NOT */
@@ -607,7 +674,98 @@ void iflow_execute(FastInstructionFlow *_this, GoomSL *gsl)
 
         /* JNZERO */
       case INSTR_JNZERO:
-        ip += (flag ? instr[ip].data.jump_offset : 1); break;
+        ip += (flag ? JUMP_OFFSET : 1); break;
+
+      case INSTR_SETS_VAR_VAR:
+        memcpy(pDEST_VAR, pSRC_VAR, DEST_STRUCT_SIZE);
+        ++ip; break;
+
+      case INSTR_ISEQUALS_VAR_VAR:
+        break;
+
+      case INSTR_ADDS_VAR_VAR:
+        /* process integers */
+        i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_IBLOCK_VAR(i,j) += SRC_STRUCT_IBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        /* process floats */
+        i=0;
+        while (DEST_STRUCT_FBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_FBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_FBLOCK_VAR(i,j) += SRC_STRUCT_FBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        ++ip; break;
+
+      case INSTR_SUBS_VAR_VAR:
+        /* process integers */
+        i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_IBLOCK_VAR(i,j) -= SRC_STRUCT_IBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        /* process floats */
+        i=0;
+        while (DEST_STRUCT_FBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_FBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_FBLOCK_VAR(i,j) -= SRC_STRUCT_FBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        ++ip; break;
+
+      case INSTR_MULS_VAR_VAR:
+        /* process integers */
+        i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_IBLOCK_VAR(i,j) *= SRC_STRUCT_IBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        /* process floats */
+        i=0;
+        while (DEST_STRUCT_FBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_FBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_FBLOCK_VAR(i,j) *= SRC_STRUCT_FBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        ++ip; break;
+        
+      case INSTR_DIVS_VAR_VAR:
+        /* process integers */
+        i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_IBLOCK_VAR(i,j) /= SRC_STRUCT_IBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        /* process floats */
+        i=0;
+        while (DEST_STRUCT_FBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_FBLOCK(i).size;
+          while (j--) {
+            DEST_STRUCT_FBLOCK_VAR(i,j) /= SRC_STRUCT_FBLOCK_VAR(i,j);
+          }
+          ++i;
+        }
+        ++ip; break;
 
       default:
         printf("NOT IMPLEMENTED : %d\n", instr[ip].id);
@@ -631,7 +789,7 @@ void *gsl_get_ptr(GoomSL *_this, int id)
 { /* {{{ */
   if ((id>=0)&&(id<_this->nbPtr))
     return _this->ptrArray[id];
-  fprintf(stderr,"INVALID GET PTR %d\n", id);
+  fprintf(stderr,"INVALID GET PTR 0x%08x\n", id);
   return NULL;
 } /* }}} */
 
@@ -657,9 +815,15 @@ void gsl_enternamespace(const char *name)
   }
 } /* }}} */
 
-void gsl_leavenamespace(void)
+void gsl_reenternamespace(GoomHash *nsinfo) {
+  currentGoomSL->currentNS++;
+  currentGoomSL->namespaces[currentGoomSL->currentNS] = nsinfo;
+}
+
+GoomHash *gsl_leavenamespace(void)
 { /* {{{ */
   currentGoomSL->currentNS--;
+  return currentGoomSL->namespaces[currentGoomSL->currentNS+1];
 } /* }}} */
 
 GoomHash *gsl_find_namespace(const char *name)
@@ -713,7 +877,21 @@ static void reset_scanner(GoomSL *gss)
   gss->currentNS = 0;
   gss->namespaces[0] = gss->vars;
 
+  goom_hash_free(gss->structIDS);
+  gss->structIDS  = goom_hash_new();
+  
+  while (gss->nbStructID > 0) {
+    int i;
+    gss->nbStructID--;
+    for(i=0;i<gss->gsl_struct[gss->nbStructID]->nbFields;++i)
+      free(gss->gsl_struct[gss->nbStructID]->fields[i]);
+    free(gss->gsl_struct[gss->nbStructID]);
+  }
+
   gss->compilationOK = 1;
+
+  goom_heap_delete(gss->data_heap);
+  gss->data_heap = goom_heap_new();
 } /* }}} */
 
 static void calculate_labels(InstructionFlow *iflow)
@@ -724,7 +902,7 @@ static void calculate_labels(InstructionFlow *iflow)
     if (instr->jump_label) {
       HashValue *label = goom_hash_get(iflow->labels,instr->jump_label);
       if (label) {
-        instr->data.jump_offset = -instr->address + label->i;
+        instr->data.udest.jump_offset = -instr->address + label->i;
       }
       else {
         fprintf(stderr, "ERROR: Line %d, Could not find label %s\n", instr->line_number, instr->jump_label);
@@ -737,17 +915,50 @@ static void calculate_labels(InstructionFlow *iflow)
   }
 } /* }}} */
 
+static int powerOfTwo(int i)
+{
+  int b;
+  for (b=0;b<31;b++)
+    if (i == (1<<b))
+      return b;
+  return 0;
+}
+
 /* Cree un flow d'instruction optimise */
 static void gsl_create_fast_iflow(void)
 { /* {{{ */
   int number = currentGoomSL->iflow->number;
   int i;
 #ifdef USE_JITC_X86
+
+  /* pour compatibilite avec les MACROS servant a execution */
+  int ip = 0;
+  GoomSL *gsl = currentGoomSL;
+
   JitcX86Env *jitc;
+
   if (currentGoomSL->jitc != NULL)
     jitc_x86_delete(currentGoomSL->jitc);
   jitc = currentGoomSL->jitc = jitc_x86_env_new(0xffff);
   currentGoomSL->jitc_func = jitc_prepare_func(jitc);
+
+#if 0  
+#define SRC_STRUCT_ID  instr[ip].data.usrc.var_int[-1]
+#define DEST_STRUCT_ID instr[ip].data.udest.var_int[-1]
+#define SRC_STRUCT_IBLOCK(i)  gsl->gsl_struct[SRC_STRUCT_ID]->iBlock[i]
+#define SRC_STRUCT_FBLOCK(i)  gsl->gsl_struct[SRC_STRUCT_ID]->fBlock[i]
+#define DEST_STRUCT_IBLOCK(i) gsl->gsl_struct[DEST_STRUCT_ID]->iBlock[i]
+#define DEST_STRUCT_FBLOCK(i) gsl->gsl_struct[DEST_STRUCT_ID]->fBlock[i]
+#define DEST_STRUCT_IBLOCK_VAR(i,j) \
+  ((int*)((char*)pDEST_VAR   + gsl->gsl_struct[DEST_STRUCT_ID]->iBlock[i].data))[j]
+#define DEST_STRUCT_FBLOCK_VAR(i,j) \
+  ((float*)((char*)pDEST_VAR + gsl->gsl_struct[DEST_STRUCT_ID]->fBlock[i].data))[j]
+#define SRC_STRUCT_IBLOCK_VAR(i,j) \
+  ((int*)((char*)pSRC_VAR    + gsl->gsl_struct[SRC_STRUCT_ID]->iBlock[i].data))[j]
+#define SRC_STRUCT_FBLOCK_VAR(i,j) \
+  ((float*)((char*)pSRC_VAR  + gsl->gsl_struct[SRC_STRUCT_ID]->fBlock[i].data))[j]
+#define DEST_STRUCT_SIZE      gsl->gsl_struct[DEST_STRUCT_ID]->size
+#endif
 
   JITC_JUMP_LABEL(jitc, "__very_end__");
   JITC_ADD_LABEL (jitc, "__very_start__");
@@ -756,27 +967,19 @@ static void gsl_create_fast_iflow(void)
     Instruction *instr = currentGoomSL->iflow->instr[i];
     switch (instr->id) {
       case INSTR_SETI_VAR_INTEGER     :
-        JITC_LOAD_REG_IMM32(jitc, EAX, instr->data.v_i.value);          /* eax  = value */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &instr->data.v_i.var->i);        /* ebx  = &dest */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                            /* *ebx = eax   */
+        jitc_add(jitc, "mov [$d], $d", instr->data.udest.var_int, instr->data.usrc.value_int);
         break;
       case INSTR_SETI_VAR_VAR         :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_v.var_src->i));  /* eax  = &src  */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_dest->i)); /* ebx  = &dest */
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);                            /* eax  = *eax  */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                            /* *ebx = eax   */
+        jitc_add(jitc, "mov eax, [$d]", instr->data.usrc.var_int);
+        jitc_add(jitc, "mov [$d], eax", instr->data.udest.var_int);
         break;
         /* SET.F */
       case INSTR_SETF_VAR_FLOAT       :
-        JITC_LOAD_REG_IMM32(jitc, EAX, *(int*)&(instr->data.v_f.value)); /* eax  = value */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_f.var->f));       /* ebx  = &dest */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                             /* *ebx = eax   */
+        jitc_add(jitc, "mov [$d], $d", instr->data.udest.var_float, *(int*)(&instr->data.usrc.value_float));
         break;
       case INSTR_SETF_VAR_VAR         :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_v.var_src->f));  /* eax  = &src  */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_dest->f)); /* ebx  = &dest */
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);                            /* eax  = *eax  */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                            /* *ebx = eax   */
+        jitc_add(jitc, "mov eax, [$d]", instr->data.usrc.var_float);
+        jitc_add(jitc, "mov [$d], eax", instr->data.udest.var_float);
         break;
       case INSTR_NOP                  :
         if (instr->nop_label != 0)
@@ -786,29 +989,19 @@ static void gsl_create_fast_iflow(void)
         JITC_JUMP_LABEL(jitc,instr->jump_label);
         break;
       case INSTR_SETP_VAR_PTR         :
-        JITC_LOAD_REG_IMM32(jitc, EAX, instr->data.v_p.value);           /* eax  = value */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_p.var->ptr));     /* ebx  = &dest */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                             /* *ebx = eax   */
+        jitc_add(jitc, "mov [$d], $d", instr->data.udest.var_ptr, instr->data.usrc.value_ptr);
         break;
       case INSTR_SETP_VAR_VAR         :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_v.var_src->ptr));  /* eax  = &src  */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_dest->ptr)); /* ebx  = &dest */
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);                              /* eax  = *eax  */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                              /* *ebx = eax   */
+        jitc_add(jitc, "mov eax, [$d]", instr->data.usrc.var_ptr);
+        jitc_add(jitc, "mov [$d], eax", instr->data.udest.var_ptr);
         break;
       case INSTR_SUBI_VAR_INTEGER     :
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_i.var->i));      /* ebx = &var    */
-        JITC_LOAD_REG_pREG (jitc, EAX, EBX);                            /* eax = *ebx    */
-        JITC_SUB_REG_IMM32(jitc,  EAX, instr->data.v_i.value);          /* eax -= value  */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                            /* *ebx = eax    */
+        jitc_add(jitc, "add [$d],  $d", instr->data.udest.var_int, -instr->data.usrc.value_int);
         break;
       case INSTR_SUBI_VAR_VAR         :
-        JITC_LOAD_REG_IMM32(jitc, ECX, &(instr->data.v_v.var_dest->i)); /* ecx  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->i));  /* ebx  = &src  */
-        JITC_LOAD_REG_pREG (jitc, EAX, ECX);                            /* eax  = *ecx  */
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);                            /* ebx  = *ebx  */
-        JITC_SUB_REG_REG   (jitc, EAX, EBX);                            /* eax -=  ebx  */
-        JITC_LOAD_pREG_REG (jitc, ECX, EAX);                            /* *ecx =  eax  */
+        jitc_add(jitc, "mov eax, [$d]", instr->data.udest.var_int);
+        jitc_add(jitc, "sub eax, [$d]", instr->data.usrc.var_int);
+        jitc_add(jitc, "mov [$d], eax", instr->data.udest.var_int);
         break;
       case INSTR_SUBF_VAR_FLOAT       :
         printf("NOT IMPLEMENTED : %d\n", instr->id);
@@ -816,195 +1009,263 @@ static void gsl_create_fast_iflow(void)
       case INSTR_SUBF_VAR_VAR         :
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_ISLOWERF_VAR_VAR     :
+      case INSTR_ISLOWERF_VAR_VAR:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_ISLOWERF_VAR_FLOAT   :
+      case INSTR_ISLOWERF_VAR_FLOAT:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_ISLOWERI_VAR_VAR     :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_v.var_dest->i));
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->i));
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_CMP_REG_REG   (jitc, EAX, EBX);
-        JITC_JUMP_COND     (jitc, COND_NOT_BELOW, 1);
-        JITC_INC_REG       (jitc, EDX);
+      case INSTR_ISLOWERI_VAR_VAR:
+        jitc_add(jitc,"mov edx, [$d]", instr->data.udest.var_int);
+        jitc_add(jitc,"sub edx, [$d]", instr->data.usrc.var_int);
+        jitc_add(jitc,"shr edx, $d",   31);
         break;
-      case INSTR_ISLOWERI_VAR_INTEGER :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_i.var->i));
-        JITC_LOAD_REG_IMM32(jitc, EBX, instr->data.v_i.value);
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_CMP_REG_REG   (jitc, EAX, EBX);
-        JITC_JUMP_COND     (jitc, COND_NOT_BELOW, 1);
-        JITC_INC_REG       (jitc, EDX);
+      case INSTR_ISLOWERI_VAR_INTEGER:
+        jitc_add(jitc,"mov edx, [$d]", instr->data.udest.var_int);
+        jitc_add(jitc,"sub edx, $d", instr->data.usrc.value_int);
+        jitc_add(jitc,"shr edx, $d",   31);
         break;
-      case INSTR_ADDI_VAR_INTEGER     :
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_i.var->i));      /* ebx = &var    */
-        JITC_LOAD_REG_pREG (jitc, EAX, EBX);                            /* eax = *ebx    */
-        JITC_ADD_REG_IMM32(jitc,  EAX, instr->data.v_i.value);          /* eax += value  */
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                            /* *ebx = eax    */
+      case INSTR_ADDI_VAR_INTEGER:
+        jitc_add(jitc, "add [$d],  $d", instr->data.udest.var_int, instr->data.usrc.value_int);
         break;
-      case INSTR_ADDI_VAR_VAR         :
-        JITC_LOAD_REG_IMM32(jitc, ECX, &(instr->data.v_v.var_dest->i)); /* ecx  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->i));  /* ebx  = &src  */
-        JITC_LOAD_REG_pREG (jitc, EAX, ECX);                            /* eax  = *ecx  */
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);                            /* ebx  = *ebx  */
-        JITC_ADD_REG_REG   (jitc, EAX, EBX);                            /* eax = eax + ebx */
-        JITC_LOAD_pREG_REG (jitc, ECX, EAX);                            /* *ecx = eax   */
+      case INSTR_ADDI_VAR_VAR:
+        jitc_add(jitc, "mov eax, [$d]", instr->data.udest.var_int);
+        jitc_add(jitc, "add eax, [$d]", instr->data.usrc.var_int);
+        jitc_add(jitc, "mov [$d], eax", instr->data.udest.var_int);
         break;
-      case INSTR_ADDF_VAR_FLOAT       :
+      case INSTR_ADDF_VAR_FLOAT:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_ADDF_VAR_VAR         :
+      case INSTR_ADDF_VAR_VAR:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_MULI_VAR_INTEGER     :
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_i.var->i));
-        JITC_LOAD_REG_IMM32(jitc, ECX, instr->data.v_i.value);
-        JITC_LOAD_REG_pREG (jitc, EAX, EBX);                      
-        JITC_IMUL_EAX_REG  (jitc, ECX);                      
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                      
+      case INSTR_MULI_VAR_INTEGER:
+        if (instr->data.usrc.value_int != 1)
+        {
+          int po2 = powerOfTwo(instr->data.usrc.value_int);
+          if (po2) {
+            /* performs (V / 2^n) by doing V >> n */
+            jitc_add(jitc, "mov  eax, [$d]",  instr->data.udest.var_int);
+            jitc_add(jitc, "sal  eax, $d",    po2);
+            jitc_add(jitc, "mov  [$d], eax",  instr->data.udest.var_int);
+          }
+          else {
+            jitc_add(jitc, "mov  eax, [$d]", instr->data.udest.var_int);
+            jitc_add(jitc, "imul eax, $d",   instr->data.usrc.value_int);
+            jitc_add(jitc, "mov  [$d], eax", instr->data.udest.var_int);
+          }
+        }
         break;
-      case INSTR_MULI_VAR_VAR         :
-        JITC_LOAD_REG_IMM32(jitc, ECX, &(instr->data.v_v.var_dest->i)); /* ecx  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->i));  /* ebx  = &src  */
-        JITC_LOAD_REG_pREG (jitc, EAX, ECX);                            /* eax  = *ecx  */
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);                            /* ebx  = *ebx  */
-        JITC_IMUL_EAX_REG  (jitc, EBX);                                 /* eax = eax * ebx */
-        JITC_LOAD_pREG_REG (jitc, ECX, EAX);                            /* *ecx = eax   */
+      case INSTR_MULI_VAR_VAR:
+        jitc_add(jitc, "mov  eax,  [$d]", instr->data.udest.var_int);
+        jitc_add(jitc, "imul eax,  [$d]", instr->data.usrc.var_int);
+        jitc_add(jitc, "mov  [$d], eax",  instr->data.udest.var_int);
         break;
-      case INSTR_MULF_VAR_FLOAT       :
+      case INSTR_MULF_VAR_FLOAT:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_MULF_VAR_VAR         :
+      case INSTR_MULF_VAR_VAR:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_DIVI_VAR_INTEGER     :
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_i.var->i));
-        JITC_LOAD_REG_IMM32(jitc, ECX, instr->data.v_i.value);
-        JITC_LOAD_REG_pREG (jitc, EAX, EBX);                      
-        JITC_IDIV_EAX_REG  (jitc, ECX);                      
-        JITC_LOAD_pREG_REG (jitc, EBX, EAX);                      
+      case INSTR_DIVI_VAR_INTEGER:
+        if ((instr->data.usrc.value_int != 1) && (instr->data.usrc.value_int != 0))
+        {
+          int po2 = powerOfTwo(instr->data.usrc.value_int);
+          if (po2) {
+            /* performs (V / 2^n) by doing V >> n */
+            jitc_add(jitc, "mov  eax, [$d]",  instr->data.udest.var_int);
+            jitc_add(jitc, "sar  eax, $d",    po2);
+            jitc_add(jitc, "mov  [$d], eax",  instr->data.udest.var_int);
+          }
+          else {
+            /* performs (V/n) by doing (V*(32^2/n)) */
+            long   coef;
+            double dcoef = (double)4294967296.0 / (double)instr->data.usrc.value_int;
+            if (dcoef < 0.0) dcoef = -dcoef;
+            coef   = (long)floor(dcoef);
+            dcoef -= floor(dcoef);
+            if (dcoef < 0.5) coef += 1;
+            
+            jitc_add(jitc, "mov  eax, [$d]", instr->data.udest.var_int);
+            jitc_add(jitc, "mov  edx, $d",   coef);
+            jitc_add(jitc, "imul edx");
+            if (instr->data.usrc.value_int < 0)
+              jitc_add(jitc, "neg edx");
+            jitc_add(jitc, "mov [$d], edx", instr->data.udest.var_int);
+          }
+        }
         break;
       case INSTR_DIVI_VAR_VAR         :
-        JITC_LOAD_REG_IMM32(jitc, ECX, &(instr->data.v_v.var_dest->i)); /* ecx  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->i));  /* ebx  = &src  */
-        JITC_LOAD_REG_pREG (jitc, EAX, ECX);                            /* eax  = *ecx  */
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);                            /* ebx  = *ebx  */
-        JITC_IDIV_EAX_REG  (jitc, EBX);                                 /* eax = eax * ebx */
-        JITC_LOAD_pREG_REG (jitc, ECX, EAX);                            /* *ecx = eax   */
+        jitc_add(jitc, "mov  eax, [$d]", instr->data.udest.var_int);
+        jitc_add(jitc, "cdq"); /* sign extend eax into edx */
+        jitc_add(jitc, "idiv [$d]", instr->data.usrc.var_int);
+        jitc_add(jitc, "mov [$d], eax", instr->data.udest.var_int);
         break;
-      case INSTR_DIVF_VAR_FLOAT       :
+      case INSTR_DIVF_VAR_FLOAT:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_DIVF_VAR_VAR         :
+      case INSTR_DIVF_VAR_VAR:
         printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_JZERO                :
-        JITC_CMP_REG_IMM32(jitc,EDX,1);
-        JITC_JUMP_COND_LABEL(jitc,COND_NOT_EQUAL,instr->jump_label);
+      case INSTR_JZERO:
+        jitc_add(jitc, "cmp edx, $d", 0);
+        jitc_add(jitc, "je $s", instr->jump_label);
         break;
       case INSTR_ISEQUALP_VAR_VAR     :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_v.var_dest->ptr)); /* eax  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->ptr));  /* ebx  = &src  */
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_CMP_REG_REG   (jitc, EAX, EBX);
-        JITC_JUMP_COND     (jitc, COND_NOT_EQUAL, 1);
-        JITC_INC_REG       (jitc, EDX);
+        jitc_add(jitc, "mov eax, [$d]", instr->data.udest.var_ptr);
+        jitc_add(jitc, "mov edx, $d",   0);
+        jitc_add(jitc, "cmp eax, [$d]", instr->data.usrc.var_ptr);
+        jitc_add(jitc, "jne $d",        1);
+        jitc_add(jitc, "inc edx");
         break;
       case INSTR_ISEQUALP_VAR_PTR     :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_p.var->ptr)); /* eax  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_CMP_REG_IMM32 (jitc, EAX, instr->data.v_p.value);
-        JITC_JUMP_COND     (jitc, COND_NOT_EQUAL, 1);
-        JITC_INC_REG       (jitc, EDX);
+        jitc_add(jitc, "mov eax, [$d]", instr->data.udest.var_ptr);
+        jitc_add(jitc, "mov edx, $d",   0);
+        jitc_add(jitc, "cmp eax, $d",   instr->data.usrc.value_ptr);
+        jitc_add(jitc, "jne $d",        1);
+        jitc_add(jitc, "inc edx");
         break;
       case INSTR_ISEQUALI_VAR_VAR     :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_v.var_dest->i)); /* eax  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->i));  /* ebx  = &src  */
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_CMP_REG_REG   (jitc, EAX, EBX);
-        JITC_JUMP_COND     (jitc, COND_NOT_EQUAL, 1);
-        JITC_INC_REG       (jitc, EDX);
+        jitc_add(jitc, "mov eax, [$d]", instr->data.udest.var_int);
+        jitc_add(jitc, "mov edx, $d",   0);
+        jitc_add(jitc, "cmp eax, [$d]", instr->data.usrc.var_int);
+        jitc_add(jitc, "jne $d",        1);
+        jitc_add(jitc, "inc edx");
         break;
       case INSTR_ISEQUALI_VAR_INTEGER :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_i.var->i)); /* eax  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_CMP_REG_IMM32 (jitc, EAX, instr->data.v_i.value);
-        JITC_JUMP_COND     (jitc, COND_NOT_EQUAL, 1);
-        JITC_INC_REG       (jitc, EDX);
+        jitc_add(jitc, "mov eax, [$d]", instr->data.udest.var_int);
+        jitc_add(jitc, "mov edx, $d",   0);
+        jitc_add(jitc, "cmp eax, $d", instr->data.usrc.value_int);
+        jitc_add(jitc, "jne $d",        1);
+        jitc_add(jitc, "inc edx");
         break;
       case INSTR_ISEQUALF_VAR_VAR     :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_v.var_dest->f)); /* eax  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EBX, &(instr->data.v_v.var_src->f));  /* ebx  = &src  */
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_LOAD_REG_pREG (jitc, EBX, EBX);
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_CMP_REG_REG   (jitc, EAX, EBX);
-        JITC_JUMP_COND     (jitc, COND_NOT_EQUAL, 1);
-        JITC_INC_REG       (jitc, EDX);
+        printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
       case INSTR_ISEQUALF_VAR_FLOAT   :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.v_f.var->f)); /* eax  = &dest */
-        JITC_LOAD_REG_IMM32(jitc, EDX, 0);
-        JITC_LOAD_REG_pREG (jitc, EAX, EAX);
-        JITC_CMP_REG_IMM32 (jitc, EAX, *(int*)(&instr->data.v_f.value));
-        JITC_JUMP_COND     (jitc, COND_NOT_EQUAL, 1);
-        JITC_INC_REG       (jitc, EDX);
+        printf("NOT IMPLEMENTED : %d\n", instr->id);
         break;
-      case INSTR_CALL                 :
-        JITC_CALL_LABEL(jitc, instr->jump_label);
+      case INSTR_CALL:
+        jitc_add(jitc, "call $s", instr->jump_label);
         break;
-      case INSTR_RET                  :
-        JITC_RETURN_FUNCTION(jitc);
+      case INSTR_RET:
+        jitc_add(jitc, "ret");
         break;
-      case INSTR_EXT_CALL             :
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(instr->data.external_function->vars));
-        JITC_LOAD_REG_pREG(jitc,EAX,EAX);
-        JITC_PUSH_REG(jitc,EAX);
+      case INSTR_EXT_CALL:
+        jitc_add(jitc, "mov eax, [$d]", &(instr->data.udest.external_function->vars));
+        jitc_add(jitc, "push eax");
+        jitc_add(jitc, "mov edx, [$d]", &(currentGoomSL->vars));
+        jitc_add(jitc, "push edx");
+        jitc_add(jitc, "mov eax, [$d]", &(currentGoomSL));
+        jitc_add(jitc, "push eax");
+
+        jitc_add(jitc, "mov eax, [$d]",  &(instr->data.udest.external_function));
+        jitc_add(jitc, "mov eax, [eax]");
+        jitc_add(jitc, "call [eax]");
+        jitc_add(jitc, "add esp, $d", 12);
+        break;
+      case INSTR_NOT_VAR:
+        jitc_add(jitc, "mov eax, edx");
+        jitc_add(jitc, "mov edx, $d", 1);
+        jitc_add(jitc, "sub edx, eax");
+        break;
+      case INSTR_JNZERO:
+        jitc_add(jitc, "cmp edx, $d", 0);
+        jitc_add(jitc, "jne $s", instr->jump_label);
+        break;
+      case INSTR_SETS_VAR_VAR:
+        {
+          int loop = DEST_STRUCT_SIZE / sizeof(int);
+          int dst  = (int)pDEST_VAR;
+          int src  = (int)pSRC_VAR;
         
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(currentGoomSL->vars));
-        JITC_LOAD_REG_pREG(jitc,EAX,EAX);
-        JITC_PUSH_REG(jitc,EAX);
-
-        JITC_LOAD_REG_IMM32(jitc, EAX, &(currentGoomSL));
-        JITC_LOAD_REG_pREG(jitc,EAX,EAX);
-        JITC_PUSH_REG(jitc,EAX);
-
-        JITC_LOAD_REG_IMM32(jitc,EAX,&(instr->data.external_function));
-        JITC_LOAD_REG_pREG(jitc,EAX,EAX);
-        JITC_LOAD_REG_pREG(jitc,EAX,EAX);
-
-        JITC_CALL_pREG(jitc,EAX);
-
-        JITC_POP_REG(jitc,EAX);
-        JITC_POP_REG(jitc,EAX);
-        JITC_POP_REG(jitc,EAX);
+          while (loop--) {
+            jitc_add(jitc,"mov eax, [$d]", src);
+            jitc_add(jitc,"mov [$d], eax", dst);
+            src += 4;
+            dst += 4;
+          }
+        }
         break;
-      case INSTR_NOT_VAR              :
-        JITC_LOAD_REG_REG(jitc,EAX,EDX);
-        JITC_LOAD_REG_IMM32(jitc,EDX,1);
-        JITC_SUB_REG_REG(jitc,EDX,EAX);
+      case INSTR_ISEQUALS_VAR_VAR:
         break;
-      case INSTR_JNZERO               :
-        JITC_CMP_REG_IMM32(jitc,EDX,1);
-        JITC_JUMP_COND_LABEL(jitc,COND_EQUAL,instr->jump_label);
+      case INSTR_ADDS_VAR_VAR:
+        {
+        /* process integers */
+        int i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) { /* TODO interlace 2 */
+            jitc_add(jitc, "mov eax, [$d]", &DEST_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "add eax, [$d]", &SRC_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "mov [$d], eax", &DEST_STRUCT_IBLOCK_VAR(i,j));
+          }
+          ++i;
+        }
+        /* process floats */
+        i=0;
+        while (DEST_STRUCT_FBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_FBLOCK(i).size;
+          while (j--) {
+            /* DEST_STRUCT_FBLOCK_VAR(i,j) += SRC_STRUCT_FBLOCK_VAR(i,j); */
+            /* TODO */
+          }
+          ++i;
+        }
         break;
+        }
+      case INSTR_SUBS_VAR_VAR:
+        {
+        /* process integers */
+        int i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) {
+            jitc_add(jitc, "mov eax, [$d]", &DEST_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "sub eax, [$d]", &SRC_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "mov [$d], eax", &DEST_STRUCT_IBLOCK_VAR(i,j));
+          }
+          ++i;
+        }
+        break;
+        }
+      case INSTR_MULS_VAR_VAR:
+        {
+        /* process integers */
+        int i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) {
+            jitc_add(jitc, "mov  eax,  [$d]", &DEST_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "imul eax,  [$d]", &SRC_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "mov  [$d], eax",  &DEST_STRUCT_IBLOCK_VAR(i,j));
+          }
+          ++i;
+        }
+        break;
+        }
+      case INSTR_DIVS_VAR_VAR:
+        {
+        /* process integers */
+        int i=0;
+        while (DEST_STRUCT_IBLOCK(i).size > 0) {
+          int j=DEST_STRUCT_IBLOCK(i).size;
+          while (j--) {
+            jitc_add(jitc, "mov  eax,  [$d]", &DEST_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "cdq");
+            jitc_add(jitc, "idiv [$d]",       &SRC_STRUCT_IBLOCK_VAR(i,j));
+            jitc_add(jitc, "mov  [$d], eax",  &DEST_STRUCT_IBLOCK_VAR(i,j));
+          }
+          ++i;
+        }
+        break;
+        }
     }
   }
 
   JITC_ADD_LABEL (jitc, "__very_end__");
-  JITC_CALL_LABEL(jitc, "__very_start__");
-  JITC_LOAD_REG_IMM32(jitc, EAX, 0);
+  jitc_add(jitc, "call $s", "__very_start__");
+  jitc_add(jitc, "mov eax, $d", 0);
   jitc_validate_func(jitc);
 #else
   InstructionFlow     *iflow     = currentGoomSL->iflow;
@@ -1025,18 +1286,64 @@ static void gsl_create_fast_iflow(void)
 void yy_scan_string(const char *str);
 void yyparse(void);
 
+GoomHash *gsl_globals(GoomSL *_this)
+{
+  return _this->vars;
+}
+
+
+/**
+ * Some native external functions
+ */
+static void ext_charAt(GoomSL *gsl, GoomHash *global, GoomHash *local)
+{
+  char *string = GSL_LOCAL_PTR(gsl, local, "value");
+  int   index  = GSL_LOCAL_INT(gsl, local, "index");
+  GSL_GLOBAL_INT(gsl, "charAt") = 0;
+  if (string == NULL) {
+    return;
+  }
+  if (index < strlen(string))
+    GSL_GLOBAL_INT(gsl, "charAt") = string[index];
+}
+
+static void ext_i2f(GoomSL *gsl, GoomHash *global, GoomHash *local)
+{
+  int i = GSL_LOCAL_INT(gsl, local, "value");
+  GSL_GLOBAL_FLOAT(gsl, "i2f") = i;
+}
+
+static void ext_f2i(GoomSL *gsl, GoomHash *global, GoomHash *local)
+{
+  float f = GSL_LOCAL_FLOAT(gsl, local, "value");
+  GSL_GLOBAL_INT(gsl, "f2i") = f;
+}
+
+/**
+ *
+ */
 void gsl_compile(GoomSL *_currentGoomSL, const char *script)
 { /* {{{ */
+  char *script_and_externals;
+  static const char *sBinds =
+    "external <charAt: string value, int index> : int\n"
+    "external <f2i: float value> : int\n"
+    "external <i2f: int value> : float\n";
+
 #ifdef VERBOSE
   printf("\n=== Starting Compilation ===\n");
 #endif
+
+  script_and_externals = malloc(strlen(script) + strlen(sBinds) + 2);
+  strcpy(script_and_externals, sBinds);
+  strcat(script_and_externals, script);
 
   /* 0- reset */
   currentGoomSL = _currentGoomSL;
   reset_scanner(currentGoomSL);
 
   /* 1- create the syntaxic tree */
-  yy_scan_string(script);
+  yy_scan_string(script_and_externals);
   yyparse();
 
   /* 2- generate code */
@@ -1048,6 +1355,12 @@ void gsl_compile(GoomSL *_currentGoomSL, const char *script)
   /* 4- optimize code */
   gsl_create_fast_iflow();
 
+  /* 5- bind a few internal functions */
+  gsl_bind_function(currentGoomSL, "charAt", ext_charAt);
+  gsl_bind_function(currentGoomSL, "f2i", ext_f2i);
+  gsl_bind_function(currentGoomSL, "i2f", ext_i2f);
+  free(script_and_externals);
+  
 #ifdef VERBOSE
   printf("=== Compilation done. # of lines: %d. # of instr: %d ===\n", currentGoomSL->num_lines, currentGoomSL->iflow->number);
 #endif
@@ -1071,9 +1384,16 @@ GoomSL *gsl_new(void)
   gss->iflow = iflow_new();
   gss->vars  = goom_hash_new();
   gss->functions = goom_hash_new();
+  gss->nbStructID  = 0;
+  gss->structIDS   = goom_hash_new();
+  gss->gsl_struct_size = 32;
+  gss->gsl_struct = (GSL_Struct**)malloc(gss->gsl_struct_size * sizeof(GSL_Struct*));
   gss->currentNS = 0;
   gss->namespaces[0] = gss->vars;
+  gss->data_heap = goom_heap_new();
+
   reset_scanner(gss);
+
   gss->compilationOK = 0;
   gss->nbPtr=0;
   gss->ptrArraySize=256;

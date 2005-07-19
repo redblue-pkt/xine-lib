@@ -1,12 +1,10 @@
-/* a definir pour avoir exactement le meme resultat que la fonction C
- * (un chouillat plus lent)
- */
 
 #ifdef HAVE_MMX
 
-#define STRICT_COMPAT
-
-//#define HAVE_ATHLON
+/* a definir pour avoir exactement le meme resultat que la fonction C
+ * (un chouillat plus lent).. mais la difference est assez peu notable.
+ */
+// #define STRICT_COMPAT
 
 #define BUFFPOINTNB 16
 #define BUFFPOINTMASK 0xffff
@@ -50,10 +48,12 @@ void zoom_filter_xmmx (int prevX, int prevY,
 
 	ratiox.d[0] = buffratio;
 	ratiox.d[1] = buffratio;
-	movq_m2r (ratiox, mm6);
-	pslld_i2r (16,mm6);
 
-	pxor_r2r (mm7,mm7); /* mise a zero de mm7 */
+  asm volatile
+    ("\n\t movq  %[ratio], %%mm6"
+     "\n\t pslld $16,      %%mm6" /* mm6 = [rat16=buffratio<<16 | rat16=buffratio<<16] */
+     "\n\t pxor  %%mm7,    %%mm7" /* mm7 = 0 */
+     ::[ratio]"m"(ratiox));
 
 	loop=0;
 
@@ -62,30 +62,30 @@ void zoom_filter_xmmx (int prevX, int prevY,
 	 */
 	while (loop < bufsize)
 	{
-		/*
-		 * pre : mm6 = [buffratio<<16|buffratio<<16]
-		 * post : mm0 = S + ((D-S)*buffratio)>>16 format [X|Y]
+		/* Thread #1
+		 * pre :  mm6 = [rat16|rat16]
+		 * post : mm0 = S + ((D-S)*rat16 format [X|Y]
 		 * modified = mm0,mm1,mm2
 		 */
 
-		__asm__ __volatile__ (
-		                      "movq %0,%%mm0\n"
-		                      "movq %1,%%mm1\n"
-		                      : :"X"(brutS[loop]),"X"(brutD[loop])
-		                     );               /* mm0 = S */
+		asm volatile
+      ("#1 \n\t movq %[brutS], %%mm0"
+       "#1 \n\t movq %[brutD], %%mm1"
+       "#1 \n\t psubd   %%mm0, %%mm1" /* mm1 = D - S */
+       "#1 \n\t movq    %%mm1, %%mm2" /* mm2 = D - S */
+       "#1 \n\t pslld     $16, %%mm1"
+		   "#1 \n\t pmullw  %%mm6, %%mm2"
+       "#1 \n\t pmulhuw %%mm6, %%mm1"
 
-		psubd_r2r (mm0,mm1);           /* mm1 = D - S */
-		movq_r2r (mm1, mm2);           /* mm2 = D - S */
+       "#1 \n\t pslld   $16,   %%mm0"
+       "#1 \n\t paddd   %%mm2, %%mm1"  /* mm1 = (D - S) * buffratio >> 16 */
 
-		pslld_i2r (16,mm1);
-		mmx_r2r (pmulhuw, mm6, mm1);   /* mm1 = ?? */
-		pmullw_r2r (mm6, mm2);
-
-		paddd_r2r (mm2, mm1);     /* mm1 = (D - S) * buffratio >> 16 */
-		pslld_i2r (16,mm0);
-
-		paddd_r2r (mm1, mm0);     /* mm0 = S + mm1 */
-		psrld_i2r (16, mm0);
+       "#1 \n\t paddd   %%mm1, %%mm0"  /* mm0 = S + mm1 */
+       "#1 \n\t psrld   $16,   %%mm0"
+       :
+       : [brutS]"g"(brutS[loop])
+       , [brutD]"g"(brutD[loop])
+      );               /* mm0 = S */
 
 		/*
 		 * pre : mm0 : position vector on screen
@@ -93,45 +93,48 @@ void zoom_filter_xmmx (int prevX, int prevY,
 		 * post : clipped mm0
 		 * modified : mm0,mm1,mm2
 		 */
-		movq_m2r (prevXY,mm1);
-		pcmpgtd_r2r (mm0, mm1); /* mm0 en X contient :
-		                            1111 si prevXY > px
-		                            0000 si prevXY <= px
-		                           (idem pour y) */
+    asm volatile
+      ("#1 \n\t movq %[prevXY], %%mm1"
+       "#1 \n\t pcmpgtd %%mm0,  %%mm1"
+       /* mm0 en X contient (idem pour Y) :
+        *   1111 si prevXY > px
+        *   0000 si prevXY <= px */
 #ifdef STRICT_COMPAT
-		movq_r2r (mm1,mm2);
-		punpckhdq_r2r (mm2,mm2);
-		punpckldq_r2r (mm1,mm1);
-		pand_r2r (mm2, mm0);
+       "#1 \n\t movq      %%mm1, %%mm2"
+       "#1 \n\t punpckhdq %%mm2, %%mm2"
+       "#1 \n\t punpckldq %%mm1, %%mm1"
+       "#1 \n\t pand      %%mm2, %%mm0"
 #endif
-		pand_r2r (mm1, mm0);    /* on met a zero la partie qui deborde */
 
-		/*
-		 * pre : mm0 : clipped position on screen
+       "#1 \n\t pand %%mm1, %%mm0" /* on met a zero la partie qui deborde */
+        ::[prevXY]"m"(prevXY));
+
+		/* Thread #2
+		 * pre :  mm0 : clipped position on screen
 		 *
-		 * post : mm3 & mm4 : coefs for this position
-		 *              mm1 : X vector [0|X]
+		 * post : mm3 : coefs for this position
+		 *        mm1 : X vector [0|X]
 		 *
-		 * modif : eax,ecx
+		 * modif : eax,esi
 		 */
 		__asm__ __volatile__ (
-			"movd %%mm0,%%ecx\n"
-			"movq %%mm0,%%mm1\n"
+			"#2 \n\t movd %%mm0,%%esi"
+			"#2 \n\t movq %%mm0,%%mm1"
 
-			"andl $15,%%ecx\n"
-			"psrlq $32,%%mm1\n"
+			"#2 \n\t andl $15,%%esi"
+			"#2 \n\t psrlq $32,%%mm1"
 
-			"shll $6,%%ecx\n"
-			"movd %%mm1,%%eax\n"
+			"#2 \n\t shll $6,%%esi"
+			"#2 \n\t movd %%mm1,%%eax"
 
-			"addl %0,%%ecx\n"
-			"andl $15,%%eax\n"
+			"#2 \n\t addl %[precalCoef],%%esi"
+			"#2 \n\t andl $15,%%eax"
 
-			"movd (%%ecx,%%eax,4),%%mm3\n"
-			::"g"(precalCoef):"eax","ecx");
+			"#2 \n\t movd (%%esi,%%eax,4),%%mm3"
+			::[precalCoef]"g"(precalCoef):"eax","esi");
 
 		/*
-		 * extraction des coefficients...
+		 * extraction des coefficients... (Thread #3)
 		 *
 		 * pre : coef dans mm3
 		 *
@@ -141,49 +144,44 @@ void zoom_filter_xmmx (int prevX, int prevY,
 		 * modif : mm5
 		 */
 
-		/* entrelace avec portion d'apres (cf les '^')
-			movq_r2r (mm3, mm5);            / * ??-??-??-??-c4-c3-c2-c1 * /
-			punpcklbw_r2r (mm5, mm3);       / * c4-c4-c3-c3-c2-c2-c1-c1 * /
-			movq_r2r (mm3, mm4);            / * c4-c4-c3-c3-c2-c2-c1-c1 * /
-			movq_r2r (mm3, mm5);            / * c4-c4-c3-c3-c2-c2-c1-c1 * /
-
-			punpcklbw_r2r (mm5, mm3);       / * c2-c2-c2-c2-c1-c1-c1-c1 * /
-			punpckhbw_r2r (mm5, mm4);       / * c4-c4-c4-c4-c3-c3-c3-c3 * /
-		*/
-
-		/*
+		/* (Thread #4)
 		 * pre : mm0 : Y pos [*|Y]
 		 *       mm1 : X pos [*|X]
 		 *
 		 * post : mm0 : expix1[position]
 		 *        mm2 : expix1[position+largeur]
 		 *
-		 * modif : eax,ecx
+		 * modif : eax, esi
 		 */
-		psrld_i2r (PERTEDEC,mm0);
-		psrld_i2r (PERTEDEC,mm1);
 		__asm__ __volatile__ (
-			"movd %%mm1,%%eax\n"
-			/*^*/ "movq %%mm3,%%mm5\n"       /*^*/
+      "#2 \n\t psrld $4, %%mm0"
+      "#2 \n\t psrld $4, %%mm1"      /* PERTEDEC = $4 */
 
-			"mull %1\n"
-			"movd %%mm0,%%ecx\n"
-			/*^*/ "punpcklbw %%mm5, %%mm3\n" /*^*/
+      "#4 \n\t movd %%mm1,%%eax"
+			"#3 \n\t movq %%mm3,%%mm5" 
 
-			"addl %%ecx,%%eax\n"
-			/*^*/ "movq %%mm3,%%mm4\n"       /*^*/
-			/*^*/ "movq %%mm3,%%mm5\n"       /*^*/
+			"#4 \n\t mull %[prevX]"
+			"#4 \n\t movd %%mm0,%%esi"
 
-			"movl %0,%%ecx\n"
-			/*^*/ "punpcklbw %%mm5,%%mm3\n"  /*^*/
+      "#3 \n\t punpcklbw %%mm5, %%mm3"
+			"#4 \n\t addl %%esi, %%eax"
 
-			"movq (%%ecx,%%eax,4),%%mm0\n"
-			/*^*/ "punpckhbw %%mm5,%%mm4\n"  /*^*/
+      "#3 \n\t movq %%mm3, %%mm4"     
+      "#3 \n\t movq %%mm3, %%mm5"     
 
-			"addl %1,%%eax\n"
-			"movq (%%ecx,%%eax,4),%%mm2\n"
+      "#4 \n\t movl %[expix1], %%esi"
+      "#3 \n\t punpcklbw %%mm5, %%mm3"
 
-			: : "X"(expix1), "X"(prevX):"eax","ecx"
+      "#4 \n\t movq (%%esi,%%eax,4),%%mm0"
+      "#3 \n\t punpckhbw %%mm5, %%mm4"
+
+      "#4 \n\t addl %[prevX],%%eax"
+      "#4 \n\t movq (%%esi,%%eax,4),%%mm2"
+
+			:
+      : [expix1] "g"(expix1)
+      , [prevX]  "g"(prevX)
+      :"eax","esi"
 		);
 
 		/*
