@@ -27,6 +27,7 @@ EXTRA_DIST = \
 	$(libavcodec_mmx_dummy) \
 	$(libavcodec_mmx_src) \
 	dsputil_h264_template_mmx.c \
+	h264dsp_mmx.c \
 	mpegvideo_mmx_template.c
 
 if HAVE_FFMMX

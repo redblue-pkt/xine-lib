@@ -88,6 +88,7 @@ libavcodec_la_SOURCES = \
 	utils.c \
 	vcr1.c \
 	vmdav.c \
+	vorbis.c \
 	vp3.c \
 	vp3dsp.c \
 	vqavideo.c \
@@ -140,5 +141,6 @@ noinst_HEADERS = \
 	svq1_vlc.h \
 	truemotion1data.h \
 	ulti_cb.h \
+	vorbis.h \
 	vp3data.h \
 	wmadata.h
