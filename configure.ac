@@ -18,11 +18,11 @@ XINE_MAJOR=1
 XINE_MINOR=1
 XINE_SUB=0
 
-if test $XINE_SUB -eq 0 ; then
-  XINE_SUBPART="";
-else
+#if test $XINE_SUB -eq 0 ; then
+#  XINE_SUBPART="";
+#else
   XINE_SUBPART=".$XINE_SUB"
-fi
+#fi
 
 dnl The libtool version numbers (XINE_LT_*); Don't even think about faking this!
 dnl 
