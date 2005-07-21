@@ -50,10 +50,10 @@ void zoom_filter_xmmx (int prevX, int prevY,
 	ratiox.d[1] = buffratio;
 
   asm volatile
-    ("\n\t movq  %[ratio], %%mm6"
+    ("\n\t movq  %0, %%mm6"
      "\n\t pslld $16,      %%mm6" /* mm6 = [rat16=buffratio<<16 | rat16=buffratio<<16] */
      "\n\t pxor  %%mm7,    %%mm7" /* mm7 = 0 */
-     ::[ratio]"m"(ratiox));
+     ::"m"(ratiox));
 
 	loop=0;
 
@@ -69,8 +69,8 @@ void zoom_filter_xmmx (int prevX, int prevY,
 		 */
 
 		asm volatile
-      ("#1 \n\t movq %[brutS], %%mm0"
-       "#1 \n\t movq %[brutD], %%mm1"
+      ("#1 \n\t movq       %0, %%mm0"
+       "#1 \n\t movq       %1, %%mm1"
        "#1 \n\t psubd   %%mm0, %%mm1" /* mm1 = D - S */
        "#1 \n\t movq    %%mm1, %%mm2" /* mm2 = D - S */
        "#1 \n\t pslld     $16, %%mm1"
@@ -83,8 +83,8 @@ void zoom_filter_xmmx (int prevX, int prevY,
        "#1 \n\t paddd   %%mm1, %%mm0"  /* mm0 = S + mm1 */
        "#1 \n\t psrld   $16,   %%mm0"
        :
-       : [brutS]"g"(brutS[loop])
-       , [brutD]"g"(brutD[loop])
+       : "g"(brutS[loop])
+       , "g"(brutD[loop])
       );               /* mm0 = S */
 
 		/*
@@ -94,7 +94,7 @@ void zoom_filter_xmmx (int prevX, int prevY,
 		 * modified : mm0,mm1,mm2
 		 */
     asm volatile
-      ("#1 \n\t movq %[prevXY], %%mm1"
+      ("#1 \n\t movq       %0, %%mm1"
        "#1 \n\t pcmpgtd %%mm0,  %%mm1"
        /* mm0 en X contient (idem pour Y) :
         *   1111 si prevXY > px
@@ -107,7 +107,7 @@ void zoom_filter_xmmx (int prevX, int prevY,
 #endif
 
        "#1 \n\t pand %%mm1, %%mm0" /* on met a zero la partie qui deborde */
-        ::[prevXY]"m"(prevXY));
+        ::"m"(prevXY));
 
 		/* Thread #2
 		 * pre :  mm0 : clipped position on screen
@@ -127,11 +127,11 @@ void zoom_filter_xmmx (int prevX, int prevY,
 			"#2 \n\t shll $6,%%esi"
 			"#2 \n\t movd %%mm1,%%eax"
 
-			"#2 \n\t addl %[precalCoef],%%esi"
+			"#2 \n\t addl %0,%%esi"
 			"#2 \n\t andl $15,%%eax"
 
 			"#2 \n\t movd (%%esi,%%eax,4),%%mm3"
-			::[precalCoef]"g"(precalCoef):"eax","esi");
+			::"g"(precalCoef):"eax","esi");
 
 		/*
 		 * extraction des coefficients... (Thread #3)
@@ -160,7 +160,7 @@ void zoom_filter_xmmx (int prevX, int prevY,
       "#4 \n\t movd %%mm1,%%eax"
 			"#3 \n\t movq %%mm3,%%mm5" 
 
-			"#4 \n\t mull %[prevX]"
+			"#4 \n\t mull %1"
 			"#4 \n\t movd %%mm0,%%esi"
 
       "#3 \n\t punpcklbw %%mm5, %%mm3"
@@ -169,18 +169,18 @@ void zoom_filter_xmmx (int prevX, int prevY,
       "#3 \n\t movq %%mm3, %%mm4"     
       "#3 \n\t movq %%mm3, %%mm5"     
 
-      "#4 \n\t movl %[expix1], %%esi"
+      "#4 \n\t movl %0, %%esi"
       "#3 \n\t punpcklbw %%mm5, %%mm3"
 
       "#4 \n\t movq (%%esi,%%eax,4),%%mm0"
       "#3 \n\t punpckhbw %%mm5, %%mm4"
 
-      "#4 \n\t addl %[prevX],%%eax"
+      "#4 \n\t addl %1,%%eax"
       "#4 \n\t movq (%%esi,%%eax,4),%%mm2"
 
 			:
-      : [expix1] "g"(expix1)
-      , [prevX]  "g"(prevX)
+      : "g"(expix1)
+      , "g"(prevX)
       :"eax","esi"
 		);
 
