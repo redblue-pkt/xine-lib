@@ -265,6 +265,26 @@ dnl WIN32 platform
 AC_SUBST(WIN32_CPPFLAGS)
 AM_CONDITIONAL(WIN32, test x$SYS = "xmingw32")
 
+dnl
+AC_MSG_CHECKING(for recursive mutex support in pthread)
+AC_DEFINE(_GNU_SOURCE)
+have_recursive_mutex=no
+saved_libs="$LIBS"
+LIBS="$THREAD_LIBS"
+AC_TRY_LINK([
+	    #include <pthread.h>
+	],[
+	    pthread_mutexattr_t attr;
+	    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	],[
+	    have_recursive_mutex=yes
+	],[
+	    AC_MSG_ERROR(recursive mutex support is needed - please report)
+	])
+AC_MSG_RESULT($have_recursive_mutex)
+LIBS="$saved_libs"
+
+
 dnl ---------------------------------------------
 dnl dynamic linker
 dnl ---------------------------------------------

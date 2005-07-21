@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.313 2005/06/13 00:32:13 miguelfreitas Exp $
+ * $Id: xine.c,v 1.314 2005/07/21 02:51:14 miguelfreitas Exp $
  */
 
 /*
@@ -459,6 +459,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
 
   xine_stream_t *stream;
   int            i;
+  pthread_mutexattr_t attr;
 
   xprintf (this, XINE_VERBOSITY_DEBUG, "xine_stream_new\n");
 
@@ -523,13 +524,19 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->info_mutex, NULL);
   pthread_mutex_init (&stream->meta_mutex, NULL);
   pthread_mutex_init (&stream->demux_lock, NULL);
-  pthread_mutex_init (&stream->frontend_lock, NULL);
   pthread_mutex_init (&stream->event_queues_lock, NULL);
   pthread_mutex_init (&stream->counter_lock, NULL);
   pthread_cond_init  (&stream->counter_changed, NULL);
   pthread_mutex_init (&stream->first_frame_lock, NULL);
   pthread_cond_init  (&stream->first_frame_reached, NULL);
   pthread_mutex_init (&stream->current_extra_info_lock, NULL);
+
+  /* warning: frontend_lock is a recursive mutex. it must NOT be
+   * used with neither pthread_cond_wait() or pthread_cond_timedwait()
+   */
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init (&stream->frontend_lock, &attr);
 
   /*
    * Clear meta/stream info
