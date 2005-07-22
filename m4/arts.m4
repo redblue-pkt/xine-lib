@@ -44,6 +44,12 @@ AC_ARG_ENABLE(artstest, AC_HELP_STRING([--disable-artstest], [do not try to comp
       CFLAGS="$CFLAGS $ARTS_CFLAGS"
       LIBS="$LIBS $ARTS_LIBS"
 dnl
+dnl Check if the installed ARTS is actually available -- when cross-compiling,
+dnl we have probably detected the build system's version of artsc-config
+dnl
+      AC_CHECK_LIB([artsc], [arts_init], [], [no_arts=yes], [$ARTS_LIBS])
+
+dnl
 dnl Now check if the installed ARTS is sufficiently new. (Also sanity
 dnl checks the results of artsc-config to some extent)
 dnl
