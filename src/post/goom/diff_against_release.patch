@@ -206,3 +206,43 @@ diff -u -r1.6 xmmx.c
        :"eax","esi"
  		);
  
+Index: convolve_fx.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/convolve_fx.c,v
+retrieving revision 1.4
+diff -u -r1.4 convolve_fx.c
+--- convolve_fx.c	19 Jul 2005 18:10:29 -0000	1.4
++++ convolve_fx.c	22 Jul 2005 16:37:15 -0000
+@@ -172,7 +172,7 @@
+     {
+       __asm__ __volatile__
+         (
+-         "\n\t movd  %[src], %%mm0"  /* mm0 = src */
++         "\n\t movd  %1, %%mm0"  /* mm0 = src */
+          "\n\t paddd %%mm4, %%mm2"   /* [ ytex | xtex ] += [ -s | s ] */
+          "\n\t movd  %%esi, %%mm5"   /* save esi into mm5 */
+          "\n\t movq  %%mm2, %%mm3"
+@@ -190,7 +190,7 @@
+          "\n\t xorl  %%ecx, %%ecx"
+          "\n\t movb  (%%eax,%%esi), %%cl"
+ 
+-         "\n\t movl  %[ifftab], %%eax"
++         "\n\t movl  %2, %%eax"
+          "\n\t movd  %%mm5, %%esi"    /* restore esi from mm5 */
+          "\n\t movd  (%%eax,%%ecx,4), %%mm1" /* mm1 = [0|0|0|iff2] */
+ 
+@@ -202,10 +202,10 @@
+          "\n\t pmullw    %%mm1, %%mm0"
+          "\n\t psrlw     $5,    %%mm0"
+          "\n\t packuswb  %%mm7, %%mm0"
+-         "\n\t movd      %%mm0, %[dest]"
+-         : [dest] "=g" (dest[i].val)
+-         : [src]   "g"  (src[i].val)
+-         , [ifftab]"g"(&ifftab[0])
++         "\n\t movd      %%mm0, %0"
++         : "=g" (dest[i].val)
++         : "g"  (src[i].val)
++         , "g"(&ifftab[0])
+          : "eax","ecx");
+ 
+       i++;
