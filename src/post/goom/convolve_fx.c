@@ -154,19 +154,19 @@ static void create_output_with_brightness(VisualFX *_this, Pixel *src, Pixel *de
 #ifdef HAVE_MMX
     __asm__ __volatile__
       ("\n\t pxor  %%mm7,  %%mm7"  /* mm7 = 0   */
-       "\n\t movd %[xtex],  %%mm2"
-       "\n\t movd %[ytex],  %%mm3"
+       "\n\t movd %0,  %%mm2"
+       "\n\t movd %1,  %%mm3"
        "\n\t punpckldq %%mm3, %%mm2" /* mm2 = [ ytex | xtex ] */
-       "\n\t movd %[c],     %%mm4"
-       "\n\t movd %[s],     %%mm6"
+       "\n\t movd %2,     %%mm4"
+       "\n\t movd %3,     %%mm6"
        "\n\t pxor  %%mm5,   %%mm5"
        "\n\t psubd %%mm6,   %%mm5"
        "\n\t punpckldq %%mm5, %%mm4" /* mm4 = [ -s | c ]      */
-       "\n\t movd %[motif], %%mm6"   /* mm6 = motif           */
+       "\n\t movd %4, %%mm6"   /* mm6 = motif           */
 
-       ::[xtex]"g"(xtex) ,[ytex]"g"(ytex)
-        , [c]"g"(c), [s]"g"(s)
-        , [motif] "g"(&data->conv_motif[0][0]));
+       ::"g"(xtex) ,"g"(ytex)
+        , "g"(c), "g"(s)
+        , "g"(&data->conv_motif[0][0]));
     
     for (x=info->screen.width;x--;)
     {
