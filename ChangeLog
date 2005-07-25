@@ -7,6 +7,7 @@ xine-lib (1.1.0)
   * improve ASX playlist parsing
   * add an extended MRL reference event (MRL title, start time, play time):
     needed for the ASX parser; deprecates plain MRL reference events.
+  * goom updated to 2k4-0
               
 xine-lib (1.0.2)
   * fixed playback of single-session Real RTSP streams, such as
