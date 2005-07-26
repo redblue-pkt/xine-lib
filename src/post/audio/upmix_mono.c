@@ -22,7 +22,7 @@
  * This is an up-mix audio filter post plugin.
  * It simply converts Mono into Stereo.
  *
- * $Id: upmix_mono.c,v 1.2 2005/07/16 17:00:50 miguelfreitas Exp $
+ * $Id: upmix_mono.c,v 1.3 2005/07/26 17:55:50 miguelfreitas Exp $
  *
  */
 
@@ -47,7 +47,7 @@ typedef struct upmix_mono_parameters_s {
  * description of params struct
  */
 START_PARAM_DESCR( upmix_mono_parameters_t )
-PARAM_ITEM( POST_PARAM_TYPE_INT, channel, NULL, 0, 5, 0,
+PARAM_ITEM( POST_PARAM_TYPE_INT, channel, NULL, -1, 5, 0,
             "Select channel to upmix (duplicate) to stereo" )
 END_PARAM_DESCR( param_descr )
 
@@ -229,7 +229,7 @@ static void upmix_mono_port_put_buffer(xine_audio_port_t *port_gen,
     /* free data from origial buffer */
     buf->num_frames = 0; /* UNDOCUMENTED, but hey, it works! Force old audio_out buffer free. */
   }
-  else if (this->channels) 
+  else if (this->channels && this->params.channel >= 0) 
   {
     audio_buffer_t *buf0 = port->original_port->get_buffer(port->original_port);
     buf0->num_frames = buf->num_frames;
@@ -308,7 +308,7 @@ static post_plugin_t *upmix_mono_open_plugin(post_class_t *class_gen, int inputs
   
   _x_post_init(&this->post, 1, 0);
 
-  init_params.channel = 0;
+  init_params.channel = -1;
  
   pthread_mutex_init (&this->lock, NULL);
 
