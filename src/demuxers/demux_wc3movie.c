@@ -24,7 +24,7 @@
  * For more information on the MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_wc3movie.c,v 1.52 2004/06/13 21:28:55 miguelfreitas Exp $
+ * $Id: demux_wc3movie.c,v 1.53 2005/07/26 22:10:40 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -173,11 +173,13 @@ static int demux_mve_send_chunk(demux_plugin_t *this_gen) {
         this->seek_flag = 0;
       } else {
         /* record the offset of the SHOT chunk */
-        this->shot_offsets[this->current_shot] =
-          this->input->get_current_pos(this->input) - PREAMBLE_SIZE;
+        if (this->current_shot < this->number_of_shots) {
+	  this->shot_offsets[this->current_shot] =
+            this->input->get_current_pos(this->input) - PREAMBLE_SIZE;
+        }
       }
       this->current_shot++;
-
+      
       /* this is the start of a new shot; send a new palette */
       if (this->input->read(this->input, preamble, 4) != 4) {
         this->status = DEMUX_FINISHED;
@@ -376,7 +378,7 @@ static int open_mve_file(demux_mve_t *this) {
   if (this->input->read(this->input, preamble, 4) != 4)
     return 0;
   this->number_of_shots = LE_32(&preamble[0]);
-
+  
   /* allocate space for the shot offset index and set offsets to 0 */
   this->shot_offsets = xine_xmalloc(this->number_of_shots * sizeof(off_t));
   this->current_shot = 0;
@@ -579,6 +581,15 @@ static int demux_mve_seek (demux_plugin_t *this_gen,
     /* if the next shot offset has not been recorded, traverse through the 
      * file until it is found */
     if (this->shot_offsets[i + 1] == 0) {
+      off_t current_pos;
+
+      /* be sure to be just after the last known shot_offset */
+      current_pos = this->input->get_current_pos(this->input);
+      if (current_pos < this->shot_offsets[i]) {
+	this->input->seek(this->input,
+			  this->shot_offsets[i] + PREAMBLE_SIZE + 4,
+			  SEEK_SET);
+      }
 
       while (1) {
 
