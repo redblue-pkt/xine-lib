@@ -225,6 +225,7 @@ case "$host" in
     esac
 
     if test "$SYS" = "mingw32"; then
+      THREAD_CONFIGURE_CPPFLAGS="-I${srcdir}/win32/contrib/pthreads"
       THREAD_INCLUDES='-I$(top_srcdir)/win32/contrib/pthreads'
       THREAD_LIBS='$(top_builddir)/win32/contrib/pthreads/libpthread.la'
       THREAD_CFLAGS_CONFIG=" "
@@ -269,20 +270,22 @@ dnl
 AC_MSG_CHECKING(for recursive mutex support in pthread)
 AC_DEFINE(_GNU_SOURCE)
 have_recursive_mutex=no
-saved_libs="$LIBS"
-LIBS="$THREAD_LIBS"
-AC_TRY_LINK([
-	    #include <pthread.h>
-	],[
-	    pthread_mutexattr_t attr;
-	    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+saved_cppflags="$CPPFLAGS"
+CPPFLAGS="$THREAD_CONFIGURE_CPPFLAGS"
+AC_COMPILE_IFELSE([#include <pthread.h>
+
+int main() {
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  return 0;
+}
 	],[
 	    have_recursive_mutex=yes
 	],[
 	    AC_MSG_ERROR(recursive mutex support is needed - please report)
 	])
 AC_MSG_RESULT($have_recursive_mutex)
-LIBS="$saved_libs"
+CPPFLAGS="$saved_cppflags"
 
 
 dnl ---------------------------------------------
