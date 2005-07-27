@@ -1066,7 +1066,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       }
       previous = i;
 
-      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
+      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph\n"));
         continue;
       }
@@ -1232,7 +1232,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
       }
       previous = i;
 
-      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
+      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph %i\n"), i);
         text++;
         continue;
@@ -1273,7 +1273,8 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
      * to also add the left bearing because the letter might be shifted left or
      * right and then the right edge is also shifted
      */
-    *width -= osd->ft2->face->glyph->advance.x / 64;
+    if (osd->ft2->face->glyph->bitmap.width)
+        *width -= osd->ft2->face->glyph->advance.x / 64;
     *width += osd->ft2->face->glyph->bitmap.width;
     *width += osd->ft2->face->glyph->bitmap_left;
     *height = osd->ft2->face->size->metrics.height / 64;
