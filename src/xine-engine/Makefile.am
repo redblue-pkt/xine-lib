@@ -11,7 +11,8 @@ INTERNAL_ZLIB_LIB = $(top_builddir)/win32/contrib/zlib/libzlib.la
 DIRENT_LIB = $(top_builddir)/win32/contrib/libdirent.la
 INTERNAL_PTHREAD_LIB = $(top_builddir)/win32/contrib/pthreads/libpthread.la
 DEF_FILE = libxine-$(XINE_MAJOR).def
-if !HAVE_ZLIB
+if HAVE_ZLIB
+else
 zlib_dep = $(INTERNAL_ZLIB_LIB)
 endif
 if WIN32

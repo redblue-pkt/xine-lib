@@ -44,7 +44,8 @@ link_dvdnav = libdvdnav/libdvdnav.la
 endif
 
 # not ported to native Windows
-if !WIN32
+if WIN32
+else
 in_rtp = xineplug_inp_rtp.la
 in_dvb = xineplug_inp_dvb.la 
 endif

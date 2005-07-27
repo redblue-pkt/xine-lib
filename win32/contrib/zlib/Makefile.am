@@ -4,7 +4,8 @@ EXTRA_DIST = inffixed.h ChangeLog FAQ INDEX README example.c maketree.c \
              minigzip.c zlib.3 algorithm.txt build.tar.gz nt/Makefile.emx \
              nt/Makefile.gcc nt/Makefile.nt nt/zlib.dnt
 
-if !HAVE_ZLIB
+if HAVE_ZLIB
+else
 link_zlib = libzlib.la
 endif
 
