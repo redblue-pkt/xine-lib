@@ -281,3 +281,67 @@ diff -u -r1.5 convolve_fx.c
      
      for (x=info->screen.width;x--;)
      {
+Index: goom_core.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/goom_core.c,v
+retrieving revision 1.13
+diff -u -p -r1.13 goom_core.c
+--- goom_core.c	19 Jul 2005 18:10:30 -0000	1.13
++++ goom_core.c	27 Jul 2005 20:28:29 -0000
+@@ -35,18 +35,18 @@
+ #define TIME_BTW_CHG 300
+ 
+ static void choose_a_goom_line (PluginInfo *goomInfo, float *param1, float *param2, int *couleur,
+-                                int *mode, float *amplitude, int far);
++                                int *mode, float *amplitude, int isfar);
+ 
+ static void update_message (PluginInfo *goomInfo, char *message);
+ 
+ static void init_buffers(PluginInfo *goomInfo, int buffsize)
+ {
+     goomInfo->pixel = (guint32 *) malloc (buffsize * sizeof (guint32) + 128);
+-    bzero (goomInfo->pixel, buffsize * sizeof (guint32) + 128);
++    memset (goomInfo->pixel, 0, buffsize * sizeof (guint32) + 128);
+     goomInfo->back = (guint32 *) malloc (buffsize * sizeof (guint32) + 128);
+-    bzero (goomInfo->back, buffsize * sizeof (guint32) + 128);
++    memset (goomInfo->back, 0, buffsize * sizeof (guint32) + 128);
+     goomInfo->conv = (Pixel *) malloc (buffsize * sizeof (guint32) + 128);
+-    bzero (goomInfo->conv, buffsize * sizeof (guint32) + 128);
++    memset (goomInfo->conv, 0, buffsize * sizeof (guint32) + 128);
+ 
+     goomInfo->outputBuf = goomInfo->conv;
+     
+@@ -780,13 +780,13 @@ void goom_close (PluginInfo *goomInfo)
+ /* *** */
+ void
+ choose_a_goom_line (PluginInfo *goomInfo, float *param1, float *param2, int *couleur, int *mode,
+-                    float *amplitude, int far)
++                    float *amplitude, int isfar)
+ {
+     *mode = goom_irand(goomInfo->gRandom,3);
+     *amplitude = 1.0f;
+     switch (*mode) {
+         case GML_CIRCLE:
+-            if (far) {
++            if (isfar) {
+                 *param1 = *param2 = 0.47f;
+                 *amplitude = 0.8f;
+                 break;
+@@ -804,7 +804,7 @@ choose_a_goom_line (PluginInfo *goomInfo
+             }
+             break;
+         case GML_HLINE:
+-            if (goom_irand(goomInfo->gRandom,4) || far) {
++            if (goom_irand(goomInfo->gRandom,4) || isfar) {
+                 *param1 = goomInfo->screen.height / 7;
+                 *param2 = 6.0f * goomInfo->screen.height / 7.0f;
+             }
+@@ -814,7 +814,7 @@ choose_a_goom_line (PluginInfo *goomInfo
+             }
+             break;
+         case GML_VLINE:
+-            if (goom_irand(goomInfo->gRandom,3) || far) {
++            if (goom_irand(goomInfo->gRandom,3) || isfar) {
+                 *param1 = goomInfo->screen.width / 7.0f;
+                 *param2 = 6.0f * goomInfo->screen.width / 7.0f;
+             }
