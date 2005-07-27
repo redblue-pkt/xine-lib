@@ -46,6 +46,8 @@ xine-lib (1.0.2)
   * new upmix_mono audio post plugin to convert mono to stereo
   * added --with-external-a52dec and --with-external-libmad switches
   * fix a locking bug which affects configuration callback functions
+  * Can select VCD "hot spots" or mouse menu selections if libvcdinfo 0.7.21 or
+    greater installed
 
 xine-lib (1.0.1)
   * Big XvMC quality / correctness / cpu-usage fix. [bug #1114517] 
