@@ -271,14 +271,14 @@ AC_MSG_CHECKING(for recursive mutex support in pthread)
 AC_DEFINE(_GNU_SOURCE)
 have_recursive_mutex=no
 saved_cppflags="$CPPFLAGS"
-CPPFLAGS="$THREAD_CONFIGURE_CPPFLAGS"
-AC_COMPILE_IFELSE([#include <pthread.h>
+CPPFLAGS="$CPPFLAGS $THREAD_CONFIGURE_CPPFLAGS"
+AC_COMPILE_IFELSE(AC_LANG_SOURCE([#include <pthread.h>
 
 int main() {
   pthread_mutexattr_t attr;
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
   return 0;
-}
+})
 	],[
 	    have_recursive_mutex=yes
 	],[
