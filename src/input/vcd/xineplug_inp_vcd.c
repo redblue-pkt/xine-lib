@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.43 2005/07/09 02:03:08 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.44 2005/07/28 02:17:23 rockyb Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1001,9 +1001,6 @@ vcd_class_get_identifier (input_class_t *this_gen) {
   dbg_print((INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
   return SHORT_PLUGIN_NAME;
 }
-
-/* HACK until we put modify and put in vcdplayer. */
-#define dvdnav_mouse_select(a, b, c) 1
 
 /* 
    Handle all queued keyboard/mouse events. Return TRUE if this causes
