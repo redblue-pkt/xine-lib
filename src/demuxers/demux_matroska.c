@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.36 2005/07/16 17:50:58 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.37 2005/07/29 17:57:00 jstembridge Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1143,7 +1143,13 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_AP)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MSMPEG4V3)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG1)) {
+      lprintf("MATROSKA_CODEC_ID_V_MPEG1\n");
+      track->buf_type = BUF_VIDEO_MPEG;
+      init_codec = init_codec_video;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG2)) {
+      lprintf("MATROSKA_CODEC_ID_V_MPEG2\n");
+      track->buf_type = BUF_VIDEO_MPEG;
+      init_codec = init_codec_video;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV10)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV20)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV30)) {
