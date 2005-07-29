@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.72 2005/05/28 09:26:59 jstembridge Exp $
+ * $Id: input_cdda.c,v 1.73 2005/07/29 19:03:34 jstembridge Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -684,18 +685,26 @@ static int read_cdrom_frames(cdda_input_plugin_t *this_gen, int frame, int num_f
   unsigned char *data) {
 
   int fd = this_gen->fd;
+#if  __FreeBSD_version < 501106
   struct ioc_read_audio cdda;
+#endif
 
   while( num_frames ) {
+#if  __FreeBSD_version < 501106
     cdda.address_format = CD_MSF_FORMAT;
     cdda.address.msf.minute = frame / CD_SECONDS_PER_MINUTE / CD_FRAMES_PER_SECOND;
     cdda.address.msf.second = (frame / CD_FRAMES_PER_SECOND) % CD_SECONDS_PER_MINUTE;
     cdda.address.msf.frame = frame % CD_FRAMES_PER_SECOND;
     cdda.nframes = 1;
     cdda.buffer = data;
+#endif
 
+#if  __FreeBSD_version >= 501106
+    if (pread(fd, data, CD_RAW_FRAME_SIZE, frame * CD_RAW_FRAME_SIZE) != CD_RAW_FRAME_SIZE) {
+#else
     /* read a frame */
     if(ioctl(fd, CDIOCREADAUDIO, &cdda) < 0) {
+#endif
       perror("CDIOCREADAUDIO");
       return -1;
     }
