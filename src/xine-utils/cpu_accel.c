@@ -63,7 +63,7 @@ static uint32_t arch_accel (void)
   int AMD;
 
   caps = 0;
-#ifndef PIC
+#ifndef __PIC__
 #define cpuid(op,eax,ebx,ecx,edx)       \
     __asm__ ("cpuid"                    \
          : "=a" (eax),                  \
