@@ -21,8 +21,8 @@ Download
 
     http://mingw.org/download.shtml
 
-    1) binutils (sources)
-    2) gcc-core, gcc-c++ (sources)
+    1) binutils (sources), binutils-build.sh
+    2) gcc-core, gcc-c++ (sources), gcc-build.sh
     3) w32api, mingw-runtime (binaries and sources)
 
   DirectX headers (tested with version 7):
@@ -89,14 +89,16 @@ In following text are used symbols PREFIX and USER with this meaning:
   tar xzf gcc-g++-3.3.1-20030804-1-src.tar.gz
   mkdir gcc-bin
   cd gcc-bin 
+  # more option may be needed for successfull compilation,
+  # see gcc-3.3.1-1-build.sh
   ../gcc-3.3.1-20030804-1/configure \
     --disable-shared \
-    --enable-static \
     --target=i386-mingw32 \
     --with-headers=../runtime/include \
     --with-libs=../runtime/lib \
     --prefix=PREFIX
   make
+  #or recommended: make CFLAGS=-O2 LDFLAGS=-s
   su
   make install
   exit
@@ -147,7 +149,7 @@ In following text are used symbols PREFIX and USER with this meaning:
 5. install DirectX headers and other libraries
   su
   cd PREFIX/include
-  # untar dx7headers.tar.gz
+  # untar dx7headers.tar.gz (maybe to a subdirectory)
   ...
   exit
 
