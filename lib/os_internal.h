@@ -1,6 +1,18 @@
 #include <stddef.h>
 #include "os_types.h"
 
+#if defined (__SVR4) && defined (__sun)
+#  include <sys/int_types.h>
+
+/* maybe needed for FreeBSD 4-STABLE */
+/* 
+#elif defined (__FreeBSD__)
+#  include <stdint.h>
+*/
+
+#endif
+
+
 /* replacement of strndup */
 #ifndef HAVE_STRNDUP
 #define strndup(S, N) _xine_private_strndup((S), (N))
