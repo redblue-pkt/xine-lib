@@ -278,8 +278,8 @@ int main() {
   pthread_mutexattr_t attr;
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
   return 0;
-})
-	],[
+}
+	]),[
 	    have_recursive_mutex=yes
 	],[
 	    AC_MSG_ERROR(recursive mutex support is needed - please report)
@@ -509,8 +509,15 @@ AM_CONDITIONAL(HAVE_SYNCFB, test x"$have_syncfb" = "xyes")
 dnl ----------------------------------------------
 dnl Check for usable video-for-linux (v4l) support
 dnl ----------------------------------------------
+AC_ARG_ENABLE([v4l],
+  AC_HELP_STRING([--disable-v4l], [do not build Video4Linux support]),
+  [with_v4l=${enableval}], [with_v4l=yes])
 
-AC_CHECK_HEADER(linux/videodev.h, have_v4l=yes,)
+if test "x$with_v4l" == "xyes"; then
+  AC_CHECK_HEADER(linux/videodev.h, have_v4l=yes,)
+else
+  have_v4l=no
+fi
 AM_CONDITIONAL(HAVE_V4L, [test x"$have_v4l" = "xyes"])
 
 
@@ -725,11 +732,19 @@ dnl ---------------------------------------------
 dnl Checks for Xinerama extension
 dnl ---------------------------------------------
 
-AC_CHECK_LIB(Xinerama, XineramaQueryExtension, 
+AC_ARG_ENABLE([xinerama],
+  AC_HELP_STRING([--disable-xinerama], [do not build Xinerama support]),
+  [with_xinerama=$enableval], [with_xinerama=yes])
+
+if test "x$with_xinerama" = "xyes"; then
+  AC_CHECK_LIB(Xinerama, XineramaQueryExtension, 
              [X_LIBS="$X_LIBS -lXinerama"
               AC_DEFINE(HAVE_XINERAMA,1,[Define this if you have libXinerama installed])
               ac_have_xinerama="yes"],,
              [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
+else
+  ac_have_xinerama=no
+fi
 dnl AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
 
  
@@ -737,13 +752,14 @@ dnl ---------------------------------------------
 dnl Checks for Ascii-Art library
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(aalib,
-	AC_HELP_STRING([--disable-aalib], [do not build aalib]),
-		disable_aalib=yes,
-		disable_aalib=no)
+AC_ARG_ENABLE([aalib],
+  AC_HELP_STRING([--disable-aalib], [do not build AALIB support]),
+  [with_aalib=$enableval], [with_aalib=yes])
 
-if test x$disable_aalib = "xno"; then
-AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
+if test "x$with_aalib" = "xyes"; then
+  AM_PATH_AALIB(1.4,, AC_MSG_RESULT([*** All of AALIB dependent parts will be disabled ***]))
+else
+  no_aalib=yes
 fi
 
 AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
@@ -752,9 +768,16 @@ dnl ---------------------------------------------
 dnl Checks for Color AsCii Art library
 dnl ---------------------------------------------
 
-AM_PATH_CACA(0.3,, AC_MSG_RESULT([*** All CACA-dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_CACA, test x$no_caca != "xyes")
+AC_ARG_ENABLE([caca],
+  AC_HELP_STRING([--disable-caca], [do not build CACA support]),
+  [with_caca=$enableval], [with_caca=yes])
 
+if test "x$with_caca" = "xyes"; then
+  AM_PATH_CACA(0.3,, AC_MSG_RESULT([*** All CACA-dependent parts will be disabled ***]))
+else
+  no_caca=yes
+fi
+AM_CONDITIONAL(HAVE_CACA, test x$no_caca != "xyes")
 
 dnl ---------------------------------------------
 dnl Check solaris framebuffer device support
@@ -858,9 +881,17 @@ dnl ---------------------------------------------
 dnl check for SDL
 dnl ---------------------------------------------
 
-AM_PATH_SDL(1.1.5, 
-	AC_DEFINE(HAVE_SDL,1,[Define this if you have SDL library installed]),
-	[])
+AC_ARG_ENABLE([sdl],
+  AC_HELP_STRING([--disable-sdl], [do not build SDL support]),
+  [with_sdl=$enableval], [with_sdl=yes])
+
+if test "x$with_sdl" = "xyes"; then
+  AM_PATH_SDL(1.1.5, 
+    AC_DEFINE(HAVE_SDL,1,[Define this if you have SDL library installed]),
+    [])
+else
+  no_sdl=yes
+fi
 AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 
 
@@ -894,26 +925,34 @@ dnl ---------------------------------------------
 dnl check for polypaudio
 dnl ---------------------------------------------
 
-AC_MSG_CHECKING(for polypaudio)
-dnl do some actual testing here
-if test x$PKG_CONFIG = xno ; then
-  AC_MSG_RESULT(no)
-  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
-  echo "*** All of polypaudio dependent parts will be disabled"
+AC_ARG_ENABLE([polypaudio],
+  AC_HELP_STRING([--disable-polypaudio], [do not build Polypaudio support]),
+  [with_polypaudio=$enableval], [with_polypaudio=yes])
+
+if test "x$with_polypaudio" = "xyes"; then
+  AC_MSG_CHECKING(for polypaudio)
+  dnl do some actual testing here
+  if test x$PKG_CONFIG = xno ; then
+    AC_MSG_RESULT(no)
+    echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
+    echo "*** All of polypaudio dependent parts will be disabled"
+  else
+      POLYPAUDIO_REQUIRED_VERSION=0.6
+      if $PKG_CONFIG --atleast-version $POLYPAUDIO_REQUIRED_VERSION polyplib ; then
+          POLYPAUDIO_CFLAGS=`$PKG_CONFIG --cflags polyplib`
+          POLYPAUDIO_LIBS=`$PKG_CONFIG --libs polyplib`
+          have_polypaudio="yes"
+          AC_MSG_RESULT(yes)
+      else
+          AC_MSG_RESULT(no)
+          AC_MSG_RESULT([*** All of polypaudio dependent parts will be disabled ***])
+      fi
+  fi
+  AC_SUBST(POLYPAUDIO_CFLAGS)
+  AC_SUBST(POLYPAUDIO_LIBS)
 else
-    POLYPAUDIO_REQUIRED_VERSION=0.6
-    if $PKG_CONFIG --atleast-version $POLYPAUDIO_REQUIRED_VERSION polyplib ; then
-        POLYPAUDIO_CFLAGS=`$PKG_CONFIG --cflags polyplib`
-        POLYPAUDIO_LIBS=`$PKG_CONFIG --libs polyplib`
-        have_polypaudio="yes"
-        AC_MSG_RESULT(yes)
-    else
-        AC_MSG_RESULT(no)
-        AC_MSG_RESULT([*** All of polypaudio dependent parts will be disabled ***])
-    fi
+  have_polypaudio=no
 fi
-AC_SUBST(POLYPAUDIO_CFLAGS)
-AC_SUBST(POLYPAUDIO_LIBS)
 AM_CONDITIONAL(HAVE_POLYPAUDIO, [test x"$have_polypaudio" = x"yes"])
 
 dnl ---------------------------------------------
@@ -1027,27 +1066,32 @@ AM_CONDITIONAL(HAVE_THEORA, [test x"$no_ogg" != "xyes" -a x"$no_theora" != "xyes
 dnl ---------------------------------------------
 dnl Ogg/Speex libs.
 dnl ---------------------------------------------
+AC_ARG_ENABLE([speex],
+  AC_HELP_STRING([--disable-speex], [do not build speex support]),
+  [with_speex=$enableval], [with_speex=yes])
 
-PKG_CHECK_MODULES(SPEEX, speex, no_speex="no", no_speex="yes")
+no_speex=yes
 
-if test "x$no_speex" = "xyes" ; then
-  AM_PATH_OGG([ AM_PATH_SPEEX(no_speex="no")])
+if test "x$with_speex" = "xyes"; then
+  PKG_CHECK_MODULES(SPEEX, speex, [
+    no_speex=no
+
+    AC_DEFINE(HAVE_SPEEX,1,[Define this if you have speex])
+
+    dnl Test whether Speex headers are eg. <speex.h> or <speex/speex.h>
+    dnl Speex headers were moved in mid-2004; 1.0.x has backwards compatible headers, 1.1.x does not
+    AC_CHECK_HEADER([speex/speex.h], [
+       AC_DEFINE(HAVE_SPEEX_SUBDIR, [1], [Define to 1 if speex headers are eg. <speex/speex.h>])
+    ])
+  ], no_speex="yes")
 fi
 
 if test "x$no_speex" = "xyes" ; then
   AC_MSG_RESULT([*** All OGG/SPEEX dependent parts will be disabled ***])
-else
-  AC_DEFINE(HAVE_SPEEX,1,[Define this if you have speex])
-
-  dnl Test whether Speex headers are eg. <speex.h> or <speex/speex.h>
-  dnl Speex headers were moved in mid-2004; 1.0.x has backwards compatible headers, 1.1.x does not
-  AC_CHECK_HEADER([speex/speex.h],
-                  AC_DEFINE(HAVE_SPEEX_SUBDIR, [1], [Define to 1 if speex headers are eg. <speex/speex.h>])
-  )
-
-  AC_SUBST(SPEEX_CFLAGS)
-  AC_SUBST(SPEEX_LIBS)
 fi
+
+AC_SUBST(SPEEX_CFLAGS)
+AC_SUBST(SPEEX_LIBS)
 AM_CONDITIONAL(HAVE_SPEEX, [test x"$no_ogg" != "xyes" -a x"$no_speex" != "xyes"])
 
 
@@ -1055,8 +1099,16 @@ dnl ---------------------------------------------
 dnl check for libFLAC
 dnl ---------------------------------------------
 
-AM_PATH_LIBFLAC([],
-	AC_MSG_RESULT([*** All FLAC dependent parts will be disabled ***]))
+AC_ARG_ENABLE([flac],
+  AC_HELP_STRING([--disable-flac], [do not build flac support]),
+  [with_flac=$enableval], [with_flac=yes])
+
+if test "x$with_flac" = "xyes"; then
+  AM_PATH_LIBFLAC([],
+    AC_MSG_RESULT([*** All FLAC dependent parts will be disabled ***]))
+else
+  no_libFLAC=yes
+fi
 AM_CONDITIONAL(HAVE_FLAC, [test x"$no_libFLAC" != "xyes"])
 
 dnl ---------------------------------------------
@@ -1123,14 +1175,22 @@ dnl ---------------------------------------------
 dnl MNG libs.
 dnl ---------------------------------------------
 
-AC_CHECK_LIB(mng, mng_initialize,
+AC_ARG_ENABLE([mng],
+  AC_HELP_STRING([--disable-mng], [do not build mng support]),
+  [with_mng=$enableval], [with_mng=yes])
+
+if test "x$with_mng" = "xyes"; then
+  AC_CHECK_LIB(mng, mng_initialize,
 	[ AC_CHECK_HEADER(libmng.h,
 		[ have_libmng=yes
 		  MNG_LIBS="-lmng" ], 
 		AC_MSG_RESULT([*** All libmng dependent parts will be disabled ***]))],
 	AC_MSG_RESULT([*** All libmng dependent parts will be disabled ***]))
+  AC_SUBST(MNG_LIBS)
+else
+  have_libmng=no
+fi
 AM_CONDITIONAL(HAVE_LIBMNG, test x"$have_libmng" = "xyes")
-AC_SUBST(MNG_LIBS)
 
 dnl ---------------------------------------------
 dnl MagickWand API of Imagemagick.
@@ -1162,10 +1222,14 @@ AM_PATH_FREETYPE2()
 dnl ---------------------------------------------
 dnl OSS style audio interface
 dnl ---------------------------------------------
+AC_ARG_ENABLE([oss],
+  AC_HELP_STRING([--disable-oss], [do not build OSS support]),
+  [with_oss=$enableval], [with_oss=yes])
 
-AC_MSG_CHECKING(for OSS audio support)
-have_ossaudio=no
-AC_TRY_COMPILE([
+if test "x$with_oss" = "xyes"; then
+  AC_MSG_CHECKING(for OSS audio support)
+  have_ossaudio=no
+  AC_TRY_COMPILE([
 	    #ifdef __NetBSD__
 	    #include <soundcard.h>
 	    #else
@@ -1176,7 +1240,10 @@ AC_TRY_COMPILE([
 	],[
 	    have_ossaudio=yes
 	])
-AC_MSG_RESULT($have_ossaudio)
+  AC_MSG_RESULT($have_ossaudio)
+else
+  have_ossaudio=no
+fi
 AM_CONDITIONAL(HAVE_OSS, test x"$have_ossaudio" = "xyes")
 
 
@@ -1199,9 +1266,17 @@ dnl ---------------------------------------------
 dnl ESD support
 dnl ---------------------------------------------
 
-AM_PATH_ESD(0.2.8,
+AC_ARG_ENABLE([esd],
+  AC_HELP_STRING([--disable-esd], [do not build esd support]),
+  [with_esd=$enableval], [with_esd=yes])
+
+if test "x$with_esd" = "xyes"; then
+  AM_PATH_ESD(0.2.8,
         AC_DEFINE(HAVE_ESD,1,[Define this if you have ESD (libesd) installed]),
         AC_MSG_RESULT(*** All of ESD dependent parts will be disabled ***))
+else
+  no_esd=yes
+fi
 AM_CONDITIONAL(HAVE_ESD, test x"$no_esd" != "xyes")
 
 
@@ -1209,9 +1284,17 @@ dnl ---------------------------------------------
 dnl ARTS support
 dnl ---------------------------------------------
 
-AM_PATH_ARTS(0.9.5,
+AC_ARG_ENABLE([arts],
+  AC_HELP_STRING([--disable-arts], [do not build arts support]),
+  [with_arts=$enableval], [with_arts=yes])
+
+if test "x$with_arts" = "xyes"; then
+  AM_PATH_ARTS(0.9.5,
         AC_DEFINE(HAVE_ARTS,1,[Define this if you have ARTS (libartsc) installed]),
         AC_MSG_RESULT(*** All of ARTS dependent parts will be disabled ***))
+else
+  no_arts=yes
+fi
 AM_CONDITIONAL(HAVE_ARTS, test x"$no_arts" != "xyes")
 
 
@@ -1219,15 +1302,23 @@ dnl ---------------------------------------------
 dnl gnome-vfs support
 dnl ---------------------------------------------
 
-PKG_CHECK_MODULES(GNOME_VFS, gnome-vfs-2.0,
+AC_ARG_ENABLE([gnome],
+  AC_HELP_STRING([--disable-gnome], [do not build gnome-vfs support]),
+  [with_gnome=$enableval], [with_gnome=yes])
+
+if test "x$with_gnome" = "xyes"; then
+  PKG_CHECK_MODULES(GNOME_VFS, gnome-vfs-2.0,
                 no_gnome_vfs=no,
 		no_gnome_vfs=yes)
-AC_SUBST(GNOME_VFS_CFLAGS)
-AC_SUBST(GNOME_VFS_LIBS)
-if test x"$no_gnome_vfs" != "xyes"; then
-AC_DEFINE(HAVE_GNOME_VFS,1,[Define this if you have gnome-vfs installed])
+  AC_SUBST(GNOME_VFS_CFLAGS)
+  AC_SUBST(GNOME_VFS_LIBS)
+  if test x"$no_gnome_vfs" != "xyes"; then
+    AC_DEFINE(HAVE_GNOME_VFS,1,[Define this if you have gnome-vfs installed])
+  else
+    AC_MSG_RESULT(*** All of the gnome-vfs dependent parts will be disabled ***)
+  fi
 else
-AC_MSG_RESULT(*** All of the gnome-vfs dependent parts will be disabled ***)
+  no_gnome_vfs=yes
 fi
 AM_CONDITIONAL(HAVE_GNOME_VFS, test x"$no_gnome_vfs" != "xyes")
 
@@ -1236,14 +1327,20 @@ dnl ---------------------------------------------
 dnl libsmbclient support
 dnl ---------------------------------------------
 
-AC_CHECK_LIB(smbclient, smbc_init,
+AC_ARG_ENABLE([samba],
+  AC_HELP_STRING([--disable-samba], [do not build Samba support]),
+  [with_samba=$enableval], [with_samba=yes])
+
+if test "x$with_samba" = "xyes"; then
+  AC_CHECK_LIB(smbclient, smbc_init,
 	[ AC_CHECK_HEADER(libsmbclient.h,
 		[ have_libsmbclient=yes
 		  LIBSMBCLIENT_LIBS="-lsmbclient" ], 
 		AC_MSG_RESULT([*** All libsmbclient dependent parts will be disabled ***]))],
 	AC_MSG_RESULT([*** All libsmbclient dependent parts will be disabled ***]))
+  AC_SUBST(LIBSMBCLIENT_LIBS)
+fi
 AM_CONDITIONAL(HAVE_LIBSMBCLIENT, test x"$have_libsmbclient" = "xyes")
-AC_SUBST(LIBSMBCLIENT_LIBS)
 
 
 dnl ---------------------------------------------
@@ -2028,7 +2125,7 @@ case "$host_or_hostalias" in
     AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed pointarithmetic implementation])
   ;;
 
-  hppa-*)
+  hppa*-linux-*)
     dnl -O3 seems to trigger gcc internal compiler errors, at least up to gcc 3.2.1
     CFLAGS="-O $CFLAGS"
     DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
@@ -2576,7 +2673,9 @@ echo "     - 14k4          - 28k8"
 echo "     - MS ADPCM      - IMA ADPCM"
 echo "     - XA ADPCM      - Game DPCM/ADPCM"
 echo "     - Mace 3:13     - Mace 6:1"
-echo "     - FLAC"
+if test x"no_libFLAC" != "xyes"; then
+  echo "     - FLAC"
+fi
 if test x"$no_vorbis" != "xyes"; then
   echo "   - vorbis"
 fi
