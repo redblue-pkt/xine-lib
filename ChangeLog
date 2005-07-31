@@ -10,6 +10,8 @@ xine-lib (1.1.0)
   * add an extended MRL reference event (MRL title, start time, play time):
     needed for the ASX parser; deprecates plain MRL reference events.
   * goom updated to 2k4-0
+  * Improve sound quality when using alsa, playing a 44.1khz stream on a 48khz
+    only capable sound card. It bypasses alsa-lib resampler and uses xine's
               
 xine-lib (1.0.2)
   * fixed playback of single-session Real RTSP streams, such as
