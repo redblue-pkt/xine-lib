@@ -30,7 +30,46 @@ dnl  AC_DEFINE() HAVE_GL,
 dnl  $no_alsa is set to "yes" if alsa isn't found.
 dnl  $have_alsa05 is set to "yes" if installed alsa version is <= 0.5
 dnl  $have_alsa09 is set to "yes" if installed alsa version is >= 0.9
+dnl  $have_alsa_1_0_9 is set to "yes" if installed alsa version is >= 1.0.9
 dnl
+
+dnl Internal macro XINE_ALSA_CHECK_VERSION
+dnl Usage: XINE_ALSA_CHECK_VERSION(reason, variable name, version test expr.)
+AC_DEFUN([XINE_ALSA_CHECK_VERSION],
+ [
+    AC_MSG_CHECKING([for ALSA $1])
+    AC_TRY_RUN([
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <$asoundlib_h>
+
+int main() {
+
+  #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
+  #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
+  #endif
+  #if !defined(SND_LIB_MINOR) && defined(SOUNDLIB_VERSION_MINOR)
+  #define SND_LIB_MINOR SOUNDLIB_VERSION_MINOR
+  #endif
+  #if !defined(SND_LIB_SUBMINOR) && defined(SOUNDLIB_VERSION_SUBMINOR)
+  #define SND_LIB_SUBMINOR SOUNDLIB_VERSION_SUBMINOR
+  #endif
+  #ifndef SND_LIB_VERSION
+  #define SND_LIB_VERSION ((SND_LIB_MAJOR<<16)|(SND_LIB_MINOR<<8)|SND_LIB_SUBMINOR)
+  #endif
+
+  if($3)
+    return 0;
+
+  return 1;
+}
+], [ AC_MSG_RESULT(yes)
+     eval $2=yes ],
+     AC_MSG_RESULT(no),[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+ ])
+
 AC_DEFUN([AM_PATH_ALSA],
  [  
   AC_ARG_ENABLE(alsa, AC_HELP_STRING([--disable-alsa], [do not build ALSA support]),
@@ -45,6 +84,7 @@ AC_DEFUN([AM_PATH_ALSA],
   no_alsa="yes"
   have_alsa05="no"
   have_alsa09="no"
+  have_alsa_1_0_9="no"
 
 if test x"$enable_alsa" != "xno"; then
 
@@ -170,64 +210,12 @@ dnl
 dnl now check for installed version.
 dnl
 
-dnl
-dnl Check for alsa 0.5.x series
-dnl
-    AC_MSG_CHECKING([for ALSA <= 0.5 series])
-    AC_TRY_RUN([
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+XINE_ALSA_CHECK_VERSION([<= 0.5 series], have_alsa05, [SND_LIB_VERSION < 0x000600])
 
-#include <$asoundlib_h>
+XINE_ALSA_CHECK_VERSION([>= 0.9 series], have_alsa09, [SND_LIB_VERSION >= 0x000900])
 
-int main() {
+XINE_ALSA_CHECK_VERSION([>= 1.0.9], have_alsa_1_0_9, [SND_LIB_VERSION >= 0x010009])
 
-  #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
-  #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
-  #endif
-  #if !defined(SND_LIB_MINOR) && defined(SOUNDLIB_VERSION_MINOR)
-  #define SND_LIB_MINOR SOUNDLIB_VERSION_MINOR
-  #endif
-
-  if((SND_LIB_MAJOR == 0) && (SND_LIB_MINOR <= 5))
-    return 0;
-
-  return 1;
-}
-], [ AC_MSG_RESULT(yes)
-     have_alsa05=yes ],
-     AC_MSG_RESULT(no),[echo $ac_n "cross compiling; assumed OK... $ac_c"])
-
-dnl
-dnl Check for alsa >= 0.9.x
-dnl
-    AC_MSG_CHECKING([for ALSA >= 0.9 series])
-    AC_TRY_RUN([
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <$asoundlib_h>
-
-int main() {
-
-  #if !defined(SND_LIB_MAJOR) && defined(SOUNDLIB_VERSION_MAJOR)
-  #define SND_LIB_MAJOR SOUNDLIB_VERSION_MAJOR
-  #endif
-  #if !defined(SND_LIB_MINOR) && defined(SOUNDLIB_VERSION_MINOR)
-  #define SND_LIB_MINOR SOUNDLIB_VERSION_MINOR
-  #endif
-
-  if(((SND_LIB_MAJOR == 0) && (SND_LIB_MINOR == 9)) ||
-     ((SND_LIB_MAJOR == 1) && (SND_LIB_MINOR == 0)))
-    return 0;
-
-  return 1;
-}
-], [ AC_MSG_RESULT(yes)
-     have_alsa09=yes ],
-     AC_MSG_RESULT(no),[echo $ac_n "cross compiling; assumed OK... $ac_c"])
 dnl
 dnl Version checking done.
 dnl
