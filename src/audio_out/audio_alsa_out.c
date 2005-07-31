@@ -26,15 +26,12 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.154 2005/07/31 14:39:39 jcdutton Exp $
+ * $Id: audio_alsa_out.c,v 1.155 2005/07/31 14:58:50 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-/* TODO: Make ./configure define this */
-// #define HAS_ALSA_1_0_9
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -474,7 +471,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
 	     this->num_channels, err, snd_strerror(err));
     goto close;
   }
-#ifdef HAS_ALSA_1_0_9
+#ifdef HAVE_ALSA_1_0_9
   /* Restrict a configuration space to contain only real hardware rates */
   err = snd_pcm_hw_params_set_rate_resample(this->audio_fd, params, 0);
 #endif
