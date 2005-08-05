@@ -1196,15 +1196,24 @@ dnl ---------------------------------------------
 dnl MagickWand API of Imagemagick.
 dnl ---------------------------------------------
 
-AC_PATH_PROG(WAND_CONFIG, Wand-config, no)
-if test "$WAND_CONFIG" = "no" ; then
-  AC_MSG_RESULT([*** All Imagemagick dependent parts will be disabled, Wand-config not found. ***])
+AC_ARG_ENABLE([imagemagick],
+  AC_HELP_STRING([--disable-imagemagick], [do not build ImageMagick support]),
+  [with_imagemagick=$enableval], [with_imagemagick=yes])
+
+if test "x$with_imagemagick" = "xyes"; then
+  AC_PATH_PROG(WAND_CONFIG, Wand-config, no)
+  if test "$WAND_CONFIG" = "no" ; then
+    AC_MSG_RESULT([*** All Imagemagick dependent parts will be disabled, Wand-config not found. ***])
+    have_imagemagick="no"
+  else
+    WAND_CFLAGS=`$WAND_CONFIG --cflags`
+    WAND_LDFLAGS=`$WAND_CONFIG --ldflags`
+    WAND_LIBS=`$WAND_CONFIG --libs`
+    have_imagemagick="yes"
+    AC_DEFINE(HAVE_WAND,1,[Define this if you have Imagemagick])
+  fi
 else
-  WAND_CFLAGS=`$WAND_CONFIG --cflags`
-  WAND_LDFLAGS=`$WAND_CONFIG --ldflags`
-  WAND_LIBS=`$WAND_CONFIG --libs`
-  have_imagemagick="yes"
-  AC_DEFINE(HAVE_WAND,1,[Define this if you have Imagemagick])
+  have_imagemagick="no"
 fi
 
 AM_CONDITIONAL(HAVE_WAND, test x"$have_imagemagick" = "xyes" )
@@ -2653,8 +2662,8 @@ fi
 if test x"$enable_w32dll" = "xyes"; then
   echo "   - w32dll"
 fi
-if test x"$have_libpng" = "xyes"; then
-  echo "   - png"
+if test x"$have_imagemagick" = "xyes"; then
+  echo "   - image"
 fi
 if test x"$no_theora" != "xyes"; then
   echo "   - theora"
