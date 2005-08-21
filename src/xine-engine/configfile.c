@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.78 2005/07/21 02:51:14 miguelfreitas Exp $
+ * $Id: configfile.c,v 1.79 2005/08/21 17:01:02 dsalt Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -964,7 +964,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
     f_backup = fopen(temp, "w");
     f_config = fopen(filename, "r");
     
-    if (f_config && f_backup && (stat(filename, &config_stat) == 0) && (config_stat.st_size > 0)) {
+    if (f_config && f_backup && (stat(filename, &config_stat) == 0)) {
       char    *buf = NULL;
       size_t   rlen;
       
