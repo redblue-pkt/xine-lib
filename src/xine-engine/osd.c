@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -31,7 +31,9 @@
 #include <stdio.h>
 #include <zlib.h>
 #include <sys/types.h>
+#ifdef HAVE_DIRENT_H
 #include <dirent.h>
+#endif
 #include <errno.h>
 
 #ifdef HAVE_ICONV

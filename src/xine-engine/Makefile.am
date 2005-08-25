@@ -8,16 +8,16 @@ lib_LTLIBRARIES = libxine.la
 
 XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la
 INTERNAL_ZLIB_LIB = $(top_builddir)/win32/contrib/zlib/libzlib.la
-DIRENT_LIB = $(top_builddir)/win32/contrib/libdirent.la
 INTERNAL_PTHREAD_LIB = $(top_builddir)/win32/contrib/pthreads/libpthread.la
 DEF_FILE = libxine-$(XINE_MAJOR).def
 if HAVE_ZLIB
 else
 zlib_dep = $(INTERNAL_ZLIB_LIB)
 endif
-if WIN32
-dirent_lib = $(DIRENT_LIB)
+if HAVE_INTERNAL_WIN32_PTHREAD
 pthread_dep = $(INTERNAL_PTHREAD_LIB)
+endif
+if WIN32
 def_ldflags="-Wl,--output-def,$(DEF_FILE)"
 endif
 
@@ -35,10 +35,10 @@ if INCLUDED_INTL
 INCLUDED_INTLLIBS = @INTLLIBS@
 endif
 libxine_la_DEPENDENCIES = $(INCLUDED_INTLLIBS) $(XINEUTILS_LIB) $(zlib_dep) \
-                          $(dirent_lib) $(pthread_dep) $(LIBXINEPOSIX)
+                          $(pthread_dep) $(LIBXINEPOSIX)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) \
-                    $(dirent_lib) $(LIBXINEPOSIX) $(RT_LIBS)
+                    $(LIBXINEPOSIX) $(RT_LIBS)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(XINE_LT_CURRENT):$(XINE_LT_REVISION):$(XINE_LT_AGE) \
@@ -72,6 +72,3 @@ $(INTERNAL_PTHREAD_LIB):
 
 $(INTERNAL_ZLIB_LIB):
 	$(MAKE) -C $(top_builddir)/win32/contrib/zlib libzlib.la
-
-$(DIRENT_LIB):
-	$(MAKE) -C $(top_builddir)/win32/contrib libdirent.la

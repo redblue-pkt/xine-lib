@@ -210,4 +210,6 @@ main ()
 dnl Make sure HAVE_STRSEP, HAVE_SETENV and HAVE_STRPBRK are defined as
 dnl necessary.
   AC_CHECK_FUNCS([strsep strpbrk setenv])
+dnl alloca (in public macro) and MinGW
+  AC_CHECK_HEADERS([malloc.h])
 ])

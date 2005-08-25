@@ -123,5 +123,5 @@ xineplug_ao_out_polypaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_
 
 xineplug_ao_out_directx2_la_SOURCES = audio_directx2_out.c
 xineplug_ao_out_directx2_la_CPPFLAGS = $(DIRECTX_CPPFLAGS)
-xineplug_ao_out_directx2_la_LIBADD = $(XINE_LIB) $(DIRECTX_AUDIO_LIBS)
+xineplug_ao_out_directx2_la_LIBADD = $(XINE_LIB) $(DIRECTX_AUDIO_LIBS) $(THREAD_LIBS)
 xineplug_ao_out_directx2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

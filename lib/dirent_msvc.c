@@ -18,6 +18,7 @@
 
 */
 
+#include "config.h"
 #include <dirent.h>
 #include <errno.h>
 #include <io.h>
@@ -36,7 +37,7 @@ struct DIR
 
 #endif
 
-DIR *opendir(const char *name)
+DIR *_xine_private_opendir(const char *name)
 {
     DIR *dir = 0;
 
@@ -77,7 +78,7 @@ DIR *opendir(const char *name)
     return dir;
 }
 
-int closedir(DIR *dir)
+int _xine_private_closedir(DIR *dir)
 {
     int result = -1;
 
@@ -100,7 +101,7 @@ int closedir(DIR *dir)
     return result;
 }
 
-struct dirent *readdir(DIR *dir)
+struct dirent *_xine_private_readdir(DIR *dir)
 {
     struct dirent *result = 0;
 
@@ -121,7 +122,7 @@ struct dirent *readdir(DIR *dir)
     return result;
 }
 
-void rewinddir(DIR *dir)
+void _xine_private_rewinddir(DIR *dir)
 {
     if(dir && dir->handle != -1)
     {

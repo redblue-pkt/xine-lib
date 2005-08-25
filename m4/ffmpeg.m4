@@ -75,13 +75,17 @@ if test x"$external_ffmpeg" != "xno"; then
         AC_CHECK_LIB(postproc, pp_get_context, 
           AC_CHECK_LIB(avcodec, register_avcodec,
             [external_ffmpeg_found=yes
-            FFMPEG_LIBS="${FFMPEG_LIBS} -lavcodec -lpostproc"
+            FFMPEG_POSTPROC_LIBS="${FFMPEG_LIBS} -lpostproc"
+            FFMPEG_LIBS="${FFMPEG_LIBS} -lavcodec"
             break]
           ),,
           [-lavcodec]
         )
       done
-  
+      if test x$FFMPEG_POSTPROC_LIBS = "x"; then
+        FFMPEG_POSTPROC_LIBS="${FFMPEG_LIBS}"
+      fi
+
       dnl result of autodetection
       if test x"$external_ffmpeg_found" = "xyes"; then
         AC_MSG_RESULT([External ffmpeg library was found in ${dir}.])
@@ -99,7 +103,7 @@ configure option --with-external-ffmpeg.
     else
       dnl check specified flags
       CPPFLAGS="${FFMPEG_CPPFLAGS} ${ac_save_CPPFLAGS}"
-      LDFLAGS="${FFMPEG_LIBS} ${ac_save_LDFLAGS}"
+      LDFLAGS="${FFMPEG_LIBS} ${FFMPEG_POSTPROC_LIBS } ${ac_save_LDFLAGS}"
       AC_LINK_IFELSE([#include <avcodec.h>
 #include <postprocess.h>
  
@@ -158,6 +162,7 @@ use internal ffmpeg.
   
   AC_SUBST(FFMPEG_CPPFLAGS)
   AC_SUBST(FFMPEG_LIBS)
+  AC_SUBST(FFMPEG_POSTPROC_LIBS)
   
 else
   AC_MSG_RESULT([using included ffmpeg])

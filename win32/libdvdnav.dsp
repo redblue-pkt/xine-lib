@@ -45,7 +45,7 @@ LINK32=link.exe
 # ADD LINK32 /machine:IX86
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "../src/xine-utils" /I "contrib/dirent" /I "contrib/pthreads" /I "../src/input/libdvdcss/src" /I "../src" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "DVDNAV_COMPILE" /D "HAVE_CONFIG_H" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "../src/xine-utils" /I "contrib/pthreads" /I "../src/input/libdvdcss/src" /I "../src" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "DVDNAV_COMPILE" /D "HAVE_CONFIG_H" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -74,7 +74,7 @@ LINK32=link.exe
 # SUBTRACT LINK32 /pdb:none /nodefaultlib
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "../src/xine-utils" /I "contrib/dirent" /I "contrib/pthreads" /I "../src/input/libdvdcss/src" /I "../src" /D "WIN32" /D "_DEBUG" /D "_LIB" /D "DVDNAV_COMPILE" /D "HAVE_CONFIG_H" /FR"Debug/libdvdnav/" /Fp"Debug/libdvdnav/libdvdnav.pch" /YX /Fo"Debug/libdvdnav/" /Fd"Debug/libdvdnav/" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "../src/xine-utils" /I "contrib/pthreads" /I "../src/input/libdvdcss/src" /I "../src" /D "WIN32" /D "_DEBUG" /D "_LIB" /D "DVDNAV_COMPILE" /D "HAVE_CONFIG_H" /FR"Debug/libdvdnav/" /Fp"Debug/libdvdnav/libdvdnav.pch" /YX /Fo"Debug/libdvdnav/" /Fd"Debug/libdvdnav/" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe

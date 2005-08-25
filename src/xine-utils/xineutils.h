@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.96 2004/12/12 13:51:30 valtri Exp $
+ * $Id: xineutils.h,v 1.97 2005/08/25 15:37:02 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -59,6 +59,10 @@ extern "C" {
 
 #include <stdio.h>
 #include <string.h>
+/* for alloca under MinGW */
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
   /*
    * debugable mutexes

@@ -225,11 +225,15 @@ case "$host" in
     esac
 
     if test "$SYS" = "mingw32"; then
-      THREAD_CONFIGURE_CPPFLAGS="-I${srcdir}/win32/contrib/pthreads"
-      THREAD_INCLUDES='-I$(top_srcdir)/win32/contrib/pthreads'
-      THREAD_LIBS='$(top_builddir)/win32/contrib/pthreads/libpthread.la'
-      THREAD_CFLAGS_CONFIG=" "
-      THREAD_LIBS_CONFIG=" "
+      AC_CHECK_LIB(pthread, pthread_create,
+               [THREAD_LIBS="-lpthread"],
+               [THREAD_INCLUDES='-I$(top_srcdir)/win32/contrib/pthreads'
+                THREAD_LIBS='$(top_builddir)/win32/contrib/pthreads/libpthread.la'
+                THREAD_CONFIGURE_CPPFLAGS="-I${srcdir}/win32/contrib/pthreads"
+                THREAD_CFLAGS_CONFIG=" "
+                THREAD_LIBS_CONFIG=" "
+                ac_have_internal_win32_pthread=yes])
+      
       WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include -I$(top_srcdir)/win32/contrib/dirent'
       LIBS="-lwinmm -lwsock32 $LIBS"
       GOOM_LIBS="-liberty"
@@ -265,6 +269,7 @@ AC_SUBST(THREAD_LIBS_CONFIG)
 dnl WIN32 platform
 AC_SUBST(WIN32_CPPFLAGS)
 AM_CONDITIONAL(WIN32, test x$SYS = "xmingw32")
+AM_CONDITIONAL(HAVE_INTERNAL_WIN32_PTHREAD, test x$ac_have_internal_win32_pthread = "xyes")
 
 dnl
 AC_MSG_CHECKING(for recursive mutex support in pthread)
@@ -497,7 +502,9 @@ dnl ---------------------------------------------
 
 case "$host_or_hostalias" in
   *linux* )
-    have_syncfb="yes"
+    AC_ARG_ENABLE([fb],
+      AC_HELP_STRING([--disable-fb], [do not build syncfb plugins]),
+      have_syncfb=$enableval, have_syncfb="yes")
     ;;
   *)
     have_syncfb="no"
@@ -1753,8 +1760,9 @@ AC_CHECK_LIB(posix4, sched_get_priority_min)
 AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset strchr])
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
-AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h sys/times.h sys/ioctl.h)
+AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h)
 AC_REPLACE_FUNCS(basename gettimeofday setenv strndup strpbrk strsep strtok_r)
+AC_CHECK_FUNCS(readlink)
 
 AC_LIBSOURCE(hstrerror.c)
 AC_LINK_IFELSE([#include <netdb.h>
@@ -1767,6 +1775,15 @@ if test x"$ac_cv_function_system_hstrerror" = "xyes"; then
 else
   AC_LIBOBJ(hstrerror)
 fi
+
+AC_LIBSOURCE(dirent_msvc.c)
+AC_CHECK_FUNC(opendir,
+  [AC_DEFINE(HAVE_OPENDIR, 1, [Define to 1 if you have 'opendir' function])],
+  [if test x"$SYS" = "xmingw32"; then
+    AC_LIBOBJ(dirent_msvc)
+  else
+    AC_MSG_ERROR([dirent is needed (opendir, readdir, ...)])
+  fi])
 
 AH_BOTTOM([/* include internal system specific header */
 #include "os_internal.h"])

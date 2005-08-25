@@ -88,7 +88,9 @@
 #endif
 #include <sys/poll.h>
 #include <time.h>
+#ifdef HAVE_DIRENT_H
 #include <dirent.h>
+#endif
 #include <ctype.h>
 
 /* These will eventually be #include <linux/dvb/...> */
@@ -2098,6 +2100,8 @@ static void do_record (dvb_input_plugin_t *this) {
  char dates[64];
  int x=0;
  xine_cfg_entry_t savedir;
+ DIR *dir;
+
  if (this->record_fd > -1) {
 
     /* stop recording */
@@ -2120,10 +2124,11 @@ static void do_record (dvb_input_plugin_t *this) {
     
     if (xine_config_lookup_entry(this->stream->xine, "media.capture.save_dir", &savedir)){
       if(strlen(savedir.str_value)>1){
-        if(opendir(savedir.str_value)==NULL){
+        if((dir = opendir(savedir.str_value))==NULL){
           snprintf (filename, 256, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
           xprintf(this->class->xine,XINE_VERBOSITY_LOG,"savedir is wrong... saving to home directory\n");
         } else {
+          closedir(dir);
           snprintf (filename, 256, "%s/%s_%s.ts",savedir.str_value,this->channels[this->channel].name, dates);
           xprintf(this->class->xine,XINE_VERBOSITY_LOG,"saving to savedir\n");
         }

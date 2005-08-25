@@ -80,11 +80,11 @@ xineplug_inp_dvd_la_LIBADD = $(XINE_LIB) $(link_dvdnav)
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
-xineplug_inp_net_la_LIBADD = $(XINE_LIB)
+xineplug_inp_net_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_net_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_mms_la_SOURCES = input_mms.c net_buf_ctrl.c mms.c mmsh.c http_helper.c
-xineplug_inp_mms_la_LIBADD = $(XINE_LIB) @LIBICONV@
+xineplug_inp_mms_la_LIBADD = $(XINE_LIB) @LIBICONV@ $(THREAD_LIBS)
 xineplug_inp_mms_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_vcdo_la_SOURCES = input_vcd.c media_helper.c
@@ -92,27 +92,27 @@ xineplug_inp_vcdo_la_LIBADD = $(XINE_LIB)
 xineplug_inp_vcdo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c net_buf_ctrl.c
-xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB)
+xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_rtp_la_SOURCES = input_rtp.c net_buf_ctrl.c
-xineplug_inp_rtp_la_LIBADD = $(XINE_LIB)
+xineplug_inp_rtp_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c http_helper.c
-xineplug_inp_http_la_LIBADD = $(XINE_LIB)
+xineplug_inp_http_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_http_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_pnm_la_SOURCES = input_pnm.c net_buf_ctrl.c pnm.c
-xineplug_inp_pnm_la_LIBADD = $(XINE_LIB)
+xineplug_inp_pnm_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_pnm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_dvb_la_SOURCES = input_dvb.c net_buf_ctrl.c
-xineplug_inp_dvb_la_LIBADD = $(XINE_LIB)
+xineplug_inp_dvb_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_dvb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_rtsp_la_SOURCES = input_rtsp.c net_buf_ctrl.c
-xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) libreal/libreal.la librtsp/librtsp.la
+xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS) libreal/libreal.la librtsp/librtsp.la
 xineplug_inp_rtsp_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_cdda_la_SOURCES = input_cdda.c media_helper.c sha1.c sha1.h base64.c base64.h
@@ -124,7 +124,7 @@ xineplug_inp_v4l_la_LIBADD = $(ALSA_LIBS) $(XINE_LIB)
 xineplug_inp_v4l_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_gnome_vfs_la_SOURCES = input_gnome_vfs.c net_buf_ctrl.c
-xineplug_inp_gnome_vfs_la_LIBADD = $(GNOME_VFS_LIBS) $(XINE_LIB)
+xineplug_inp_gnome_vfs_la_LIBADD = $(GNOME_VFS_LIBS) $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_gnome_vfs_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_smb_la_SOURCES = input_smb.c

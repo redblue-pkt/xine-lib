@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a unix video player.
  * 
@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.21 2004/12/01 07:23:55 athp Exp $
+ * $Id: video_out_directx.c,v 1.22 2005/08/25 15:36:30 valtri Exp $
  */
 
 typedef unsigned char boolean;
@@ -174,7 +174,7 @@ void UpdateRect( win32_visual_t * win32_visual )
 
 boolean CreatePrimary( win32_driver_t * win32_driver )
 {
-  LPDIRECTDRAW			ddobj;
+  LPDIRECTDRAW4			ddobj;
   DDSURFACEDESC2			ddsd;
   HRESULT					result;
 
@@ -193,7 +193,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   result = IDirectDraw_SetCooperativeLevel( ddobj, win32_driver->win32_visual->WndHnd, DDSCL_NORMAL );
   if( result != DD_OK )
     {
-      Error( 0, "SetCooperativeLevel : error %i", result );
+      Error( 0, "SetCooperativeLevel : error 0x%lx", result );
       return 0;
     }
 
@@ -220,7 +220,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   result = IDirectDraw4_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->primary, 0 );
   if( result != DD_OK )
     {
-      Error( 0, "CreateSurface ( primary ) : error %i ", result );
+      Error( 0, "CreateSurface ( primary ) : error 0x%lx", result );
       return 0;
     }
 
@@ -229,7 +229,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   result = IDirectDraw4_CreateClipper( win32_driver->ddobj, 0, &win32_driver->ddclipper, 0 );
   if( result != DD_OK )
     {
-      Error( 0, "CreateClipper : error %i", result );
+      Error( 0, "CreateClipper : error 0x%lx", result );
       return 0;
     }
 
@@ -238,7 +238,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   result = IDirectDrawClipper_SetHWnd( win32_driver->ddclipper, 0, win32_driver->win32_visual->WndHnd );
   if( result != DD_OK )
     {
-      Error( 0, "ddclipper->SetHWnd : error %i", result );
+      Error( 0, "ddclipper->SetHWnd : error 0x%lx", result );
       return 0;
     }
 
@@ -247,7 +247,7 @@ boolean CreatePrimary( win32_driver_t * win32_driver )
   result = IDirectDrawSurface4_SetClipper( win32_driver->primary, win32_driver->ddclipper );
   if( result != DD_OK )
     {
-      Error( 0, "ddclipper->SetHWnd : error %i", result );
+      Error( 0, "ddclipper->SetHWnd : error 0x%lx", result );
       return 0;
     }
 
@@ -373,15 +373,16 @@ boolean CreateSecondary( win32_driver_t * win32_driver, int width, int height, i
 
   win32_driver->act_format = IMGFMT_NATIVE;
 
-  if( IDirectDraw4_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->secondary, 0 ) == DD_OK )
-    return TRUE;
+  if( IDirectDraw4_CreateSurface( win32_driver->ddobj, &ddsd, &win32_driver->secondary, 0 ) != DD_OK ) {
+      /* This is bad. We cant even create a surface with
+       * the same format as the primary surface. */
 
-  /* This is bad. We cant even create a surface with
-   * the same format as the primary surface. */
+      Error( 0, "CreateSurface ( Secondary ) : unable to create a suitable rendering surface" );
 
-  Error( 0, "CreateSurface ( Secondary ) : unable to create a suitable rendering surface" );
+      return FALSE;
+    }
 
-  return FALSE;
+  return TRUE;
 }
 
 /* Destroy all direct draw driver allocated
@@ -423,7 +424,7 @@ boolean CheckPixelFormat( win32_driver_t * win32_driver )
   result = IDirectDrawSurface4_GetPixelFormat( win32_driver->primary, &ddpf );
   if( result != DD_OK )
     {
-      Error( 0, "IDirectDrawSurface4_GetPixelFormat ( CheckPixelFormat ) : error %u", result );
+      Error( 0, "IDirectDrawSurface4_GetPixelFormat ( CheckPixelFormat ) : error 0x%lx", result );
       return 0;
     }
 
@@ -597,7 +598,7 @@ boolean Overlay( LPDIRECTDRAWSURFACE4 src_surface, RECT * src_rect,
 	}
       else
 	{
-	  Error( 0, "IDirectDrawSurface4_UpdateOverlay : error %i", result );
+	  Error( 0, "IDirectDrawSurface4_UpdateOverlay : error 0x%lx", result );
 	  return FALSE;
 	}
     }
@@ -633,7 +634,7 @@ boolean BltCopy( LPDIRECTDRAWSURFACE4 src_surface, RECT * src_rect,
 	}
       else
 	{
-	  Error( 0, "IDirectDrawSurface4_Blt : error %i", result );
+	  Error( 0, "IDirectDrawSurface4_Blt : error 0x%lx", result );
 	  return FALSE;
 	}
     }
@@ -784,8 +785,6 @@ void * Lock( void * surface )
     }
 
   return ddsd.lpSurface;
-
-  return 0;
 }
 
 /* Unlock our back buffer to prepair for display. */
@@ -885,6 +884,7 @@ static void win32_update_frame_format( vo_driver_t * vo_driver, vo_frame_t * vo_
 
   /*printf("vo_out_directx : win32_update_frame_format() - width = %d, height=%d, ratio_code=%d, format=%d, flags=%d\n", width, height, ratio_code, format, flags);*/
 
+
   if( ( win32_frame->format	!= format	) ||
       ( win32_frame->width	!= width	) ||
       ( win32_frame->height	!= height	) )
@@ -936,6 +936,7 @@ static void win32_update_frame_format( vo_driver_t * vo_driver, vo_frame_t * vo_
       win32_frame->height	= height;
       win32_frame->ratio	= ratio;
     }
+
 }
 
 static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame )
@@ -944,6 +945,7 @@ static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame 
   win32_frame_t   *win32_frame  = ( win32_frame_t * ) vo_frame;
   int              offset;
   int              size;
+
 
   /* if the required width, height or format has changed
    * then recreate the secondary buffer */
@@ -1091,12 +1093,14 @@ static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame 
     vo_frame->free(&win32_driver->current->vo_frame);
   }
   win32_driver->current = (win32_frame_t *)vo_frame;
+
 }
 
 static void win32_overlay_blend( vo_driver_t * vo_driver, vo_frame_t * vo_frame, vo_overlay_t * vo_overlay )
 {
   win32_frame_t * win32_frame = ( win32_frame_t * ) vo_frame;
   win32_driver_t * win32_driver = ( win32_driver_t * ) vo_driver;
+
 
   /* temporary overlay support, somthing more appropriate
    * for win32 will be devised at a later date */
@@ -1176,6 +1180,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *wi
   directx_class_t *class = (directx_class_t *)class_gen;
   win32_driver_t  *win32_driver = ( win32_driver_t * ) xine_xmalloc ( sizeof( win32_driver_t ) );
 
+
   _x_alphablend_init(&win32_driver->alphablend_extra_data, class->xine);
   
   win32_driver->xine = class->xine;
@@ -1196,12 +1201,15 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *wi
   win32_driver->vo_driver.dispose		= win32_exit;
   win32_driver->vo_driver.redraw_needed         = win32_redraw_needed;
 
-  CreatePrimary( win32_driver );
+  if (!CreatePrimary( win32_driver )) {
+      Destroy( win32_driver );
+      return NULL;
+  }
   if( !CheckPixelFormat( win32_driver ) )
     {
       Error( 0, "vo_directx : Your screen pixel format is not supported" );
       Destroy( win32_driver );
-      return 0;
+      return NULL;
     }
 
 #if (NEW_YUV)
@@ -1212,7 +1220,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *wi
 #endif
 
   return ( vo_driver_t * ) win32_driver;
-}    
+}
 
 
 static char* get_identifier (video_driver_class_t *this_gen) {
@@ -1232,7 +1240,7 @@ static void dispose_class (video_driver_class_t *this_gen) {
 static void *init_class (xine_t *xine, void *visual_gen) {
 
   directx_class_t    *directx;
-  
+
   /*
    * from this point on, nothing should go wrong anymore
    */

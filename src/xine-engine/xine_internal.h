@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.166 2005/07/17 23:11:45 dsalt Exp $
+ * $Id: xine_internal.h,v 1.167 2005/08/25 15:36:30 valtri Exp $
  *
  */
 
@@ -248,12 +248,14 @@ struct xine_stream_s {
 
 /*  vo_driver_t               *video_driver;*/
   pthread_t                  video_thread;
+  int                        video_thread_created;
   video_decoder_t           *video_decoder_plugin;
   int                        video_decoder_streamtype;
   extra_info_t              *video_decoder_extra_info;
   int                        video_channel;
   
   pthread_t                  audio_thread;
+  int                        audio_thread_created;
   audio_decoder_t           *audio_decoder_plugin;
   int                        audio_decoder_streamtype;
   extra_info_t              *audio_decoder_extra_info;
@@ -308,6 +310,7 @@ struct xine_stream_s {
   
   /* demux thread stuff */
   pthread_t                  demux_thread;
+  int                        demux_thread_created;
   int                        demux_thread_running;
   pthread_mutex_t            demux_lock;
   int                        demux_action_pending;

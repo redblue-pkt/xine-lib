@@ -4,7 +4,7 @@ AM_CPPFLAGS = -D_WIN32_WINNT=0x400 -DHAVE_CONFIG_H -DPTW32_BUILD -D__CLEANUP_C
 
 EXTRA_DIST = acconfig.h ANNOUNCE CONTRIBUTORS COPYING.LIB ChangeLog FAQ MAINTAINERS NEWS PROGRESS README README.CV README.NONPORTABLE README.WinCE TODO WinCE-PORT build.tar.gz config.h.in pthread.def pthread.dsp pthread.dsw diff_to_original.patch
 
-if WIN32
+if HAVE_INTERNAL_WIN32_PTHREAD
 noinst_LTLIBRARIES = libpthread.la
 include_HEADERS = pthread.h sched.h
 noinst_HEADERS = config.h implement.h need_errno.h semaphore.h

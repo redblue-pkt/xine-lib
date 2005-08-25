@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.134 2005/04/19 17:42:29 hadess Exp $
+ * $Id: audio_decoder.c,v 1.135 2005/08/25 15:36:30 valtri Exp $
  *
  *
  * functions that implement audio decoding
@@ -148,7 +148,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 
       pthread_cond_broadcast (&stream->counter_changed);
 
-      if (stream->video_thread) {
+      if (stream->video_thread_created) {
         while (stream->finished_count_video < stream->finished_count_audio) {
           struct timeval tv;
           struct timespec ts;
@@ -490,7 +490,8 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
     pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
     pthread_attr_setschedparam(&pth_attrs, &pth_params);
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
-  
+ 
+    stream->audio_thread_created = 1; 
     if ((err = pthread_create (&stream->audio_thread,
                                &pth_attrs, audio_decoder_loop, stream)) != 0) {
       xprintf (stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -507,14 +508,15 @@ void _x_audio_decoder_shutdown (xine_stream_t *stream) {
   buf_element_t *buf;
   void          *p;
 
-  if (stream->audio_thread) {
+  if (stream->audio_thread_created) {
     /* stream->audio_fifo->clear(stream->audio_fifo); */
 
     buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
     buf->type = BUF_CONTROL_QUIT;
     stream->audio_fifo->put (stream->audio_fifo, buf);
     
-    pthread_join (stream->audio_thread, &p); 
+    pthread_join (stream->audio_thread, &p);
+    stream->audio_thread_created = 0;
   }
     
   stream->audio_fifo->dispose (stream->audio_fifo);

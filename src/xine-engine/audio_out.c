@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.190 2005/01/20 11:29:43 holstsn Exp $
+ * $Id: audio_out.c,v 1.191 2005/08/25 15:36:30 valtri Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -216,6 +216,7 @@ typedef struct {
   int             audio_loop_running;
   int             grab_only; /* => do not start thread, frontend will consume samples */
   pthread_t       audio_thread;
+  int             audio_thread_created;
 
   int64_t         audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
   int32_t         frames_per_kpts;      /* frames per 1024/90000 sec                  */
@@ -1543,7 +1544,7 @@ static void ao_exit(xine_audio_port_t *this_gen) {
     fifo_append (this->out_fifo, buf);
 
     pthread_join (this->audio_thread, &p);
-    this->audio_thread = 0;
+    this->audio_thread_created = 0;
   }
       
   if (!this->grab_only) {
@@ -2103,7 +2104,8 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
     
     pthread_attr_init(&pth_attrs);
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
-    
+
+    this->audio_thread_created = 1;
     if ((err = pthread_create (&this->audio_thread,
 			       &pth_attrs, ao_loop, this)) != 0) {
       

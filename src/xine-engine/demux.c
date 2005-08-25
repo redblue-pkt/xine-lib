@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.58 2005/07/17 23:11:45 dsalt Exp $ 
+ * $Id: demux.c,v 1.59 2005/08/25 15:36:30 valtri Exp $ 
  */
 
 
@@ -150,13 +150,13 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->counter_lock);
 
-  if (stream->video_thread) {
+  if (stream->video_thread_created) {
     header_count_video = stream->header_count_video + 1;
   } else {
     header_count_video = 0;
   }
 
-  if (stream->audio_thread) {
+  if (stream->audio_thread_created) {
     header_count_audio = stream->header_count_audio + 1;
   } else {
     header_count_audio = 0;
@@ -292,9 +292,9 @@ static void *demux_loop (void *stream_gen) {
   lprintf ("loop finished (status: %d)\n", status);
 
   pthread_mutex_lock (&stream->counter_lock);
-  if (stream->audio_thread)
+  if (stream->audio_thread_created)
     finished_count_audio = stream->finished_count_audio + 1;
-  if (stream->video_thread)
+  if (stream->video_thread_created)
     finished_count_video = stream->finished_count_video + 1;
   pthread_mutex_unlock (&stream->counter_lock);
 
@@ -332,12 +332,13 @@ int _x_demux_start_thread (xine_stream_t *stream) {
   
   if( !stream->demux_thread_running ) {
 
-    if (stream->demux_thread) {
+    if (stream->demux_thread_created) {
       void *p;
       pthread_join(stream->demux_thread, &p);
     }
 
     stream->demux_thread_running = 1;
+    stream->demux_thread_created = 1;
     if ((err = pthread_create (&stream->demux_thread,
 			       NULL, demux_loop, (void *)stream)) != 0) {
       printf ("demux: can't create new thread (%s)\n", strerror(err));
@@ -368,9 +369,9 @@ int _x_demux_stop_thread (xine_stream_t *stream) {
 
   lprintf ("joining thread %ld\n", stream->demux_thread );
   
-  if( stream->demux_thread ) {
+  if( stream->demux_thread_created ) {
     pthread_join (stream->demux_thread, &p);
-    stream->demux_thread = 0;
+    stream->demux_thread_created = 0;
   }
   
   /*

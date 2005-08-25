@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2004 the xine project, 
+ * Copyright (C) 2000-2005 the xine project, 
  *                         Rich Wareham <richwareham@users.sourceforge.net>
  * 
  * This file is part of xine, a free video player.
@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.201 2005/07/11 11:35:41 hadess Exp $
+ * $Id: input_dvd.c,v 1.202 2005/08/25 15:36:29 valtri Exp $
  *
  */
 
@@ -47,7 +47,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <dirent.h>
 
 #include <unistd.h>
 #include <fcntl.h>

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * March 2003 - Miguel Freitas
  * This plugin was sponsored by 1Control
  *
@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.54 2005/02/07 23:58:58 tmattern Exp $
+ * $Id: input_pvr.c,v 1.55 2005/08/25 15:36:29 valtri Exp $
  */
 
 /**************************************************************************
@@ -91,7 +91,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

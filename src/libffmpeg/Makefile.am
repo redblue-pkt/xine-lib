@@ -35,7 +35,7 @@ xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 endif
 
 xineplug_decode_ff_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) -lm $(ZLIB_LIBS) \
-	$(link_ffmpeg)
+	$(link_ffmpeg) $(THREAD_LIBS)
 
 xineplug_decode_dvaudio_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_dvaudio_la_SOURCES = dvaudio_decoder.c

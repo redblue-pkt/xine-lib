@@ -44,7 +44,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/dirent" /I "contrib/pthreads" /I "../src/xine-engine" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../lib" /I "../include" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src/xine-engine" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -71,7 +71,7 @@ LINK32=link.exe
 # PROP Target_Dir ""
 LIB32=link.exe
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../include" /I "../lib" /I "include" /I "include/msvc" /I "contrib/dirent" /I "contrib/pthreads" /I "../src/xine-engine" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../include" /I "../lib" /I "include" /I "include/msvc" /I "contrib/pthreads" /I "../src/xine-engine" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "LIBXINESUPPT_EXPORTS" /D "__CLEANUP_C" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -261,15 +261,6 @@ SOURCE=.\contrib\zlib\zutil.c
 
 # End Group
 
-# Begin Group "Source Files ( dirent )"
-# PROP Default_Filter ""
-
-# Begin Source File
-SOURCE=.\contrib\dirent\dirent.c
-# End Source File
-
-# End Group
-
 # Begin Group "Source Files ( posix )"
 # PROP Default_Filter ""
 
@@ -279,6 +270,10 @@ SOURCE=..\lib\basename.c
 
 # Begin Source File
 SOURCE=..\lib\gettimeofday.c
+# End Source File
+
+# Begin Source File
+SOURCE=..\lib\dirent_msvc.c
 # End Source File
 
 # Begin Source File

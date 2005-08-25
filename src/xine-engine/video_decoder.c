@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  *
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.158 2005/04/19 17:42:30 hadess Exp $
+ * $Id: video_decoder.c,v 1.159 2005/08/25 15:36:30 valtri Exp $
  *
  */
 
@@ -220,7 +220,7 @@ static void *video_decoder_loop (void *stream_gen) {
 
       pthread_cond_broadcast (&stream->counter_changed);
 
-      if (stream->audio_thread) {
+      if (stream->audio_thread_created) {
 
         while (stream->finished_count_video > stream->finished_count_audio) {
           struct timeval tv;
@@ -500,7 +500,8 @@ void _x_video_decoder_init (xine_stream_t *stream) {
     pth_params.sched_priority = sched_get_priority_min(SCHED_OTHER);
     pthread_attr_setschedparam(&pth_attrs, &pth_params);
     pthread_attr_setscope(&pth_attrs, PTHREAD_SCOPE_SYSTEM);
-    
+
+    stream->video_thread_created = 1;
     if ((err = pthread_create (&stream->video_thread,
                                &pth_attrs, video_decoder_loop, stream)) != 0) {
       fprintf (stderr, "video_decoder: can't create new thread (%s)\n",
@@ -519,7 +520,7 @@ void _x_video_decoder_shutdown (xine_stream_t *stream) {
 
   lprintf ("shutdown...\n");
 
-  if (stream->video_thread) {
+  if (stream->video_thread_created) {
 
     /* stream->video_fifo->clear(stream->video_fifo); */
 
@@ -533,6 +534,7 @@ void _x_video_decoder_shutdown (xine_stream_t *stream) {
     lprintf ("shutdown...3\n");
 
     pthread_join (stream->video_thread, &p);
+    stream->video_thread_created = 0;
 
     lprintf ("shutdown...4\n");
 

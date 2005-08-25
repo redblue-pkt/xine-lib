@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <stdio.h>
 
 /* This function will leak a small amount of memory */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.34 2005/01/12 00:05:38 tmattern Exp $
+ * $Id: mmsh.c,v 1.35 2005/08/25 15:36:29 valtri Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -492,8 +492,8 @@ static void interp_header (mmsh_t *this) {
 
         this->packet_length = LE_32(this->asf_header + i + 92 - 24);
         this->file_length   = LE_64(this->asf_header + i + 40 - 24);
-        lprintf ("file object, file_length = %lld, packet length = %d",
-		 this->file_length, this->packet_count);
+        /*lprintf ("file object, file_length = %lld, packet length = %d",
+		 this->file_length, this->packet_count);*/
         break;
 
       case GUID_ASF_STREAM_PROPERTIES:

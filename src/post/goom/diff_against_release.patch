@@ -345,3 +345,16 @@ diff -u -p -r1.13 goom_core.c
                  *param1 = goomInfo->screen.width / 7.0f;
                  *param2 = 6.0f * goomInfo->screen.width / 7.0f;
              }
+--- post/goom/filters.c.orig	2005-08-20 12:29:12.000000000 +0200
++++ post/goom/filters.c	2005-08-20 12:28:25.000000000 +0200
+@@ -201,8 +201,8 @@ static inline v2g zoomVector(ZoomFilterF
+     /* Noise */
+     if (data->noisify)
+     {
+-        vx += (((float)random()) / ((float)RAND_MAX) - 0.5f) / 50.0f;
+-        vy += (((float)random()) / ((float)RAND_MAX) - 0.5f) / 50.0f;
++        vx += (((float)rand()) / ((float)RAND_MAX) - 0.5f) / 50.0f;
++        vy += (((float)rand()) / ((float)RAND_MAX) - 0.5f) / 50.0f;
+     }
+     
+     /* Hypercos */

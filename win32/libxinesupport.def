@@ -6,10 +6,10 @@ EXPORTS
 ;------------------------------------------------------------
 ; dirent exports
 
-opendir
-closedir
-readdir
-rewinddir
+_xine_private_opendir
+_xine_private_closedir
+_xine_private_readdir
+_xine_private_rewinddir
 
 ;------------------------------------------------------------
 ; pthread exports

@@ -93,77 +93,86 @@ LINK32=link.exe
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
-
 SOURCE=..\src\demuxers\demux_aac.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_ac3.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_aiff.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_aud.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_cdda.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
+SOURCE=..\src\demuxers\demux_dts.c
+# End Source File
+
+# Begin Source File
 SOURCE=..\src\demuxers\demux_flac.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\src\demuxers\demux_mpc.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_mpgaudio.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_nsf.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_realaudio.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
+SOURCE=..\src\demuxers\demux_shn.c
+# End Source File
+
+# Begin Source File
 SOURCE=..\src\demuxers\demux_snd.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_voc.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_vox.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\demux_wav.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\group_audio.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\demuxers\id3.c
 # End Source File
+
 # End Group
+
 # Begin Group "DLL Defs"
 
 # PROP Default_Filter ""
 # Begin Source File
-
 SOURCE=.\xine_plugin.def
 # End Source File
+
 # End Group
 # End Target
 # End Project

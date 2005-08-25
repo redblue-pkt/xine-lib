@@ -211,6 +211,7 @@ _x_demux_read_header
 _x_demux_check_extension
 _x_demux_send_data
 _x_demux_read_send_data
+_x_demux_send_mrl_reference
 
 _x_read_abort
 _x_action_pending

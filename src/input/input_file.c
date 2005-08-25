@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.102 2005/06/21 09:59:49 hadess Exp $
+ * $Id: input_file.c,v 1.103 2005/08/25 15:36:29 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,7 +26,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_DIRENT_H
 #include <dirent.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

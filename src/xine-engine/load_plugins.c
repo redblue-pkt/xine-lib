@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.210 2005/07/18 01:46:02 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.211 2005/08/25 15:36:30 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -32,7 +32,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef HAVE_DIRENT_H
 #include <dirent.h>
+#endif
 #include <dlfcn.h>
 #include <string.h>
 #include <errno.h>
@@ -536,19 +538,20 @@ static void collect_plugins(xine_t *this, char *path){
     str[path_len + 1] = '\0';
 
     while ((pEntry = readdir (dir)) != NULL) {
-      size_t new_str_size;
+      size_t new_str_size, d_len;
       void *lib = NULL;
       plugin_info_t *info = NULL;
       
       struct stat statbuffer;
 
-      new_str_size = path_len + pEntry->d_reclen + 2;
+      d_len = strlen(pEntry->d_name);
+      new_str_size = path_len + d_len + 2;
       if (str_size < new_str_size) {
 	str_size = new_str_size + new_str_size / 2;
 	str = realloc(str, str_size);
       }
 
-      xine_fast_memcpy(&str[path_len + 1], pEntry->d_name, pEntry->d_reclen + 1);
+      xine_fast_memcpy(&str[path_len + 1], pEntry->d_name, d_len + 1);
 
       if (stat(str, &statbuffer)) {
 	xine_log (this, XINE_LOG_PLUGIN, _("load_plugins: unable to stat %s\n"), str);

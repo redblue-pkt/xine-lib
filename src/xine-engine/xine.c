@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.314 2005/07/21 02:51:14 miguelfreitas Exp $
+ * $Id: xine.c,v 1.315 2005/08/25 15:36:30 valtri Exp $
  */
 
 /*
@@ -288,7 +288,7 @@ static void stop_internal (xine_stream_t *stream) {
   /*
    * stop demux
    */
-  if (stream->demux_plugin && stream->demux_thread) {
+  if (stream->demux_plugin && stream->demux_thread_created) {
     lprintf ("stopping demux\n");
     _x_demux_stop_thread( stream );
     lprintf ("demux stopped\n");
