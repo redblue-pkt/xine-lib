@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.40 2004/12/12 22:01:27 mroi Exp $
+ * $Id: video_out_fb.c,v 1.41 2005/08/28 01:11:21 dsalt Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -767,6 +767,32 @@ static int get_fb_fix_screeninfo(int fd, struct fb_fix_screeninfo *fix, xine_t *
   return 1;
 }
 
+static int set_fb_palette (int fd, const struct fb_var_screeninfo *var)
+{
+  unsigned short red[256], green[256], blue[256];
+  const struct fb_cmap fb_cmap = {
+    0, 256, red, green, blue, NULL
+  };
+  int i, mask;
+
+  if (!var->red.offset && !var->green.offset && !var->blue.offset)
+    return 1; /* we only handle true-colour modes */
+
+  /* Fill in the palette data */
+  mask = (1 << var->red.length) - 1;
+  for (i = 0; i < 256; ++i)
+    red[i] = (i & mask) * 65535.0 / mask;
+  mask = (1 << var->green.length) - 1;
+  for (i = 0; i < 256; ++i)
+    green[i] = (i & mask) * 65535.0 / mask;
+  mask = (1 << var->blue.length) - 1;
+  for (i = 0; i < 256; ++i)
+    blue[i] = (i & mask) * 65535.0 / mask;
+
+  /* Set the palette; return true on success */
+  return !ioctl (fd, FBIOPUTCMAP, &fb_cmap);
+}
+
 static void register_callbacks(fb_driver_t *this)
 {
   this->vo_driver.get_capabilities     = fb_get_capabilities;
@@ -988,6 +1014,8 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
   if(!get_fb_var_screeninfo(this->fd, &this->fb_var, class->xine))
     goto error;
   if(!get_fb_fix_screeninfo(this->fd, &this->fb_fix, class->xine))
+    goto error;
+  if (!set_fb_palette (this->fd, &this->fb_var))
     goto error;
    
   this->xine = class->xine;
