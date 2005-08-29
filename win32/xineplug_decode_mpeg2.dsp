@@ -92,71 +92,77 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\cpu_state.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\decode.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\header.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\idct.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\idct_altivec.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\idct_mlib.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\idct_mmx.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
+SOURCE=..\src\libmpeg2\libmpeg2_accel.c
+# End Source File
+
+# Begin Source File
 SOURCE=..\src\libmpeg2\motion_comp.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\motion_comp_altivec.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\motion_comp_mlib.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\motion_comp_mmx.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\slice.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\slice_xvmc.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\stats.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\slice_xvmc_vld.c
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE=..\src\libmpeg2\xine_decoder.c
 # End Source File
+
 # End Group
+
 # Begin Group "DLL Defs"
 
 # PROP Default_Filter ""

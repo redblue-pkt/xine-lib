@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_directx2_out.c,v 1.2 2005/02/06 19:16:18 valtri Exp $
+ * $Id: audio_directx2_out.c,v 1.3 2005/08/29 15:28:16 valtri Exp $
  *
  *
  * xine audio output plugin using DirectX
@@ -176,7 +176,7 @@ static char *dsound_strerror(HRESULT err) {
     case DSERR_BUFFERLOST: return _("memory buffer has been lost and must be restored");
     case DSERR_CONTROLUNAVAIL: return _("requested buffer control is not available");
     case DSERR_GENERIC: return _("undetermined error inside DirectSound subsystem");
-#ifdef HWUNAVAIL
+#ifdef DSERR_HWUNAVAIL
     case DSERR_HWUNAVAIL: return _("DirectSound hardware device is unavailable");
 #endif
     case DSERR_INVALIDCALL: return _("function is not valid for the current state of the object");

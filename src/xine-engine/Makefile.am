@@ -58,7 +58,7 @@ install-exec-local:
 	cp -p $(DEF_FILE) $(DESTDIR)$(libdir)
 
 uninstall-local:
-	rm -f $(DEF_FILE) $(DESTDIR)$(libdir)
+	rm -f $(DEF_FILE)
 endif
 
 @INCLUDED_INTL_TRUE@@INTLLIBS@:

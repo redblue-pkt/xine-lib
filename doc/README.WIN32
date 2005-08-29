@@ -6,7 +6,7 @@ This document describes how to build xine library under Windows.
 
 Download
 --------
-Checkout source code from CVS (under Windows can be used CygWin or another tool). You will need 'xine-lib' (the library) and 'xine-win32' (testing Windows frontend).
+Checkout source code from CVS (under Windows can be used CygWin or another tool). You will need 'xine-lib' (the library) and 'xine-win32' (testing Windows frontend). Instead xine-win32 you can use any other frontend working under Windows (toxine, ...)
 
 
 Build
@@ -20,13 +20,13 @@ There are three different ports on Windows:
 
 1. MinGW port
 -------------
-This is the best way. Final library is 100% native Windows with all optimizations.
+This is the best way. Result is 100% native Windows library with all optimizations.
 
 Also you can use cross-build from comfortable unix-like system. See README.MINGWCROSS for more information.
 
 Requirements for compilation under Windows:
-  a) MinGW installed on Windows
-  b) LIB.EXE, LINK.EXE and MSPDB60.DLL from M$ Visual C 
+  a) installed MinGW
+  b) LIB.EXE, LINK.EXE and MSPDB60.DLL from M$ Visual C
      (necessary only for usability created xine library by M$ compilers)
 
 How to build:
@@ -51,7 +51,7 @@ Prepare xine library for using in M$ compilers too:
     # run terminal window (MinGW for example)
     ...
     # creating libxine-1.lib file
-    cd <path_where_libxine_is_installed_>/lib
+    cd <path_where_libxine_is_installed>/lib
     cp ../bin/libxine-1.dll .
     <path_to_M$VC>/VC98/BIN/LIB.EXE /machine:i386 /def:libxine-1.def
     rm libxine-1.dll
@@ -59,7 +59,7 @@ Prepare xine library for using in M$ compilers too:
 
 2. CygWin port
 --------------
-This is the second way. Created library won't be 100% windows native: it will contains some additional emulation code and I'm not sure, if can be used with M$ compilers.
+This is the second way. Created library won't be 100% windows native: it will contains some additional emulation code and I'm not sure, if it can be used with M$ compilers.
 
 It's possible to use CygWin for cross-compiling with MinGW.
 
@@ -91,14 +91,12 @@ Reasons, why not to use this port:
  - somebody must buy the OS and compiler
 
 Reasons, why to use this port:
- - obtaining backtrace after crash, debugging
+ - obtaining cute backtrace after crash, debugging
 
 How to build xine in M$ Visual C:
   - Set up MSVC to look for DirectX headers.
 
   - Open up the xine.dsw workspace/project in MSVC.
-
-  - Unless you have a project file to build css you must select Cancel when prompted for the libdvdcss.dsp file.
 
   - Click on the FileView tab.
 
@@ -107,19 +105,20 @@ How to build xine in M$ Visual C:
     libxine
     libdvdnav
 
-  - Next build any desired plugins (decoders/demuxers ...). The ao_out_directx and vo_out_directx are required for Win32. There is an option to use the vo_out_sdl but a sdl.dll must be present for that to take place. There have also been some issues observed with the directX video driver on some machines.
+  - Next build any desired plugins (decoders/demuxers ...). The ao_out_directx2 and vo_out_directx are required for Win32. ao_out_directx is obsoleted. There is a possibility to use the vo_out_sdl but sdl.dll must be present for that to take place. There have also been some issues observed with the directX video driver on some machines.
 
   - If you want ffmpeg decoder plugin, you must use precompiled version. If you want to compile it, you should have the files LIB.EXE, LINK.EXE and MSPDB60.DLL from the Visual C++.
     Under MinGW you can compile ffmpeg for xine by this way:
 
     #
-    # run the script/patch necessary for MSVC a for xine
+    # run the script/patch necessary for MSVC and for xine
     #
     cd ffmpeg
     sh ../xine-lib/win32/scripts/ffmpeg_win32.patch
 
     #
-    # for cross-compiling add "--cross-prefix=i386-mingw32-" and "--disable-mmx"
+    # (for cross-compiling add "--cross-prefix=i386-mingw32-"
+    #  and "--disable-mmx")
     #
     ./configure \
        --enable-gpl \
@@ -130,8 +129,8 @@ How to build xine in M$ Visual C:
     make
 
     #
-    # for cross-compiling finalize linking by running this command in
-    # libavcodec/ directory
+    # linking by running this command in libavcodec/ directory (use wine for
+    # cross-compiling)
     #
     # it's done automatically if you have 'LIB.EXE' linked to 'lib' in your
     # $PATH and set wine
@@ -155,9 +154,9 @@ Limitations:
  - file > 1GB doesn't work (MinGW problem?)
  - missing full Win32 frontend
  - build system isn't fully tuned for cross-compiling
+ - seeking doesn't work with testing frontend, but it should be OK in library
 
 Bugs:
- - use GetCurrentDirectory(SIZE, STR) because of changing volume drive!
- - random crashes
- - seeking doesn't work with testing frontend
+ - random crashes and random locks in stress tests
  - non-seekable input plugins crash
+ - ffmpeg bug visible for some video sizes

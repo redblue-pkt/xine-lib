@@ -1760,7 +1760,7 @@ AC_CHECK_LIB(posix4, sched_get_priority_min)
 AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset strchr])
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
-AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h)
+AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h)
 AC_REPLACE_FUNCS(basename gettimeofday setenv strndup strpbrk strsep strtok_r)
 AC_CHECK_FUNCS(readlink)
 
@@ -2276,26 +2276,41 @@ fi
 if test "x$exec_prefix" = xNONE; then
    exec_prefix='${prefix}'
 fi
+
+dnl
+dnl installation directories and directories relative to prefix
+dnl
+dnl Note:
+dnl   use AC_DEFINE for runtime
+dnl   use AC_SUBST for installation
+dnl
+XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
+XINE_FONTDIR="${datadir}/xine/libxine$XINE_MAJOR/fonts"
+XINE_LOCALEDIR="${datadir}/locale"
+eval XINE_REL_PLUGINDIR="$XINE_PLUGINDIR"
+XINE_REL_PLUGINDIR=`eval echo "$XINE_REL_PLUGINDIR" | sed -e "s,^${prefix}/,,"`
+XINE_REL_FONTDIR=`eval echo "$XINE_FONTDIR" | sed -e "s,^${prefix}/,,"`
+XINE_REL_LOCALEDIR=`eval echo "$XINE_LOCALEDIR" | sed -e "s,^${prefix}/,,"`
+if test x"$SYS" = "xmingw32"; then
+  dnl polish paths (MinGW runtime accepts both \ and / anyway)
+  XINE_REL_PLUGINDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
+  XINE_REL_FONTDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
+  XINE_REL_LOCALEDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
+fi
 if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
-  dnl installation directories
-  eval XINE_PLUGINDIR="${bindir}/plugins"
-  eval XINE_FONTDIR="${bindir}/fonts"
-  eval XINE_LOCALEDIR="${bindir}/locale"
-  dnl directories from xine-config
-  XINE_PLUGINPATH="\`dirname \$0\`/plugins"
-  XINE_FONTPATH="\`dirname \$0\`/fonts"
-  XINE_LOCALEPATH="\`dirname \$0\`/locale"
-  dnl runtime directories
-  AC_DEFINE(XINE_PLUGINDIR,[exec_path_append_subdir("plugins")],[Define this to plugins directory location])
-  AC_DEFINE(XINE_FONTDIR,[exec_path_append_subdir("fonts")],[Define this to osd fonts dir location])
-  AC_DEFINE(XINE_LOCALEDIR,[exec_path_append_subdir("locale")],[Path where catalog files will be.])
   dnl prefix in xine-config
   XINE_CONFIG_PREFIX="\`dirname \$0\`/.."
+  dnl installation directories (in xine-config)
+  XINE_PLUGINPATH="$XINE_CONFIG_PREFIX/$XINE_REL_PLUGINDIR"
+  XINE_FONTPATH="$XINE_CONFIG_PREFIX/$XINE_REL_FONTDIR"
+  XINE_LOCALEPATH="$XINE_CONFIG_PREFIX/$XINE_REL_LOCALEDIR"
+  dnl runtime directories
+  AC_DEFINE(XINE_PLUGINDIR,[xine_get_plugindir()],[Define this to plugins directory location])
+  AC_DEFINE(XINE_FONTDIR,[xine_get_fontdir()],[Define this to osd fonts dir location])
+  AC_DEFINE(XINE_LOCALEDIR,[xine_get_localedir()],[Path where catalog files will be.])
 else
-  dnl installation directories
-  XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
-  XINE_FONTDIR="${datadir}/xine/libxine$XINE_MAJOR/fonts"
-  XINE_LOCALEDIR="${datadir}/locale"
+  dnl prefix in xine-config
+  XINE_CONFIG_PREFIX="${prefix}"
   dnl directories from xine-config and runtime directories
   eval XINE_PLUGINPATH=`eval echo "$XINE_PLUGINDIR"`
   eval XINE_FONTPATH="$XINE_FONTDIR"
@@ -2304,9 +2319,10 @@ else
   AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH",[Define this to plugins directory location])
   AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
   AC_DEFINE_UNQUOTED(XINE_LOCALEDIR, "$XINE_LOCALEPATH",[Path where catalog files will be.])
-  dnl prefix in xine-config
-  XINE_CONFIG_PREFIX="${prefix}"
 fi
+AC_DEFINE_UNQUOTED(XINE_REL_PLUGINDIR,"$XINE_REL_PLUGINDIR",[Define this to plugin directory relative to execution prefix])
+AC_DEFINE_UNQUOTED(XINE_REL_FONTDIR,"$XINE_REL_FONTDIR",[Define this to font directory relative to prefix])
+AC_DEFINE_UNQUOTED(XINE_REL_LOCALEDIR,"$XINE_REL_LOCALEDIR",[Define this to font directory relative to prefix])
 AC_SUBST(XINE_CONFIG_PREFIX)
 AC_SUBST(XINE_PLUGINPATH)
 AC_SUBST(XINE_FONTPATH)

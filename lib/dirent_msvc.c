@@ -19,7 +19,7 @@
 */
 
 #include "config.h"
-#include <dirent.h>
+
 #include <errno.h>
 #include <io.h>
 #include <stdlib.h>

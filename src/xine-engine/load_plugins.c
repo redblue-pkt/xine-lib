@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.211 2005/08/25 15:36:30 valtri Exp $
+ * $Id: load_plugins.c,v 1.212 2005/08/29 15:28:16 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1088,21 +1088,21 @@ void _x_scan_plugins (xine_t *this) {
   if ((pluginpath = getenv("XINE_PLUGIN_PATH")) != NULL) {
     pluginpath = strdup(pluginpath);
   } else {
-    char *str1, *str2;
+    const char *str1, *str2;
     int len;
 
     str1 = "~/.xine/plugins";
     str2 = XINE_PLUGINDIR;
     len = strlen(str1) + strlen(str2) + 2;
     pluginpath = xine_xmalloc(len);
-    snprintf(pluginpath, len, "%s:%s", str1, str2);
+    snprintf(pluginpath, len, "%s" XINE_DIRECTORY_SEPARATOR_STRING "%s", str1, str2);
   }
   plugindir = xine_xmalloc(strlen(pluginpath)+strlen(homedir)+2);
   j=0;
   lenpluginpath = strlen(pluginpath);
   for (i=0; i <= lenpluginpath; ++i){
     switch (pluginpath[i]){
-    case ':':
+    case XINE_DIRECTORY_SEPARATOR_CHAR:
     case '\0':
       plugindir[j] = '\0';
       collect_plugins(this, plugindir);

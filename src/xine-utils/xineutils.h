@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.97 2005/08/25 15:37:02 valtri Exp $
+ * $Id: xineutils.h,v 1.98 2005/08/29 15:28:17 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -642,6 +642,15 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base);
  */
 const char *xine_get_homedir(void);
 
+#if defined(WIN32) || defined(__CYGWIN__)
+/*
+ * Get other xine directories.
+ */
+const char *xine_get_plugindir(void);
+const char *xine_get_fontdir(void);
+const char *xine_get_localedir(void);
+#endif
+
 /*
  * Clean a string (remove spaces and '=' at the begin,
  * and '\n', '\r' and spaces at the end.
@@ -1034,10 +1043,6 @@ char *xine_get_system_encoding(void);
  * guess default encoding for the subtitles
  */
 const char *xine_guess_spu_encoding(void);
-
-#if defined(__CYGWIN__) || defined(WIN32)
-char *exec_path_append_subdir(char * string);
-#endif
 
 /*
  * use the best clock reference (API compatible with gettimeofday)

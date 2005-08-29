@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include "os_types.h"
 
+
 #if defined (__SVR4) && defined (__sun)
 #  include <sys/int_types.h>
 
@@ -13,6 +14,19 @@
 #  include <stdint.h>
 */
 
+#endif
+
+
+#if defined(WIN32)
+#  define XINE_DIRECTORY_SEPARATOR_STRING ";"
+#  define XINE_DIRECTORY_SEPARATOR_CHAR ';'
+#  define XINE_SUBDIRECTORY_SEPARATOR_STRING "\\"
+#  define XINE_SUBDIRECTORY_SEPARATOR_CHAR '\\'
+#else
+#  define XINE_DIRECTORY_SEPARATOR_STRING ":"
+#  define XINE_DIRECTORY_SEPARATOR_CHAR ':'
+#  define XINE_SUBDIRECTORY_SEPARATOR_STRING "/"
+#  define XINE_SUBDIRECTORY_SEPARATOR_CHAR '/'
 #endif
 
 
@@ -80,8 +94,12 @@ char *_xine_private_strsep(char **stringp, const char *delim);
 #endif
 
 #ifdef WIN32
-#include <io.h>
-#  define mkdir(A, B) _mkdir((A))
+#  include <io.h>
+#  ifdef _MSC_VER
+#    include <direct.h>
+#  else
+#    define mkdir(A, B) _mkdir((A))
+#  endif
 
 #  ifndef S_ISDIR
 #    define S_ISDIR(m) ((m) & _S_IFDIR)

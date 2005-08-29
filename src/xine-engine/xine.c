@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.315 2005/08/25 15:36:30 valtri Exp $
+ * $Id: xine.c,v 1.316 2005/08/29 15:28:17 valtri Exp $
  */
 
 /*
@@ -1341,7 +1341,7 @@ void xine_exit (xine_t *this) {
 #if defined(WIN32)
   WSACleanup();
 #endif
-  
+
   free (this);
 }
 
@@ -1352,7 +1352,7 @@ xine_t *xine_new (void) {
 #ifdef WIN32
     WSADATA Data;
     int i_err;
-#endif /*  WIN32 */
+#endif
 
   this = xine_xmalloc (sizeof (xine_t));
   if (!this)

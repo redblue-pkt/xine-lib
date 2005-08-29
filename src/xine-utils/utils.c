@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2005 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.39 2005/04/01 23:15:38 fsck-p Exp $
+ * $Id: utils.c,v 1.40 2005/08/29 15:28:17 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -32,9 +32,6 @@
 
 #include "xineutils.h"
 #include "xineintl.h"
-#ifdef _MSC_VER
-#include "xine_internal.h"
-#endif
 
 #include <errno.h>
 #include <pwd.h>
@@ -55,6 +52,7 @@
 #endif
 
 #if defined(__CYGWIN__) || defined(WIN32)
+#include <ctype.h>
 #include <windows.h>
 #endif
 
@@ -267,90 +265,52 @@ void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
   return ptr;
 }
 
-#if defined(__CYGWIN__) || defined(WIN32)
-
-/* Ridiculous hack to return valid xine support
- * directories. These should be read from
- * a registry entry set at install time.
+#ifdef WIN32
+/*
+ * Parse command line with Windows XP syntax and copy the command (argv[0]).
  */
+static size_t xine_strcpy_command(const char *cmdline, char *cmd, size_t maxlen) {
+  size_t i, j;
 
-char *exec_path_append_subdir(char *string) {
-  static char tmp_win32_path[1024] = "\0";
-  char *back_slash;
-  char *fore_slash;
-  char *last_slash;
+  i = 0;
+  j = 0;
+  while (cmdline[i] && isspace(cmdline[i])) i++;
 
-  /* first run - fill out dll path */
-  if (!*tmp_win32_path) {
-    char *tmpchar;
-    char *cmdline;
+  while (cmdline[i] && !isspace(cmdline[i]) && j + 2 < maxlen) {
+    switch (cmdline[i]) {
+    case '\"':
+      i++;
+      while (cmdline[i] && cmdline[i] != '\"') {
+        if (cmdline[i] == '\\') {
+          i++;
+          if (cmdline[i] == '\"') cmd[j++] = '\"';
+          else {
+            cmd[j++] = '\\';
+            cmd[j++] = cmdline[i];
+          }
+        } else cmd[j++] = cmdline[i];
+        if (cmdline[i]) i++;
+      }
+      break;
 
-    /* get program exec command line */
-    cmdline = GetCommandLine();
+    case '\\':
+      i++;
+      if (cmdline[i] == '\"') cmd[j++] = '\"';
+      else {
+        cmd[j++] = '\\';
+        i--;
+      }
+      break;
 
-    /* check for " at beginning of string */
-    if( *cmdline == '\"' ) {
-      /* copy command line, skip first quote */
-      strncpy(tmp_win32_path, cmdline + 1, sizeof(tmp_win32_path));
-      tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
-
-      /* terminate at second set of quotes */
-      tmpchar = strchr(tmp_win32_path, '\"');
-      if (tmpchar) *tmpchar = 0;
-    } else {
-      /* copy command line */
-      strncpy(tmp_win32_path, cmdline, sizeof(tmp_win32_path));
-      tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
-
-      /* terminate at first space */
-      tmpchar = strchr(tmp_win32_path, ' ');
-      if (tmpchar) *tmpchar = 0;
+    default:
+      cmd[j++] = cmdline[i];
     }
+
+    i++;
   }
+  cmd[j] = '\0';
 
-  /* find the last occurance of a back
-   * slash or fore slash 
-   */
-  back_slash = strrchr(tmp_win32_path, '\\');
-  fore_slash = strrchr(tmp_win32_path, '/');
-
-  /* make sure the last back slash was not
-   * after a drive letter 
-   */
-  if(back_slash > tmp_win32_path)
-    if(*( back_slash - 1 ) == ':')
-      back_slash = 0;
-
-  /* which slash was the latter slash */
-  if(back_slash > fore_slash)
-    last_slash = back_slash;
-  else
-    last_slash = fore_slash;
-
-  /* detect if we had a relative or
-   * distiguished path ( had a slash )
-   */
-  if(last_slash) {
-    /* we had a slash charachter in our
-     * command line
-     */
-    *(last_slash + 1) = 0;
-
-    /* if had a string to append to the path */
-    if(string)
-      strncat(tmp_win32_path, string, sizeof(tmp_win32_path) - strlen(tmp_win32_path) - 1);
-  } else {
-    if(string) {
-    /* if had a string to append to the path */
-      strncpy(tmp_win32_path, string, sizeof(tmp_win32_path));
-      tmp_win32_path[sizeof(tmp_win32_path) - 1] = '\0';
-    } else {
-    /* no slash, assume local directory */
-      strcpy(tmp_win32_path, ".");
-    }
-  }
-
-  return tmp_win32_path;
+  return j;
 }
 #endif
 
@@ -359,11 +319,21 @@ char *exec_path_append_subdir(char *string) {
 #endif
 
 const char *xine_get_homedir(void) {
-
 #ifdef WIN32
-  return exec_path_append_subdir(NULL);
-#else
+  static char homedir[1024] = {0, };
+  char *s;
+  int len;
 
+  if (!homedir[0]) {
+    len = xine_strcpy_command(GetCommandLine(), homedir, sizeof(homedir));
+    s = strdup(homedir);
+    GetFullPathName(s, sizeof(homedir), homedir, NULL);
+    free(s);
+    if ((s = strrchr(homedir, '\\'))) *s = '\0';
+  }
+
+  return homedir;
+#else
   struct passwd pwd, *pw = NULL;
   static char homedir[BUFSIZ] = {0,};
 
@@ -393,8 +363,51 @@ const char *xine_get_homedir(void) {
   }
 
   return homedir;
-#endif /* _MSC_VER */
+#endif /* WIN32 */
 }
+
+#if defined(WIN32) || defined(__CYGWIN__)
+static void xine_get_rootdir(char *rootdir, size_t maxlen) {
+  char *s;
+
+  strncpy(rootdir, xine_get_homedir(), maxlen - 1);
+  rootdir[maxlen - 1] = '\0';
+  if ((s = strrchr(rootdir, XINE_SUBDIRECTORY_SEPARATOR_CHAR))) *s = '\0';
+}
+
+const char *xine_get_plugindir(void) {
+  static char plugindir[1024] = {0, };
+
+  if (!plugindir[0]) {
+    xine_get_rootdir(plugindir, sizeof(plugindir) - strlen(XINE_REL_PLUGINDIR) - 1);
+    strcat(plugindir, XINE_SUBDIRECTORY_SEPARATOR_STRING XINE_REL_PLUGINDIR);
+  }
+
+  return plugindir;
+}
+
+const char *xine_get_fontdir(void) {
+  static char fontdir[1024] = {0, };
+
+  if (!fontdir[0]) {
+    xine_get_rootdir(fontdir, sizeof(fontdir) - strlen(XINE_REL_FONTDIR) - 1);
+    strcat(fontdir, XINE_SUBDIRECTORY_SEPARATOR_STRING XINE_REL_FONTDIR);
+  }
+
+  return fontdir;
+}
+
+const char *xine_get_localedir(void) {
+  static char localedir[1024] = {0, };
+
+  if (!localedir[0]) {
+    xine_get_rootdir(localedir, sizeof(localedir) - strlen(XINE_REL_LOCALEDIR) - 1);
+    strcat(localedir, XINE_SUBDIRECTORY_SEPARATOR_STRING XINE_REL_LOCALEDIR);
+  }
+
+  return localedir;
+}
+#endif
 
 char *xine_chomp(char *str) {
   char *pbuf;
