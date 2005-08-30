@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.40 2005/08/29 15:28:17 valtri Exp $
+ * $Id: utils.c,v 1.41 2005/08/30 15:27:58 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -372,7 +372,7 @@ static void xine_get_rootdir(char *rootdir, size_t maxlen) {
 
   strncpy(rootdir, xine_get_homedir(), maxlen - 1);
   rootdir[maxlen - 1] = '\0';
-  if ((s = strrchr(rootdir, XINE_SUBDIRECTORY_SEPARATOR_CHAR))) *s = '\0';
+  if ((s = strrchr(rootdir, XINE_DIRECTORY_SEPARATOR_CHAR))) *s = '\0';
 }
 
 const char *xine_get_plugindir(void) {
@@ -380,7 +380,7 @@ const char *xine_get_plugindir(void) {
 
   if (!plugindir[0]) {
     xine_get_rootdir(plugindir, sizeof(plugindir) - strlen(XINE_REL_PLUGINDIR) - 1);
-    strcat(plugindir, XINE_SUBDIRECTORY_SEPARATOR_STRING XINE_REL_PLUGINDIR);
+    strcat(plugindir, XINE_DIRECTORY_SEPARATOR_STRING XINE_REL_PLUGINDIR);
   }
 
   return plugindir;
@@ -391,7 +391,7 @@ const char *xine_get_fontdir(void) {
 
   if (!fontdir[0]) {
     xine_get_rootdir(fontdir, sizeof(fontdir) - strlen(XINE_REL_FONTDIR) - 1);
-    strcat(fontdir, XINE_SUBDIRECTORY_SEPARATOR_STRING XINE_REL_FONTDIR);
+    strcat(fontdir, XINE_DIRECTORY_SEPARATOR_STRING XINE_REL_FONTDIR);
   }
 
   return fontdir;
@@ -402,7 +402,7 @@ const char *xine_get_localedir(void) {
 
   if (!localedir[0]) {
     xine_get_rootdir(localedir, sizeof(localedir) - strlen(XINE_REL_LOCALEDIR) - 1);
-    strcat(localedir, XINE_SUBDIRECTORY_SEPARATOR_STRING XINE_REL_LOCALEDIR);
+    strcat(localedir, XINE_DIRECTORY_SEPARATOR_STRING XINE_REL_LOCALEDIR);
   }
 
   return localedir;
