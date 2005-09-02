@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.202 2005/08/25 15:36:29 valtri Exp $
+ * $Id: input_dvd.c,v 1.203 2005/09/02 22:39:42 tmattern Exp $
  *
  */
 
@@ -1708,7 +1708,14 @@ static char **dvd_class_get_autoplay_list (input_class_t *this_gen,
 
 static void dvd_class_dispose(input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
-  
+  config_values_t *config = this->xine->config;
+
+  config->unregister_callback(config, "media.dvd.region");
+  config->unregister_callback(config, "media.dvd.language");
+  config->unregister_callback(config, "media.dvd.readahead");
+  config->unregister_callback(config, "media.dvd.seek_behaviour");
+  config->unregister_callback(config, "media.dvd.play_single_chapter");
+
   free(this->eject_device);
   free(this);
 }

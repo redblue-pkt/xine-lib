@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.103 2005/08/25 15:36:29 valtri Exp $
+ * $Id: input_file.c,v 1.104 2005/09/02 22:39:43 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -851,6 +851,9 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
 
 static void file_class_dispose (input_class_t *this_gen) {
   file_input_class_t  *this = (file_input_class_t *) this_gen;
+  config_values_t     *config = this->xine->config;
+
+  config->unregister_callback(config, "media.files.origin_path");
 
   free (this->mrls);
   free (this);

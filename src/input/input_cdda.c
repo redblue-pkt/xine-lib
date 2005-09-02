@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.75 2005/08/29 15:28:16 valtri Exp $
+ * $Id: input_cdda.c,v 1.76 2005/09/02 22:39:43 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2561,6 +2561,16 @@ static char *cdda_class_get_description (input_class_t *this_gen) {
 
 static void cdda_class_dispose (input_class_t *this_gen) {
   cdda_input_class_t  *this = (cdda_input_class_t *) this_gen;
+  config_values_t     *config = this->xine->config;
+
+  config->unregister_callback(config, "media.audio_cd.device");
+  config->unregister_callback(config, "media.audio_cd.use_cddb");
+  config->unregister_callback(config, "media.audio_cd.cddb_server");
+  config->unregister_callback(config, "media.audio_cd.cddb_port");
+  config->unregister_callback(config, "media.audio_cd.cddb_cachedir");
+#ifdef CDROM_SELECT_SPEED
+  config->unregister_callback(config, "media.audio_cd.drive_slowdown");
+#endif
 
   free (this->mrls);
   free (this);

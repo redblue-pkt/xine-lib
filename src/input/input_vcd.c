@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.79 2005/02/07 23:58:58 tmattern Exp $
+ * $Id: input_vcd.c,v 1.80 2005/09/02 22:39:43 tmattern Exp $
  *
  */
 
@@ -930,6 +930,9 @@ static void vcd_class_dispose (input_class_t *this_gen) {
 
   vcd_input_class_t  *this = (vcd_input_class_t *) this_gen;
   int                 i;
+  config_values_t *config = this->xine->config;
+
+  config->unregister_callback(config, "media.vcd.device");
 
   for (i = 0; i < 100; i++)
     free (this->filelist[i]);
