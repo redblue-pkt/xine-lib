@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.42 2005/09/05 14:56:31 mshopf Exp $
+ * $Id: video_out_fb.c,v 1.43 2005/09/05 15:13:13 mshopf Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -636,7 +636,7 @@ static int fb_get_property(vo_driver_t *this_gen, int property)
       return this->yuv2rgb_brightness;
     case VO_PROP_CONTRAST:
       return this->yuv2rgb_contrast;
-    case VO_PROP_saturation:
+    case VO_PROP_SATURATION:
       return this->yuv2rgb_saturation;
 
     case VO_PROP_WINDOW_WIDTH:
