@@ -1,6 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = $(THEORA_CFLAGS) $(OGG_CFLAGS) $(SPEEX_CFLAGS) $(LIBMODPLUG_CFLAGS)
+AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
 
 libdir = $(XINE_PLUGINDIR)
 

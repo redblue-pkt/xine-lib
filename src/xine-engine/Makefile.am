@@ -1,22 +1,14 @@
 include $(top_srcdir)/misc/Makefile.common
 include $(top_srcdir)/lib/Makefile.common
 
-AM_CFLAGS = $(THREAD_CFLAGS) $(X_CFLAGS) $(FT2_CFLAGS)
+AM_CFLAGS = $(X_CFLAGS) $(FT2_CFLAGS)
+AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 lib_LTLIBRARIES = libxine.la
 
 XINEUTILS_LIB  = $(top_builddir)/src/xine-utils/libxineutils.la
-INTERNAL_ZLIB_LIB = $(top_builddir)/win32/contrib/zlib/libzlib.la
-INTERNAL_PTHREAD_LIB = $(top_builddir)/win32/contrib/pthreads/libpthread.la
 DEF_FILE = libxine-$(XINE_MAJOR).def
-if HAVE_ZLIB
-else
-zlib_dep = $(INTERNAL_ZLIB_LIB)
-endif
-if HAVE_INTERNAL_WIN32_PTHREAD
-pthread_dep = $(INTERNAL_PTHREAD_LIB)
-endif
 if WIN32
 def_ldflags="-Wl,--output-def,$(DEF_FILE)"
 endif
@@ -34,7 +26,7 @@ EXTRA_DIST = lrb.c lrb.h accel_xvmc.h
 if INCLUDED_INTL
 INCLUDED_INTLLIBS = @INTLLIBS@
 endif
-libxine_la_DEPENDENCIES = $(INCLUDED_INTLLIBS) $(XINEUTILS_LIB) $(zlib_dep) \
+libxine_la_DEPENDENCIES = $(INCLUDED_INTLLIBS) $(XINEUTILS_LIB) \
                           $(pthread_dep) $(LIBXINEPOSIX)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) \
@@ -66,9 +58,3 @@ endif
 
 $(XINEUTILS_LIB):
 	$(MAKE) -C $(top_builddir)/src/xine-utils libxineutils.la
-
-$(INTERNAL_PTHREAD_LIB):
-	$(MAKE) -C $(top_builddir)/win32/contrib/pthreads libpthread.la
-
-$(INTERNAL_ZLIB_LIB):
-	$(MAKE) -C $(top_builddir)/win32/contrib/zlib libzlib.la

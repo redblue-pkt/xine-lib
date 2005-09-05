@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.41 2005/08/30 15:27:58 valtri Exp $
+ * $Id: utils.c,v 1.42 2005/09/05 17:02:57 valtri Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -32,6 +32,9 @@
 
 #include "xineutils.h"
 #include "xineintl.h"
+#ifdef _MSC_VER
+#include "xine_internal.h"
+#endif
 
 #include <errno.h>
 #include <pwd.h>

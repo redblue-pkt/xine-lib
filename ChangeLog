@@ -4,7 +4,8 @@ xine-lib (1.1.1)
     It bypasses alsa-lib resampler and uses xine's
   * Windows ports fixes and improvements
   * Set up the framebuffer palette (fb video out).
-  * build fixes
+  * build fixes and improvements, added --with-pthread-prefix and 
+    --with-zlib-prefix options
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)

@@ -29,7 +29,7 @@ docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml) $(wildcard *.fig))
 
 clean-docs:
 	rm -f $(docs_DATA)
-	test "x$(srcdir)" = x. || rm -f $(hackersguide_sgml)
+	test "x$(srcdir)" = x. || rm -f $(hackersguide_sgml) *.fig
 
 dist-hook:
 	@if test x"$(distcheck_lax)" = x ; then \

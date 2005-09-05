@@ -76,7 +76,7 @@ xineplug_inp_file_la_LIBADD = $(XINE_LIB)
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_dvd_la_SOURCES = input_dvd.c media_helper.c
-xineplug_inp_dvd_la_LIBADD = $(XINE_LIB) $(link_dvdnav)
+xineplug_inp_dvd_la_LIBADD = $(XINE_LIB) $(link_dvdnav) $(THREAD_LIBS)
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c

@@ -192,22 +192,84 @@ dnl ---------------------------------------------
 dnl threads and OS specific stuff
 dnl ---------------------------------------------
 
+AC_ARG_WITH(pthread-prefix, 
+  AC_HELP_STRING(
+    [--with-pthread-prefix=PREFIX],
+    [path to pthread library]),
+  [pthread_prefix="$withval"],
+  [pthread_prefix="no"])
+
 case "$host" in
   *-*-freebsd*)
-    THREAD_LIBS="-L/usr/local/lib -pthread"
-    THREAD_CFLAGS="-I/usr/local/include -D_THREAD_SAFE"
-
-    CFLAGS="$THREAD_CFLAGS $CFLAGS"
+    if test x"$pthread_prefix" = "xno"; then
+      pthread_prefix="/usr/local"
+    fi
+    THREAD_LIBS="-L$pthread_prefix/lib -pthread"
+    THREAD_CPPFLAGS="-I$pthread_prefix/include"
+    CPPFLAGS="$CPPFLAGS $THREAD_CPPFLAGS -D_THREAD_SAFE"
+    have_pthread=yes
 
     ;;
 
   *-*-hpux11*)
-    THREAD_LIBS=" -lpthread"
-    THREAD_CFLAGS="-D_REENTRANT"
-    CFLAGS="$THREAD_CFLAGS $CFLAGS"
+    THREAD_LIBS="-lpthread"
+    have_pthread=yes
 
     ;;
 
+  *)
+    if test x"$pthread_prefix" = "xno"; then
+      THREAD_LIBS="-lpthread"
+    else
+      THREAD_LIBS="-L$pthread_prefix/lib -lpthread"
+      THREAD_CPPFLAGS="-I$pthread_prefix/include"
+    fi
+    CPPFLAGS="$CPPFLAGS $THREAD_CPPFLAGS"
+
+    ac_save_LIBS="$LIBS"
+    LIBS="$LIBS $THREAD_LIBS"
+
+    AC_CHECK_LIB(pthread, pthread_create, have_pthread=yes)
+
+    LIBS="$ac_save_LIBS"
+    ;;
+esac
+
+if test x"$have_pthread" != "xyes"; then
+  AC_MSG_ERROR(pthread needed)
+fi
+
+AC_SUBST(THREAD_CPPFLAGS)
+AC_SUBST(THREAD_LIBS)
+
+dnl
+AC_MSG_CHECKING(for recursive mutex support in pthread)
+ac_save_LIBS="$LIBS"
+LIBS="$LIBS $THREAD_LIBS"
+
+AC_DEFINE(_GNU_SOURCE)
+have_recursive_mutex=no
+AC_COMPILE_IFELSE(AC_LANG_SOURCE([#include <pthread.h>
+
+int main() {
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  return 0;
+}
+	]),[
+	    have_recursive_mutex=yes
+	],[
+	    AC_MSG_ERROR(recursive mutex support is needed - please report)
+	])
+LIBS="$ac_save_LIBS"
+
+AC_MSG_RESULT($have_recursive_mutex)
+
+
+dnl ---------------------------------------------
+dnl Windows ports checks
+dnl ---------------------------------------------
+case "$host" in
   *-*-mingw* | *-*-cygwin*)
     dnl check if we are using the cygwin, mingw or cygwin with mno-cygwin mode
     dnl in which case we are actually dealing with a mingw32 compiler
@@ -225,72 +287,16 @@ case "$host" in
     esac
 
     if test "$SYS" = "mingw32"; then
-      AC_CHECK_LIB(pthread, pthread_create,
-               [THREAD_LIBS="-lpthread"],
-               [THREAD_INCLUDES='-I$(top_srcdir)/win32/contrib/pthreads'
-                THREAD_LIBS='$(top_builddir)/win32/contrib/pthreads/libpthread.la'
-                THREAD_CONFIGURE_CPPFLAGS="-I${srcdir}/win32/contrib/pthreads"
-                THREAD_CFLAGS_CONFIG=" "
-                THREAD_LIBS_CONFIG=" "
-                ac_have_internal_win32_pthread=yes])
-      
-      WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include -I$(top_srcdir)/win32/contrib/dirent'
+      WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include'
       LIBS="-lwinmm -lwsock32 $LIBS"
       GOOM_LIBS="-liberty"
-
-      need_internal_zlib=yes
     fi
     LDFLAGS="-no-undefined $LDFLAGS"
     ;;
-    
-
-  *)
-    AC_CHECK_LIB(pthread, pthread_create,
-  	     [THREAD_LIBS="-lpthread"],
- 	     [AC_MSG_ERROR(pthread needed)])
-    ;;
 esac
-dnl different thread cflags and libs for libxine and for external 
-dnl application linking libxine
-if test "x$THREAD_CFLAGS_CONFIG" = "x"; then
-  THREAD_CFLAGS_CONFIG=$THREAD_CFLAGS
-fi
-if test "x$THREAD_LIBS_CONFIG" = "x"; then
-  THREAD_LIBS_CONFIG=$THREAD_LIBS
-fi
-dnl used for building xine
-AC_SUBST(THREAD_CFLAGS)
-AC_SUBST(THREAD_INCLUDES)
-AC_SUBST(THREAD_LIBS)
 AC_SUBST(GOOM_LIBS)
-dnl needed for xine-config
-AC_SUBST(THREAD_CFLAGS_CONFIG)
-AC_SUBST(THREAD_LIBS_CONFIG)
-dnl WIN32 platform
 AC_SUBST(WIN32_CPPFLAGS)
 AM_CONDITIONAL(WIN32, test x$SYS = "xmingw32")
-AM_CONDITIONAL(HAVE_INTERNAL_WIN32_PTHREAD, test x$ac_have_internal_win32_pthread = "xyes")
-
-dnl
-AC_MSG_CHECKING(for recursive mutex support in pthread)
-AC_DEFINE(_GNU_SOURCE)
-have_recursive_mutex=no
-saved_cppflags="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS $THREAD_CONFIGURE_CPPFLAGS"
-AC_COMPILE_IFELSE(AC_LANG_SOURCE([#include <pthread.h>
-
-int main() {
-  pthread_mutexattr_t attr;
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-  return 0;
-}
-	]),[
-	    have_recursive_mutex=yes
-	],[
-	    AC_MSG_ERROR(recursive mutex support is needed - please report)
-	])
-AC_MSG_RESULT($have_recursive_mutex)
-CPPFLAGS="$saved_cppflags"
 
 
 dnl ---------------------------------------------
@@ -460,23 +466,38 @@ dnl ---------------------------------------------
 dnl zlib
 dnl ---------------------------------------------
 
-dnl internal zlib permited only in MINGW-like platform
-if test "x$need_internal_zlib" = "xyes"; then
-  have_zlib=no
-  ZLIB_INCLUDES='-I$(top_srcdir)/win32/contrib/zlib'
-  ZLIB_LIBS='$(top_builddir)/win32/contrib/zlib/libzlib.la'
-  ZLIB_LIBS_CONFIG=""
+AC_ARG_WITH(zlib-prefix, 
+  AC_HELP_STRING(
+    [--with-zlib-prefix=PREFIX],
+    [path to zlib compression library]),
+  [zlib_prefix="$withval"],
+  [zlib_prefix="no"])
+
+if test x"$zlib_prefix" = "xno"; then
+  ZLIB_LIBS="-lz"
 else
-  AC_CHECK_LIB(z, gzsetparams,
-    [AC_CHECK_HEADER(zlib.h,
-       have_zlib=yes
-       ZLIB_LIBS="-lz"
-       ZLIB_LIBS_CONFIG="-lz",)], AC_MSG_ERROR(zlib needed))
+  ZLIB_CPPFLAGS="-I$zlib_prefix/include"
+  ZLIB_LIBS="-L$zlib_prefix/lib -lz"
 fi
-AM_CONDITIONAL(HAVE_ZLIB, [test x"$have_zlib" = "xyes"])
-AC_SUBST(ZLIB_INCLUDES)
+
+ac_save_CPPFLAGS="$CPPFLAGS"
+ac_save_LIBS="$LIBS"
+CPPFLAGS="$CPPFLAGS $ZLIB_CPPFLAGS"
+LIBS="$LIBS $ZLIB_LIBS"
+
+AC_CHECK_LIB(z, gzsetparams,
+  [AC_CHECK_HEADER(zlib.h,
+     have_zlib=yes)])
+
+CPPFLAGS="$ac_save_CPPFLAGS"
+LIBS="$ac_save_LIBS"
+
+if test "x$have_zlib" != "xyes"; then
+  AC_MSG_ERROR(zlib needed)
+fi
+AC_SUBST(ZLIB_CPPFLAGS)
 AC_SUBST(ZLIB_LIBS)
-AC_SUBST(ZLIB_LIBS_CONFIG)
+
 
 dnl ---------------------------------------------
 dnl check posix timers
@@ -2294,8 +2315,8 @@ XINE_REL_LOCALEDIR=`eval echo "$XINE_LOCALEDIR" | sed -e "s,^${prefix}/,,"`
 if test x"$SYS" = "xmingw32"; then
   dnl polish paths (MinGW runtime accepts both \ and / anyway)
   XINE_REL_PLUGINDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
-  XINE_REL_FONTDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
-  XINE_REL_LOCALEDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
+  XINE_REL_FONTDIR=`echo "$XINE_REL_FONTDIR" | sed -e 's/\\//\\\\\\\\/g'`
+  XINE_REL_LOCALEDIR=`echo "$XINE_REL_LOCALEDIR" | sed -e 's/\\//\\\\\\\\/g'`
 fi
 if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   dnl prefix in xine-config
@@ -2370,7 +2391,7 @@ dnl ---------------------------------------------
 dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl ---------------------------------------------
 
-INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_CPPFLAGS) $(THREAD_INCLUDES) $(ZLIB_INCLUDES) -I$(top_srcdir)/lib'
+INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_CPPFLAGS) -I$(top_srcdir)/lib'
 AC_SUBST(INCLUDES)
 
 
@@ -2538,9 +2559,6 @@ src/video_out/vidix/drivers/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
 win32/Makefile
-win32/contrib/Makefile
-win32/contrib/pthreads/Makefile
-win32/contrib/zlib/Makefile
 win32/include/Makefile])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT

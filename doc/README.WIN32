@@ -88,13 +88,25 @@ Reasons, why not to use this port:
  - can't compile included ffmpeg (important multi-decoder in xine)
  - can't compile new assembler code (it means degradation of power)
  - never 100% up to date
- - somebody must buy the OS and compiler
+ - somebody must own the OS and compiler
 
 Reasons, why to use this port:
  - obtaining cute backtrace after crash, debugging
 
 How to build xine in M$ Visual C:
   - Set up MSVC to look for DirectX headers.
+
+  - Download Pthreads Win32
+    (ftp://sources.redhat.com/pub/pthreads-win32/), from prebuild directory
+    install include/*.h, lib/pthreadVC2.lib and lib/pthreadVC2.dll,
+    rename pthreadVC2.lib to pthread.lib
+    set up MSVC - libraries and headers.
+
+  - Download zlib (http://www.zlib.net), instal all in include and lib,
+    set up MSVC - libraries and headers.
+
+  - Copy include/xine.h.in to include/xine.h, replace @text@ by right values
+    (eg. XINE_MAJOR 1, XINE_MINOR 1, XINE_SUB 0, XINE_VERSION "1.1.0")
 
   - Open up the xine.dsw workspace/project in MSVC.
 
@@ -150,9 +162,7 @@ Status
 There remains many of work yet on Windows port.
 
 Limitations:
- - doesn't work under Win95/98 (DirectX? win32-pthreads?)
  - file > 1GB doesn't work (MinGW problem?)
- - missing full Win32 frontend
  - build system isn't fully tuned for cross-compiling
  - seeking doesn't work with testing frontend, but it should be OK in library
 
@@ -160,3 +170,4 @@ Bugs:
  - random crashes and random locks in stress tests
  - non-seekable input plugins crash
  - ffmpeg bug visible for some video sizes
+ - pause doesn't work (asserts)

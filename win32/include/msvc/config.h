@@ -17,6 +17,7 @@
  *    HAVE_WIN32_CDROM 1
  *    X_DISPLAY_MISSING 1
  *    HAVE_MEMCPY 1
+ *    XINE_REL_PLUGINDIR "lib\\xine\\plugins"
  * Disable:
  *  esd, arts, alsa, gnome_vfs, png, sdl, speex, x11, theora
  */
@@ -556,10 +557,10 @@
 #define XINE_ACFLAGS "-I ${prefix}/share/aclocal"
 
 /* Define this to osd fonts dir location */
-#define XINE_FONTDIR exec_path_append_subdir("fonts")
+#define XINE_FONTDIR xine_get_fontdir()
 
 /* Path where catalog files will be. */
-#define XINE_LOCALEDIR exec_path_append_subdir("locale")
+#define XINE_LOCALEDIR xine_get_localedir()
 
 /* xine major version number */
 #define XINE_MAJOR 1
@@ -568,7 +569,7 @@
 #define XINE_MINOR 0
 
 /* Define this to plugins directory location */
-#define XINE_PLUGINDIR exec_path_append_subdir("plugins")
+#define XINE_PLUGINDIR xine_get_plugindir()
 
 /* xine sub version number */
 #define XINE_SUB 0
@@ -609,5 +610,15 @@
 
 /* define ssize_t to __int64 if it's missing in default includes */
 #define ssize_t __int64
+
+/* Define this to font directory relative to prefix */
+#define XINE_REL_FONTDIR "share\\xine\\libxine1\\fonts"
+
+/* Define this to font directory relative to prefix */
+#define XINE_REL_LOCALEDIR "share\\locale"
+
+/* Define this to plugin directory relative to execution prefix */
+#define XINE_REL_PLUGINDIR "lib\\xine\\plugins"
+
 
 #include "os_internal.h"

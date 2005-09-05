@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_directx2_out.c,v 1.3 2005/08/29 15:28:16 valtri Exp $
+ * $Id: audio_directx2_out.c,v 1.4 2005/09/05 17:02:57 valtri Exp $
  *
  *
  * xine audio output plugin using DirectX
@@ -129,7 +129,7 @@ typedef struct {
   int paused;                      /* paused mode */
   int finished;                    /* driver finished */
   int failed;                      /* don't open modal dialog again */
-  int count;                       /* number of current free parts */
+  int count;                       /* current free part number */
 
   pthread_t buffer_service;        /* service thread for operating with DSB */
   pthread_cond_t data_cond;        /* signals on data */

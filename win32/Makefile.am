@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIRS = contrib include
+SUBDIRS = include
 
 EXTRA_DIST = \
 	scripts/move_xine_fonts.bat \

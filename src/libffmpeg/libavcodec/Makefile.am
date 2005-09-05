@@ -10,6 +10,7 @@ EXTRA_DIST = motion_est_template.c imgresample.c \
 # otherwise we get unresolved symbols, because some unsatisfied function calls
 # are not optimized away with debug optimization
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS) `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS`
+AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec.la

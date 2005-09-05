@@ -30,14 +30,22 @@ Download
     http://www.google.com/search?hl=cs&q=win32-dx7headers.tgz
     http://www.google.com/search?q=dx7adxf.exe
 
+  Pthread Win32:
+
+    ftp://sources.redhat.com/pub/pthreads-win32/
+
+  zlib:
+
+    http://www.zlib.net
+
 
 Build
 -----
 
-In following text are used symbols PREFIX and USER with this meaning:
+In following text are used symbols $PREFIX and $USER with this meaning:
 
-  PREFIX .... directory of the mingw cross environtment
-  USER ...... current user
+  $PREFIX .... directory of the mingw cross environtment
+  $USER ...... current user
 
 
 1. compile binutils
@@ -47,14 +55,14 @@ In following text are used symbols PREFIX and USER with this meaning:
   cd bin
   ../binutils-2.13.90-20030111-1-src/configure \
     --target=i386-mingw32 \
-    --prefix=PREFIX
+    --prefix=$PREFIX
   make
   su
   make install
   exit
 
 
-2. add PREFIX/bin into PATH
+2. add $PREFIX/bin into PATH
 
   ...
 
@@ -66,8 +74,8 @@ In following text are used symbols PREFIX and USER with this meaning:
   # this commands ensure write permission to target
   #
   su
-  chmod g+w PREFIX{/lib,/i386-mingw32{/,/lib}}
-  chown root:USER PREFIX{/lib,/i386-mingw32{/,/lib}}
+  chmod g+w $PREFIX{/lib,/i386-mingw32{/,/lib}}
+  chown root:$USER $PREFIX{/lib,/i386-mingw32{/,/lib}}
   exit
 
   #
@@ -83,7 +91,7 @@ In following text are used symbols PREFIX and USER with this meaning:
   # compile and install the compiler
   #
   # if you'll want rerun this step, I recommend delete 
-  # PREFIX/i386-mingw32/sys-include
+  # $PREFIX/i386-mingw32/sys-include
   #
   tar xzf gcc-core-3.3.1-20030804-1-src.tar.gz
   tar xzf gcc-g++-3.3.1-20030804-1-src.tar.gz
@@ -96,7 +104,7 @@ In following text are used symbols PREFIX and USER with this meaning:
     --target=i386-mingw32 \
     --with-headers=../runtime/include \
     --with-libs=../runtime/lib \
-    --prefix=PREFIX
+    --prefix=$PREFIX
   make
   #or recommended: make CFLAGS=-O2 LDFLAGS=-s
   su
@@ -107,26 +115,26 @@ In following text are used symbols PREFIX and USER with this meaning:
   # set the permissions back
   #
   su
-  chmod -R g-w PREFIX
-  chown -R root:root PREFIX
+  chmod -R g-w $PREFIX
+  chown -R root:root $PREFIX
   exit
 
 
 4. recompile w32api and mingw-runtime from sources (optional)
  
   #
-  # installing must be into PREFIX/i386-mingw32
+  # installing must be into $PREFIX/i386-mingw32
   #
   tar xzf w32api-2.5-src.tar.gz
   cd w32api-2.5
-  ./configure --prefix=PREFIX/i386-mingw32 --host=i386-mingw32
+  ./configure --prefix=$PREFIX/i386-mingw32 --host=i386-mingw32
   make
   su
   make install
   exit
 
   #
-  # installing must be into PREFIX/i386-mingw32
+  # installing must be into $PREFIX/i386-mingw32
   #
   tar xzf mingw-runtime-3.3-src.tar.gz
   cd mingw-runtime-3.3
@@ -139,7 +147,7 @@ In following text are used symbols PREFIX and USER with this meaning:
   AR=i386-mingw32-ar \
   AS=i386-mingw32-as \
   RANLIB=i386-mingw32-ranlib \
-  ./configure --prefix=PREFIX/i386-mingw32 --target=i386-mingw32
+  ./configure --prefix=$PREFIX/i386-mingw32 --target=i386-mingw32
   make
   su
   make install
@@ -147,17 +155,62 @@ In following text are used symbols PREFIX and USER with this meaning:
 
 
 5. install DirectX headers and other libraries
+
   su
-  cd PREFIX/include
+  cd $PREFIX/include
   # untar dx7headers.tar.gz (maybe to a subdirectory)
   ...
+  exit
+
+
+6. compile and install pthreads-win32
+
+  tar xzf pthreads-w32-2-7-0-release.tar.gz
+  cd pthreads-w32-2-7-0-release/
+  make CROSS=i386-mingw32- PTHREAD_DEF=pthreadGC2.def clean GC 
+  #
+  # possibility to use pthread library in M$ Visual C (optional)
+  #
+  mv pthread.def pthreadGC2.def
+  wine LIB.EXE /machine:i386 /def:pthreadGC2.def
+  su
+  mkdir -p $PREFIX/pthreads-win32/bin
+  mkdir -p $PREFIX/pthreads-win32/include
+  mkdir -p $PREFIX/pthreads-win32/lib
+  cp pthreadGC2.dll $PREFIX/pthreads-win32/bin/
+  cp libpthreadGC2.a pthreadGC2.lib $PREFIX/pthreads-win32/lib/
+  ln -s libpthreadGC2.a $PREFIX/pthreads-win32/lib/libpthread.a
+  ln -s pthreadGC2.lib $PREFIX/pthreads-win32/lib/pthread.lib
+  cp pthread.h semaphore.h sched.h $PREFIX/pthreads-win32/include/
+  exit
+
+
+7. compile and install zlib
+
+  tar xjf zlib-1.2.3.tar.bz2
+  cd zlib-1.2.3
+  #
+  # small workaround in Makefile:
+  #
+  sed -e 's/dllwrap /i386-mingw32-dllwrap /g' win32/Makefile.gcc > Makefile
+  make CC=i386-mingw32-gcc AR=i386-mingw32-ar RC=i386-mingw32-windres STATICLIB=libz-static.a IMPLIB=libz.a
+  #
+  # possibility to use zlib library in M$ Visual C (optional)
+  #
+  cp win32/zlib.def zlib1.def
+  wine LIB.EXE /machine:i386 /def:zlib1.def
+  su
+  mkdir -p $PREFIX/zlib/{include,lib,bin}
+  cp zconf.h zlib.h $PREFIX/zlib/include/
+  cp libz.a libz-static.a zlib1.lib $PREFIX/zlib/lib/
+  cp zlib1.dll $PREFIX/zlib/bin/
   exit
 
 
 Using MinGW cross development tools
 -----------------------------------
 
-We can build xine library for Windows by this way:
+Now we can build xine library for Windows by this way:
 
   #
   # configure for mingw cross compiling
@@ -168,7 +221,9 @@ We can build xine library for Windows by this way:
     --build=i686-debian-linux \
     --disable-freetype \
     --disable-vcd \
-    --with-dxheaders=/mingw32/include/dx7headers
+    --with-dxheaders=$PREFIX/include/dx7headers \
+    --with-zlib-prefix=$PREFIX/zlib \
+    --with-pthread-prefix=$PREFIX/pthreads-win32
 
   #
   # build system isn't fully prepared for cross compiling, so it's needed
@@ -186,11 +241,11 @@ We can build xine library for Windows by this way:
   # install
   #
   make install DESTDIR=/tmp/xine-lib-mingwcross
-  rm /tmp/xine-lib-mingwcross/bin/plugins{/,/post}/*.a
+  rm /tmp/xine-lib-mingwcross/lib/xine/plugins/1.1.0{/,/post}/*.a
 
   #
-  # if we want to use xine library in M$ compilers, we will need some tools from
-  # M$ Visual C: LIB.EXE, LINK.EXE, MSPDB60.DLL and wine
+  # if we want to use xine library in M$ compilers, we will need wine and some
+  # tools from M$ Visual C: LIB.EXE, LINK.EXE, MSPDB60.DLL
   #
   # create libxine-1.lib file
   #
