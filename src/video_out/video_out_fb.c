@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.41 2005/08/28 01:11:21 dsalt Exp $
+ * $Id: video_out_fb.c,v 1.42 2005/09/05 14:56:31 mshopf Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -127,6 +127,8 @@ typedef struct fb_driver_s
   int                yuv2rgb_mode;
   int                yuv2rgb_swap;
   int                yuv2rgb_brightness;
+  int                yuv2rgb_contrast;
+  int                yuv2rgb_saturation;
   uint8_t           *yuv2rgb_cmap;
   yuv2rgb_factory_t *yuv2rgb_factory;
 
@@ -632,6 +634,10 @@ static int fb_get_property(vo_driver_t *this_gen, int property)
 
     case VO_PROP_BRIGHTNESS:
       return this->yuv2rgb_brightness;
+    case VO_PROP_CONTRAST:
+      return this->yuv2rgb_contrast;
+    case VO_PROP_saturation:
+      return this->yuv2rgb_saturation;
 
     case VO_PROP_WINDOW_WIDTH:
       return this->sc.gui_width;
@@ -663,9 +669,26 @@ static int fb_set_property(vo_driver_t *this_gen, int property, int value)
 
     case VO_PROP_BRIGHTNESS:
       this->yuv2rgb_brightness = value;
-      this->yuv2rgb_factory->
-	set_csc_levels(this->yuv2rgb_factory, value, 128, 128);
-      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out_fb: brightness changed to %d\n", value);
+      this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+                                             this->yuv2rgb_brightness,
+                                             this->yuv2rgb_contrast,
+                                             this->yuv2rgb_saturation);
+      break;
+
+    case VO_PROP_CONTRAST:
+      this->yuv2rgb_contrast = value;
+      this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+                                             this->yuv2rgb_brightness,
+                                             this->yuv2rgb_contrast,
+                                             this->yuv2rgb_saturation);
+      break;
+
+    case VO_PROP_SATURATION:
+      this->yuv2rgb_saturation = value;
+      this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+                                             this->yuv2rgb_brightness,
+                                             this->yuv2rgb_contrast,
+                                             this->yuv2rgb_saturation);
       break;
 
     default:
@@ -680,16 +703,21 @@ static void fb_get_property_min_max(vo_driver_t *this_gen,
 				    int property, int *min, int *max)
 {
   /* fb_driver_t *this = (fb_driver_t *) this_gen;  */
-	
-  if(property == VO_PROP_BRIGHTNESS)
-  {
-    *min = -100;
-    *max = +100;
-  }
-  else
-  {
+
+  switch (property) {
+  case VO_PROP_BRIGHTNESS:
+    *min = -128;
+    *max = +127;
+    break;
+  case VO_PROP_CONTRAST:
+  case VO_PROP_SATURATION:
+    *min = 0;
+    *max = 255;
+    break;
+  default:
     *min = 0;
     *max = 0;
+    break;
   }
 }
 
@@ -906,21 +934,17 @@ static int setup_yuv2rgb(fb_driver_t *this, config_values_t *config,
   if(!this->yuv2rgb_mode)
     return 0;
 
-  this->yuv2rgb_swap  = 0;
-  this->yuv2rgb_brightness =
-    config->register_range(config, "video.output.fb_gamma", 0,
-			   -100, 100,
-			   _("brightness correction"),
-			   _("The brightness correction can be used to lighten or darken the image. "
-			     "It changes the blacklevel without modifying the contrast, but it "
-			     "limits the tonal range."),
-			   0, NULL, NULL);
+  this->yuv2rgb_swap       = 0;
+  this->yuv2rgb_brightness = 0;
+  this->yuv2rgb_contrast   = this->yuv2rgb_saturation = 128;
 
   this->yuv2rgb_factory = yuv2rgb_factory_init(this->yuv2rgb_mode,
 					       this->yuv2rgb_swap, 
 					       this->yuv2rgb_cmap);
-  this->yuv2rgb_factory->set_csc_levels(this->yuv2rgb_factory,
-					this->yuv2rgb_brightness, 128, 128);
+  this->yuv2rgb_factory->set_csc_levels (this->yuv2rgb_factory,
+                                         this->yuv2rgb_brightness,
+                                         this->yuv2rgb_contrast,
+                                         this->yuv2rgb_saturation);
   
   return 1;
 }

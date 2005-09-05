@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.51 2005/07/05 11:10:31 mshopf Exp $
+ * $Id: video_out_opengl.c,v 1.52 2005/09/05 14:56:31 mshopf Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -1858,15 +1858,8 @@ static vo_driver_t *opengl_open_plugin (video_driver_class_t *class_gen, const v
   this->vo_driver.dispose              = opengl_dispose;
   this->vo_driver.redraw_needed        = opengl_redraw_needed;
 
-  this->yuv2rgb_brightness = config->register_range (config, "video.output.opengl_gamma", 0,
-						     -128, 127,
-						     _("brightness correction"),
-						     _("The brightness correction can be used to "
-						       "lighten or darken the image. It changes the "
-						       "blacklevel without modifying the contrast, "
-						       "but it limits the tonal range."),
-						     0, NULL, NULL);
-  this->yuv2rgb_contrast = 128;
+  this->yuv2rgb_brightness = 0;
+  this->yuv2rgb_contrast   = 128;
   this->yuv2rgb_saturation = 128;
   
   this->yuv2rgb_factory = yuv2rgb_factory_init (YUV_FORMAT, YUV_SWAP_MODE, 
