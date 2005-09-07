@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.203 2005/09/02 22:39:42 tmattern Exp $
+ * $Id: input_dvd.c,v 1.204 2005/09/07 20:43:24 tmattern Exp $
  *
  */
 
@@ -1756,6 +1756,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.eject_media        = dvd_class_eject_media;
   
   this->config                         = config;
+  this->xine                           = xine;
 
   this->ip                             = NULL;
 
