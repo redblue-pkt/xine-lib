@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.191 2005/08/25 15:36:30 valtri Exp $
+ * $Id: audio_out.c,v 1.192 2005/09/11 22:07:48 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -237,6 +237,10 @@ typedef struct {
   audio_fifo_t   *free_fifo;
   audio_fifo_t   *out_fifo;
   int64_t         last_audio_vpts;
+  uint32_t        current_speed;        /* the current playback speed */
+  /* FIXME: replace all this->clock->speed with this->current_speed. we should make
+   * sure nobody will change speed without going through xine.c:set_speed_internal */
+  int             slow_fast_audio;      /* play audio even on slow/fast speeds */
   
   audio_buffer_t *frame_buf[2];         /* two buffers for "stackable" conversions */
   int16_t        *zero_space;
@@ -985,11 +989,14 @@ static void *ao_loop (void *this_gen) {
 
     /* 
      * wait until user unpauses stream
-     * if we are playing at a different speed
-     * we must process buffers otherwise the entire engine will stop.
+     * if we are playing at a different speed (without slow_fast_audio flag)
+     * we must process/free buffers otherwise the entire engine will stop.
      */
     
-    if ( this->clock->speed != XINE_FINE_SPEED_NORMAL && this->audio_loop_running )  {
+    if ( this->audio_loop_running && 
+         (this->clock->speed == XINE_SPEED_PAUSE || 
+          (this->clock->speed != XINE_FINE_SPEED_NORMAL && 
+           !this->slow_fast_audio) ) )  {
 
       if (this->clock->speed != XINE_SPEED_PAUSE) {
 
@@ -1283,6 +1290,35 @@ void xine_free_audio_frame (xine_audio_port_t *this_gen, xine_audio_frame_t *fra
   }
 }
 
+static int ao_update_resample_factor(aos_t *this) {
+  switch (this->resample_conf) {
+  case 1: /* force off */
+    this->do_resample = 0;
+    break;
+  case 2: /* force on */
+    this->do_resample = 1;
+    break;
+  default: /* AUTO */
+    if( !this->slow_fast_audio || this->current_speed == XINE_SPEED_PAUSE )
+      this->do_resample = this->output.rate != this->input.rate;
+    else
+      this->do_resample = (this->output.rate*this->current_speed/XINE_FINE_SPEED_NORMAL) != this->input.rate;
+  }
+
+  if (this->do_resample)
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+             "will resample audio from %d to %d\n", this->input.rate, this->output.rate);
+
+  if( !this->slow_fast_audio || this->current_speed == XINE_SPEED_PAUSE )
+    this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
+  else
+    this->frame_rate_factor = ( XINE_FINE_SPEED_NORMAL / (double)this->current_speed ) * ((double)(this->output.rate)) / ((double)(this->input.rate));
+  this->frames_per_kpts   = (this->output.rate * 1024) / 90000;
+  this->audio_step        = ((int64_t)90000 * (int64_t)32768) / (int64_t)this->input.rate;
+  
+  lprintf ("audio_step %" PRId64 " pts per 32768 frames\n", this->audio_step);
+  return this->output.rate;
+}
 
 static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mode) {
   int output_sample_rate;
@@ -1337,29 +1373,7 @@ static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mod
   this->output.rate           = output_sample_rate;
   this->output.bits           = bits;
 
-  switch (this->resample_conf) {
-  case 1: /* force off */
-    this->do_resample = 0;
-    break;
-  case 2: /* force on */
-    this->do_resample = 1;
-    break;
-  default: /* AUTO */
-    this->do_resample = this->output.rate != this->input.rate;
-  }
-
-  if (this->do_resample)
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-             "will resample audio from %d to %d\n", this->input.rate, this->output.rate);
-
-  this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
-  /* FIXME: If this->frames_per_kpts line goes after this->audio_step line,
-   * xine crashes with FPE, when compiled with gcc 3.0.1!!! Why? */
-  this->frames_per_kpts   = (this->output.rate * 1024) / 90000;
-  this->audio_step        = ((int64_t)90000 * (int64_t)32768) / (int64_t)this->input.rate;
-  
-  lprintf ("audio_step %" PRId64 " pts per 32768 frames\n", this->audio_step);
-  return this->output.rate;
+  return ao_update_resample_factor(this);
 }
 
 
@@ -1686,6 +1700,10 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
   case AO_PROP_DISCARD_BUFFERS:
     ret = this->discard_buffers;
     break;
+  
+  case AO_PROP_CLOCK_SPEED:
+    ret = this->current_speed;
+    break;
 
   default:
     inc_num_driver_actions(this);
@@ -1791,6 +1809,21 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     pthread_mutex_unlock( &this->driver_lock );
     break;
 
+  case AO_PROP_CLOCK_SPEED:
+    /*
+     * slow motion / fast forward does not play sound, drop buffered
+     * samples from the sound driver (check slow_fast_audio flag)
+     */
+    if (value != XINE_FINE_SPEED_NORMAL && value != XINE_SPEED_PAUSE && !this->slow_fast_audio )
+      this->ao.control(&this->ao, AO_CTRL_FLUSH_BUFFERS, NULL);
+
+    this->ao.control(&this->ao,
+      	             (value == XINE_SPEED_PAUSE) ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME, NULL);
+    this->current_speed = value;
+    if( this->slow_fast_audio )
+      ao_update_resample_factor(this);
+    break;
+    
   default:
     if (!this->grab_only) {
       /* Let the sound driver lock it's own mixer */
@@ -2012,6 +2045,17 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 						     "a fixed offset here to compensate.\nThe unit of "
 						     "the value is one PTS tick, which is the 90000th "
 						     "part of a second."), 10, NULL, NULL);
+  
+  this->slow_fast_audio = config->register_bool (config,
+						   "audio.synchronization.slow_fast_audio",
+						   0,
+						   _("play audio even on slow/fast speeds"),
+						   _("If you enable this option, the audio will be "
+						     "heard even when playback speed is different "
+						     "than 1X. Of course, it will sound distorted "
+						     "(lower/higher pitch). If want to experiment "
+						     "preserving the pitch you may try the "
+						     "'stretch' audio post plugin instead."), 10, NULL, NULL);
 
   this->compression_factor     = 2.0;
   this->compression_factor_max = 0.0;

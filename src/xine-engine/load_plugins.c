@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.214 2005/09/11 00:11:09 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.215 2005/09/11 22:07:48 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -180,7 +180,7 @@ static void map_decoder_list (xine_t *this,
   node = xine_list_first_content (decoder_list);
   while (node) {
 
-    int *type = ((decoder_info_t *)node->info->special_info)->supported_types;
+    uint32_t *type = ((decoder_info_t *)node->info->special_info)->supported_types;
     int priority = get_decoder_priority(this, node);
 
     lprintf ("mapping decoder %s\n", node->info->id);

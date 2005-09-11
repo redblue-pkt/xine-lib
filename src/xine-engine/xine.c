@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.316 2005/08/29 15:28:17 valtri Exp $
+ * $Id: xine.c,v 1.317 2005/09/11 22:07:48 miguelfreitas Exp $
  */
 
 /*
@@ -253,15 +253,8 @@ static void set_speed_internal (xine_stream_t *stream, int speed) {
   if( stream->audio_out ) {
     xine->port_ticket->acquire(xine->port_ticket, 1);
     
-    /*
-     * slow motion / fast forward does not play sound, drop buffered
-     * samples from the sound driver
-     */
-    if (speed != XINE_FINE_SPEED_NORMAL && speed != XINE_SPEED_PAUSE)
-      stream->audio_out->control (stream->audio_out, AO_CTRL_FLUSH_BUFFERS, NULL);
-
-    stream->audio_out->control(stream->audio_out,
-			       speed == XINE_SPEED_PAUSE ? AO_CTRL_PLAY_PAUSE : AO_CTRL_PLAY_RESUME, NULL);
+    /* inform audio_out that speed has changed - he knows what to do */
+    stream->audio_out->set_property (stream->audio_out, AO_PROP_CLOCK_SPEED, speed);
     
     xine->port_ticket->release(xine->port_ticket, 1);
   }
