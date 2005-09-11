@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.213 2005/08/30 15:27:58 valtri Exp $
+ * $Id: load_plugins.c,v 1.214 2005/09/11 00:11:09 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1469,13 +1469,12 @@ static vo_driver_t *_load_video_driver (xine_t *this, plugin_node_t *node,
   return driver;
 }
 
-xine_video_port_t *xine_open_video_driver (xine_t *this,
-					   const char *id,
+vo_driver_t *_x_load_video_output_plugin(xine_t *this,
+					   char *id,
 					   int visual_type, void *visual) {
 
   plugin_node_t      *node;
   vo_driver_t        *driver;
-  xine_video_port_t  *port;
   vo_info_t          *vo_info;
   plugin_catalog_t   *catalog = this->plugin_catalog;
 
@@ -1512,6 +1511,18 @@ xine_video_port_t *xine_open_video_driver (xine_t *this,
   }
 
   pthread_mutex_unlock (&catalog->lock);
+
+  return driver;
+}
+
+xine_video_port_t *xine_open_video_driver (xine_t *this,
+					   const char *id,
+					   int visual_type, void *visual) {
+
+  vo_driver_t        *driver;
+  xine_video_port_t  *port;
+
+  driver = _x_load_video_output_plugin(this, (char *)id, visual_type, visual);
 
   if (!driver) {
     lprintf ("failed to load video output plugin <%s>\n", id);
