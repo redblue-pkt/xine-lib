@@ -551,5 +551,8 @@ Dams Nadé <anvil@livna.org>
 
 Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>
   build system improvements, LE_64/BE_64 macro fixes
-      
+
+Jason Tackaberry <tack@sault.org>
+  plugin loader fixes, expand plugin fixes and non-4/3 display support
+
 (let us know if we've forgotten anyone)
