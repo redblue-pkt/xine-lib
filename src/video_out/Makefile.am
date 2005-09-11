@@ -149,7 +149,7 @@ xineplug_vo_out_fb_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB)
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
-xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS)
+xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS) $(X_LIBS)
 xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c

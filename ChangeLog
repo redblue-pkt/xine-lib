@@ -6,6 +6,9 @@ xine-lib (1.1.1)
   * Set up the framebuffer palette (fb video out).
   * build fixes and improvements, added --with-pthread-prefix and 
     --with-zlib-prefix options
+  * new DirectFB video output plugin with many improvements (output to overlay
+    or TV, deinterlacing, image controls, zoom, OSD, double/triple buffering,
+    vsync, flicker filtering, field parity control)
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)

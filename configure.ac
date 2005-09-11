@@ -886,7 +886,7 @@ AC_ARG_ENABLE(directfb,
 		enable_directfb=$enableval,
 		enable_directfb=no)
 
-  DIRECTFB_REQUIRED_VERSION=0.9.9
+  DIRECTFB_REQUIRED_VERSION=0.9.22
 if test x$enable_directfb = "xyes"; then
   AC_MSG_CHECKING(for DirectFB)
   if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then

@@ -555,4 +555,7 @@ Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>
 Jason Tackaberry <tack@sault.org>
   plugin loader fixes, expand plugin fixes and non-4/3 display support
 
+Claudio Ciccani <klan@users.sf.net>
+  completely rewritten DirectFB video out plugin
+  
 (let us know if we've forgotten anyone)
