@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.101 2005/07/17 20:18:37 jstembridge Exp $
+ * $Id: buffer_types.c,v 1.102 2005/09/11 23:42:24 hadess Exp $
  *
  *
  * contents:
@@ -284,7 +284,8 @@ static video_db_t video_db[] = {
     else if (!strncasecmp (video, "yuv2", 4))
     this->video_type = BUF_VIDEO_YUY2;
     */
-    meFOURCC('y','u','v','2'),
+    meFOURCC('y', 'u', 'v', '2'),
+    meFOURCC('Y', 'U', 'Y', '2'),
     0
   },
   BUF_VIDEO_YUY2,
