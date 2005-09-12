@@ -2,7 +2,11 @@ include $(top_srcdir)/misc/Makefile.common
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_a52.la
+if A52
+a52_module = xineplug_decode_a52.la
+endif
+
+lib_LTLIBRARIES = $(a52_module)
 
 if EXTERNAL_A52DEC
 internal_sources =

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.16 2005/05/29 19:28:00 jstembridge Exp $
+ * $Id: audio_decoder.c,v 1.17 2005/09/12 01:06:58 miguelfreitas Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -441,7 +441,7 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_FLAC,
   BUF_AUDIO_ALAC,
   BUF_AUDIO_SHORTEN,
-  /* BUF_AUDIO_MPEG, */
+  BUF_AUDIO_MPEG,
   0
 };
 

@@ -6,7 +6,11 @@ EXTRA_DIST = imdct_l_arm.S
 
 libdir = $(XINE_PLUGINDIR)
 
-lib_LTLIBRARIES = xineplug_decode_mad.la
+if MAD
+mad_module = xineplug_decode_mad.la
+endif
+
+lib_LTLIBRARIES = $(mad_module)
 
 if EXTERNAL_LIBMAD
 internal_sources =

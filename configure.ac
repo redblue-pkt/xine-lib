@@ -1143,12 +1143,16 @@ dnl ---------------------------------------------
 dnl External version of a52dec
 dnl ---------------------------------------------
 
+AC_ARG_ENABLE(a52dec, AC_HELP_STRING([--disable-a52dec], [Disable support for a52dec decoding library (default: enabled)]),
+              [enable_a52dec="$enableval"], [enable_a52dec="yes"])
 AC_ARG_WITH(external-a52dec, AC_HELP_STRING([--with-external-a52dec], [use external a52dec library (not recommended)]),
             [external_a52dec="$withval"], [external_a52dec="no"])
 
 have_a52="no"
 
-if test x"$external_a52dec" = "xyes"; then
+if test x"$enable_a52dec" = "xno"; then
+  AC_MSG_RESULT([a52dec support disabled])
+elif test x"$external_a52dec" = "xyes"; then
   have_a52="yes"
   AC_CHECK_HEADERS([a52dec/a52.h a52dec/a52_internal.h],, have_a52="no",
 [
@@ -1175,17 +1179,23 @@ else
   AC_MSG_RESULT([Use included a52dec support])
 fi
 
+AM_CONDITIONAL(A52, test x"$enable_a52dec" = "xyes")
 AM_CONDITIONAL(EXTERNAL_A52DEC, test x"$have_a52" = "xyes")
 
 dnl ---------------------------------------------
 dnl External version of libmad
 dnl ---------------------------------------------
 
+AC_ARG_ENABLE(mad, AC_HELP_STRING([--disable-mad], [Disable support for MAD decoding library (default: enabled)]),
+              [enable_libmad="$enableval"], [enable_libmad="yes"])
 AC_ARG_WITH(external-libmad, AC_HELP_STRING([--with-external-libmad], [use external libmad library (not recommended)]),
             [external_libmad="$withval"], [external_libmad="no"])
 
 have_mad="no"
-if test x"$external_libmad" = "xyes"; then
+
+if test "x$enable_libmad" = "xno"; then
+  AC_MSG_RESULT([libmad support disabled])
+elif test x"$external_libmad" = "xyes"; then
   PKG_CHECK_MODULES(LIBMAD, [mad], have_mad=yes, have_mad=no)
   AC_CHECK_HEADERS([mad.h])
   AC_SUBST(LIBMAD_LIBS)
@@ -1197,6 +1207,7 @@ else
   AC_MSG_RESULT([Use included libmad support])
 fi
 
+AM_CONDITIONAL(MAD, test "x$enable_libmad" = "xyes")
 AM_CONDITIONAL(EXTERNAL_LIBMAD, test x"$have_mad" = "xyes")
 
 dnl ---------------------------------------------
@@ -1731,6 +1742,33 @@ AC_ARG_ENABLE(faad, AC_HELP_STRING([--disable-faad], [do not build FAAD decoder]
 	      enable_faad=$enableval, enable_faad=yes)
 AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" = "xyes")
 
+dnl ---------------------------------------------
+dnl Optional and external libdts
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE(dts, AC_HELP_STRING([--disable-dts], [Disable support for DTS decoding library (default: enabled)]),
+              [enable_libdts="$enableval"], [enable_libdts="yes"])
+AC_ARG_WITH(external-libdts, AC_HELP_STRING([--with-external-libdts], [use external libdts library (not recommended)]),
+            [external_libdts="$withval"], [external_libdts="no"])
+
+have_dts="no"
+
+if test "x$enable_libdts" = "xno"; then
+  AC_MSG_RESULT([libdts support disabled])
+elif test x"$external_libdts" = "xyes"; then
+  PKG_CHECK_MODULES(LIBDTS, [libdts], have_dts=yes, have_dts=no)
+  AC_CHECK_HEADERS([dts.h])
+  AC_SUBST(LIBDTS_LIBS)
+  AC_SUBST(LIBDTS_CFLAGS)
+  if test "x$have_dts" = "xno"; then
+    AC_MSG_RESULT([*** no usable version of libdts found, using internal copy ***])
+  fi
+else
+  AC_MSG_RESULT([Use included libdts support])
+fi
+
+AM_CONDITIONAL(DTS, test "x$enable_libdts" = "xyes")
+AM_CONDITIONAL(EXTERNAL_LIBDTS, test x"$have_dts" = "xyes")
 
 dnl ---------------------------------------------
 dnl libmodplug support 
@@ -2674,10 +2712,12 @@ fi
 if test x"$have_modplug" = x"yes"; then
   echo "   - mod"
 fi
-if test x"$have_a52" = x"yes"; then
-  echo "   - ac3 (external library)"
-else
-  echo "   - ac3 (internal library)"
+if test x"$enable_a52dec" = "xyes"; then
+  if test x"$have_a52" = "xyes"; then
+    echo "   - ac3 (external library)"
+  else
+    echo "   - ac3 (internal library)"
+  fi
 fi
 echo ""
 
@@ -2723,8 +2763,7 @@ echo ""
 
 dnl audio decoders
 echo " * audio decoder plugins:"
-echo "   - A52/ra-dnet     - DTS"
-echo "   - MAD (MPG 1/2/3) - GSM 06.10"
+echo "   - GSM 06.10"
 echo "   - linear PCM      - Nosefart (NSF)"
 if test x"$external_ffmpeg_found" = "xyes"; then
   echo "   - ffmpeg (external library):"
@@ -2751,6 +2790,27 @@ if test x"$enable_w32dll" = "xyes"; then
 fi
 if test x"$enable_faad" = "xyes"; then
   echo "   - faad"
+fi
+if test x"$enable_libmad" = "xyes"; then
+  if test x"$have_mad" = "xyes"; then
+    echo "   - MAD (MPG 1/2/3) (external library)"
+  else
+    echo "   - MAD (MPG 1/2/3) (internal library)"
+  fi
+fi
+if test x"$enable_libdts" = "xyes"; then
+  if test x"$have_dts" = "xyes"; then
+    echo "   - DTS (external library)"
+  else
+    echo "   - DTS (internal library)"
+  fi
+fi
+if test x"$enable_a52dec" = "xyes"; then
+  if test x"$have_a52" = "xyes"; then
+    echo "   - A52/ra-dnet (external library)"
+  else
+    echo "   - A52/ra-dnet (internal library)"
+  fi
 fi
 echo ""
 
