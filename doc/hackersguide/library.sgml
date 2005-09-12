@@ -264,14 +264,16 @@ int main(int argc, char **argv) {
     XEvent xevent;
     int    got_event;
 
-    xine_usec_sleep(20000);
-    
     XLockDisplay(display);
-    got_event = XCheckMaskEvent(display, INPUT_MOTION, &amp;xevent);
+    got_event = XPending(display);
+    if( got_event )
+      XNextEvent(display, &amp;xevent);
     XUnlockDisplay(display);
     
-    if( !got_event )
+    if( !got_event ) {
+      xine_usec_sleep(20000);
       continue;
+    }
     
     switch(xevent.type) {
 
