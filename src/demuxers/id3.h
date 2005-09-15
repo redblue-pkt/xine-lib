@@ -19,10 +19,9 @@
  *
  * ID3 tag parser
  *
- * Supported versions: v1, v2.2
- * TODO: v2.3, v2.4
+ * Supported versions: v1, v1.1, v2.2, v2.3, v2.4
  *
- * $Id: id3.h,v 1.3 2003/12/08 23:20:16 tmattern Exp $
+ * $Id: id3.h,v 1.4 2005/09/15 18:45:15 tmattern Exp $
  */
 
 #ifndef ID3_H
@@ -34,9 +33,10 @@
 
 /* id3v2 */
 #define FOURCC_TAG BE_FOURCC
-#define ID3V22_TAG FOURCC_TAG('I', 'D', '3', 2)  /* id3 v2.2 tags */
-#define ID3V23_TAG FOURCC_TAG('I', 'D', '3', 3)  /* id3 v2.3 tags */
-#define ID3V24_TAG FOURCC_TAG('I', 'D', '3', 4)  /* id3 v2.4 tags */
+#define ID3V22_TAG        FOURCC_TAG('I', 'D', '3', 2) /* id3 v2.2 header tag */
+#define ID3V23_TAG        FOURCC_TAG('I', 'D', '3', 3) /* id3 v2.3 header tag */
+#define ID3V24_TAG        FOURCC_TAG('I', 'D', '3', 4) /* id3 v2.4 header tag */
+#define ID3V24_FOOTER_TAG FOURCC_TAG('3', 'D', 'I', 0) /* id3 v2.4 footer tag */
 
 /*
  *  ID3 v2.2
@@ -78,6 +78,12 @@
 #define ID3V24_FOOTER_FLAG                0x10
 #define ID3V24_ZERO_FLAG                  0x0F
 
+/* extended header */
+#define ID3V24_EXT_UPDATE_FLAG            0x40
+#define ID3V24_EXT_CRC_FLAG               0x20
+#define ID3V24_EXT_RESTRICTIONS_FLAG      0x10
+#define ID3V24_EXT_ZERO_FLAG              0x8F
+
 /* frame header */
 #define ID3V24_FRAME_HEADER_SIZE            10
 #define ID3V24_FRAME_TAG_PRESERV_FLAG   0x4000
@@ -89,6 +95,10 @@
 #define ID3V24_FRAME_UNSYNCH_FLAG       0x0002
 #define ID3V24_FRAME_DATA_LEN_FLAG      0x0001
 #define ID3V24_FRAME_ZERO_FLAG          0x8FB0
+
+/* footer */
+#define ID3V24_FOOTER_SIZE                  10
+
 
 typedef struct {
   uint32_t  id;
@@ -115,6 +125,21 @@ typedef struct {
   uint32_t  crc;
 } id3v23_frame_ext_header_t;
 
+typedef id3v2_header_t id3v24_footer_t;
+
+typedef struct {
+  uint32_t  id;
+  uint32_t  size;
+  uint16_t  flags;
+} id3v24_frame_header_t;
+
+typedef struct {
+  uint32_t  size;
+  uint8_t   flags;
+  uint32_t  crc;
+  uint8_t   restrictions;
+} id3v24_frame_ext_header_t;
+
 typedef struct {
   char    tag[3];
   char    title[30];
@@ -135,5 +160,8 @@ int id3v23_parse_tag(input_plugin_t *input,
                      xine_stream_t *stream,
                      int8_t *mp3_frame_header);
 
+int id3v24_parse_tag(input_plugin_t *input,
+                     xine_stream_t *stream,
+                     int8_t *mp3_frame_header);
 
 #endif /* ID3_H */

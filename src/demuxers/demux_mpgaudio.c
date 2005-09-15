@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.140 2005/02/07 18:47:12 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.141 2005/09/15 18:45:15 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -567,8 +567,13 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
       } else if ((BE_32(header_buf)) == ID3V24_TAG) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
                 "demux_mpgaudio: ID3V2.4 tag\n");
-        /* TODO: add parsing here */
-        bytes = 1; /* resync */
+        if (!id3v24_parse_tag(this->input, this->stream, header_buf)) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+                  "demux_mpgaudio: ID3V2.4 tag parsing error\n");
+          bytes = 1; /* resync */
+        } else {
+          bytes = 4;
+        }
 
       } else {
         /* skip */
