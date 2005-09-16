@@ -29,7 +29,7 @@
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.8 2005/09/15 18:45:15 tmattern Exp $
+ * $Id: id3.c,v 1.9 2005/09/16 22:15:12 tmattern Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -38,9 +38,9 @@
 
 #define LOG_MODULE "id3"
 #define LOG_VERBOSE
-/*
+
 #define LOG
-*/
+
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -228,20 +228,20 @@ static int id3v2_parse_genre(char* dest, char *src, int len) {
 }
 
 /* parse an unsynchronized 16bits integer */
-static uint16_t BE_16_unsynch(uint8_t buf[2]) {
+static uint16_t BE_16_synchsafe(uint8_t buf[2]) {
   return ((uint16_t)(buf[0] & 0x7F) << 7) |
           (uint16_t)(buf[1] & 0x7F);
 }
 
 /* parse an unsynchronized 24bits integer */
-static uint32_t BE_24_unsynch(uint8_t buf[3]) {
+static uint32_t BE_24_synchsafe(uint8_t buf[3]) {
   return ((uint32_t)(buf[0] & 0x7F) << 14) |
          ((uint32_t)(buf[1] & 0x7F) << 7) |
           (uint32_t)(buf[2] & 0x7F);
 }
 
 /* parse an unsynchronized 32bits integer */
-static uint32_t BE_32_unsynch(uint8_t buf[4]) {
+static uint32_t BE_32_synchsafe(uint8_t buf[4]) {
   return ((uint32_t)(buf[0] & 0x7F) << 21) |
          ((uint32_t)(buf[1] & 0x7F) << 14) |
          ((uint32_t)(buf[2] & 0x7F) << 7) |
@@ -249,7 +249,7 @@ static uint32_t BE_32_unsynch(uint8_t buf[4]) {
 }
 
 /* parse an unsynchronized 35bits integer */
-static uint32_t BE_35_unsynch(uint8_t buf[5]) {
+static uint32_t BE_35_synchsafe(uint8_t buf[5]) {
   return ((uint32_t)(buf[0] & 0x07) << 28) |
          ((uint32_t)(buf[1] & 0x7F) << 21) |
          ((uint32_t)(buf[2] & 0x7F) << 14) |
@@ -265,7 +265,7 @@ static int id3v2_parse_header(input_plugin_t *input, uint8_t *mp3_frame_header,
   if (input->read (input, buf, 6) == 6) {
     tag_header->revision = buf[0];
     tag_header->flags    = buf[1];
-    tag_header->size     = BE_32_unsynch(&buf[2]);
+    tag_header->size     = BE_32_synchsafe(&buf[2]);
 
     lprintf("tag: ID3 v2.%d.%d\n", mp3_frame_header[3], tag_header->revision);
     lprintf("flags: %d\n", tag_header->flags);
@@ -287,8 +287,7 @@ static int id3v22_parse_frame_header(input_plugin_t *input,
   if (len == ID3V22_FRAME_HEADER_SIZE) {
     frame_header->id   = (buf[0] << 16) + (buf[1] << 8) + buf[2];
 
-    /* only 7 bits per byte (unsynch) */
-    frame_header->size = BE_24_unsynch(&buf[3]);
+    frame_header->size = BE_24_synchsafe(&buf[3]);
 
     lprintf("frame: %c%c%c: size: %d\n", buf[0], buf[1], buf[2],
             frame_header->size);
@@ -302,12 +301,13 @@ static int id3v22_parse_frame_header(input_plugin_t *input,
 static int id3v22_interp_frame(input_plugin_t *input,
                                xine_stream_t *stream,
                                id3v22_frame_header_t *frame_header) {
-  char buf[4096];
+  char *buf;
   int enc;
-
-  if (frame_header->size >= 4096) {
-    lprintf("too long\n");
-    return 1;
+  
+  buf = malloc(frame_header->size + 1);
+  if (buf == NULL) {
+    lprintf("malloc error");
+    return 0;
   }
 
   if (input->read (input, buf, frame_header->size) == frame_header->size) {
@@ -355,9 +355,11 @@ static int id3v22_interp_frame(input_plugin_t *input,
         lprintf("unhandled frame\n");
     }
 
+    free(buf);
     return 1;
   } else {
     lprintf("read error\n");
+    free(buf);
     return 0;
   }
 }
@@ -438,7 +440,7 @@ static int id3v23_parse_frame_header(input_plugin_t *input,
   len  = input->read (input, buf, ID3V23_FRAME_HEADER_SIZE);
   if (len == ID3V23_FRAME_HEADER_SIZE) {
     frame_header->id    = BE_32(buf);
-    frame_header->size  = BE_32_unsynch(&buf[4]);
+    frame_header->size  = BE_32(&buf[4]);
     frame_header->flags = BE_16(buf + 8);
 
     lprintf("frame: %c%c%c%c, size: %d, flags: %X\n", buf[0], buf[1], buf[2], buf[3],
@@ -455,8 +457,8 @@ static int id3v23_parse_frame_ext_header(input_plugin_t *input,
   uint8_t buf[14];
 
   if (input->read (input, buf, 4) == 4) {
-    /* only 7 bits per byte (unsynch) */
-    frame_ext_header->size  = BE_32_unsynch(&buf[0]);
+  
+    frame_ext_header->size  = BE_32_synchsafe(&buf[0]);
     
     if (frame_ext_header->size == 6) {
       if (input->read (input, buf + 4, 6) == 6) {
@@ -493,15 +495,13 @@ static int id3v23_parse_frame_ext_header(input_plugin_t *input,
 static int id3v23_interp_frame(input_plugin_t *input,
                                xine_stream_t *stream,
                                id3v23_frame_header_t *frame_header) {
-  /*
-   * FIXME: supports unicode
-   */
-  char buf[4096];
+  char *buf;
   int enc;
-  
-  if (frame_header->size >= 4096) {
-    lprintf("too long\n");
-    return 1;
+
+  buf = malloc(frame_header->size + 1);
+  if (buf == NULL) {
+    lprintf("malloc error");
+    return 0;
   }
 
   if (input->read (input, buf, frame_header->size) == frame_header->size) {
@@ -549,9 +549,11 @@ static int id3v23_interp_frame(input_plugin_t *input,
         lprintf("unhandled frame\n");
     }
 
+    free(buf);
     return 1;
   } else {
     lprintf("read error\n");
+    free(buf);
     return 0;
   }
 }
@@ -631,7 +633,7 @@ static int id3v24_parse_frame_header(input_plugin_t *input,
   len  = input->read (input, buf, ID3V24_FRAME_HEADER_SIZE);
   if (len == ID3V24_FRAME_HEADER_SIZE) {
     frame_header->id    = BE_32(buf);
-    frame_header->size  = BE_32_unsynch(&buf[4]);
+    frame_header->size  = BE_32_synchsafe(&buf[4]);
     frame_header->flags = BE_16(&buf[8]);
 
     lprintf("frame: %c%c%c%c, size: %d, flags: %X\n", buf[0], buf[1], buf[2], buf[3],
@@ -649,7 +651,7 @@ static int id3v24_parse_ext_header(input_plugin_t *input,
 
   if (input->read (input, buf, 4) == 4) {
  
-    frame_ext_header->size  = BE_32_unsynch(&buf[0]);
+    frame_ext_header->size  = BE_32_synchsafe(&buf[0]);
 
     if (input->read (input, buf, 2) == 2) {
       uint8_t flags_size = buf[0];
@@ -688,7 +690,7 @@ static int id3v24_parse_ext_header(input_plugin_t *input,
           }
           if (input->read (input, buf, data_length) == data_length) {
             /* ignore crc */
-            frame_ext_header->crc = BE_35_unsynch(buf);
+            frame_ext_header->crc = BE_35_synchsafe(buf);
           }
         } else {
           return 0;
@@ -726,12 +728,13 @@ static int id3v24_parse_ext_header(input_plugin_t *input,
 static int id3v24_interp_frame(input_plugin_t *input,
                                xine_stream_t *stream,
                                id3v24_frame_header_t *frame_header) {
-  char buf[4096];
+  char *buf;
   int enc;
-  
-  if (frame_header->size >= 4096) {
-    lprintf("too long\n");
-    return 1;
+
+  buf = malloc(frame_header->size + 1);
+  if (buf == NULL) {
+    lprintf("malloc error");
+    return 0;
   }
 
   if (input->read (input, buf, frame_header->size) == frame_header->size) {
@@ -779,9 +782,11 @@ static int id3v24_interp_frame(input_plugin_t *input,
         lprintf("unhandled frame\n");
     }
 
+    free(buf);
     return 1;
   } else {
     lprintf("read error\n");
+    free(buf);
     return 0;
   }
 }
