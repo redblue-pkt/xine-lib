@@ -29,7 +29,7 @@
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.10 2005/09/16 22:16:11 tmattern Exp $
+ * $Id: id3.c,v 1.11 2005/09/16 23:01:10 tmattern Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -625,6 +625,22 @@ int id3v23_parse_tag(input_plugin_t *input,
 
 /* id3 v2.4 */
 
+/* id3v2 "genre" parsing code. what a ugly format ! */
+static int id3v24_parse_genre(char* dest, char *src, int len) {
+  int index = 0;
+  
+  dest[0] = '\0';
+  if (sscanf(src, "%2d", &index) == 1) {
+    if (index < ID3_GENRE_COUNT) {
+      strncpy(dest, id3_genre[index], len);
+      dest[len - 1] = '\0';
+    } else {
+      lprintf("invalid index: %d\n", index);
+    }
+  }
+  return 1;
+}
+
 static int id3v24_parse_frame_header(input_plugin_t *input,
                                      id3v24_frame_header_t *frame_header) {
   uint8_t buf[ID3V24_FRAME_HEADER_SIZE];
@@ -742,13 +758,15 @@ static int id3v24_interp_frame(input_plugin_t *input,
     enc = buf[0];
     if( enc >= ID3_ENCODING_COUNT )
       enc = 0;
+      
+    lprintf("data: %s\n", buf+1);
 
     switch (frame_header->id) {
       case ( FOURCC_TAG('T', 'C', 'O', 'N') ):
         {
           char tmp[1024];
           
-          if (id3v2_parse_genre(tmp, buf + 1, 1024)) {
+          if (id3v24_parse_genre(tmp, buf + 1, 1024)) {
             _x_meta_info_set(stream, XINE_META_INFO_GENRE, tmp);
           }
         }
