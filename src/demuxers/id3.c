@@ -29,7 +29,7 @@
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.9 2005/09/16 22:15:12 tmattern Exp $
+ * $Id: id3.c,v 1.10 2005/09/16 22:16:11 tmattern Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -38,9 +38,9 @@
 
 #define LOG_MODULE "id3"
 #define LOG_VERBOSE
-
+/*
 #define LOG
-
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
