@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.317 2005/09/11 22:07:48 miguelfreitas Exp $
+ * $Id: xine.c,v 1.318 2005/09/19 16:14:02 valtri Exp $
  */
 
 /*
@@ -232,6 +232,7 @@ static xine_ticket_t *ticket_init(void) {
   pthread_mutex_init(&port_ticket->lock, NULL);
   pthread_mutex_init(&port_ticket->revoke_lock, NULL);
   pthread_cond_init(&port_ticket->issued, NULL);
+  pthread_cond_init(&port_ticket->revoked, NULL);
   
   return port_ticket;
 }

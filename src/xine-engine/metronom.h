@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.h,v 1.62 2004/09/26 22:54:52 valtri Exp $
+ * $Id: metronom.h,v 1.63 2005/09/19 16:14:02 valtri Exp $
  *
  * metronom: general pts => virtual calculation/assoc
  *                   
@@ -202,7 +202,6 @@ struct metronom_s {
   int             discontinuity_handled_count;
   pthread_cond_t  video_discontinuity_reached;
   pthread_cond_t  audio_discontinuity_reached;
-  pthread_cond_t  cancel;
 
   int             force_video_jump;
   int             force_audio_jump;

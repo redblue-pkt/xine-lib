@@ -170,4 +170,3 @@ Bugs:
  - random crashes and random locks in stress tests
  - non-seekable input plugins crash
  - ffmpeg bug visible for some video sizes
- - pause doesn't work (asserts)

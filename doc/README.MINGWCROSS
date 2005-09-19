@@ -173,6 +173,9 @@ In following text are used symbols $PREFIX and $USER with this meaning:
   #
   mv pthread.def pthreadGC2.def
   wine LIB.EXE /machine:i386 /def:pthreadGC2.def
+  #
+  # installing
+  #
   su
   mkdir -p $PREFIX/pthreads-win32/bin
   mkdir -p $PREFIX/pthreads-win32/include
@@ -193,12 +196,18 @@ In following text are used symbols $PREFIX and $USER with this meaning:
   # small workaround in Makefile:
   #
   sed -e 's/dllwrap /i386-mingw32-dllwrap /g' win32/Makefile.gcc > Makefile
+  #
+  # compiling
+  #
   make CC=i386-mingw32-gcc AR=i386-mingw32-ar RC=i386-mingw32-windres STATICLIB=libz-static.a IMPLIB=libz.a
   #
   # possibility to use zlib library in M$ Visual C (optional)
   #
   cp win32/zlib.def zlib1.def
   wine LIB.EXE /machine:i386 /def:zlib1.def
+  #
+  # installing
+  #
   su
   mkdir -p $PREFIX/zlib/{include,lib,bin}
   cp zconf.h zlib.h $PREFIX/zlib/include/
@@ -247,7 +256,7 @@ Now we can build xine library for Windows by this way:
   # if we want to use xine library in M$ compilers, we will need wine and some
   # tools from M$ Visual C: LIB.EXE, LINK.EXE, MSPDB60.DLL
   #
-  # create libxine-1.lib file
+  # create libxine-1.lib file (optional)
   #
   cd <path_where_libxine_is_installed_>/lib
   cp ../bin/libxine-1.dll .

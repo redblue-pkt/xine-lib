@@ -2,7 +2,7 @@ xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.
     When playing a 44.1khz stream on a 48khz only capable sound card.
     It bypasses alsa-lib resampler and uses xine's
-  * Windows ports fixes and improvements
+  * Windows ports bug fixes and improvements
   * Set up the framebuffer palette (fb video out).
   * build fixes and improvements, added --with-pthread-prefix and 
     --with-zlib-prefix options

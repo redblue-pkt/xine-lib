@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.215 2005/09/11 22:07:48 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.216 2005/09/19 16:14:02 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -2506,7 +2506,9 @@ void _x_dispose_plugins (xine_t *this) {
 
     for (i = 0; this->plugin_catalog->prio_desc[i]; i++)
       free(this->plugin_catalog->prio_desc[i]);
-    
+
+    pthread_mutex_destroy(&this->plugin_catalog->lock);
+
     free (this->plugin_catalog);
   }
 }

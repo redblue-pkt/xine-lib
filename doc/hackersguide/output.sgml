@@ -357,7 +357,7 @@
     Rewiring is the reconnection of one post plugin's outputs and another post plugin's
     inputs. This can happen on the fly during playback, which makes this a very delicate
     process. In one such input to output connection, only the output is active by either
-    writing data directly to the connected intput or by calling functions there. Therefore
+    writing data directly to the connected input or by calling functions there. Therefore
     we have to notify only the output, when it is rewired. This is done by calling the
     <function>rewire()</function> member function of the corresponding
     <type>xine_post_out_t</type> when the frontend issues a rewiring on this output.

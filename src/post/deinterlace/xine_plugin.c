@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.45 2005/06/17 22:36:43 dsalt Exp $
+ * $Id: xine_plugin.c,v 1.46 2005/09/19 16:14:02 valtri Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -445,6 +445,7 @@ static void deinterlace_dispose(post_plugin_t *this_gen)
 
   if (_x_post_dispose(this_gen)) {
     _flush_frames(this);
+    pthread_mutex_destroy(&this->lock);
     free(this);
   }
 }

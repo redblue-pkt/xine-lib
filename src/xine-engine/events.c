@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.27 2005/06/13 00:32:12 miguelfreitas Exp $
+ * $Id: events.c,v 1.28 2005/09/19 16:14:02 valtri Exp $
  *
  * Event handling functions
  *
@@ -182,6 +182,10 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   while ( (event = xine_event_get (queue)) ) {
     xine_event_free (event);
   }
+
+  pthread_mutex_destroy(&queue->lock);
+  pthread_cond_destroy(&queue->new_event);
+  pthread_cond_destroy(&queue->events_processed);
 
   free (queue);
 }
