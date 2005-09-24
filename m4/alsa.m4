@@ -30,7 +30,6 @@ dnl  AC_DEFINE() HAVE_GL,
 dnl  $no_alsa is set to "yes" if alsa isn't found.
 dnl  $have_alsa05 is set to "yes" if installed alsa version is <= 0.5
 dnl  $have_alsa09 is set to "yes" if installed alsa version is >= 0.9
-dnl  $have_alsa_1_0_9 is set to "yes" if installed alsa version is >= 1.0.9
 dnl
 
 dnl Internal macro XINE_ALSA_CHECK_VERSION
@@ -84,7 +83,6 @@ AC_DEFUN([AM_PATH_ALSA],
   no_alsa="yes"
   have_alsa05="no"
   have_alsa09="no"
-  have_alsa_1_0_9="no"
 
 if test x"$enable_alsa" != "xno"; then
 
@@ -213,8 +211,6 @@ dnl
 XINE_ALSA_CHECK_VERSION([<= 0.5 series], have_alsa05, [SND_LIB_VERSION < 0x000600])
 
 XINE_ALSA_CHECK_VERSION([>= 0.9 series], have_alsa09, [SND_LIB_VERSION >= 0x000900])
-
-XINE_ALSA_CHECK_VERSION([>= 1.0.9], have_alsa_1_0_9, [SND_LIB_VERSION >= 0x010009])
 
 dnl
 dnl Version checking done.

@@ -9,6 +9,7 @@ xine-lib (1.1.1)
   * new DirectFB video output plugin with many improvements (output to overlay
     or TV, deinterlacing, image controls, zoom, OSD, double/triple buffering,
     vsync, flicker filtering, field parity control)
+  * overlay cropping fixes for small streams or when using cropping support
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)

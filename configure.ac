@@ -1304,15 +1304,10 @@ AM_PATH_ALSA(0.9.0rc4,
           if test x"$have_alsa09" = "xyes"; then
             AC_DEFINE(HAVE_ALSA09,1,[Define this if you have ALSA 0.9.x or later installed])
           fi
-          if test x"$have_alsa_1_0_9" = "xyes"; then
-            AC_DEFINE(HAVE_ALSA_1_0_9,1,[Define this if you have ALSA 1.0.9 or later installed])
-          fi
         ],
 	AC_MSG_RESULT(*** All of ALSA dependent parts will be disabled ***))
 AM_CONDITIONAL(HAVE_ALSA, test x"$no_alsa" != "xyes")
 AM_CONDITIONAL(HAVE_ALSA09, test x"$have_alsa09" = "xyes")
-AM_CONDITIONAL(HAVE_ALSA_1_0_9, test x"$have_alsa_1_0_9" = "xyes")
-
 
 dnl ---------------------------------------------
 dnl ESD support
