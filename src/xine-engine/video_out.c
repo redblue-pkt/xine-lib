@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.219 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.220 2005/09/24 21:51:11 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -58,6 +58,12 @@
 /* wait this delay if the first frame is still referenced */
 #define FIRST_FRAME_POLL_DELAY   3000
 #define FIRST_FRAME_MAX_POLL       10    /* poll n times at most */
+
+/* experimental optimization: try to allocate frames from free queue 
+ * in the same format as requested (avoid unnecessary free/alloc in
+ * vo driver). up to 25% less cpu load using deinterlace with film mode.
+ */ 
+#define EXPERIMENTAL_FRAME_QUEUE_OPTIMIZATION 1
 
 static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img );
 
@@ -174,8 +180,12 @@ static void vo_append_to_img_buf_queue (img_buf_fifo_t *queue,
   pthread_mutex_unlock (&queue->mutex);
 }
 
-static vo_frame_t *vo_remove_from_img_buf_queue_int (img_buf_fifo_t *queue, int blocking) {
+static vo_frame_t *vo_remove_from_img_buf_queue_int (img_buf_fifo_t *queue, int blocking,
+                                                     uint32_t width, uint32_t height,
+                                                     double ratio, int format,
+                                                     int flags) {
   vo_frame_t *img;
+  vo_frame_t *previous = NULL;
 
   while (!queue->first || queue->locked_for_read) {
     if (blocking)
@@ -194,13 +204,59 @@ static vo_frame_t *vo_remove_from_img_buf_queue_int (img_buf_fifo_t *queue, int 
   img = queue->first;
 
   if (img) {
-    queue->first = img->next;
+  
+#if EXPERIMENTAL_FRAME_QUEUE_OPTIMIZATION
+    /* try to obtain a frame with the same format first.
+     * doing so may avoid unnecessary alloc/free's at the vo
+     * driver, specially when using post plugins that change
+     * format like the tvtime deinterlacer does.
+     */
+    int i = 0;
+    while( img && width && height &&
+           (img->width != width || img->height != height ||
+           img->ratio != ratio || img->format != format) ) {
+      previous = img;
+      img = img->next;
+      i++;
+    }
+    
+    if( width && height ) {
+      /* if non-blocking and only a single frame on fifo, return NULL
+       * to give it another chance of a frame format hit.
+       */
+      if( !img && queue->num_buffers == 1 && !blocking) {
+        struct timeval tv;
+        struct timespec ts;
+        gettimeofday(&tv, NULL);
+        ts.tv_sec  = tv.tv_sec + 1;
+        ts.tv_nsec = tv.tv_usec * 1000;
+        pthread_cond_timedwait (&queue->not_empty, &queue->mutex, &ts);
+        return NULL;
+      }
+      
+      if( img )
+        lprintf("frame format hit (%d/%d)\n", i, queue->num_buffers);
+      else
+        lprintf("frame format miss (%d/%d)\n", i, queue->num_buffers);
+    }
+    
+    if(!img)
+      img = queue->first;
+#endif
+
+    if( img == queue->first ) {
+      queue->first = img->next;
+    } else {
+      previous->next = img->next;
+      if( img == queue->last )
+        queue->last = previous;
+    }
+    
     img->next = NULL;
     if (!queue->first) {
       queue->last = NULL;
       queue->num_buffers = 0;
-    }
-    else {
+    } else {
       queue->num_buffers--;
     }
   }
@@ -212,17 +268,20 @@ static vo_frame_t *vo_remove_from_img_buf_queue (img_buf_fifo_t *queue) {
   vo_frame_t *img;
 
   pthread_mutex_lock (&queue->mutex);
-  img = vo_remove_from_img_buf_queue_int(queue, 1);
+  img = vo_remove_from_img_buf_queue_int(queue, 1, 0, 0, 0, 0, 0);
   pthread_mutex_unlock (&queue->mutex);
 
   return img;
 }
 
-static vo_frame_t *vo_remove_from_img_buf_queue_nonblock (img_buf_fifo_t *queue) {
+static vo_frame_t *vo_remove_from_img_buf_queue_nonblock (img_buf_fifo_t *queue,
+                                                          uint32_t width, uint32_t height,
+                                                          double ratio, int format,
+                                                          int flags) {
   vo_frame_t *img;
 
   pthread_mutex_lock (&queue->mutex);
-  img = vo_remove_from_img_buf_queue_int(queue, 0);
+  img = vo_remove_from_img_buf_queue_int(queue, 0, width, height, ratio, format, flags);
   pthread_mutex_unlock (&queue->mutex);
 
   return img;
@@ -312,7 +371,8 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
 
   lprintf ("get_frame (%d x %d)\n", width, height);
 
-  while (!(img = vo_remove_from_img_buf_queue_nonblock (this->free_img_buf_queue)))
+  while (!(img = vo_remove_from_img_buf_queue_nonblock (this->free_img_buf_queue,
+                 width, height, ratio, format, flags)))
     if (this->xine->port_ticket->ticket_revoked)
       this->xine->port_ticket->renew(this->xine->port_ticket, 1);
 
@@ -747,7 +807,7 @@ static void expire_frames (vos_t *this, int64_t cur_vpts) {
         this->num_frames_discarded++;
       }
       
-      img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1);
+      img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1, 0, 0, 0, 0, 0);
   
       if (img->stream) {
 	pthread_mutex_lock( &img->stream->current_extra_info_lock );
@@ -895,7 +955,7 @@ static vo_frame_t *get_next_frame (vos_t *this, int64_t cur_vpts,
      * remove frame from display queue and show it
      */
     
-    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1);
+    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1, 0, 0, 0, 0, 0);
     pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 
     return img;
@@ -1161,7 +1221,7 @@ static void *video_out_loop (void *this_gen) {
   img = this->display_img_buf_queue->first;
   while (img) {
 
-    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1);
+    img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1, 0, 0, 0, 0, 0);
     vo_frame_dec_lock( img );
 
     img = this->display_img_buf_queue->first;
@@ -1219,7 +1279,7 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen,
    * remove frame from display queue and show it
    */
     
-  img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1);
+  img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1, 0, 0, 0, 0, 0);
   pthread_mutex_unlock(&this->display_img_buf_queue->mutex);
 
   frame->vpts         = img->vpts;
@@ -1388,7 +1448,7 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
   
         lprintf ("flushing out frame\n");
   
-        img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1);
+        img = vo_remove_from_img_buf_queue_int (this->display_img_buf_queue, 1, 0, 0, 0, 0, 0);
   
         vo_frame_dec_lock (img);
       }
