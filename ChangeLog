@@ -10,6 +10,8 @@ xine-lib (1.1.1)
     or TV, deinterlacing, image controls, zoom, OSD, double/triple buffering,
     vsync, flicker filtering, field parity control)
   * overlay cropping fixes for small streams or when using cropping support
+  * experimental frame allocation optimization reduces cpu usage of the
+    deinterlacer plugin by up 25%
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)
