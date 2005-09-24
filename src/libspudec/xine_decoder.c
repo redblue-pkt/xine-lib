@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.110 2004/12/20 21:22:20 mroi Exp $
+ * $Id: xine_decoder.c,v 1.111 2005/09/24 23:43:31 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -246,9 +246,13 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   printf ("libspudec:xine_decoder.c:spudec_event_listener:this=%p\n",this);
   printf ("libspudec:xine_decoder.c:spudec_event_listener:this->menu_handle=%d\n",this->menu_handle);
 #endif
-  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	  "Menu handle alloc failed. No more overlays objects available. Only 5 at once please.");
-  _x_assert(this->menu_handle >= 0);
+  if(this->menu_handle < 0) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
+	    "Menu handle alloc failed. No more overlays objects available. Only 5 at once please.");
+    free(overlay_event);
+    free(overlay);
+    return;
+  }
   
   if (show > 0) {
 #ifdef LOG_NAV
