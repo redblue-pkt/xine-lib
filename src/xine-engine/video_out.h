@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.112 2004/10/08 21:08:26 mroi Exp $
+ * $Id: video_out.h,v 1.113 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  *
  * xine version of video_out.h 
@@ -149,6 +149,9 @@ struct vo_frame_s {
   xine_video_port_t         *port;
   vo_driver_t               *driver;
   xine_stream_t             *stream;
+  
+  /* displacement for overlays */
+  int                       overlay_offset_x, overlay_offset_y;
   
   /* 
    * that part is used only by video_out.c for frame management
@@ -285,7 +288,7 @@ struct xine_video_port_s {
  * from generic vo functions.
  */
 
-#define VIDEO_OUT_DRIVER_IFACE_VERSION  20
+#define VIDEO_OUT_DRIVER_IFACE_VERSION  21
 
 struct vo_driver_s {
 
@@ -400,13 +403,15 @@ struct vo_overlay_s {
   uint8_t           trans[OVL_PALETTE_SIZE];  /* mixer key table        */
   int               rgb_clut;      /* true if clut was converted to rgb */
 
-  int               clip_top;
-  int               clip_bottom;
-  int               clip_left;
-  int               clip_right;
-  uint32_t          clip_color[OVL_PALETTE_SIZE];
-  uint8_t           clip_trans[OVL_PALETTE_SIZE];
-  int               clip_rgb_clut; /* true if clut was converted to rgb */
+  /* define a highlight area with different colors */
+  int               hili_top;
+  int               hili_bottom;
+  int               hili_left;
+  int               hili_right;
+  uint32_t          hili_color[OVL_PALETTE_SIZE];
+  uint8_t           hili_trans[OVL_PALETTE_SIZE];
+  int               hili_rgb_clut; /* true if clut was converted to rgb */
+  
   int               unscaled;      /* true if it should be blended unscaled */
 };
 

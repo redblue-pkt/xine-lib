@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.23 2005/05/03 19:25:11 totte67 Exp $
+ * $Id: video_out_xvmc.c,v 1.24 2005/09/24 19:08:26 miguelfreitas Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -837,6 +837,9 @@ static void xvmc_overlay_blend (vo_driver_t *this_gen,
   xvmc_frame_t   *frame = (xvmc_frame_t *) frame_gen;
 
   lprintf ("xvmc_overlay_blend\n");
+  
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
 
   /* Alpha Blend here
    * As XV drivers improve to support Hardware overlay, we will change this function.
@@ -1796,7 +1799,7 @@ static vo_info_t vo_info_xvmc = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 20, "xvmc", XINE_VERSION_CODE, &vo_info_xvmc, init_class },
+  { PLUGIN_VIDEO_OUT, 21, "xvmc", XINE_VERSION_CODE, &vo_info_xvmc, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

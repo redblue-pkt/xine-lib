@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.23 2004/11/24 16:11:03 mroi Exp $
+ * $Id: video_out_dxr3.h,v 1.24 2005/09/24 19:08:26 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -160,8 +160,8 @@ struct spu_encoder_s {
   uint32_t        color[16];
   uint8_t         trans[4];
   int             map[OVL_PALETTE_SIZE];
-  uint32_t        clip_color[16];
-  uint8_t         clip_trans[4];
+  uint32_t        hili_color[16];
+  uint8_t         hili_trans[4];
   int             clip_map[OVL_PALETTE_SIZE];
 };
 

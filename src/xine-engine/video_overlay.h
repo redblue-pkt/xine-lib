@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.19 2004/12/08 18:18:24 miguelfreitas Exp $
+ * $Id: video_overlay.h,v 1.20 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  */
 
@@ -60,10 +60,10 @@ typedef struct vo_buttons_s {
 
   /* The following clipping coordinates are relative to the left upper corner
    * of the OVERLAY, not of the target FRAME. Please do not mix them up! */
-  int32_t           clip_top;
-  int32_t           clip_bottom;
-  int32_t           clip_left;
-  int32_t           clip_right;
+  int32_t           hili_top;
+  int32_t           hili_bottom;
+  int32_t           hili_left;
+  int32_t           hili_right;
   int32_t           up; 
   int32_t           down; 
   int32_t           left; 
@@ -74,7 +74,7 @@ typedef struct vo_buttons_s {
   uint32_t          active_color[OVL_PALETTE_SIZE];
   uint8_t           active_trans[OVL_PALETTE_SIZE];
   xine_event_t      active_event;
-  int32_t           clip_rgb_clut;      /* true if clut was converted to rgb*/
+  int32_t           hili_rgb_clut;      /* true if clut was converted to rgb*/
                                         /* FIXME: Probably not needed ^^^ */
 } vo_buttons_t;
   

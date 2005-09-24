@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.68 2005/01/23 23:01:12 jstembridge Exp $
+ * $Id: video_out_vidix.c,v 1.69 2005/09/24 19:08:26 miguelfreitas Exp $
  * 
  * video_out_vidix.c
  *
@@ -568,9 +568,9 @@ static void vidix_update_frame_format (vo_driver_t *this_gen,
 
 static void vidix_overlay_begin (vo_driver_t *this_gen, 
 			      vo_frame_t *frame_gen, int changed) {
-#ifdef HAVE_X11
   vidix_driver_t  *this = (vidix_driver_t *) this_gen;
 
+#ifdef HAVE_X11
   this->ovl_changed += changed;
 
   if( this->ovl_changed && this->xoverlay ) {
@@ -579,6 +579,9 @@ static void vidix_overlay_begin (vo_driver_t *this_gen,
     XUnlockDisplay (this->display);
   }
 #endif
+  
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
 }
 
 static void vidix_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) {
@@ -1309,10 +1312,10 @@ static vo_info_t vo_info_vidixfb = {
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 20, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
+  { PLUGIN_VIDEO_OUT, 21, "vidix", XINE_VERSION_CODE, &vo_info_vidix, vidix_init_class },
 #endif
 #ifdef HAVE_FB
-  { PLUGIN_VIDEO_OUT, 20, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
+  { PLUGIN_VIDEO_OUT, 21, "vidixfb", XINE_VERSION_CODE, &vo_info_vidixfb, vidixfb_init_class },
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

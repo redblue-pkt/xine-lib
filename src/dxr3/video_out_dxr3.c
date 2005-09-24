@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.109 2005/04/10 09:41:13 tmattern Exp $
+ * $Id: video_out_dxr3.c,v 1.110 2005/09/24 19:08:26 miguelfreitas Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -95,9 +95,9 @@ static vo_info_t   vo_info_dxr3_aa = {
 plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
-  { PLUGIN_VIDEO_OUT, 20, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
+  { PLUGIN_VIDEO_OUT, 21, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
 #endif
-  { PLUGIN_VIDEO_OUT, 20, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
+  { PLUGIN_VIDEO_OUT, 21, "aadxr3", XINE_VERSION_CODE, &vo_info_dxr3_aa, &dxr3_aa_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 
@@ -804,6 +804,9 @@ static void dxr3_overlay_begin(vo_driver_t *this_gen, vo_frame_t *frame_gen, int
   
   this->spu_enc->need_reencode = 1;
   this->spu_enc->overlay = NULL;
+  
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
 }
 
 static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
@@ -872,10 +875,10 @@ static void dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   }
   
   /* copy clip palette */
-  this->spu_enc->color[4] = this->spu_enc->clip_color[0];
-  this->spu_enc->color[5] = this->spu_enc->clip_color[1];
-  this->spu_enc->color[6] = this->spu_enc->clip_color[2];
-  this->spu_enc->color[7] = this->spu_enc->clip_color[3];
+  this->spu_enc->color[4] = this->spu_enc->hili_color[0];
+  this->spu_enc->color[5] = this->spu_enc->hili_color[1];
+  this->spu_enc->color[6] = this->spu_enc->hili_color[2];
+  this->spu_enc->color[7] = this->spu_enc->hili_color[3];
   /* set palette */
   if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPALETTE, this->spu_enc->color))
     xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
@@ -892,14 +895,14 @@ static void dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen)
   /* set clipping */
   btn.color = 0x7654;
   btn.contrast =
-    ((this->spu_enc->clip_trans[3] << 12) & 0xf000) |
-    ((this->spu_enc->clip_trans[2] <<  8) & 0x0f00) |
-    ((this->spu_enc->clip_trans[1] <<  4) & 0x00f0) |
-    ((this->spu_enc->clip_trans[0]      ) & 0x000f);
-  btn.left   = this->spu_enc->overlay->x + this->spu_enc->overlay->clip_left;
-  btn.right  = this->spu_enc->overlay->x + this->spu_enc->overlay->clip_right - 1;
-  btn.top    = this->spu_enc->overlay->y + this->spu_enc->overlay->clip_top;
-  btn.bottom = this->spu_enc->overlay->y + this->spu_enc->overlay->clip_bottom - 2;
+    ((this->spu_enc->hili_trans[3] << 12) & 0xf000) |
+    ((this->spu_enc->hili_trans[2] <<  8) & 0x0f00) |
+    ((this->spu_enc->hili_trans[1] <<  4) & 0x00f0) |
+    ((this->spu_enc->hili_trans[0]      ) & 0x000f);
+  btn.left   = this->spu_enc->overlay->x + this->spu_enc->overlay->hili_left;
+  btn.right  = this->spu_enc->overlay->x + this->spu_enc->overlay->hili_right - 1;
+  btn.top    = this->spu_enc->overlay->y + this->spu_enc->overlay->hili_top;
+  btn.bottom = this->spu_enc->overlay->y + this->spu_enc->overlay->hili_bottom - 2;
   if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_BUTTON, &btn))
     xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
 	    "dxr3_decode_spu: failed to set spu button (%s)\n", strerror(errno));

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.37 2004/12/08 18:18:23 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.38 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  */
 
@@ -320,11 +320,11 @@ static void video_overlay_print_overlay( vo_overlay_t *ovl ) {
   printf ("video_overlay: \ttrans [%d %d %d %d]\n",
 	  ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
   printf ("video_overlay: \tclip top=%d bottom=%d left=%d right=%d\n",
-	  ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
+	  ovl->hili_top, ovl->hili_bottom, ovl->hili_left, ovl->hili_right);
   printf ("video_overlay: \tclip_clut [%x %x %x %x]\n",
-	  ovl->clip_color[0], ovl->clip_color[1], ovl->clip_color[2], ovl->clip_color[3]);
-  printf ("video_overlay: \tclip_trans [%d %d %d %d]\n",
-	  ovl->clip_trans[0], ovl->clip_trans[1], ovl->clip_trans[2], ovl->clip_trans[3]);
+	  ovl->hili_color[0], ovl->hili_color[1], ovl->hili_color[2], ovl->hili_color[3]);
+  printf ("video_overlay: \thili_trans [%d %d %d %d]\n",
+	  ovl->hili_trans[0], ovl->hili_trans[1], ovl->hili_trans[2], ovl->hili_trans[3]);
   return;
 } 
 #endif
@@ -436,19 +436,19 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
           printf ("video_overlay:overlay present\n");
 #endif
           this->objects[handle].handle = handle;
-          overlay->clip_top = event_overlay->clip_top;
-          overlay->clip_bottom = event_overlay->clip_bottom;
-          overlay->clip_left = event_overlay->clip_left;
-          overlay->clip_right = event_overlay->clip_right;
-          overlay->clip_color[0] = event_overlay->clip_color[0];
-          overlay->clip_color[1] = event_overlay->clip_color[1];
-          overlay->clip_color[2] = event_overlay->clip_color[2];
-          overlay->clip_color[3] = event_overlay->clip_color[3];
-          overlay->clip_trans[0] = event_overlay->clip_trans[0];
-          overlay->clip_trans[1] = event_overlay->clip_trans[1];
-          overlay->clip_trans[2] = event_overlay->clip_trans[2];
-          overlay->clip_trans[3] = event_overlay->clip_trans[3];
-          overlay->clip_rgb_clut = event_overlay->clip_rgb_clut;
+          overlay->hili_top = event_overlay->hili_top;
+          overlay->hili_bottom = event_overlay->hili_bottom;
+          overlay->hili_left = event_overlay->hili_left;
+          overlay->hili_right = event_overlay->hili_right;
+          overlay->hili_color[0] = event_overlay->hili_color[0];
+          overlay->hili_color[1] = event_overlay->hili_color[1];
+          overlay->hili_color[2] = event_overlay->hili_color[2];
+          overlay->hili_color[3] = event_overlay->hili_color[3];
+          overlay->hili_trans[0] = event_overlay->hili_trans[0];
+          overlay->hili_trans[1] = event_overlay->hili_trans[1];
+          overlay->hili_trans[2] = event_overlay->hili_trans[2];
+          overlay->hili_trans[3] = event_overlay->hili_trans[3];
+          overlay->hili_rgb_clut = event_overlay->hili_rgb_clut;
 #ifdef LOG_DEBUG
           video_overlay_print_overlay( this->events[this_event].event->object.overlay ) ;
 #endif

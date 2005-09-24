@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.24 2005/09/19 16:14:02 valtri Exp $
+ * $Id: video_out_directx.c,v 1.25 2005/09/24 19:08:26 miguelfreitas Exp $
  */
 
 typedef unsigned char boolean;
@@ -1107,6 +1107,8 @@ static void win32_overlay_blend( vo_driver_t * vo_driver, vo_frame_t * vo_frame,
   win32_frame_t * win32_frame = ( win32_frame_t * ) vo_frame;
   win32_driver_t * win32_driver = ( win32_driver_t * ) vo_driver;
 
+  win32_driver->alphablend_extra_data.offset_x = vo_frame->overlay_offset_x;
+  win32_driver->alphablend_extra_data.offset_y = vo_frame->overlay_offset_y;
 
   /* temporary overlay support, somthing more appropriate
    * for win32 will be devised at a later date */
@@ -1274,6 +1276,6 @@ static vo_info_t vo_info_win32 = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 20, "vo_directx", XINE_VERSION_CODE, &vo_info_win32, init_class },
+  { PLUGIN_VIDEO_OUT, 21, "vo_directx", XINE_VERSION_CODE, &vo_info_win32, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

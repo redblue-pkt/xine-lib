@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.17 2005/06/09 21:06:02 totte67 Exp $
+ * $Id: video_out_xxmc.c,v 1.18 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -1408,7 +1408,10 @@ static void xxmc_overlay_begin (vo_driver_t *this_gen,
       clear_xx44_palette(&this->palette);
     }
   }
-  xvmc_context_reader_unlock( &this->xvmc_lock );  
+  xvmc_context_reader_unlock( &this->xvmc_lock );
+  
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
 }
 
 static void xxmc_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) 
@@ -2644,7 +2647,7 @@ static vo_info_t vo_info_xxmc = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 20, "xxmc", XINE_VERSION_CODE, &vo_info_xxmc, init_class },
+  { PLUGIN_VIDEO_OUT, 21, "xxmc", XINE_VERSION_CODE, &vo_info_xxmc, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
  

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_spu_encoder.c,v 1.8 2004/07/20 16:37:44 mroi Exp $
+ * $Id: dxr3_spu_encoder.c,v 1.9 2005/09/24 19:08:26 miguelfreitas Exp $
  */
 
 #include <stdio.h>
@@ -115,11 +115,11 @@ static void convert_palette(spu_encoder_t *this)
     }
     this->overlay->rgb_clut = 1;
   }
-  if (!this->overlay->clip_rgb_clut) {
+  if (!this->overlay->hili_rgb_clut) {
     for (i = 0; i < OVL_PALETTE_SIZE; i++) {
-      y  = (this->overlay->clip_color[i] >> 16) & 0xff;
-      cr = (this->overlay->clip_color[i] >>  8) & 0xff;
-      cb = (this->overlay->clip_color[i]      ) & 0xff;
+      y  = (this->overlay->hili_color[i] >> 16) & 0xff;
+      cr = (this->overlay->hili_color[i] >>  8) & 0xff;
+      cb = (this->overlay->hili_color[i]      ) & 0xff;
       r  = 1.164 * y + 1.596 * (cr - 128);
       g  = 1.164 * y - 0.813 * (cr - 128) - 0.392 * (cb - 128);
       b  = 1.164 * y + 2.017 * (cb - 128);
@@ -129,9 +129,9 @@ static void convert_palette(spu_encoder_t *this)
       if (r > 0xff) r = 0xff;
       if (g > 0xff) g = 0xff;
       if (b > 0xff) b = 0xff;
-      this->overlay->clip_color[i] = (r << 16) | (g << 8) | b;
+      this->overlay->hili_color[i] = (r << 16) | (g << 8) | b;
     }
-    this->overlay->clip_rgb_clut = 1;
+    this->overlay->hili_rgb_clut = 1;
   }
 }
 
@@ -145,15 +145,15 @@ static void create_histogram(spu_encoder_t *this)
   x = y = 0;
   for (i = 0, rle = this->overlay->rle; i < this->overlay->num_rle; i++, rle++) {
     len = rle->len;
-    if (y >= this->overlay->clip_top && y < this->overlay->clip_bottom) {
-      if (x < this->overlay->clip_left) {
-        part = (this->overlay->clip_left - x < len) ? (this->overlay->clip_left - x) : len;
+    if (y >= this->overlay->hili_top && y < this->overlay->hili_bottom) {
+      if (x < this->overlay->hili_left) {
+        part = (this->overlay->hili_left - x < len) ? (this->overlay->hili_left - x) : len;
         this->map[rle->color] += part;
         len -= part;
         x += part;
       }
-      if (x >= this->overlay->clip_left && x < this->overlay->clip_right) {
-        part = (this->overlay->clip_right - x < len) ? (this->overlay->clip_right - x) : len;
+      if (x >= this->overlay->hili_left && x < this->overlay->hili_right) {
+        part = (this->overlay->hili_right - x < len) ? (this->overlay->hili_right - x) : len;
         this->clip_map[rle->color] += part;
         len -= part;
         x += part;
@@ -174,7 +174,7 @@ static void create_histogram(spu_encoder_t *this)
   for (i = 0; i < OVL_PALETTE_SIZE; i++)
     if (this->clip_map[i])
       lprintf("histogram: clip color #%d 0x%.8x appears %d times\n",
-        i, this->overlay->clip_color[i], this->clip_map[i]);
+        i, this->overlay->hili_color[i], this->clip_map[i]);
 #endif
 }
 
@@ -221,32 +221,32 @@ static void generate_clut(spu_encoder_t *this)
   max = 0;
   for (i = 1; i < OVL_PALETTE_SIZE; i++)
     if (this->clip_map[i] > this->clip_map[max]) max = i;
-  this->clip_color[0] = this->overlay->clip_color[max];
-  this->clip_trans[0] = this->overlay->clip_trans[max];
+  this->hili_color[0] = this->overlay->hili_color[max];
+  this->hili_trans[0] = this->overlay->hili_trans[max];
   
   for (spu_color = 1; spu_color < 4; spu_color++) {
     /* modify histogram and find next maximum -> next spu color */
     max = 0;
     for (i = 0; i < OVL_PALETTE_SIZE; i++) {
       /* subtract a correction based on the distance to the last spu color */
-      diff  = ((this->overlay->clip_color[i]      ) & 0xff) - ((this->clip_color[spu_color - 1]      ) & 0xff);
+      diff  = ((this->overlay->hili_color[i]      ) & 0xff) - ((this->hili_color[spu_color - 1]      ) & 0xff);
       dist  = diff * diff;
-      diff  = ((this->overlay->clip_color[i] >>  8) & 0xff) - ((this->clip_color[spu_color - 1] >>  8) & 0xff);
+      diff  = ((this->overlay->hili_color[i] >>  8) & 0xff) - ((this->hili_color[spu_color - 1] >>  8) & 0xff);
       dist += diff * diff;
-      diff  = ((this->overlay->clip_color[i] >> 16) & 0xff) - ((this->clip_color[spu_color - 1] >> 16) & 0xff);
+      diff  = ((this->overlay->hili_color[i] >> 16) & 0xff) - ((this->hili_color[spu_color - 1] >> 16) & 0xff);
       dist += diff * diff;
-      diff  = ((this->overlay->clip_trans[i]      )       ) - ((this->clip_trans[spu_color - 1]      )       );
+      diff  = ((this->overlay->hili_trans[i]      )       ) - ((this->hili_trans[spu_color - 1]      )       );
       dist += diff * diff;
       this->clip_map[i] *= 1 - 1.0 / (dist / DIST_COEFF + 1.0);
       if (this->clip_map[i] > this->clip_map[max]) max = i;
     }
-    this->clip_color[spu_color] = this->overlay->clip_color[max];
-    this->clip_trans[spu_color] = this->overlay->clip_trans[max];
+    this->hili_color[spu_color] = this->overlay->hili_color[max];
+    this->hili_trans[spu_color] = this->overlay->hili_trans[max];
   }
 #ifdef LOG
   for (spu_color = 0; spu_color < 4; spu_color++)
     lprintf("spu clip color %d: 0x%.8x, trans: %d\n", spu_color,
-      this->clip_color[spu_color], this->clip_trans[spu_color]);
+      this->hili_color[spu_color], this->hili_trans[spu_color]);
 #endif
 }
 
@@ -281,13 +281,13 @@ static void map_colors(spu_encoder_t *this)
     min = 0;
     min_dist = DBL_MAX;
     for (spu_color = 0; spu_color < 4; spu_color++) {
-      diff  = ((this->overlay->clip_color[i]      ) & 0xff) - ((this->clip_color[spu_color]      ) & 0xff);
+      diff  = ((this->overlay->hili_color[i]      ) & 0xff) - ((this->hili_color[spu_color]      ) & 0xff);
       dist  = diff * diff;
-      diff  = ((this->overlay->clip_color[i] >>  8) & 0xff) - ((this->clip_color[spu_color] >>  8) & 0xff);
+      diff  = ((this->overlay->hili_color[i] >>  8) & 0xff) - ((this->hili_color[spu_color] >>  8) & 0xff);
       dist += diff * diff;
-      diff  = ((this->overlay->clip_color[i] >> 16) & 0xff) - ((this->clip_color[spu_color] >> 16) & 0xff);
+      diff  = ((this->overlay->hili_color[i] >> 16) & 0xff) - ((this->hili_color[spu_color] >> 16) & 0xff);
       dist += diff * diff;
-      diff  = ((this->overlay->clip_trans[i]      )       ) - ((this->clip_trans[spu_color]      )       );
+      diff  = ((this->overlay->hili_trans[i]      )       ) - ((this->hili_trans[spu_color]      )       );
       dist += diff * diff;
       if (dist < min_dist) {
         min_dist = dist;
@@ -315,16 +315,16 @@ static void convert_clut(spu_encoder_t *this)
     this->color[i] = 0x00008080;
   
   for (i = 0; i < 4; i++) {
-    r  = (this->clip_color[i] >> 16) & 0xff;
-    g  = (this->clip_color[i] >>  8) & 0xff;
-    b  = (this->clip_color[i]      ) & 0xff;
+    r  = (this->hili_color[i] >> 16) & 0xff;
+    g  = (this->hili_color[i] >>  8) & 0xff;
+    b  = (this->hili_color[i]      ) & 0xff;
     y  =  0.257 * r + 0.504 * g + 0.098 * b;
     cr =  0.439 * r - 0.368 * g - 0.071 * b + 128;
     cb = -0.148 * r - 0.291 * g + 0.439 * b + 128;
-    this->clip_color[i] = (y << 16) | (cr << 8) | cb;
+    this->hili_color[i] = (y << 16) | (cr << 8) | cb;
   }
   for (i = 4; i < 16; i++)
-    this->clip_color[i] = 0x00008080;
+    this->hili_color[i] = 0x00008080;
 }
 
 static void convert_overlay(spu_encoder_t *this)
@@ -350,15 +350,15 @@ static void convert_overlay(spu_encoder_t *this)
     for (i = 0, rle = this->overlay->rle; i < this->overlay->num_rle; i++, rle++) {
       len = rle->len;
       if ((y & 1) == field) {
-        if (y >= this->overlay->clip_top && y < this->overlay->clip_bottom) {
-          if (x < this->overlay->clip_left) {
-            part = (this->overlay->clip_left - x < len) ? (this->overlay->clip_left - x) : len;
+        if (y >= this->overlay->hili_top && y < this->overlay->hili_bottom) {
+          if (x < this->overlay->hili_left) {
+            part = (this->overlay->hili_left - x < len) ? (this->overlay->hili_left - x) : len;
 	    write_rle(this, &offset, &higher_nibble, part, this->map[rle->color]);
             len -= part;
             x += part;
           }
-          if (x >= this->overlay->clip_left && x < this->overlay->clip_right) {
-            part = (this->overlay->clip_right - x < len) ? (this->overlay->clip_right - x) : len;
+          if (x >= this->overlay->hili_left && x < this->overlay->hili_right) {
+            part = (this->overlay->hili_right - x < len) ? (this->overlay->hili_right - x) : len;
             write_rle(this, &offset, &higher_nibble, part, this->clip_map[rle->color]);
             len -= part;
             x += part;

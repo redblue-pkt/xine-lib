@@ -36,7 +36,7 @@
  * along with this program; see the file COPYING.  If not, write to
  * the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: spu.c,v 1.80 2004/09/03 12:28:24 mroi Exp $
+ * $Id: spu.c,v 1.81 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  */
 
@@ -478,8 +478,8 @@ void spudec_process (spudec_decoder_t *this, int stream_id) {
       /* Subtitle and not a menu button */
         int i;
         for (i = 0;i < 4; i++) {
-          this->overlay.clip_color[i] = this->overlay.color[i];
-          this->overlay.clip_trans[i] = this->overlay.trans[i];
+          this->overlay.hili_color[i] = this->overlay.color[i];
+          this->overlay.hili_trans[i] = this->overlay.trans[i];
         }
       }
       pthread_mutex_unlock(&this->nav_pci_lock);
@@ -667,10 +667,10 @@ static void spudec_do_commands(xine_t *xine, spudec_state_t *state, spudec_seq_t
       ovl->y      = (buf[4]  << 4) | (buf[5] >> 4);
       ovl->width  = (((buf[2] & 0x0f) << 8) | buf[3]) - ovl->x + 1; 
       ovl->height = (((buf[5] & 0x0f) << 8) | buf[6]) - ovl->y + 1;
-      ovl->clip_top    = -1;
-      ovl->clip_bottom = -1;
-      ovl->clip_left   = -1;
-      ovl->clip_right  = -1;
+      ovl->hili_top    = -1;
+      ovl->hili_bottom = -1;
+      ovl->hili_left   = -1;
+      ovl->hili_right  = -1;
 
 #ifdef LOG_DEBUG
       printf ("spu: \tx = %d y = %d width = %d height = %d\n",
@@ -791,10 +791,10 @@ static void spudec_draw_picture (xine_t *xine, spudec_state_t *state, spudec_seq
  *  ovl->width  = state->o_right - state->o_left + 1;
  *  ovl->height = state->o_bottom - state->o_top + 1;
 
- *  ovl->clip_top    = 0;
- *  ovl->clip_bottom = ovl->height - 1;
- *  ovl->clip_left   = 0;
- *  ovl->clip_right  = ovl->width - 1;
+ *  ovl->hili_top    = 0;
+ *  ovl->hili_bottom = ovl->height - 1;
+ *  ovl->hili_left   = 0;
+ *  ovl->hili_right  = ovl->width - 1;
  */
 
   /* allocate for the worst case:
@@ -959,11 +959,11 @@ static void spudec_print_overlay( vo_overlay_t *ovl ) {
   printf ("spu: \ttrans [%d %d %d %d]\n",
 	  ovl->trans[0], ovl->trans[1], ovl->trans[2], ovl->trans[3]);
   printf ("spu: \tclip top=%d bottom=%d left=%d right=%d\n",
-	  ovl->clip_top, ovl->clip_bottom, ovl->clip_left, ovl->clip_right);
+	  ovl->hili_top, ovl->hili_bottom, ovl->hili_left, ovl->hili_right);
   printf ("spu: \tclip_clut [%x %x %x %x]\n",
-	  ovl->clip_color[0], ovl->clip_color[1], ovl->clip_color[2], ovl->clip_color[3]);
-  printf ("spu: \tclip_trans [%d %d %d %d]\n",
-	  ovl->clip_trans[0], ovl->clip_trans[1], ovl->clip_trans[2], ovl->clip_trans[3]);
+	  ovl->hili_color[0], ovl->hili_color[1], ovl->hili_color[2], ovl->hili_color[3]);
+  printf ("spu: \thili_trans [%d %d %d %d]\n",
+	  ovl->hili_trans[0], ovl->hili_trans[1], ovl->hili_trans[2], ovl->hili_trans[3]);
   return;
 }
 #endif
@@ -996,17 +996,17 @@ int spudec_copy_nav_to_overlay(xine_t *xine, pci_t* nav_pci, uint32_t* clut,
   /* button areas in the nav packet are in screen coordinates,
    * overlay clipping areas are in overlay coordinates;
    * therefore we must subtract the display coordinates of the underlying overlay */
-  overlay->clip_left   = (button_ptr->x_start > base->x) ? (button_ptr->x_start - base->x) : 0;
-  overlay->clip_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : 0;
-  overlay->clip_right  = (button_ptr->x_end   > base->x) ? (button_ptr->x_end   - base->x) : 0;
-  overlay->clip_bottom = (button_ptr->y_end   > base->y) ? (button_ptr->y_end   - base->y) : 0;
+  overlay->hili_left   = (button_ptr->x_start > base->x) ? (button_ptr->x_start - base->x) : 0;
+  overlay->hili_top    = (button_ptr->y_start > base->y) ? (button_ptr->y_start - base->y) : 0;
+  overlay->hili_right  = (button_ptr->x_end   > base->x) ? (button_ptr->x_end   - base->x) : 0;
+  overlay->hili_bottom = (button_ptr->y_end   > base->y) ? (button_ptr->y_end   - base->y) : 0;
   if(button_ptr->btn_coln != 0) {
 #ifdef LOG_BUTTON
     fprintf(stderr, "libspudec: normal button clut\n");
 #endif
     for (i = 0;i < 4; i++) {
-      overlay->clip_color[i] = clut[0xf & (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> (16 + 4*i))];
-      overlay->clip_trans[i] = 0xf & (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> (4*i));
+      overlay->hili_color[i] = clut[0xf & (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> (16 + 4*i))];
+      overlay->hili_trans[i] = 0xf & (nav_pci->hli.btn_colit.btn_coli[button_ptr->btn_coln-1][mode] >> (4*i));
     }
   } else {
 #ifdef LOG_BUTTON
@@ -1014,10 +1014,10 @@ int spudec_copy_nav_to_overlay(xine_t *xine, pci_t* nav_pci, uint32_t* clut,
 #endif
     for (i = 0;i < 4; i++) {
 #ifdef LOG_BUTTON
-      printf("libspudec:btn_coln = 0, clip_color = color\n");
+      printf("libspudec:btn_coln = 0, hili_color = color\n");
 #endif
-      overlay->clip_color[i] = overlay->color[i];
-      overlay->clip_trans[i] = overlay->trans[i];
+      overlay->hili_color[i] = overlay->color[i];
+      overlay->hili_trans[i] = overlay->trans[i];
     }
   }
 

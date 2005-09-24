@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_caca.c,v 1.3 2004/09/22 20:29:15 miguelfreitas Exp $
+ * $Id: video_out_caca.c,v 1.4 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * video_out_caca.c, Color AsCii Art output plugin for xine
  *
@@ -338,6 +338,6 @@ static vo_info_t vo_info_caca = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 20, "caca", XINE_VERSION_CODE, &vo_info_caca, init_class },
+  { PLUGIN_VIDEO_OUT, 21, "caca", XINE_VERSION_CODE, &vo_info_caca, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx32.c,v 1.12 2004/11/24 16:11:05 mroi Exp $
+ * $Id: video_out_pgx32.c,v 1.13 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * video_out_pgx32.c, Sun PGX32 output plugin for xine
  *
@@ -593,7 +593,7 @@ static void pgx32_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
 {
   /*pgx32_driver_t *this = (pgx32_driver_t *)(void *)this_gen;*/
   pgx32_frame_t *frame = (pgx32_frame_t *)frame_gen;
-
+  
   if (overlay->rle) {
     int i, j, x, y, len, width;
     int use_clip_palette;
@@ -617,23 +617,23 @@ static void pgx32_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen, vo
           len = 0;
         }
 
-        if ((y >= overlay->clip_top) && (y <= overlay->clip_bottom) && (x <= overlay->clip_right)) {
-          if ((x < overlay->clip_left) && (x + width - 1 >= overlay->clip_left)) {
-            width -= overlay->clip_left - x;
-            len += overlay->clip_left - x;
+        if ((y >= overlay->hili_top) && (y <= overlay->hili_bottom) && (x <= overlay->hili_right)) {
+          if ((x < overlay->hili_left) && (x + width - 1 >= overlay->hili_left)) {
+            width -= overlay->hili_left - x;
+            len += overlay->hili_left - x;
           }
-          else if (x > overlay->clip_left)  {
+          else if (x > overlay->hili_left)  {
             use_clip_palette = 1;
-            if (x + width - 1 > overlay->clip_right) {
-              width -= overlay->clip_right - x;
-              len += overlay->clip_right - x;
+            if (x + width - 1 > overlay->hili_right) {
+              width -= overlay->hili_right - x;
+              len += overlay->hili_right - x;
             }
           }
         }
 
         if (use_clip_palette) {
-          clut = *(clut_t *)&overlay->clip_color[overlay->rle[i].color];
-          trans = overlay->clip_trans[overlay->rle[i].color];
+          clut = *(clut_t *)&overlay->hili_color[overlay->rle[i].color];
+          trans = overlay->hili_trans[overlay->rle[i].color];
         }
         else {
           clut = *(clut_t *)&overlay->color[overlay->rle[i].color];
@@ -892,6 +892,6 @@ static void *pgx32_init_class(xine_t *xine, void *visual_gen)
 }
 
 plugin_info_t xine_plugin_info[] = {
-  {PLUGIN_VIDEO_OUT, 20, "pgx32", XINE_VERSION_CODE, &vo_info_pgx32, pgx32_init_class},
+  {PLUGIN_VIDEO_OUT, 21, "pgx32", XINE_VERSION_CODE, &vo_info_pgx32, pgx32_init_class},
   {PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };

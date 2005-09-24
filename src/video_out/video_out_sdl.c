@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.42 2004/12/12 22:01:28 mroi Exp $
+ * $Id: video_out_sdl.c,v 1.43 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -242,6 +242,9 @@ static void sdl_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_
   sdl_driver_t  *this = (sdl_driver_t *) this_gen;
   sdl_frame_t   *frame = (sdl_frame_t *) frame_gen;
 
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
+  
   if (overlay->rle) {
     if( frame->format == XINE_IMGFMT_YV12 )
       blend_yuv( frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches, &this->alphablend_extra_data);
@@ -607,6 +610,6 @@ static vo_info_t vo_info_sdl = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 20, "sdl", XINE_VERSION_CODE, &vo_info_sdl, init_class },
+  { PLUGIN_VIDEO_OUT, 21, "sdl", XINE_VERSION_CODE, &vo_info_sdl, init_class },
   { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
 };

@@ -238,10 +238,10 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
     this->event.object.overlay->width = osd->x2 - osd->x1;
     this->event.object.overlay->height = osd->y2 - osd->y1;
  
-    this->event.object.overlay->clip_top    = 0;
-    this->event.object.overlay->clip_bottom = this->event.object.overlay->height;
-    this->event.object.overlay->clip_left   = 0;
-    this->event.object.overlay->clip_right  = this->event.object.overlay->width;
+    this->event.object.overlay->hili_top    = 0;
+    this->event.object.overlay->hili_bottom = this->event.object.overlay->height;
+    this->event.object.overlay->hili_left   = 0;
+    this->event.object.overlay->hili_right  = this->event.object.overlay->width;
    
     /* there will be at least that many rle objects (one for each row) */
     required = osd->y2 - osd->y1;
@@ -298,8 +298,8 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
 #endif
     lprintf("num_rle = %d\n", this->event.object.overlay->num_rle);
   
-    memcpy(this->event.object.overlay->clip_color, osd->color, sizeof(osd->color)); 
-    memcpy(this->event.object.overlay->clip_trans, osd->trans, sizeof(osd->trans)); 
+    memcpy(this->event.object.overlay->hili_color, osd->color, sizeof(osd->color)); 
+    memcpy(this->event.object.overlay->hili_trans, osd->trans, sizeof(osd->trans)); 
     memcpy(this->event.object.overlay->color, osd->color, sizeof(osd->color)); 
     memcpy(this->event.object.overlay->trans, osd->trans, sizeof(osd->trans)); 
   

@@ -32,6 +32,8 @@ typedef struct {
   int buffer_size;
 
   int disable_exact_blending;
+
+  int offset_x, offset_y;
 } alphablend_t;
 
 void _x_alphablend_init(alphablend_t *extra_data, xine_t *xine);
@@ -74,7 +76,7 @@ typedef struct {
   unsigned size;
   unsigned max_used;
   uint32_t cluts[XX44_PALETTE_SIZE];
-  /* cache palette entries for both colors and clip_colors */
+  /* cache palette entries for both colors and hili_colors */
   int lookup_cache[OVL_PALETTE_SIZE*2];
 } xx44_palette_t;
 

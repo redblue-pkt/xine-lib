@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.11 2004/11/26 06:09:51 athp Exp $
+ * $Id: video_out_macosx.m,v 1.12 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -218,6 +218,9 @@ static void macosx_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
   macosx_driver_t *this = (macosx_driver_t *) this_gen;
   macosx_frame_t *frame = (macosx_frame_t *) frame_gen;
 
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
+  
   /* TODO: should check here whether the overlay has changed or not: use a
    * ovl_changed boolean variable similarly to video_out_xv */
   if (overlay->rle) {
@@ -378,7 +381,7 @@ plugin_info_t xine_plugin_info[] = {
   /* work around the problem that dlclose() is not allowed to
    * get rid of an image module which contains objective C code and simply
    * crashes with a Trace/BPT trap when we try to do so */
-  { PLUGIN_VIDEO_OUT | PLUGIN_NO_UNLOAD, 20, "macosx", XINE_VERSION_CODE, &vo_info_macosx, init_class },
+  { PLUGIN_VIDEO_OUT | PLUGIN_NO_UNLOAD, 21, "macosx", XINE_VERSION_CODE, &vo_info_macosx, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

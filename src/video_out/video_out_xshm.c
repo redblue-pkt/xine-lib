@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.140 2005/09/05 15:13:13 mshopf Exp $
+ * $Id: video_out_xshm.c,v 1.141 2005/09/24 19:08:26 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -607,14 +607,14 @@ static void xshm_overlay_clut_yuv2rgb(xshm_driver_t  *this, vo_overlay_t *overla
     }
     overlay->rgb_clut++;
   }
-  if (!overlay->clip_rgb_clut) {
-    clut = (clut_t*) overlay->clip_color;
+  if (!overlay->hili_rgb_clut) {
+    clut = (clut_t*) overlay->hili_color;
     for (i = 0; i < sizeof(overlay->color)/sizeof(overlay->color[0]); i++) {
       *((uint32_t *)&clut[i]) =
 	frame->yuv2rgb->yuv2rgb_single_pixel_fun(frame->yuv2rgb,
 						 clut[i].y, clut[i].cb, clut[i].cr);
     }
-    overlay->clip_rgb_clut++;
+    overlay->hili_rgb_clut++;
   }
 }
 
@@ -629,6 +629,9 @@ static void xshm_overlay_begin (vo_driver_t *this_gen,
     x11osd_clear(this->xoverlay); 
     XUnlockDisplay (this->display);
   }
+  
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
 }
 
 static void xshm_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) {
@@ -657,7 +660,7 @@ static void xshm_overlay_blend (vo_driver_t *this_gen,
         XUnlockDisplay (this->display);
       }
     } else {
-      if (!overlay->rgb_clut || !overlay->clip_rgb_clut)
+      if (!overlay->rgb_clut || !overlay->hili_rgb_clut)
         xshm_overlay_clut_yuv2rgb (this, overlay, frame);
  
       switch (this->bpp) {
@@ -1299,6 +1302,6 @@ static vo_info_t vo_info_xshm = {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 20, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
+  { PLUGIN_VIDEO_OUT, 21, "xshm", XINE_VERSION_CODE, &vo_info_xshm, xshm_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

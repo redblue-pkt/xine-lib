@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.218 2005/02/14 14:04:55 holstsn Exp $
+ * $Id: video_out.c,v 1.219 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -338,6 +338,8 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   img->crop_right     = 0;
   img->crop_top       = 0;
   img->crop_bottom    = 0;
+  img->overlay_offset_x = 0;
+  img->overlay_offset_y = 0;
   img->stream         = NULL;
 
   _x_extra_info_reset ( img->extra_info );
@@ -451,6 +453,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
         (this->grab_only ||
          !(this->driver->get_capabilities (this->driver) & VO_CAP_CROP)) ) {
       if (img->format == XINE_IMGFMT_YV12 || img->format == XINE_IMGFMT_YUY2) {
+        img->overlay_offset_x -= img->crop_left;
+        img->overlay_offset_y -= img->crop_top;
         img = crop_frame( img->port, img );
         img_already_locked = 1;
       } else {
@@ -626,6 +630,8 @@ static vo_frame_t * duplicate_frame( vos_t *this, vo_frame_t *img ) {
   dupl->crop_right     = img->crop_right;
   dupl->crop_top       = img->crop_top;
   dupl->crop_bottom    = img->crop_bottom;
+  dupl->overlay_offset_x = img->overlay_offset_x;
+  dupl->overlay_offset_y = img->overlay_offset_y;
   
   this->driver->update_frame_format (this->driver, dupl, dupl->width, dupl->height, 
 				     dupl->ratio, dupl->format, dupl->flags);
@@ -1604,6 +1610,8 @@ static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img ) {
   dupl->progressive_frame  = img->progressive_frame;
   dupl->repeat_first_field = img->repeat_first_field;
   dupl->top_field_first    = img->top_field_first;
+  dupl->overlay_offset_x   = img->overlay_offset_x;
+  dupl->overlay_offset_y   = img->overlay_offset_y;
   
   switch (img->format) {
   case XINE_IMGFMT_YV12:

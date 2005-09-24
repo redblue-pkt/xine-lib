@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.13 2004/11/13 17:13:41 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.14 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -467,16 +467,16 @@ void x11osd_blend(x11osd *osd, vo_overlay_t *overlay)
           width = len;
           len = 0;
         }
-        if ((y >= overlay->clip_top) && (y <= overlay->clip_bottom) && (x <= overlay->clip_right)) {
-          if ((x < overlay->clip_left) && (x + width - 1 >= overlay->clip_left)) {
-            width -= overlay->clip_left - x;
-            len += overlay->clip_left - x;
+        if ((y >= overlay->hili_top) && (y <= overlay->hili_bottom) && (x <= overlay->hili_right)) {
+          if ((x < overlay->hili_left) && (x + width - 1 >= overlay->hili_left)) {
+            width -= overlay->hili_left - x;
+            len += overlay->hili_left - x;
           }
-          else if (x > overlay->clip_left)  {
+          else if (x > overlay->hili_left)  {
             use_clip_palette = 1;
-            if (x + width - 1 > overlay->clip_right) {
-              width -= overlay->clip_right - x;
-              len += overlay->clip_right - x;
+            if (x + width - 1 > overlay->hili_right) {
+              width -= overlay->hili_right - x;
+              len += overlay->hili_right - x;
             } 
           }
         }
@@ -487,8 +487,8 @@ void x11osd_blend(x11osd *osd, vo_overlay_t *overlay)
           uint8_t *src_trans;
           
           if (use_clip_palette) {
-            src_clut = (clut_t *)&overlay->clip_color;
-            src_trans = (uint8_t *)&overlay->clip_trans;
+            src_clut = (clut_t *)&overlay->hili_color;
+            src_trans = (uint8_t *)&overlay->hili_trans;
           }
           else {
             src_clut = (clut_t *)&overlay->color;

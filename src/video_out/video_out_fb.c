@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.43 2005/09/05 15:13:13 mshopf Exp $
+ * $Id: video_out_fb.c,v 1.44 2005/09/24 19:08:26 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -494,9 +494,9 @@ static void fb_overlay_clut_yuv2rgb(fb_driver_t *this,
     overlay->rgb_clut++;
   }
 	
-  if(!overlay->clip_rgb_clut)
+  if(!overlay->hili_rgb_clut)
   {
-    clut = (clut_t*) overlay->clip_color;
+    clut = (clut_t*) overlay->hili_color;
 		
     for(i = 0;
 	i < sizeof(overlay->color)/sizeof(overlay->color[0]);
@@ -509,7 +509,7 @@ static void fb_overlay_clut_yuv2rgb(fb_driver_t *this,
 				 clut[i].cb,
 				 clut[i].cr);
     }
-    overlay->clip_rgb_clut++;
+    overlay->hili_rgb_clut++;
   }
 }
 
@@ -519,10 +519,13 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
   fb_driver_t *this = (fb_driver_t *)this_gen;
   fb_frame_t *frame = (fb_frame_t *)frame_gen;
 
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
+
   /* Alpha Blend here */
   if(overlay->rle)
   {
-    if(!overlay->rgb_clut || !overlay->clip_rgb_clut)
+    if(!overlay->rgb_clut || !overlay->hili_rgb_clut)
        fb_overlay_clut_yuv2rgb(this,overlay,frame);
 
     switch(this->bpp)
@@ -1133,6 +1136,6 @@ static vo_info_t vo_info_fb =
 /* exported plugin catalog entry */
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_VIDEO_OUT, 20, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
+  { PLUGIN_VIDEO_OUT, 21, "fb", XINE_VERSION_CODE, &vo_info_fb, fb_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

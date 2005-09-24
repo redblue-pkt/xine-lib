@@ -324,6 +324,9 @@ static void directfb_overlay_blend (vo_driver_t *this_gen,
   directfb_driver_t *this  = (directfb_driver_t *) this_gen;
   directfb_frame_t  *frame = (directfb_frame_t *) frame_gen;
   
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
+  
   if (frame->format == DSPF_YUY2) {
     blend_yuy2 (frame->vo_frame.base[0], overlay,
                 frame->width, frame->height,

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.14 2004/11/24 16:11:06 mroi Exp $
+ * $Id: video_out_stk.c,v 1.15 2005/09/24 19:08:26 miguelfreitas Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -227,6 +227,9 @@ static void stk_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, vo_
     stk_driver_t* this = (stk_driver_t*)this_gen;
     stk_frame_t* frame = (stk_frame_t*)frame_gen;
     //printf("video_out_stk: overlay_blend()\n");
+  
+    this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+    this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
 
     if (overlay->rle) {
         if (frame->format == XINE_IMGFMT_YV12)
@@ -484,7 +487,7 @@ static vo_info_t vo_info_stk = {
 
 plugin_info_t xine_plugin_info[] = {
     /* type, API, "name", version, special_info, init_function */
-    { PLUGIN_VIDEO_OUT, 20, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
+    { PLUGIN_VIDEO_OUT, 21, "stk", XINE_VERSION_CODE, &vo_info_stk, init_class },
     { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}
 };
 
