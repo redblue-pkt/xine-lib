@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: x11osd.c,v 1.14 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: x11osd.c,v 1.15 2005/09/25 00:44:04 miguelfreitas Exp $
  *
  * x11osd.c, use X11 Nonrectangular Window Shape Extension to draw xine OSD
  *
@@ -54,7 +54,6 @@
 */
 
 #include "xine_internal.h"
-#include "alphablend.h"
 #include "x11osd.h"
 
 struct x11osd

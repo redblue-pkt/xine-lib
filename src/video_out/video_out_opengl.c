@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.53 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_opengl.c,v 1.54 2005/09/25 00:44:04 miguelfreitas Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -94,7 +94,6 @@
 #include "video_out.h"
 
 #include "xine_internal.h"
-#include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
 #include "x11osd.h"
@@ -1481,12 +1480,12 @@ static void opengl_overlay_blend (vo_driver_t *this_gen,
         opengl_overlay_clut_yuv2rgb (this, overlay, frame);
 
 #     if BYTES_PER_PIXEL == 3
-      blend_rgb24 ((uint8_t *)frame->rgb, overlay,
+      _x_blend_rgb24 ((uint8_t *)frame->rgb, overlay,
 		   frame->width, frame->height,
 		   frame->width, frame->height,
                    &this->alphablend_extra_data);
 #     elif BYTES_PER_PIXEL == 4
-      blend_rgb32 ((uint8_t *)frame->rgb, overlay,
+      _x_blend_rgb32 ((uint8_t *)frame->rgb, overlay,
 		   frame->width, frame->height,
 		   frame->width, frame->height,
                    &this->alphablend_extra_data);

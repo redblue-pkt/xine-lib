@@ -37,7 +37,6 @@ endif
 xineplug_decode_dxr3_spu_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_dxr3_la_SOURCES = \
-	alphablend.c \
 	dxr3_mpeg_encoders.c \
 	dxr3_spu_encoder.c \
 	dxr3_scr.c \
@@ -48,7 +47,6 @@ xineplug_vo_out_dxr3_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = \
 	em8300.h \
-	alphablend.h \
 	dxr3.h \
 	dxr3_scr.h \
 	video_out_dxr3.h

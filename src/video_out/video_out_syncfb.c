@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_syncfb.c,v 1.101 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_syncfb.c,v 1.102 2005/09/25 00:44:04 miguelfreitas Exp $
  * 
  * video_out_syncfb.c, SyncFB (for Matrox G200/G400 cards) interface for xine
  * 
@@ -55,7 +55,6 @@
 #include "xine.h"
 #include "video_out.h"
 #include "xine_internal.h"
-#include "alphablend.h"
 #include "xineutils.h"
 #include "vo_scale.h"
 
@@ -574,9 +573,9 @@ static void syncfb_overlay_blend(vo_driver_t* this_gen, vo_frame_t* frame_gen, v
   /* alpha blend here */
   if (overlay->rle) {
     if (frame->format == XINE_IMGFMT_YV12)
-      blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches, &this->alphablend_extra_data);
+      _x_blend_yuv(frame->vo_frame.base, overlay, frame->width, frame->height, frame->vo_frame.pitches, &this->alphablend_extra_data);
     else
-      blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0], &this->alphablend_extra_data);
+      _x_blend_yuy2(frame->vo_frame.base[0], overlay, frame->width, frame->height, frame->vo_frame.pitches[0], &this->alphablend_extra_data);
   }
 }
 

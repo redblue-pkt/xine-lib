@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.112 2005/09/24 23:44:34 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.113 2005/09/25 00:44:04 miguelfreitas Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -33,7 +33,6 @@
 
 #include "xine_internal.h"
 #include "buffer.h"
-#include "video_out/alphablend.h" /* For clut_t */
 #include "xine-engine/bswap.h"
 #include "xineutils.h"
 #include "spu.h"

@@ -1,3 +1,4 @@
+#error "Do not compile this file. moved to xine-engine/alphablend.c"
 /*
  *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001

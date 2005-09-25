@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.24 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_xvmc.c,v 1.25 2005/09/25 00:44:04 miguelfreitas Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -73,7 +73,6 @@
 #include "accel_xvmc.h"
 
 /* TODO - delete these? */
-#include "alphablend.h"
 #include "deinterlace.h"
 
 #include "xineutils.h"
@@ -847,11 +846,11 @@ static void xvmc_overlay_blend (vo_driver_t *this_gen,
   
   if (overlay->rle) {
     if (frame->format == XINE_IMGFMT_YV12)
-      blend_yuv(frame->vo_frame.base, overlay, 
+      _x_blend_yuv(frame->vo_frame.base, overlay, 
 		frame->width, frame->height, frame->vo_frame.pitches,
                 &this->alphablend_extra_data);
     else if (frame->format != XINE_IMGFMT_XVMC)
-      blend_yuy2(frame->vo_frame.base[0], overlay, 
+      _x_blend_yuy2(frame->vo_frame.base[0], overlay, 
 		 frame->width, frame->height, frame->vo_frame.pitches[0],
                  &this->alphablend_extra_data);
   }

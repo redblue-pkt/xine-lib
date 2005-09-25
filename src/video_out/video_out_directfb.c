@@ -48,7 +48,6 @@
 #include "xine.h"
 #include "xine_internal.h"
 #include "video_out.h"
-#include "alphablend.h"
 #include "xineutils.h"
 #include "vo_scale.h"
 
@@ -328,13 +327,13 @@ static void directfb_overlay_blend (vo_driver_t *this_gen,
   this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
   
   if (frame->format == DSPF_YUY2) {
-    blend_yuy2 (frame->vo_frame.base[0], overlay,
+    _x_blend_yuy2 (frame->vo_frame.base[0], overlay,
                 frame->width, frame->height,
                 frame->vo_frame.pitches[0],
                 &this->alphablend_extra_data);
   }
   else {
-    blend_yuv (frame->vo_frame.base, overlay, 
+    _x_blend_yuv (frame->vo_frame.base, overlay, 
                frame->width, frame->height,
                frame->vo_frame.pitches,
                &this->alphablend_extra_data);

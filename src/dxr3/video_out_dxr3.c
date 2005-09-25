@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.110 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.111 2005/09/25 00:44:04 miguelfreitas Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -65,7 +65,6 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "video_out.h"
-#include "alphablend.h"
 #include "dxr3.h"
 #include "video_out_dxr3.h"
 
@@ -819,11 +818,11 @@ static void dxr3_overlay_blend(vo_driver_t *this_gen, vo_frame_t *frame_gen,
     
     if (overlay->rle) {
       if (frame_gen->format == XINE_IMGFMT_YV12)
-        blend_yuv(frame->vo_frame.base, overlay,
+        _x_blend_yuv(frame->vo_frame.base, overlay,
                   frame->vo_frame.width, frame->vo_frame.height,
                   frame->vo_frame.pitches, &this->alphablend_extra_data);
       else
-        blend_yuy2(frame->vo_frame.base[0], overlay,
+        _x_blend_yuy2(frame->vo_frame.base[0], overlay,
                    frame->vo_frame.width, frame->vo_frame.height,
                    frame->vo_frame.pitches[0], &this->alphablend_extra_data);
     }

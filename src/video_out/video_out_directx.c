@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.25 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_directx.c,v 1.26 2005/09/25 00:44:04 miguelfreitas Exp $
  */
 
 typedef unsigned char boolean;
@@ -32,7 +32,7 @@ typedef unsigned char boolean;
 
 #include "xine.h"
 #include "video_out.h"
-#include "alphablend.h"
+#include "xine_internal.h"
 
 #define LOG_MODULE "video_out_directx"
 #define LOG_VERBOSE
@@ -1116,9 +1116,9 @@ static void win32_overlay_blend( vo_driver_t * vo_driver, vo_frame_t * vo_frame,
   if( vo_overlay->rle )
     {
       if( vo_frame->format == XINE_IMGFMT_YV12 )
-	blend_yuv( win32_frame->vo_frame.base, vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches, &win32_driver->alphablend_extra_data );
+	_x_blend_yuv( win32_frame->vo_frame.base, vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches, &win32_driver->alphablend_extra_data );
       else
-	blend_yuy2( win32_frame->vo_frame.base[0], vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches[0], &win32_driver->alphablend_extra_data );
+	_x_blend_yuy2( win32_frame->vo_frame.base[0], vo_overlay, win32_frame->width, win32_frame->height, win32_frame->vo_frame.pitches[0], &win32_driver->alphablend_extra_data );
     }
 }
 

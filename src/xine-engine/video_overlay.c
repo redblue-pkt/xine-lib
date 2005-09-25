@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.38 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.39 2005/09/25 00:44:04 miguelfreitas Exp $
  *
  */
 
@@ -30,8 +30,7 @@
 
 #include "buffer.h"
 #include "xine_internal.h"
-#include "video_out/alphablend.h"
-#include "xine-engine/bswap.h"
+#include "bswap.h"
 #include "xineutils.h"
 #include "video_overlay.h"
 

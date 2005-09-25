@@ -93,34 +93,34 @@ lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   xineplug_vo_out_none.la
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-	alphablend.c video_out_xshm.c $(X11OSD)
+	video_out_xshm.c $(X11OSD)
 xineplug_vo_out_xshm_la_LIBADD = $(MLIB_LIBS) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_xv_la_SOURCES = $(X11OSD) deinterlace.c alphablend.c video_out_xv.c
+xineplug_vo_out_xv_la_SOURCES = $(X11OSD) deinterlace.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD = $(XV_LIB) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_xvmc_la_SOURCES = deinterlace.c alphablend.c video_out_xvmc.c
+xineplug_vo_out_xvmc_la_SOURCES = deinterlace.c video_out_xvmc.c
 xineplug_vo_out_xvmc_la_LIBADD = $(XVMC_LIB) $(XV_LIB) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_xvmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_xxmc_la_SOURCES = $(X11OSD) deinterlace.c alphablend.c video_out_xxmc.c\
+xineplug_vo_out_xxmc_la_SOURCES = $(X11OSD) deinterlace.c video_out_xxmc.c\
 				xvmc_mocomp.c xvmc_vld.c xxmc.h
 xineplug_vo_out_xxmc_la_LIBADD = $(XXMC_LIB) $(XV_LIB) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_xxmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-	alphablend.c video_out_opengl.c myglext.h $(X11OSD)
+	video_out_opengl.c myglext.h $(X11OSD)
 xineplug_vo_out_opengl_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
 	$(GLU_LIBS) $(X_LIBS) -lXext $(XINE_LIB)
 xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_syncfb_la_SOURCES = alphablend.c video_out_syncfb.c 
+xineplug_vo_out_syncfb_la_SOURCES = video_out_syncfb.c 
 xineplug_vo_out_syncfb_la_LIBADD = $(X_LIBS) $(XINE_LIB)
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_pgx64_la_SOURCES = alphablend.c video_out_pgx64.c
+xineplug_vo_out_pgx64_la_SOURCES = video_out_pgx64.c
 xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS) $(SUNDGA_LIBS)
 xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
@@ -128,7 +128,7 @@ xineplug_vo_out_pgx32_la_SOURCES = video_out_pgx32.c
 xineplug_vo_out_pgx32_la_LIBADD = $(X_LIBS) $(SUNDGA_LIBS)
 xineplug_vo_out_pgx32_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_vidix_la_SOURCES = alphablend.c video_out_vidix.c $(X11OSD)
+xineplug_vo_out_vidix_la_SOURCES = video_out_vidix.c $(X11OSD)
 xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) \
 	$(top_builddir)/src/video_out/vidix/libvidix.la \
 	$(top_builddir)/src/video_out/libdha/libdha.la
@@ -144,23 +144,23 @@ xineplug_vo_out_caca_la_LIBADD = $(CACA_LIBS)
 xineplug_vo_out_caca_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
-	alphablend.c video_out_fb.c
+	video_out_fb.c
 xineplug_vo_out_fb_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB)
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_directfb_la_SOURCES = alphablend.c video_out_directfb.c
+xineplug_vo_out_directfb_la_SOURCES = video_out_directfb.c
 xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS) $(X_LIBS)
 xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_sdl_la_SOURCES = alphablend.c video_out_sdl.c
+xineplug_vo_out_sdl_la_SOURCES = video_out_sdl.c
 xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS) $(XINE_LIB)
 xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_stk_la_SOURCES = alphablend.c video_out_stk.c 
+xineplug_vo_out_stk_la_SOURCES = video_out_stk.c 
 xineplug_vo_out_stk_la_LIBADD = $(LIBSTK_LIBS) 
 xineplug_vo_out_stk_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_directx_la_SOURCES = alphablend.c yuv2rgb.c yuv2rgb_mmx.c video_out_directx.c 
+xineplug_vo_out_directx_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c video_out_directx.c 
 xineplug_vo_out_directx_la_CPPFLAGS = $(DIRECTX_CPPFLAGS)
 xineplug_vo_out_directx_la_LIBADD = $(DIRECTX_VIDEO_LIBS) $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_directx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
@@ -169,7 +169,7 @@ xineplug_vo_out_none_la_SOURCES =  video_out_none.c
 xineplug_vo_out_none_la_LIBADD = $(XINE_LIB)
 xineplug_vo_out_none_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_macosx_la_SOURCES = alphablend.c video_out_macosx.m
+xineplug_vo_out_macosx_la_SOURCES = video_out_macosx.m
 xineplug_vo_out_macosx_la_CPPFLAGS = $(X_CFLAGS) $(MLIB_CFLAGS)
 xineplug_vo_out_macosx_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
 	$(GLU_LIBS) $(X_LIBS) $(XINE_LIB)
@@ -178,5 +178,5 @@ xineplug_vo_out_macosx_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
 xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ \
 	-Wl,-framework -Wl,Cocoa -framework Cocoa -framework OpenGL
 
-noinst_HEADERS = alphablend.h deinterlace.h video_out_syncfb.h \
+noinst_HEADERS = deinterlace.h video_out_syncfb.h \
 	yuv2rgb.h x11osd.h

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.12 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_macosx.m,v 1.13 2005/09/25 00:44:04 miguelfreitas Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -38,7 +38,6 @@
 #define LOG
 */
 
-#include "alphablend.h"
 #include "video_out.h"
 #include "vo_scale.h"
 #include "xine.h"

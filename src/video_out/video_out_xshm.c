@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.141 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.142 2005/09/25 00:44:04 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -61,7 +61,6 @@
 */
 
 #include "xine_internal.h"
-#include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
 #include "vo_scale.h"
@@ -665,19 +664,19 @@ static void xshm_overlay_blend (vo_driver_t *this_gen,
  
       switch (this->bpp) {
         case 16:
-         blend_rgb16 ((uint8_t *)frame->image->data, overlay,
+         _x_blend_rgb16 ((uint8_t *)frame->image->data, overlay,
 		      frame->sc.output_width, frame->sc.output_height,
 		      frame->sc.delivered_width, frame->sc.delivered_height,
                       &this->alphablend_extra_data);
          break;
         case 24:
-         blend_rgb24 ((uint8_t *)frame->image->data, overlay,
+         _x_blend_rgb24 ((uint8_t *)frame->image->data, overlay,
 		      frame->sc.output_width, frame->sc.output_height,
 		      frame->sc.delivered_width, frame->sc.delivered_height,
                       &this->alphablend_extra_data);
          break;
         case 32:
-         blend_rgb32 ((uint8_t *)frame->image->data, overlay,
+         _x_blend_rgb32 ((uint8_t *)frame->image->data, overlay,
 		      frame->sc.output_width, frame->sc.output_height,
 		      frame->sc.delivered_width, frame->sc.delivered_height,
                       &this->alphablend_extra_data);

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.18 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_xxmc.c,v 1.19 2005/09/25 00:44:04 miguelfreitas Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -763,7 +763,7 @@ static void xxmc_dispose_context(xxmc_driver_t *driver)
     xprintf(driver->xine, XINE_VERBOSITY_LOG,
 	    "video_out_xxmc: Freeing up XvMC Surfaces and subpictures.\n");
     if (driver->xvmc_palette) free(driver->xvmc_palette);
-    dispose_xx44_palette( &driver->palette );
+    _x_dispose_xx44_palette( &driver->palette );
     xxmc_xvmc_destroy_subpictures( driver );
     xxmc_xvmc_destroy_surfaces( driver );
     xprintf(driver->xine, XINE_VERBOSITY_LOG,
@@ -899,7 +899,7 @@ static void xxmc_setup_subpictures(xxmc_driver_t *driver, unsigned width, unsign
 				     height, curCap->subPicType.id);
     if (sp == NULL) return;
 
-    init_xx44_palette( &driver->palette, sp->num_palette_entries);
+    _x_init_xx44_palette( &driver->palette, sp->num_palette_entries);
     driver->xvmc_palette = (char *) xine_xmalloc(sp->num_palette_entries 
 						 * sp->entry_bytes);
     xxmc_xvmc_free_subpicture( driver, sp);
@@ -1405,7 +1405,7 @@ static void xxmc_overlay_begin (vo_driver_t *this_gen,
 			  this->xvmc_width,
 			  this->xvmc_height, 0x00);
       XVMCUNLOCKDISPLAY( this->display );
-      clear_xx44_palette(&this->palette);
+      _x_clear_xx44_palette(&this->palette);
     }
   }
   xvmc_context_reader_unlock( &this->xvmc_lock );
@@ -1435,7 +1435,7 @@ static void xxmc_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img)
       if (this->new_subpic) {
 	this->old_subpic = this->new_subpic;
 	this->new_subpic = NULL;
-	xx44_to_xvmc_palette( &this->palette, this->xvmc_palette,
+	_x_xx44_to_xvmc_palette( &this->palette, this->xvmc_palette,
 			      0, this->old_subpic->num_palette_entries,
 			      this->old_subpic->entry_bytes,
 			      this->reverse_nvidia_palette ? "YVU" :
@@ -1492,7 +1492,7 @@ static void xxmc_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 		   this->subImage->height);
 	    this->first_overlay = 0;
 	  }
-	  blend_xx44(this->subImage->data, overlay, this->subImage->width, 
+	  _x_blend_xx44(this->subImage->data, overlay, this->subImage->width, 
 		     this->subImage->height, this->subImage->width,
                      &this->alphablend_extra_data,
 		     &this->palette, (this->subImage->id == FOURCC_IA44));
@@ -1508,11 +1508,11 @@ static void xxmc_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
       }
     } else {      
       if (frame->format == XINE_IMGFMT_YV12) {
-        blend_yuv(frame->vo_frame.base, overlay, 
+        _x_blend_yuv(frame->vo_frame.base, overlay, 
 		  frame->width, frame->height, frame->vo_frame.pitches,
                   &this->alphablend_extra_data);
       } else {
-	blend_yuy2(frame->vo_frame.base[0], overlay, 
+	_x_blend_yuy2(frame->vo_frame.base[0], overlay, 
 		   frame->width, frame->height, frame->vo_frame.pitches[0],
                    &this->alphablend_extra_data);
       }
@@ -2232,7 +2232,7 @@ static void checkXvMCCap( xxmc_driver_t *this, XvPortID xv_port)
   xxmc_xvmc_surface_handler_construct(this);
   this->capabilities |= VO_CAP_XXMC;
   XVMCUNLOCKDISPLAY( this->display );
-  init_xx44_palette( &this->palette , 0);
+  _x_init_xx44_palette( &this->palette , 0);
   this->last_accel_request = 0xFFFFFFFF;
   xvmc_context_writer_unlock( &this->xvmc_lock );
   return;

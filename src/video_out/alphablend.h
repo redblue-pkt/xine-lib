@@ -1,3 +1,4 @@
+#error "Do not include this file. moved to xine-engine/alphablend.h"
 /*
  *
  * Copyright (C) 2000  Thomas Mirlacher

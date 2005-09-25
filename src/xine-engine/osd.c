@@ -49,7 +49,6 @@
 #define XINE_ENGINE_INTERNAL
 
 #include "xine_internal.h"
-#include "video_out/alphablend.h"
 #include "xine-engine/bswap.h"
 #include "xineutils.h"
 #include "video_out.h"

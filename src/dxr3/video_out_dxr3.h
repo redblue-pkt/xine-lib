@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.h,v 1.24 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_dxr3.h,v 1.25 2005/09/25 00:44:04 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,7 +32,6 @@
 #include "vo_scale.h"
 #include "dxr3_scr.h"
 #include "dxr3.h"
-#include "alphablend.h"
 
 /* the number of supported encoders */
 #define SUPPORTED_ENCODER_COUNT 3

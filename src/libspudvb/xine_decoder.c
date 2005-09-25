@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2004/12/18 19:51:46 mlampard Exp $
+ * $Id: xine_decoder.c,v 1.17 2005/09/25 00:44:04 miguelfreitas Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -30,7 +30,6 @@
 #include "pthread.h"
 #include "xine_internal.h"
 #include "osd.h"
-#include "video_out/alphablend.h"
 #define MAX_REGIONS 7
 
 /* check every DVBSUB_TIMER_DELAY seconds */

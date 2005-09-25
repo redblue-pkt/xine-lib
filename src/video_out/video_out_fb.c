@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_fb.c,v 1.44 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_fb.c,v 1.45 2005/09/25 00:44:04 miguelfreitas Exp $
  * 
  * video_out_fb.c, frame buffer xine driver by Miguel Freitas
  *
@@ -81,7 +81,6 @@
 */
 
 #include "xine_internal.h"
-#include "alphablend.h"
 #include "yuv2rgb.h"
 #include "xineutils.h"
 #include "vo_scale.h"
@@ -531,7 +530,7 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
     switch(this->bpp)
     {
        case 16:
-	blend_rgb16(frame->data,
+	_x_blend_rgb16(frame->data,
 		    overlay,
 		    frame->sc.output_width,
 		    frame->sc.output_height,
@@ -541,7 +540,7 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
         break;
 				
        case 24:
-	blend_rgb24(frame->data,
+	_x_blend_rgb24(frame->data,
 		    overlay,
 		    frame->sc.output_width,
 		    frame->sc.output_height,
@@ -551,7 +550,7 @@ static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
         break;
 				
        case 32:
-	blend_rgb32(frame->data,
+	_x_blend_rgb32(frame->data,
 		    overlay,
 		    frame->sc.output_width,
 		    frame->sc.output_height,

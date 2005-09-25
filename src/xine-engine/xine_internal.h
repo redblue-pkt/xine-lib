@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.167 2005/08/25 15:36:30 valtri Exp $
+ * $Id: xine_internal.h,v 1.168 2005/09/25 00:44:04 miguelfreitas Exp $
  *
  */
 
@@ -50,6 +50,7 @@ extern "C" {
 #  include "broadcaster.h"
 #  include "io_helper.h"
 #  include "info_helper.h"
+#  include "alphablend.h"
 #else
 #  include <xine.h>
 #  include <xine/refcounter.h>
@@ -68,6 +69,7 @@ extern "C" {
 #  include <xine/broadcaster.h>
 #  include <xine/io_helper.h>
 #  include <xine/info_helper.h>
+#  include <xine/alphablend.h>
 #endif
 
 
