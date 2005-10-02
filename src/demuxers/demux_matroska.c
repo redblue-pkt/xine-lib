@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.38 2005/10/02 21:29:39 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.39 2005/10/02 21:44:33 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1149,8 +1149,26 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
     } else if ((!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_SP)) ||
                (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_ASP)) ||
                (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_AP))) {
+      xine_bmiheader *bih;
+      
       lprintf("MATROSKA_CODEC_ID_V_MPEG4_*\n");
+      /* create a bitmap info header struct for MPEG 4 */
+      bih = malloc(sizeof(xine_bmiheader) + track->codec_private_len);
+      bih->biSize = sizeof(xine_bmiheader) + track->codec_private_len;
+      bih->biCompression = meFOURCC('M', 'P', '4', 'S');
+      bih->biWidth = track->video_track->pixel_width;
+      bih->biHeight = track->video_track->pixel_height;
+      _x_bmiheader_le2me(bih);
+      
+      /* add bih extra data */
+      memcpy(bih + 1, track->codec_private, track->codec_private_len);
+      free(track->codec_private);
+      track->codec_private = (uint8_t *)bih;
+      track->codec_private_len = bih->biSize;
       track->buf_type = BUF_VIDEO_MPEG4;
+      
+      /* init as a vfw decoder */
+      init_codec = init_codec_video;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_AVC)) {
       xine_bmiheader *bih;
       
