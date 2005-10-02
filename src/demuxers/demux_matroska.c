@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.37 2005/07/29 17:57:00 jstembridge Exp $
+ * $Id: demux_matroska.c,v 1.38 2005/10/02 21:29:39 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -48,6 +48,7 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
+#include "buffer.h"
 #include "bswap.h"
 
 #include "ebml.h"
@@ -65,6 +66,13 @@
 #endif
 #if !defined(MAX)
 #define MAX(a, b)	((a)>(b)?(a):(b))
+#endif
+
+/* FOURCC will be manipulated using machine endian */
+#ifdef WORDS_BIGENDIAN
+#define meFOURCC BE_FOURCC
+#else
+#define meFOURCC LE_FOURCC
 #endif
 
 typedef struct {
@@ -1138,10 +1146,34 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       init_codec = init_codec_video;
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_UNCOMPRESSED)) {
-    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_SP)) {
-    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_ASP)) {
-    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_AP)) {
+    } else if ((!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_SP)) ||
+               (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_ASP)) ||
+               (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_AP))) {
+      lprintf("MATROSKA_CODEC_ID_V_MPEG4_*\n");
+      track->buf_type = BUF_VIDEO_MPEG4;
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG4_AVC)) {
+      xine_bmiheader *bih;
+      
+      lprintf("MATROSKA_CODEC_ID_V_MPEG4_AVC\n");
+      /* create a bitmap info header struct for h264 */
+      bih = malloc(sizeof(xine_bmiheader) + track->codec_private_len);
+      bih->biSize = sizeof(xine_bmiheader) + track->codec_private_len;
+      bih->biCompression = meFOURCC('a', 'v', 'c', '1');
+      bih->biWidth = track->video_track->pixel_width;
+      bih->biHeight = track->video_track->pixel_height;
+      _x_bmiheader_le2me(bih);
+      
+      /* add bih extra data */
+      memcpy(bih + 1, track->codec_private, track->codec_private_len);
+      free(track->codec_private);
+      track->codec_private = (uint8_t *)bih;
+      track->codec_private_len = bih->biSize;
+      track->buf_type = BUF_VIDEO_H264;
+      
+      /* init as a vfw decoder */
+      init_codec = init_codec_video;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MSMPEG4V3)) {
+      track->buf_type = BUF_VIDEO_MSMPEG4_V3;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_MPEG1)) {
       lprintf("MATROSKA_CODEC_ID_V_MPEG1\n");
       track->buf_type = BUF_VIDEO_MPEG;
