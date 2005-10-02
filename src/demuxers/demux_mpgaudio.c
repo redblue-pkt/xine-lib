@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.142 2005/10/01 08:03:36 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.143 2005/10/02 14:15:17 tmattern Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -770,7 +770,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
       this->stream_length = (double)xing->stream_frames * this->cur_frame.duration;
       /* compute abr */
       if (this->stream_length) {
-        this->br = (xing->stream_size * 8 * 1000) / this->stream_length;
+        this->br = ((uint64_t)xing->stream_size * 8 * 1000) / this->stream_length;
       }
       
     } else if (this->vbri_header) {
@@ -781,7 +781,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
       this->stream_length = (double)vbri->stream_frames * this->cur_frame.duration;
       /* compute abr */
       if (this->stream_length) {
-        this->br = (vbri->stream_size * 8 * 1000) / this->stream_length;
+        this->br = ((uint64_t)vbri->stream_size * 8 * 1000) / this->stream_length;
       }
     }
  
@@ -807,9 +807,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
     lprintf("stream size: %lld, mp3 size: %lld\n",
             this->input->get_length(this->input),
             this->mpg_size);
-    lprintf("stream_length: %lld min %lld s\n", 
-            ((uint64_t)this->stream_length / 1000) / 60,
-            ((uint64_t)this->stream_length / 1000) % 60);
+    lprintf("stream_length: %d ms\n", this->stream_length);
 
     /* set codec infos here
      * the decoder doesn't know if the stream is VBR
