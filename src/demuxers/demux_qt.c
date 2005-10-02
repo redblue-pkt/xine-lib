@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.202 2005/07/17 23:11:44 dsalt Exp $
+ * $Id: demux_qt.c,v 1.203 2005/10/02 17:00:52 tmmm Exp $
  *
  */
 
@@ -684,8 +684,24 @@ static int is_qt_file(input_plugin_t *qt_file) {
     len = qt_file->get_optional_data(qt_file, preview, INPUT_OPTIONAL_DATA_PREVIEW);
     if (BE_32(&preview[4]) == MOOV_ATOM)
       return 1;
-    else
-      return 0;
+    else {
+      if (BE_32(&preview[4]) == FTYP_ATOM) {
+        /* show some lenience if the first atom is 'ftyp'; the second atom
+         * could be 'moov' */
+        moov_atom_size = BE_32(&preview[0]);
+        /* compute the size of the current atom plus the preamble of the
+         * next atom; if the size is within the range on the preview buffer
+         * then the next atom's preamble is in the preview buffer */
+        i = moov_atom_size + ATOM_PREAMBLE_SIZE;
+        if (i >= MAX_PREVIEW_SIZE)
+          return 0;
+        if (BE_32(&preview[i - 4]) == MOOV_ATOM)
+          return 1;
+        else
+          return 0;
+      } else
+        return 0;
+    }
   }
 
   find_moov_atom(qt_file, &moov_atom_offset, &moov_atom_size);
@@ -2074,11 +2090,24 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input,
   else {
     input->get_optional_data(input, preview, INPUT_OPTIONAL_DATA_PREVIEW);
     if (BE_32(&preview[4]) != MOOV_ATOM) {
-      info->last_error = QT_NO_MOOV_ATOM;
-      return info->last_error;
+      /* special case if there is an ftyp atom first */
+      if (BE_32(&preview[4]) == FTYP_ATOM) {
+        moov_atom_size = BE_32(&preview[0]);
+        if ((moov_atom_size + ATOM_PREAMBLE_SIZE >= MAX_PREVIEW_SIZE) ||
+            (BE_32(&preview[moov_atom_size + 4]) != MOOV_ATOM)) {
+          info->last_error = QT_NO_MOOV_ATOM;
+          return info->last_error;
+        }
+        moov_atom_offset = moov_atom_size;
+        moov_atom_size = BE_32(&preview[moov_atom_offset]);
+      } else {
+        info->last_error = QT_NO_MOOV_ATOM;
+        return info->last_error;
+      }
+    } else {
+      moov_atom_offset = 0;
+      moov_atom_size = BE_32(&preview[0]);
     }
-    moov_atom_offset = 0;
-    moov_atom_size = BE_32(&preview[0]);
   }
 
   if (moov_atom_offset == -1) {
