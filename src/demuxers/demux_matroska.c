@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.39 2005/10/02 21:44:33 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.40 2005/10/03 18:22:29 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1131,7 +1131,6 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
           track->track_num,
           (track->codec_id ? track->codec_id : ""),
           (track->language ? track->language : ""));
-
   if (track->codec_id) {
     void (*init_codec)(demux_matroska_t *, matroska_track_t *) = NULL;
 
@@ -1239,7 +1238,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_ACM)) {
     } else if (!strncmp(track->codec_id, MATROSKA_CODEC_ID_A_AAC,
-                        sizeof(MATROSKA_CODEC_ID_A_AAC - 1))) {
+                        sizeof(MATROSKA_CODEC_ID_A_AAC) - 1)) {
       lprintf("MATROSKA_CODEC_ID_A_AAC\n");
       track->buf_type = BUF_AUDIO_AAC;
       init_codec = init_codec_aac;
