@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.8 2004/07/14 01:18:48 miguelfreitas Exp $
+ * $Id: matroska.h,v 1.9 2005/10/03 18:06:56 tmattern Exp $
  *
  */
 #ifndef MATROSKA_H
@@ -253,6 +253,7 @@ struct matroska_track_s {
 #define MATROSKA_CODEC_ID_V_MPEG4_SP     "V_MPEG4/ISO/SP"
 #define MATROSKA_CODEC_ID_V_MPEG4_ASP    "V_MPEG4/ISO/ASP"
 #define MATROSKA_CODEC_ID_V_MPEG4_AP     "V_MPEG4/ISO/AP"
+#define MATROSKA_CODEC_ID_V_MPEG4_AVC    "V_MPEG4/ISO/AVC"
 #define MATROSKA_CODEC_ID_V_MSMPEG4V3    "V_MPEG4/MS/V3"
 #define MATROSKA_CODEC_ID_V_MPEG1        "V_MPEG1"
 #define MATROSKA_CODEC_ID_V_MPEG2        "V_MPEG2"
