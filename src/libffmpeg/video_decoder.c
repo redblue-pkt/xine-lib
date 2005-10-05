@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.56 2005/07/25 20:27:15 tmattern Exp $
+ * $Id: video_decoder.c,v 1.57 2005/10/05 06:34:12 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1086,6 +1086,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
     vo_frame_t *img;
     int         free_img;
     int         got_picture, len;
+    int         got_one_picture = 0;
     int         offset = 0;
     int         codec_type = buf->type & 0xFFFF0000;
 
@@ -1102,11 +1103,11 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         /* skip decoding b frames if too late */
         this->context->hurry_up = (this->skipframes > 0);
 
-	lprintf("buffer size: %d\n", this->size);
+        lprintf("buffer size: %d\n", this->size);
         len = avcodec_decode_video (this->context, this->av_frame,
                                     &got_picture, &chunk_buf[offset],
                                     this->size);
-	lprintf("consumed size: %d\n", len);
+        lprintf("consumed size: %d, got_picture: %d\n", len, got_picture);
         if ((len <= 0) || (len > this->size)) {
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
                     "ffmpeg_video_dec: error decompressing frame\n");
@@ -1138,6 +1139,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 
       if (got_picture && this->av_frame->data[0]) {
         /* got a picture, draw it */
+        got_one_picture = 1;
         if(!this->av_frame->opaque) {
 	  /* indirect rendering */
 
@@ -1226,21 +1228,22 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 
         if(free_img)
           img->free(img);
-
-      } else {
-        /* no frame, output a bad frame */
-        img = this->stream->video_out->get_frame (this->stream->video_out,
-                                                  this->bih.biWidth,
-                                                  this->bih.biHeight,
-                                                  this->aspect_ratio, 
-                                                  this->output_format,
-                                                  VO_BOTH_FIELDS|this->frame_flags);
-        img->pts       = 0;
-        img->duration  = this->video_step;
-        img->bad_frame = 1;
-        this->skipframes = img->draw(img, this->stream);
-        img->free(img);
       }
+    }
+
+    if (!got_one_picture) {
+      /* skipped frame, output a bad frame */
+      img = this->stream->video_out->get_frame (this->stream->video_out,
+                                                this->bih.biWidth,
+                                                this->bih.biHeight,
+                                                this->aspect_ratio, 
+                                                this->output_format,
+                                                VO_BOTH_FIELDS|this->frame_flags);
+      img->pts       = 0;
+      img->duration  = this->video_step;
+      img->bad_frame = 1;
+      this->skipframes = img->draw(img, this->stream);
+      img->free(img);
     }
   }
 }
