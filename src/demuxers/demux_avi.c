@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.218 2005/02/06 15:26:00 tmattern Exp $
+ * $Id: demux_avi.c,v 1.219 2005/10/05 07:08:48 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -269,8 +269,7 @@ typedef struct demux_avi_s {
   off_t                seek_start_pos;
   int                  seek_start_time;
 
-  /* discontinuity detection */
-  int64_t              last_pts[2];
+  /* discontinuity detection (only at seek) */
   int                  send_newpts;
   int                  buf_flag_seek;
   
@@ -345,11 +344,8 @@ static uint32_t odml_key (unsigned char *str)
 }
 
 static void check_newpts (demux_avi_t *this, int64_t pts, int video) {
-  int64_t diff;
 
-  diff = pts - this->last_pts[video];
-
-  if (pts && (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD)) ) {
+  if (pts && this->send_newpts) {
 
     lprintf ("sending newpts %lld (video = %d diff = %lld)\n", pts, video, diff);
 
@@ -361,12 +357,7 @@ static void check_newpts (demux_avi_t *this, int64_t pts, int video) {
     }
 
     this->send_newpts = 0;
-    this->last_pts[1-video] = 0;
   }
-
-  if (pts)
-    this->last_pts[video] = pts;
-
 }
 
 /* Append an index entry for a newly-found video frame */
@@ -1734,6 +1725,7 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
         /* read audio */
         buf->pts = audio_pts;
+        lprintf("audio pts: %lld\n", audio_pts);
 
         if (left > this->audio_fifo->buffer_pool_buf_size) {
           buf->size = this->audio_fifo->buffer_pool_buf_size;
@@ -1775,11 +1767,12 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
       while (left > 0) {
         video_pts = get_video_pts (this, this->avi->video_posf);
 
-
         buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
 
         /* read video */
         buf->pts = video_pts;
+        lprintf("video pts: %lld\n", video_pts);
+        
         if (left > this->video_fifo->buffer_pool_buf_size) {
           buf->size = this->video_fifo->buffer_pool_buf_size;
           buf->decoder_flags = 0;
@@ -1793,12 +1786,11 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
           return 0;
         }
 
-        buf->type       = this->avi->video_type;
+        buf->type = this->avi->video_type;
         buf->extra_info->input_time = video_pts / 90;
         buf->extra_info->input_normpos = 65535;
         buf->extra_info->frame_number = this->avi->video_posf;
         buf->decoder_flags |= decoder_flags;
-
         this->video_fifo->put (this->video_fifo, buf);
       }
 
