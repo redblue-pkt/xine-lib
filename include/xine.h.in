@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.144 2005/07/17 23:11:33 dsalt Exp $
+ * $Id: xine.h.in,v 1.145 2005/10/07 20:09:12 mroi Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1056,6 +1056,7 @@ const char *const *xine_list_video_decoder_plugins(xine_t *self);
 /* unload unused plugins */
 void xine_plugins_garbage_collector(xine_t *self);
 
+
 /*********************************************************************
  * visual specific gui <-> xine engine communication                 *
  *********************************************************************/
@@ -1881,7 +1882,7 @@ void        xine_osd_draw_line     (xine_osd_t *self, int x1, int y1,
 void        xine_osd_draw_rect     (xine_osd_t *self, int x1, int y1,
 				    int x2, int y2,
 				    int color, int filled );
-/*  x1 and y1 specifies the upper left corner of the text to be rendered */
+/* x1 and y1 specifies the upper left corner of the text to be rendered */
 void        xine_osd_draw_text     (xine_osd_t *self, int x1, int y1,
 				    const char *text, int color_base);
 void        xine_osd_draw_bitmap   (xine_osd_t *self, uint8_t *bitmap,
@@ -1918,10 +1919,10 @@ void        xine_osd_clear         (xine_osd_t *self);
  *
  * Use OSD_TEXT1, OSD_TEXT2, ... for some preassigned color indices.
  *
- * these palettes are not really well working the true type fonts.
- * First thing is that these fonts can not have a border. So the best
- * result you can get by loading a linearly blending palette from the
- * background (at index 0) to the forground color (at index 10)
+ * These palettes are not working well with the true type fonts.
+ * First thing is that these fonts cannot have a border. So you get
+ * the best results by loading a linearly blending palette from the
+ * background (at index 0) to the forground color (at index 10).
  */
 void        xine_osd_set_text_palette (xine_osd_t *self,
 				       int palette_number,
