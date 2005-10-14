@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.44 2005/07/28 02:17:23 rockyb Exp $
+  $Id: xineplug_inp_vcd.c,v 1.45 2005/10/14 21:02:16 miguelfreitas Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1984,7 +1984,7 @@ _("For tracking down bugs in the VCD plugin. Mask values are:\n"
 
 const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 16, (char *) SHORT_PLUGIN_NAME,
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 17, (char *) SHORT_PLUGIN_NAME,
     XINE_VERSION_CODE, NULL, vcd_init },
   { PLUGIN_NONE, 0, (char *) "", 0, NULL, NULL }
 };

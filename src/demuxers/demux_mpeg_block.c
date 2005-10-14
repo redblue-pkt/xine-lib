@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.211 2005/02/06 15:26:16 tmattern Exp $
+ * $Id: demux_mpeg_block.c,v 1.212 2005/10/14 21:02:16 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -1268,7 +1268,6 @@ static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
   demux_mpeg_block_t *this = (demux_mpeg_block_t *) this_gen;
   start_pos = (off_t) ( (double) start_pos / 65535 *
               this->input->get_length (this->input) );
-  start_time /= 1000;
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     
@@ -1279,20 +1278,26 @@ static int demux_mpeg_block_seek (demux_plugin_t *this_gen,
       this->input->seek (this->input, start_pos, SEEK_SET);
     } else if (start_time) {
       
-      if (this->last_cell_time) {
-        start_pos = start_time - (this->last_cell_time + this->last_begin_time)/1000;
-        start_pos *= this->rate;
-        start_pos *= 50;
-        start_pos += this->last_cell_pos;
+      if( this->input->seek_time ) {
+        this->input->seek_time (this->input, start_time, SEEK_SET);
       } else {
-        start_pos = start_time;
-        start_pos *= this->rate;
-        start_pos *= 50;
+        start_time /= 1000;
+  
+        if (this->last_cell_time) {
+          start_pos = start_time - (this->last_cell_time + this->last_begin_time)/1000;
+          start_pos *= this->rate;
+          start_pos *= 50;
+          start_pos += this->last_cell_pos;
+        } else {
+          start_pos = start_time;
+          start_pos *= this->rate;
+          start_pos *= 50;
+        }
+        start_pos /= (off_t) this->blocksize;
+        start_pos *= (off_t) this->blocksize;
+        
+        this->input->seek (this->input, start_pos, SEEK_SET);
       }
-      start_pos /= (off_t) this->blocksize;
-      start_pos *= (off_t) this->blocksize;
-      
-      this->input->seek (this->input, start_pos, SEEK_SET);
     } else
       this->input->seek (this->input, 0, SEEK_SET);
   }

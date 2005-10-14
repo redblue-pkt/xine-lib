@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.110 2005/05/21 16:16:35 jstembridge Exp $
+ * $Id: input_http.c,v 1.111 2005/10/14 21:02:16 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1059,6 +1059,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 16, "http", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 17, "http", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

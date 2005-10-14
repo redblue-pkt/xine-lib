@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.h,v 1.14 2003/07/19 13:04:03 mroi Exp $
+ * $Id: dvdnav.h,v 1.15 2005/10/14 21:02:16 miguelfreitas Exp $
  *
  */
 
@@ -114,6 +114,8 @@ dvdnav_status_t dvdnav_path(dvdnav_t *self, const char **path);
  */
 const char* dvdnav_err_to_string(dvdnav_t *self);
 
+/* converts a dvd_time_t to PTS ticks */
+int64_t dvdnav_convert_time(dvd_time_t *time);
 
 /*********************************************************************
  * changing and reading DVD player characteristics                   *

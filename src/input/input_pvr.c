@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.55 2005/08/25 15:36:29 valtri Exp $
+ * $Id: input_pvr.c,v 1.56 2005/10/14 21:02:16 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -1569,7 +1569,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 16, "pvr", XINE_VERSION_CODE, NULL, init_plugin },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 17, "pvr", XINE_VERSION_CODE, NULL, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
 

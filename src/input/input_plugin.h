@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.59 2005/02/06 15:00:34 tmattern Exp $
+ * $Id: input_plugin.h,v 1.60 2005/10/14 21:02:16 miguelfreitas Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -37,7 +37,7 @@
 #  include <xine/configfile.h>
 #endif
 
-#define INPUT_PLUGIN_IFACE_VERSION   16
+#define INPUT_PLUGIN_IFACE_VERSION   17
  
 typedef struct input_class_s input_class_t ;
 typedef struct input_plugin_s input_plugin_t;
@@ -136,10 +136,30 @@ struct input_plugin_s {
 
 
   /*
+   * seek to time position, return new position 
+   * time_offset is given in miliseconds
+   *
+   * if seeking failed, -1 is returned
+   *
+   * note: only SEEK_SET (0) is currently supported as origin
+   * note: may be NULL is not supported
+   */
+  off_t (*seek_time) (input_plugin_t *this, int time_offset, int origin);
+
+
+  /*
    * get current position in stream.
    *
    */
   off_t (*get_current_pos) (input_plugin_t *this);
+
+  
+  /*
+   * get current time position in stream in miliseconds.
+   *
+   * note: may be NULL is not supported
+   */
+  int (*get_current_time) (input_plugin_t *this);
 
 
   /*

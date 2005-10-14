@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.56 2005/02/07 23:58:58 tmattern Exp $
+ * $Id: input_mms.c,v 1.57 2005/10/14 21:02:16 miguelfreitas Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -477,6 +477,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 16, "mms", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 17, "mms", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

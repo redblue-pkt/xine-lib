@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.7 2005/05/22 19:50:05 jstembridge Exp $
+ * $Id: input_cache.c,v 1.8 2005/10/14 21:02:16 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -254,6 +254,19 @@ static off_t cache_plugin_seek(input_plugin_t *this_gen, off_t offset, int origi
   return cur_pos;
 }
 
+static off_t cache_plugin_seek_time(input_plugin_t *this_gen, int time_offset, int origin) {
+  cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
+  off_t cur_pos;
+  
+  lprintf("time_offset: %ld, origin: %d\n", time_offset, origin);
+  this->seek_call++;
+
+  cur_pos = this->main_input_plugin->seek_time(this->main_input_plugin, time_offset, origin);
+  this->buf_len = this->buf_pos = 0;
+  this->main_seek_call++;
+  return cur_pos;
+}
+
 static off_t cache_plugin_get_current_pos(input_plugin_t *this_gen) {
   cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
   off_t cur_pos;
@@ -267,6 +280,15 @@ static off_t cache_plugin_get_current_pos(input_plugin_t *this_gen) {
   }
 
   return cur_pos;
+}
+
+static int cache_plugin_get_current_time(input_plugin_t *this_gen) {
+  cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
+  int cur_time;
+  
+  cur_time = this->main_input_plugin->get_current_time(this->main_input_plugin);
+
+  return cur_time;
 }
 
 static off_t cache_plugin_get_length (input_plugin_t *this_gen) {
@@ -337,7 +359,11 @@ input_plugin_t *_x_cache_plugin_get_instance (xine_stream_t *stream, int readahe
   this->input_plugin.read                = cache_plugin_read;
   this->input_plugin.read_block          = cache_plugin_read_block;
   this->input_plugin.seek                = cache_plugin_seek;
+  if(this->main_input_plugin->seek_time)
+    this->input_plugin.seek_time         = cache_plugin_seek_time;
   this->input_plugin.get_current_pos     = cache_plugin_get_current_pos;
+  if(this->main_input_plugin->get_current_time)
+    this->input_plugin.get_current_time  = cache_plugin_get_current_time;
   this->input_plugin.get_length          = cache_plugin_get_length;
   this->input_plugin.get_blocksize       = cache_plugin_get_blocksize;
   this->input_plugin.get_mrl             = cache_plugin_get_mrl;

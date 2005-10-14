@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.205 2005/09/12 17:44:37 tmattern Exp $
+ * $Id: input_dvd.c,v 1.206 2005/10/14 21:02:16 miguelfreitas Exp $
  *
  */
 
@@ -895,6 +895,20 @@ static off_t dvd_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   return dvd_plugin_get_current_pos(this_gen);
 }
 
+static off_t dvd_plugin_seek_time (input_plugin_t *this_gen, int time_offset, int origin) {
+  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
+ 
+  trace_print("Called\n");
+  
+  if(!this || !this->dvdnav || origin != SEEK_SET) {
+    return -1;
+  }
+ 
+  dvdnav_time_search(this->dvdnav, time_offset * 90);
+  
+  return dvd_plugin_get_current_pos(this_gen);
+}
+
 static off_t dvd_plugin_get_length (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
   uint32_t pos=0;
@@ -1627,6 +1641,7 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->input_plugin.read               = dvd_plugin_read;
   this->input_plugin.read_block         = dvd_plugin_read_block;
   this->input_plugin.seek               = dvd_plugin_seek;
+  this->input_plugin.seek_time          = dvd_plugin_seek_time;
   this->input_plugin.get_current_pos    = dvd_plugin_get_current_pos;
   this->input_plugin.get_length         = dvd_plugin_get_length;
   this->input_plugin.get_blocksize      = dvd_plugin_get_blocksize;
@@ -1893,6 +1908,6 @@ static void *init_class (xine_t *xine, void *data) {
 
 plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 16, "DVD", XINE_VERSION_CODE, NULL, init_class },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 17, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
