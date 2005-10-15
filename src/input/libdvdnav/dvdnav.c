@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav.c,v 1.33 2004/12/20 19:27:20 mroi Exp $
+ * $Id: dvdnav.c,v 1.34 2005/10/15 14:04:05 jcdutton Exp $
  *
  */
 
@@ -203,7 +203,7 @@ const char* dvdnav_err_to_string(dvdnav_t *this) {
 }
 
 /* converts a dvd_time_t to PTS ticks */
-static int64_t dvdnav_convert_time(dvd_time_t *time) {
+int64_t dvdnav_convert_time(dvd_time_t *time) {
   int64_t result;
   int64_t frames;
   
