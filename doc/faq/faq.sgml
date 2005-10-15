@@ -75,7 +75,7 @@
    </sect2>
 
    <sect2 id="modules">
-    <title>What are those xine-lib, xine-ui, gxine, ... modules in cvs for?</title>
+    <title>What are those xine-lib, xine-ui, gnome-xine, ... modules in cvs for?</title>
     <para>
      Some time ago xine just became too complex to be just one big program.
      Therefore it was split into two major parts.
@@ -122,8 +122,15 @@
     </para>
     <para>
      Then, to check out individual modules (e.g. <filename>xine-lib</filename>, 
-     <filename>gxine</filename> or <filename>xine-ui</filename>):
+     <filename>gnome-xine</filename> or <filename>xine-ui</filename>):
      <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@cvs.xine.sf.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
+    </para>
+   </sect2>
+
+   <sect2 id="gnome-xine">
+    <title>Why is gxine's CVS module named &quot;gnome-xine&quot;?</title>
+    <para>
+     Historical reasons: gxine was originally named gnome-xine.
     </para>
    </sect2>
 
@@ -133,7 +140,8 @@
      The xine project does not provide pre-compiled binaries for legal
      reasons (some parts of xine may be covered by patents in some countries).
      Some OS projects/vendors (e.g. debian, freebsd, ...) offer binaries
-     for their distributions - please contact them for further info.
+     for their distributions - please contact them or use their package search
+     tools for further info.
      You can also find links to third parties providing xine RPMs on
      the xine homepage at
      <ulink url="http://xinehq.de/index.php/releases">http://xinehq.de/index.php/releases</ulink>.
@@ -168,7 +176,7 @@
     </para>
     <para>
      Frontends might need additional libraries, e.g. for gxine you'll need to have
-     GTK installed. Make sure you have not only the shared libraries themselves
+     GTK2 installed. Make sure you have not only the shared libraries themselves
      but also the header files (often packaged seperately as so-called -dev packages)
      on your system.
     </para>
@@ -250,7 +258,7 @@
    </sect2>
 
    <sect2 id="rpmbuild">
-    <title>Making your own RPM packages (xine-lib, xine-ui)</title>
+    <title>Making your own RPM packages (xine-lib, xine-ui, gxine)</title>
     <para>
      Basically you will only have to issue one command, if you have just
      downloaded a source tarball from our web site:
@@ -268,11 +276,41 @@
      In case that you have a fresh CVS checkout, you will need to do the
      following first in order to get a tarball release out of it which you
      can later use with the <command>rpmbuild -ta</command> command above:
-     <screen>&nbsp;&nbsp;&nbsp;<command>./autogen.sh && make clean && make dist</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>./autogen.sh &amp;&amp; make clean && make dist</command></screen>
     </para>
     <para>
      In any case, please keep in mind that you have to build and install
      xine-lib first before you can proceed with xine-ui.
+    </para>
+   </sect2>
+
+   <sect2 id="debbuild">
+    <title>Making your own .deb packages (xine-lib, xine-ui; gxine CVS)</title>
+    <para>
+     First, make sure that the "devscripts" package is installed. You'll
+     then need the following commands:
+     <screen>
+&nbsp;&nbsp;&nbsp;<command>tar xzf &lt;PACKAGE-VER.tar.gz&gt;</command>
+&nbsp;&nbsp;&nbsp;<command>cd &lt;PACKAGE-VER&gt;</command>
+&nbsp;&nbsp;&nbsp;<command>./autogen.sh noconfig</command>
+&nbsp;&nbsp;&nbsp;<command>debuild binary</command>
+     </screen>
+     (If <command>debuild</command> complains about unmet dependencies, then
+     - as root - install them using
+     <command>aptitude install &lt;PACKAGES&gt;</command> then re-run
+     <command>debuild binary</command>.
+    </para>
+    <para>
+     Once the build has been successfully completed, you'll have some new .debs.
+     <screen>
+&nbsp;&nbsp;&nbsp;<command>cd ..</command>
+&nbsp;&nbsp;&nbsp;<command>ls *.deb</command>
+&nbsp;&nbsp;&nbsp;<command>su - -c 'cd '"`pwd`"' && dpkg -i &lt;DEB_PACKAGES&gt;'</command>
+     </screen>
+    </para>
+    <para>
+     In any case, please keep in mind that you have to build and install
+     xine-lib first before you can proceed with xine-ui or gxine.
     </para>
    </sect2>
 
@@ -390,8 +428,10 @@
       have <filename>$prefix/bin</filename> in your path and that your
       linker is able to find libraries installed in <filename>$prefix/lib</filename>
       By the way, $prefix is where you installed your xine-lib to earlier
-      (yes, installing xine-lib with <command>make install</command> would be a good
-      idea before trying to compile the frontend ;) ).
+      (yes, installing xine-lib with <command>make install</command> or
+      installing the corresponding distribution-provided -dev or -devel
+      package would be a good idea before trying to compile the frontend ;)
+      ).
      </para>
     </sect3>
    </sect2>
