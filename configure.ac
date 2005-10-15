@@ -659,7 +659,7 @@ fi
 if test x$ac_have_xxmc = "xyes"; then
   AC_CHECK_HEADERS(X11/extensions/vldXvMC.h,
      [ac_have_vldxvmc_h="yes"],
-     ac_have_xxmc="no",)
+     ac_have_vldxvmc="no",)
   if test "x$ac_have_vldxvmc_h" = "xyes"; then
      AC_DEFINE([HAVE_VLDXVMC], [1], 
                [Define 1 if you have vldXvMC.h])
