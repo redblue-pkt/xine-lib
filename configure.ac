@@ -2122,7 +2122,7 @@ dnl For win32 libraries location, needed by libw32dll.
 dnl ---------------------------------------------
 
 AC_ARG_WITH(w32-path, AC_HELP_STRING([--with-w32-path=path], [location of WIN32 libraries]),
-            w32_path="$withval", w32_path="/usr/lib/win32")
+            w32_path="$withval", w32_path="/usr/lib/codecs")
 AC_SUBST(w32_path)
 
 

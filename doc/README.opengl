@@ -64,7 +64,7 @@ Problems you might encounter (FAQ)
   video frames could be rendered differently, but xine does not switch back
   to complex rendering techniques for them.
   This also can happen for decoders using the WinAPI for loading windows
-  codecs from /usr/lib/win32. They often decode into interleaved YUY2 video
+  codecs from /usr/lib/codecs. They often decode into interleaved YUY2 video
   instead of planar YUV, which is not yet implemented.
   You have to switch back to more complex rendering techniques like
   '2D_Tex_Fragprog' manually.

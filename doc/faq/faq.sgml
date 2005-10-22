@@ -786,7 +786,7 @@
       http://www.mplayerhq.hu/homepage/dload.html
      </ulink>.
      The package is called "essential". Unpack it and move everything you find
-     inside to <filename>/usr/lib/win32</filename> (actually you can place them
+     inside to <filename>/usr/lib/codecs</filename> (actually you can place them
      anywhere you want, e.g. someplace in your home directory, but then you'll
      have to set <parameter>decoder.external.win32_codecs_path</parameter> in your
      xine config file accordingly). Restart xine then and you should be
@@ -811,9 +811,9 @@
       http://www.mplayerhq.hu/homepage/dload.html
      </ulink>.
      The package is called "essential". Unpack it and move everything you
-     find inside to <filename>/usr/lib/win32</filename> and set the
+     find inside to <filename>/usr/lib/codecs</filename> and set the
      <parameter>decoder.external.real_codecs_path</parameter> in your xine config file
-     to <filename>/usr/lib/win32</filename> (actually you can place them
+     to <filename>/usr/lib/codecs</filename> (actually you can place them
      anywhere you want, e.g. someplace in your home directory, but then you'll
      have to set <parameter>decoder.external.real_codecs_path</parameter> accordingly).
      Restart xine then and you should be able to watch Real files/streams.
@@ -850,7 +850,7 @@
       http://www.mplayerhq.hu/homepage/dload.html
      </ulink>.
      The package is called "essential". Unpack it and move everything you find
-     inside to <filename>/usr/lib/win32</filename> (actually you can place them
+     inside to <filename>/usr/lib/codecs</filename> (actually you can place them
      anywhere you want, e.g. someplace in your home directory, but then you'll
      have to set <parameter>decoder.external.win32_codecs_path</parameter> in your
      xine config file accordingly). Restart xine then and you should be
