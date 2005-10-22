@@ -12,6 +12,8 @@ xine-lib (1.1.1)
   * overlay cropping fixes for small streams or when using cropping support
   * experimental frame allocation optimization reduces cpu usage of the
     deinterlacer plugin by up 25%
+  * implement time seeking on DVD plugin (*** remind: dvdnav might need a sync ***)
+  * move CFLAGS optimizations to a separated file (added --disable-optimizations)
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)

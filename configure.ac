@@ -589,7 +589,7 @@ case "$host_or_hostalias" in
 	fi
 	;;
 
-  i386-*-freebsd*)
+  i?86-*-freebsd*)
 	AC_CHECK_HEADER(/usr/local/include/iconv.h,
 			CFLAGS="-I/usr/local/include $CFLAGS"
 			LDFLAGS="-L/usr/local/lib $LDFLAGS"
@@ -1853,72 +1853,6 @@ DEBUG_CFLAGS="-g -DDEBUG $CFLAGS"
 dnl dummy
 ASFLAGS="$ASFLAGS"
 AC_SUBST(ASFLAGS)
- 
-INLINE_FUNCTIONS=-finline-functions
-
-if test "$GCC" = yes; then
-    dnl
-    dnl check cflags not supported by all gcc versions
-    dnl eg: -mpreferred-stack-boundary=2 and 2.91.66,
-    dnl and gcc-2.7.2.3 support a bit less options
-    dnl
-    AC_TRY_CFLAGS("-mpreferred-stack-boundary=2", 
-	m_psb="-mpreferred-stack-boundary=2", m_psb="")
-    AC_TRY_CFLAGS("-fno-strict-aliasing", f_nsa="-fno-strict-aliasing", f_nsa="")
-    AC_TRY_CFLAGS("-fschedule-insns2", f_si="-fschedule-insns2", f_si="")
-    AC_TRY_CFLAGS("-mwide-multiply", m_wm="-mwide-multiply", m_wm="")
-    dnl
-    dnl gcc 3.1 uses the -f version
-    dnl
-    AC_TRY_CFLAGS("-falign-functions=4", f_af="-falign-functions=4",
-        f_af="-malign-functions=4")
-    AC_TRY_CFLAGS("-falign-loops=4", f_al="-falign-loops=4",
-        f_al="-malign-loops=4")
-    AC_TRY_CFLAGS("-falign-jumps=4", f_aj="-falign-jumps=4",
-        f_aj="-malign-jumps=4")
-    dnl
-    dnl Check for some optimization disabling
-    dnl needed for win32 code
-    dnl
-    AC_TRY_CFLAGS("-fno-omit-frame-pointer", W32_NO_OPTIMIZE="$W32_NO_OPTIMIZE -fno-omit-frame-pointer",)
-    AC_TRY_CFLAGS("-fno-inline-functions", W32_NO_OPTIMIZE="$W32_NO_OPTIMIZE -fno-inline-functions",)
-    AC_TRY_CFLAGS("-fno-rename-registers", W32_NO_OPTIMIZE="$W32_NO_OPTIMIZE -fno-rename-registers",)
-    AC_SUBST(W32_NO_OPTIMIZE)
-    dnl
-    dnl Multipass compilation
-    dnl
-    AC_TRY_CFLAGS("-fprofile-arcs", PASS1_CFLAGS="-fprofile_arcs $PASS1_CFLAGS",)
-    AC_TRY_CFLAGS("-fbranch-probabilities", PASS2_CFLAGS="-fbranch-probabilities $PASS2_CFLAGS",)
-    AC_SUBST(PASS1_CFLAGS)
-    AC_SUBST(PASS2_CFLAGS)
-    dnl
-    dnl Warnings
-    dnl
-    CFLAGS="-Wchar-subscripts -Wmissing-declarations -Wmissing-prototypes $CFLAGS"
-    CFLAGS="-Wnested-externs -Wcast-align $CFLAGS"
-    dnl some combinations of gcc+glibc produce useless warnings on memset
-    dnl when compiling with -Wpointer-arith, so we check for this first
-    AC_MSG_CHECKING(for sane -Wpointer-arith)
-    SAVE_CFLAGS="$CFLAGS"
-    CFLAGS="-O2 -Wpointer-arith -Werror $CFLAGS"
-    AC_TRY_COMPILE([#include <string.h>],[int a; memset(&a, 0, sizeof(int));],
-	[AC_MSG_RESULT(yes); CFLAGS="-Wpointer-arith $SAVE_CFLAGS"],
-	[AC_MSG_RESULT(no);  CFLAGS="$SAVE_CFLAGS"]);
-
-    dnl gcc 3.3.5 (at least) is known to be buggy wrt optimisation and
-    dnl -finline-functions. Use -fno-inline-functions for gcc < 3.4.0.
-
-    AC_MSG_CHECKING(for gcc 3.4.0 or later)
-    newGCC="`"$CC" -dumpversion |
-	     awk 'BEGIN { FS = "." };
-		  1 { if (($1 * 10000 + $2 * 100 + $3) >= 30400) { print "yes" } }'
-	    `"
-    AC_MSG_RESULT(${newGCC:-no - assuming bugginess in -finline-functions})
-    test "$newGCC" = yes || INLINE_FUNCTIONS=-fno-inline-functions
-fi
-
-dnl Flags not supported by all *cc* variants
-AC_TRY_CFLAGS("-Wall", wall="-Wall", wall="")
 
 dnl check for __attribute__ ((aligned ()))
 dnl WARNING! Do not move this check behind the $(MULTIPASS_CFLAGS)!
@@ -1926,169 +1860,45 @@ dnl (the alignment test macro does not like variables in the CFLAGS)
 AC_C_ATTRIBUTE_ALIGNED
 
 dnl Common cflags for all platforms
-CFLAGS="$wall -DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
-DEBUG_CFLAGS="$wall -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
+CFLAGS="-DNDEBUG -D_REENTRANT -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
+DEBUG_CFLAGS="-D_REENTRANT -DXINE_COMPILE $DEBUG_CFLAGS"
+
+AC_OPTIMIZATIONS
 
 enable_w32dll="no"
 enable_ffmmx="no"
 enable_armv4l="no"
 
 case "$host_or_hostalias" in
-  i386-*-freebsd*)
-    CFLAGS="-pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
-    DEBUG_CFLAGS="$X_CFLAGS $DEBUG_CFLAGS"
-    AC_DEFINE(__i386__,1,[Define this if you're running x86 architecture])
+  i?86-* | k?-* | athlon-* | pentium*-)
+    dnl enable x86 specific parts of the code
+    dnl
+    dnl all of this stuff needs gcc/gas; it uses gnu c compiler extensions
+    dnl like the extended asm() or __attribute(__cdecl__), or other direct
+    dnl mmx/sse/3dnow assembler instructions. 
+    dnl
     AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
-    AC_DEFINE_UNQUOTED(FPM_INTEL,,[Define to select libmad fixed point arithmetic implementation])
-
-    enable_w32dll="yes"
+    AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
     enable_ffmmx="yes"
-    no_fpic="yes"
+    enable_w32dll="yes"
+
+    case "$host_or_hostalias" in
+      *-*-mingw*)
+        enable_w32dll="no" 
+        ;;
+      *-*-cygwin) 
+        enable_w32dll="no" 
+        LIBS="$LIBS @INTLLIBS@ -lkernel32"
+        ;;
+    esac
     ;;
-
-
-
-  i?86-*-linux* | i386-*-solaris* | i?86-* | k?-* | athlon-* | pentium*)
-    if test "$GCC" = yes -o "${CC##*/}x" = "iccx" ; then
-
-      if test "$GCC" = yes ; then
-	dnl Check for gcc cpu optimization support
-	AC_TRY_CFLAGS("-mtune=i386", 
-	  sarchopt="-mtune",
-  	  AC_TRY_CFLAGS("-mcpu=i386", 
-	    sarchopt="-mcpu",
-            AC_TRY_CFLAGS("-march=i386", 
-	      sarchopt="-march",
-	      [ AC_MSG_RESULT(** no cpu optimization supports **)
-	        sarchopt=no 
-	      ]
-            )
-          )
-        )
-
-	dnl special check for k7 cpu CC support
-        AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
-
-	dnl add x86 specific gcc CFLAGS
-	CFLAGS="-O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
-	
-
-	DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
-
-	if test x"$sarchopt" != "xno"; then
-	    [
-	    archopt_val=
-
-	    case "$host_or_hostalias" in
-	    i386-*) # *BSD return this even on a P III #-))
-		archopt_val="i386" ;;
-	    i486-*) # oh dear!
-		archopt_val="i486" ;;
-	    i586-*)
-		archopt_val="pentium" 
-                ;;
-	    pentium-mmx-*)
-		archopt_val="pentium-mmx" 
-		;;
-	    pentiumpro-* | pentium2-* | i686-*)
-		archopt_val="pentiumpro"
-		if test x"$check_athlon" = "xyes"; then
-		    if test -f /proc/cpuinfo; then
-			modelname=`cat /proc/cpuinfo | grep "model\ name\	:" | sed -e 's/ //g' | cut -d':' -f2`
-			case "$modelname" in
-			*Athlon* | *Duron* | *K7*)
-			    archopt_val="$k7cpu"
-			    ;;
-			VIAEzra)
-			    archopt_val="c3"
-			    ;;
-			esac
-		    fi 
-		fi
-		;;
-	    k6-2-* | k6-3-*)
-		archopt_val="k6-2"
-		;;
-	    k6-*)
-		archopt_val="k6"
-		;;
-	    pentium3-*)
-		archopt_val="pentium3"
-		;;
-	    pentium4-*)
-		archopt_val="pentium4"
-		;;
-	    athlon-4-* | athlon-xp-* | athlon-mp-*)
-		archopt_val="athlon-4"
-		;;
-	    k7-* | athlon-tbird-* | athlon-*)
-		archopt_val="athlon"
-		;;
-	    
-	    esac
-	    if test x"$archopt_val" != x; then
-		CFLAGS="$sarchopt=$archopt_val $CFLAGS"
-		DEBUG_CFLAGS="$sarchopt=$archopt_val $DEBUG_CFLAGS"
-	    fi
-	    ]
-	fi
-      else
-	dnl we have the Intel compiler
-	CFLAGS="-unroll -ipo -ipo_obj -O3 $CFLAGS"
-	PASS1_CFLAGS="-prof_genx -prof_dir \$(PWD)/\$(top_builddir)/ $PASS1_CFLAGS"
-	PASS2_CFLAGS="-prof_use -prof_dir \$(PWD)/\$(top_builddir)/ $PASS2_CFLAGS"
-	AC_SUBST(PASS1_CFLAGS)
-	AC_SUBST(PASS2_CFLAGS)
-      fi
-	
-    	dnl enable x86 specific parts of the code
-	dnl
-	dnl all of this stuff needs gcc/gas; it uses gnu c compiler extensions
-	dnl like the extended asm() or __attribute(__cdecl__), or other direct
-	dnl mmx/sse/3dnow assembler instructions. 
-	dnl
-    	AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
-	AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
-	enable_ffmmx="yes"
-	enable_w32dll="yes"
-
-        case "$host_or_hostalias" in
-	*-*-mingw*)
-	  enable_w32dll="no" 
-	  ;;
-	*-*-cygwin) 
-          enable_w32dll="no" 
-          LIBS="$LIBS @INTLLIBS@ -lkernel32"
-	  ;;
-	esac
-    else
-	dnl add x86 specific cc CFLAGS
-	CFLAGS="-O $CFLAGS"
-	DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
-    	AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
-    fi
-
-    no_fpic="yes"
-    AC_DEFINE(__i386__,1,[Define this if you're running x86 architecture])
+  x86_64-*)
+    AC_DEFINE_UNQUOTED(ARCH_X86_64,,[Define this if you're running x86 architecture])
+    AC_DEFINE(FPM_64BIT,1,[Define to select libmad fixed point arithmetic implementation])
     ;;
-
-  alphaev56-*)
-    CFLAGS="-O3 -mcpu=ev56 -mieee $CFLAGS"
-    DEBUG_CFLAGS="-O3 -mcpu=ev56 -mieee $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
-    ;;
-
-  alpha*)
-    CFLAGS="-O3 -mieee $CFLAGS"
-    DEBUG_CFLAGS="-O3 -mieee $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
-    ;;
-  
   *darwin*)
     HOST_OS_DARWIN=1
     AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
-    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
-    DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
     
     dnl avoid ppc compilation crash
     AS="$CC"
@@ -2103,16 +1913,14 @@ case "$host_or_hostalias" in
     dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
     dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
     dnl from automake 1.6.
+    
     if test x$enable_altivec = xyes; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you want to use altivec on PowerPC CPUs])
         CFLAGS="$CFLAGS -faltivec"
         LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec"
     fi
     ;;
-
   ppc-*-linux* | powerpc-*) 
-    CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
-    DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
     dnl avoid ppc compilation crash
     AS="$CC"
     AC_DEFINE_UNQUOTED(FPM_PPC,,[Define to select libmad fixed point arithmetic implementation])
@@ -2124,144 +1932,42 @@ case "$host_or_hostalias" in
 	DEBUG_CFLAGS="-Wa,-m7400 $DEBUG_CFLAGS"
     fi
     ;;
-
   sparc*-*-linux*)
-    case $host_alias in
-    sparc-*)    cpu_cflags="-mcpu=supersparc -mtune=supersparc" ;;
-    sparc64-*)
-      cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
-      if test x$enable_vis = xyes; then
-        AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
-      fi
-    ;;
-    esac
-
-    CFLAGS="-O3 $cpu_cflags -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
-    DEBUG_CFLAGS="-O $cpu_cflags -funroll-loops $INLINE_FUNCTIONS $DEBUG_CFLAGS"
+    if test x$enable_vis = xyes; then
+      AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
+    fi
 
     AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])
     AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
     ;;
-
   sparc-*-solaris*)
     if test "$GCC" = yes; then
-	case `uname -m` in
-	sun4c) cpu_cflags="-mcpu=v7 -mtune=supersparc" ;;
-	sun4m) cpu_cflags="-mcpu=v8 -mtune=supersparc" ;;
-	sun4u)
-	  case `$CC --version 2>/dev/null` in
-	  1.*|2.*)
-	    # -mcpu=ultrasparc triggers a GCC 2.95.x compiler bug when
-	    # compiling video_out.c:
-	    #   gcc: Internal compiler error: program cc1 got fatal signal 11
-	    # avoid -mcpu=ultrasparc with gcc 2.*
-            cpu_cflags="-mcpu=v8 -mtune=ultrasparc"
-	    ;;
-          *)
-	    # GCC 3 or newer should have no problem with -mcpu=ultrasparc 
-            cpu_cflags="-mcpu=ultrasparc -mtune=ultrasparc"
-            if test x$enable_vis = xyes; then
-	      AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
-            fi
-	    ;;
-	  esac
-          ;;
-	*)     cpu_cflags= ;;
-	esac
-
-	cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops $INLINE_FUNCTIONS"
-	cc_debug_cflags="-O $cpu_cflags -funroll-loops $INLINE_FUNCTIONS"
-
-        AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])		dnl uses gnu c asm extensions
-        AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
+      case `$CC --version 2>/dev/null` in
+	1.*|2.*) ;;
+        *)
+          if test x$enable_vis = xyes; then
+            AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
+          fi
+	  ;;
+      esac
+  
+      AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])
+      AC_DEFINE_UNQUOTED(ARCH_SPARC,,[Define this if you're running SPARC architecture])
     else
-	case `uname -m` in
-	sun4c) cpu_cflags="-xarch=v7" ;;
-	sun4m) cpu_cflags="-xarch=v8" ;;
-	sun4u) cpu_cflags="-xarch=v8plusa" ;;
-	esac
-
-	cc_optimize_cflags="-fast $cpu_cflags -xCC"
-	cc_debug_cflags="-O"
-    	AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])		dnl use portable version with non-gcc
+      AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
     fi
-    CFLAGS="$cc_optimize_cflags $CFLAGS"
-    DEBUG_CFLAGS="$cc_debug_cflags $DEBUG_CFLAGS"
     ;;
-
   mips-*)
-    CFLAGS="-O3 $CFLAGS"
-    DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(FPM_MIPS,,[Define to select libmad fixed point arithmetic implementation])
     ;;
-
-  m68k-*)
-    # used to be -O2, but that makes gcc 2.95.2 segfault
-    # see http://bugs.debian.org/146006 for more info
-    CFLAGS="-O $CFLAGS"
-    DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
+  alphaev56-* | alpha* | ia64-* | hppa*-linux-*)
+    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
-
-  ia64-*)
-    CFLAGS="-O3 $CFLAGS"
-    DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed pointarithmetic implementation])
-  ;;
-
-  hppa*-linux-*)
-    dnl -O3 seems to trigger gcc internal compiler errors, at least up to gcc 3.2.1
-    CFLAGS="-O $CFLAGS"
-    DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(FPM_64BIT,,[Define to select libmad fixed pointarithmetic implementation])
-    ;;
-
-  hppa*-hp-*)
-    dnl -O3 seems to trigger gcc internal compiler errors, at least up to gcc 3.2.1
-    CFLAGS="-O2 $CFLAGS"
-    DEBUG_CFLAGS="-O2 $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed pointarithmetic implementation])
-    ;;
-
-  x86_64-*)
-    CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
-    DEBUG_CFLAGS="-O0 -g $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(ARCH_X86_64,,[Define this if you're running x86 architecture])
-    AC_DEFINE(FPM_64BIT,1,[Define to select libmad fixed point arithmetic implementation])
-    ;;
-
-  s390-*)
-    CFLAGS="-O3 $CFLAGS"
-    DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
-    AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
-    ;;
-
   armv4l-*-linux*)
-    CFLAGS="-O2 -fsigned-char -ffast-math -mcpu=strongarm1100 -fomit-frame-pointer -fthread-jumps -fregmove $CFLAGS"
-    dnl    CFLAGS="-O1 -fforce-mem -fforce-addr -fthread-jumps -fcse-follow-jumps -fcse-skip-blocks -fexpensive-optimizations -fregmove -fschedule-insns2 $INLINE_FUNCTIONS -fsigned-char -fomit-frame-pointer -march=armv4 -mtune=strongarm $CFLAGS"
-    DEBUG_CFLAGS="-O2 $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(FPM_ARM,,[Define to select libmad fixed point arithmetic implementation])
     enable_armv4l="yes"
     ;;
-  
   *)
-    echo
-    echo "****************************** WARNING ******************************"
-    echo
-    echo "Host type '$host' ($host_alias) is currently not supported by xine"
-    echo
-    echo "Assuming that -O3 makes the compiler produce useful code."
-    echo
-    echo "You might experience problems with this, so please report your"
-    echo "architecture and, if possible, known good optimization flags for"
-    echo "your compiler to <xine-devel@lists.sf.net>"\!
-    echo
-    echo "*********************************************************************"
-    echo "(sleeping one minute so you can read this...)"
-    sleep 60
-
-    CFLAGS="-O3 $CFLAGS"
-    DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
     AC_DEFINE_UNQUOTED(FPM_DEFAULT,,[Define to select libmad fixed point arithmetic implementation])
     ;;
 esac

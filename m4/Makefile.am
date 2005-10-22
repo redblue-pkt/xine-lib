@@ -31,6 +31,7 @@ EXTRA_DIST = \
 	libfame.m4 \
 	ogg.m4 \
 	opengl.m4 \
+	optimizations.m4 \
 	pkg.m4 \
 	progtest.m4 \
 	sdl.m4 \
