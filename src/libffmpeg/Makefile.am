@@ -6,8 +6,9 @@ link_ffmpeg = $(FFMPEG_LIBS)
 else
 link_ffmpeg = \
   $(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la \
+  $(top_builddir)/src/libffmpeg/libavutil/libavutil.la \
   $(top_builddir)/src/libffmpeg/libavcodec/libpostproc/libpostprocess.la
-SUBDIRS = libavcodec
+SUBDIRS = libavcodec libavutil
 endif
 
 # this must always be included, even if the current machine has no DXR3...
@@ -21,7 +22,7 @@ lib_LTLIBRARIES = xineplug_decode_ff.la xineplug_decode_dvaudio.la
 
 if HAVE_DXR3
 AM_CPPFLAGS = -I$(top_srcdir)/src/dxr3 $(X_CFLAGS) $(ff_cppflags) \
-              $(ZLIB_CPPFLAGS)
+              $(ZLIB_CPPFLAGS) -Ilibavutil
 xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c \
                                 xine_encoder.c mpeg_parser.c
 # The dxr3 uses ffmpegs MPEG encoder by dlopen()ing the ffmpeg plugin and
@@ -29,7 +30,7 @@ xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c \
 # symbols and cannot use @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module
 else
-AM_CPPFLAGS = $(ff_cppflags) $(ZLIB_CPPFLAGS)
+AM_CPPFLAGS = $(ff_cppflags) $(ZLIB_CPPFLAGS) -Ilibavutil
 xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c \
                                 mpeg_parser.c
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@

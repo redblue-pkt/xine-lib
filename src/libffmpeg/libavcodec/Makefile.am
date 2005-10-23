@@ -9,8 +9,8 @@ EXTRA_DIST = motion_est_template.c imgresample.c \
 # we need to compile everything in debug mode, including the encoders,
 # otherwise we get unresolved symbols, because some unsatisfied function calls
 # are not optimized away with debug optimization
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS) `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS`
-AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS) `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS` -I../libavutil
+AM_CPPFLAGS = $(ZLIB_CPPFLAGS) -I../libavutil
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec.la
@@ -67,6 +67,7 @@ libavcodec_la_SOURCES = \
 	msvideo1.c \
 	parser.c \
 	pcm.c \
+	qdm2.c \
 	qdrw.c \
 	qpeg.c \
 	qtrle.c \
@@ -74,7 +75,6 @@ libavcodec_la_SOURCES = \
 	ra288.c \
 	rangecoder.c \
 	ratecontrol.c \
-	rational.c \
 	roqvideo.c \
 	rpza.c \
 	rv10.c \
@@ -112,7 +112,6 @@ noinst_HEADERS = \
 	bitstream.h \
 	bswap.h \
 	cabac.h \
-	common.h \
 	dsputil.h \
 	dvdata.h \
 	faandct.h \
@@ -132,10 +131,11 @@ noinst_HEADERS = \
 	mpegaudiotab.h \
 	mpegvideo.h \
 	msmpeg4data.h \
+	opt.h \
+	qdm2data.h \
 	ra144.h \
 	ra288.h \
 	rangecoder.h \
-	rational.h \
 	simple_idct.h \
 	sp5x.h \
 	svq1_cb.h \

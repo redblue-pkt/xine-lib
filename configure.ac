@@ -345,7 +345,7 @@ AC_SUBST(LIBMPEG2_CFLAGS)
 AC_SUBST(LIBFFMPEG_CFLAGS)
 
 LIBMPEG2_CFLAGS=""
-LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB"
+LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL"
 
 AC_CHECK_DECL(lrintf,[
 	AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' function is declared in math.h])
@@ -2253,6 +2253,7 @@ src/libffmpeg/libavcodec/alpha/Makefile
 src/libffmpeg/libavcodec/ppc/Makefile
 src/libffmpeg/libavcodec/sparc/Makefile
 src/libffmpeg/libavcodec/libpostproc/Makefile
+src/libffmpeg/libavutil/Makefile
 src/libflac/Makefile
 src/liblpcm/Makefile
 src/libmad/Makefile

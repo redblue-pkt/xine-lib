@@ -14,6 +14,8 @@ xine-lib (1.1.1)
     deinterlacer plugin by up 25%
   * implement time seeking on DVD plugin (*** remind: dvdnav might need a sync ***)
   * move CFLAGS optimizations to a separated file (added --disable-optimizations)
+  * use the same codec path as MPlayer (/usr[/local]/lib/codecs)
+  * ffmpeg sync (new QDM2 decoder *** note: not yet working?)
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)

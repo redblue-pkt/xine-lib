@@ -107,7 +107,7 @@
         typedef signed long long   int64_t;
         typedef unsigned long long uint64_t;
 #   endif /* other OS */
-#endif /* HAVE_INTTYPES_H */
+#endif /* EMULATE_INTTYPES */
 
 #ifndef INT16_MIN
 #define INT16_MIN       (-0x7fff-1)
@@ -190,8 +190,10 @@ static inline float floorf(float f) {
 
 #ifdef HAVE_AV_CONFIG_H
 
+#if 0
 #ifdef USE_FASTMEMCPY
-#include "fastmemcpy.h"
+  #define memcpy(to, from, len) xine_fast_memcpy(to, from, len)
+#endif
 #endif
 
 #include <float.h>
@@ -210,10 +212,12 @@ static inline float floorf(float f) {
 
 #ifdef HAVE_AV_CONFIG_H
 
+#if 0
 #        ifdef USE_FASTMEMCPY
-#            include "fastmemcpy.h"
+#            define memcpy(to, from, len) xine_fast_memcpy(to, from, len)
 #        endif
 #    endif /* HAVE_AV_CONFIG_H */
+#endif
 
 #endif /* !CONFIG_WIN32 && !CONFIG_OS2 */
 
@@ -537,8 +541,8 @@ tend= read_time();\
 #define sprintf sprintf_is_forbidden_due_to_security_issues_use_snprintf
 #define strcat strcat_is_forbidden_due_to_security_issues_use_pstrcat
 #if !(defined(LIBAVFORMAT_BUILD) || defined(_FRAMEHOOK_H))
-#define printf please_use_av_log
-#define fprintf please_use_av_log
+//#define printf please_use_av_log
+//#define fprintf please_use_av_log
 #endif
 
 #define CHECKED_ALLOCZ(p, size)\
@@ -549,6 +553,35 @@ tend= read_time();\
         goto fail;\
     }\
 }
+
+#ifndef HAVE_LRINTF
+/* XXX: add ISOC specific test to avoid specific BSD testing. */
+/* better than nothing implementation. */
+/* btw, rintf() is existing on fbsd too -- alex */
+static always_inline long int lrintf(float x)
+{
+#ifdef CONFIG_WIN32
+#  ifdef ARCH_X86
+    int32_t i;
+    asm volatile(
+        "fistpl %0\n\t"
+        : "=m" (i) : "t" (x) : "st"
+    );
+    return i;
+#  else
+    /* XXX: incorrect, but make it compile */
+    return (int)(x + (x < 0 ? -0.5 : 0.5));
+#  endif /* ARCH_X86 */
+#else
+    return (int)(rint(x));
+#endif /* CONFIG_WIN32 */
+}
+#else
+#ifndef _ISOC9X_SOURCE
+#define _ISOC9X_SOURCE
+#endif
+#include <math.h>
+#endif /* HAVE_LRINTF */
 
 #endif /* HAVE_AV_CONFIG_H */
 

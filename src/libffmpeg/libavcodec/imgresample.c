@@ -558,6 +558,9 @@ ImgReSampleContext *img_resample_full_init(int owidth, int oheight,
 {
     ImgReSampleContext *s;
 
+    if (!owidth || !oheight || !iwidth || !iheight)
+	return NULL;
+
     s = av_mallocz(sizeof(ImgReSampleContext));
     if (!s)
         return NULL;
@@ -643,11 +646,13 @@ uint8_t img2[XSIZE1 * YSIZE1];
 
 void save_pgm(const char *filename, uint8_t *img, int xsize, int ysize)
 {
+#undef fprintf
     FILE *f;
     f=fopen(filename,"w");
     fprintf(f,"P5\n%d %d\n%d\n", xsize, ysize, 255);
     fwrite(img,1, xsize * ysize,f);
     fclose(f);
+#define fprintf please_use_av_log
 }
 
 static void dump_filter(int16_t *filter)

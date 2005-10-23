@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.17 2005/09/12 01:06:58 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.18 2005/10/23 02:11:16 miguelfreitas Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -101,7 +101,8 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_VMD,        CODEC_ID_VMDAUDIO,       "Sierra VMD Audio (ffmpeg)"},
   {BUF_AUDIO_FLAC,       CODEC_ID_FLAC,           "FLAC (ffmpeg)"},
   {BUF_AUDIO_SHORTEN,    CODEC_ID_SHORTEN,        "Shorten (ffmpeg)"},
-  {BUF_AUDIO_ALAC,       CODEC_ID_ALAC,           "ALAC (ffmpeg)"} };
+  {BUF_AUDIO_ALAC,       CODEC_ID_ALAC,           "ALAC (ffmpeg)"},
+  {BUF_AUDIO_QDESIGN2,   CODEC_ID_QDM2,           "QDM2 (ffmpeg)"} };
 
 
  static void ff_audio_ensure_buffer_size(ff_audio_decoder_t *this, int size) {
@@ -442,6 +443,7 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_ALAC,
   BUF_AUDIO_SHORTEN,
   BUF_AUDIO_MPEG,
+  BUF_AUDIO_QDESIGN2,
   0
 };
 
