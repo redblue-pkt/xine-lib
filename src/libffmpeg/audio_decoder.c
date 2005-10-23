@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.18 2005/10/23 02:11:16 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.19 2005/10/23 02:47:18 miguelfreitas Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -226,6 +226,20 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   
       this->decode_buffer = xine_xmalloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
   
+      return;
+    }
+  } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
+             (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
+    
+    this->context->extradata_size = buf->decoder_info[2];
+    this->context->extradata = xine_xmalloc(buf->decoder_info[2] +
+      FF_INPUT_BUFFER_PADDING_SIZE);
+    memcpy(this->context->extradata, buf->decoder_info_ptr[2],
+      buf->decoder_info[2]);
+
+  } else if (!(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
+
+    if( !this->decoder_ok ) {
       if (avcodec_open (this->context, this->codec) < 0) {
         xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
                  _("ffmpeg_audio_dec: couldn't open decoder\n"));
@@ -234,19 +248,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       }
   
       this->decoder_ok = 1;
-  
-      return;
     }
-  } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
-             (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
-
-    this->context->extradata_size = buf->decoder_info[2];
-    this->context->extradata = xine_xmalloc(buf->decoder_info[2] +
-      FF_INPUT_BUFFER_PADDING_SIZE);
-    memcpy(this->context->extradata, buf->decoder_info_ptr[2],
-      buf->decoder_info[2]);
-
-  } else if (this->decoder_ok && !(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
     if (!this->output_open) {
       this->output_open = this->stream->audio_out->open(this->stream->audio_out,
