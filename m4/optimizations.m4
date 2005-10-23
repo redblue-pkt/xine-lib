@@ -82,7 +82,7 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
     AC_TRY_CFLAGS("-Wall", wall="-Wall", wall="")
 
     CFLAGS="$wall ${CFLAGS}"
-    DEBUG_CFLAGS="$wall ${CFLAGS}"
+    DEBUG_CFLAGS="$wall ${DEBUG_CFLAGS}"
 
     case "$host_or_hostalias" in
       i?86-* | k?-* | athlon-* | pentium*)
