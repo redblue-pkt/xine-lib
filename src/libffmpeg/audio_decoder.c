@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.19 2005/10/23 02:47:18 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.20 2005/10/23 12:56:26 miguelfreitas Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -230,7 +230,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     }
   } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
              (buf->decoder_info[1] == BUF_SPECIAL_STSD_ATOM)) {
-    
+
     this->context->extradata_size = buf->decoder_info[2];
     this->context->extradata = xine_xmalloc(buf->decoder_info[2] +
       FF_INPUT_BUFFER_PADDING_SIZE);
@@ -334,7 +334,7 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
   this->size = 0;
 
   /* try to reset the wma decoder */
-  if( this->context ) {  
+  if( this->context && this->decoder_ok ) {  
     avcodec_close (this->context);
     avcodec_open (this->context, this->codec);
   }
@@ -347,7 +347,7 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
   
-  if( this->context )
+  if( this->context && this->decoder_ok )
     avcodec_close (this->context);
 
   if (this->output_open)

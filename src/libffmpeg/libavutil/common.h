@@ -9,6 +9,7 @@
 /* xine: disable DEBUG for ffmpeg (too noisy) */
 #ifdef DEBUG
 #undef DEBUG
+#define DISABLE_INLINE
 #endif
 
 #if defined(WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
@@ -584,5 +585,17 @@ static always_inline long int lrintf(float x)
 #endif /* HAVE_LRINTF */
 
 #endif /* HAVE_AV_CONFIG_H */
+
+/* xine: inline causes trouble for debug compiling */
+#ifdef DISABLE_INLINE
+# ifdef inline
+#  undef inline
+# endif
+# ifdef always_inline
+#  undef always_inline
+# endif
+# define inline
+# define always_inline
+#endif
 
 #endif /* COMMON_H */
