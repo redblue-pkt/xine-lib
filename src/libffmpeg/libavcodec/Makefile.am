@@ -47,7 +47,6 @@ libavcodec_la_SOURCES = \
 	imgconvert.c \
 	indeo2.c \
 	indeo3.c \
-	integer.c \
 	interplayvideo.c \
 	jfdctfst.c \
 	jfdctint.c \
@@ -110,7 +109,6 @@ libavcodec_la_LDFLAGS = \
 noinst_HEADERS = \
 	avcodec.h \
 	bitstream.h \
-	bswap.h \
 	cabac.h \
 	dsputil.h \
 	dvdata.h \
@@ -120,7 +118,6 @@ noinst_HEADERS = \
 	imgconvert_template.h \
 	indeo2data.h \
 	indeo3data.h \
-	integer.h \
 	h261data.h \
 	h263data.h \
 	h264data.h \
