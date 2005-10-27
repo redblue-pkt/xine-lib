@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.78 2005/10/23 02:38:40 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.79 2005/10/27 14:58:56 mroi Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -603,10 +603,10 @@ static void *init_class (xine_t *xine, void *data) {
     default_real_codec_path = "/usr/lib64/RealPlayer8/Codecs";
   if (!stat ("/usr/lib64/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib64/RealPlayer9/users/Real/Codecs";
-  if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/lib/win32";
   if (!stat ("/usr/lib/codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib/codecs";
+  if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
+    default_real_codec_path = "/usr/lib/win32";
   
   real_codec_path = config->register_string (config, "decoder.external.real_codecs_path", 
 					     default_real_codec_path,
