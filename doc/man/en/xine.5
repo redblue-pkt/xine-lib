@@ -20,29 +20,59 @@ xine \- a free video player
 MRLs are similar to URLs in your web browser. They describe the media
 to read from. valid MRLs may be plain file names or one of the following:
 .TP
-\ 
+\(bu Filesystem:
 .br
 .BI file: <path>
 .br
 .BI fifo: <path>
 .br
 .BI stdin:/
+.LP
+.TP
+\(bu CD and DVD:
 .br
-.BI dvd:/[<title>.<part>]
+.BI dvd:/[<DVD_image>|<device_name>][/<title>.<part>]
 .br
-.BI vcd://[<CD-disk-image>|<device-name>][@[letter]<number>]
+.BI vcd://[<CD_image>|<device_name>][@[letter]<number>]
 .br
-.BI tcp://<host>:<port>
+.BI vcdo://...
 .br
-.BI rtp://<host>:<port>
+.BI cdda://<track-number>
+.LP
+.TP
+\(bu Video devices:
 .br
-.BI udp://<host>:<port><?iface=interface>
+.BI v4l://[<tuner_device>/<frequency>]
 .br
-.BI mms://<host>...
+.BI dvb://<number_or_channel_name>
+.br
+.BI dvbc://<channel_name>:<tuning_parameters>
+.br
+.BI dvbs://<channel_name>:<tuning_parameters>
+.br
+.BI dvbt://<channel_name>:<tuning_parameters>
+.br
+.BI pvr://... "for WinTV PVR 250 and 350)"
+.LP
+.TP
+\(bu Network:
 .br
 .BI http://<host>...
 .br
-.BI cdda://<track-number>
+.BR tcp://<host>[:<port>] " (default port is 7658)"
+.br
+.BR udp://<host>[:<port>[?iface=<interface>]] " (default port is 7658)"
+.br
+.BR rtp://<host>[:<port>[?iface=<interface>]] " (default port is 7658)"
+.br
+.BI smb://...
+.br
+.BI mms://<host>...
+.br
+.BI pnm://<host>...
+.br
+.BR rtsp://<host>... " (requires Real codecs)"
+.br
 .LP
 Several MRLs may be specified in order to play a number of consecutive
 streams. Additional input plugins will provide additional MRL types. The ones
@@ -145,6 +175,69 @@ Play entry 0 of ntsc.bin.
 .BI vcd:///tmp/ntsc.nrg/@E0
 Play entry 0 of /tmp/ntsc.nrg (Nero file). Works for some simple Nero images.
 .br
+.SS DVB
+.PP
+DVB MRLs require that ~/.xine/channels.conf exists and contains valid data.
+This can be obtained by generating a tuning file using the LinuxTV DVB apps
+utility "scan" (or "dvbscan" if you're using a version newer than 1.1.0):
+.PP
+.B scan -o zap /usr/share/doc/dvb-utils/examples/scan/dvb-t/uk-PontopPike
+.PP
+(This example is for the writer's local transmitter, using a file from the
+Debian dvb-utils package.)
+.PP
+For the dvbc, dvbs and dvbt MRLs, tuning parameters are expected, taking one
+of the following forms:
+.TP
+.B DVB-S
+<frequency>:<polarisation>:<sat_no>:<sym_rate>:<vpid>:<apid>
+.TP
+.B DVB-C
+<frequency>:<inversion>:<sym_rate>:<fec>:<qam>:<vpid>:<apid>
+.TP
+.B DVB-T
+<frequency>:<inversion>:<bw>:<fec_hp>:<fec_lp>:<qam>:<transmission_mode>:<guardlist>:<hierarchy_info>:<vpid>:<apid>
+.PP
+The individual parameters are:
+.TP 20
+.B frequency
+number, usually in kHz
+.TP 20
+.B polarisation
+`v' or `h'
+.TP 20
+.B sat_no
+unsigned long, usually 0
+.TP 20
+.B sym_rate
+symbol rate in MSyms/sec
+.TP 20
+.B inversion
+INVERSION_ON, INVERSION_OFF, INVERSION_AUTO
+.TP 20
+.B fec, fec_hp, fec_lp
+FEC_1_2, FEC_2_3, FEC_3_4 ... FEC_8_9, FEC_AUTO, FEC_NONE
+.TP 20
+.B qam
+QPSK, QAM_128, QAM_16 ...
+.TP 20
+.B bw
+BANDWIDTH_6_MHZ, BANDWIDTH_7_MHZ, BANDWIDTH_8_MHZ
+.TP 20
+.B transmission_mode
+TRANSMISSION_MODE_2K, TRANSMISSION_MODE_8K
+.TP 20
+.B guardlist
+GUARD_INTERVAL_1_4, GUARD_INTERVAL_1_8, GUARD_INTERVAL_1_16, GUARD_INTERVAL_1_32,
+.TP 20
+.B hierarchy_info
+HIERARCHY_1, HIERARCHY_2, HIERARCHY_4, HIERARCHY_NONE
+.TP 20
+.B vpid
+video program ID
+.TP 20
+.B apid
+audio program ID
 .SH SUBTITLE
 .B external subtitle files (any mrl)
 .br
