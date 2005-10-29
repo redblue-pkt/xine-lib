@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.57 2005/10/05 06:34:12 tmattern Exp $
+ * $Id: video_decoder.c,v 1.58 2005/10/29 19:52:34 tmmm Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -250,6 +250,7 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_8BPS,        CODEC_ID_8BPS,      "Planar RGB (ffmpeg)"},
   {BUF_VIDEO_SMC,         CODEC_ID_SMC,       "Apple Quicktime Graphics/SMC (ffmpeg)"},
   {BUF_VIDEO_DUCKTM1,     CODEC_ID_TRUEMOTION1,"Duck TrueMotion v1 (ffmpeg)"},
+  {BUF_VIDEO_DUCKTM2,     CODEC_ID_TRUEMOTION2,"Duck TrueMotion v2 (ffmpeg)"},
   {BUF_VIDEO_VMD,         CODEC_ID_VMDVIDEO,   "Sierra VMD Video (ffmpeg)"},
   {BUF_VIDEO_ZLIB,        CODEC_ID_ZLIB,       "ZLIB Video (ffmpeg)"},
   {BUF_VIDEO_MSZH,        CODEC_ID_MSZH,       "MSZH Video (ffmpeg)"},
@@ -1488,6 +1489,7 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_SMC,
   BUF_VIDEO_VMD,
   BUF_VIDEO_DUCKTM1,
+  BUF_VIDEO_DUCKTM2,
   BUF_VIDEO_ZLIB,
   BUF_VIDEO_MSZH,
   BUF_VIDEO_ASV1,

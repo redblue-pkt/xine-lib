@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.102 2005/09/11 23:42:24 hadess Exp $
+ * $Id: buffer_types.c,v 1.103 2005/10/29 19:52:35 tmmm Exp $
  *
  *
  * contents:
@@ -729,6 +729,14 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_FPS1,
   "Fraps FPS1"
+},
+{
+  {
+    meFOURCC('T','M','2','0'),
+    0
+  },
+  BUF_VIDEO_DUCKTM2,
+  "Duck TrueMotion 2"
 },
 { { 0 }, 0, "last entry" }
 };

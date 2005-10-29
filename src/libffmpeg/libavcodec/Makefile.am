@@ -84,6 +84,7 @@ libavcodec_la_SOURCES = \
 	svq1.c \
 	tscc.c \
 	truemotion1.c \
+	truemotion2.c \
 	ulti.c \
 	utils.c \
 	vcr1.c \
