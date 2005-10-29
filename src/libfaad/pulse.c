@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: pulse.c,v 1.7 2004/12/03 01:15:30 tmattern Exp $
+** $Id: pulse.c,v 1.8 2005/10/29 23:57:07 tmmm Exp $
 **/
 
 #include "common.h"
@@ -39,7 +39,8 @@ uint8_t pulse_decode(ic_stream *ics, int16_t *spec_data, uint16_t framelen)
 
     k = ics->swb_offset[pul->pulse_start_sfb];
 
-    for(i = 0; i <= pul->number_pulse; i++) {
+    for (i = 0; i <= pul->number_pulse; i++)
+    {
         k += pul->pulse_offset[i];
 
         if (k >= framelen)

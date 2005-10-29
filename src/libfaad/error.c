@@ -22,18 +22,18 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: error.c,v 1.7 2004/12/03 01:15:30 tmattern Exp $
+** $Id: error.c,v 1.8 2005/10/29 23:57:06 tmmm Exp $
 **/
 
 #include "common.h"
 #include "error.h"
 
-int8_t *err_msg[] = {
+char *err_msg[] = {
     "No error",
     "Gain control not yet implemented",
     "Pulse coding not allowed in short blocks",
     "Invalid huffman codebook",
-    "Negative scalefactor found, should be impossible",
+    "Scalefactor out of range",
     "Unable to find ADTS syncword",
     "Channel coupling not yet implemented",
     "Channel configuration not allowed in error resilient frame",
@@ -54,6 +54,8 @@ int8_t *err_msg[] = {
     "Error in program_config_element",
     "First SBR frame is not the same as first AAC frame",
     "Unexpected fill element with SBR data",
-    "Not all elements were provided with SBR data"
+    "Not all elements were provided with SBR data",
+    "LTP decoding not available",
+    "Output data buffer too small"
 };
 

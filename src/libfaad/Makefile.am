@@ -18,6 +18,7 @@ xineplug_decode_faad_la_SOURCES = \
 	common.c \
 	decoder.c \
 	drc.c \
+	drm_dec.c \
 	error.c \
 	filtbank.c \
 	hcr.c \
@@ -30,6 +31,8 @@ xineplug_decode_faad_la_SOURCES = \
 	ms.c \
 	output.c \
 	pns.c \
+	ps_dec.c \
+	ps_syntax.c \
 	pulse.c \
 	rvlc.c \
 	sbr_dct.c \

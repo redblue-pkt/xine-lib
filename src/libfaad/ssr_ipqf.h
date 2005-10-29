@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software 
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: ssr_ipqf.h,v 1.4 2004/12/03 01:15:31 tmattern Exp $
+** $Id: ssr_ipqf.h,v 1.5 2005/10/29 23:57:07 tmmm Exp $
 **/
 
 #ifndef __SSR_IPQF_H__

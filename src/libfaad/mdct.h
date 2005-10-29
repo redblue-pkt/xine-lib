@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: mdct.h,v 1.7 2004/12/03 01:15:30 tmattern Exp $
+** $Id: mdct.h,v 1.8 2005/10/29 23:57:07 tmmm Exp $
 **/
 
 #ifndef __MDCT_H__
@@ -36,9 +36,6 @@ extern "C" {
 mdct_info *faad_mdct_init(uint16_t N);
 void faad_mdct_end(mdct_info *mdct);
 void faad_imdct(mdct_info *mdct, real_t *X_in, real_t *X_out);
-#ifdef USE_SSE
-void faad_imdct_sse(mdct_info *mdct, real_t *X_in, real_t *X_out);
-#endif
 void faad_mdct(mdct_info *mdct, real_t *X_in, real_t *X_out);
 
 

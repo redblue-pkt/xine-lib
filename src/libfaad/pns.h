@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: pns.h,v 1.6 2004/12/03 01:15:30 tmattern Exp $
+** $Id: pns.h,v 1.7 2005/10/29 23:57:07 tmmm Exp $
 **/
 
 #ifndef __PNS_H__
@@ -31,8 +31,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "common.h"
 
 #include "syntax.h"
 

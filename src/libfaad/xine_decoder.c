@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2005/07/17 19:34:08 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.44 2005/10/29 23:57:07 tmmm Exp $
  *
  */
 
@@ -120,33 +120,33 @@ static void faad_meta_info_set ( faad_decoder_t *this ) {
 static int faad_open_dec( faad_decoder_t *this ) {
   int used;
 
-  this->faac_dec = faacDecOpen();
+  this->faac_dec = NeAACDecOpen();
   if( !this->faac_dec ) {
     xprintf( this->stream->xine, XINE_VERBOSITY_LOG,
-             _("libfaad: libfaad faacDecOpen() failed.\n"));
+             _("libfaad: libfaad NeAACDecOpen() failed.\n"));
     this->faac_failed++;
   } else {
     if( this->dec_config ) {
-      used = faacDecInit2(this->faac_dec, this->dec_config, this->dec_config_size,
+      used = NeAACDecInit2(this->faac_dec, this->dec_config, this->dec_config_size,
                           &this->rate, &this->num_channels);
       
       if( used < 0 ) {
         xprintf( this->stream->xine, XINE_VERBOSITY_LOG,
-                _("libfaad: libfaad faacDecInit2 failed.\n"));
+                _("libfaad: libfaad NeAACDecInit2 failed.\n"));
         this->faac_failed++;
       } else
-        lprintf( "faacDecInit2 returned rate=%ld channels=%d\n",
+        lprintf( "NeAACDecInit2 returned rate=%ld channels=%d\n",
                  this->rate, this->num_channels );
     } else {
-      used = faacDecInit(this->faac_dec, this->buf, this->size,
+      used = NeAACDecInit(this->faac_dec, this->buf, this->size,
                         &this->rate, &this->num_channels);
         
       if( used < 0 ) {
         xprintf ( this->stream->xine, XINE_VERBOSITY_LOG,
-                  _("libfaad: libfaad faacDecInit failed.\n"));
+                  _("libfaad: libfaad NeAACDecInit failed.\n"));
         this->faac_failed++;
       } else {
-        lprintf( "faacDecInit() returned rate=%ld channels=%d (used=%d)\n",
+        lprintf( "NeAACDecInit() returned rate=%ld channels=%d (used=%d)\n",
                  this->rate, this->num_channels, used);
                       
         this->size -= used;
@@ -160,7 +160,7 @@ static int faad_open_dec( faad_decoder_t *this ) {
   
   if( this->faac_failed ) {
     if( this->faac_dec ) {
-      faacDecClose( this->faac_dec );
+      NeAACDecClose( this->faac_dec );
       this->faac_dec = NULL;
     }
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
@@ -184,9 +184,9 @@ static int faad_open_output( faad_decoder_t *this ) {
         this->ao_cap_mode = AO_CAP_MODE_5_1CHANNEL;
         break;
       } else {
-        this->faac_cfg = faacDecGetCurrentConfiguration(this->faac_dec);
+        this->faac_cfg = NeAACDecGetCurrentConfiguration(this->faac_dec);
         this->faac_cfg->downMatrix = 1;
-        faacDecSetConfiguration(this->faac_dec, this->faac_cfg);
+        NeAACDecSetConfiguration(this->faac_dec, this->faac_cfg);
         this->num_channels = 2;
       }
     case 2:
@@ -216,12 +216,12 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
   while( (!this->raw_mode && end_frame && this->size >= 10) ||
          (this->raw_mode && this->size >= this->rec_audio_src_size) ) {
       
-    sample_buffer = faacDecDecode(this->faac_dec, 
+    sample_buffer = NeAACDecDecode(this->faac_dec, 
                                   &this->faac_finfo, inbuf, sample_size);
  
     if( !sample_buffer ) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-              "libfaad: %s\n", faacDecGetErrorMessage(this->faac_finfo.error));
+              "libfaad: %s\n", NeAACDecGetErrorMessage(this->faac_finfo.error));
       used = 1;    
     } else {
       used = this->faac_finfo.bytesconsumed;
@@ -401,7 +401,7 @@ static void faad_dispose (audio_decoder_t *this_gen) {
   this->dec_config_size = 0;
   
   if( this->faac_dec )
-    faacDecClose(this->faac_dec);
+    NeAACDecClose(this->faac_dec);
   this->faac_dec = NULL;
   this->faac_failed = 0;
 
