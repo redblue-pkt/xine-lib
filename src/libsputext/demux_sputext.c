@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.44 2005/02/06 15:26:19 tmattern Exp $
+ * $Id: demux_sputext.c,v 1.45 2005/10/29 20:18:57 miguelfreitas Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -358,7 +358,13 @@ static subtitle_t *sub_read_line_subrip(demux_sputext_t *this,subtitle_t *curren
   do {
     if(!read_line_from_input(this,line,LINE_LEN))
       return NULL;
-  } while(sscanf(line,"%d:%d:%d,%d --> %d:%d:%d,%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4) < 8);
+    i = sscanf(line,"%d:%d:%d,%d --> %d:%d:%d,%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4);
+    if( i < 8 ) {
+      i = sscanf(line,"%d:%d:%d.%d --> %d:%d:%d.%d",&a1,&a2,&a3,&a4,&b1,&b2,&b3,&b4);
+      a4 /= 10;
+      b4 /= 10;
+    }
+  } while(i < 8);
   current->start = a1*360000+a2*6000+a3*100+a4/10;
   current->end   = b1*360000+b2*6000+b3*100+b4/10;
   i=0;
@@ -1051,7 +1057,7 @@ static int sub_autodetect (demux_sputext_t *this) {
       return FORMAT_MICRODVD;
     }
 
-    if (sscanf (line, "%d:%d:%d,%d --> %d:%d:%d,%d", &i, &i, &i, &i, &i, &i, &i, &i)==8) {
+    if (sscanf (line, "%d:%d:%d%*[,.]%d --> %d:%d:%d%*[,.]%d", &i, &i, &i, &i, &i, &i, &i, &i)==8) {
       this->uses_time=1;
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "subrip subtitle format detected\n");
       return FORMAT_SUBRIP;
