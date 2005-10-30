@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.20 2005/10/23 12:56:26 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.21 2005/10/30 00:32:52 miguelfreitas Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -282,7 +282,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
                    "ffmpeg_audio_dec: error decompressing audio frame\n");
           this->size=0;
           return;
-        } else if (bytes_consumed == 0) {
+        } else if (bytes_consumed == 0 && decode_buffer_size == 0) {
           if (offset)
             memmove(this->buf, &this->buf[offset], this->size);
           return;

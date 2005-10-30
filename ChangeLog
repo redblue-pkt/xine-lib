@@ -15,7 +15,7 @@ xine-lib (1.1.1)
   * implement time seeking on DVD plugin (*** remind: dvdnav might need a sync ***)
   * move CFLAGS optimizations to a separated file (added --disable-optimizations)
   * use the same codec path as MPlayer (/usr[/local]/lib/codecs)
-  * FFmpeg sync (new QDM2 decoder *** note: not yet working?)
+  * FFmpeg sync (new QDM2 decoder)
   * imported Duck TrueMotion 2 decoder from FFmpeg
   * sync libfaad2 to newer version; fixes AAC decoding on x86_64 arch
 
