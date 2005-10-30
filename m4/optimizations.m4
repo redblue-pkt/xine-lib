@@ -107,7 +107,7 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
             AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
             dnl add x86 specific gcc CFLAGS
-            CFLAGS="-O3 -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
+            CFLAGS="-O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS $CFLAGS"
 
             DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
 
@@ -191,16 +191,16 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
         DEBUG_CFLAGS="-O3 -mieee $DEBUG_CFLAGS"
         ;;
       *darwin*)
-        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
+        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
         DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
         ;;
       ppc-*-linux* | powerpc-*)
-        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
+        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS $CFLAGS"
         DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
         ;;
       sparc*-*-linux*)
-        CFLAGS="-O3 $cpu_cflags -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
-        DEBUG_CFLAGS="-O $cpu_cflags -funroll-loops $INLINE_FUNCTIONS $DEBUG_CFLAGS"
+        CFLAGS="-O3 $cpu_cflags $INLINE_FUNCTIONS $CFLAGS"
+        DEBUG_CFLAGS="-O $cpu_cflags $INLINE_FUNCTIONS $DEBUG_CFLAGS"
 
         case `uname -m` in
           sparc)
@@ -230,8 +230,8 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
               esac
             ;;
           esac
-          cc_optimize_cflags="-O3 $cpu_cflags -funroll-loops $INLINE_FUNCTIONS"
-          cc_debug_cflags="-O $cpu_cflags -funroll-loops $INLINE_FUNCTIONS"
+          cc_optimize_cflags="-O3 $cpu_cflags $INLINE_FUNCTIONS"
+          cc_debug_cflags="-O $cpu_cflags $INLINE_FUNCTIONS"
         else
           case `uname -m` in
             sun4c) cpu_cflags="-xarch=v7" ;;
@@ -246,7 +246,7 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
         DEBUG_CFLAGS="$cc_debug_cflags $DEBUG_CFLAGS"
         ;;
       x86_64-*)
-        CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math -funroll-loops $INLINE_FUNCTIONS $CFLAGS"
+        CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS $CFLAGS"
         DEBUG_CFLAGS="-g $DEBUG_CFLAGS"
         ;;
       armv4l-*-linux*)
