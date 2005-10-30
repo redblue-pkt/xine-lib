@@ -11,7 +11,9 @@ postproc_lib = $(POSTPROC_INT_LIB)
 postproc_dep = $(postproc_lib)
 endif
 
-AM_CPPFLAGS = $(ff_cppflags)
+# -fomit-frame-pointer is always needed. it might cause debug to not
+# work, but at least it compiles.
+AM_CPPFLAGS = $(ff_cppflags) -fomit-frame-pointer
 
 libdir = $(XINE_PLUGINDIR)/post
 
