@@ -1,12 +1,12 @@
-diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
---- /home/thibaut/faad2/libfaad/common.h	2004-02-06 13:55:24.000000000 +0100
-+++ ./common.h	2004-12-03 01:39:52.000000000 +0100
-@@ -148,24 +148,8 @@
+--- faad2-cvs-15092004/libfaad/common.h	2004-09-08 03:43:12.000000000 -0600
++++ libfaad/common.h	2005-10-29 19:21:53.000000000 -0600
+@@ -147,23 +147,6 @@
  
  /* END COMPILE TIME DEFINITIONS */
  
--#if defined(_WIN32)
+-#if defined(_WIN32) && !defined(__MINGW32__)
 -
+-#include <stdlib.h>
 -
 -typedef unsigned __int64 uint64_t;
 -typedef unsigned __int32 uint32_t;
@@ -21,13 +21,10 @@ diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
 -
 -#else
 -
- #ifdef HAVE_CONFIG_H
--#  include "../config.h"
-+#  include "config.h"
- #endif
- 
  #include <stdio.h>
-@@ -192,6 +176,8 @@
+ #if HAVE_SYS_TYPES_H
+ # include <sys/types.h>
+@@ -188,6 +171,8 @@
  #if HAVE_STRINGS_H
  # include <strings.h>
  #endif
@@ -36,7 +33,7 @@ diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
  #if HAVE_INTTYPES_H
  # include <inttypes.h>
  #else
-@@ -199,6 +185,17 @@
+@@ -195,6 +180,17 @@
  #  include <stdint.h>
  # else
  /* we need these... */
@@ -54,7 +51,7 @@ diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
  typedef unsigned long long uint64_t;
  typedef unsigned long uint32_t;
  typedef unsigned short uint16_t;
-@@ -207,6 +204,7 @@
+@@ -203,6 +199,7 @@
  typedef long int32_t;
  typedef short int16_t;
  typedef char int8_t;
@@ -62,7 +59,7 @@ diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
  # endif
  #endif
  #if HAVE_UNISTD_H
-@@ -231,8 +229,6 @@
+@@ -227,8 +224,6 @@
  # endif
  #endif
  
@@ -71,15 +68,15 @@ diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
  #ifdef WORDS_BIGENDIAN
  #define ARCH_IS_BIG_ENDIAN
  #endif
-@@ -295,6 +291,7 @@
+@@ -289,6 +284,7 @@
    }
  
  
 +#ifndef HAVE_LRINTF
-   #ifdef _WIN32
+   #if defined(_WIN32) && !defined(__MINGW32__)
      #define HAS_LRINTF
      static INLINE int lrintf(float f)
-@@ -321,7 +318,7 @@
+@@ -315,7 +311,7 @@
          return i;
      }
    #endif
@@ -88,36 +85,17 @@ diff -urw /home/thibaut/faad2/libfaad/common.h ./common.h
  
    #ifdef __ICL /* only Intel C compiler has fmath ??? */
  
-diff -urw /home/thibaut/faad2/libfaad/bits.h ./bits.h
---- /home/thibaut/faad2/libfaad/bits.h  2004-02-04 21:07:24.000000000 +0100
-+++ ./bits.h    2004-12-03 01:45:15.000000000 +0100
+--- faad2-cvs-15092004/libfaad/bits.h	2004-09-04 08:56:28.000000000 -0600
++++ libfaad/bits.h	2005-10-29 19:21:53.000000000 -0600
 @@ -56,9 +56,9 @@
  } bitfile;
  
  
--#if defined (_WIN32) && !defined(_WIN32_WCE)
+-#if defined (_WIN32) && !defined(_WIN32_WCE) && !defined(__MINGW32__)
 +#if defined(_MSC_VER)
  #define BSWAP(a) __asm mov eax,a __asm bswap eax __asm mov a, eax
--#elif defined(LINUX) || defined(DJGPP)
+-#elif defined(LINUX) || defined(DJGPP) || defined(__MINGW32__)
 +#elif defined(LINUX) || defined(DJGPP) || defined (__MINGW32__) || defined (__CYGWIN__)
  #define BSWAP(a) __asm__ ( "bswapl %0\n" : "=r" (a) : "0" (a) )
  #else
  #define BSWAP(a) \
---- sbr_dec.c	3 Dec 2004 01:15:30 -0000
-+++ sbr_dec.c	15 Dec 2004 20:55:20 -0000
-@@ -389,6 +389,7 @@
-     return 0;
- }
- 
-+#if (defined(PS_DEC) || defined(DRM_PS))
- static void ps_dummy_function(qmf_t X_mono[MAX_NTSR][64],
-                               qmf_t X_left[MAX_NTSR][64], qmf_t X_right[MAX_NTSR][64])
- {
-@@ -408,7 +409,6 @@
-     }
- }
- 
--#if (defined(PS_DEC) || defined(DRM_PS))
- uint8_t sbrDecodeSingleFramePS(sbr_info *sbr, real_t *left_channel, real_t *right_channel,
-                                const uint8_t just_seeked, const uint8_t upsample_only)
- {
