@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: common.h,v 1.15 2005/10/29 23:57:06 tmmm Exp $
+** $Id: common.h,v 1.16 2005/10/30 01:21:53 tmmm Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -147,23 +147,6 @@ extern "C" {
 
 /* END COMPILE TIME DEFINITIONS */
 
-#if defined(_WIN32) && !defined(__MINGW32__)
-
-#include <stdlib.h>
-
-typedef unsigned __int64 uint64_t;
-typedef unsigned __int32 uint32_t;
-typedef unsigned __int16 uint16_t;
-typedef unsigned __int8 uint8_t;
-typedef __int64 int64_t;
-typedef __int32 int32_t;
-typedef __int16 int16_t;
-typedef __int8  int8_t;
-typedef float float32_t;
-
-
-#else
-
 #include <stdio.h>
 #if HAVE_SYS_TYPES_H
 # include <sys/types.h>
@@ -188,6 +171,8 @@ typedef float float32_t;
 #if HAVE_STRINGS_H
 # include <strings.h>
 #endif
+
+/* precedence defining int-types by header files for all platforms */
 #if HAVE_INTTYPES_H
 # include <inttypes.h>
 #else
@@ -195,6 +180,17 @@ typedef float float32_t;
 #  include <stdint.h>
 # else
 /* we need these... */
+#  ifdef WIN32
+typedef unsigned __int64 uint64_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int8 uint8_t;
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+typedef __int16 int16_t;
+typedef __int8  int8_t;
+#  else /* WIN32 */
+typedef float float32_t;
 typedef unsigned long long uint64_t;
 typedef unsigned long uint32_t;
 typedef unsigned short uint16_t;
@@ -203,6 +199,7 @@ typedef long long int64_t;
 typedef long int32_t;
 typedef short int16_t;
 typedef char int8_t;
+#  endif /* WIN32 */
 # endif
 #endif
 #if HAVE_UNISTD_H
@@ -225,8 +222,6 @@ char *strchr(), *strrchr();
 #  define memcpy(d, s, n) bcopy((s), (d), (n))
 #  define memmove(d, s, n) bcopy((s), (d), (n))
 # endif
-#endif
-
 #endif
 
 #ifdef WORDS_BIGENDIAN
@@ -289,6 +284,7 @@ char *strchr(), *strrchr();
   }
 
 
+#ifndef HAVE_LRINTF
   #if defined(_WIN32) && !defined(__MINGW32__)
     #define HAS_LRINTF
     static INLINE int lrintf(float f)
@@ -315,7 +311,7 @@ char *strchr(), *strrchr();
         return i;
     }
   #endif
-
+#endif
 
   #ifdef __ICL /* only Intel C compiler has fmath ??? */
 
