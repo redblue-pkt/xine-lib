@@ -64,6 +64,7 @@ noinst_HEADERS = \
 	common.h \
 	decoder.h \
 	drc.h \
+	drm_dec.h \
 	error.h \
 	faad.h  \
 	filtbank.h \
@@ -75,10 +76,13 @@ noinst_HEADERS = \
 	kbd_win.h \
 	lt_predict.h \
 	mdct.h \
+	mdct_tab.h \
 	mp4.h \
 	ms.h \
 	output.h \
 	pns.h \
+	ps_dec.h \
+	ps_tables.h \
 	pulse.h \
 	rvlc.h \
 	sbr_dct.h \
