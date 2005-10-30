@@ -18,6 +18,7 @@ xine-lib (1.1.1)
   * FFmpeg sync (new QDM2 decoder)
   * imported Duck TrueMotion 2 decoder from FFmpeg
   * sync libfaad2 to newer version; fixes AAC decoding on x86_64 arch
+  * support gapless playback while switching streams (requires UI cooperation)
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)

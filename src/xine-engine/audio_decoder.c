@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.135 2005/08/25 15:36:30 valtri Exp $
+ * $Id: audio_decoder.c,v 1.136 2005/10/30 02:18:35 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -100,7 +100,8 @@ static void *audio_decoder_loop (void *stream_gen) {
       
       running_ticket->release(running_ticket, 0);
       
-      stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSTART, 0);
+      if( !stream->gapless_switch )
+        stream->metronom->handle_audio_discontinuity (stream->metronom, DISC_STREAMSTART, 0);
       
       buftype_unknown = 0;
       break;
@@ -119,7 +120,7 @@ static void *audio_decoder_loop (void *stream_gen) {
         }
         first_header = last_header = NULL;
       }
-      
+
       /*
        * wait the output fifos to run dry before sending the notification event
        * to the frontend. this test is only valid if there is only a single
@@ -133,7 +134,7 @@ static void *audio_decoder_loop (void *stream_gen) {
         num_streams = stream->audio_out->get_property(stream->audio_out, AO_PROP_NUM_STREAMS);
         running_ticket->release(running_ticket, 0);
         
-        if( num_bufs > 0 && num_streams == 1 )
+        if( num_bufs > 0 && num_streams == 1 && !stream->early_finish_event)
           xine_usec_sleep (10000);
         else
           break;

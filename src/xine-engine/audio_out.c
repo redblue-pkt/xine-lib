@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.193 2005/09/14 23:42:37 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.194 2005/10/30 02:18:35 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1528,7 +1528,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   pthread_mutex_unlock(&this->streams_lock);
 
   /* close driver if no streams left */
-  if (!cur && !this->grab_only) {
+  if (!cur && !this->grab_only && !stream->gapless_switch) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: no streams left, closing driver\n");
 
     if (this->audio_loop_running) {
@@ -1786,6 +1786,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
       this->discard_buffers++;
     else
       this->discard_buffers--;
+  
     ret = this->discard_buffers;
     
     /* discard buffers here because we have no output thread */

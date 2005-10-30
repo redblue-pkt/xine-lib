@@ -16,7 +16,7 @@ dnl   XINE_SUB += 1; continue with XINE_LT_* values below
 dnl
 XINE_MAJOR=1
 XINE_MINOR=1
-XINE_SUB=0
+XINE_SUB=1
 
 #if test $XINE_SUB -eq 0 ; then
 #  XINE_SUBPART="";
@@ -49,9 +49,9 @@ dnl    are platform dependent
 dnl  * in Linux, the library will be named
 dnl    libname.so.(XINE_LT_CURRENT - XINE_LT_AGE).XINE_LT_AGE.XINE_LT_REVISION
 
-XINE_LT_CURRENT=14
+XINE_LT_CURRENT=15
 XINE_LT_REVISION=0
-XINE_LT_AGE=13
+XINE_LT_AGE=14
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f .cvsversion; then

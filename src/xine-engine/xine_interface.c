@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.90 2005/07/03 20:31:29 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.91 2005/10/30 02:18:35 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -474,6 +474,14 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
       stream->broadcaster = NULL;
     }
     break;
+  
+  case XINE_PARAM_EARLY_FINISHED_EVENT:
+    stream->early_finish_event = value;
+    break;
+  
+  case XINE_PARAM_GAPLESS_SWITCH:
+    stream->gapless_switch = value;
+    break;
     
   default:
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
@@ -620,6 +628,14 @@ int xine_get_param (xine_stream_t *stream, int param) {
       ret = _x_get_broadcaster_port(stream->broadcaster);
     else
       ret = 0;
+    break;
+  
+  case XINE_PARAM_EARLY_FINISHED_EVENT:
+    ret = stream->early_finish_event;
+    break;
+  
+  case XINE_PARAM_GAPLESS_SWITCH:
+    ret = stream->gapless_switch;
     break;
 
   default:

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.168 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.169 2005/10/30 02:18:35 miguelfreitas Exp $
  *
  */
 
@@ -336,6 +336,8 @@ struct xine_stream_s {
   int                        emergency_brake; /* something went really wrong and this stream must be
                                                * stopped. usually due some fatal error on output
                                                * layers as they cannot call xine_stop. */
+  int                        early_finish_event; /* do not wait fifos get empty before sending event */
+  int                        gapless_switch;     /* next stream switch will be gapless */
 #endif
 };
 

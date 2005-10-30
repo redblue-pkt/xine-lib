@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.318 2005/09/19 16:14:02 valtri Exp $
+ * $Id: xine.c,v 1.319 2005/10/30 02:18:35 miguelfreitas Exp $
  */
 
 /*
@@ -88,7 +88,7 @@ void _x_handle_stream_end (xine_stream_t *stream, int non_user) {
      * if they have called xine_stop explicitly, so only send
      * it if stream playback finished because of stream end reached
      */
-
+    
     xine_event_t event;
 
     event.data_length = 0;
@@ -332,24 +332,28 @@ static void close_internal (xine_stream_t *stream) {
     }
   }
 
-  stream->ignore_speed_change = 1;
-  stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
-
-  if (stream->audio_out)
-    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
-  if (stream->video_out)
-    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
-
+  if( !stream->gapless_switch ) {
+    stream->ignore_speed_change = 1;
+    stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
+  
+    if (stream->audio_out)
+      stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
+    if (stream->video_out)
+      stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 1);
+  }
+  
   stop_internal( stream );
   
-  if (stream->video_out)
-    stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);  
-  if (stream->audio_out)
-    stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
-
-  stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
-  stream->ignore_speed_change = 0;
+  if( !stream->gapless_switch ) {
+    if (stream->video_out)
+      stream->video_out->set_property(stream->video_out, VO_PROP_DISCARD_FRAMES, 0);  
+    if (stream->audio_out)
+      stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
   
+    stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
+    stream->ignore_speed_change = 0;
+  }
+    
   if (stream->demux_plugin) {
     _x_free_demux_plugin(stream, stream->demux_plugin);
     stream->demux_plugin = NULL;
@@ -486,6 +490,8 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->spu_channel_pan_scan   = -1;
   stream->spu_channel_user       = -1;
   stream->spu_channel            = -1;
+  stream->early_finish_event     = 0;
+  stream->gapless_switch         = 0;
 
   stream->video_out              = vo;
   if (vo)
@@ -1124,7 +1130,7 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
   
   /* only flush/discard output ports on master streams */
-  if( stream->master == stream ) {
+  if( stream->master == stream && !stream->gapless_switch) {
     /* discard audio/video buffers to get engine going and take the lock faster */
     if (stream->audio_out)
       stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 1);
@@ -1153,7 +1159,7 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
 					     stream->demux_thread_running);
 
   /* only flush/discard output ports on master streams */
-  if( stream->master == stream ) {
+  if( stream->master == stream && !stream->gapless_switch) {
     if (stream->audio_out)
       stream->audio_out->set_property(stream->audio_out, AO_PROP_DISCARD_BUFFERS, 0);
     if (stream->video_out)
@@ -1211,6 +1217,8 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
   ret = play_internal (stream, start_pos, start_time);
   if( stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_PLAY) )
     xine_play (stream->slave, start_pos, start_time);
+  
+  stream->gapless_switch = 0;
 
   pthread_mutex_unlock (&stream->frontend_lock);
   

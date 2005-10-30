@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.59 2005/08/25 15:36:30 valtri Exp $ 
+ * $Id: demux.c,v 1.60 2005/10/30 02:18:35 miguelfreitas Exp $ 
  */
 
 
@@ -66,6 +66,9 @@
 void _x_demux_flush_engine (xine_stream_t *stream) {
 
   buf_element_t *buf;
+  
+  if( stream->gapless_switch )
+    return;
   
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
 
