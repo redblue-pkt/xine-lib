@@ -1,8 +1,81 @@
-xine-lib (1.0.1-2) unstable; urgency=high
+xine-lib (1.1.0-0) unstable; urgency=high
 
-  * add debian/watch file for uscan.
+  * Add debian/watch file for uscan.
+  * Acknowledge NMUs.
+    Backports and gcc 4.0 fixes dropped since they're already in this version.
+    (Closes: #288189, #315986, #318838, #320317, #323276, #325960, #326935,   
+             #327203, #328168, #328184, #328265, #328454)
 
- -- Xxx Xxx <xxx@xxx.xx>  Fri, 03 Jun 2005 00:00:00 +0000
+  -- Xxx Xxx <xxx@xxx.xx>  Sat, 15 Oct 2005 19:46:13 +0100
+
+xine-lib (1.0.1-1.3) unstable; urgency=low
+  * Non-maintainer upload.
+
+  * Backport patch from 1.0.2 that fixes hard hang-ups when a plugin listed in
+    ~/.xine/catalog.cache becomes unloadable (closes: #328454). Plugins can   
+    become unloadable if DT_NEEDED libraries get uninstalled, which is
+    possible because the package lists many of these libraries in the 
+    Recommends or Suggests fields only. With this fix, amarok should not
+    freeze with the XINE engine anymore (closes: #327203), and totem either
+    (closes: #328265).
+
+    Patch included in debian/patches/fix-hangs-at-load-time.diff, but since
+    there's no patch applying code in debian/rules, it's present in the
+    .diff.gz as well.
+
+  * Fix the script that invokes dpkg-shlibdeps to split dependencies among
+    Depends, Recommends, and Suggests: it generated empty fields if one of the
+    expected plugins was not actually available. (Closes: #328184)
+
+    This means that now the package now suggests libgnomevfs2-0 (closes:
+    #326935) and libflac7 (closes: #328168). Submitters may wish to reopen if
+    they want a discussion with the maintainer about the need of these being 
+    strong Depends instead of Suggests.
+
+  * xineplug_flac.so now links against libflac7 instead of libflac6, which
+    closes: #325960 (the FLAC transition bug).
+
+ -- Adeodato Simó <asp16@alu.ua.es>  Thu, 15 Sep 2005 14:54:50 +0200
+
+xine-lib (1.0.1-1.2) unstable; urgency=low
+
+  * NMU.
+  * The -dev package should depends on libslang2-dev not
+    slang1-dev(Closes: #323276)
+
+ -- Christian Marillat <marillat@debian.org>  Tue, 16 Aug 2005 09:13:42 +0200
+
+xine-lib (1.0.1-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Medium-urgency upload for RC bugfixes.
+  * Multiple fixes for compatibility with gcc 4.0 strictness
+    (closes: #288189, #318838)
+  * This rebuild also gets rid of the dependency on libslang1
+    (closes: #315986); it only trades it for libslang2 unfortunately, 
+    since libcaca is a static lib.
+  * Build-Depend on libaa1-dev instead of the removed aalib1-dev
+    (closes: #320317).
+  * Build-Depend on libxinerama-dev instead of on xlibs-static-dev,
+    which no longer provides this lib; it should be rolled back into
+    xlibs-dev as a dependency eventually, but build-depending on it 
+    directly is sensible anyway.
+  * Disentangle xine from libraries it doesn't actually use directly, so
+    that the dependency tree is less brittle and requires fewer rebuilds
+    in the future (e.g., it currently has a dependency on libstdc++5
+    that it shouldn't need at all); this is doubly important since some
+    plugins aren't mentioned at all in the dependencies, and so can be 
+    left unusable by library changes:
+    - relibtoolize the package to use the Debian version of libtool,
+      with support for pruning indirect dependencies from the linker
+      commandline
+    - as part of the above, add AM_MAINTAINER_MODE to configure.ac to
+      avoid any need for autotools build-dependencies
+    - hard-code -lmodplug, -lartsc, and -lgnomevfs-2, because pkg-config,
+      artsc-config, etc. spit out lib dependencies that are spurious on  
+      GNU/* systems.
+
+ -- Steve Langasek <vorlon@debian.org>  Wed,  3 Aug 2005 04:21:06 -0700
 
 xine-lib (1.0.1-1) unstable; urgency=high
 

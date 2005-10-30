@@ -22,13 +22,16 @@ OPTIONAL="$installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_alsa.so
           $installdir/usr/lib/xine/plugins/$ver/xineplug_inp_smb.so
 "
 
-RECOMMENDED="$installdir/usr/lib/xine/plugins/$ver/xineplug_decode_vorbis.so
+RECOMMENDED="
              $installdir/usr/lib/xine/plugins/$ver/xineplug_ao_out_oss.so
 	     $installdir/usr/lib/xine/plugins/$ver/xineplug_vo_out_xv.so
 	     $installdir/usr/lib/xine/plugins/$ver/xineplug_dmx_ogg.so
-             $installdir/usr/lib/xine/plugins/$ver/xineplug_decode_theora.so
              $installdir/usr/lib/xine/plugins/$ver/xineplug_dmx_mng.so
 "
+
+#these two do interdepend, so make them required for now:
+# $installdir/usr/lib/xine/plugins/$ver/xineplug_decode_vorbis.so
+# $installdir/usr/lib/xine/plugins/$ver/xineplug_decode_theora.so
 
 #start with all executables and shared objects
 REQUIRED=`find $installdir -type f \( -name \*.so -o -perm +111 \)`
@@ -44,13 +47,13 @@ done
 for file in $RECOMMENDED; do
     if test ! -f "$file"; then
 	echo "WARNING: non-existing file \"$file\" in RECOMMENDED list"
-	RECOMMENDED=`echo "$var" | grep -v $file`
+	RECOMMENDED=`echo "$RECOMMENDED" | grep -v $file`
     fi
 done
 for file in $OPTIONAL; do
     if test ! -f "$file"; then
 	echo "WARNING: non-existing file \"$file\" in OPTIONAL list"
-	OPTIONAL=`echo "$var" | grep -v $file`
+	OPTIONAL=`echo "$OPTIONAL" | grep -v $file`
     fi
 done
 

@@ -3,14 +3,14 @@ Section: libs
 Priority: optional
 Maintainer: Siggi Langauf <siggi@debian.org>
 Uploaders: Philipp Matthias Hahn <pmhahn@debian.org>
-Build-Depends: debhelper (>= 4.0.4), aalib1-dev (>= 1.4p5-2), libcaca-dev, xlibs-dev (>> 4.1), xlibs-static-dev, libesd0-dev, zlib1g-dev | libz-dev, libartsc0-dev (>>1.1.0), liblircclient-dev, libogg-dev, libvorbis-dev, libtheora-dev, libasound2-dev, libflac-dev (>>1.1.0), libmodplug-dev, libgnomevfs2-dev, libsmbclient-dev, libspeex-dev, libmng-dev, libpng12-dev | libpng-dev, libfreetype6-dev
+Build-Depends: debhelper (>= 4.0.4), libaa1-dev | aalib1-dev (>= 1.4p5-2), libcaca-dev, xlibs-dev (>> 4.1), libxinerama-dev | xlibs-static-dev (<< 6.8.0), libesd0-dev, zlib1g-dev | libz-dev, libartsc0-dev (>>1.1.0), liblircclient-dev, libogg-dev, libvorbis-dev, libtheora-dev, libasound2-dev, libflac-dev (>>1.1.0), libmodplug-dev, libgnomevfs2-dev, libsmbclient-dev, libspeex-dev, libmng-dev, libpng12-dev | libpng-dev, libfreetype6-dev, libsdl1.2-dev (>=1.1.5)
 Build-Conflicts: libdvdnav-dev
 Standards-Version: 3.5.9
 
 Package: libxine-dev
 Architecture: any
 Section: libdevel
-Depends: libxine1 (= ${Source-Version}), libc6-dev, xlibs-dev, zlib1g-dev | libz-dev, slang1-dev, libfreetype6-dev
+Depends: libxine1 (= ${Source-Version}), libc6-dev, xlibs-dev, zlib1g-dev | libz-dev, libslang2-dev | slang1-dev, libfreetype6-dev
 Conflicts: xine-ui (<< 0.9.10)
 Description: the xine video player library, development packages
  This contains development files (headers, documentation and the like)
