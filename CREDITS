@@ -19,7 +19,7 @@ liba52				0.7.4
 libcdio				0.71 [o]
 libdts				0.0.2
 libdvdnav			0.1.10			Michael Roitzsch
-libfaad				2.0			Miguel Freitas
+libfaad				2.0-cvs-2004-09-15	Miguel Freitas
 libmad				0.15.1b			Miguel Freitas
 libmpeg2			0.2.1 [*]
 libmusepack			svn 13/01/05		James Stembridge
