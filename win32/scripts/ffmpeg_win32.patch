@@ -46,24 +46,23 @@ Index: libavcodec/Makefile
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/Makefile,v
 retrieving revision 1.167
-diff -u -p -u -p -r1.167 Makefile
---- libavcodec/Makefile	22 Jan 2005 17:52:00 -0000	1.167
-+++ libavcodec/Makefile	19 Feb 2005 16:15:29 -0000
-@@ -313,6 +313,7 @@ install-headers:
+--- libavcodec/Makefile.orig	2005-10-29 15:07:40.000000000 +0200
++++ libavcodec/Makefile	2005-10-29 15:22:47.000000000 +0200
+@@ -487,6 +487,7 @@ installlib: all install-headers
+ install-headers:
+ 	mkdir -p "$(prefix)/include/ffmpeg"
  	install -m 644 $(SRC_PATH)/libavcodec/avcodec.h \
- 	               $(SRC_PATH)/libavcodec/common.h \
- 	               $(SRC_PATH)/libavcodec/rational.h \
 +	               $(SRC_PATH)/libavcodec/dvdata.h \
                  "$(prefix)/include/ffmpeg"
- 
- #
-Index: libavcodec/common.h
+ 	install -d $(libdir)/pkgconfig
+ 	install -m 644 ../libavcodec.pc $(libdir)/pkgconfig
+Index: libavutil/common.h
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/common.h,v
 retrieving revision 1.145
 diff -u -p -u -p -r1.145 common.h
---- libavcodec/common.h	12 Jan 2005 01:44:01 -0000	1.145
-+++ libavcodec/common.h	19 Feb 2005 16:15:29 -0000
+--- libavutil/common.h	12 Jan 2005 01:44:01 -0000	1.145
++++ libavutil/common.h	19 Feb 2005 16:15:29 -0000
 @@ -64,6 +64,13 @@ extern const struct AVOption avoptions_w
  
  #endif /* HAVE_AV_CONFIG_H */
