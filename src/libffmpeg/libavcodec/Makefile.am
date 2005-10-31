@@ -9,8 +9,8 @@ EXTRA_DIST = motion_est_template.c imgresample.c \
 # we need to compile everything in debug mode, including the encoders,
 # otherwise we get unresolved symbols, because some unsatisfied function calls
 # are not optimized away with debug optimization
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS) `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS` -I../libavutil
-AM_CPPFLAGS = $(ZLIB_CPPFLAGS) -I../libavutil
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS) `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS`
+AM_CPPFLAGS = $(ZLIB_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec.la

@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 # -fomit-frame-pointer is always needed. it might cause debug to not
 # work, but at least it compiles.
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -I../../libavutil -fomit-frame-pointer
+AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil -fomit-frame-pointer
 # CFLAGS is here to filter out -funroll-loops because it causes bad
 # behavior of libavcodec
 CFLAGS = `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
