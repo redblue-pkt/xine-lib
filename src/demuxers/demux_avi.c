@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.219 2005/10/05 07:08:48 tmattern Exp $
+ * $Id: demux_avi.c,v 1.220 2005/11/01 18:36:19 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -345,9 +345,9 @@ static uint32_t odml_key (unsigned char *str)
 
 static void check_newpts (demux_avi_t *this, int64_t pts, int video) {
 
-  if (pts && this->send_newpts) {
+  if (this->send_newpts) {
 
-    lprintf ("sending newpts %lld (video = %d diff = %lld)\n", pts, video, diff);
+    lprintf ("sending newpts %lld (video = %d)\n", pts, video);
 
     if (this->buf_flag_seek) {
       _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -2042,12 +2042,14 @@ static void demux_avi_send_headers (demux_plugin_t *this_gen) {
 static int demux_avi_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
   demux_avi_t *this = (demux_avi_t *) this_gen;
-  
+
   if (!this->streaming) {
+
     _x_demux_flush_engine (this->stream);
     this->seek_request    = 1;
     this->seek_start_pos  = start_pos;
     this->seek_start_time = start_time;
+
     this->status = DEMUX_OK;
   }
   return this->status;
