@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.21 2005/10/30 00:32:52 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.22 2005/11/04 22:37:14 tmattern Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -142,7 +142,9 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   
       for(i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_codec_t); i++)
         if(ff_audio_lookup[i].type == codec_type) {
+	  pthread_mutex_lock (&ffmpeg_lock);
           this->codec = avcodec_find_decoder(ff_audio_lookup[i].id);
+	  pthread_mutex_unlock (&ffmpeg_lock);
           _x_meta_info_set(this->stream, XINE_META_INFO_AUDIOCODEC,
                            ff_audio_lookup[i].name);
           break;
@@ -240,13 +242,15 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   } else if (!(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
     if( !this->decoder_ok ) {
+      pthread_mutex_lock (&ffmpeg_lock);
       if (avcodec_open (this->context, this->codec) < 0) {
+	pthread_mutex_unlock (&ffmpeg_lock);
         xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
                  _("ffmpeg_audio_dec: couldn't open decoder\n"));
         _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
         return;
       }
-  
+      pthread_mutex_unlock (&ffmpeg_lock);  
       this->decoder_ok = 1;
     }
 
@@ -334,9 +338,11 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
   this->size = 0;
 
   /* try to reset the wma decoder */
-  if( this->context && this->decoder_ok ) {  
+  if( this->context && this->decoder_ok ) {
+    pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
     avcodec_open (this->context, this->codec);
+    pthread_mutex_unlock (&ffmpeg_lock);
   }
 }
 
@@ -347,8 +353,11 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
   
-  if( this->context && this->decoder_ok )
+  if( this->context && this->decoder_ok ) {
+    pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
+    pthread_mutex_unlock (&ffmpeg_lock);
+  }
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);

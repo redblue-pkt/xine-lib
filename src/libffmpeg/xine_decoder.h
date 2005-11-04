@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.h,v 1.5 2005/02/20 09:36:02 valtri Exp $
+ * $Id: xine_decoder.h,v 1.6 2005/11/04 22:37:13 tmattern Exp $
  *
  */
  
@@ -49,5 +49,7 @@ extern decoder_info_t dec_info_ffmpeg_audio;
 
 extern pthread_once_t once_control;
 void init_once_routine(void);
+
+extern pthread_mutex_t ffmpeg_lock;
 
 #endif

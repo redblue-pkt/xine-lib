@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.58 2005/10/29 19:52:34 tmmm Exp $
+ * $Id: video_decoder.c,v 1.59 2005/11/04 22:37:14 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -282,7 +282,9 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
 
   for(i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++)
     if(ff_video_lookup[i].type == codec_type) {
+      pthread_mutex_lock(&ffmpeg_lock);
       this->codec = avcodec_find_decoder(ff_video_lookup[i].id);
+      pthread_mutex_unlock(&ffmpeg_lock);
       _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC,
                             ff_video_lookup[i].name);
       break;
@@ -313,8 +315,11 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
    * this flag here in case we are going to use direct rendering */
   if(this->codec->capabilities & CODEC_CAP_DR1) {
     this->context->flags |= CODEC_FLAG_EMU_EDGE;
-  } 
+  }
+ 
+  pthread_mutex_lock(&ffmpeg_lock);
   if (avcodec_open (this->context, this->codec) < 0) {
+    pthread_mutex_unlock(&ffmpeg_lock);
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
              _("ffmpeg_video_dec: couldn't open decoder\n"));
     free(this->context);
@@ -322,6 +327,7 @@ static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
     return;
   }
+  pthread_mutex_unlock(&ffmpeg_lock);
 
   lprintf("lavc decoder opened\n");
 
@@ -1332,7 +1338,9 @@ static void ff_dispose (video_decoder_t *this_gen) {
   lprintf ("ff_dispose\n");
 
   if (this->decoder_ok) {
+    pthread_mutex_lock(&ffmpeg_lock);
     avcodec_close (this->context);
+    pthread_mutex_unlock(&ffmpeg_lock);
 
     this->stream->video_out->close(this->stream->video_out, this->stream);
     this->decoder_ok = 0;

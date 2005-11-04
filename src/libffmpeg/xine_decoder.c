@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.166 2005/10/29 19:52:34 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.167 2005/11/04 22:37:14 tmattern Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -36,6 +36,7 @@
  */
 
 pthread_once_t once_control = PTHREAD_ONCE_INIT;
+pthread_mutex_t ffmpeg_lock;
 
 void avcodec_register_all(void)
 {
@@ -133,6 +134,7 @@ void avcodec_register_all(void)
 }
 
 void init_once_routine(void) {
+  pthread_mutex_init(&ffmpeg_lock, NULL);
   avcodec_init();
   avcodec_register_all();
 }
