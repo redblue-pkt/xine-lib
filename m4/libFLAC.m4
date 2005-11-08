@@ -58,7 +58,11 @@ int main ()
   return 0;
 }
 
-],, no_libFLAC=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+],, no_libFLAC=yes,
+         AC_TRY_LINK([
+#include <stdio.h>
+#include <FLAC/format.h>
+],       [ return 0; ],, no_libFLAC=yes))
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
   fi

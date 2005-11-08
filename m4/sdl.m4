@@ -118,7 +118,17 @@ int main (int argc, char *argv[])
     }
 }
 
-],, no_sdl=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+],, no_sdl=yes,
+       AC_TRY_LINK([
+#include <stdio.h>
+#include "SDL.h"
+
+int main(int argc, char *argv[])
+{ return 0; }
+#undef  main
+#define main K_and_R_C_main
+],      [ return 0; ],, no_sdl=yes))
+
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
      fi

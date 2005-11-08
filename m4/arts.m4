@@ -108,7 +108,11 @@ int main ()
     }
 }
 
-],, no_arts=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+],, no_arts=yes,
+         AC_TRY_LINK([
+#include <stdio.h>
+#include <artsc.h>
+],       [ return 0; ],, no_arts=yes))
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
      fi

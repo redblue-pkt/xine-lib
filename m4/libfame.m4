@@ -126,7 +126,11 @@ main ()
     }
   return 1;
 }
-],, no_libfame=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+],, no_libfame=yes,
+         AC_TRY_LINK([
+#include <fame.h>
+#include <stdio.h>
+],       [ return 0; ],, no_libfame=yes))
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
      fi

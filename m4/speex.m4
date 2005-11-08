@@ -45,7 +45,11 @@ int main ()
   return 0;
 }
 
-],, no_speex=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+],, no_speex=yes,
+         AC_TRY_LINK([
+#include <stdio.h>
+#include <speex.h>
+],       [ return 0; ],, no_speex=yes))
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
   fi

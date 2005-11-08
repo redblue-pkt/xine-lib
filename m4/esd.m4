@@ -111,7 +111,11 @@ int main ()
     }
 }
 
-],, no_esd=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+],, no_esd=yes,
+         AC_TRY_LINK([
+#include <stdio.h>
+#include <esd.h>
+],       [ return 0; ],, no_esd=yes))
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
      fi
