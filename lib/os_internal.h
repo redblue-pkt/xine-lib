@@ -84,6 +84,13 @@ char *_xine_private_strpbrk(const char *s, const char *accept);
 char *_xine_private_strsep(char **stringp, const char *delim);
 #endif
 
+/* replacement of gmtime */
+#ifndef HAVE_GMTIME
+#include <time.h>
+#define gmtime(TM) _xine_private_gmtime((TM))
+time_t _xine_private_gmtime(struct tm *tm);
+#endif
+
 /* macross needed for MSVC */
 #ifdef _MSC_VER
 #  define snprintf _snprintf

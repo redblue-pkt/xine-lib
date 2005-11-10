@@ -1815,7 +1815,7 @@ AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset strch
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
 AC_CHECK_HEADERS(byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h)
-AC_REPLACE_FUNCS(basename gettimeofday setenv strndup strpbrk strsep strtok_r)
+AC_REPLACE_FUNCS(basename gettimeofday gmtime setenv strndup strpbrk strsep strtok_r)
 AC_CHECK_FUNCS(readlink)
 
 AC_LIBSOURCE(hstrerror.c)
