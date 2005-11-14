@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.220 2005/09/24 21:51:11 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.221 2005/11/14 23:12:16 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -184,65 +184,66 @@ static vo_frame_t *vo_remove_from_img_buf_queue_int (img_buf_fifo_t *queue, int 
                                                      uint32_t width, uint32_t height,
                                                      double ratio, int format,
                                                      int flags) {
-  vo_frame_t *img;
+  vo_frame_t *img = NULL;
   vo_frame_t *previous = NULL;
 
-  while (!queue->first || queue->locked_for_read) {
-    if (blocking)
-      pthread_cond_wait (&queue->not_empty, &queue->mutex);
-    else {
-      struct timeval tv;
-      struct timespec ts;
-      gettimeofday(&tv, NULL);
-      ts.tv_sec  = tv.tv_sec + 1;
-      ts.tv_nsec = tv.tv_usec * 1000;
-      if (pthread_cond_timedwait (&queue->not_empty, &queue->mutex, &ts) != 0)
-        return NULL;
-    }
-  }
+  while (!img || queue->locked_for_read) {
+    img = queue->first;
 
-  img = queue->first;
-
-  if (img) {
-  
 #if EXPERIMENTAL_FRAME_QUEUE_OPTIMIZATION
-    /* try to obtain a frame with the same format first.
-     * doing so may avoid unnecessary alloc/free's at the vo
-     * driver, specially when using post plugins that change
-     * format like the tvtime deinterlacer does.
-     */
-    int i = 0;
-    while( img && width && height &&
-           (img->width != width || img->height != height ||
-           img->ratio != ratio || img->format != format) ) {
-      previous = img;
-      img = img->next;
-      i++;
-    }
-    
-    if( width && height ) {
-      /* if non-blocking and only a single frame on fifo, return NULL
-       * to give it another chance of a frame format hit.
+    if (img) {
+      /* try to obtain a frame with the same format first.
+       * doing so may avoid unnecessary alloc/free's at the vo
+       * driver, specially when using post plugins that change
+       * format like the tvtime deinterlacer does.
        */
-      if( !img && queue->num_buffers == 1 && !blocking) {
+      int i = 0;
+      while( img && width && height &&
+            (img->width != width || img->height != height ||
+            img->ratio != ratio || img->format != format) ) {
+        previous = img;
+        img = img->next;
+        i++;
+      }
+      
+      if( width && height ) {
+        if( !img ) {
+          if( queue->num_buffers == 1 && !blocking) {
+            /* non-blocking and only a single frame on fifo with different
+             * format -> ignore it (give another chance of a frame format hit)
+             */
+            lprintf("frame format mismatch - will wait another frame\n");
+          } else {
+            /* we have at least 2 frames on fifo but they don't match ->
+             * give up. return whatever we got.
+             */
+            img = queue->first;
+            lprintf("frame format miss (%d/%d)\n", i, queue->num_buffers);
+          }
+        } else {
+          /* good: format match! */
+          lprintf("frame format hit (%d/%d)\n", i, queue->num_buffers);
+        }
+      }
+    }
+#endif
+
+    if(!img) {
+      if (blocking)
+        pthread_cond_wait (&queue->not_empty, &queue->mutex);
+      else {
         struct timeval tv;
         struct timespec ts;
         gettimeofday(&tv, NULL);
         ts.tv_sec  = tv.tv_sec + 1;
         ts.tv_nsec = tv.tv_usec * 1000;
-        pthread_cond_timedwait (&queue->not_empty, &queue->mutex, &ts);
-        return NULL;
+        if (pthread_cond_timedwait (&queue->not_empty, &queue->mutex, &ts) != 0)
+          return NULL;
       }
-      
-      if( img )
-        lprintf("frame format hit (%d/%d)\n", i, queue->num_buffers);
-      else
-        lprintf("frame format miss (%d/%d)\n", i, queue->num_buffers);
     }
-    
-    if(!img)
-      img = queue->first;
-#endif
+  }
+
+  if (img) {
 
     if( img == queue->first ) {
       queue->first = img->next;
