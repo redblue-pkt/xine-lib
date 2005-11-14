@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.221 2005/11/14 23:12:16 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.222 2005/11/14 23:48:19 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -188,7 +188,8 @@ static vo_frame_t *vo_remove_from_img_buf_queue_int (img_buf_fifo_t *queue, int 
   vo_frame_t *previous = NULL;
 
   while (!img || queue->locked_for_read) {
-    img = queue->first;
+
+    img = (queue->locked_for_read) ? NULL : queue->first;
 
 #if EXPERIMENTAL_FRAME_QUEUE_OPTIMIZATION
     if (img) {
