@@ -84,11 +84,17 @@ char *_xine_private_strpbrk(const char *s, const char *accept);
 char *_xine_private_strsep(char **stringp, const char *delim);
 #endif
 
-/* replacement of gmtime */
-#ifndef HAVE_GMTIME
+/* replacement of timegm */
+#ifndef HAVE_TIMEGM
 #include <time.h>
-#define gmtime(TM) _xine_private_gmtime((TM))
-time_t _xine_private_gmtime(struct tm *tm);
+#define timegm(TM) _xine_private_timegm((TM))
+time_t _xine_private_timegm(struct tm *tm);
+#endif
+
+/* replacement of unsetenv */
+#ifndef HAVE_UNSETENV
+#define unsetenv(NAME) _xine_private_unsetenv((NAME))
+void _xine_private_unsetenv(const char *name);
 #endif
 
 /* macross needed for MSVC */

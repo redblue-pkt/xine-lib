@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.13 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: video_out_macosx.m,v 1.14 2005/11/14 12:34:46 valtri Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -102,6 +102,8 @@ static vo_frame_t *macosx_alloc_frame(vo_driver_t *vo_driver) {
   frame = (macosx_frame_t *) xine_xmalloc(sizeof(macosx_frame_t));
   if(!frame)
     return NULL;
+
+  pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
   frame->vo_frame.base[0] = NULL;
   frame->vo_frame.base[1] = NULL;

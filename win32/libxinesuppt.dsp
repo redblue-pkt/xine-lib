@@ -136,6 +136,10 @@ SOURCE=..\lib\strsep.c
 SOURCE=..\lib\strtok_r.c
 # End Source File
 
+# Begin Source File
+SOURCE=..\lib\timegm.c
+# End Source File
+
 # End Group
 
 # End Target

@@ -235,13 +235,6 @@ Now we can build xine library for Windows by this way:
     --with-pthread-prefix=$PREFIX/pthreads-win32
 
   #
-  # build system isn't fully prepared for cross compiling, so it's needed
-  # manually or by patch disable plugins in Makefiles depending on wrongly
-  # detected libraries
-  #
-  ...
-
-  #
   # compile
   #
   make
@@ -253,10 +246,11 @@ Now we can build xine library for Windows by this way:
   rm /tmp/xine-lib-mingwcross/lib/xine/plugins/1.1.0{/,/post}/*.a
 
   #
-  # if we want to use xine library in M$ compilers, we will need wine and some
-  # tools from M$ Visual C: LIB.EXE, LINK.EXE, MSPDB60.DLL
+  # create libxine-1.lib file (optional, when we want to use xine library in
+  # M$ compilers)
   #
-  # create libxine-1.lib file (optional)
+  # we will need wine and some tools from M$ Visual C: LIB.EXE, LINK.EXE,
+  # MSPDB60.DLL
   #
   cd <path_where_libxine_is_installed_>/lib
   cp ../bin/libxine-1.dll .

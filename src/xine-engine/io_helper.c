@@ -199,10 +199,56 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
   struct timeval select_timeout;
   int timeout_usec, total_time_usec;
   int ret;
-  
+#ifdef WIN32
+  HANDLE h;
+  DWORD dwret;
+  char msg[256];
+#endif
+
+#ifdef WIN32
+  /* handle console file descriptiors differently on Windows */
+  switch (fd) {
+    case STDIN_FILENO: h = GetStdHandle(STD_INPUT_HANDLE); break;
+    case STDOUT_FILENO: h = GetStdHandle(STD_OUTPUT_HANDLE); break;
+    case STDERR_FILENO: h = GetStdHandle(STD_ERROR_HANDLE); break;
+    default: h = INVALID_HANDLE_VALUE;
+  }
+#endif
   timeout_usec = 1000 * timeout_msec;
   total_time_usec = 0;
 
+#ifdef WIN32
+  if (h != INVALID_HANDLE_VALUE) {
+    while (total_time_usec < timeout_usec) {
+      dwret = WaitForSingleObject(h, timeout_msec);
+
+      switch (dwret) {
+        case WAIT_OBJECT_0: return XIO_READY;
+        case WAIT_TIMEOUT:
+          /* select timeout
+           *   aborts current read if action pending. otherwise xine
+           *   cannot be stopped when no more data is available.
+           */
+          if (stream && stream->demux_action_pending)
+            return XIO_ABORTED;
+          break;
+        case WAIT_ABANDONED:
+	  xine_log(stream->xine, XINE_LOG_MSG,
+                 _("io_helper: waiting abandoned\n"));
+          return XIO_ERROR;
+        case WAIT_FAILED:
+        default:
+          dwret = GetLastError();
+          FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 0, (LPSTR)&msg, sizeof(msg), NULL);
+	  xine_log(stream->xine, XINE_LOG_MSG,
+                 _("io_helper: waiting failed: %s\n"), msg);
+          return XIO_ERROR;
+      }
+    }
+    total_time_usec += XIO_POLLING_INTERVAL;
+    return XIO_TIMEOUT;
+  }
+#endif
   while (total_time_usec < timeout_usec) {
 
     FD_ZERO (&fdset);

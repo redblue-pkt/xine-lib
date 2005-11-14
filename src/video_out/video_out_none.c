@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.23 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_none.c,v 1.24 2005/11/14 12:34:46 valtri Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -93,6 +93,8 @@ static vo_frame_t *none_alloc_frame(vo_driver_t *vo_driver) {
   frame = (none_frame_t *) xine_xmalloc(sizeof(none_frame_t));
   if(!frame)
     return NULL;
+
+  pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
   frame->vo_frame.base[0] = NULL;
   frame->vo_frame.base[1] = NULL;

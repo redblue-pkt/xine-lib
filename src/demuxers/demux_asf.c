@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.172 2005/07/18 01:28:21 dsalt Exp $
+ * $Id: demux_asf.c,v 1.173 2005/11/14 12:34:46 valtri Exp $
  *
  * demultiplexer for asf streams
  *
@@ -169,7 +169,9 @@ typedef struct demux_asf_s {
   int64_t           first_packet_pos;
 
   int               mode;
-  
+
+  /* for fewer error messages */
+  GUID              last_unknown_guid;
 } demux_asf_t ;
 
 typedef struct {
@@ -258,7 +260,9 @@ static int get_guid_id (demux_asf_t *this, GUID *g) {
       return i;
     }
   }
-  
+
+  if (!memcmp(g, &this->last_unknown_guid, sizeof(GUID))) return GUID_ERROR;
+  memcpy(&this->last_unknown_guid, g, sizeof(GUID));
   xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	  "demux_asf: unknown GUID: 0x%" PRIx32 ", 0x%" PRIx16 ", 0x%" PRIx16 ", "
 	  "{ 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 ", 0x%" PRIx8 " }\n",

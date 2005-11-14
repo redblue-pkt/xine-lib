@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.45 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out_aa.c,v 1.46 2005/11/14 12:34:46 valtri Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -112,6 +112,8 @@ static vo_frame_t *aa_alloc_frame(vo_driver_t *this_gen) {
   frame = (aa_frame_t *) xine_xmalloc (sizeof (aa_frame_t));
   if (!frame)
     return NULL;
+
+  pthread_mutex_init(&frame->vo_frame.mutex, NULL);
 
   frame->vo_frame.proc_slice = NULL;
   frame->vo_frame.proc_frame = NULL;

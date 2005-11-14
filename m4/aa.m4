@@ -176,13 +176,22 @@ int main () {
   }
   return 1;
 }
-],, no_aalib=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
-
+],, no_aalib=yes,
+          AC_TRY_LINK([
+#include <stdio.h>
+#include <aalib.h>
+],          [ return ((AA_LIB_VERSION) || 
+#ifdef AA_LIB_MINNOR
+                    (AA_LIB_MINNOR)
+#else
+                    (AA_LIB_MINOR)
+#endif
+                    ); ],, no_aalib=yes))
         CFLAGS="$ac_save_CFLAGS"
         LIBS="$ac_save_LIBS"
       fi
 
-    else
+    else dnl AALIB_CONFIG
       AC_MSG_CHECKING([for AALIB version >= $min_aalib_version])
       no_aalib=""
       AALIB_CFLAGS=`$AALIB_CONFIG $aalib_config_args --cflags`
@@ -246,11 +255,21 @@ printf("\n*** An old version of AALIB (%d.%d) was found.\n", AA_LIB_VERSION, AA_
   }
   return 1;
 }
-],, no_aalib=yes,[echo $ac_n "cross compiling; assumed OK... $ac_c"])
+],, no_aalib=yes,
+        AC_TRY_LINK([
+#include <stdio.h>
+#include <aalib.h>
+],        [ return ((AA_LIB_VERSION) || 
+#ifdef AA_LIB_MINNOR
+                  (AA_LIB_MINNOR)
+#else
+                  (AA_LIB_MINOR)
+#endif
+                  ); ],, no_aalib=yes))
       CFLAGS="$ac_save_CFLAGS"
       LIBS="$ac_save_LIBS"
-    fi
-  fi dnl AALIB_CONFIG
+    fi dnl AALIB_CONFIG
+  fi dnl enable_aalibtest
 
   if test "x$no_aalib" = x; then
     AC_MSG_RESULT(yes)
