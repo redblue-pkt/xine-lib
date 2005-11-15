@@ -1,70 +1,35 @@
+known bugs
+==========
 
-The road to xine-lib 1.0
-========================
-
-this only relates to the xine engine (xine-lib), not xine
-frontends
-
-1-rc1   First "release candidate". xine's architecture is stable, ie. it
-        must not be changed before 1.0. Features that do not appear in
-        this roadmap must not be added. Focus is on bugfixes.
-
-1-rc2   Documentation is brought up to date.
-
-1-rc3   The release mechanism is well-defined and documented, along with a
-        set of test procedures. Some (most?) of the tests are automated.
-        Now is the time of "soft" feature freeze: Generally, new features
-        must not be added. However, low-impact stuff, such as new
-        demuxer, decoder or input plugins are okay.
-
-1-rc4   All user-visible strings should be enclosed in _() for translation.
-        The majority of config entries should have a proper help string.
-        Decision should be made, what messages to report on console and
-        what to put in the log. The config option naming is cleaned up.
-
-1-rc5   There is a well-defined bug handling mechanism, even if it is a
-        paper based checklist on someones desk. 1.0-critical bugs are
-        sorted out.
-        This is the time of "hard" feature freeze: Only bug fixes are
-        permitted.
-        (xine-ui should stabilize here, as well, maybe an 0.99.x or
-         1-alpha/beta/rc series to demonstrate this to end users)
-
-1-rc6   Most compile warnings are fixed. Hopefully the translators have
-        finished their job as well. xine engine structures have been
-        looked over and some resorting/reorganizing has been done.
-
-1-rc7   All known bugs should be fixed now. There is a big call for
-        testers. If they don't find any new bugs for at least a week,
-        we're there, and 1.0 will only differ in version number and a bit
-        of documentation. If they do find more bugs, we keep on fixing
-        them and making weekly rc releases until we get stable...
-        (xine-ui may have an 1.0 release any time after this point;
-         before, together with, or after xine-lib 1.0, depending on it's
-         own 1.0 release goals)
-
-1.0     Due to historical reasons, the day 1.0 is released will be
-        given the name "christmas".
+- frame allocation problem with h264 streams using > 15 reference frames
+- our faad2 has problems with 5.1 streams. faad2 cvs is GPL incompatible.
+- dvdnav time search function does not use the time table, but interpolates
+  only cell times
+- crash with RV10 streams
 
 
-required for 1.0
-----------------
+requested/planned features
+==========================
 
-- rc4: provide long language strings via XINE_META_INFO_FULL_LANG in
-  ogg demuxer and DVD input
-- xine bug tracking system?
-- add help strings for all post plugins
-- review code for malloc()s that don't check their return type
-  (replace with xine_xmalloc() and make it abort() on failure,
-  if graceful failure handling is not possible)
-- clean up MRL sytax of individual plugins and finish their documentation
+- advanced audio processors
+- audio normalization
+- crossfading
+- high quality overlay blending / OSD
+  (eg. Jason Tackaberry's advanced BGRA blend plugin)
+- synchronized playback between multiple machines
+- high quality sound resampling (use libsamplerate / secret rabbit code)
+- "synchroneous post plugins" (post plugins behind the output fifo)
+- move pvr and v4l_adjust_realtime_speed routines to xine engine
+  so it can be used by any input plugin.
+
+
+the following text is kept from pre-1.0 times - we must check what is still relevant
+====================================================================================
 
 optional
 --------
 
 - properly localize all user-visible strings
-- rename config entries to a more consistent scheme
-  (providing automatic config file conversion, of course)
 - sort out which messages should go to console and which to xine_log
 - look over global structures and do some cleanup
 - id3v2.3,v2.4 support

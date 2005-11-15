@@ -12,13 +12,16 @@ xine-lib (1.1.1)
   * overlay cropping fixes for small streams or when using cropping support
   * experimental frame allocation optimization reduces cpu usage of the
     deinterlacer plugin by up 25%
-  * implement time seeking on DVD plugin (*** remind: dvdnav might need a sync ***)
+  * implement time seeking on DVD plugin
   * move CFLAGS optimizations to a separated file (added --disable-optimizations)
   * use the same codec path as MPlayer (/usr[/local]/lib/codecs)
   * FFmpeg sync (new QDM2 decoder)
   * imported Duck TrueMotion 2 decoder from FFmpeg
-  * sync libfaad2 to newer version; fixes AAC decoding on x86_64 arch
+  * sync libfaad2 to latest GPL compatible version; fixes AAC decoding on x86_64 arch
   * support gapless playback while switching streams (requires UI cooperation)
+  * fix speed changing race causing deadlock with v4l plugin
+  * cddb improvements/fixes (DTITLE/DYEAR parsing, timeout increase and
+    multiline entries support) [#1205274]
 
 xine-lib (1.1.0)
   * new quality deinterlacer from dscaler: GreedyH (Greedy High Motion)
