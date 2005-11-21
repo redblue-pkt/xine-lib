@@ -263,7 +263,6 @@ _x_io_tcp_connect_finish
 _x_io_file_read
 _x_io_file_write
 
-
 _x_stream_info_set
 _x_stream_info_reset
 _x_stream_info_public_reset
@@ -308,3 +307,16 @@ _x_new_refcounter
 _x_refcounter_inc
 _x_refcounter_dec
 _x_refcounter_dispose
+
+_x_alphablend_free
+_x_alphablend_init
+_x_blend_rgb16
+_x_blend_rgb24
+_x_blend_rgb32
+_x_blend_xx44
+_x_blend_yuv
+_x_blend_yuy2
+_x_init_xx44_palette
+_x_clear_xx44_palette
+_x_dispose_xx44_palette
+_x_xx44_to_xvmc_palette

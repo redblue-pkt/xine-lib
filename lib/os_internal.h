@@ -110,9 +110,8 @@ void _xine_private_unsetenv(const char *name);
 #  include <io.h>
 #  ifdef _MSC_VER
 #    include <direct.h>
-#  else
-#    define mkdir(A, B) _mkdir((A))
 #  endif
+#  define mkdir(A, B) _mkdir((A))
 
 #  ifndef S_ISDIR
 #    define S_ISDIR(m) ((m) & _S_IFDIR)

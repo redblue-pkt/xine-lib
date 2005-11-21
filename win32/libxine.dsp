@@ -58,7 +58,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Moving Xine Fonts
-PostBuild_Cmds=scripts\move_xine_fonts.bat Release
+PostBuild_Cmds=scripts\post_install.bat Release
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "libxine - Win32 Debug"
@@ -91,7 +91,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Moving Xine Fonts
-PostBuild_Cmds=scripts\move_xine_fonts.bat Debug
+PostBuild_Cmds=scripts\post_install.bat Debug
 # End Special Build Tool
 
 !ENDIF 
@@ -103,174 +103,178 @@ PostBuild_Cmds=scripts\move_xine_fonts.bat Debug
 # Begin Group "DLL Defs"
 
 # PROP Default_Filter ""
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\libxine.def
 # End Source File
+
 # End Group
+
 # Begin Group "xine-engine"
 
 # PROP Default_Filter ""
 # Begin Source File
-
 SOURCE="..\src\xine-engine\audio_decoder.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
+SOURCE="..\src\xine-engine\alphablend.c"
+# End Source File
+
+# Begin Source File
 SOURCE="..\src\xine-engine\audio_out.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\broadcaster.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\buffer.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\buffer_types.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\configfile.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\demux.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\events.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\info_helper.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\input_cache.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\input_rip.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\io_helper.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\load_plugins.c"
 # End Source File
-# Begin Source File
 
-SOURCE="..\src\xine-engine\lrb.c"
-# End Source File
 # Begin Source File
-
 SOURCE="..\src\xine-engine\metronom.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\osd.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\post.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\refcounter.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\resample.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\scratch.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\tvmode.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\video_decoder.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\video_out.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\video_overlay.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\vo_scale.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\xine.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-engine\xine_interface.c"
 # End Source File
+
 # End Group
+
 # Begin Group "xine-utils"
 
 # PROP Default_Filter ""
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\color.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\copy.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\cpu_accel.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\list.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\memcpy.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\monitor.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\utils.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\xine_buffer.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\xine_check.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\xine_mutex.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\xmllexer.c"
 # End Source File
-# Begin Source File
 
+# Begin Source File
 SOURCE="..\src\xine-utils\xmlparser.c"
 # End Source File
+
 # End Group
 # End Target
 # End Project

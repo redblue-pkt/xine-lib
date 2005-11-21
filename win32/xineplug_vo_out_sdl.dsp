@@ -89,25 +89,24 @@ LINK32=link.exe
 
 # Name "xineplug_vo_out_sdl - Win32 Release"
 # Name "xineplug_vo_out_sdl - Win32 Debug"
+
 # Begin Group "Source Files"
-
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
-# Begin Source File
 
-SOURCE=..\src\video_out\alphablend.c
-# End Source File
 # Begin Source File
-
 SOURCE=..\src\video_out\video_out_sdl.c
 # End Source File
+
 # End Group
+
 # Begin Group "DLL Defs"
-
 # PROP Default_Filter ""
-# Begin Source File
 
+# Begin Source File
 SOURCE=.\xine_plugin.def
 # End Source File
+
 # End Group
+
 # End Target
 # End Project

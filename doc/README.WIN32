@@ -152,8 +152,10 @@ How to build xine in M$ Visual C:
     #
     # install
     #
-    PREFIX=/tmp/ffmpeg; make install prefix=$PREFIX bindir=$PREFIX
-    cp libavcodec/avcodec.lib $PREFIX
+    PREFIX=/tmp/ffmpeg; make install prefix=$PREFIX bindir=$PREFIX libdir=$PREFIX/lib
+    cp libavcodec/avcodec.lib $PREFIX/lib
+    cp libavformat/avformat.lib $PREFIX/lib
+    cp libavutil/avutil.lib $PREFIX/lib
 
 
 Status

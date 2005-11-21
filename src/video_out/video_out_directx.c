@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.26 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: video_out_directx.c,v 1.27 2005/11/21 14:18:56 valtri Exp $
  */
 
 typedef unsigned char boolean;
@@ -30,15 +30,15 @@ typedef unsigned char boolean;
 
 #include <pthread.h>
 
-#include "xine.h"
-#include "video_out.h"
-#include "xine_internal.h"
-
 #define LOG_MODULE "video_out_directx"
 #define LOG_VERBOSE
 /*
 #define LOG
 */
+
+#include "xine.h"
+#include "video_out.h"
+#include "xine_internal.h"
 
 #include "xine_internal.h"
 #include "yuv2rgb.h"

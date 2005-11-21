@@ -140,6 +140,10 @@ SOURCE=..\lib\strtok_r.c
 SOURCE=..\lib\timegm.c
 # End Source File
 
+# Begin Source File
+SOURCE=..\lib\unsetenv.c
+# End Source File
+
 # End Group
 
 # End Target

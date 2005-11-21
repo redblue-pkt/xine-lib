@@ -3,7 +3,7 @@ include $(top_srcdir)/misc/Makefile.common
 SUBDIRS = include
 
 EXTRA_DIST = \
-	scripts/move_xine_fonts.bat \
+	scripts/post_install.bat \
 	scripts/ffmpeg_win32.patch \
 	config.h \
 	README \
