@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.148 2005/05/15 00:12:44 miguelfreitas Exp $
+ * $Id: w32codec.c,v 1.149 2005/11/21 10:29:57 valtri Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1273,18 +1273,18 @@ static int w32a_init_audio (w32a_decoder_t *this,
   xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	  "w32codec: Recommended source buffer size: %d\n", this->rec_audio_src_size); 
 
-  if( this->buf )
-    free(this->buf);
-  
-  if( this->outbuf )
-    free(this->outbuf);
-
   if( this->rec_audio_src_size < in_fmt->nBlockAlign ) {
     this->rec_audio_src_size = in_fmt->nBlockAlign;
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	    "w32codec: adjusting source buffer size to %d\n", this->rec_audio_src_size); 
   }
   
+  if( this->buf )
+    free(this->buf);
+  
+  if( this->outbuf )
+    free(this->outbuf);
+
   this->max_audio_src_size = 2 * this->rec_audio_src_size;
   
   this->buf = malloc( this->max_audio_src_size );
