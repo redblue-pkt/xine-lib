@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.52 2004/06/13 21:28:53 miguelfreitas Exp $
+ * $Id: demux_idcin.c,v 1.53 2005/11/21 10:28:18 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -359,6 +359,7 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
   demux_idcin_t *this = (demux_idcin_t *) this_gen;
   buf_element_t *buf;
   xine_bmiheader *bih = (xine_bmiheader *)this->bih;
+  uint32_t i, size;
 
   this->video_fifo  = this->stream->video_fifo;
   this->audio_fifo  = this->stream->audio_fifo;
@@ -370,14 +371,28 @@ static void demux_idcin_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to decoders */
   bih->biSize = sizeof(xine_bmiheader) + HUFFMAN_TABLE_SIZE;
-  buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
-  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAMERATE|
-                       BUF_FLAG_FRAME_END;
-  buf->decoder_info[0] = IDCIN_FRAME_PTS_INC;  /* initial video_step */
-  buf->size = bih->biSize;
-  memcpy(buf->content, this->bih, buf->size);
-  buf->type = BUF_VIDEO_IDCIN;
-  this->video_fifo->put (this->video_fifo, buf);
+  size = bih->biSize;
+
+  i = 0;
+  do {
+    buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+    buf->decoder_info[0] = IDCIN_FRAME_PTS_INC;  /* initial video_step */
+    if (size > buf->max_size) {
+      buf->size = buf->max_size;
+      buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|
+                           BUF_FLAG_FRAMERATE;
+    } else {
+      buf->size = size;
+      buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|
+                           BUF_FLAG_FRAMERATE|BUF_FLAG_FRAME_END;
+    }
+    memcpy(buf->content, this->bih + i, buf->size);
+    buf->type = BUF_VIDEO_IDCIN;
+    this->video_fifo->put (this->video_fifo, buf);
+
+    size -= buf->size;
+    i += buf->size;
+  } while (size);
 
   if (this->audio_fifo && this->wave.nChannels) {
 
