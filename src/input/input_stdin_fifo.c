@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.63 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_stdin_fifo.c,v 1.64 2005/11/21 10:32:44 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -27,8 +27,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
 
@@ -44,6 +44,11 @@
 #include "net_buf_ctrl.h"
 
 #define BUFSIZE                 1024
+#if defined(WIN32) || defined(__CYGWIN__)
+#  define FILE_FLAGS (O_RDONLY | O_BINARY)
+#else
+#  define FILE_FLAGS O_RDONLY
+#endif
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -241,7 +246,7 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
     char *filename;
 
     filename = (char *) &this->mrl[5];
-    this->fh = open (filename, O_RDONLY);
+    this->fh = open (filename, FILE_FLAGS);
 
     lprintf("filename '%s'\n", filename);
 
@@ -250,6 +255,9 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
       return 0;
     }
   }
+#ifdef WIN32
+  else setmode(this->fh, FILE_FLAGS);
+#endif
 
 
   /*
