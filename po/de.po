@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: http://sourceforge.net/tracker/?"
 "atid=109655&group_id=9655\n"
 "POT-Creation-Date: 2005-04-24 12:10+0200\n"
-"PO-Revision-Date: 2005-05-26 09:15+0200\n"
+"PO-Revision-Date: 2005-11-23 09:51+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -4266,11 +4266,11 @@ msgstr "Startlautstärke"
 
 #: src/xine-engine/audio_out.c:2080
 msgid "The overall audio volume set at xine startup."
-msgstr "Gesamtläustärke beim Starten von xine."
+msgstr "Gesamtlautstärke beim Starten von xine."
 
 #: src/xine-engine/audio_out.c:2083
 msgid "restore volume level at startup"
-msgstr "Läustärke beim Starten wiederherstellen"
+msgstr "Lautstärke beim Starten wiederherstellen"
 
 #: src/xine-engine/audio_out.c:2084
 msgid "If disabled, xine will not modify any mixer settings at startup."
