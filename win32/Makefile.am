@@ -11,7 +11,6 @@ EXTRA_DIST = \
 	libxine.def \
 	libxinesupport.def \
 	xine_plugin.def \
-	libxine.dsw \
 	xine.dsw
 
 
