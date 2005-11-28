@@ -42,7 +42,7 @@ Download
 Build
 -----
 
-In following text are used symbols $PREFIX and $USER with this meaning:
+In the following text are used symbols $PREFIX and $USER with this meaning:
 
   $PREFIX .... directory of the mingw cross environtment
   $USER ...... current user
@@ -70,15 +70,6 @@ In following text are used symbols $PREFIX and $USER with this meaning:
 3. compile compiler (gcc-core, gcc-c++)
 
   #
-  # it's always good doing things under unprivileged user,
-  # this commands ensure write permission to target
-  #
-  su
-  chmod g+w $PREFIX{/lib,/i386-mingw32{/,/lib}}
-  chown root:$USER $PREFIX{/lib,/i386-mingw32{/,/lib}}
-  exit
-
-  #
   # prepare runtime environment from binaries
   #
   mkdir runtime
@@ -96,7 +87,9 @@ In following text are used symbols $PREFIX and $USER with this meaning:
   tar xzf gcc-core-3.3.1-20030804-1-src.tar.gz
   tar xzf gcc-g++-3.3.1-20030804-1-src.tar.gz
   mkdir gcc-bin
-  cd gcc-bin 
+  cd gcc-bin
+  # needed for the copying header files
+  su
   # more option may be needed for successfull compilation,
   # see gcc-3.3.1-1-build.sh
   ../gcc-3.3.1-20030804-1/configure \
@@ -105,18 +98,11 @@ In following text are used symbols $PREFIX and $USER with this meaning:
     --with-headers=../runtime/include \
     --with-libs=../runtime/lib \
     --prefix=$PREFIX
+  exit
   make
   #or recommended: make CFLAGS=-O2 LDFLAGS=-s
   su
   make install
-  exit
-
-  #
-  # set the permissions back
-  #
-  su
-  chmod -R g-w $PREFIX
-  chown -R root:root $PREFIX
   exit
 
 
