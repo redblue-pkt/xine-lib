@@ -35,11 +35,11 @@ AC_DEFUN([AM_PATH_SDL],
      fi
   fi
 
-  AC_PATH_PROG(SDL_CONFIG, sdl-config, no)
+  AC_PATH_TOOL(SDL_CONFIG, sdl-config, no)
   min_sdl_version=ifelse([$1], ,0.11.0,$1)
-  AC_MSG_CHECKING(for SDL - version >= $min_sdl_version)
   no_sdl=""
   if test "$SDL_CONFIG" = "no" ; then
+    AC_MSG_CHECKING(for SDL - version >= $min_sdl_version)
     no_sdl=yes
   else
     SDL_CFLAGS=`$SDL_CONFIG $sdlconf_args --cflags`
@@ -61,11 +61,17 @@ dnl Now check if the installed SDL is sufficiently new. (Also sanity
 dnl checks the results of sdl-config to some extent
 dnl
       rm -f conf.sdltest
+      AC_CHECK_HEADERS([SDL11/SDL.h])
+      AC_MSG_CHECKING(for SDL - version >= $min_sdl_version)
       AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "SDL.h"
+#ifdef HAVE_SDL11_SDL_H
+# include <SDL11/SDL.h>
+#else
+# include <SDL.h>
+#endif
 
 char*
 my_strdup (char *str)
@@ -121,9 +127,13 @@ int main (int argc, char *argv[])
 ],, no_sdl=yes,
        AC_TRY_LINK([
 #include <stdio.h>
-#include "SDL.h"
+#ifdef HAVE_SDL11_SDL_H
+# include <SDL11/SDL.h>
+#else
+# include <SDL.h>
+#endif
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv@<:@@:>@)
 { return 0; }
 #undef  main
 #define main K_and_R_C_main
@@ -152,9 +162,13 @@ int main(int argc, char *argv[])
           LIBS="$LIBS $SDL_LIBS"
           AC_TRY_LINK([
 #include <stdio.h>
-#include "SDL.h"
+#ifdef HAVE_SDL11_SDL_H
+# include <SDL11/SDL.h>
+#else
+# include <SDL.h>
+#endif
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv@<:@@:>@)
 { return 0; }
 #undef  main
 #define main K_and_R_C_main

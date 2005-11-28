@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.220 2005/11/01 18:36:19 tmattern Exp $
+ * $Id: demux_avi.c,v 1.221 2005/11/28 12:24:57 valtri Exp $
  *
  * demultiplexer for avi streams
  *
@@ -347,7 +347,7 @@ static void check_newpts (demux_avi_t *this, int64_t pts, int video) {
 
   if (this->send_newpts) {
 
-    lprintf ("sending newpts %lld (video = %d)\n", pts, video);
+    lprintf ("sending newpts %" PRId64 " (video = %d)\n", pts, video);
 
     if (this->buf_flag_seek) {
       _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -415,7 +415,7 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, uint32_t posc,
 
   avi_audio_t *at = this->avi->audio[track];
 
-  lprintf("get_audio_pts: track=%d, posc=%d, postot=%lld, posb=%d\n", track, posc, postot, posb);
+  lprintf("get_audio_pts: track=%d, posc=%d, postot=%" PRIdMAX ", posb=%d\n", track, posc, (intmax_t)postot, posb);
 
   if ((at->dwSampleSize == 0) && (at->dwScale > 1)) {
     /* variable bitrate */
@@ -438,8 +438,8 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, uint32_t posc,
 }
 
 static int64_t get_video_pts (demux_avi_t *this, off_t pos) {
-  lprintf("get_video_pts: dwScale=%d, dwRate=%d, pos=%lld\n",
-         this->avi->dwScale, this->avi->dwRate, pos);
+  lprintf("get_video_pts: dwScale=%d, dwRate=%d, pos=%" PRIdMAX "\n",
+         this->avi->dwScale, this->avi->dwRate, (intmax_t)pos);
   return (int64_t)(90000.0 * (double)pos *
     (double)this->avi->dwScale / (double)this->avi->dwRate);
 }
@@ -543,7 +543,7 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
     }
 
     if (this->input->read(this->input, data, AVI_HEADER_SIZE) != AVI_HEADER_SIZE) {
-      lprintf("read failed, chunk_pos=%lld\n", chunk_pos);
+      lprintf("read failed, chunk_pos=%" PRIdMAX "\n", (intmax_t)chunk_pos);
       break;
     }
 
@@ -634,7 +634,7 @@ static int idx_grow(demux_avi_t *this, int (*stopper)(demux_avi_t *, void *),
     }
     chunk_pos = this->input->seek(this->input, this->idx_grow.nexttagoffset, SEEK_SET);
     if (chunk_pos != this->idx_grow.nexttagoffset) {
-      lprintf("seek failed: %lld != %lld\n", chunk_pos, this->idx_grow.nexttagoffset);
+      lprintf("seek failed: %" PRIdMAX " != %" PRIdMAX "\n", (intmax_t)chunk_pos, (intmax_t)this->idx_grow.nexttagoffset);
       break;
     }
   }
@@ -787,7 +787,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
       break;
     }
     
-    lprintf("chunk: %c%c%c%c, size: %lld\n",
+    lprintf("chunk: %c%c%c%c, size: %" PRId64 "\n",
             data[0], data[1], data[2], data[3], (int64_t)n);
     
     if(strncasecmp(data,"LIST",4) == 0) {
@@ -1390,7 +1390,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
   AVI->video_posf = 0;
   AVI->video_posb = 0;
 
-  lprintf("done, pos=%lld, AVI->movi_start=%lld\n", this->input->get_current_pos(this->input), AVI->movi_start);
+  lprintf("done, pos=%lld, AVI->movi_start=%" PRIdMAX "\n", this->input->get_current_pos(this->input), (intmax_t)AVI->movi_start);
   return AVI;
 }
 
@@ -1548,7 +1548,7 @@ static int demux_avi_next (demux_avi_t *this, int decoder_flags) {
     audio_pts =
       get_audio_pts (this, i, aie->block_no, aie->tot, audio->audio_posb);
 
-    lprintf ("video_pts %lld audio_pts %lld\n", video_pts, audio_pts);
+    lprintf ("video_pts %" PRId64 " audio_pts %" PRId64 "\n", video_pts, audio_pts);
 
     if (!this->no_audio && (audio_pts < video_pts)) {
 
@@ -1648,9 +1648,9 @@ static int get_chunk_header(demux_avi_t *this, uint32_t *len, int *audio_stream)
       break;
     *len = LE_32(data + 4);
 
-    lprintf("header: %c%c%c%c, pos=%lld, len=%u\n",
+    lprintf("header: %c%c%c%c, pos=%" PRIdMAX ", len=%u\n",
             data[0], data[1], data[2], data[3],
-            this->input->get_current_pos(this->input), *len);
+            (intmax_t)this->input->get_current_pos(this->input), *len);
 
     /* Dive into RIFF and LIST entries */
     if(strncasecmp(data, "LIST", 4) == 0 ||
@@ -1699,13 +1699,13 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
   buf_element_t *buf = NULL;
   int64_t        audio_pts, video_pts;
-  int64_t        current_pos;
+  off_t          current_pos;
   int            left;
   int            header, chunk_len, audio_stream;
   avi_audio_t   *audio;
 
   current_pos = this->input->get_current_pos(this->input);
-  lprintf("input_pos=%lld\n", current_pos);
+  lprintf("input_pos=%" PRIdMAX "\n", (intmax_t)current_pos);
 
   header = get_chunk_header(this, &chunk_len, &audio_stream);
 
@@ -1725,7 +1725,7 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
         /* read audio */
         buf->pts = audio_pts;
-        lprintf("audio pts: %lld\n", audio_pts);
+        lprintf("audio pts: %" PRId64 "\n", audio_pts);
 
         if (left > this->audio_fifo->buffer_pool_buf_size) {
           buf->size = this->audio_fifo->buffer_pool_buf_size;
@@ -1771,7 +1771,7 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
 
         /* read video */
         buf->pts = video_pts;
-        lprintf("video pts: %lld\n", video_pts);
+        lprintf("video pts: %" PRId64 "\n", video_pts);
         
         if (left > this->video_fifo->buffer_pool_buf_size) {
           buf->size = this->video_fifo->buffer_pool_buf_size;
@@ -2145,7 +2145,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
    * position we've already found, so we won't be seeking though the
    * file much at this point. */
 
-  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "video_pts = %lld\n", video_pts);
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "video_pts = %" PRId64 "\n", video_pts);
 
   /* FIXME ? */
   audio_pts = 77777777;
@@ -2157,7 +2157,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
     for(i = 0; i < this->avi->n_audio; i++) {
       max_pos = this->avi->audio[i]->audio_idx.audio_chunks - 1;
       min_pos = 0;
-      lprintf("audio_chunks=%d, min=%lld, max=%lld\n", this->avi->audio[i]->audio_idx.audio_chunks, min_pos, max_pos);
+      lprintf("audio_chunks=%d, min=%" PRId64 ", max=%" PRId64 "\n", this->avi->audio[i]->audio_idx.audio_chunks, min_pos, max_pos);
       while (min_pos < max_pos) {
         cur_pos = this->avi->audio[i]->audio_posc = (max_pos + min_pos) / 2;
         if (cur_pos == min_pos) break;
@@ -2168,7 +2168,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
           } else {
             min_pos = cur_pos;
           }
-          lprintf ("audio_pts = %lld %lld < %lld < %lld\n",
+          lprintf ("audio_pts = %" PRId64 " %" PRId64 " < %" PRId64 " < %" PRId64 "\n",
                    audio_pts, min_pos, cur_pos, max_pos);
         } else {
           if (cur_pos > min_pos) {
@@ -2180,7 +2180,7 @@ static int demux_avi_seek_internal (demux_avi_t *this) {
           }
         }
       }
-      lprintf ("audio_pts = %lld\n", audio_pts);
+      lprintf ("audio_pts = %" PRId64 "\n", audio_pts);
 
       /*
        * try to make audio pos more accurate for long index entries

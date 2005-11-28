@@ -13,7 +13,7 @@ AC_DEFUN([AM_PATH_FREETYPE2], [
   )
 
   if test x"$enable_freetype" = "xyes"; then
-    AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
+    AC_PATH_TOOL(FREETYPE_CONFIG, freetype-config, no)
     if test "$FREETYPE_CONFIG" = "no" ; then
       AC_MSG_RESULT([*** freetype-config not found, freetype2 support disabled **
   ])

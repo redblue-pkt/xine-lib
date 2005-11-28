@@ -5,7 +5,8 @@ libdir = $(XINE_PLUGINDIR)/post
 EXTRA_DIST = mmx.c xmmx.c ppc_drawings.s ppc_zoom_ultimate.s diff_against_release.patch
 
 ## -fomit-frame-pointer segfaults here
-CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g;s/-Os//g'`
+## Use -O2 if -Os is stripped or x86 does not build
+CFLAGS = `echo @CFLAGS@ | sed -e 's/-fomit-frame-pointer//g;s/-Os/-O2/g'`
 
 lib_LTLIBRARIES = xineplug_post_goom.la
 

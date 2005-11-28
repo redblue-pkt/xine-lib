@@ -31,7 +31,7 @@ AC_ARG_ENABLE(esdtest, AC_HELP_STRING([--disable-esdtest], [do not try to compil
      fi
   fi
 
-  AC_PATH_PROG(ESD_CONFIG, esd-config, no)
+  AC_PATH_TOOL(ESD_CONFIG, esd-config, no)
   min_esd_version=ifelse([$1], ,0.2.7,$1)
   AC_MSG_CHECKING([for ESD - version >= $min_esd_version])
   no_esd=""

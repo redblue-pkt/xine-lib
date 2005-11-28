@@ -1013,11 +1013,11 @@ static int tuner_tune_it (tuner_t *this, struct dvb_frontend_parameters
 
   strength=0;
   if(ioctl(this->fd_frontend,FE_READ_SIGNAL_STRENGTH,&strength) >= 0)
-    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Signal strength: %i\n",strength);
+    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Signal strength: %u\n",strength);
 
   strength=0;
   if(ioctl(this->fd_frontend,FE_READ_SNR,&strength) >= 0)
-    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Signal/Noise Ratio: %i\n",strength);
+    xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Signal/Noise Ratio: %u\n",strength);
  
   if (status & FE_HAS_LOCK && !(status & FE_TIMEDOUT)) {
     xprintf(this->xine,XINE_VERBOSITY_LOG,"input_dvb: Lock achieved at %lu Hz\n",(unsigned long)front_param->frequency);   
@@ -2406,7 +2406,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
       return 0;
   dvb_event_handler (this);
   xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,
-	  "input_dvb: reading %lld bytes...\n", len);
+	  "input_dvb: reading %" PRIdMAX " bytes...\n", (intmax_t)len);
 
 #ifndef DVB_NO_BUFFERING
   nbc_check_buffers (this->nbc); 
@@ -2459,8 +2459,8 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
 	  } 
 
       xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,
-	      "input_dvb: got %lld bytes (%lld/%lld bytes read)\n", 
-	      n, total,len);
+	      "input_dvb: got %" PRIdMAX " bytes (%" PRIdMAX "/%" PRIdMAX " bytes read)\n", 
+	      (intmax_t)n, (intmax_t)total, (intmax_t)len);
     
       if (n > 0){  
 	  this->curpos += n;
@@ -2517,7 +2517,7 @@ static off_t dvb_plugin_seek (input_plugin_t *this_gen, off_t offset,
 
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
 
-  xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"seek %lld bytes, origin %d\n", offset, origin);
+  xprintf(this->class->xine,XINE_VERBOSITY_DEBUG,"seek %" PRIdMAX " bytes, origin %d\n", (intmax_t)offset, origin);
 
   /* only relative forward-seeking is implemented */
 

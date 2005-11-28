@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.78 2005/02/03 07:19:05 valtri Exp $
+ * $Id: demux_film.c,v 1.79 2005/11/28 12:24:57 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -311,7 +311,7 @@ static int open_film_file(demux_film_t *film) {
         if (film->sample_table[j].pts > largest_pts)
           largest_pts = film->sample_table[j].pts;
 
-        llprintf(DEBUG_FILM_LOAD, "sample %4d @ %8" PRIxMAX ", %8X bytes, %s, pts %lld, duration %lld%s\n",
+        llprintf(DEBUG_FILM_LOAD, "sample %4d @ %8" PRIxMAX ", %8X bytes, %s, pts %lld, duration %" PRId64 "%s\n",
           j,
           (intmax_t)film->sample_table[j].sample_offset,
           film->sample_table[j].sample_size,
@@ -473,7 +473,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      llprintf(DEBUG_FILM_DEMUX, "sending video buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending video buf with %" PRId32 " bytes, %" PRId64 " pts, %" PRId32 " duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->video_fifo->put(this->video_fifo, buf);
     }
@@ -517,7 +517,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      llprintf(DEBUG_FILM_DEMUX, "sending video buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending video buf with %" PRId32 " bytes, %" PRId64 " pts, %" PRId32 " duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->video_fifo->put(this->video_fifo, buf);
     }
@@ -577,7 +577,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      llprintf(DEBUG_FILM_DEMUX, "sending mono audio buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending mono audio buf with %" PRId32 " bytes, %" PRId64 " pts, %" PRId32 " duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->audio_fifo->put(this->audio_fifo, buf);
 
@@ -648,7 +648,7 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      llprintf(DEBUG_FILM_DEMUX, "sending stereo audio buf with %d bytes, %lld pts, %d duration\n",
+      llprintf(DEBUG_FILM_DEMUX, "sending stereo audio buf with %" PRId32 " bytes, %" PRId64 " pts, %" PRId32 " duration\n",
         buf->size, buf->pts, buf->decoder_info[0]);
       this->audio_fifo->put(this->audio_fifo, buf);
     }

@@ -57,7 +57,7 @@ AC_ARG_ENABLE(xinetest,
   if test "x$enable_xinetest" != "xyes" ; then
     AC_MSG_CHECKING([for XINE-LIB version >= $min_xine_version])
   else
-    AC_PATH_PROG(XINE_CONFIG, xine-config, no)
+    AC_PATH_TOOL(XINE_CONFIG, xine-config, no)
     AC_MSG_CHECKING([for XINE-LIB version >= $min_xine_version])
     no_xine=""
     if test "$XINE_CONFIG" = "no" ; then

@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.14 2005/02/06 15:26:19 tmattern Exp $
+ * $Id: demux_slave.c,v 1.15 2005/11/28 12:24:57 valtri Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -123,7 +123,7 @@ static int demux_slave_next (demux_slave_t *this) {
     int64_t    disc_off;  /* discontinuity offset                                  */
     uint32_t   decoder_flags; /* stuff like keyframe, is_header ... see below      */
 
-    if( sscanf(s,"fifo=%10s size=%d type=%u pts=%lld disc=%lld flags=%u",
+    if( sscanf(s,"fifo=%10s size=%"  SCNd32 " type=%" SCNu32 " pts=%" SCNd64 " disc=%" SCNd64 " flags=%" SCNu32,
                fifo_name, &size, &type, &pts, &disc_off, &decoder_flags) != 6 ) {
       lprintf("'buffer' command error\n");
       this->status = DEMUX_FINISHED;

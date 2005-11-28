@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.59 2004/12/16 13:59:06 mroi Exp $
+ * $Id: dxr3_decode_video.c,v 1.60 2005/11/28 12:24:57 valtri Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -583,7 +583,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     
     delay = vpts - this->class->clock->get_current_time(
       this->class->clock);
-    llprintf(LOG_PTS, "SETPTS got %lld\n", vpts);
+    llprintf(LOG_PTS, "SETPTS got %" PRId64 "\n", vpts);
     /* SETPTS only if less then one second in the future and
      * either buffer has pts or sync_every_frame is set */
     if ((delay > 0) && (delay < 90000) &&
@@ -597,13 +597,13 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     
     if (delay >= 90000)   /* frame more than 1 sec ahead */
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	      "dxr3_decode_video: WARNING: vpts %lld is %.02f seconds ahead of time!\n",
+	      "dxr3_decode_video: WARNING: vpts %" PRId64 " is %.02f seconds ahead of time!\n",
 	      vpts, delay/90000.0);
     if (delay < 0)
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "dxr3_decode_video: WARNING: overdue frame.\n");
   }
   else if (buf->pts)
-    llprintf(LOG_PTS, "skip buf->pts = %lld (no vpts)\n", buf->pts);
+    llprintf(LOG_PTS, "skip buf->pts = %" PRId64 " (no vpts)\n", buf->pts);
   
   /* now write the content to the dxr3 mpeg device and, in a dramatic
    * break with open source tradition, check the return value

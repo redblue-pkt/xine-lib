@@ -21,7 +21,7 @@ AC_ARG_ENABLE(artstest, AC_HELP_STRING([--disable-artstest], [do not try to comp
      fi
   fi
 
-  AC_PATH_PROG(ARTS_CONFIG, artsc-config, no)
+  AC_PATH_TOOL(ARTS_CONFIG, artsc-config, no)
   
   min_arts_version=ifelse([$1], ,0.9.5,$1)
   AC_MSG_CHECKING(for ARTS artsc - version >= $min_arts_version)

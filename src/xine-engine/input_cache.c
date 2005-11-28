@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.8 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_cache.c,v 1.9 2005/11/28 12:25:21 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -258,7 +258,7 @@ static off_t cache_plugin_seek_time(input_plugin_t *this_gen, int time_offset, i
   cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
   off_t cur_pos;
   
-  lprintf("time_offset: %ld, origin: %d\n", time_offset, origin);
+  lprintf("time_offset: %d, origin: %d\n", time_offset, origin);
   this->seek_call++;
 
   cur_pos = this->main_input_plugin->seek_time(this->main_input_plugin, time_offset, origin);

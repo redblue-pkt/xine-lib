@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.64 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_net.c,v 1.65 2005/11/28 12:24:57 valtri Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -253,7 +253,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
   off_t n, total;
 
-  lprintf("reading %d bytes...\n", len);
+  lprintf("reading %" PRIdMAX " bytes...\n", (intmax_t)len);
 
   total=0;
   if (this->curpos < this->preview_size) {
@@ -261,7 +261,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
     if (n > (len - total))
       n = len - total;
 
-    lprintf("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
+    lprintf("%" PRIdMAX " bytes from preview (which has %" PRIdMAX " bytes)\n", (intmax_t)n, (intmax_t)this->preview_size);
 
     memcpy (&buf[total], &this->preview[this->curpos], n);
     this->curpos += n;

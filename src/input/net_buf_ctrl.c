@@ -118,11 +118,12 @@ void nbc_check_buffers (nbc_t *this) {
 }
 
 static void display_stats (nbc_t *this) {
-  char *buffering[2] = {"   ", "buf"};
-  char *enabled[2]   = {"off", "on "};
+  const char *buffering[2] = {"   ", "buf"};
+  const char *enabled[2]   = {"off", "on "};
   
-  printf("net_buf_ctrl: vid %3d%% %4.1fs %4lldkbps %1d, "\
-	 "aud %3d%% %4.1fs %4lldkbps %1d, %s %s\r",
+  printf("bufing: %d, enb: %d\n", this->buffering, this->enabled);
+  printf("net_buf_ctrl: vid %3d%% %4.1fs %4" PRId64 "kbps %1d, "\
+	 "aud %3d%% %4.1fs %4" PRId64 "kbps %1d, %s %s\r",
 	 this->video_fifo_fill,
 	 (float)(this->video_fifo_length / 1000),
 	 this->video_br / 1000,

@@ -27,7 +27,7 @@ AC_ARG_ENABLE(libfametest, AC_HELP_STRING([--disable-libfametest], [do not try t
      fi
   fi
 
-  AC_PATH_PROG(LIBFAME_CONFIG, libfame-config, no)
+  AC_PATH_TOOL(LIBFAME_CONFIG, libfame-config, no)
   min_libfame_version=ifelse([$1], , 0.9.0, $1)
   AC_MSG_CHECKING(for libfame - version >= $min_libfame_version)
   no_libfame=""

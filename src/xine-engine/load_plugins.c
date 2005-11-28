@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.216 2005/09/19 16:14:02 valtri Exp $
+ * $Id: load_plugins.c,v 1.217 2005/11/28 12:25:21 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -794,8 +794,8 @@ static void save_plugin_list(FILE *fp, xine_list_t *plugins) {
 
     file = node->file;
     fprintf(fp, "[%s]\n", file->filename );
-    fprintf(fp, "size=%llu\n", (uint64_t) file->filesize );
-    fprintf(fp, "mtime=%llu\n", (uint64_t) file->filemtime );
+    fprintf(fp, "size=%" PRId64 "\n", (uint64_t) file->filesize );
+    fprintf(fp, "mtime=%" PRId64 "\n", (uint64_t) file->filemtime );
     fprintf(fp, "type=%d\n", node->info->type );
     fprintf(fp, "api=%d\n", node->info->API );
     fprintf(fp, "id=%s\n", node->info->id );
@@ -913,10 +913,10 @@ static void load_plugin_list(FILE *fp, xine_list_t *plugins) {
         }
       } else if (node) {
         if( !strcmp("size",line) ) {
-          sscanf(value," %llu",&llu);
+          sscanf(value," %" SCNu64,&llu);
           file->filesize = (off_t) llu;
         } else if( !strcmp("mtime",line) ) {
-          sscanf(value," %llu",&llu);
+          sscanf(value," %" SCNu64,&llu);
           file->filemtime = (time_t) llu;
         } else if( !strcmp("type",line) ) {
           sscanf(value," %d",&i);

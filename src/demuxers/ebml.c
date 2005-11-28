@@ -20,7 +20,7 @@
  * EBML parser
  * a lot of ideas from the gstreamer parser
  *
- * $Id: ebml.c,v 1.3 2005/02/03 07:19:06 valtri Exp $
+ * $Id: ebml.c,v 1.4 2005/11/28 12:24:57 valtri Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -73,14 +73,14 @@ uint32_t ebml_get_next_level(ebml_parser_t *ebml, ebml_elem_t *elem) {
   if (ebml->level > 0) {
     parent_elem = &ebml->elem_stack[ebml->level - 1];
     while ((elem->start + elem->len) >= (parent_elem->start + parent_elem->len)) {
-      lprintf("parent: %lld, %lld; elem: %lld, %lld\n",
-              parent_elem->start, parent_elem->len, elem->start, elem->len);
+      lprintf("parent: %" PRIdMAX ", %" PRIu64 "; elem: %" PRIdMAX  ", %" PRIu64 "\n",
+              (intmax_t)parent_elem->start, parent_elem->len, (intmax_t)elem->start, elem->len);
       ebml->level--;
       if (ebml->level == 0) break;
       parent_elem = &ebml->elem_stack[ebml->level - 1];
     }
   }
-  lprintf("id: 0x%x, len: %lld, next_level: %d\n", elem->id, elem->len, ebml->level);
+  lprintf("id: 0x%x, len: %" PRIu64 ", next_level: %d\n", elem->id, elem->len, ebml->level);
   return ebml->level;
 }
 
@@ -231,7 +231,7 @@ int ebml_read_uint(ebml_parser_t *ebml, ebml_elem_t *elem, uint64_t *num) {
 
   if ((elem->len < 1) || (elem->len > 8)) {
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: Invalid integer element size %lld\n", size);
+            "ebml: Invalid integer element size %" PRIu64 "\n", size);
     return 0;
   }
   
@@ -253,7 +253,7 @@ int ebml_read_sint (ebml_parser_t *ebml, ebml_elem_t  *elem, int64_t *num) {
 
   if ((elem->len < 1) || (elem->len > 8)) {
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: Invalid integer element size %lld\n", size);
+            "ebml: Invalid integer element size %" PRIu64 "\n", size);
     return 0;
   }
   
@@ -281,7 +281,7 @@ int ebml_read_float (ebml_parser_t *ebml, ebml_elem_t *elem, double *num) {
 
   if ((size != 4) && (size != 8) && (size != 10)) {
     xprintf(ebml->xine, XINE_VERBOSITY_LOG,
-            "ebml: Invalid float element size %lld\n", size);
+            "ebml: Invalid float element size %" PRIu64 "\n", size);
     return 0;
   }
 
@@ -335,7 +335,7 @@ int ebml_read_master (ebml_parser_t *ebml, ebml_elem_t *elem) {
     top_elem->id = elem->id;
   
     ebml->level++;
-    lprintf("id: 0x%x, len: %lld, level: %d\n", elem->id, elem->len, ebml->level);
+    lprintf("id: 0x%x, len: %" PRIu64 ", level: %d\n", elem->id, elem->len, ebml->level);
     if (ebml->level >= EBML_STACK_SIZE) {
       xprintf(ebml->xine, XINE_VERBOSITY_LOG,
               "ebml: max level exceeded\n");
@@ -388,7 +388,7 @@ int ebml_check_header(ebml_parser_t *ebml) {
 
         if (!ebml_read_uint (ebml, &elem, &num))
           return 0;
-        lprintf("ebml_version: %lld\n", num);
+        lprintf("ebml_version: %" PRIu64 "\n", num);
         ebml->version = num;
         break;
       }
@@ -398,7 +398,7 @@ int ebml_check_header(ebml_parser_t *ebml) {
 
         if (!ebml_read_uint (ebml, &elem, &num))
           return 0;
-        lprintf("ebml_read_version: %lld\n", num);
+        lprintf("ebml_read_version: %" PRIu64 "\n", num);
         if (num != EBML_VERSION)
           return 0;
         ebml->read_version = num;
@@ -410,7 +410,7 @@ int ebml_check_header(ebml_parser_t *ebml) {
 
         if (!ebml_read_uint (ebml, &elem, &num))
           return 0;
-        lprintf("ebml_max_id_length: %lld\n", num);
+        lprintf("ebml_max_id_length: %" PRIu64 "\n", num);
         ebml->max_id_len = num;
         break;
       }
@@ -420,7 +420,7 @@ int ebml_check_header(ebml_parser_t *ebml) {
 
         if (!ebml_read_uint (ebml, &elem, &num))
           return 0;
-        lprintf("ebml_max_size_length: %lld\n", num);
+        lprintf("ebml_max_size_length: %" PRIu64 "\n", num);
         ebml->max_size_len = num;
         break;
       }
@@ -444,7 +444,7 @@ int ebml_check_header(ebml_parser_t *ebml) {
 
         if (!ebml_read_uint (ebml, &elem, &num))
           return 0;
-        lprintf("doctype_version: %lld\n", num);
+        lprintf("doctype_version: %" PRIu64 "\n", num);
         ebml->doctype_version = num;
         break;
       }
@@ -454,7 +454,7 @@ int ebml_check_header(ebml_parser_t *ebml) {
 
         if (!ebml_read_uint (ebml, &elem, &num))
           return 0;
-        lprintf("doctype_read_version: %lld\n", num);
+        lprintf("doctype_read_version: %" PRIu64 "\n", num);
         ebml->doctype_read_version = num;
         break;
       }

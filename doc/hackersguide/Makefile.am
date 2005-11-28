@@ -7,12 +7,16 @@ hackersguide_sgml = hackersguide.sgml \
 		    internals.sgml \
 		    stream.sgml \
 		    output.sgml
+hackersguide_fig = architecture.fig \
+		   library.fig \
+		   overlays.fig \
+		   post_frame.fig
 
 docs_DATA = hackersguide.html \
             architecture.png library.png overlays.png post_frame.png
 
-EXTRA_DIST = README $(hackersguide_sgml) \
-	architecture.fig library.fig overlays.fig post_frame.fig $(docs_DATA)
+EXTRA_DIST = README $(hackersguide_sgml) $(hackersguide_fig) \
+	 $(docs_DATA)
 
 docsdir = $(prefix)/share/doc/xine/hackersguide
 
@@ -20,9 +24,9 @@ docs: $(docs_DATA)
 
 distclean-local: clean-docs
 
-docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml) $(wildcard *.fig))
+docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml))
 	if test "$(srcdir)" != "." ; then \
-	  for file in $(hackersguide_sgml) *.fig ; do \
+	  for file in $(hackersguide_sgml) ; do \
 	    test -f ./$$file -a ./$$file -nt $(srcdir)/$$file || cp $(srcdir)/$$file .; \
 	  done ; \
 	fi
@@ -58,11 +62,9 @@ endif
 
 if HAVE_FIG2DEV
 %.png: %.fig
-	@$(MAKE) docs-prepare
 	$(FIG2DEV) -L png -S 4 $< $@;
 else
 %.png: %.fig
-	@$(MAKE) docs-prepare
 	if test x"$(fail_if_missing)" = x"yes"; then \
 	  echo "Please install fig2dev."; \
 	  exit 1; \

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_mpeg_encoders.c,v 1.23 2005/02/09 20:03:22 tmattern Exp $
+ * $Id: dxr3_mpeg_encoders.c,v 1.24 2005/11/28 12:24:57 valtri Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin.
@@ -29,7 +29,6 @@
 #endif
 
 #ifdef HAVE_LIBRTE
-#  define _GNU_SOURCE
 #  include <unistd.h>
 #  include <rte.h>
 #endif

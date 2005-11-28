@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.51 2004/10/08 20:39:51 mroi Exp $
+ * $Id: dxr3_decode_spu.c,v 1.52 2005/11/28 12:24:57 valtri Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -519,7 +519,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
     uint32_t vpts32;
     
     vpts = this->stream->metronom->got_spu_packet(this->stream->metronom, buf->pts);
-    llprintf(LOG_PTS, "pts = %lld vpts = %lld\n", buf->pts, vpts);
+    llprintf(LOG_PTS, "pts = %" PRId64 " vpts = %" PRIu64 "\n", buf->pts, vpts);
     vpts32 = vpts;
     if (ioctl(this->fd_spu, EM8300_IOCTL_SPU_SETPTS, &vpts32))
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 

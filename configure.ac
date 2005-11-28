@@ -871,7 +871,7 @@ dnl ---------------------------------------------
 dnl Find pkg-config
 dnl ---------------------------------------------
 
-AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+AC_PATH_TOOL(PKG_CONFIG, pkg-config, no)
 if test x$PKG_CONFIG = xno ; then
   echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
   echo "*** All of DIRECTFB dependent parts will be disabled"
@@ -1240,7 +1240,7 @@ AC_ARG_ENABLE([imagemagick],
   [with_imagemagick=$enableval], [with_imagemagick=yes])
 
 if test "x$with_imagemagick" = "xyes"; then
-  AC_PATH_PROG(WAND_CONFIG, Wand-config, no)
+  AC_PATH_TOOL(WAND_CONFIG, Wand-config, no)
   if test "$WAND_CONFIG" = "no" ; then
     AC_MSG_RESULT([*** All Imagemagick dependent parts will be disabled, Wand-config not found. ***])
     have_imagemagick="no"
@@ -1788,6 +1788,33 @@ dnl AM_CONDITIONAL(HAVE_MODPLUG, [test x"$have_modplug" = x"yes"])
 
 
 dnl ---------------------------------------------
+dnl Win32 DLL codecs
+dnl ---------------------------------------------
+AC_ARG_ENABLE([w32dll],
+  AC_HELP_STRING([--disable-w32dll], [Disable Win32 DLL support]),
+  enable_w32dll=$enableval, [
+    AC_MSG_CHECKING([whether to enable Win32 DLL support])
+    case "$host_or_hostalias" in
+      *-mingw* | *-cygwin)
+        enable_w32dll="no"
+        ;;
+      i?86-* | k?-* | athlon-* | pentium*-)
+        enable_w32dll="yes"
+        ;;
+      *)
+        enable_w32dll="no"
+    esac
+    AC_MSG_RESULT([$enable_w32dll])])
+AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
+if test x"$enable_w32dll" = "xyes"; then
+   W32DLL_DEP=""
+else 
+   W32DLL_DEP="#"
+fi
+AC_SUBST(W32DLL_DEP)
+
+
+dnl ---------------------------------------------
 dnl ip_mreqn
 dnl ---------------------------------------------
 
@@ -1865,7 +1892,6 @@ DEBUG_CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
 
 AC_OPTIMIZATIONS
 
-enable_w32dll="no"
 enable_ffmmx="no"
 enable_armv4l="no"
 
@@ -1880,14 +1906,9 @@ case "$host_or_hostalias" in
     AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
     AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
     enable_ffmmx="yes"
-    enable_w32dll="yes"
 
     case "$host_or_hostalias" in
-      *-*-mingw*)
-        enable_w32dll="no" 
-        ;;
       *-*-cygwin) 
-        enable_w32dll="no" 
         LIBS="$LIBS @INTLLIBS@ -lkernel32"
         ;;
     esac
@@ -1973,14 +1994,6 @@ case "$host_or_hostalias" in
 esac
 
 AM_CONDITIONAL(HOST_OS_DARWIN, test x"$HOST_OS_DARWIN" = "x1")
-
-AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
-if test x"$enable_w32dll" = "xyes"; then
-   W32DLL_DEP=""
-else 
-   W32DLL_DEP="#"
-fi
-AC_SUBST(W32DLL_DEP)
 
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
 

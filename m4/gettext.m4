@@ -122,7 +122,7 @@ return (int) gettext ("")]ifelse([$2], need-ngettext, [ + (int) ngettext ("", ""
 	     dnl Search for GNU msgfmt in the PATH.
 	     AM_PATH_PROG_WITH_TEST(MSGFMT, msgfmt,
 	       [$ac_dir/$ac_word --statistics /dev/null >/dev/null 2>&1], :)
-	     AC_PATH_PROG(GMSGFMT, gmsgfmt, $MSGFMT)
+	     AC_PATH_TOOL(GMSGFMT, gmsgfmt, $MSGFMT)
 
 	     dnl Search for GNU xgettext in the PATH.
 	     AM_PATH_PROG_WITH_TEST(XGETTEXT, xgettext,
@@ -144,7 +144,7 @@ return (int) gettext ("")]ifelse([$2], need-ngettext, [ + (int) ngettext ("", ""
         INTLOBJS="\$(GETTOBJS)"
         AM_PATH_PROG_WITH_TEST(MSGFMT, msgfmt,
 	  [$ac_dir/$ac_word --statistics /dev/null >/dev/null 2>&1], :)
-        AC_PATH_PROG(GMSGFMT, gmsgfmt, $MSGFMT)
+        AC_PATH_TOOL(GMSGFMT, gmsgfmt, $MSGFMT)
         AM_PATH_PROG_WITH_TEST(XGETTEXT, xgettext,
 	  [$ac_dir/$ac_word --omit-header /dev/null >/dev/null 2>&1], :)
         AC_SUBST(MSGFMT)

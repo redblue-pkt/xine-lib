@@ -36,7 +36,7 @@
  * * ANIM (Animations)
  *   - Animation works fine, without seeking.
  *
- * $Id: demux_iff.c,v 1.13 2005/02/06 15:26:16 tmattern Exp $
+ * $Id: demux_iff.c,v 1.14 2005/11/28 12:24:57 valtri Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -927,7 +927,7 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
           buf->decoder_flags           |= BUF_FLAG_FRAME_END;
 
         xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
-                 "sending audio buf with %d bytes, %lld pts, %d duration\n",
+                 "sending audio buf with %" PRId32 " bytes, %" PRId64 " pts, %" PRId32 " duration\n",
                  buf->size, buf->pts, buf->decoder_info[0]);
         this->audio_fifo->put(this->audio_fifo, buf);
       }

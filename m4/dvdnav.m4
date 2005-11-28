@@ -57,7 +57,7 @@ AC_ARG_ENABLE(dvdnavtest,
   if test "x$enable_dvdnavtest" != "xyes" ; then
     AC_MSG_CHECKING([for DVDNAV-LIB version >= $min_dvdnav_version])
   else
-    AC_PATH_PROG(DVDNAV_CONFIG, dvdnav-config, no)
+    AC_PATH_TOOL(DVDNAV_CONFIG, dvdnav-config, no)
     AC_MSG_CHECKING([for DVDNAV-LIB version >= $min_dvdnav_version])
     no_dvdnav=""
     if test "$DVDNAV_CONFIG" = "no" ; then

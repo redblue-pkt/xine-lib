@@ -69,7 +69,7 @@ AC_ARG_ENABLE(aalibtest,
     if test ! -x "$AALIB_CONFIG"; then
       AALIB_CONFIG=""
     fi
-    AC_PATH_PROG(AALIB_CONFIG, aalib-config, no)
+    AC_PATH_TOOL(AALIB_CONFIG, aalib-config, no)
 
     if test "$AALIB_CONFIG" = "no" ; then
 
@@ -93,7 +93,7 @@ dnl aalib-config is missing, check for old aainfo
       fi
 
       if test x"$aalib_config_prefix" = "x"; then
-        AC_PATH_PROG(AAINFO, aainfo, no)
+        AC_PATH_TOOL(AAINFO, aainfo, no)
       else
         AC_MSG_CHECKING(for $AAINFO)
         if test -x $AAINFO; then 

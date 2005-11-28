@@ -967,7 +967,7 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
 	      _("osd: can't find out current locale character set\n"));
       return 0;
     }
-    lprintf("locale encoding='%s'\n", osd, enc);
+    lprintf("locale encoding='%s'\n", enc);
   } else
     enc = strdup(encoding);
 

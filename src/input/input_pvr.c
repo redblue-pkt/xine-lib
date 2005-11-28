@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.56 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_pvr.c,v 1.57 2005/11/28 12:24:57 valtri Exp $
  */
 
 /**************************************************************************
@@ -646,7 +646,7 @@ static int pvr_rec_file(pvr_input_plugin_t *this) {
   pos = (off_t)(this->rec_blk - this->page_block[this->rec_page]) * PVR_BLOCK_SIZE;
   if( lseek (this->rec_fd, pos, SEEK_SET) != pos ) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	    "input_pvr: error setting position for writing %lld\n", pos);
+	    "input_pvr: error setting position for writing %" PRIdMAX "\n", (intmax_t)pos);
     return 0;
   }
   if( this->rec_fd != -1 ) {
@@ -772,7 +772,7 @@ static int pvr_play_file(pvr_input_plugin_t *this, fifo_buffer_t *fifo, uint8_t 
       pos = (off_t)(this->play_blk - this->page_block[this->play_page]) * PVR_BLOCK_SIZE;
       if( lseek (this->play_fd, pos, SEEK_SET) != pos ) {
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-		"input_pvr: error setting position for reading %lld\n", pos);
+		"input_pvr: error setting position for reading %" PRIdMAX "\n", (intmax_t)pos);
         return 0;
       }
       if( read(this->play_fd, buffer, PVR_BLOCK_SIZE) < PVR_BLOCK_SIZE ) {

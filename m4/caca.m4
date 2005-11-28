@@ -44,7 +44,7 @@ AC_ARG_ENABLE(cacatest,
     if test ! -x "$CACA_CONFIG"; then
       CACA_CONFIG=""
     fi
-    AC_PATH_PROG(CACA_CONFIG, caca-config, no)
+    AC_PATH_TOOL(CACA_CONFIG, caca-config, no)
 
     if test "$CACA_CONFIG" = "no" ; then
 dnl

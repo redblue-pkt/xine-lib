@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.40 2005/10/03 18:22:29 tmattern Exp $
+ * $Id: demux_matroska.c,v 1.41 2005/11/28 12:24:57 valtri Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -163,7 +163,7 @@ static void check_newpts (demux_matroska_t *this, int64_t pts,
     if (pts && (this->send_newpts || (track->last_pts && abs(diff)>WRAP_THRESHOLD)) ) {
       int i;
 
-      lprintf ("sending newpts %lld, diff %lld, track %d\n", pts, diff, track->track_num);
+      lprintf ("sending newpts %" PRId64 ", diff %" PRId64 ", track %d\n", pts, diff, track->track_num);
 
       if (this->buf_flag_seek) {
         _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -179,7 +179,7 @@ static void check_newpts (demux_matroska_t *this, int64_t pts,
     } else {
   #ifdef LOG
       if (pts)
-        lprintf ("diff %lld, track %d\n", diff, track->track_num);
+        lprintf ("diff %" PRId64 ", track %d\n", diff, track->track_num);
   #endif
     }
 
@@ -255,7 +255,7 @@ static int parse_info(demux_matroska_t *this) {
     this->timecode_scale = 1000000;
   }
   this->duration = (int)(duration * (double)this->timecode_scale / 1000000.0);
-  lprintf("timecode_scale: %lld\n", this->timecode_scale);
+  lprintf("timecode_scale: %" PRId64 "\n", this->timecode_scale);
   lprintf("duration: %d\n", this->duration);
   return 1;
 }
@@ -369,7 +369,7 @@ static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
   
   if (track->codec_private_len > buf->max_size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
+            "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%" PRId32 ")\n",
              track->codec_private_len, buf->max_size);
     buf->free_buffer(buf);
     return;
@@ -408,7 +408,7 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
 
   if (track->codec_private_len > buf->max_size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
+            "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%" PRId32 ")\n",
              track->codec_private_len, buf->max_size);
     buf->free_buffer(buf);
     return;
@@ -451,7 +451,7 @@ static void init_codec_real(demux_matroska_t *this, matroska_track_t * track) {
   
   if (track->codec_private_len > buf->max_size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
+            "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%" PRId32 ")\n",
              track->codec_private_len, buf->max_size);
     buf->free_buffer(buf);
     return;
@@ -505,7 +505,7 @@ static void init_codec_vorbis(demux_matroska_t *this, matroska_track_t *track) {
     
     if (frame[i] > buf->max_size) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-              "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%d)\n",
+              "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%" PRId32 ")\n",
               frame[i], buf->max_size);
       buf->free_buffer(buf);
       return;
@@ -788,7 +788,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
 
     if (chunk_tab_size > buf->max_size) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-              "demux_matroska: Real Chunk Table length (%d) is greater than fifo buffer length (%d)\n",
+              "demux_matroska: Real Chunk Table length (%d) is greater than fifo buffer length (%" PRId32 ")\n",
               chunk_tab_size, buf->max_size);
       buf->free_buffer(buf);
       return;
@@ -822,7 +822,7 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
   int dest_len;
   int skip = 0;
 
-  lprintf ("pts: %lld, duration: %d\n", data_pts, data_duration);
+  lprintf ("pts: %" PRId64 ", duration: %d\n", data_pts, data_duration);
   /* skip ',' */
   while (data_len && (commas < 8)) {
     if (*data == ',') commas++;
@@ -1665,14 +1665,14 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
   flags = *data;
   data += 1;
   
-  lprintf("track_num: %lld, timecode_diff: %d, flags: 0x%x\n", track_num, timecode_diff, flags);
+  lprintf("track_num: %" PRId64 ", timecode_diff: %d, flags: 0x%x\n", track_num, timecode_diff, flags);
 
   gap = flags & 1;
   lacing = (flags >> 1) & 0x3;
 
   if (!find_track_by_id(this, (int)track_num, &track)) {
      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-             "demux_matroska: invalid track id: %lld\n", track_num);
+             "demux_matroska: invalid track id: %" PRId64 "\n", track_num);
      return 0;
   }
 
@@ -1696,7 +1696,7 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
     block_duration = track->default_duration;
     xduration = (int64_t)block_duration * (int64_t)90 / (int64_t)1000000;
   }
-  lprintf("pts: %lld, duration: %lld\n", pts, xduration);
+  lprintf("pts: %" PRId64 ", duration: %" PRId64 "\n", pts, xduration);
 
   check_newpts(this, pts, track);
 
@@ -1710,7 +1710,7 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
     lprintf("no lacing\n");
 
     block_size_left = (this->block_data + block_size) - data;
-    lprintf("size: %d, block_size: %lld\n", block_size_left, block_size);
+    lprintf("size: %d, block_size: %" PRIu64 "\n", block_size_left, block_size);
 
     if (track->handle_content != NULL) {
       track->handle_content((demux_plugin_t *)this, track,
@@ -1863,7 +1863,7 @@ static int parse_block_group(demux_matroska_t *this,
         /* should override track duration */
         if (!ebml_read_uint(ebml, &elem, &block_duration))
           return 0;
-        lprintf("duration: %lld\n", block_duration);
+        lprintf("duration: %" PRIu64 "\n", block_duration);
         break;
       case MATROSKA_ID_CL_REFERENCEBLOCK:
         is_key = 0;
@@ -2078,7 +2078,7 @@ static int parse_top_level_head(demux_matroska_t *this, int *next_level) {
   off_t current_pos;
   
   current_pos = this->input->get_current_pos(this->input);
-  lprintf("current_pos: %lld\n", current_pos);
+  lprintf("current_pos: %" PRIdMAX "\n", (intmax_t)current_pos);
   
   if (!ebml_read_elem_head(ebml, &elem))
     return 0;
@@ -2447,16 +2447,16 @@ static int demux_matroska_seek (demux_plugin_t *this_gen,
 
   entry = binary_seek(index, start_pos, start_time);
   if (entry == -1) {
-    lprintf("seeking for track %d to %s %lld - no entry found/EOS.\n",
+    lprintf("seeking for track %d to %s %" PRIdMAX " - no entry found/EOS.\n",
             index->track_num, start_pos ? "pos" : "time",
-            start_pos ? (int64_t)start_pos : (int64_t)start_time);
+            start_pos ? (intmax_t)start_pos : (intmax_t)start_time);
     this->status = DEMUX_FINISHED;
 
   } else {
-    lprintf("seeking for track %d to %s %lld. decision is #%d at %lld/%lld\n",
+    lprintf("seeking for track %d to %s %" PRIdMAX ". decision is #%d at %" PRIu64 "/%" PRIdMAX "\n",
             index->track_num, start_pos ? "pos" : "time",
-            start_pos ? (int64_t)start_pos : (int64_t)start_time,
-            index->track_num, index->timecode[entry], index->pos[entry]);
+            start_pos ? (intmax_t)start_pos : (intmax_t)start_time,
+            index->track_num, index->timecode[entry], (intmax_t)index->pos[entry]);
     
     if (this->input->seek(this->input, index->pos[entry], SEEK_SET) < 0)
       this->status = DEMUX_FINISHED;
