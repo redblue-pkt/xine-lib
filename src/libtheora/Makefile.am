@@ -11,5 +11,5 @@ endif
 lib_LTLIBRARIES = $(theora_module)
 
 xineplug_decode_theora_la_SOURCES = xine_decoder.c
-xineplug_decode_theora_la_LIBADD = $(OGG_LIBS) $(THEORA_LIBS)
+xineplug_decode_theora_la_LIBADD = $(OGG_LIBS) $(THEORA_LIBS) $(XINE_LIB)
 xineplug_decode_theora_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
