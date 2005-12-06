@@ -1,6 +1,7 @@
-debian/tmp/usr/lib/libxine*.so.*
-debian/tmp/usr/lib/xine/plugins/*/post/*.so
-debian/tmp/usr/lib/xine/plugins/*/*.so
-debian/tmp/usr/lib/xine/plugins/*/vidix/*.so
-debian/tmp/usr/share/locale
-debian/tmp/usr/share/xine
+usr/lib/libxine*.so.*
+usr/lib/xine/plugins/*/post/*.so
+usr/lib/xine/plugins/*/*.so
+usr/lib/xine/plugins/*/vidix/*.so
+usr/share/locale
+usr/share/xine
+usr/share/man/man5/xine.5

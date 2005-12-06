@@ -1,12 +1,31 @@
-xine-lib (1.1.0-0) unstable; urgency=high
+xine-lib (1.1.1-0) unstable; urgency=low
 
-  * Add debian/watch file for uscan.
+  * Darren Salt:
+    - Add debian/watch file for uscan.
+    - Convert debian/copyright to UTF-8.
+    - Add build-dep on libvcdinfo-dev.
+    - Bump standards version to 3.6.2 (no changes *yet* - CHECK THIS)
+    - Make "post-Sarge"-tagged changes to debian/rules and strip debian/tmp/
+      from debian/*.install.
+    - Remove *.gmo on clean (Just In Case).
+    - Do a little preparation for a possible -dbg package.
   * Acknowledge NMUs.
     Backports and gcc 4.0 fixes dropped since they're already in this version.
     (Closes: #288189, #315986, #318838, #320317, #323276, #325960, #326935,   
              #327203, #328168, #328184, #328265, #328454)
+             #327203, #328168, #328184, #328265, #328454, #332919, #333692,
+	     #337996)
 
- -- Xxx Xxx <xxx@xxx.xx>  Sat, 15 Oct 2005 19:46:13 +0100
+ -- Xxx Xxx <xxx@xxx.xx>  Tue, 06 Dec 2005 19:54:07 +0000
+
+xine-lib (1.0.1-1.4) unstable; urgency=high
+
+  * Non-maintainer upload for RC-(security-)bugs.
+  * Apply patch from Ulf Harnhammar fixing a format string vulnerability
+    in CDDB response parsing (CVE-2005-2967, Closes: #332919, #333682).
+  * Fix bashism in debian/rules causing a FTBFS (Closes: #337996).
+
+ -- Thijs Kinkhorst <kink@squirrelmail.org>  Wed, 23 Nov 2005 09:42:39 +0100
 
 xine-lib (1.0.1-1.3) unstable; urgency=low
   * Non-maintainer upload.

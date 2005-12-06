@@ -69,7 +69,7 @@ build-stamp:
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp configure-stamp
+	rm -f build-stamp configure-stamp po/*.gmo
 	test -f Makefile && $(MAKE) distclean || true
 	dh_clean
 
@@ -91,17 +91,15 @@ binary-arch: build install
 	dh_testroot
 	#
 	# build libxine${major} package by moving files from libxine-dev
-	#TODO (when sarge is stable):
-	#use this dh_install line, and remove debian/tmp/ from *.install!
-	#dh_install --autodest --sourcedir=debian/tmp --list-missing
-	dh_install --autodest
+	dh_install --autodest --sourcedir=debian/tmp --list-missing
 	dh_installdocs
 	#ugly hack, documentation should never have been in /u/s/d/xine/...
-	mv debian/tmp/usr/share/doc/xine/{faq,README*} \
+	mv debian/tmp/usr/share/doc/xine/faq \
+	   debian/tmp/usr/share/doc/xine/README* \
 	   debian/libxine1/usr/share/doc/libxine1
 	dh_installchangelogs -k ChangeLog
 	dh_link
-	dh_strip
+	dh_strip -k
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs -V 'libxine1 (>= 1.0.1)'
