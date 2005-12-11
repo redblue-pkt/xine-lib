@@ -3,7 +3,7 @@ xine-lib (1.1.1-0) unstable; urgency=low
   * Darren Salt:
     - Add debian/watch file for uscan.
     - Convert debian/copyright to UTF-8.
-    - Add build-dep on libvcdinfo-dev.
+    - Add build-deps on libxv-dev and libvcdinfo-dev.
     - Bump standards version to 3.6.2 (no changes *yet* - CHECK THIS)
     - Make "post-Sarge"-tagged changes to debian/rules and strip debian/tmp/
       from debian/*.install.
@@ -12,7 +12,6 @@ xine-lib (1.1.1-0) unstable; urgency=low
   * Acknowledge NMUs.
     Backports and gcc 4.0 fixes dropped since they're already in this version.
     (Closes: #288189, #315986, #318838, #320317, #323276, #325960, #326935,   
-             #327203, #328168, #328184, #328265, #328454)
              #327203, #328168, #328184, #328265, #328454, #332919, #333692,
 	     #337996)
 
