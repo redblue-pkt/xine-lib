@@ -1,5 +1,5 @@
 xine-lib (1.1.2)
-
+  * Czech translation update
 
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

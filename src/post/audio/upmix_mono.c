@@ -22,7 +22,7 @@
  * This is an up-mix audio filter post plugin.
  * It simply converts Mono into Stereo.
  *
- * $Id: upmix_mono.c,v 1.3 2005/07/26 17:55:50 miguelfreitas Exp $
+ * $Id: upmix_mono.c,v 1.4 2005/12/12 15:44:02 valtri Exp $
  *
  */
 
@@ -149,7 +149,9 @@ static int upmix_mono_port_open(xine_audio_port_t *port_gen, xine_stream_t *stre
   } else {
     if ( this->channels != 1)
       xprintf(stream->xine, XINE_VERBOSITY_LOG,
-              _(LOG_MODULE ": upmixing a single channel from original %d channels stream.\n"), this->channels);
+              ngettext(LOG_MODULE ": upmixing a single channel from original %d channel stream.\n",
+                       LOG_MODULE ": upmixing a single channel from original %d channels stream.\n", 
+                       this->channels), this->channels);
     else {
       xprintf(stream->xine, XINE_VERBOSITY_LOG,
               _(LOG_MODULE ": audio device not capable of AO_CAP_MODE_STEREO.\n"));
