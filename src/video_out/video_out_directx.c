@@ -20,7 +20,7 @@
  * video_out_directx.c, direct draw video output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: video_out_directx.c,v 1.27 2005/11/21 14:18:56 valtri Exp $
+ * $Id: video_out_directx.c,v 1.28 2005/12/12 15:21:50 valtri Exp $
  */
 
 typedef unsigned char boolean;
@@ -854,8 +854,7 @@ static void win32_frame_dispose( vo_frame_t * vo_frame )
 {
   win32_frame_t * win32_frame = ( win32_frame_t * ) vo_frame;
 
-  if( win32_frame->buffer )
-    free( win32_frame->buffer );
+  free(win32_frame->buffer);
 
   win32_free_framedata(vo_frame);
 
@@ -996,13 +995,13 @@ static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame 
 #if NEW_YUV
 	  win32_driver->yuv2rgb->configure( win32_driver->yuv2rgb,
 					    win32_driver->width, win32_driver->height,
-					    win32_driver->width, win32_driver->width/2,
+				 	    win32_frame->vo_frame.pitches[0], win32_frame->vo_frame.pitches[1],
 					    win32_driver->width, win32_driver->height,
-					    win32_driver->width * win32_driver->bytespp );
+					    win32_driver->width * win32_driver->bytespp);
 #else
 	  yuv2rgb_setup( win32_driver->yuv2rgb,
 			 win32_driver->width, win32_driver->height,
-			 win32_driver->width, win32_driver->width/2,
+		 	 win32_frame->vo_frame.pitches[0], win32_frame->vo_frame.pitches[1],
 			 win32_driver->width, win32_driver->height,
 			 win32_driver->width * win32_driver->bytespp );
 
@@ -1022,14 +1021,14 @@ static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame 
 #if NEW_YUV
 	  win32_driver->yuv2rgb->configure( win32_driver->yuv2rgb,
 					    win32_driver->width, win32_driver->height,
-					    win32_driver->width, win32_driver->width/2,
+				 	    win32_frame->vo_frame.pitches[0], win32_frame->vo_frame.pitches[0] / 2,
 					    win32_driver->width, win32_driver->height,
 					    win32_driver->width * win32_driver->bytespp );
 #else
 
 	  yuv2rgb_setup( win32_driver->yuv2rgb,
 			 win32_driver->width, win32_driver->height,
-			 win32_driver->width, win32_driver->width/2,
+			 win32_frame->vo_frame.pitches[0], win32_frame->vo_frame.pitches[0] / 2,
 			 win32_driver->width, win32_driver->height,
 			 win32_driver->width * win32_driver->bytespp );
 
@@ -1066,22 +1065,22 @@ static void win32_display_frame( vo_driver_t * vo_driver, vo_frame_t * vo_frame 
 
 	    offset = 0;
 	    size   = frame->pitches[0] * frame->height;
-	    memcpy( img+offset, frame->base[0], size);
+	    xine_fast_memcpy( img+offset, frame->base[0], size);
 
 	    offset += size;
 	    size   = frame->pitches[2]* frame->height / 2;
-	    memcpy( img+offset, frame->base[2], size);
+	    xine_fast_memcpy( img+offset, frame->base[2], size);
 				
 	    offset += size;
 	    size   = frame->pitches[1] * frame->height / 2;
-	    memcpy( img+offset, frame->base[1], size);
+	    xine_fast_memcpy( img+offset, frame->base[1], size);
 	  }
 	  break;
 	case XINE_IMGFMT_YUY2:
-	  memcpy( win32_driver->contents, win32_frame->vo_frame.base[0], win32_frame->vo_frame.pitches[0] * win32_frame->vo_frame.height * 2);
+	  xine_fast_memcpy( win32_driver->contents, win32_frame->vo_frame.base[0], win32_frame->vo_frame.pitches[0] * win32_frame->vo_frame.height * 2);
 	  break;
 	default:
-	  memcpy( win32_driver->contents, win32_frame->vo_frame.base[0], win32_frame->vo_frame.pitches[0] * win32_frame->vo_frame.height * 2);
+	  xine_fast_memcpy( win32_driver->contents, win32_frame->vo_frame.base[0], win32_frame->vo_frame.pitches[0] * win32_frame->vo_frame.height * 2);
 	  break;
 	}
     }
