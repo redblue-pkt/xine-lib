@@ -68,6 +68,10 @@ AC_DEFUN([AC_FIND_LIBXV],
     xv_path=`echo $X_LIBS | sed -e 's/\-L\(.*\)/\1/'`
   fi
 
+  if test x$xv_path = x; then
+    xv_path=/usr/X11R6/lib
+  fi
+
   if test "x$xv_prefer_shared" = "xyes"; then  
     AC_PATH_LIBXV_IMPL([libXv.so])
   else
