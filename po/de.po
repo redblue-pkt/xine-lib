@@ -1,5 +1,5 @@
 # German xine-lib.po file.
-# Copyright (C) 2002,2003 Free Software Foundation, Inc.
+# Copyright (C) 2002-2005 Free Software Foundation, Inc.
 # Jens Gutzeit <jens.gutzeit@web.de>, 2002.
 #
 msgid ""
@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: http://sourceforge.net/tracker/?"
 "atid=109655&group_id=9655\n"
 "POT-Creation-Date: 2005-12-11 20:08+0100\n"
-"PO-Revision-Date: 2005-11-23 09:51+0200\n"
+"PO-Revision-Date: 2005-12-22 18:17+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -17,14 +17,13 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #: src/xine-engine/io_helper.c:237
-#, fuzzy
 msgid "io_helper: waiting abandoned\n"
-msgstr "io_helper: Zugriff verweigert\n"
+msgstr "io_helper: Warten aufgegeben\n"
 
 #: src/xine-engine/io_helper.c:244
-#, fuzzy, c-format
+#, c-format
 msgid "io_helper: waiting failed: %s\n"
-msgstr "input_rip: Positionierung fehlgeschlagen: %s\n"
+msgstr "io_helper: Warten fehlgeschlagen: %s\n"
 
 #: src/xine-engine/io_helper.c:299
 msgid "failed to get status of socket"
@@ -40,7 +39,7 @@ msgstr "io_helper: Datei nicht gefunden\n"
 
 #: src/xine-engine/io_helper.c:373
 msgid "io_helper: Connection Refused\n"
-msgstr "io_ehlper: Verbindung verweigert\n"
+msgstr "io_helper: Verbindung verweigert\n"
 
 #: src/xine-engine/load_plugins.c:308
 #, c-format
@@ -869,7 +868,7 @@ msgstr ""
 
 #: src/xine-engine/audio_out.c:2057
 msgid "play audio even on slow/fast speeds"
-msgstr ""
+msgstr "Audiowiedergabe während langsamer/schneller Geschwindigkeit"
 
 #: src/xine-engine/audio_out.c:2058
 msgid ""
@@ -878,6 +877,11 @@ msgid ""
 "pitch). If want to experiment preserving the pitch you may try the 'stretch' "
 "audio post plugin instead."
 msgstr ""
+"Diese Option aktiviert die Tonwiedergabe selbst bei "
+"Wiedergabegeschwindigkeiten ungleich 1×. Die Wiedergabe wird sich verzerrt "
+"anhören (höhere/tiefere Lage). Falls sie experimentieren und die Tonlage "
+"erhalten wollen, versuchen sie stattdessen das 'stretch' Audio-Wiedergabe-"
+"Plugin."
 
 #: src/xine-engine/audio_out.c:2129
 msgid "startup audio volume"
@@ -1622,7 +1626,7 @@ msgstr ""
 
 #: src/input/input_dvd.c:1890
 msgid "play mode when title/chapter is given"
-msgstr ""
+msgstr "Wiedergabemodus falls Titel/Kapitel angegeben"
 
 #: src/input/input_dvd.c:1891
 msgid ""
@@ -1635,6 +1639,14 @@ msgid ""
 "one chapter\n"
 "play just the specified title/chapter and then stop"
 msgstr ""
+"Legt das Verhalten der Wiedergabe von DVDs fest, wenn ein Titel/Kapitel (z."
+"B. per MRL 'dvd:/1.2') angegeben wird. Die Werte bedeuten:\n"
+"\n"
+"entire dvd\n"
+"Wiedergabe der gesamten DVD ab der angegebenen Position.\n"
+"\n"
+"one chapter\n"
+"Nur Wiedergabe des angegebenen Titels/Kapitels, danach Stopp."
 
 #: src/input/input_dvb.c:861
 #, c-format
@@ -1771,9 +1783,9 @@ msgid "gnome-vfs input plugin as shipped with xine"
 msgstr "Mit xine ausgeliefertes gnome-vfs Plugin"
 
 #: src/input/input_gnome_vfs.c:292 src/input/input_file.c:306
-#, fuzzy, c-format
+#, c-format
 msgid "input_file: File empty: >%s<\n"
-msgstr "input_file: Datei nicht gefunden: >%s<\n"
+msgstr "input_file: Datei leer: >%s<\n"
 
 #: src/input/input_stdin_fifo.c:166
 #, c-format
@@ -2670,19 +2682,16 @@ msgid "requested button not available\n"
 msgstr "Angeforderter Knopf nicht verfügbar\n"
 
 #: src/libfaad/xine_decoder.c:126
-#, fuzzy
 msgid "libfaad: libfaad NeAACDecOpen() failed.\n"
-msgstr "libfaad: libfaad faadDecOpne() schlug fehl.\n"
+msgstr "libfaad: libfaad NeAACDecOpen() schlug fehl.\n"
 
 #: src/libfaad/xine_decoder.c:135
-#, fuzzy
 msgid "libfaad: libfaad NeAACDecInit2 failed.\n"
-msgstr "libfaad: libfaad faacDecInit2 schlug fehl.\n"
+msgstr "libfaad: libfaad NeAACDecInit2 schlug fehl.\n"
 
 #: src/libfaad/xine_decoder.c:146
-#, fuzzy
 msgid "libfaad: libfaad NeAACDecInit failed.\n"
-msgstr "libfaad: libfaad faacDecInit schlug fehl.\n"
+msgstr "libfaad: libfaad NeAACDecInit schlug fehl.\n"
 
 #: src/audio_out/audio_alsa_out.c:376
 msgid "audio_alsa_out:Already open...WHY!"
@@ -4099,50 +4108,46 @@ msgstr "xine Videoausgabe mit OpenGL 3D Grafikschnittstelle"
 
 #: src/video_out/video_out_directfb.c:1064
 msgid "video layer buffering mode"
-msgstr ""
+msgstr "Videoebenen-Puffermodus"
 
 #: src/video_out/video_out_directfb.c:1065
 msgid ""
 "Select the buffering mode of the output layer. Double or triple buffering "
 "give a smoother playback, but consume more video memory."
 msgstr ""
+"Wählt den Puffermodus für die Ebene der Ausgabe. Doppel- oder "
+"Dreifachpufferung führen zu einer weicheren Wiedergabe, verbrauchen aber "
+"mehr Videospeicher."
 
 #: src/video_out/video_out_directfb.c:1072
 msgid "wait for vertical retrace"
-msgstr ""
+msgstr "Warte auf vertikalen Strahlenrücklauf"
 
 #: src/video_out/video_out_directfb.c:1073
-#, fuzzy
 msgid ""
 "Enable synchronizing the update of the video image to the repainting of the "
 "entire screen (\"vertical retrace\")."
 msgstr ""
-"Doppelpufferung synchronisiert das Aktualisieren des Videobildes mit der "
-"Darstellung des gesamten Bildschirms (\"Strahlenrücklauf\"). Dies verhindert "
-"Flackern und Fransenbildung, benötigt aber mehr Grafikspeicher."
+"Synchronisiert die Aktualisierung des Videobilds mit der Neudarstellung des "
+"Bildschirms (\"Vertikaler Strahlenrücklauf\")."
 
 #: src/video_out/video_out_directfb.c:1080
-#, fuzzy
 msgid "enable video color key"
-msgstr "Farbschlüssel für Overlay"
+msgstr "Aktiviert Farbschlüssel für Overlay"
 
 #: src/video_out/video_out_directfb.c:1081
-#, fuzzy
 msgid ""
 "Enable using a color key to tell the graphics card where to overlay the "
 "video image."
 msgstr ""
-"Der Farbschlüssel wird benutzt, um der Grafikkarte mitzuteilen, wo das Video "
-"eingeblendet werden kann. Probieren Sie verschiedenen Werte, falls einige "
-"Fenster durchscheinend werden."
+"Aktiviert die Benutzung eines Farbschlüssel, um der Grafikkarte mitzuteilen, "
+"wo das Videobild angezeigt werden soll."
 
 #: src/video_out/video_out_directfb.c:1087
-#, fuzzy
 msgid "video color key"
 msgstr "Farbschlüssel für Overlay"
 
 #: src/video_out/video_out_directfb.c:1088
-#, fuzzy
 msgid ""
 "The color key is used to tell the graphics card where to overlay the video "
 "image. Try different values, if you experience windows becoming transparent."
@@ -4153,63 +4158,67 @@ msgstr ""
 
 #: src/video_out/video_out_directfb.c:1097
 msgid "flicker filtering"
-msgstr ""
+msgstr "Flackerfilterung"
 
 #: src/video_out/video_out_directfb.c:1098
 msgid "Enable Flicker Filetring for a smooth output on an interlaced display."
 msgstr ""
+"Aktiviert die Flackerfilterung für eine weichere Wiedergabe auf "
+"Bildschirmen, die das Halbzeilenverfahren verwenden."
 
 #: src/video_out/video_out_directfb.c:1105
 msgid "field parity"
-msgstr ""
+msgstr "Feldpriorität"
 
 #: src/video_out/video_out_directfb.c:1106
 msgid ""
 "For an interlaced display, enable controlling the field parity (\"none"
 "\"=disabled)."
 msgstr ""
+"Für einen Bildschirm im Halbzeilenverfahren, erlaubt die Kontrolle der "
+"Feldpriorität (\"none\"=deaktiviert)."
 
 #: src/video_out/video_out_directfb.c:1216
 msgid "video_out_directfb: using hardware accelerated image scaling.\n"
 msgstr ""
+"video_out_directfb: Benutzt Hardwarebeschleunigung für Bildskalierung.\n"
 
 #: src/video_out/video_out_directfb.c:1228
 msgid ""
 "video_out_directfb: image scaling with deinterlacing is hardware "
 "accelerated.\n"
 msgstr ""
+"video_out_directfb: Bildskalierung mit deinterlating ist "
+"hardwarebeschleunigt.\n"
 
 #: src/video_out/video_out_directfb.c:1358
-#, fuzzy
 msgid "video layer id"
-msgstr "Videosättigung"
+msgstr "Videoebenen-Id"
 
 #: src/video_out/video_out_directfb.c:1359
 msgid "Select the video output layer by its id."
-msgstr ""
+msgstr "Wählt die Ausgabeebene für videos bei Id."
 
 #: src/video_out/video_out_directfb.c:1364
 msgid "video_out_directfb: no usable output layer was found!\n"
-msgstr ""
+msgstr "video_out_directfb: Keine benutzbare Ausgabeebene gefunden!\n"
 
 #: src/video_out/video_out_directfb.c:1373
 #: src/video_out/video_out_directfb.c:1374
 msgid "make the overlay behave like a fixed layer (for debugging)"
-msgstr ""
+msgstr "Überlagerungsebene verhält sich wie feste Ebene (zur Fehlersuche)"
 
 #: src/video_out/video_out_directfb.c:1444
-#, fuzzy
 msgid "xine video output plugin using DirectFB."
-msgstr "xine Videoausgabe benutzt DirectFB-Bibliothek"
+msgstr "xine Videoausgabe benutzt DirectFB"
 
 #: src/video_out/video_out_directfb.c:1539
 msgid "video_out_directfb: no usable overlay layer was found!\n"
-msgstr ""
+msgstr "video_out_directfb: Keine benutzbare Überlagerungsebene gefunden!\n"
 
 #: src/video_out/video_out_directfb.c:1603
-#, fuzzy
 msgid "xine video output plugin using DirectFB under XDirectFB."
-msgstr "xine Videoausgabe benutzt DirectFB-Bibliothek"
+msgstr "xine Videoausgabe benutzt DirectFB unter XDirectFB"
 
 #: src/video_out/video_out_pgx64.c:281
 msgid "video_out_pgx64: Error: can't grab DGA drawable for video window\n"
@@ -4922,7 +4931,6 @@ msgstr ""
 "* mplayer's unsharp (C) 2002 Rémi Guyomarch\n"
 
 #: src/post/planar/expand.c:230
-#, fuzzy
 msgid ""
 "The expand plugin is meant to take frames of arbitrary aspect ratio and "
 "converts them to a different aspect (4:3 by default) by adding black bars on "
@@ -4936,13 +4944,16 @@ msgid ""
 "\n"
 msgstr ""
 "Dieses expand-Plugin konvertiert Bilder mit beliebigem Seitenverhältnis in "
-"Bilder mit einem Seitenverhältnis von 4:3 durch Hinzufügen von schwarzen "
-"Balken am oberen und unteren Bildrand. Dadurch können Überlagerungen nach "
-"unten verschoben werden, so daß sie nicht das Bild überdecken.\n"
+"Bilder mit einem Seitenverhältnis (normalerweise von 4:3) durch Hinzufügen "
+"von schwarzen Balken am oberen und unteren Bildrand. Dadurch können "
+"Überlagerungen nach unten verschoben werden, so daß sie nicht das Bild "
+"überdecken.\n"
 "\n"
 "Parameter\n"
 "  Enable_automatic_shift: Automatisch Überlagerung verschieben\n"
 "  Overlay_y_offset: Manuelle vertikale Überlagerungsverschiebung\n"
+"  aspect: das Zielseitenverhältnis (normalerweise 4:3)\n"
+"\n"
 
 #: src/post/planar/pp.c:108
 msgid ""
@@ -5026,7 +5037,6 @@ msgstr ""
 "* mplayer's eq2 (C) Hampa Hug, Daniel Moreno, Richard Felker\n"
 
 #: src/post/deinterlace/xine_plugin.c:203
-#, fuzzy
 msgid ""
 "Advanced tvtime/deinterlacer plugin with pulldown detection\n"
 "This plugin aims to provide deinterlacing mechanisms comparable to high "
@@ -5128,10 +5138,10 @@ msgstr ""
 "Personen mit leistungsärmeren Systemen trotzdem die Entflechtungsalgorithmen "
 "als Kompromiss zwischen Qualität und CPU-Auslastung auszuprobieren.\n"
 "\n"
+"* Benutzt verschiedene Algorithmen von tvtime und vom dscaler Projekt.\n"
 "Deinterlacing methods: (Nicht alle Methoden stehen auf allen Platformen zur "
 "Verfügung)\n"
 "\n"
-"* Benutzt verschiedene Algorithmen von tvtime und vom dscaler Projekt.\n"
 
 #: src/post/deinterlace/xine_plugin.c:324
 msgid "tvtime: No deinterlacing methods available, exiting.\n"
@@ -5143,21 +5153,24 @@ msgid ""
 "Alternatively, one may use this plugin to listen just one channel of a given "
 "stream.\n"
 msgstr ""
+"Dieser Filter mischt durch Duplizierung der Tonspur Mono zu Stereo. "
+"Alternativ kann dieser Filter auch dazu benutzt werden, nur einen Kanal "
+"eines Tonsignals wiederzugeben.\n"
 
 #: src/post/audio/upmix_mono.c:147
 msgid ": upmixing Mono to Stereo.\n"
-msgstr ""
+msgstr ": mische Mono zu Stereo hoch.\n"
 
 #: src/post/audio/upmix_mono.c:152
 #, c-format
 msgid ": upmixing a single channel from original %d channel stream.\n"
 msgid_plural ": upmixing a single channel from original %d channels stream.\n"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] ": mische einen Kanal von ursprünglich %d Kanal hoch.\n"
+msgstr[1] ": mische einen Kanal von ursprünglich %d Kanälen hoch.\n"
 
 #: src/post/audio/upmix_mono.c:157
 msgid ": audio device not capable of AO_CAP_MODE_STEREO.\n"
-msgstr ""
+msgstr ": Audiogerät ist nicht AO_CAP_MODE_STEREO fähig.\n"
 
 #: src/post/audio/stretch.c:264
 msgid ""
