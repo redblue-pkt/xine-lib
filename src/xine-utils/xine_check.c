@@ -364,7 +364,7 @@ xine_health_check_t* _x_health_check_xv (xine_health_check_t* hc) {
 
   hc->title       = "Check for MIT Xv extension";
   hc->explanation = "You can improve performance by installing an X11\n"
-    "driver that supports the Xv protocol extentsion.";
+    "driver that supports the Xv protocol extension.";
 
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
 
@@ -502,7 +502,7 @@ xine_health_check_t* _x_health_check_xv (xine_health_check_t* hc) {
 #else
   hc->title       = "Check for MIT Xv extension";
   hc->explanation = "You can improve performance by installing an X11\n"
-    "driver that supports the Xv protocol extentsion.";
+    "driver that supports the Xv protocol extension.";
 
   set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X-Video Extension was present at compile time");
   return hc;
@@ -510,7 +510,7 @@ xine_health_check_t* _x_health_check_xv (xine_health_check_t* hc) {
 #else
   hc->title       = "Check for MIT Xv extension";
   hc->explanation = "You can improve performance by installing an X11\n"
-    "driver that supports the Xv protocol extentsion.";
+    "driver that supports the Xv protocol extension.";
 
   set_hc_result(hc, XINE_HEALTH_CHECK_FAIL, "No X11 windowing system was present at compile time");
   return hc;
