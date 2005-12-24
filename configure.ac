@@ -637,7 +637,7 @@ XXMC_LIB="-L$xxmc_path -l$xxmc_stub"
 AC_MSG_CHECKING(whether to enable the xxmc plugin with vld extensions)
 AC_MSG_RESULT()
 dnl Check if vld "extended" XvMC is available
-if test x$xxmc_stub == "xXvMCW"; then
+if test x$xxmc_stub == "xXvMCW" && test x$ac_have_xv == "xyes"; then
 	AC_CHECK_LIB($xxmc_stub, XvMCPutSlice,
              	     ac_have_xxmc="yes",
 	             [ac_have_xxmc="no"

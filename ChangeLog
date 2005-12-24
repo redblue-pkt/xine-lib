@@ -1,5 +1,6 @@
 xine-lib (1.1.2)
   * Czech translation update
+  * Disable the XXMC plugin if Xv support isn't there
 
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.
