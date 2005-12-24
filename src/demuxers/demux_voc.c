@@ -25,7 +25,7 @@
  * It will only play that block if it is PCM data. More variations will be
  * supported as they are encountered.
  *
- * $Id: demux_voc.c,v 1.39 2004/06/13 21:28:54 miguelfreitas Exp $
+ * $Id: demux_voc.c,v 1.40 2005/12/24 00:08:42 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -81,7 +81,7 @@ static int open_voc_file(demux_voc_t *this) {
   unsigned char header[VOC_HEADER_SIZE];
   unsigned char preamble[BLOCK_PREAMBLE_SIZE];
   off_t first_block_offset;
-  signed char sample_rate_divisor;
+  unsigned char sample_rate_divisor;
 
   if (_x_demux_read_header(this->input, header, VOC_HEADER_SIZE) != VOC_HEADER_SIZE)
     return 0;
@@ -124,7 +124,7 @@ static int open_voc_file(demux_voc_t *this) {
 
   this->audio_type = BUF_AUDIO_LPCM_BE;
   sample_rate_divisor = preamble[0];
-  this->audio_sample_rate = 256 - (1000000 / sample_rate_divisor);
+  this->audio_sample_rate = 1000000 / (256 - sample_rate_divisor);
   this->data_start = this->input->get_current_pos(this->input);
   this->audio_bits = 8;
   this->audio_channels = 1;
