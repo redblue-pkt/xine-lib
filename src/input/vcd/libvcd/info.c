@@ -1,5 +1,5 @@
 /*
-    $Id: info.c,v 1.4 2005/06/14 17:17:45 rockyb Exp $
+    $Id: info.c,v 1.5 2006/01/01 21:28:32 valtri Exp $
 
     Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
@@ -59,7 +59,7 @@
 #include <stddef.h>
 #include <errno.h>
 
-static const char _rcsid[] = "$Id: info.c,v 1.4 2005/06/14 17:17:45 rockyb Exp $";
+static const char _rcsid[] = "$Id: info.c,v 1.5 2006/01/01 21:28:32 valtri Exp $";
 
 #define BUF_COUNT 16
 #define BUF_SIZE 80
@@ -1207,6 +1207,63 @@ vcdinfo_get_seg_msf(const vcdinfo_obj_t *obj, segnum_t seg_num)
     return &msf;
   }
 }
+
+/*! Return the x-y resolution for a given segment.
+  Note first i_seg is 0.
+*/
+void
+vcdinfo_get_seg_resolution(const vcdinfo_obj_t *p_vcdinfo, segnum_t i_seg,
+                           /*out*/ uint16_t *max_x, /*out*/ uint16_t *max_y)
+{
+  vcdinfo_video_segment_type_t segtype 
+    = vcdinfo_get_video_type(p_vcdinfo, i_seg);
+  segnum_t i_segs = vcdinfo_get_num_segments(p_vcdinfo);
+  
+  if (i_seg >= i_segs) return;
+      
+  switch (segtype) {
+  case VCDINFO_FILES_VIDEO_NTSC_STILL:
+    *max_x = 704;
+    *max_y = 480;
+    break;
+  case VCDINFO_FILES_VIDEO_NTSC_STILL2:
+    *max_x = 352;
+    *max_y = 240;
+    break;
+  case VCDINFO_FILES_VIDEO_PAL_STILL:
+    *max_x = 704;
+    *max_y = 576;
+    break;
+  case VCDINFO_FILES_VIDEO_PAL_STILL2:
+    *max_x = 352;
+    *max_y = 288;
+    break;
+  default:
+    /* */
+    switch (vcdinfo_get_format_version(p_vcdinfo)) {
+    case VCD_TYPE_VCD:
+      *max_x = 352;
+      *max_y = 240;
+      break;
+    case VCD_TYPE_VCD11:
+    case VCD_TYPE_VCD2:
+      *max_x = 352;
+      switch(segtype) {
+      case VCDINFO_FILES_VIDEO_NTSC_MOTION:
+        *max_y = 240;
+        break;
+      case VCDINFO_FILES_VIDEO_PAL_MOTION:
+        *max_y = 288;
+      default:
+        *max_y = 289;
+      }
+      break;
+    default: ;
+    }
+  }
+}
+
+
 
 /*!  
   Return the number of sectors for segment

@@ -38,11 +38,15 @@ xine-lib (1.1.0)
     needed for the ASX parser; deprecates plain MRL reference events.
   * goom updated to 2k4-0
 
-xine-lib (1.0.3)
+xine-lib (1.0.4)
   * tiny doc update
   * build fixes and cross build improvements
   * fixed an align problem in Win32 DirectX video output plugin
-              
+
+xine-lib (1.0.3)
+  * fixed format string vulnerability in audio CD input plugin
+  * some build system fixes for Windows
+
 xine-lib (1.0.2)
   * fixed playback of single-session Real RTSP streams, such as
     rtsp://stream.samurai.fm/broadcast/live_hi.rm
