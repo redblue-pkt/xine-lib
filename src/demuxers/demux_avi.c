@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.221 2005/11/28 12:24:57 valtri Exp $
+ * $Id: demux_avi.c,v 1.222 2006/01/05 21:34:55 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -782,15 +782,10 @@ static avi_t *AVI_init(demux_avi_t *this) {
     n = PAD_EVEN(n);
     next_chunk = this->idx_grow.nexttagoffset + 8 + n;
     
-    if (n == 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, "invalid chunk length (0 byte)\n");
-      break;
-    }
-    
     lprintf("chunk: %c%c%c%c, size: %" PRId64 "\n",
             data[0], data[1], data[2], data[3], (int64_t)n);
     
-    if(strncasecmp(data,"LIST",4) == 0) {
+    if((strncasecmp(data,"LIST",4) == 0) && (n >= 4)) {
       if( this->input->read(this->input, data,4) != 4 ) ERR_EXIT(AVI_ERR_READ);
       n -= 4;
       
