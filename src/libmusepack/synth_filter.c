@@ -39,8 +39,6 @@
 #include "musepack/musepack.h"
 #include "musepack/internal.h"
 
-typedef mpc_int32_t ptrdiff_t;
-
 /* C O N S T A N T S */
 #undef _
 

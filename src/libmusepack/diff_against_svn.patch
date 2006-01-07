@@ -17,3 +17,19 @@ diff -u -p -u -p -r1.1.1.2 config_types.h
  
  #ifdef WORDS_BIGENDIAN
    #undef MPC_LITTLE_ENDIAN
+Index: src/libmusepack/synth_filter.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libmusepack/synth_filter.c,v
+retrieving revision 1.1
+diff -u -r1.1 synth_filter.c
+--- src/libmusepack/synth_filter.c	14 Jan 2005 15:24:25 -0000	1.1
++++ src/libmusepack/synth_filter.c	7 Jan 2006 10:54:27 -0000
+@@ -39,8 +39,6 @@
+ #include "musepack/musepack.h"
+ #include "musepack/internal.h"
+ 
+-typedef mpc_int32_t ptrdiff_t;
+-
+ /* C O N S T A N T S */
+ #undef _
+ 
