@@ -8,7 +8,12 @@ AC_DEFUN([AC_PATH_LIBXV_IMPL],
     AC_MSG_RESULT([found $1 in $xv_path])
     XV_LIB="$1"
   else
-    AC_MSG_RESULT([$1 not found in $xv_path])
+    if test -f "/usr/lib/$1"; then
+      AC_MSG_RESULT([found $1 in /usr/lib])
+      XV_LIB="$1"
+    else
+      AC_MSG_RESULT([$1 not found in $xv_path])
+    fi
   fi
 ])
 
