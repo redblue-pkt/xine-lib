@@ -43,6 +43,7 @@ xine-lib (1.0.4)
   * tiny doc update
   * build fixes and cross build improvements
   * fixed an align problem in Win32 DirectX video output plugin
+  * fixed linking of X11 plugins for some platforms
 
 xine-lib (1.0.3)
   * fixed format string vulnerability in audio CD input plugin

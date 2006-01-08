@@ -94,26 +94,26 @@ lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	video_out_xshm.c $(X11OSD)
-xineplug_vo_out_xshm_la_LIBADD = $(MLIB_LIBS) $(X_LIBS) -lXext $(XINE_LIB) $(THREAD_LIBS)
+xineplug_vo_out_xshm_la_LIBADD = $(MLIB_LIBS) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xv_la_SOURCES = $(X11OSD) deinterlace.c video_out_xv.c
-xineplug_vo_out_xv_la_LIBADD = $(XV_LIB) $(X_LIBS) -lXext $(XINE_LIB) $(THREAD_LIBS)
+xineplug_vo_out_xv_la_LIBADD = $(XV_LIB) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xvmc_la_SOURCES = deinterlace.c video_out_xvmc.c
-xineplug_vo_out_xvmc_la_LIBADD = $(XVMC_LIB) $(XV_LIB) $(X_LIBS) -lXext $(XINE_LIB) $(THREAD_LIBS)
+xineplug_vo_out_xvmc_la_LIBADD = $(XVMC_LIB) $(XV_LIB) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_xvmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_xxmc_la_SOURCES = $(X11OSD) deinterlace.c video_out_xxmc.c\
 				xvmc_mocomp.c xvmc_vld.c xxmc.h
-xineplug_vo_out_xxmc_la_LIBADD = $(XXMC_LIB) $(XV_LIB) $(X_LIBS) -lXext $(XINE_LIB) $(THREAD_LIBS)
+xineplug_vo_out_xxmc_la_LIBADD = $(XXMC_LIB) $(XV_LIB) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_xxmc_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	video_out_opengl.c myglext.h $(X11OSD)
 xineplug_vo_out_opengl_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
-	$(GLU_LIBS) $(X_LIBS) -lXext $(XINE_LIB) $(THREAD_LIBS)
+	$(GLU_LIBS) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_vo_out_syncfb_la_SOURCES = video_out_syncfb.c 

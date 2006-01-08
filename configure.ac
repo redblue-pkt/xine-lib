@@ -2064,13 +2064,11 @@ eval XINE_REL_PLUGINDIR="$XINE_PLUGINDIR"
 XINE_REL_PLUGINDIR=`eval echo "$XINE_REL_PLUGINDIR" | sed -e "s,^${prefix}/,,"`
 XINE_REL_FONTDIR=`eval echo "$XINE_FONTDIR" | sed -e "s,^${prefix}/,,"`
 XINE_REL_LOCALEDIR=`eval echo "$XINE_LOCALEDIR" | sed -e "s,^${prefix}/,,"`
-if test x"$SYS" = "xmingw32"; then
+if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   dnl polish paths (MinGW runtime accepts both \ and / anyway)
   XINE_REL_PLUGINDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
   XINE_REL_FONTDIR=`echo "$XINE_REL_FONTDIR" | sed -e 's/\\//\\\\\\\\/g'`
   XINE_REL_LOCALEDIR=`echo "$XINE_REL_LOCALEDIR" | sed -e 's/\\//\\\\\\\\/g'`
-fi
-if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   dnl prefix in xine-config
   XINE_CONFIG_PREFIX="\`dirname \$0\`/.."
   dnl installation directories (in xine-config)

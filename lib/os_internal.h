@@ -17,7 +17,7 @@
 #endif
 
 
-#if defined(WIN32)
+#if defined(WIN32) || defined(__CYGWIN__)
 #  define XINE_PATH_SEPARATOR_STRING ";"
 #  define XINE_PATH_SEPARATOR_CHAR ';'
 #  define XINE_DIRECTORY_SEPARATOR_STRING "\\"
