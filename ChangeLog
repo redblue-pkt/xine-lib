@@ -2,6 +2,7 @@ xine-lib (1.1.2)
   * Czech translation update
   * Disable the XXMC plugin if Xv support isn't there
   * Also look for Xv support in /usr/lib for X.org's new location
+  * Fix using xine-lib on systems with SELinux enabled
 
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

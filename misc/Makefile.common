@@ -8,7 +8,17 @@ install-data-hook:
 	@if test $$MAKELEVEL -le 4 ; then \
 	  if test -x "$(top_srcdir)/post-install.sh" ; then \
 	    $(top_srcdir)/post-install.sh ; \
-	  fi \
+	  fi; \
+	fi; \
+	if test -x /usr/bin/chcon ; then \
+	  list='$(lib_LTLIBRARIES)'; \
+	  if test -n "$$list" ; then \
+	    for p in $$list; do \
+	      p="`echo $$p | sed -e 's/\.la$$/\.so/g;s|^.*/||'`"; \
+	      echo " chcon -t texrel_shlib_t $(DESTDIR)$(libdir)/$$p"; \
+	      chcon -t texrel_shlib_t $(DESTDIR)$(libdir)/$$p; \
+	    done; \
+	  fi; \
 	fi
 
 pass1:
