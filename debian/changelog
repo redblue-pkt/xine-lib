@@ -1,5 +1,8 @@
 xine-lib (1.1.1-0) unstable; urgency=low
 
+  * New upstream release! (Closes: #326936)
+  * Remove build dependencies on xlibs-dev, as well as alternatives on
+    xlibs-dev-static. Debian is on its way towards X11R7!
   * Darren Salt:
     - Add debian/watch file for uscan.
     - Convert debian/copyright to UTF-8.
@@ -7,7 +10,7 @@ xine-lib (1.1.1-0) unstable; urgency=low
     - Bump standards version to 3.6.2 (no changes *yet* - CHECK THIS)
     - Make "post-Sarge"-tagged changes to debian/rules and strip debian/tmp/
       from debian/*.install.
-    - Remove *.gmo on clean (Just In Case).
+    - Remove *.gmo on clean (Just In Case). (Closes: #338000)
     - Do a little preparation for a possible -dbg package.
   * Acknowledge NMUs.
     Backports and gcc 4.0 fixes dropped since they're already in this version.
