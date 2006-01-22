@@ -29,6 +29,7 @@ EXTRA_DIST = \
 	lcmessage.m4 \
 	libFLAC.m4 \
 	libfame.m4 \
+	libtool15.m4 \
 	ogg.m4 \
 	opengl.m4 \
 	optimizations.m4 \

@@ -160,6 +160,7 @@ dnl ---------------------------------------------
 
 dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
 ALL_LINGUAS="fr pt_BR de sk es pl cs it eu"
+AM_ICONV
 AM_GNU_GETTEXT(use-libtool, need-ngettext)
 AC_PROG_GMSGFMT_PLURAL
 AC_CONFIG_LINKS($nls_cv_header_libgt, $nls_cv_header_intl)
@@ -209,6 +210,17 @@ case "$host" in
     CPPFLAGS="$CPPFLAGS $THREAD_CPPFLAGS -D_THREAD_SAFE"
     have_pthread=yes
 
+    if test x"$am_cv_func_iconv" != xyes; then
+      AC_MSG_WARN([
+****************************************************************
+* You need to install a recent version of the port 'libiconv'  *
+* (in /usr/ports/converters/libiconv) or to specify prefix     *
+* by option --with-libiconv-prefix.                            *
+* The library in this port is needed to successfully compile   *
+* libsputext plugin.                                           *
+****************************************************************
+      ])
+    fi
     ;;
 
   *-*-hpux11*)
@@ -550,7 +562,7 @@ AM_CONDITIONAL(HAVE_V4L, [test x"$have_v4l" = "xyes"])
 
 
 dnl ----------------------------------------------
-dnl Check for Xv and XvMC support (iconv is also tested here?)
+dnl Check for Xv and XvMC support
 dnl ----------------------------------------------
 
 dnl With recent XFree86 or Xorg, dynamic linking is preferred!
@@ -588,22 +600,6 @@ case "$host_or_hostalias" in
 	  XV_LIB="libXv.so"
 	fi
 	;;
-
-  i?86-*-freebsd*)
-	AC_CHECK_HEADER(/usr/local/include/iconv.h,
-			CFLAGS="-I/usr/local/include $CFLAGS"
-			LDFLAGS="-L/usr/local/lib $LDFLAGS"
-	                LIBICONV="-liconv"
-                        [ echo
-                          echo "****************************************************************"
-		          echo "* You need to install a recent version of the port 'libiconv'  *"
-			  echo "* (in /usr/ports/converters/libiconv).                         *"
-			  echo "* The library in this port is needed to successfully compile   *"
-			  echo "* libsputext plugin.                                           *"
-                          echo "****************************************************************"
-	                  echo 
-                        ],)
-        ;;
 
   ppc-*-linux* | powerpc-*)
         ppc_arch="yes"

@@ -13,7 +13,18 @@ AC_DEFUN([AM_ICONV],
       if test -d $dir/include; then CPPFLAGS="$CPPFLAGS -I$dir/include"; fi
       if test -d $dir/lib; then LDFLAGS="$LDFLAGS -L$dir/lib"; fi
     done
-   ])
+  ], [
+    dnl
+    dnl added the prefix /usr/local on FreeBSD if none specified
+    dnl
+    case "$host" in
+      *-*-freebsd*)
+        dir=/usr/local
+        if test -d $dir/include; then CPPFLAGS="$CPPFLAGS -I$dir/include"; fi
+        if test -d $dir/lib; then LDFLAGS="$LDFLAGS -L$dir/lib"; fi
+        ;;
+    esac
+  ])
 
   AC_CACHE_CHECK(for iconv, am_cv_func_iconv, [
     am_cv_func_iconv="no, consider installing GNU libiconv"
