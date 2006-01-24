@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.60 2005/10/30 02:18:35 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.61 2006/01/24 22:25:34 molivier Exp $ 
  */
 
 
@@ -525,7 +525,8 @@ void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
 
   decoder_flags |= BUF_FLAG_FRAME_START;
 
-  while (fifo && size) {
+  _x_assert(size > 0);
+  while (fifo && size > 0) {
 
     buf = fifo->buffer_pool_alloc (fifo);
 
@@ -570,7 +571,8 @@ int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input,
 
   decoder_flags |= BUF_FLAG_FRAME_START;
 
-  while (fifo && size) {
+  _x_assert(size > 0);
+  while (fifo && size > 0) {
 
     buf = fifo->buffer_pool_alloc (fifo);
 
