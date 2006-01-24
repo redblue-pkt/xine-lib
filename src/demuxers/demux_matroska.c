@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.42 2006/01/24 21:59:13 molivier Exp $
+ * $Id: demux_matroska.c,v 1.43 2006/01/24 22:01:05 molivier Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1750,12 +1750,13 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
         /* size of each frame */
         for (i = 0; i < lace_num; i++) {
           int size = 0;
-          while (*data == 255) {
-            size += *data;
+          int partial_size;
+          do
+          {
+            partial_size = *data;
+            size += partial_size;
             data++; block_size_left--;
-          }
-          size += *data;
-          data++; block_size_left--;
+          } while (partial_size == 255);
           frame[i] = size;
           block_size_left -= size;
         }
