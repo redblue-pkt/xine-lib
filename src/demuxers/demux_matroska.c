@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.41 2005/11/28 12:24:57 valtri Exp $
+ * $Id: demux_matroska.c,v 1.42 2006/01/24 21:59:13 molivier Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1765,14 +1765,19 @@ static int parse_block (demux_matroska_t *this, uint64_t block_size,
       }
       break;
 
-      case MATROSKA_FIXED_SIZE_LACING:
+      case MATROSKA_FIXED_SIZE_LACING: {
+        int frame_size;
+
         lprintf("fixed size lacing\n");
+        
+        frame_size = block_size_left / (lace_num + 1);
         for (i = 0; i < lace_num; i++) {
-          frame[i] = block_size / (lace_num + 1);
-          block_size_left -= frame[i];
+          frame[i] = frame_size;
         }
-        frame[lace_num] = block_size_left;
-        break;
+        frame[lace_num] = block_size_left - (lace_num * frame_size);
+        block_size_left = 0;
+      }
+      break;
 
       case MATROSKA_EBML_LACING: {
         int64_t tmp;
