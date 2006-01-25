@@ -571,10 +571,14 @@ dnl Only dynamic linking is possible when using libtool < 1.4.0
 AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [where libXv is installed]),
             xv_path="$withval",)
 
-AC_ARG_ENABLE(shared-xv,
-        AC_HELP_STRING([--enable-static-xv],[Enable this to force linking against libXv.a]),
-        xv_prefer_shared="no",
-        xv_prefer_shared="yes")
+AC_ARG_ENABLE([static-xv],
+        AC_HELP_STRING([--enable-static-xv],[Enable this to force linking against libXv.a]))
+
+if test "x$enable_static_xv" = "xyes"; then
+  xv_prefer_shared="no"
+else
+  xv_prefer_shared="yes"
+fi
 
 if test x"$no_x" != "xyes"; then
   AC_FIND_LIBXV

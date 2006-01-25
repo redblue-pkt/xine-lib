@@ -5,6 +5,8 @@ xine-lib (1.1.2)
   * Fix using xine-lib on systems with SELinux enabled
   * Build right with libiconv in /usr/local as default on FreeBSD
   * Fix a potential crash with fixed-size lacing in the Matroska demuxer
+  * Patch from SuSE to fix alsa after hardware suspend
+  * Fix the ./configure --enable-static-xv parameter
 
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

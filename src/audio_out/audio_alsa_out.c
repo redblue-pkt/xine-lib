@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.156 2005/09/24 19:27:33 miguelfreitas Exp $
+ * $Id: audio_alsa_out.c,v 1.157 2006/01/25 17:40:59 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -719,6 +719,19 @@ static void xrun(alsa_driver_t *this)
 #endif
 
 /*
+ * resume from suspend
+ */
+static int resume(snd_pcm_t *pcm)
+{
+  int res;
+  while ((res = snd_pcm_resume(pcm)) == -EAGAIN)
+    sleep(1);
+  if (! res)
+    return 0;
+  return snd_pcm_prepare(pcm);
+}
+
+/*
  * Write audio data to output buffer (blocking using snd_pcm_wait)
  */
 static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
@@ -742,6 +755,12 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
 #endif
   snd_pcm_status_alloca(&pcm_stat);
   state = snd_pcm_state(this->audio_fd);
+  if (state == SND_PCM_STATE_SUSPENDED) {
+    res = resume(this->audio_fd);
+    if (res < 0)
+      return 0;
+    state = snd_pcm_state(this->audio_fd);
+  }
   if (state == SND_PCM_STATE_XRUN) {
 #ifdef LOG_DEBUG
     printf("audio_alsa_out:write:XRUN before\n");
@@ -791,6 +810,12 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
       printf("audio_alsa_out:write:result=%ld:%s\n",result, snd_strerror(result));
 #endif
       state = snd_pcm_state(this->audio_fd);
+      if (state == SND_PCM_STATE_SUSPENDED) {
+	res = resume(this->audio_fd);
+	if (res < 0)
+	  return 0;
+	continue;
+      }
       if ( (state != SND_PCM_STATE_PREPARED) &&
            (state != SND_PCM_STATE_RUNNING) &&
            (state != SND_PCM_STATE_DRAINING) ) {
