@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.319 2005/10/30 02:18:35 miguelfreitas Exp $
+ * $Id: xine.c,v 1.320 2006/01/26 12:13:23 miguelfreitas Exp $
  */
 
 /*
@@ -294,7 +294,11 @@ void xine_stop (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
+  /* make sure that other threads cannot change the speed, especially pauseing the stream */
+  pthread_mutex_lock(&stream->speed_change_lock);
   stream->ignore_speed_change = 1;
+  pthread_mutex_unlock(&stream->speed_change_lock);
+
   stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
 
   if (stream->audio_out)
@@ -333,7 +337,11 @@ static void close_internal (xine_stream_t *stream) {
   }
 
   if( !stream->gapless_switch ) {
+    /* make sure that other threads cannot change the speed, especially pauseing the stream */
+    pthread_mutex_lock(&stream->speed_change_lock);
     stream->ignore_speed_change = 1;
+    pthread_mutex_unlock(&stream->speed_change_lock);
+
     stream->xine->port_ticket->acquire(stream->xine->port_ticket, 1);
   
     if (stream->audio_out)
@@ -530,6 +538,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->first_frame_lock, NULL);
   pthread_cond_init  (&stream->first_frame_reached, NULL);
   pthread_mutex_init (&stream->current_extra_info_lock, NULL);
+  pthread_mutex_init (&stream->speed_change_lock, NULL);
 
   /* warning: frontend_lock is a recursive mutex. it must NOT be
    * used with neither pthread_cond_wait() or pthread_cond_timedwait()
@@ -1639,18 +1648,20 @@ int xine_get_status (xine_stream_t *stream) {
  */
 
 void _x_set_fine_speed (xine_stream_t *stream, int speed) {
+  pthread_mutex_lock(&stream->speed_change_lock);
 
-  if (stream->ignore_speed_change)
-    return;
-
-  if (speed <= XINE_SPEED_PAUSE)
-    speed = XINE_SPEED_PAUSE;
-
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "set_speed %d\n", speed);
-  set_speed_internal (stream, speed);
+  if (!stream->ignore_speed_change)
+  {
+    if (speed <= XINE_SPEED_PAUSE)
+      speed = XINE_SPEED_PAUSE;
   
-  if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_SPEED))
-    set_speed_internal (stream->slave, speed);
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "set_speed %d\n", speed);
+    set_speed_internal (stream, speed);
+    
+    if (stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_SPEED))
+      set_speed_internal (stream->slave, speed);
+  }
+  pthread_mutex_unlock(&stream->speed_change_lock);
 }
 
 int _x_get_fine_speed (xine_stream_t *stream) {

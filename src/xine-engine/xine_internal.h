@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.169 2005/10/30 02:18:35 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.170 2006/01/26 12:13:23 miguelfreitas Exp $
  *
  */
 
@@ -243,6 +243,9 @@ struct xine_stream_s {
   /* these are private variables, plugins must not access them */
   
   int                        status;
+
+  /* lock controlling speed change access */
+  pthread_mutex_t            speed_change_lock;
   int                        ignore_speed_change;  /* speed changes during stop can be disastrous */
 
   input_class_t             *eject_class;
