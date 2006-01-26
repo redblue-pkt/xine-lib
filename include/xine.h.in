@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.146 2005/10/30 02:18:35 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.147 2006/01/26 12:40:51 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1528,6 +1528,9 @@ void xine_config_reset (xine_t *self);
 /* some space for further keys */
 #define XINE_EVENT_VDR_SETVIDEOWINDOW   350
 #define XINE_EVENT_VDR_FRAMESIZECHANGED 351
+
+/* events generated from post plugins */
+#define XINE_EVENT_POST_TVTIME_FILMMODE_CHANGE   400
 
 /*
  * xine event struct

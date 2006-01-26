@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.46 2005/09/19 16:14:02 valtri Exp $
+ * $Id: xine_plugin.c,v 1.47 2006/01/26 12:40:51 miguelfreitas Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -122,6 +122,7 @@ struct post_plugin_deinterlace_s {
   int                cheap_mode;
   tvtime_t          *tvtime;
   int                tvtime_changed;
+  int                tvtime_last_filmmode;
   int                vo_deinterlace_enabled;
   
   int                framecounter;
@@ -391,6 +392,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
 
   this->tvtime = tvtime_new_context();
   this->tvtime_changed++;
+  this->tvtime_last_filmmode = 0;
 
   pthread_mutex_init (&this->lock, NULL);
 
@@ -718,6 +720,15 @@ static int deinterlace_draw(vo_frame_t *frame, xine_stream_t *stream)
                                 !this->cur_method);
 
     this->tvtime_changed = 0;
+  }
+  if( this->tvtime_last_filmmode != this->tvtime->filmmode ) {
+    xine_event_t event;
+    event.type = XINE_EVENT_POST_TVTIME_FILMMODE_CHANGE;
+    event.stream = stream;
+    event.data = (void *)&this->tvtime->filmmode;
+    event.data_length = sizeof(this->tvtime->filmmode);
+    xine_event_send(stream, &event);
+    this->tvtime_last_filmmode = this->tvtime->filmmode;
   }
   pthread_mutex_unlock (&this->lock);
 
