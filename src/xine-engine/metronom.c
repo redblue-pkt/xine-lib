@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: metronom.c,v 1.142 2005/06/29 20:54:34 hadess Exp $
+ * $Id: metronom.c,v 1.143 2006/01/27 22:35:07 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -328,7 +328,7 @@ static void metronom_handle_discontinuity (metronom_t *this, int type,
         if (this->audio_vpts > cur_time) {
           /* still frame with audio */
           this->video_vpts = this->audio_vpts;
-          xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video vpts adjusted to audio vpts\n");
+          xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video vpts adjusted to audio vpts %" PRId64 "\n", this->video_vpts);
         } else {
           /* still frame, no audio */
           this->video_vpts = this->prebuffer + cur_time;
@@ -346,7 +346,7 @@ static void metronom_handle_discontinuity (metronom_t *this, int type,
           /* video, no sound */
           this->audio_vpts = this->video_vpts;
           this->audio_vpts_rmndr = 0;
-          xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio vpts adjusted to audio vpts\n");
+          xprintf(this->xine, XINE_VERBOSITY_DEBUG, "audio vpts adjusted to video vpts %" PRId64 "\n", this->video_vpts);
         } else {
           /* video + audio */
         }
