@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.29 2006/01/27 07:46:15 tmattern Exp $
+ * $Id: events.c,v 1.30 2006/01/27 19:49:23 tmattern Exp $
  *
  * Event handling functions
  *
@@ -33,15 +33,16 @@
 
 xine_event_t *xine_event_get  (xine_event_queue_t *queue) {
 
-  xine_event_t  *event;
+  xine_event_t  *event = NULL;
   xine_list_iterator_t ite;
 
   pthread_mutex_lock (&queue->lock);
   ite = xine_list_front (queue->events);
-  event = xine_list_get_value (queue->events, ite);
-  if (event)
-    xine_list_remove (queue->events, ite);
-
+  if (ite) {
+    event = xine_list_get_value (queue->events, ite);
+    if (event)
+      xine_list_remove (queue->events, ite);
+  }
   pthread_mutex_unlock (&queue->lock);
 
   return event;
