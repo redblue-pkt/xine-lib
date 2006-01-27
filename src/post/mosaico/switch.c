@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: switch.c,v 1.14 2004/05/29 14:45:26 mroi Exp $
+ * $Id: switch.c,v 1.15 2006/01/27 07:46:13 tmattern Exp $
  */
  
 /*
@@ -163,7 +163,7 @@ static post_plugin_t *switch_open_plugin(post_class_t *class_gen, int inputs,
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-  xine_list_append_content(this->post.input, input_api);
+  xine_list_push_back(this->post.input, input_api);
 
   this->post.dispose = switch_dispose;
 

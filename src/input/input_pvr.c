@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.57 2005/11/28 12:24:57 valtri Exp $
+ * $Id: input_pvr.c,v 1.58 2006/01/27 07:46:12 tmattern Exp $
  */
 
 /**************************************************************************
@@ -934,7 +934,7 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       show->base_name = save_base;
       show->id = ++this->saved_id;
       show->pages = this->rec_page - this->save_page + 1;
-      xine_list_append_content (this->saved_shows, show);
+      xine_list_push_back (this->saved_shows, show);
       
       lprintf("sending event with base name [%s]\n", show->base_name);
 
@@ -1098,11 +1098,13 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
           char *src_filename;
           char *dst_filename;
           saved_show_t  *show;
+	  xine_list_iterator_t ite;
             
           pthread_mutex_lock(&this->lock);
   
-          show = xine_list_first_content (this->saved_shows);
-          while (show) {
+          ite = xine_list_front (this->saved_shows);
+          while (ite) {
+            show = xine_list_get_value(this->saved_shows, ite);
             if( show->id == save_data->id ) {
               int i;
                 
@@ -1117,12 +1119,12 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
                 free(dst_filename);
                 free(src_filename);
               }
-              xine_list_delete_current (this->saved_shows);
+              xine_list_remove (this->saved_shows, ite);
               free (show->base_name);
               free (show);
               break;
             }
-            show = xine_list_next_content (this->saved_shows);
+            ite = xine_list_next (this->saved_shows, ite);
           }
 
           pthread_mutex_unlock(&this->lock);
@@ -1331,6 +1333,7 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
   pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen;
   void          *p;
   saved_show_t  *show;
+  xine_list_iterator_t ite;
 
   if( this->pvr_running ) {
     lprintf("finishing pvr thread\n");
@@ -1366,13 +1369,14 @@ static void pvr_plugin_dispose (input_plugin_t *this_gen ) {
   if (this->save_prefix)
     free (this->save_prefix);
   
-  show = xine_list_first_content (this->saved_shows);
-  while (show) {
+  ite = xine_list_front (this->saved_shows);
+  while (ite) {
+    show = xine_list_get_value(this->saved_shows, ite);
     free (show->base_name);
     free (show);
-    show = xine_list_next_content (this->saved_shows);
+    ite = xine_list_next (this->saved_shows, ite);
   }
-  xine_list_free(this->saved_shows);
+  xine_list_delete(this->saved_shows);
   free (this);
 }
 

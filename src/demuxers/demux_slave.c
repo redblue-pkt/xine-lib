@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.15 2005/11/28 12:24:57 valtri Exp $
+ * $Id: demux_slave.c,v 1.16 2006/01/27 07:46:12 tmattern Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -222,7 +222,7 @@ static int demux_slave_next (demux_slave_t *this) {
 
     if( size ) {
       this->decoder_info_ptr[i] = malloc(size);
-      xine_list_append_content(this->dec_infos, this->decoder_info_ptr[i]);
+      xine_list_push_back(this->dec_infos, this->decoder_info_ptr[i]);
     }
 
     n = this->scratch_used - (p-this->scratch);
@@ -300,18 +300,15 @@ static int demux_slave_seek (demux_plugin_t *this_gen, off_t start_pos, int star
 static void demux_slave_dispose (demux_plugin_t *this_gen) {
   demux_slave_t *this = (demux_slave_t *) this_gen;
   void *data;
+  xine_list_iterator_t ite;
 
   /* free all decoder information */
-  data = xine_list_first_content (this->dec_infos);
-  while (data) {
+  while (ite = xine_list_front(this->dec_infos)) {
+    data = xine_list_get_value(this->dec_infos, ite);
     free(data);
-    xine_list_delete_current (this->dec_infos);
-    if( this->dec_infos->cur )
-      data = this->dec_infos->cur->content;
-    else
-      data = NULL;
+    xine_list_remove (this->dec_infos, ite);
   }
-  xine_list_free(this->dec_infos);
+  xine_list_delete(this->dec_infos);
 
   free (this);
 }

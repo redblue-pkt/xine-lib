@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.320 2006/01/26 12:13:23 miguelfreitas Exp $
+ * $Id: xine.c,v 1.321 2006/01/27 07:46:16 tmattern Exp $
  */
 
 /*
@@ -594,7 +594,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
    * register stream
    */
 
-  xine_list_append_content (this->streams, stream);
+  xine_list_push_back (this->streams, stream);
 
   pthread_mutex_unlock (&this->streams_lock);
 
@@ -630,13 +630,14 @@ static void mrl_unescape(char *mrl) {
 
 void _x_flush_events_queues (xine_stream_t *stream) {
 
-  xine_event_queue_t *queue;
+  xine_list_iterator_t ite;
 
   pthread_mutex_lock (&stream->event_queues_lock);
 
   /* No events queue? */
-  for (queue = xine_list_first_content (stream->event_queues);
-       queue; queue = xine_list_next_content (stream->event_queues)) {
+  for (ite = xine_list_front (stream->event_queues);
+       ite; ite = xine_list_next (stream->event_queues, ite)) {
+    xine_event_queue_t *queue = xine_list_get_value(stream->event_queues, ite);
     pthread_mutex_lock (&queue->lock);
     pthread_mutex_unlock (&stream->event_queues_lock);
 
@@ -646,7 +647,7 @@ void _x_flush_events_queues (xine_stream_t *stream) {
      * currently executing their callback functions.
      */
     if (queue->listener_thread != NULL && !queue->callback_running) {
-      while (!xine_list_is_empty (queue->events)) {
+      while (!xine_list_empty (queue->events)) {
         pthread_cond_wait (&queue->events_processed, &queue->lock);
       }
     }
@@ -1258,7 +1259,7 @@ int xine_eject (xine_stream_t *stream) {
 
 void xine_dispose_internal (xine_stream_t *stream) {
 
-  xine_stream_t *s;
+  xine_list_iterator_t *ite;
 
   lprintf("stream: %p\n", stream);
   pthread_mutex_destroy (&stream->info_mutex);
@@ -1275,12 +1276,9 @@ void xine_dispose_internal (xine_stream_t *stream) {
   stream->metronom->exit (stream->metronom);
 
   pthread_mutex_lock(&stream->xine->streams_lock);
-  for (s = xine_list_first_content(stream->xine->streams);
-       s; s = xine_list_next_content(stream->xine->streams)) {
-    if (s == stream) {
-      xine_list_delete_current (stream->xine->streams);
-      break;
-    }
+  ite = xine_list_find(stream->xine->streams, stream);
+  if (ite) {
+    xine_list_remove(stream->xine->streams, ite);
   }
   pthread_mutex_unlock(&stream->xine->streams_lock);
 
@@ -1336,7 +1334,7 @@ void xine_exit (xine_t *this) {
   _x_dispose_plugins (this);
 
   if(this->streams) {
-    xine_list_free(this->streams);
+    xine_list_delete(this->streams);
     pthread_mutex_destroy(&this->streams_lock);
   }
 
@@ -1463,13 +1461,16 @@ static void config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
        strcmp(entry->str_value, xine_get_homedir()) == 0 ||
        strcmp(entry->str_value, homedir_trail_slash) == 0)) {
     xine_stream_t *stream;
+    xine_list_iterator_t ite;
     
     xine_log(this, XINE_LOG_MSG,
 	     _("xine: The specified save_dir \"%s\" might be a security risk.\n"), entry->str_value);
     
     pthread_mutex_lock(&this->streams_lock);
-    if ((stream = (xine_stream_t *)xine_list_first_content(this->streams)))
+    if ( (ite = xine_list_front(this->streams)) ) {
+      stream = xine_list_get_value(this->streams, ite);
       _x_message(stream, XINE_MSG_SECURITY, _("The specified save_dir might be a security risk."), NULL);
+    }
     pthread_mutex_unlock(&this->streams_lock);
   }
   

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.47 2006/01/26 12:40:51 miguelfreitas Exp $
+ * $Id: xine_plugin.c,v 1.48 2006/01/27 07:46:12 tmattern Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -412,7 +412,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-  xine_list_append_content(this->post.input, input_api);
+  xine_list_push_back(this->post.input, input_api);
 
   input->xine_in.name     = "video";
   output->xine_out.name   = "deinterlaced video";

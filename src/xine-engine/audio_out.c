@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.194 2005/10/30 02:18:35 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.195 2006/01/27 07:46:15 tmattern Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1049,12 +1049,15 @@ static void *ao_loop (void *this_gen) {
       pthread_mutex_unlock( &this->driver_lock );
       
       if (in_buf && in_buf->num_frames) {
+	xine_list_iterator_t ite;
+
 	xprintf(this->xine, XINE_VERBOSITY_LOG,
 		_("audio_out: delay calculation impossible with an unavailable audio device\n"));
 
 	pthread_mutex_lock(&this->streams_lock);
-	for (stream = xine_list_first_content(this->streams);
-	     stream; stream = xine_list_next_content(this->streams)) {
+	for (ite = xine_list_front(this->streams);
+	     ite; ite = xine_list_next(this->streams, ite)) {
+	  stream = xine_list_get_value (this->streams, ite);
           if( !stream->emergency_brake ) {
             stream->emergency_brake = 1;
             _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
@@ -1134,11 +1137,12 @@ static void *ao_loop (void *this_gen) {
                 cur_time > (last_sync_time + SYNC_TIME_INVERVAL) && 
                 bufs_since_sync >= SYNC_BUF_INTERVAL &&
                 !this->resample_sync_method ) {
-	xine_stream_t *stream;
+	xine_list_iterator_t *ite;
         lprintf ("audio_loop: ADJ_VPTS\n");
 	pthread_mutex_lock(&this->streams_lock);
-	for (stream = xine_list_first_content(this->streams); stream;
-	     stream = xine_list_next_content(this->streams)) {
+	for (ite = xine_list_front(this->streams); ite;
+	     ite = xine_list_next(this->streams, ite)) {
+	  xine_stream_t *stream = xine_list_get_value(this->streams, ite);
 	  if (stream == XINE_ANON_STREAM) continue;
 	  stream->metronom->set_option(stream->metronom, METRONOM_ADJ_VPTS_OFFSET,
                                        -gap/SYNC_GAP_RATE );
@@ -1230,11 +1234,13 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   lprintf ("get_next_audio_frame\n");
 
   while (!in_buf || !stream) {
-    stream = xine_list_first_content(this->streams);
-    if (!stream) {
+    xine_list_iterator_t ite = xine_list_front (this->streams);
+
+    if (!ite) {
       xine_usec_sleep (5000);
       continue;
     }
+    stream = xine_list_get_value(this->streams, ite);
   
     /* FIXME: ugly, use conditions and locks instead? */
     
@@ -1445,7 +1451,7 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
   }
 
   pthread_mutex_lock(&this->streams_lock);
-  xine_list_append_content(this->streams, stream);
+  xine_list_push_back(this->streams, stream);
   pthread_mutex_unlock(&this->streams_lock);
   
   return this->output.rate;
@@ -1512,23 +1518,25 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
 static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
   aos_t *this = (aos_t *) this_gen;
-  xine_stream_t *cur;
+  xine_list_iterator_t ite;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "ao_close\n");
 
   /* unregister stream */
   pthread_mutex_lock(&this->streams_lock);
-  for (cur = xine_list_first_content(this->streams); cur;
-       cur = xine_list_next_content(this->streams))
+  for (ite = xine_list_front(this->streams); ite;
+       ite = xine_list_next(this->streams, ite)) {
+    xine_stream_t *cur = xine_list_get_value(this->streams, ite);
     if (cur == stream) {
-      xine_list_delete_current(this->streams);
+      xine_list_remove(this->streams, ite);
       break;
     }
-  cur = xine_list_first_content(this->streams);    
+  }
+  ite = xine_list_front(this->streams);    
   pthread_mutex_unlock(&this->streams_lock);
 
   /* close driver if no streams left */
-  if (!cur && !this->grab_only && !stream->gapless_switch) {
+  if (!ite && !this->grab_only && !stream->gapless_switch) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: no streams left, closing driver\n");
 
     if (this->audio_loop_running) {
@@ -1584,7 +1592,7 @@ static void ao_exit(xine_audio_port_t *this_gen) {
   pthread_mutex_destroy(&this->driver_lock);
   pthread_mutex_destroy(&this->driver_action_lock);
   pthread_mutex_destroy(&this->streams_lock);
-  xine_list_free(this->streams);
+  xine_list_delete(this->streams);
 
   free (this->frame_buf[0]->mem);
   free (this->frame_buf[0]->extra_info);
@@ -1659,7 +1667,6 @@ static uint32_t ao_get_capabilities (xine_audio_port_t *this_gen) {
 
 static int ao_get_property (xine_audio_port_t *this_gen, int property) {
   aos_t *this = (aos_t *) this_gen;
-  xine_stream_t *cur;
   int ret;
 
   switch (property) {
@@ -1672,11 +1679,8 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     break;
   
   case AO_PROP_NUM_STREAMS:
-    ret = 0;
     pthread_mutex_lock(&this->streams_lock);
-    for (cur = xine_list_first_content(this->streams); cur;
-         cur = xine_list_next_content(this->streams))
-      ret++;
+    ret = xine_list_size(this->streams);
     pthread_mutex_unlock(&this->streams_lock);
     break;
   
@@ -1912,10 +1916,12 @@ static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
   aos_t *this = (aos_t *) this_gen;
   xine_stream_t *cur;
   int ret = 0;
+  xine_list_iterator_t ite;
             
   pthread_mutex_lock(&this->streams_lock);
-  for (cur = xine_list_first_content(this->streams); cur;
-       cur = xine_list_next_content(this->streams))
+  for (ite = xine_list_front(this->streams); ite;
+       ite = xine_list_next(this->streams, ite)) {
+    cur = xine_list_get_value(this->streams, ite);
     if (cur == stream || !stream) {
       *bits = this->input.bits;
       *rate = this->input.rate;
@@ -1923,6 +1929,7 @@ static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
       ret = !!stream; /* return false for a NULL stream, true otherwise */
       break;
     }
+  }
   pthread_mutex_unlock(&this->streams_lock);
   
   return ret;        

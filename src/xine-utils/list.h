@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.h,v 1.1 2006/01/16 08:04:44 tmattern Exp $
+ * $Id: list.h,v 1.2 2006/01/27 07:46:16 tmattern Exp $
  *
  * Doubly-linked linked list.
  *
@@ -87,16 +87,20 @@ xine_list_iterator_t xine_list_front(xine_list_t *list);
 /* Returns an iterator that references the last element of the list */
 xine_list_iterator_t xine_list_back(xine_list_t *list);
 
+/* Perform a linear search of a given value, and returns an iterator that
+   references this value or NULL if not found */
+xine_list_iterator_t xine_list_find(xine_list_t *list, void *value);
+
 /* Increments the iterator's value, so it specifies the next element in the list
    or NULL at the end of the list */
-xine_list_iterator_t xine_list_iterator_next(xine_list_iterator_t ite);
+xine_list_iterator_t xine_list_next(xine_list_t *list, xine_list_iterator_t ite);
 
 /* Increments the iterator's value, so it specifies the previous element in the list
    or NULL at the beginning of the list */
-xine_list_iterator_t xine_list_iterator_prev(xine_list_iterator_t ite);
+xine_list_iterator_t xine_list_prev(xine_list_t *list, xine_list_iterator_t ite);
 
-/* Returns the element at the position specified by the iterator */
-void *xine_list_iterator_value(xine_list_iterator_t ite);
+/* Returns the value at the position specified by the iterator */
+void *xine_list_get_value(xine_list_t *list, xine_list_iterator_t ite);
 
 #endif
 

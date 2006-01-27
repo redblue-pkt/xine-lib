@@ -22,7 +22,7 @@
  * This is an up-mix audio filter post plugin.
  * It simply converts Mono into Stereo.
  *
- * $Id: upmix_mono.c,v 1.4 2005/12/12 15:44:02 valtri Exp $
+ * $Id: upmix_mono.c,v 1.5 2006/01/27 07:46:12 tmattern Exp $
  *
  */
 
@@ -324,7 +324,7 @@ static post_plugin_t *upmix_mono_open_plugin(post_class_t *class_gen, int inputs
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-  xine_list_append_content(this->post.input, input_api);
+  xine_list_push_back(this->post.input, input_api);
 
   this->post.xine_post.audio_input[0] = &port->new_port;
   this->post.dispose = upmix_mono_dispose;

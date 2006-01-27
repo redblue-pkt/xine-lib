@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq.c,v 1.12 2004/04/17 19:54:32 mroi Exp $
+ * $Id: eq.c,v 1.13 2006/01/27 07:46:14 tmattern Exp $
  *
  * mplayer's eq (soft video equalizer)
  * Copyright (C) Richard Felker
@@ -282,7 +282,7 @@ static post_plugin_t *eq_open_plugin(post_class_t *class_gen, int inputs,
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-  xine_list_append_content(this->post.input, input_api);
+  xine_list_push_back(this->post.input, input_api);
 
   input->xine_in.name     = "video";
   output->xine_out.name   = "eqd video";

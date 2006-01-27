@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.8 2004/07/22 14:25:05 mroi Exp $
+ * $Id: broadcaster.c,v 1.9 2006/01/27 07:46:15 tmattern Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -156,10 +156,14 @@ static int sock_string_write(xine_t *xine, int socket, char *msg, ...) {
  * it sends data to every connected client (slaves).
  */
 static void broadcaster_data_write(broadcaster_t *this, char *buf, int len) {
-  int *psock;
+  xine_list_iterator_t ite;
 
-  psock = xine_list_first_content (this->connections);
-  while (psock) {
+  ite = xine_list_front (this->connections);
+  while (ite) {
+
+    int *psock = xine_list_get_value(this->connections, ite);
+    
+    ite = xine_list_next(this->connections, ite);
     
     /* in case of failure remove from list */
     if( sock_data_write(this->stream->xine, *psock, buf, len) < 0 ) {
@@ -167,13 +171,9 @@ static void broadcaster_data_write(broadcaster_t *this, char *buf, int len) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "broadcaster: closing socket %d\n", *psock);
       close(*psock);
       free(psock);
-      if( this->connections->cur->next )
-        psock = this->connections->cur->next->content;
-      else
-        psock = NULL;
-      xine_list_delete_current (this->connections);
-    } else
-      psock = xine_list_next_content (this->connections);
+
+      xine_list_remove (this->connections, xine_list_prev(this->connections, ite));
+    }
   }
 }
 
@@ -227,7 +227,7 @@ static void *manager_loop (void *this_gen) {
        
             xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		    "broadcaster: new connection socket %d\n", *psock);
-            xine_list_append_content(this->connections, psock);
+            xine_list_push_back(this->connections, psock);
           }
         }
       }
@@ -343,20 +343,16 @@ broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port)
 
 void _x_close_broadcaster(broadcaster_t *this)
 {
-  int *psock;
+  xine_list_iterator_t ite;
   
-  psock = xine_list_first_content (this->connections);
-  while (psock) {
+  while ( (ite = xine_list_front(this->connections)) ) {
+    int *psock = xine_list_get_value(this->connections, ite);
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "broadcaster: closing socket %d\n", *psock);
     close(*psock);
     free(psock);
-    xine_list_delete_current (this->connections);
-    if( this->connections->cur )
-      psock = this->connections->cur->content;
-    else
-      psock = NULL;
+    xine_list_remove (this->connections, ite);
   }
-  xine_list_free(this->connections);
+  xine_list_delete(this->connections);
   
   this->running = 0;  
   close(this->msock);

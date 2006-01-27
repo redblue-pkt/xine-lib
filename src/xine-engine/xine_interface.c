@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.91 2005/10/30 02:18:35 miguelfreitas Exp $
+ * $Id: xine_interface.c,v 1.92 2006/01/27 07:46:16 tmattern Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -813,26 +813,28 @@ const char *const *xine_post_list_outputs(xine_post_t *this_gen) {
 
 xine_post_in_t *xine_post_input(xine_post_t *this_gen, const char *name) {
   post_plugin_t  *this = (post_plugin_t *)this_gen;
-  xine_post_in_t *input;
+  xine_list_iterator_t ite;
   
-  input = xine_list_first_content(this->input);
-  while (input) {
+  ite = xine_list_front(this->input);
+  while (ite) {
+    xine_post_in_t *input = xine_list_get_value(this->input, ite);
     if (strcmp(input->name, name) == 0)
       return input;
-    input = xine_list_next_content(this->input);
+    ite = xine_list_next(this->input, ite);
   }
   return NULL;
 }
 
 xine_post_out_t *xine_post_output(xine_post_t *this_gen, const char *name) {
   post_plugin_t   *this = (post_plugin_t *)this_gen;
-  xine_post_out_t *output;
+  xine_list_iterator_t ite;
   
-  output = xine_list_first_content(this->output);
-  while (output) {
+  ite = xine_list_front(this->output);
+  while (ite) {
+    xine_post_out_t *output = xine_list_get_value(this->output, ite);
     if (strcmp(output->name, name) == 0)
       return output;
-    output = xine_list_next_content(this->output);
+    ite = xine_list_next(this->output, ite);
   }
   return NULL;
 }

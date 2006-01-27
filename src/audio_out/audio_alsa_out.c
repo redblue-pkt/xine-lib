@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.157 2006/01/25 17:40:59 miguelfreitas Exp $
+ * $Id: audio_alsa_out.c,v 1.158 2006/01/27 07:46:09 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -223,6 +223,7 @@ static void *ao_alsa_handle_event_thread(void *data) {
 	xine_event_t              event;
 	xine_audio_level_data_t   data;
 	xine_stream_t            *stream;
+	xine_list_iterator_t      ite;
 	
 	this->mixer.right_vol = right_vol;
 	this->mixer.left_vol  = left_vol;
@@ -242,8 +243,9 @@ static void *ao_alsa_handle_event_thread(void *data) {
 	event.data_length = sizeof(data);
 	
 	pthread_mutex_lock(&this->class->xine->streams_lock);
-	for(stream = xine_list_first_content(this->class->xine->streams); 
-	    stream; stream = xine_list_next_content(this->class->xine->streams)) {
+	for(ite = xine_list_front(this->class->xine->streams); 
+	    ite; ite = xine_list_next(this->class->xine->streams, ite)) {
+	  stream = xine_list_get_value(this->class->xine->streams, ite);
 	  event.stream = stream;
 	  xine_event_send(stream, &event);
 	}

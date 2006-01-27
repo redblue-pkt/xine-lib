@@ -23,7 +23,7 @@
  * process. It simply paints the screen a solid color and rotates through
  * colors on each iteration.
  *
- * $Id: fooviz.c,v 1.23 2004/05/29 14:45:26 mroi Exp $
+ * $Id: fooviz.c,v 1.24 2006/01/27 07:46:14 tmattern Exp $
  *
  */
 
@@ -270,7 +270,7 @@ static post_plugin_t *fooviz_open_plugin(post_class_t *class_gen, int inputs,
   outputv->xine_out.data   = (xine_video_port_t **)&this->vo_port;
   outputv->xine_out.rewire = fooviz_rewire_video;
   outputv->post            = &this->post;
-  xine_list_append_content(this->post.output, outputv);
+  xine_list_push_back(this->post.output, outputv);
   
   this->post.xine_post.audio_input[0] = &port->new_port;
   

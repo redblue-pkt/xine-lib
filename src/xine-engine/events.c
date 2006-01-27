@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.28 2005/09/19 16:14:02 valtri Exp $
+ * $Id: events.c,v 1.29 2006/01/27 07:46:15 tmattern Exp $
  *
  * Event handling functions
  *
@@ -34,12 +34,13 @@
 xine_event_t *xine_event_get  (xine_event_queue_t *queue) {
 
   xine_event_t  *event;
+  xine_list_iterator_t ite;
 
   pthread_mutex_lock (&queue->lock);
-
-  event = (xine_event_t *) xine_list_first_content (queue->events);
+  ite = xine_list_front (queue->events);
+  event = xine_list_get_value (queue->events, ite);
   if (event)
-    xine_list_delete_current (queue->events);
+    xine_list_remove (queue->events, ite);
 
   pthread_mutex_unlock (&queue->lock);
 
@@ -49,14 +50,17 @@ xine_event_t *xine_event_get  (xine_event_queue_t *queue) {
 xine_event_t *xine_event_wait (xine_event_queue_t *queue) {
 
   xine_event_t  *event;
+  xine_list_iterator_t ite;
 
   pthread_mutex_lock (&queue->lock);
 
-  while (!(event = (xine_event_t *) xine_list_first_content (queue->events))) {
+  while ( !(ite = xine_list_front (queue->events)) ) {
     pthread_cond_wait (&queue->new_event, &queue->lock);
   }
 
-  xine_list_delete_current (queue->events);
+  event = xine_list_get_value (queue->events, ite);
+
+  xine_list_remove (queue->events, ite);
 
   pthread_mutex_unlock (&queue->lock);
 
@@ -70,16 +74,17 @@ void xine_event_free (xine_event_t *event) {
 
 void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
 
-  xine_event_queue_t *queue;
+  xine_list_iterator_t ite;
 
   pthread_mutex_lock (&stream->event_queues_lock);
 
-  queue = (xine_event_queue_t *)xine_list_first_content (stream->event_queues);
+  ite = xine_list_front (stream->event_queues);
 
-  while (queue) {
-    
+  while (ite) {
+    xine_event_queue_t *queue;
     xine_event_t *cevent;
 
+    queue = xine_list_get_value(stream->event_queues, ite);
     cevent = malloc (sizeof (xine_event_t));
     cevent->type        = event->type;
     cevent->stream      = stream;
@@ -93,11 +98,11 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
     gettimeofday (&cevent->tv, NULL);
     
     pthread_mutex_lock (&queue->lock);
-    xine_list_append_content (queue->events, cevent);
+    xine_list_push_back (queue->events, cevent);
     pthread_cond_signal (&queue->new_event);
     pthread_mutex_unlock (&queue->lock);
 
-    queue=(xine_event_queue_t *)xine_list_next_content (stream->event_queues);
+    ite = xine_list_next (stream->event_queues, ite);
   }
 
   pthread_mutex_unlock (&stream->event_queues_lock);
@@ -119,7 +124,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) {
   queue->callback_running = 0;
 
   pthread_mutex_lock (&stream->event_queues_lock);
-  xine_list_append_content (stream->event_queues, queue);
+  xine_list_push_back (stream->event_queues, queue);
   pthread_mutex_unlock (&stream->event_queues_lock);
 
   return queue;
@@ -127,17 +132,21 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) {
 
 void xine_event_dispose_queue (xine_event_queue_t *queue) {
 
-  xine_stream_t      *stream = queue->stream;
-  xine_event_t       *event;
-  xine_event_t       *qevent;
-  xine_event_queue_t *q;
+  xine_stream_t        *stream = queue->stream;
+  xine_event_t         *event;
+  xine_event_t         *qevent;
+  xine_event_queue_t   *q;
+  xine_list_iterator_t  ite;
     
   pthread_mutex_lock (&stream->event_queues_lock);
 
-  q = (xine_event_queue_t *) xine_list_first_content (stream->event_queues);
+  ite = xine_list_front (stream->event_queues);
+  q = xine_list_get_value (stream->event_queues, ite);
 
-  while (q && (q != queue))
-    q = (xine_event_queue_t *) xine_list_next_content (stream->event_queues);
+  while (ite && (q != queue)) {
+    ite = xine_list_next (stream->event_queues, ite);
+    q = xine_list_get_value (stream->event_queues, ite);
+  }
 
   if (!q) {
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "events: tried to dispose queue which is not in list\n");
@@ -146,7 +155,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
     return;
   }
 
-  xine_list_delete_current (stream->event_queues);
+  xine_list_remove (stream->event_queues, ite);
   pthread_mutex_unlock (&stream->event_queues_lock);
 
   /* 
@@ -161,7 +170,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   gettimeofday (&qevent->tv, NULL);
   
   pthread_mutex_lock (&queue->lock);
-  xine_list_append_content (queue->events, qevent);
+  xine_list_push_back (queue->events, qevent);
   pthread_cond_signal (&queue->new_event);
   pthread_mutex_unlock (&queue->lock);
 
@@ -212,7 +221,7 @@ static void *listener_loop (void *queue_gen) {
     xine_event_free (event);
 
     pthread_mutex_lock (&queue->lock);
-    if (xine_list_is_empty (queue->events)) {
+    if (xine_list_empty (queue->events)) {
       pthread_cond_signal (&queue->events_processed);
     }
     pthread_mutex_unlock (&queue->lock);

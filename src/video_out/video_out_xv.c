@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.214 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.215 2006/01/27 07:46:15 tmattern Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1025,15 +1025,16 @@ static void xv_store_port_attribute(xv_driver_t *this, char *name) {
   XvGetPortAttribute (this->display, this->xv_port, atom, &attr->value);
   XUnlockDisplay(this->display);
   
-  xine_list_append_content (this->port_attributes, attr);
+  xine_list_push_back (this->port_attributes, attr);
 }
 
 static void xv_restore_port_attributes(xv_driver_t *this) {
   Atom                 atom;
-  xv_portattribute_t  *attr;
+  xine_list_iterator_t ite;
   
-  while ((attr = xine_list_first_content(this->port_attributes)) != NULL) {
-    xine_list_delete_current (this->port_attributes);
+  while ((ite = xine_list_front(this->port_attributes)) != NULL) {
+    xv_portattribute_t *attr = xine_list_get_value(this->port_attributes, ite);
+    xine_list_remove (this->port_attributes, ite);
   
     XLockDisplay(this->display);
     atom = XInternAtom (this->display, attr->name, False);
@@ -1048,7 +1049,7 @@ static void xv_restore_port_attributes(xv_driver_t *this) {
   XSync(this->display, False);
   XUnlockDisplay(this->display);
  
-  xine_list_free( this->port_attributes );
+  xine_list_delete( this->port_attributes );
 }
 
 static void xv_dispose (vo_driver_t *this_gen) {

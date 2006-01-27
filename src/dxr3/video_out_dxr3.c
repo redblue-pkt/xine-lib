@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.111 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: video_out_dxr3.c,v 1.112 2006/01/27 07:46:12 tmattern Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -221,6 +221,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   int encoder, confnum;
   static char *available_encoders[SUPPORTED_ENCODER_COUNT + 2];
   plugin_node_t *node;
+
 #ifdef HAVE_X11
   static char *videoout_modes[] = { "letterboxed tv",      "widescreen tv",
 				    "letterboxed overlay", "widescreen overlay", NULL };
@@ -228,7 +229,9 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   static char *videoout_modes[] = { "letterboxed tv", "widescreen tv", NULL };
 #endif
   static char *tv_modes[] = { "ntsc", "pal", "pal60" , "default", NULL };
-
+  int list_id, list_size;
+  xine_sarray_t *plugin_list;
+  
   if (class->instance) return NULL;
   
   this = (dxr3_driver_t *)xine_xmalloc(sizeof(dxr3_driver_t));
@@ -298,8 +301,11 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 #endif
   /* check, if ffmpeg plugin is available by looking through plugin
    * catalog; catalog mutex is already locked here, since this is open_plugin() */
-  for (node = xine_list_first_content(class->xine->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]); node;
-       node = xine_list_next_content(class->xine->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]))
+  node = NULL;
+  plugin_list = class->xine->plugin_catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1];
+  list_size = xine_sarray_size(plugin_list);
+  for (list_id = 0; list_id < list_size; list_id++) {
+    node = xine_sarray_get (plugin_list, list_id);
     if (strcasecmp(node->info->id, "ffmpegvideo") == 0) {
       available_encoders[encoder++] = "libavcodec";
 #if LOG_VID
@@ -307,6 +313,7 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
 #endif
       break;
     }
+  }
 #ifdef HAVE_LIBFAME
   available_encoders[encoder++] = "fame";
 #if LOG_VID

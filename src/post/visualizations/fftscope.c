@@ -22,7 +22,7 @@
  *
  * FFT code by Steve Haehnichen, originally licensed under GPL v1
  *
- * $Id: fftscope.c,v 1.28 2004/12/13 19:05:13 miguelfreitas Exp $
+ * $Id: fftscope.c,v 1.29 2006/01/27 07:46:14 tmattern Exp $
  *
  */
 
@@ -459,7 +459,7 @@ static post_plugin_t *fftscope_open_plugin(post_class_t *class_gen, int inputs,
   outputv->xine_out.data   = (xine_video_port_t **)&this->vo_port;
   outputv->xine_out.rewire = fftscope_rewire_video;
   outputv->post            = &this->post;
-  xine_list_append_content(this->post.output, outputv);
+  xine_list_push_back(this->post.output, outputv);
 
   this->post.xine_post.audio_input[0] = &port->new_port;
 

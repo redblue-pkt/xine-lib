@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.c,v 1.31 2005/07/17 20:22:24 jstembridge Exp $
+ * $Id: post.c,v 1.32 2006/01/27 07:46:15 tmattern Exp $
  */
  
 /*
@@ -243,7 +243,7 @@ post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_
     (*input)->xine_in.type = XINE_POST_DATA_VIDEO;
     (*input)->xine_in.data = &port->new_port;
     (*input)->post = post;
-    xine_list_append_content(post->input, *input);
+    xine_list_push_back(post->input, *input);
   }
   
   if (output) {
@@ -255,7 +255,7 @@ post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_
     (*output)->xine_out.rewire = post_video_rewire;
     (*output)->post = post;
     (*output)->user_data = port;
-    xine_list_append_content(post->output, *output);
+    xine_list_push_back(post->output, *output);
   }
   
   return port;
@@ -725,7 +725,7 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
     (*input)->xine_in.type = XINE_POST_DATA_AUDIO;
     (*input)->xine_in.data = &port->new_port;
     (*input)->post = post;
-    xine_list_append_content(post->input, *input);
+    xine_list_push_back(post->input, *input);
   }
   
   if (output) {
@@ -737,7 +737,7 @@ post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_
     (*output)->xine_out.rewire = post_audio_rewire;
     (*output)->post = post;
     (*output)->user_data = port;
-    xine_list_append_content(post->output, *output);
+    xine_list_push_back(post->output, *output);
   }
   
   return port;
@@ -790,6 +790,7 @@ int _x_post_dispose(post_plugin_t *this) {
   if (!in_use) {
     xine_post_in_t  *input;
     xine_post_out_t *output;
+    xine_list_iterator_t ite;
     
     /* we can really dispose it */
     
@@ -799,8 +800,9 @@ int _x_post_dispose(post_plugin_t *this) {
     free(this->input_ids);
     free(this->output_ids);
     
-    for (input = xine_list_first_content(this->input); input;
-         input = xine_list_next_content(this->input)) {
+    for (ite = xine_list_front(this->input); ite;
+         ite = xine_list_next(this->input, ite)) {
+      input = xine_list_get_value(this->input, ite);
       switch (input->type) {
       case XINE_POST_DATA_VIDEO:
 	{
@@ -832,8 +834,9 @@ int _x_post_dispose(post_plugin_t *this) {
 	break;
       }
     }
-    for (output = xine_list_first_content(this->output); output;
-         output = xine_list_next_content(this->output)) {
+    for (ite = xine_list_front(this->output); ite;
+         ite = xine_list_next(this->output, ite)) {
+      output = xine_list_get_value(this->output, ite);
       switch (output->type) {
       case XINE_POST_DATA_VIDEO:
 	if (output->rewire == post_video_rewire)
@@ -848,8 +851,8 @@ int _x_post_dispose(post_plugin_t *this) {
       }
     }
     
-    xine_list_free(this->input);
-    xine_list_free(this->output);
+    xine_list_delete(this->input);
+    xine_list_delete(this->output);
     
     /* since the plugin loader does not know, when the plugin gets disposed,
      * we have to handle the reference counter here */

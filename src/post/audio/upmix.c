@@ -23,7 +23,7 @@
  * It simply creates output channels to match the speaker arrangement.
  * E.g. Converts Stereo into Surround 5.1
  *
- * $Id: upmix.c,v 1.16 2004/07/27 17:59:58 mroi Exp $
+ * $Id: upmix.c,v 1.17 2006/01/27 07:46:12 tmattern Exp $
  *
  */
 
@@ -408,7 +408,7 @@ static post_plugin_t *upmix_open_plugin(post_class_t *class_gen, int inputs,
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-  xine_list_append_content(this->post.input, input_api);
+  xine_list_push_back(this->post.input, input_api);
 
   this->post.xine_post.audio_input[0] = &port->new_port;
 

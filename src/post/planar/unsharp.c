@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: unsharp.c,v 1.17 2005/02/13 13:14:43 valtri Exp $
+ * $Id: unsharp.c,v 1.18 2006/01/27 07:46:14 tmattern Exp $
  *
  * mplayer's unsharp
  * Copyright (C) 2002 Rémi Guyomarch <rguyom@pobox.com>
@@ -320,7 +320,7 @@ static post_plugin_t *unsharp_open_plugin(post_class_t *class_gen, int inputs,
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-  xine_list_append_content(this->post.input, input_api);
+  xine_list_push_back(this->post.input, input_api);
 
   input->xine_in.name     = "video";
   output->xine_out.name   = "unsharped video";

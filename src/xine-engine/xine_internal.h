@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.170 2006/01/26 12:13:23 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.171 2006/01/27 07:46:16 tmattern Exp $
  *
  */
 
@@ -264,6 +264,7 @@ struct xine_stream_s {
   audio_decoder_t           *audio_decoder_plugin;
   int                        audio_decoder_streamtype;
   extra_info_t              *audio_decoder_extra_info;
+
   uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
   uint32_t                   audio_type;

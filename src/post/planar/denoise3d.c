@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: denoise3d.c,v 1.13 2004/04/17 19:54:32 mroi Exp $
+ * $Id: denoise3d.c,v 1.14 2006/01/27 07:46:14 tmattern Exp $
  *
  * mplayer's denoise3d
  * Copyright (C) 2003 Daniel Moreno <comac@comac.darktech.org>
@@ -225,7 +225,7 @@ static post_plugin_t *denoise3d_open_plugin(post_class_t *class_gen, int inputs,
   input_api->name = "parameters";
   input_api->type = XINE_POST_DATA_PARAMETERS;
   input_api->data = &post_api;
-  xine_list_append_content(this->post.input, input_api);
+  xine_list_push_back(this->post.input, input_api);
 
   input->xine_in.name     = "video";
   output->xine_out.name   = "denoise3d video";

@@ -162,7 +162,7 @@ static post_plugin_t *expand_open_plugin(post_class_t *class_gen, int inputs,
   input_param->name = "parameters";
   input_param->type = XINE_POST_DATA_PARAMETERS;
   input_param->data = &post_api;
-  xine_list_append_content(this->post.input, input_param);
+  xine_list_push_back(this->post.input, input_param);
   
   input->xine_in.name     = "video";
   output->xine_out.name   = "expanded video";

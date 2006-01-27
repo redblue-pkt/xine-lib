@@ -1,7 +1,7 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
- * This file is part of xine, a unix video player.
+ * This file is part of xine, a free video player.
  * 
  * xine is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,235 +17,310 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.9 2004/12/20 21:38:24 mroi Exp $
+ * $Id: list.c,v 1.10 2006/01/27 07:46:16 tmattern Exp $
  *
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include "list.h"
 
-#include "xineutils.h"
+#define MIN_CHUNK_SIZE    32
+#define MAX_CHUNK_SIZE 65536
 
-/*
- * create a new, empty list
+/* list element struct */
+typedef struct xine_list_elem_s xine_list_elem_t;
+struct xine_list_elem_s {
+  xine_list_elem_t *prev;
+  xine_list_elem_t *next;
+  void            *value;
+};
+
+/* chunk of list elements */
+typedef struct xine_list_chunk_s xine_list_chunk_t;
+struct xine_list_chunk_s {
+  xine_list_chunk_t *next_chunk;            /* singly linked list of chunks */
+
+  xine_list_elem_t *elem_array;             /* the allocated elements */
+  int chunk_size;                          /* element count in the chunk */
+  int current_elem_id;                     /* next free elem in the chunk */
+};
+
+/* list struct */
+struct xine_list_s {
+  /* list of chunks */
+  xine_list_chunk_t *chunk_list;
+  size_t            chunk_list_size;
+  xine_list_chunk_t *last_chunk;
+
+  /* list elements */
+  xine_list_elem_t  *elem_list_front;
+  xine_list_elem_t  *elem_list_back;
+  size_t            elem_list_size;
+
+  /* list of free elements */
+  xine_list_elem_t  *free_elem_list;
+  size_t            free_elem_list_size;
+};
+
+/* Allocates a new chunk of n elements
+ * One malloc call is used to allocate the struct and the elements.
  */
-xine_list_t *xine_list_new (void) {
-  xine_list_t *list;
+static xine_list_chunk_t *xine_list_alloc_chunk(size_t size) {
+  xine_list_chunk_t *new_chunk;
+  size_t chunk_mem_size;;
 
-  list = (xine_list_t *) xine_xmalloc(sizeof(xine_list_t));
+  chunk_mem_size  = sizeof(xine_list_chunk_t);
+  chunk_mem_size += sizeof(xine_list_elem_t) * size;
 
-  list->first=NULL;
-  list->last =NULL;
-  list->cur  =NULL;
+  new_chunk = (xine_list_chunk_t *)malloc(chunk_mem_size);
+  new_chunk->elem_array = (xine_list_elem_t*)(new_chunk + 1);
+  new_chunk->next_chunk = NULL;
+  new_chunk->current_elem_id = 0;
+  new_chunk->chunk_size = size;
 
-  return list;
+  return new_chunk;
 }
 
-/*
- * dispose a list (and only the list, contents have to be managed separately)
- *                 TODO: this is easy to fix by using "content destructors"  
- */
-void xine_list_free(xine_list_t *l) {
-  xine_node_t *node;
-
-  if (!l) {
-    fprintf(stderr, "%s(): No list.\n", __XINE_FUNCTION__);
-    return;
-  }
- 
-  if(!l->first) {
-    return;
-  }
-
-  node = l->first;
-  
-  while(node) {
-    xine_node_t *n = node;
-    
-    /* TODO: support for content destructors */
-    node = n->next;
-    free(n);
-  }
-  
-  free(l);
+/* Delete a chunk */
+static void xine_list_delete_chunk(xine_list_chunk_t *chunk) {
+  free(chunk);
 }
 
-void *xine_list_first_content (xine_list_t *l) {
+/* Get a new element either from the free list either from the current chunk.
+   Allocate a new chunk if needed */
+static xine_list_elem_t *xine_list_alloc_elem(xine_list_t *list) {
+  xine_list_elem_t *new_elem;
 
-  l->cur = l->first;
+  /* check the free list */
+  if (list->free_elem_list_size > 0) {
+    new_elem = list->free_elem_list;
+    list->free_elem_list = list->free_elem_list->next;
+    list->free_elem_list_size--;
+  } else {
+    /* check current chunk */
+    if (list->last_chunk->current_elem_id < list->last_chunk->chunk_size) {
+      /* take the next elem in the chunk */
+      new_elem = &list->last_chunk->elem_array[list->last_chunk->current_elem_id];
+      list->last_chunk->current_elem_id++;
+    } else {
+      /* a new chunk is needed */
+      xine_list_chunk_t *new_chunk;
+      int chunk_size;
 
-  if (l->first) 
-    return l->first->content;
-  else
-    return NULL;
-}
+      chunk_size = list->last_chunk->chunk_size * 2;
+      if (chunk_size > MAX_CHUNK_SIZE)
+        chunk_size = MAX_CHUNK_SIZE;
 
-void *xine_list_next_content (xine_list_t *l) {
-  if (l->cur) {
+      new_chunk = xine_list_alloc_chunk(chunk_size);
 
-    if (l->cur->next) {
-      l->cur = l->cur->next;
-      return l->cur->content;
-    } 
-    else
-      return NULL;
-    
-  } 
-  else {
-    fprintf(stderr,"%s() WARNING: passed end of list\n", __XINE_FUNCTION__);
-    return NULL;
-  }    
-}
+      list->last_chunk->next_chunk = new_chunk;
+      list->last_chunk = new_chunk;
+      list->chunk_list_size++;
 
-int xine_list_is_empty (xine_list_t *l) {
-
-  if (l == NULL){
-	fprintf(stderr, "%s(): list is NULL\n", __XINE_FUNCTION__);
-	return -1;
-  }
-  return (l->first == NULL);
-}
-
-void *xine_list_last_content (xine_list_t *l) {
-
-  if (l->last) {
-    l->cur = l->last;
-    return l->last->content;
-  } 
-  else {
-    fprintf(stderr, "xine_list: wanted last of empty list\n");
-    return NULL;
-  }    
-}
-
-void *xine_list_prev_content (xine_list_t *l) {
-
-  if (l->cur) {
-    if (l->cur->prev) {
-      l->cur = l->cur->prev;
-      return l->cur->content;
-    } 
-    else
-      return NULL;
-  } 
-  else {
-    fprintf(stderr, "xine_list: passed begin of list\n");
-    return NULL;
-  }    
-}
-
-void xine_list_append_priority_content (xine_list_t *l, void *content, int priority) {
-  xine_node_t *node;
-
-  node = (xine_node_t *) xine_xmalloc(sizeof(xine_node_t));
-  node->content = content;
-  node->priority = priority;
-
-  if (l->first) {
-    xine_node_t *cur;
-
-    cur = l->first;
-
-    while(1) {
-      if( priority > cur->priority ) {
-        node->next = cur;
-        node->prev = cur->prev;
-
-        if( node->prev )
-          node->prev->next = node;
-        else
-          l->first = node;
-        cur->prev = node;
-
-        l->cur = node;
-        break;
-      }
-
-      if( !cur->next ) {
-        node->next = NULL;
-        node->prev = cur;
-        cur->next = node;
-
-        l->cur = node;
-        l->last = node;
-        break;
-      }
-     
-      cur = cur->next;
+      new_elem = &new_chunk->elem_array[0];
+      new_chunk->current_elem_id++;
     }
-  } 
-  else {
-    l->first = l->last = l->cur = node;
-    node->prev = node->next = NULL;
+  }
+  return new_elem;
+}
+
+/* Push the elem into the free list */
+static void xine_list_recycle_elem(xine_list_t *list,  xine_list_elem_t *elem) {
+  elem->next = list->free_elem_list;
+  elem->prev = NULL;
+
+  list->free_elem_list = elem;
+  list->free_elem_list_size++;
+}
+
+/* List constructor */
+xine_list_t *xine_list_new() {
+  xine_list_t *new_list;
+
+  new_list = (xine_list_t*)malloc(sizeof(xine_list_t));
+  new_list->chunk_list = xine_list_alloc_chunk(MIN_CHUNK_SIZE);
+  new_list->chunk_list_size = 1;
+  new_list->last_chunk = new_list->chunk_list;
+  new_list->free_elem_list = NULL;
+  new_list->free_elem_list_size = 0;
+  new_list->elem_list_front = NULL;
+  new_list->elem_list_back = NULL;
+  new_list->elem_list_size = 0;
+
+  return new_list;
+}
+
+void xine_list_delete(xine_list_t *list) {
+  /* Delete each chunk */
+  xine_list_chunk_t *current_chunk = list->chunk_list;
+
+  while (current_chunk) {
+    xine_list_chunk_t *next_chunk = current_chunk->next_chunk;
+
+    xine_list_delete_chunk(current_chunk);
+    current_chunk = next_chunk;
+  }
+  free(list);
+}
+
+unsigned int xine_list_size(xine_list_t *list) {
+  return list->elem_list_size;
+}
+
+unsigned int xine_list_empty(xine_list_t *list) {
+  return (list->elem_list_size == 0);
+}
+
+xine_list_iterator_t xine_list_front(xine_list_t *list) {
+  return list->elem_list_front;
+}
+
+xine_list_iterator_t xine_list_back(xine_list_t *list) {
+  return list->elem_list_back;
+}
+
+void xine_list_push_back(xine_list_t *list, void *value) {
+  xine_list_elem_t *new_elem;
+
+  new_elem = xine_list_alloc_elem(list);
+  new_elem->value = value;
+
+  if (list->elem_list_back) {
+    new_elem->next = NULL;
+    new_elem->prev = list->elem_list_back;
+    list->elem_list_back->next = new_elem;
+    list->elem_list_back = new_elem;
+  } else {
+    /* first elem in the list */
+    list->elem_list_front = list->elem_list_back = new_elem;
+    new_elem->next = NULL;
+    new_elem->prev = NULL;
+  }
+  list->elem_list_size++;
+}
+
+void xine_list_push_front(xine_list_t *list, void *value) {
+  xine_list_elem_t *new_elem;
+
+  new_elem = xine_list_alloc_elem(list);
+  new_elem->value = value;
+
+  if (list->elem_list_front) {
+    new_elem->next = list->elem_list_front;
+    new_elem->prev = NULL;
+    list->elem_list_front->prev = new_elem;
+    list->elem_list_front = new_elem;
+  } else {
+    /* first elem in the list */
+    list->elem_list_front = list->elem_list_back = new_elem;
+    new_elem->next = NULL;
+    new_elem->prev = NULL;
+  }
+  list->elem_list_size++;
+}
+
+void xine_list_clear(xine_list_t *list) {
+  xine_list_elem_t *elem = list->elem_list_front;
+  while (elem) {
+    xine_list_elem_t *elem_next = elem->next;
+    xine_list_recycle_elem(list, elem);
+    elem = elem_next;
+  }
+
+  list->elem_list_front = NULL;
+  list->elem_list_back = NULL;
+  list->elem_list_size = 0;
+}
+
+xine_list_iterator_t xine_list_next(xine_list_t *list, xine_list_iterator_t ite) {
+  xine_list_elem_t *elem = (xine_list_elem_t*)ite;
+
+  if (ite == NULL)
+    return list->elem_list_front;
+  else
+    return (xine_list_iterator_t)elem->next;
+}
+
+xine_list_iterator_t xine_list_prev(xine_list_t *list, xine_list_iterator_t ite) {
+  xine_list_elem_t *elem = (xine_list_elem_t*)ite;
+
+  if (ite == NULL)
+    return list->elem_list_back;
+  else
+    return (xine_list_iterator_t)elem->prev;
+}
+
+void *xine_list_get_value(xine_list_t *list, xine_list_iterator_t ite) {
+  xine_list_elem_t *elem = (xine_list_elem_t*)ite;
+
+  return elem->value;
+}
+
+void xine_list_remove(xine_list_t *list, xine_list_iterator_t position) {
+  xine_list_elem_t *elem = (xine_list_elem_t*)position;
+
+  if (elem) {
+    xine_list_elem_t *prev = elem->prev;
+    xine_list_elem_t *next = elem->next;
+
+    if (prev)
+      prev->next = next;
+    else
+      list->elem_list_front = next;
+
+    if (next)
+      next->prev = prev;
+    else
+      list->elem_list_back = prev;
+
+    xine_list_recycle_elem(list, elem);
+    list->elem_list_size--;
   }
 }
 
+xine_list_iterator_t xine_list_insert(xine_list_t *list,
+                                    xine_list_iterator_t position,
+                                    void *value) {
+  xine_list_elem_t *elem = (xine_list_elem_t*)position;
+  xine_list_iterator_t new_position = NULL;
 
-void xine_list_append_content (xine_list_t *l, void *content) {
-  xine_node_t *node;
+  if (elem == NULL) {
+    /* insert at the end */
+    xine_list_push_back(list, value);
+    new_position = list->elem_list_back;
+  } else {
+    if (elem->prev == NULL) {
+      /* insert at the beginning */
+      xine_list_push_front(list, value);
+      new_position = list->elem_list_front;
+    } else {
+      xine_list_elem_t *new_elem = xine_list_alloc_elem(list);
+      xine_list_elem_t *prev = elem->prev;
 
-  node = (xine_node_t *) xine_xmalloc(sizeof(xine_node_t));
-  node->content = content;
+      new_elem->next = elem;
+      new_elem->prev = prev;
+      new_elem->value = value;
 
-  if (l->last) {
-    node->next = NULL;
-    node->prev = l->last;
-    l->last->next = node;
-    l->last = node;
-    l->cur = node;
-  } 
-  else {
-    l->first = l->last = l->cur = node;
-    node->prev = node->next = NULL;
+      elem->prev = new_elem;
+      prev->next = new_elem;
+
+      new_position = (xine_list_iterator_t)elem;
+    }
   }
+  return new_position;
 }
 
-void xine_list_insert_content (xine_list_t *l, void *content) {
-  xine_node_t *nodecur, *nodenext, *nodenew;
-  
-  if(l->cur->next) {
-    nodenew = (xine_node_t *) xine_xmalloc(sizeof(xine_node_t));
+xine_list_iterator_t xine_list_find(xine_list_t *list, void *value) {
 
-    nodenew->content = content;
-    nodecur = l->cur;
-    nodenext = l->cur->next;
-    nodecur->next = nodenew;
-    nodenext->prev = nodenew;
-    nodenew->prev = nodecur;
-    nodenew->next = nodenext;
-    l->cur = nodenew;
+  xine_list_elem_t *elem;
+
+  for (elem = list->elem_list_front; elem; elem = elem->next) {
+    if (elem->value == value)
+      break;
   }
-  else { /* current is last, append to the list */
-    xine_list_append_content(l, content);
-  }
-
-}
-
-void xine_list_delete_current (xine_list_t *l) {
-  xine_node_t *node_cur;
-
-  node_cur = l->cur;
-
-  if(node_cur->prev) {
-    node_cur->prev->next = node_cur->next;
-  } 
-  else { /* First entry */
-    l->first = node_cur->next;
-  }
-  
-  if(node_cur->next) {
-    node_cur->next->prev = node_cur->prev;
-    l->cur = node_cur->next;
-  }
-  else { /* last entry in the list */
-    l->last = node_cur->prev;
-    l->cur = node_cur->prev;
-  }
-
-  /* TODO:  support content destructors */
-  free(node_cur);
+  return elem;
 }
