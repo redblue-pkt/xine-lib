@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ring_buffer.h,v 1.1 2006/01/27 07:55:18 tmattern Exp $
+ * $Id: ring_buffer.h,v 1.2 2006/01/27 19:37:15 tmattern Exp $
  *
  * Fifo + Ring Buffer
  */
@@ -36,10 +36,22 @@ void *xine_ring_buffer_alloc(xine_ring_buffer_t *ring_buffer, size_t size);
 /* Put a chunk into the ring */
 void xine_ring_buffer_put(xine_ring_buffer_t *ring_buffer, void *chunk);
 
-/* Get a chunk of a specified size from the ring buffer */
-/* Might block if the ring buffer is empty */
-void *xine_ring_buffer_get(xine_ring_buffer_t *ring_buffer, size_t size);
+/* Get a chunk of a specified size from the ring buffer
+ * Might block if the ring buffer is empty
+ * param size: the desired size
+ * param rsize: the size of the chunk returned
+ * rsize is not equal to size at the end of stream, the caller MUST check
+ * rsize value.
+ */
+void *xine_ring_buffer_get(xine_ring_buffer_t *ring_buffer, size_t size, size_t *rsize);
 
-/* Release the chunk, makes memory available for the alloc function */
+/* Releases the chunk, makes memory available for the alloc function */
 void xine_ring_buffer_release(xine_ring_buffer_t *ring_buffer, void *chunk);
+
+/* Closes the ring buffer
+ * The writer uses this function to signal the end of stream to the reader.
+ * The reader MUST check the rsize value returned by the get function.
+ */
+void xine_ring_buffer_close(xine_ring_buffer_t *ring_buffer);
+
 
