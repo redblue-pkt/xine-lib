@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2005 the xine project and Claudio Ciccani
+ * Copyright (C) 2000-2006 the xine project and Claudio Ciccani
  * 
  * This file is part of xine, a free video player.
  * 
@@ -33,13 +33,6 @@
 
 #ifdef HAVE_X11
 # include <X11/Xlib.h>
-#endif
-
-#ifdef HAVE_FB
-# include <fcntl.h>
-# include <unistd.h>
-# include <sys/ioctl.h>
-# include <linux/fb.h>
 #endif
 
 #define LOG_MODULE "video_out_directfb"
@@ -84,6 +77,7 @@ typedef struct directfb_driver_s {
   DFBDisplayLayerConfig        config;
   DFBColorAdjustment           default_cadj;
   DFBColorAdjustment           cadj;
+  int                          visible;
   
   /* for hardware scaling */
   IDirectFBSurface            *temp;
@@ -445,7 +439,10 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
   
   directfb_redraw_needed (&this->vo_driver);
  
+  if (!this->visible) {
   this->layer->SetOpacity (this->layer, 0xff);
+    this->visible = 1;
+  }
 
   if (frame->locked) {
     frame->surface->Unlock (frame->surface);
@@ -469,7 +466,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
   frame->locked = 1;
 }
 
-/* directfb_display_frame2(): output to a generic (fixed) layer */
+/* directfb_display_frame2(): output to underlay */
 static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   directfb_driver_t       *this   = (directfb_driver_t *) this_gen;
   directfb_frame_t        *frame  = (directfb_frame_t *) frame_gen;
@@ -481,6 +478,19 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
    
   /* TODO: try to change video mode when frame size changes */
    
+  if (frame->format != this->config.pixelformat) {
+    this->config.flags       = DLCONF_PIXELFORMAT;
+    this->config.pixelformat = frame->format;
+    
+    lprintf ("changing layer pixelformat to %s.\n",
+             (this->config.pixelformat == DSPF_YUY2) ? "YUY2" : "YV12");
+    
+    ret = this->layer->SetConfiguration (this->layer, &this->config);
+    if (ret != DFB_OK)
+      DirectFBError ("IDirectFBDisplayLayer::SetConfiguration()", ret);
+    this->layer->GetConfiguration (this->layer, &this->config);
+  } 
+  
   if (this->temp) {
     /* try to reduce video memory fragmentation */
     if (this->temp_frame_width  <  frame->width  ||
@@ -494,9 +504,7 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
       this->temp->Release (this->temp);
       this->temp = NULL;
       
-      dsc.flags       = DSDESC_CAPS   | DSDESC_WIDTH      |
-                        DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-      dsc.caps        = DSCAPS_VIDEOONLY;
+      dsc.flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
       dsc.width       = frame->width;
       dsc.height      = frame->height;
       dsc.pixelformat = frame->format;
@@ -529,7 +537,10 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
   
   directfb_redraw_needed (&this->vo_driver);
 
+  if (!this->visible) {
   this->layer->SetOpacity (this->layer, 0xff);
+    this->visible = 1;
+  }
 
   if (frame->locked) {
     frame->surface->Unlock (frame->surface);
@@ -556,7 +567,8 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
     else
       this->temp->SetBlittingFlags (this->temp, flags);      
       
-    this->temp->Blit (this->temp, frame->surface, &s, s.x, s.y);
+    this->temp->Blit (this->temp, frame->surface, &s, 0, 0);
+    s.x = 0; s.y = 0;
     this->surface->StretchBlit (this->surface, this->temp, &s, &d);
   } 
   else {
@@ -975,7 +987,7 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
     
     if (config.buffermode != this->config.buffermode) {      
       if (this->layer->SetConfiguration (this->layer, &config) != DFB_OK) {
-        xprintf (this->xine, XINE_VERBOSITY_NONE,
+        xprintf (this->xine, XINE_VERBOSITY_LOG,
                  "video_out_directfb: failed to set buffermode to %d!\n", 
                  entry->num_value);
         return;
@@ -994,7 +1006,7 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
     
     if (config.options != this->config.options) {  
       if (this->layer->SetConfiguration (this->layer, &config) != DFB_OK) {
-          xprintf (this->xine, XINE_VERBOSITY_NONE,
+          xprintf (this->xine, XINE_VERBOSITY_LOG,
                    "video_out_directfb: failed to set colorkeying to %d!\n", 
                    entry->num_value);
           return;
@@ -1021,7 +1033,7 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
       
     if (config.options != this->config.options) {
       if (this->layer->SetConfiguration (this->layer, &config) != DFB_OK) {
-          xprintf (this->xine, XINE_VERBOSITY_NONE,
+          xprintf (this->xine, XINE_VERBOSITY_LOG,
                    "video_out_directfb: failed to set flicker_filtering to %d!\n", 
                    entry->num_value);
           return;
@@ -1040,7 +1052,7 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
       
     if (config.options != this->config.options) {
       if (this->layer->SetConfiguration (this->layer, &config) != DFB_OK) {
-          xprintf (this->xine, XINE_VERBOSITY_NONE,
+          xprintf (this->xine, XINE_VERBOSITY_LOG,
                    "video_out_directfb: failed to set field_parity to %d!\n", 
                    entry->num_value);
           return;
@@ -1201,10 +1213,8 @@ static DFBResult init_device (directfb_driver_t *this) {
     DFBSurfaceDescription  dsc;
     DFBAccelerationMask    mask = DFXL_NONE;
     
-    dsc.flags       = DSDESC_CAPS   | DSDESC_WIDTH      |
-                      DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-    dsc.caps        = DSCAPS_VIDEOONLY;
-    dsc.width       = 352;
+    dsc.flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+    dsc.width       = 320;
     dsc.height      = 240;
     dsc.pixelformat = DSPF_YV12;
     
@@ -1230,9 +1240,8 @@ static DFBResult init_device (directfb_driver_t *this) {
         }
         
         /* used to decide reallocation */
-        this->temp_frame_width  = 352;
-        this->temp_frame_height = 240;
-        this->temp_frame_format = DSPF_YV12;
+        temp->GetSize (temp, &this->temp_frame_width, &this->temp_frame_height);
+        temp->GetPixelFormat (temp, &this->temp_frame_format);
       } 
       else
         temp->Release (temp);
@@ -1242,41 +1251,46 @@ static DFBResult init_device (directfb_driver_t *this) {
   return DFB_OK;
 }    
 
+static DFBEnumerationResult find_underlay (DFBDisplayLayerID id,
+                                           DFBDisplayLayerDescription dsc, void *ctx) {
+  DFBDisplayLayerID *ret_id = (DFBDisplayLayerID *) ctx;
+  
+  *ret_id = id;
+  
+  return DFENUM_CANCEL;
+} 
+
 static void get_screen_size (directfb_driver_t *this, int *ret_w, int *ret_h) {
-  int w = -640, h = -480;
-#ifdef HAVE_FB
-  int fd;
-  struct fb_var_screeninfo var;
+  IDirectFBScreen       *screen   = NULL;
+  DFBDisplayLayerID      layer_id = -1;
+  int                    width    = 640;
+  int                    height   = 480;
   
-  fd = open (getenv ("FRAMEBUFFER") ? : "/dev/fb0", O_RDONLY);
-  if (fd > 0) {
-    if (ioctl (fd, FBIOGET_VSCREENINFO, &var) == 0) {
-      w = var.xres;
-      h = var.yres;
-    }
-    close (fd);
+  this->layer->GetScreen (this->layer, &screen);
+  if (screen) {
+    screen->EnumDisplayLayers (screen, find_underlay, (void*)&layer_id);
+    screen->Release (screen);
   }
-#endif
-  if (w < 1 || h < 1) {
-    IDirectFBDisplayLayer *primary;
+    
+  if (layer_id != -1) {
+    IDirectFBDisplayLayer *layer = NULL;
     DFBDisplayLayerConfig  config;
-    DFBResult              ret;
   
-    ret = this->dfb->GetDisplayLayer (this->dfb, DLID_PRIMARY, &primary);
-    if (ret == DFB_OK) {
-      if (primary->GetConfiguration (primary, &config) == DFB_OK) {
-        w = config.width;
-        h = config.height;
+    this->dfb->GetDisplayLayer (this->dfb, layer_id, &layer);
+    if (layer) {
+      layer->GetConfiguration (layer, &config);
+      layer->Release (layer);
+      
+      width  = config.width;
+      height = config.height;
       }
-      primary->Release (primary);
-    } 
-    else
-      DirectFBError( "IDirectFB::GetDisplayLayer( DLID_PRIMARY )", ret );
   }
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-           "video_out_directfb: screen size is %dx%d.\n", abs(w), abs(h));
-  *ret_w = abs(w); *ret_h = abs(h);
+           "video_out_directfb: screen size is %dx%d.\n", 
+           width, height);
+
+  *ret_w = width; *ret_h = height;
 }
 
 static void directfb_frame_output_cb (void *user_data, int video_width, int video_height,
@@ -1320,8 +1334,10 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
     return NULL;
   }
   
-  DirectFBSetOption ("bg-none", NULL);
-  DirectFBSetOption ("no-vt"  , NULL);
+  DirectFBSetOption ("no-vt", NULL);
+  DirectFBSetOption ("bg-color", "00000000" );
+  DirectFBSetOption ("no-sighandler", NULL );
+  DirectFBSetOption ("no-deinit-check", NULL );
   /* linux_input blocks input from console, disable it */
   DirectFBSetOption ("disable-module", "linux_input");
   
@@ -1360,22 +1376,15 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
                              20, NULL, 0);
                              
   if (probe_device (this, id) != DFB_OK) {
-    xprintf (this->xine, XINE_VERBOSITY_NONE,
+    xprintf (this->xine, XINE_VERBOSITY_LOG,
              _("video_out_directfb: no usable output layer was found!\n"));
     this->dfb->Release (this->dfb);
     free (this);
     return NULL;
   }
 
-  /* debugging option */
-  if (this->caps & DLCAPS_SCREEN_LOCATION) {
-    if (config->register_bool (config, "video.device.directfb_fixed_overlay", 0,
-                _("make the overlay behave like a fixed layer (for debugging)"),
-                _("make the overlay behave like a fixed layer (for debugging)"),
-                                                                  100, NULL, 0)) {
-      this->caps &= ~DLCAPS_SCREEN_LOCATION;
-    }
-  }
+  if (id == DLID_PRIMARY)
+    this->caps &= ~(DLCAPS_SCREEN_LOCATION | DLCAPS_DST_COLORKEY);
   
   /* set default configuration */
   this->buffermode        = 1; // double
@@ -1459,7 +1468,7 @@ static void *init_class_fb (xine_t *xine, void *visual_gen) {
                                 DIRECTFB_MINOR_VERSION,
                                 DIRECTFB_MICRO_VERSION );
   if (error) {
-    xprintf (xine, XINE_VERBOSITY_NONE,
+    xprintf (xine, XINE_VERBOSITY_LOG,
              "video_out_directfb: %s!\n", error);
     return NULL;
   }
@@ -1489,7 +1498,7 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
   x11_visual_t      *visual = (x11_visual_t *) visual_gen;
   XWindowAttributes  attrs;
   IDirectFBScreen   *screen;
-  DFBDisplayLayerID  id     = (DFBDisplayLayerID) -1;
+  DFBDisplayLayerID  id     = DLID_PRIMARY;
   DFBResult          ret;
 
   this = xine_xmalloc (sizeof (directfb_driver_t));
@@ -1506,6 +1515,9 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
     free (this);
     return NULL;
   }
+  
+  DirectFBSetOption ("no-sighandler", NULL );
+  DirectFBSetOption ("no-deinit-check", NULL );
   
   /* create the main interface or retrieve an already existing one */
   ret = DirectFBCreate (&this->dfb);
@@ -1534,8 +1546,8 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
     return NULL;
   }
                              
-  if (probe_device (this, id) != DFB_OK) {
-    xprintf (this->xine, XINE_VERBOSITY_NONE,
+  if (id == DLID_PRIMARY || probe_device (this, id) != DFB_OK) {
+    xprintf (this->xine, XINE_VERBOSITY_LOG,
              _("video_out_directfb: no usable overlay layer was found!\n"));
     this->dfb->Release (this->dfb);
     free (this);
@@ -1619,7 +1631,7 @@ static void *init_class_x11 (xine_t *xine, void *visual_gen) {
                                 DIRECTFB_MINOR_VERSION,
                                 DIRECTFB_MICRO_VERSION );
   if (error) {
-    xprintf (xine, XINE_VERBOSITY_NONE,
+    xprintf (xine, XINE_VERBOSITY_LOG,
              "video_out_directfb: %s!\n", error);
     return NULL;
   }
@@ -1663,3 +1675,5 @@ plugin_info_t xine_plugin_info[] = {
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+
+
