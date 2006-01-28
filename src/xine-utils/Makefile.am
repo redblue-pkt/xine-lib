@@ -25,7 +25,11 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	xine_mutex.c \
 	xmllexer.c \
 	xine_buffer.c \
-	xmlparser.c
+	xmlparser.c \
+	array.c \
+	sorted_array.c \
+	pool.c \
+	ring_buffer.c
 
 include_HEADERS = \
 	attributes.h \
@@ -33,7 +37,13 @@ include_HEADERS = \
 	xine_buffer.h \
 	xineutils.h \
 	xmllexer.h \
-	xmlparser.h
+	xmlparser.h \
+	list.h \
+	array.h \
+	sorted_array.h \
+	pool.h \
+	ring_buffer.h
+
 
 noinst_HEADERS = ppcasm_string.h xine_check.h
 
