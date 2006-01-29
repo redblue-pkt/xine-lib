@@ -1346,6 +1346,26 @@ AM_CONDITIONAL(HAVE_ARTS, test x"$no_arts" != "xyes")
 
 
 dnl ---------------------------------------------
+dnl FusionSound support
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE([fusionsound],
+  AC_HELP_STRING([--enable-fusionsound], [build with fusionsound support]),
+  [with_fusionsound=$enableval], [with_fusionsound=no])
+
+if test "x$with_fusionsound" = "xyes"; then
+  PKG_CHECK_MODULES(FUSIONSOUND, fusionsound >= 0.9.23,
+      AC_DEFINE(HAVE_FUSIONSOUND,1,[Define to 1 if you have FusionSound.]),
+      AC_MSG_RESULT(*** All of FusionSound dependent parts will be disabled ***))
+  AC_SUBST(FUSIONSOUND_CFLAGS)
+  AC_SUBST(FUSIONSOUND_LIBS)
+else
+  no_fusionsound=yes
+fi
+AM_CONDITIONAL(HAVE_FUSIONSOUND, test x"$no_fusionsound" != "xyes")
+
+
+dnl ---------------------------------------------
 dnl gnome-vfs support
 dnl ---------------------------------------------
 
@@ -2661,6 +2681,9 @@ if test x"$no_esd" != "xyes"; then
 fi
 if test x"$no_arts" != "xyes"; then
   echo "   - arts (aRts - KDE soundserver)"
+fi
+if test x"$no_fusionsound" != "xyes"; then
+  echo "   - fusionsound (FusionSound driver)"
 fi
 if test x"$have_sunaudio" = "xyes"; then
   echo "   - sun ()"

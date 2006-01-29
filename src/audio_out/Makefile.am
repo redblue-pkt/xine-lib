@@ -1,7 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = -DXINE_COMPILE $(ALSA_CFLAGS) $(ESD_CFLAGS) $(IRIXAL_CFLAGS) $(ARTS_CFLAGS) \
-	$(POLYPAUDIO_CFLAGS)
+	$(POLYPAUDIO_CFLAGS) $(FUSIONSOUND_CFLAGS)
 
 EXTRA_DIST = audio_irixal_out.c
 
@@ -46,6 +46,11 @@ if HAVE_POLYPAUDIO
 polypaudio_module = xineplug_ao_out_polypaudio.la
 endif
 
+if HAVE_FUSIONSOUND
+fusionsound_module = xineplug_ao_out_fusionsound.la
+endif
+
+
 ##
 # IMPORTANT:
 # ---------
@@ -61,7 +66,8 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la xineplug_ao_out_file.la \
 	$(directx_module) \
 	$(coreaudio_module) \
 	$(polypaudio_module) \
-	$(directx2_module)
+	$(directx2_module)	\
+	$(fusionsound_module)
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -125,3 +131,8 @@ xineplug_ao_out_directx2_la_SOURCES = audio_directx2_out.c
 xineplug_ao_out_directx2_la_CPPFLAGS = $(DIRECTX_CPPFLAGS)
 xineplug_ao_out_directx2_la_LIBADD = $(XINE_LIB) $(DIRECTX_AUDIO_LIBS) $(THREAD_LIBS)
 xineplug_ao_out_directx2_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
+xineplug_ao_out_fusionsound_la_SOURCES = audio_fusionsound_out.c
+xineplug_ao_out_fusionsound_la_LIBADD = $(FUSIONSOUND_LIBS) $(XINE_LIB)
+xineplug_ao_out_fusionsound_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+
