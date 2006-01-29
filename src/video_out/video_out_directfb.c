@@ -440,7 +440,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
   directfb_redraw_needed (&this->vo_driver);
  
   if (!this->visible) {
-  this->layer->SetOpacity (this->layer, 0xff);
+    this->layer->SetOpacity (this->layer, 0xff);
     this->visible = 1;
   }
 
@@ -538,7 +538,7 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
   directfb_redraw_needed (&this->vo_driver);
 
   if (!this->visible) {
-  this->layer->SetOpacity (this->layer, 0xff);
+    this->layer->SetOpacity (this->layer, 0xff);
     this->visible = 1;
   }
 
@@ -1283,7 +1283,7 @@ static void get_screen_size (directfb_driver_t *this, int *ret_w, int *ret_h) {
       
       width  = config.width;
       height = config.height;
-      }
+    }
   }
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
@@ -1675,5 +1675,4 @@ plugin_info_t xine_plugin_info[] = {
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
-
 
