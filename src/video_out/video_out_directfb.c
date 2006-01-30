@@ -67,7 +67,7 @@ typedef struct directfb_driver_s {
 
   xine_t                      *xine;
   
-  directfb_frame_t            *recent_frames[VO_NUM_RECENT_FRAMES];
+  directfb_frame_t            *cur_frame;
 
   /* DirectFB related stuff */
   IDirectFB                   *dfb;
@@ -207,7 +207,7 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
     
     dsc.flags       = DSDESC_CAPS   | DSDESC_WIDTH |
                       DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-    dsc.caps        = DSCAPS_SYSTEMONLY;
+    dsc.caps        = DSCAPS_SYSTEMONLY | DSCAPS_INTERLACED;
     dsc.width       = (width  + 7) & ~7;
     dsc.height      = (height + 1) & ~1;
     dsc.pixelformat = format;
@@ -336,11 +336,25 @@ static void directfb_overlay_blend (vo_driver_t *this_gen,
 
 static int directfb_redraw_needed (vo_driver_t *this_gen) {
   directfb_driver_t *this  = (directfb_driver_t *) this_gen;
-  
+  directfb_frame_t  *frame = this->cur_frame;
+
+  if (!frame)
+    return 1;
+      
+  this->sc.delivered_width  = frame->width; 
+  this->sc.delivered_height = frame->height; 
+  this->sc.delivered_ratio  = frame->ratio;  
+  this->sc.crop_left        = frame->vo_frame.crop_left;
+  this->sc.crop_right       = frame->vo_frame.crop_right;
+  this->sc.crop_top         = frame->vo_frame.crop_top;
+  this->sc.crop_bottom      = frame->vo_frame.crop_bottom;
+    
+  _x_vo_scale_compute_ideal_size (&this->sc);
+ 
   if (_x_vo_scale_redraw_needed (&this->sc)) {
     _x_vo_scale_compute_output_size (&this->sc);
-    
-    if (this->caps & DLCAPS_SCREEN_LOCATION) {  
+
+    if (this->caps & DLCAPS_SCREEN_LOCATION) {
       this->layer->SetSourceRectangle (this->layer,
                                        this->sc.displayed_xoffset,
                                        this->sc.displayed_yoffset,
@@ -352,24 +366,13 @@ static int directfb_redraw_needed (vo_driver_t *this_gen) {
                                        this->sc.output_width,
                                        this->sc.output_height);
     }
-      
+     
     directfb_clean_output_area (this);
+    
+    return 1;
   }
   
   return 0;
-}
-
-static void directfb_add_recent_frame (directfb_driver_t *this, directfb_frame_t *frame) {
-  int i;
-
-  i = VO_NUM_RECENT_FRAMES-1;
-  if (this->recent_frames[i])
-    this->recent_frames[i]->vo_frame.free (&this->recent_frames[i]->vo_frame);
-
-  for (; i; i--)
-    this->recent_frames[i] = this->recent_frames[i-1];
-
-  this->recent_frames[0] = frame;
 }
 
 /* directfb_display_frame(): output to overlay */
@@ -377,8 +380,10 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
   directfb_driver_t *this  = (directfb_driver_t *) this_gen;
   directfb_frame_t  *frame = (directfb_frame_t *) frame_gen;
   DFBResult          ret;
-  
-  directfb_add_recent_frame (this, frame);
+ 
+  if (this->cur_frame)
+    this->cur_frame->vo_frame.free (&this->cur_frame->vo_frame);
+  this->cur_frame = frame;
   
   this->config.flags = DLCONF_NONE;
   
@@ -425,15 +430,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
       this->sc.delivered_height != frame->height ||
       this->sc.delivered_ratio  != frame->ratio)
   {
-    this->sc.delivered_width  = frame->width; 
-    this->sc.delivered_height = frame->height; 
-    this->sc.delivered_ratio  = frame->ratio;  
-    this->sc.crop_left        = frame->vo_frame.crop_left;
-    this->sc.crop_right       = frame->vo_frame.crop_right;
-    this->sc.crop_top         = frame->vo_frame.crop_top;
-    this->sc.crop_bottom      = frame->vo_frame.crop_bottom;
-    
-    _x_vo_scale_compute_ideal_size (&this->sc);
+    lprintf ("forcing redraw\n");
     this->sc.force_redraw = 1;
   }
   
@@ -450,10 +447,18 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
   }
   
   if (this->deinterlace) {
-    if (!(this->config.options & DLOP_DEINTERLACING))
+    if (!(this->config.options & DLOP_DEINTERLACING)) {
+      frame->surface->SetField (frame->surface, 
+                                frame->vo_frame.top_field_first ? 0 : 1);
       this->surface->SetBlittingFlags (this->surface, DSBLIT_DEINTERLACE);
-  } else
+    } 
+    else {
+      this->surface->SetField (this->surface,
+                               frame->vo_frame.top_field_first ? 0 : 1);
+    }
+  } else {
     this->surface->SetBlittingFlags (this->surface, DSBLIT_NOFX);
+  }
   
   this->surface->Blit (this->surface, frame->surface, NULL, 0, 0);
   this->surface->Flip (this->surface, NULL,
@@ -474,7 +479,9 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
   DFBRectangle             s, d;
   DFBResult                ret;
   
-  directfb_add_recent_frame (this, frame);
+  if (this->cur_frame)
+    this->cur_frame->vo_frame.free (&this->cur_frame->vo_frame);
+  this->cur_frame = frame;
    
   /* TODO: try to change video mode when frame size changes */
    
@@ -504,7 +511,9 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
       this->temp->Release (this->temp);
       this->temp = NULL;
       
-      dsc.flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+      dsc.flags       = DSDESC_CAPS   | DSDESC_WIDTH |
+                        DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+      dsc.caps        = DSCAPS_INTERLACED;
       dsc.width       = frame->width;
       dsc.height      = frame->height;
       dsc.pixelformat = frame->format;
@@ -523,15 +532,7 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
       this->sc.delivered_height != frame->height ||
       this->sc.delivered_ratio  != frame->ratio)
   {
-    this->sc.delivered_width  = frame->width; 
-    this->sc.delivered_height = frame->height; 
-    this->sc.delivered_ratio  = frame->ratio;  
-    this->sc.crop_left        = frame->vo_frame.crop_left;
-    this->sc.crop_right       = frame->vo_frame.crop_right;
-    this->sc.crop_top         = frame->vo_frame.crop_top;
-    this->sc.crop_bottom      = frame->vo_frame.crop_bottom;
-    
-    _x_vo_scale_compute_ideal_size (&this->sc);
+    lprintf ("forcing redraw\n");
     this->sc.force_redraw = 1;
   }
   
@@ -562,16 +563,24 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
   flags = (this->deinterlace) ? DSBLIT_DEINTERLACE : DSBLIT_NOFX;
     
   if (this->temp) {
-    if (this->hw_deinterlace)
+    if (this->hw_deinterlace) {
+      this->temp->SetField (this->temp, 
+                            frame->vo_frame.top_field_first ? 0 : 1);
       this->surface->SetBlittingFlags (this->surface, flags);
-    else
-      this->temp->SetBlittingFlags (this->temp, flags);      
+    }
+    else {
+      frame->surface->SetField (frame->surface,
+                                frame->vo_frame.top_field_first ? 0 : 1);
+      this->temp->SetBlittingFlags (this->temp, flags);
+    }
       
     this->temp->Blit (this->temp, frame->surface, &s, 0, 0);
     s.x = 0; s.y = 0;
     this->surface->StretchBlit (this->surface, this->temp, &s, &d);
   } 
   else {
+    frame->surface->SetField (frame->surface,
+                              frame->vo_frame.top_field_first ? 0 : 1);
     this->surface->SetBlittingFlags (this->surface, flags);
     this->surface->StretchBlit (this->surface, frame->surface, &s, &d);
   }
@@ -862,42 +871,35 @@ static int directfb_gui_data_exchange (vo_driver_t *this_gen,
 
 static void directfb_dispose (vo_driver_t *this_gen) {
   directfb_driver_t *this = (directfb_driver_t *) this_gen;
- 
-  if (this) {
-    int i;
-    
-    for (i = 0; i < VO_NUM_RECENT_FRAMES; i++) {
-      directfb_frame_t *frame = this->recent_frames[i];
-      if (frame)
-        frame->vo_frame.free (&frame->vo_frame);
-    }
+
+  if (this->cur_frame)
+    this->cur_frame->vo_frame.dispose (&this->cur_frame->vo_frame);
         
 #ifdef HAVE_X11
-    if (this->visual_type == XINE_VISUAL_TYPE_X11) {
-      XLockDisplay (this->display);
-      XFreeGC (this->display, this->gc);
-      XUnlockDisplay (this->display);
-    }
+  if (this->visual_type == XINE_VISUAL_TYPE_X11) {
+    XLockDisplay (this->display);
+    XFreeGC (this->display, this->gc);
+    XUnlockDisplay (this->display);
+  }
 #endif
 
-    if (this->temp)
-      this->temp->Release (this->temp);
+  if (this->temp)
+    this->temp->Release (this->temp);
     
-    if (this->surface)
-      this->surface->Release (this->surface);
+  if (this->surface)
+    this->surface->Release (this->surface);
     
-    if (this->layer) {
-      this->layer->SetColorAdjustment (this->layer, &this->default_cadj);
-      this->layer->Release (this->layer);
-    }
-    
-    if (this->dfb)
-      this->dfb->Release (this->dfb);
-
-    _x_alphablend_free (&this->alphablend_extra_data);
-
-    free (this);
+  if (this->layer) {
+    this->layer->SetColorAdjustment (this->layer, &this->default_cadj);
+    this->layer->Release (this->layer);
   }
+    
+  if (this->dfb)
+    this->dfb->Release (this->dfb);
+
+  _x_alphablend_free (&this->alphablend_extra_data);
+
+  free (this);
 }
 
 /*** misc functions ****/
@@ -1213,7 +1215,9 @@ static DFBResult init_device (directfb_driver_t *this) {
     DFBSurfaceDescription  dsc;
     DFBAccelerationMask    mask = DFXL_NONE;
     
-    dsc.flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+    dsc.flags       = DSDESC_CAPS   | DSDESC_WIDTH |
+                      DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+    dsc.caps        = DSCAPS_INTERLACED;
     dsc.width       = 320;
     dsc.height      = 240;
     dsc.pixelformat = DSPF_YV12;
@@ -1303,7 +1307,8 @@ static void directfb_frame_output_cb (void *user_data, int video_width, int vide
   *dest_y            = 0;
   *dest_width        = this->screen_width;
   *dest_height       = this->screen_height;
-  *dest_pixel_aspect = video_pixel_aspect ? : 1.0;
+  *dest_pixel_aspect = video_pixel_aspect ? :
+                       (double)this->screen_width/(double)this->screen_height;
   *win_x             = 0;
   *win_y             = 0;
 }
@@ -1583,7 +1588,7 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
 
   _x_alphablend_init (&this->alphablend_extra_data, this->xine);
   
-  _x_vo_scale_init (&this->sc, 0, 0, this->xine->config);
+  _x_vo_scale_init (&this->sc, 1, 0, this->xine->config);
   this->sc.user_ratio      = XINE_VO_ASPECT_AUTO;
   this->sc.gui_width       = attrs.width;
   this->sc.gui_height      = attrs.height;
