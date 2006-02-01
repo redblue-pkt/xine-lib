@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.218 2006/01/27 07:46:15 tmattern Exp $
+ * $Id: load_plugins.c,v 1.219 2006/02/01 15:11:42 hadess Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -436,7 +436,7 @@ static int _plugin_node_comparator(void *a, void *b) {
   plugin_node_t *node_a = (plugin_node_t *)a;
   plugin_node_t *node_b = (plugin_node_t *)b;
 
-  if (node_a->priority < node_b->priority) {
+  if (node_a->priority > node_b->priority) {
     return -1;
   } else if (node_a->priority == node_b->priority) {
     return 0;
