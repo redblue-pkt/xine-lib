@@ -9,6 +9,7 @@ xine-lib (1.1.2)
   * Fix the ./configure --enable-static-xv parameter
   * Really fix the speed changing race that was mentioned in 1.1.1
   * Send events for tvtime filmmode changes
+  * Add an image decoder based on gdk-pixbuf
 
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

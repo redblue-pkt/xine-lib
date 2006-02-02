@@ -1369,11 +1369,11 @@ dnl ---------------------------------------------
 dnl gnome-vfs support
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([gnome],
-  AC_HELP_STRING([--disable-gnome], [do not build gnome-vfs support]),
-  [with_gnome=$enableval], [with_gnome=yes])
+AC_ARG_ENABLE([gnomevfs],
+  AC_HELP_STRING([--disable-gnomevfs], [do not build gnome-vfs support]),
+  [with_gnome_vfs=$enableval], [with_gnome_vfs=yes])
 
-if test "x$with_gnome" = "xyes"; then
+if test "x$with_gnome_vfs" = "xyes"; then
   PKG_CHECK_MODULES(GNOME_VFS, gnome-vfs-2.0,
                 no_gnome_vfs=no,
 		no_gnome_vfs=yes)
@@ -1389,6 +1389,29 @@ else
 fi
 AM_CONDITIONAL(HAVE_GNOME_VFS, test x"$no_gnome_vfs" != "xyes")
 
+dnl ---------------------------------------------
+dnl gdk-pixbuf support
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE([gdkpixbuf],
+  AC_HELP_STRING([--disable-gdkpixbuf], [do not build gdk-pixbuf support]),
+  [with_gdkpixbuf=$enableval], [with_gdkpixbuf=yes])
+
+if test "x$with_gdkpixbuf" = "xyes"; then
+  PKG_CHECK_MODULES(GDK_PIXBUF, gdk-pixbuf-2.0,
+                no_gdkpixbuf=no,
+		no_gdkpixbuf=yes)
+  AC_SUBST(GDK_PIXBUF_CFLAGS)
+  AC_SUBST(GDK_PIXBUF_LIBS)
+  if test x"$no_gdkpixbuf" != "xyes"; then
+    AC_DEFINE(HAVE_GDK_PIXBUF,1,[Define this if you have gdk-pixbuf installed])
+  else
+    AC_MSG_RESULT(*** All of the gdk-pixbuf dependent parts will be disabled ***)
+  fi
+else
+  no_gdkpixbuf=yes
+fi
+AM_CONDITIONAL(HAVE_GDK_PIXBUF, test x"$no_gdkpixbuf" != "xyes")
 
 dnl ---------------------------------------------
 dnl libsmbclient support
@@ -2488,6 +2511,9 @@ if test x"$enable_w32dll" = "xyes"; then
 fi
 if test x"$have_imagemagick" = "xyes"; then
   echo "   - image"
+fi
+if test x"no_gdkpixbuf" != "xyes"; then
+  echo "   - gdk-pixbuf"
 fi
 if test x"$no_theora" != "xyes"; then
   echo "   - theora"
