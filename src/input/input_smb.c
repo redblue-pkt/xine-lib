@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.5 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_smb.c,v 1.6 2006/02/02 22:35:30 f1rmb Exp $
  */
 
 
@@ -33,6 +33,10 @@
 #include <libsmbclient.h>
 #include <sys/types.h>
 #include <errno.h>
+
+#ifdef HAVE_SETLOCALE
+#include <locale.h>
+#endif
 
 typedef struct {
 	input_class_t input_class;
@@ -234,11 +238,15 @@ void smb_auth(const char *srv, const char *shr, char *wg, int wglen, char *un, i
 static void
 *init_input_class (xine_t *xine, void *data)
 {
-	smb_input_class_t *this;
+	smb_input_class_t *this = NULL;
+	/* libsmbclient seems to mess up with locale. Workaround: save and restore locale */
+#ifdef HAVE_SETLOCALE
+	char *lcl = strdup(setlocale(LC_MESSAGES, NULL));
+#endif
 
 	if (smbc_init(smb_auth,(xine->verbosity >= XINE_VERBOSITY_DEBUG)))
-	  return NULL;
-
+	  goto _exit_error;
+	
 	this = (smb_input_class_t *) xine_xmalloc(sizeof(smb_input_class_t));
 	this->xine = xine;
 
@@ -250,6 +258,13 @@ static void
 	this->input_class.dispose            = smb_class_dispose;
 	this->input_class.eject_media        = NULL;
 
+ _exit_error:
+
+#ifdef HAVE_SETLOCALE
+	setlocale(LC_MESSAGES, lcl);
+	free(lcl);
+#endif
+	
 	return (input_class_t *) this;
 }
 
