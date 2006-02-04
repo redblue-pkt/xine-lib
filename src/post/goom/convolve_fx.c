@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 //#define CONV_MOTIF_W 32
 //#define CONV_MOTIF_WMASK 0x1f
 
@@ -151,7 +155,8 @@ static void create_output_with_brightness(VisualFX *_this, Pixel *src, Pixel *de
     ytex = yprime + yi + CONV_MOTIF_W * 0x10000 / 2;
     yprime += c;
 
-#ifdef HAVE_MMX
+#if defined(HAVE_MMX) && ! defined(ARCH_X86_64)
+/* This code uses 32-bit registers eax,ecx,esi */
     __asm__ __volatile__
       ("\n\t pxor  %%mm7,  %%mm7"  /* mm7 = 0   */
        "\n\t movd %0,  %%mm2"

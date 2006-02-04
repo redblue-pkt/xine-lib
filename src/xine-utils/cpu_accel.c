@@ -326,7 +326,7 @@ uint32_t xine_mm_accel (void)
 #endif
 #endif
 
-#if defined(ARCH_X86) || (defined(ARCH_PPC) && defined(ENABLE_ALTIVEC)) || (defined(ARCH_SPARC) && defined(ENABLE_VIS))
+#if defined(ARCH_X86) || defined(ARCH_X86_64) || (defined(ARCH_PPC) && defined(ENABLE_ALTIVEC)) || (defined(ARCH_SPARC) && defined(ENABLE_VIS))
     accel |= arch_accel();
 #endif
 

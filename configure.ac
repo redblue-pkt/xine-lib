@@ -1959,6 +1959,7 @@ case "$host_or_hostalias" in
   x86_64-*)
     AC_DEFINE_UNQUOTED(ARCH_X86_64,,[Define this if you're running x86 architecture])
     AC_DEFINE(FPM_64BIT,1,[Define to select libmad fixed point arithmetic implementation])
+    enable_ffmmx="yes"
     ;;
   *darwin*)
     HOST_OS_DARWIN=1

@@ -178,7 +178,7 @@ static inline __attribute__ ((always_inline,const)) uint8_t clip255( int x )
 
 static unsigned long CombJaggieThreshold = 73;
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static unsigned int comb_factor_packed422_scanline_mmx( uint8_t *top, uint8_t *mid,
                                                         uint8_t *bot, int width )
 {
@@ -304,7 +304,7 @@ static unsigned int diff_factor_packed422_scanline_test_c( uint8_t *cur, uint8_t
 }
 */
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static unsigned int diff_factor_packed422_scanline_mmx( uint8_t *cur, uint8_t *old, int width )
 {
     const mmx_t qwYMask = { 0x00ff00ff00ff00ffULL };
@@ -345,7 +345,7 @@ static unsigned int diff_factor_packed422_scanline_mmx( uint8_t *cur, uint8_t *o
 
 #define ABS(a) (((a) < 0)?-(a):(a))
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void diff_packed422_block8x8_mmx( pulldown_metrics_t *m, uint8_t *old,
                                          uint8_t *new, int os, int ns )
 {
@@ -586,7 +586,7 @@ static void packed422_to_packed444_rec601_scanline_c( uint8_t *dest, uint8_t *sr
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void vfilter_chroma_121_packed422_scanline_mmx( uint8_t *output, int width,
                                                        uint8_t *m, uint8_t *t, uint8_t *b )
 {
@@ -652,7 +652,7 @@ static void vfilter_chroma_121_packed422_scanline_c( uint8_t *output, int width,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void vfilter_chroma_332_packed422_scanline_mmx( uint8_t *output, int width,
                                                        uint8_t *m, uint8_t *t, uint8_t *b )
 {
@@ -726,7 +726,7 @@ static void vfilter_chroma_332_packed422_scanline_c( uint8_t *output, int width,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void kill_chroma_packed422_inplace_scanline_mmx( uint8_t *data, int width )
 {
     const mmx_t ymask = { 0x00ff00ff00ff00ffULL };
@@ -758,7 +758,7 @@ static void kill_chroma_packed422_inplace_scanline_c( uint8_t *data, int width )
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void invert_colour_packed422_inplace_scanline_mmx( uint8_t *data, int width )
 {
     const mmx_t allones = { 0xffffffffffffffffULL };
@@ -885,7 +885,7 @@ static void interpolate_packed422_scanline_c( uint8_t *output, uint8_t *top,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void interpolate_packed422_scanline_mmx( uint8_t *output, uint8_t *top,
                                                 uint8_t *bot, int width )
 {
@@ -955,7 +955,7 @@ static void interpolate_packed422_scanline_mmx( uint8_t *output, uint8_t *top,
 }
 #endif
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void interpolate_packed422_scanline_mmxext( uint8_t *output, uint8_t *top,
                                                    uint8_t *bot, int width )
 {
@@ -1015,7 +1015,7 @@ static void blit_colour_packed422_scanline_c( uint8_t *output, int width, int y,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void blit_colour_packed422_scanline_mmx( uint8_t *output, int width, int y, int cb, int cr )
 {
     uint32_t colour = cr << 24 | y << 16 | cb << 8 | y;
@@ -1055,7 +1055,7 @@ static void blit_colour_packed422_scanline_mmx( uint8_t *output, int width, int 
 }
 #endif
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void blit_colour_packed422_scanline_mmxext( uint8_t *output, int width, int y, int cb, int cr )
 {
     uint32_t colour = cr << 24 | y << 16 | cb << 8 | y;
@@ -1109,7 +1109,7 @@ static void blit_colour_packed4444_scanline_c( uint8_t *output, int width,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void blit_colour_packed4444_scanline_mmx( uint8_t *output, int width,
                                                  int alpha, int luma,
                                                  int cb, int cr )
@@ -1146,7 +1146,7 @@ static void blit_colour_packed4444_scanline_mmx( uint8_t *output, int width,
 }
 #endif
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void blit_colour_packed4444_scanline_mmxext( uint8_t *output, int width,
                                                     int alpha, int luma,
                                                     int cb, int cr )
@@ -1195,14 +1195,14 @@ static void blit_packed422_scanline_c( uint8_t *dest, const uint8_t *src, int wi
     speedy_memcpy_c( dest, src, width*2 );
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void blit_packed422_scanline_mmx( uint8_t *dest, const uint8_t *src, int width )
 {
     speedy_memcpy_mmx( dest, src, width*2 );
 }
 #endif
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void blit_packed422_scanline_mmxext( uint8_t *dest, const uint8_t *src, int width )
 {
     speedy_memcpy_mmxext( dest, src, width*2 );
@@ -1267,7 +1267,7 @@ static void composite_packed4444_alpha_to_packed422_scanline_c( uint8_t *output,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void composite_packed4444_alpha_to_packed422_scanline_mmxext( uint8_t *output,
                                                                      uint8_t *input,
                                                                      uint8_t *foreground,
@@ -1409,7 +1409,7 @@ static void composite_packed4444_to_packed422_scanline_c( uint8_t *output, uint8
 }
 
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void composite_packed4444_to_packed422_scanline_mmxext( uint8_t *output, uint8_t *input,
                                                                uint8_t *foreground, int width )
 {
@@ -1543,7 +1543,7 @@ static void composite_alphamask_to_packed4444_scanline_c( uint8_t *output,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void composite_alphamask_to_packed4444_scanline_mmxext( uint8_t *output,
                                                                uint8_t *input,
                                                                uint8_t *mask,
@@ -1691,7 +1691,7 @@ static void premultiply_packed4444_scanline_c( uint8_t *output, uint8_t *input, 
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void premultiply_packed4444_scanline_mmxext( uint8_t *output, uint8_t *input, int width )
 {
     const mmx_t round  = { 0x0080008000800080ULL };
@@ -1747,7 +1747,7 @@ static void blend_packed422_scanline_c( uint8_t *output, uint8_t *src1,
     }
 }
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void blend_packed422_scanline_mmxext( uint8_t *output, uint8_t *src1,
                                              uint8_t *src2, int width, int pos )
 {
@@ -1792,7 +1792,7 @@ static void blend_packed422_scanline_mmxext( uint8_t *output, uint8_t *src1,
 }
 #endif
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void quarter_blit_vertical_packed422_scanline_mmxext( uint8_t *output, uint8_t *one,
                                                              uint8_t *three, int width )
 {
@@ -2414,7 +2414,7 @@ void setup_speedy_calls( uint32_t accel, int verbose )
     vfilter_chroma_121_packed422_scanline = vfilter_chroma_121_packed422_scanline_c;
     vfilter_chroma_332_packed422_scanline = vfilter_chroma_332_packed422_scanline_c;
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
     if( speedy_accel & MM_ACCEL_X86_MMXEXT ) {
         if( verbose ) {
             printf( "speedycode: Using MMXEXT optimized functions.\n" );

@@ -11,6 +11,7 @@ xine-lib (1.1.2)
   * Send events for tvtime filmmode changes
   * Add an image decoder based on gdk-pixbuf
   * Add browseable capability to smb input plugin
+  * Enable AMD64 mmx/sse support in some plugins (tvtime, libmpeg2, goom...)
 
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

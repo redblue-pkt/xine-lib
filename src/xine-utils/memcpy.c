@@ -395,7 +395,7 @@ static struct {
 {
   { NULL, NULL, 0, 0 },
   { "libc memcpy()", memcpy, 0, 0 },
-#if defined(ARCH_X86) && !defined(_MSC_VER)
+#if (defined(ARCH_X86) || defined(ARCH_X86_64)) && !defined(_MSC_VER)
   { "linux kernel memcpy()", linux_kernel_memcpy, 0, 0 },
   { "MMX optimized memcpy()", mmx_memcpy, 0, MM_MMX },
   { "MMXEXT optimized memcpy()", mmx2_memcpy, 0, MM_MMXEXT },
@@ -408,7 +408,7 @@ static struct {
   { NULL, NULL, 0, 0 }
 };
 
-#if defined(ARCH_X86) && defined(HAVE_SYS_TIMES_H)
+#if (defined(ARCH_X86) || defined(ARCH_X86_64)) && defined(HAVE_SYS_TIMES_H)
 static unsigned long long int rdtsc(int config_flags)
 {
   unsigned long long int x;
@@ -465,7 +465,7 @@ void xine_probe_fast_memcpy(xine_t *xine)
   int               config_flags = -1;
   static char      *memcpy_methods[] = {
     "probe", "libc",
-#if defined(ARCH_X86) && !defined(_MSC_VER)
+#if (defined(ARCH_X86) || defined(ARCH_X86_64)) && !defined(_MSC_VER)
     "kernel", "mmx", "mmxext", "sse",
 #endif
 #if defined (ARCH_PPC) && !defined (HOST_OS_DARWIN)

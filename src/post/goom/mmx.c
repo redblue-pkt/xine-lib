@@ -4,6 +4,7 @@
 #define BUFFPOINTMASK 0xffff
 #define BUFFINCR 0xff
 
+#include <stddef.h>
 #include "mmx.h"
 #include "goom_graphic.h"
 
@@ -23,6 +24,7 @@ void zoom_filter_mmx (int prevX, int prevY,
 		      int precalCoef[16][16])
 {
 	unsigned int ax = (prevX-1)<<PERTEDEC, ay = (prevY-1)<<PERTEDEC;
+        size_t sizeX = prevX;
 
 	int bufsize = prevX * prevY;
 	int loop;
@@ -33,7 +35,7 @@ void zoom_filter_mmx (int prevX, int prevY,
 	{
 		/*      int couleur; */
 		int px,py;
-		int pos;
+		size_t pos;
 		int coeffs;
 
 		int myPos = loop << 1,
@@ -91,7 +93,7 @@ void zoom_filter_mmx (int prevX, int prevY,
 		"punpckhbw %%mm7, %%mm5 \n\t"	/* 00-c4-00-c4-00-c4-00-c4 */
 
 		/* ajouter la longueur de ligne a esi */
-		"addl 8(%%ebp),%1 \n\t"
+		"add %4,%1 \n\t"
 
 		/* recuperation des 2 derniers pixels */
 		"movq (%3,%1,4), %%mm1 \n\t"
@@ -114,8 +116,8 @@ void zoom_filter_mmx (int prevX, int prevY,
 		"packuswb %%mm7, %%mm0 \n\t"
 
 		"movd %%mm0,%0 \n\t"
-		  :"=g"(expix2[loop])
-		  :"r"(pos),"r"(coeffs),"r"(expix1)
+		  :"=g"(expix2[loop]),"=r"(pos)
+		  :"r"(coeffs),"r"(expix1),"g"(sizeX)
 
 		);
 

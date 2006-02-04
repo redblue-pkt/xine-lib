@@ -27,6 +27,10 @@
 #ifndef _MMX_H
 #define _MMX_H
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "goom_graphic.h"
 
 /*	Warning:  at this writing, the version of GAS packaged
@@ -69,6 +73,9 @@ mm_support(void)
 		 13 if AMD Extended MMX, &3dNow supported
 	   0 if hardware does not support any of these
 	*/
+#ifdef ARCH_X86_64
+	return 13;
+#else
 	register int rval = 0;
 
 	__asm__ __volatile__ (
@@ -223,6 +230,7 @@ mm_support(void)
 
 	/* Return */
 	return(rval);
+#endif
 }
 
 /*	Function to test if mmx instructions are supported...

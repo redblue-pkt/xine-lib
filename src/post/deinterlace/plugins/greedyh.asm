@@ -323,7 +323,7 @@ static void FUNCT_NAME(uint8_t *output, int outstride,
     }
 
     // clear out the MMX registers ready for doing floating point again
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
     __asm__ __volatile__ ("emms\n\t");
 #endif
 }

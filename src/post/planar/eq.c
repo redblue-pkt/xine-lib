@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq.c,v 1.13 2006/01/27 07:46:14 tmattern Exp $
+ * $Id: eq.c,v 1.14 2006/02/04 14:06:52 miguelfreitas Exp $
  *
  * mplayer's eq (soft video equalizer)
  * Copyright (C) Richard Felker
@@ -29,7 +29,7 @@
 #include <pthread.h>
 
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static void process_MMX(unsigned char *dest, int dstride, unsigned char *src, int sstride,
 		    int w, int h, int brightness, int contrast)
 {
@@ -65,9 +65,9 @@ static void process_MMX(unsigned char *dest, int dstride, unsigned char *src, in
 			"paddw %%mm3, %%mm1 \n\t"
 			"paddw %%mm3, %%mm2 \n\t"
 			"packuswb %%mm2, %%mm1 \n\t"
-			"addl $8, %0 \n\t"
+			"add $8, %0 \n\t"
 			"movq %%mm1, (%1) \n\t"
-			"addl $8, %1 \n\t"
+			"add $8, %1 \n\t"
 			"decl %%eax \n\t"
 			"jnz 1b \n\t"
 			: "=r" (src), "=r" (dest)
@@ -260,7 +260,7 @@ static post_plugin_t *eq_open_plugin(post_class_t *class_gen, int inputs,
   }
 
   process = process_C;
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   if( xine_mm_accel() & MM_ACCEL_X86_MMX ) 
     process = process_MMX;
 #endif

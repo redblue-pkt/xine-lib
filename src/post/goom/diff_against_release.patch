@@ -1,6 +1,6 @@
 diff -ru goom2k4-0/src/filters.c xine-lib/src/post/goom/filters.c
---- goom2k4-0/src/filters.c	2005-02-07 11:46:41.000000000 -0200
-+++ xine-lib/src/post/goom/filters.c	2005-07-18 12:15:50.000000000 -0300
+--- filters.c	2005-02-07 11:46:41.000000000 -0200
++++ filters.c	2005-07-18 12:15:50.000000000 -0300
 @@ -704,7 +704,7 @@
      
      data->general_speed = 0.0f;
@@ -11,8 +11,8 @@ diff -ru goom2k4-0/src/filters.c xine-lib/src/post/goom/filters.c
      data->hypercosEffect = 0;
      data->vPlaneEffect = 0;
 diff -ru goom2k4-0/src/goom_core.c xine-lib/src/post/goom/goom_core.c
---- goom2k4-0/src/goom_core.c	2005-02-07 11:46:41.000000000 -0200
-+++ xine-lib/src/post/goom/goom_core.c	2005-07-19 12:39:22.000000000 -0300
+--- goom_core.c	2005-02-07 11:46:41.000000000 -0200
++++ goom_core.c	2005-07-19 12:39:22.000000000 -0300
 @@ -26,6 +26,8 @@
  #include "goom_fx.h"
  #include "goomsl.h"
@@ -36,8 +36,8 @@ diff -ru goom2k4-0/src/goom_core.c xine-lib/src/post/goom/goom_core.c
          return (guint32*)goomInfo->outputBuf;
  }
 diff -ru goom2k4-0/src/goom_tools.c xine-lib/src/post/goom/goom_tools.c
---- goom2k4-0/src/goom_tools.c	2005-02-07 11:46:41.000000000 -0200
-+++ xine-lib/src/post/goom/goom_tools.c	2005-07-18 14:30:02.000000000 -0300
+--- goom_tools.c	2005-02-07 11:46:41.000000000 -0200
++++ goom_tools.c	2005-07-18 14:30:02.000000000 -0300
 @@ -3,7 +3,6 @@
  
  GoomRandom *goom_random_init(int i) {
@@ -47,8 +47,8 @@ diff -ru goom2k4-0/src/goom_tools.c xine-lib/src/post/goom/goom_tools.c
  	goom_random_update_array(grandom, GOOM_NB_RAND);
  	return grandom;
 diff -ru goom2k4-0/src/ifs.c xine-lib/src/post/goom/ifs.c
---- goom2k4-0/src/ifs.c	2005-02-07 11:46:41.000000000 -0200
-+++ xine-lib/src/post/goom/ifs.c	2005-07-19 14:20:20.000000000 -0300
+--- ifs.c	2005-02-07 11:46:41.000000000 -0200
++++ ifs.c	2005-07-19 14:20:20.000000000 -0300
 @@ -503,6 +503,13 @@
  
  		for (i = 0; i < 4; i++) {
@@ -64,8 +64,8 @@ diff -ru goom2k4-0/src/ifs.c xine-lib/src/post/goom/ifs.c
  		}
  	}
 diff -ru goom2k4-0/src/tentacle3d.c xine-lib/src/post/goom/tentacle3d.c
---- goom2k4-0/src/tentacle3d.c	2005-02-07 11:46:41.000000000 -0200
-+++ xine-lib/src/post/goom/tentacle3d.c	2005-07-19 14:04:57.000000000 -0300
+--- tentacle3d.c	2005-02-07 11:46:41.000000000 -0200
++++ tentacle3d.c	2005-07-19 14:04:57.000000000 -0300
 @@ -10,7 +10,7 @@
  #define D 256.0f
  
@@ -76,8 +76,8 @@ diff -ru goom2k4-0/src/tentacle3d.c xine-lib/src/post/goom/tentacle3d.c
  
  typedef struct _TENTACLE_FX_DATA {
 diff -ru goom2k4-0/src/xmmx.c xine-lib/src/post/goom/xmmx.c
---- goom2k4-0/src/xmmx.c	2005-02-07 11:46:41.000000000 -0200
-+++ xine-lib/src/post/goom/xmmx.c	2005-07-18 15:26:23.000000000 -0300
+--- xmmx.c	2005-02-07 11:46:41.000000000 -0200
++++ xmmx.c	2005-07-18 15:26:23.000000000 -0300
 @@ -239,7 +239,11 @@
  
  		++loop;
@@ -345,8 +345,8 @@ diff -u -p -r1.13 goom_core.c
                  *param1 = goomInfo->screen.width / 7.0f;
                  *param2 = 6.0f * goomInfo->screen.width / 7.0f;
              }
---- post/goom/filters.c.orig	2005-08-20 12:29:12.000000000 +0200
-+++ post/goom/filters.c	2005-08-20 12:28:25.000000000 +0200
+--- filters.c.orig	2005-08-20 12:29:12.000000000 +0200
++++ filters.c	2005-08-20 12:28:25.000000000 +0200
 @@ -201,8 +201,8 @@ static inline v2g zoomVector(ZoomFilterF
      /* Noise */
      if (data->noisify)
@@ -358,3 +358,139 @@ diff -u -p -r1.13 goom_core.c
      }
      
      /* Hypercos */
+diff -r -u xine-lib-1.1.0-orig/src/post/goom/convolve_fx.c xine-lib-1.1.0/src/post/goom/convolve_fx.c
+--- convolve_fx.c	2005-07-22 12:42:00.000000000 -0400
++++ convolve_fx.c	2005-11-11 14:59:39.925112333 -0500
+@@ -7,6 +7,10 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
++#if HAVE_CONFIG_H
++#  include "config.h"
++#endif
++
+ //#define CONV_MOTIF_W 32
+ //#define CONV_MOTIF_WMASK 0x1f
+ 
+@@ -151,7 +155,8 @@
+     ytex = yprime + yi + CONV_MOTIF_W * 0x10000 / 2;
+     yprime += c;
+ 
+-#ifdef HAVE_MMX
++#if defined(HAVE_MMX) && ! defined(ARCH_X86_64)
++/* This code uses 32-bit registers eax,ecx,esi */
+     __asm__ __volatile__
+       ("\n\t pxor  %%mm7,  %%mm7"  /* mm7 = 0   */
+        "\n\t movd %0,  %%mm2"
+diff -r -u xine-lib-1.1.0-orig/src/post/goom/mmx.c xine-lib-1.1.0/src/post/goom/mmx.c
+--- mmx.c	2004-07-21 10:38:30.000000000 -0400
++++ mmx.c	2005-11-11 14:51:52.890358793 -0500
+@@ -4,6 +4,7 @@
+ #define BUFFPOINTMASK 0xffff
+ #define BUFFINCR 0xff
+ 
++#include <stddef.h>
+ #include "mmx.h"
+ #include "goom_graphic.h"
+ 
+@@ -23,6 +24,7 @@
+ 		      int precalCoef[16][16])
+ {
+ 	unsigned int ax = (prevX-1)<<PERTEDEC, ay = (prevY-1)<<PERTEDEC;
++        size_t sizeX = prevX;
+ 
+ 	int bufsize = prevX * prevY;
+ 	int loop;
+@@ -33,7 +35,7 @@
+ 	{
+ 		/*      int couleur; */
+ 		int px,py;
+-		int pos;
++		size_t pos;
+ 		int coeffs;
+ 
+ 		int myPos = loop << 1,
+@@ -91,7 +93,7 @@
+ 		"punpckhbw %%mm7, %%mm5 \n\t"	/* 00-c4-00-c4-00-c4-00-c4 */
+ 
+ 		/* ajouter la longueur de ligne a esi */
+-		"addl 8(%%ebp),%1 \n\t"
++		"add %4,%1 \n\t"
+ 
+ 		/* recuperation des 2 derniers pixels */
+ 		"movq (%3,%1,4), %%mm1 \n\t"
+@@ -114,8 +116,8 @@
+ 		"packuswb %%mm7, %%mm0 \n\t"
+ 
+ 		"movd %%mm0,%0 \n\t"
+-		  :"=g"(expix2[loop])
+-		  :"r"(pos),"r"(coeffs),"r"(expix1)
++		  :"=g"(expix2[loop]),"=r"(pos)
++		  :"r"(coeffs),"r"(expix1),"g"(sizeX)
+ 
+ 		);
+ 
+diff -r -u xine-lib-1.1.0-orig/src/post/goom/mmx.h xine-lib-1.1.0/src/post/goom/mmx.h
+--- mmx.h	2005-07-19 14:10:30.000000000 -0400
++++ mmx.h	2005-11-11 14:51:52.890358793 -0500
+@@ -27,6 +27,10 @@
+ #ifndef _MMX_H
+ #define _MMX_H
+ 
++#ifdef HAVE_CONFIG_H
++# include "config.h"
++#endif
++
+ #include "goom_graphic.h"
+ 
+ /*	Warning:  at this writing, the version of GAS packaged
+@@ -69,6 +73,9 @@
+ 		 13 if AMD Extended MMX, &3dNow supported
+ 	   0 if hardware does not support any of these
+ 	*/
++#ifdef ARCH_X86_64
++	return 13;
++#else
+ 	register int rval = 0;
+ 
+ 	__asm__ __volatile__ (
+@@ -223,6 +230,7 @@
+ 
+ 	/* Return */
+ 	return(rval);
++#endif
+ }
+ 
+ /*	Function to test if mmx instructions are supported...
+diff -r -u xine-lib-1.1.0-orig/src/post/goom/xmmx.c xine-lib-1.1.0/src/post/goom/xmmx.c
+--- xmmx.c	2005-07-21 16:48:37.000000000 -0400
++++ xmmx.c	2005-11-11 14:51:52.890358793 -0500
+@@ -23,7 +23,12 @@
+ #include "goom_graphic.h"
+ 
+ int xmmx_supported (void) {
++#ifdef ARCH_X86_64
++	return 0; /* Haven't yet converted zoom_filter_xmmx 
++                     to support 64-bit memory index registers (rsi,rax) */
++#else
+ 	return (mm_support()&0x8)>>3;
++#endif
+ }
+ 
+ void zoom_filter_xmmx (int prevX, int prevY,
+@@ -31,6 +36,7 @@
+                        int *lbruS, int *lbruD, int buffratio,
+                        int precalCoef[16][16])
+ {
++#ifndef ARCH_X86_64
+ 	int bufsize = prevX * prevY; /* taille du buffer */
+ 	volatile int loop;                    /* variable de boucle */
+ 
+@@ -244,6 +250,7 @@
+ /*#else
+ 	emms();
+ #endif*/
++#endif /* ARCH_X86_64 */
+ }
+ 
+ #define DRAWMETHOD_PLUS_XMMX(_out,_backbuf,_col) \

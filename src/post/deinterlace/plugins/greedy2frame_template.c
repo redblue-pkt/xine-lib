@@ -1,5 +1,5 @@
 /*****************************************************************************
-** $Id: greedy2frame_template.c,v 1.8 2005/06/05 16:00:06 miguelfreitas Exp $
+** $Id: greedy2frame_template.c,v 1.9 2006/02/04 14:06:29 miguelfreitas Exp $
 ******************************************************************************
 ** Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 ** port copyright (c) 2003 Miguel Freitas
@@ -19,6 +19,10 @@
 ** CVS Log
 **
 ** $Log: greedy2frame_template.c,v $
+** Revision 1.9  2006/02/04 14:06:29  miguelfreitas
+** Enable AMD64 mmx/sse support in some plugins (tvtime, libmpeg2, goom...)
+** patch by dani3l
+**
 ** Revision 1.8  2005/06/05 16:00:06  miguelfreitas
 ** quite some hacks for gcc 2.95 compatibility
 **
@@ -112,7 +116,7 @@ static void DeinterlaceGreedy2Frame_MMX(uint8_t *output, int outstride,
                                  int bottom_field, int second_field, int width, int height )
 #endif
 {
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
     int Line;
     int stride = width * 2;
     register uint8_t* M1;

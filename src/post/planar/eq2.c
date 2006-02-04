@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.14 2004/04/17 19:54:32 mroi Exp $
+ * $Id: eq2.c,v 1.15 2006/02/04 14:06:52 miguelfreitas Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -101,7 +101,7 @@ void create_lut (eq2_param_t *par)
 }
 
 
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
 static
 void affine_1d_MMX (eq2_param_t *par, unsigned char *dst, unsigned char *src,
   unsigned w, unsigned h, unsigned dstride, unsigned sstride)
@@ -141,9 +141,9 @@ void affine_1d_MMX (eq2_param_t *par, unsigned char *dst, unsigned char *src,
       "paddw %%mm3, %%mm1 \n\t"
       "paddw %%mm3, %%mm2 \n\t"
       "packuswb %%mm2, %%mm1 \n\t"
-      "addl $8, %0 \n\t"
+      "add $8, %0 \n\t"
       "movq %%mm1, (%1) \n\t"
-      "addl $8, %1 \n\t"
+      "add $8, %1 \n\t"
       "decl %%eax \n\t"
       "jnz 1b \n\t"
       : "=r" (src), "=r" (dst)
@@ -198,7 +198,7 @@ void check_values (eq2_param_t *par)
   if ((par->c == 1.0) && (par->b == 0.0) && (par->g == 1.0)) {
     par->adjust = NULL;
   }
-#ifdef ARCH_X86
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
   else if (par->g == 1.0 && (xine_mm_accel() & MM_ACCEL_X86_MMX) ) {
     par->adjust = &affine_1d_MMX;
   }

@@ -23,7 +23,12 @@
 #include "goom_graphic.h"
 
 int xmmx_supported (void) {
+#ifdef ARCH_X86_64
+	return 0; /* Haven't yet converted zoom_filter_xmmx 
+                     to support 64-bit memory index registers (rsi,rax) */
+#else
 	return (mm_support()&0x8)>>3;
+#endif
 }
 
 void zoom_filter_xmmx (int prevX, int prevY,
@@ -31,6 +36,7 @@ void zoom_filter_xmmx (int prevX, int prevY,
                        int *lbruS, int *lbruD, int buffratio,
                        int precalCoef[16][16])
 {
+#ifndef ARCH_X86_64
 	int bufsize = prevX * prevY; /* taille du buffer */
 	volatile int loop;                    /* variable de boucle */
 
@@ -244,6 +250,7 @@ void zoom_filter_xmmx (int prevX, int prevY,
 /*#else
 	emms();
 #endif*/
+#endif /* ARCH_X86_64 */
 }
 
 #define DRAWMETHOD_PLUS_XMMX(_out,_backbuf,_col) \
