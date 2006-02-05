@@ -2019,7 +2019,7 @@ void _x_blend_xx44 (uint8_t *dst_img, vo_overlay_t *img_overl,
     dst = dst_y;
 
     for (x = 0; x < src_width;) {
-      int len = (x + rle->len > hili_right) ? hili_right - x : rle->len;
+      int len = (x + rle->len > clip_right) ? clip_right - x : rle->len;
       int clipped = (y < clip_top);
 
       if (len > 0) {
