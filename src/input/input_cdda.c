@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.82 2006/02/01 18:55:29 holstsn Exp $
+ * $Id: input_cdda.c,v 1.83 2006/02/05 14:32:07 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1393,73 +1393,78 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
 	  return 0;
 	}
 	else {
-	  char buffer[256], *ln, *pt;
+	  char buffer[256], *ln;
 	  char buf[256];
 	  int  tnum;
 	  char *dtitle = NULL;
 	  
-	  while((ln = fgets(buffer, 255, fd)) != NULL) {
+	  while ((ln = fgets(buffer, 255, fd)) != NULL) {
 
 	    buffer[strlen(buffer) - 1] = '\0';
 	    
-	    if(sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
-	      char *artist, *title;
+	    if (sscanf(buffer, "DTITLE=%s", &buf[0]) == 1) {
+	      char *pt, *artist, *title;
 
 	      pt = strrchr(buffer, '=');
-	      if(pt)
+	      if (pt) {
 		pt++;
 
-	      if (dtitle != NULL)
-	      {
-		dtitle = (char *) realloc(dtitle, strlen(dtitle) + strlen(pt) + 1);
-		strcat(dtitle,pt);
-		pt = dtitle;
-	      }
-	      dtitle = strdup(pt);
+	        if (dtitle != NULL)
+	        {
+		  dtitle = (char *) realloc(dtitle, strlen(dtitle) + strlen(pt) + 1);
+		  strcat(dtitle, pt);
+		  pt = dtitle;
+	        }
+	        dtitle = strdup(pt);
  
-	      artist = pt;
-	      title = strstr(pt, " / ");
-	      if(title) {
-		*title++ = '\0';
-		title += 2;
-	      }
-	      else {
-		title = artist;
-		artist = NULL;
-	      }
+	        artist = pt;
+	        title = strstr(pt, " / ");
+	        if (title) {
+		  *title++ = '\0';
+		  title += 2;
+	        }
+	        else {
+		  title = artist;
+		  artist = NULL;
+	        }
 
-	      if(artist)
-		this->cddb.disc_artist = strdup(artist);
+	        if (artist)
+		  this->cddb.disc_artist = strdup(artist);
 
-	      this->cddb.disc_title = strdup(title);
+	        this->cddb.disc_title = strdup(title);
+	      }
 	    }
-	    else if(sscanf(buffer, "DYEAR=%s", &buf[0]) == 1) {
+	    else if (sscanf(buffer, "DYEAR=%s", &buf[0]) == 1) {
+	      char *pt;
+
 	      pt = strrchr(buffer, '=');
 	      pt++;
 	      if (pt != NULL && strlen(pt) == 4)
 		this->cddb.disc_year = strdup(pt);
 	    }
-	    else if(sscanf(buffer, "TTITLE%d=%s", &tnum, &buf[0]) == 2) {
+	    else if (sscanf(buffer, "TTITLE%d=%s", &tnum, &buf[0]) == 2) {
+	      char *pt;
+
 	      pt = strrchr(buffer, '=');
-	      if(pt)
+	      if (pt)
 		pt++;
 	      if (this->cddb.track[tnum].title == NULL)
 		this->cddb.track[tnum].title = strdup(pt); 
 	      else
 	      {
 		this->cddb.track[tnum].title
-		  = (char *) realloc(this->cddb.track[tnum].title,strlen(this->cddb.track[tnum].title) + strlen(pt) + 1);
-		strcat(this->cddb.track[tnum].title,pt);
+		  = (char *) realloc(this->cddb.track[tnum].title, strlen(this->cddb.track[tnum].title) + strlen(pt) + 1);
+		strcat(this->cddb.track[tnum].title, pt);
 	      }
 	    }
 	    else {
-	      if(!strncmp(buffer, "EXTD=", 5)) {
+	      if (!strncmp(buffer, "EXTD=", 5)) {
 		char *y;
 		int   nyear;
 		
 		y = strstr(buffer, "YEAR:");
 		if(y) {
-		  if(sscanf(y+5, "%4d", &nyear) == 1) {
+		  if (sscanf(y+5, "%4d", &nyear) == 1) {
 		    char year[5];
 
 		    snprintf(year, 5, "%d", nyear);
@@ -1729,12 +1734,13 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
 			
     this->cddb.have_cddb_info = 1;
     memset(&buffercache, 0, sizeof(buffercache));
-						
+
+    char *dtitle = NULL;
+
     while (strcmp(buffer, ".")) {
       char buf[2048];
       int tnum;
       int bufsize = strlen(buffercache);
-      char *dtitle = NULL;
 
       memset(&buffer, 0, sizeof(buffer));
       _cdda_cddb_socket_read(this, buffer, sizeof(buffer) - 1);
@@ -1750,7 +1756,7 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
           if (dtitle != NULL)
           {
             dtitle = (char *) realloc(dtitle, strlen(dtitle) + strlen(pt) + 1);
-            strcat(dtitle,pt);
+            strcat(dtitle, pt);
             pt = dtitle;
           }
           dtitle = strdup(pt);
@@ -1791,8 +1797,8 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
           else
           {
             this->cddb.track[tnum].title
-              = (char *) realloc(this->cddb.track[tnum].title,strlen(this->cddb.track[tnum].title) + strlen(pt) + 1);
-            strcat(this->cddb.track[tnum].title,pt);
+              = (char *) realloc(this->cddb.track[tnum].title, strlen(this->cddb.track[tnum].title) + strlen(pt) + 1);
+            strcat(this->cddb.track[tnum].title, pt);
           }
         }
       }
@@ -1813,9 +1819,9 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
           }
         }
       }
-      free(dtitle);
     }
-
+    free(dtitle);
+    
     /* Save cddb info and close socket */
     _cdda_save_cached_cddb_infos(this, buffercache);
     _cdda_cddb_socket_close(this);
