@@ -14,7 +14,8 @@ xine-lib (1.1.2)
   * Enable AMD64 mmx/sse support in some plugins (tvtime, libmpeg2, goom...)
   * Fix xxmc subpictures (broken since 1.1.1)
   * FFmpeg update (version 51.1.0)
-
+  * Fix detection of locale containing a modifier (like "@euro")
+  
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.
     When playing a 44.1khz stream on a 48khz only capable sound card.

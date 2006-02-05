@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.42 2005/09/05 17:02:57 valtri Exp $
+ * $Id: utils.c,v 1.43 2006/02/05 16:15:12 miguelfreitas Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -490,13 +490,22 @@ void xine_hexdump (const char *buf, int length) {
 
 static const lang_locale_t *_get_first_lang_locale(char *lcal) {
   const lang_locale_t *llocale;
+  int lang_len;
+  char *mod;
 
   if(lcal && strlen(lcal)) {
     llocale = &*lang_locales;
+
+    if ((mod = strchr(lcal, '@')))
+      lang_len = mod++ - lcal;
+    else
+      lang_len = strlen(lcal);
     
     while(llocale->language) {
-      if(!strncmp(lcal, llocale->language, strlen(lcal)))
-	return llocale;
+      if(!strncmp(lcal, llocale->language, lang_len)) {
+        if ((!mod && !llocale->modifier) || (mod && llocale->modifier && !strcmp(mod, llocale->modifier)))
+	  return llocale;
+      }
       
       llocale++;
     }
