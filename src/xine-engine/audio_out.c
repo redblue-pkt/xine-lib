@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.195 2006/01/27 07:46:15 tmattern Exp $
+ * $Id: audio_out.c,v 1.196 2006/02/05 19:09:18 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -360,6 +360,7 @@ static audio_buffer_t *fifo_remove_int (audio_fifo_t *fifo, int blocking) {
 
       fifo->last = NULL;
       fifo->num_buffers = 0;
+      pthread_cond_signal (&fifo->empty);
 
     } else 
       fifo->num_buffers--;
@@ -410,8 +411,12 @@ static int fifo_num_buffers (audio_fifo_t *fifo) {
 static void fifo_wait_empty (audio_fifo_t *fifo) {
 
   pthread_mutex_lock (&fifo->mutex);
-  pthread_cond_signal (&fifo->not_empty);
-  pthread_cond_wait (&fifo->empty, &fifo->mutex);
+  while (fifo->first) {
+    /* i think it's strange to send not_empty signal here (beside the enqueue
+     * function), but it should do no harm. [MF] */
+    pthread_cond_signal (&fifo->not_empty);
+    pthread_cond_wait (&fifo->empty, &fifo->mutex);
+  }
   pthread_mutex_unlock (&fifo->mutex);
 }
 
