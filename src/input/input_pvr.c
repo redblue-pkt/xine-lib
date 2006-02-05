@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.58 2006/01/27 07:46:12 tmattern Exp $
+ * $Id: input_pvr.c,v 1.59 2006/02/05 13:07:31 miguelfreitas Exp $
  */
 
 /**************************************************************************
@@ -1012,9 +1012,9 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         time(&this->show_time);
       }
       
-      if( v4l2_data->input != this->input ||
-          v4l2_data->channel != this->channel || 
-          v4l2_data->frequency != this->frequency ) {
+      if( (v4l2_data->input != -1 && v4l2_data->input != this->input) ||
+          (v4l2_data->channel != -1 && v4l2_data->channel != this->channel) ||
+          (v4l2_data->frequency != -1 && v4l2_data->frequency != this->frequency) ) {
         struct v4l2_frequency vf;
 
         this->input = v4l2_data->input;
