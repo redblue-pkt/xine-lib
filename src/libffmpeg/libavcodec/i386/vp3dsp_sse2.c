@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /**
@@ -24,7 +24,7 @@
 #include "../dsputil.h"
 #include "mmx.h"
 
-static const unsigned short __align16 SSE2_dequant_const[] =
+static DECLARE_ALIGNED_16(const unsigned short, SSE2_dequant_const[]) =
 {
     0,65535,65535,0,0,0,0,0,    // 0x0000 0000 0000 0000 0000 FFFF FFFF 0000
     0,0,0,0,65535,65535,0,0,    // 0x0000 0000 FFFF FFFF 0000 0000 0000 0000
@@ -35,22 +35,22 @@ static const unsigned short __align16 SSE2_dequant_const[] =
     0,0,65535,65535, 0,0,0,0    // 0x0000 0000 0000 0000 FFFF FFFF 0000 0000
 };
 
-static const unsigned int __align16 eight_data[] =
-{ 
-    0x00080008, 
-    0x00080008,
-    0x00080008, 
-    0x00080008 
-}; 
-
-static const unsigned short __align16 SSE2_idct_data[7 * 8] =
+static DECLARE_ALIGNED_16(const unsigned int, eight_data[]) =
 {
-    64277,64277,64277,64277,64277,64277,64277,64277, 
-    60547,60547,60547,60547,60547,60547,60547,60547, 
-    54491,54491,54491,54491,54491,54491,54491,54491, 
-    46341,46341,46341,46341,46341,46341,46341,46341, 
-    36410,36410,36410,36410,36410,36410,36410,36410, 
-    25080,25080,25080,25080,25080,25080,25080,25080, 
+    0x00080008,
+    0x00080008,
+    0x00080008,
+    0x00080008
+};
+
+static DECLARE_ALIGNED_16(const unsigned short, SSE2_idct_data[7 * 8]) =
+{
+    64277,64277,64277,64277,64277,64277,64277,64277,
+    60547,60547,60547,60547,60547,60547,60547,60547,
+    54491,54491,54491,54491,54491,54491,54491,54491,
+    46341,46341,46341,46341,46341,46341,46341,46341,
+    36410,36410,36410,36410,36410,36410,36410,36410,
+    25080,25080,25080,25080,25080,25080,25080,25080,
     12785,12785,12785,12785,12785,12785,12785,12785
 };
 
@@ -820,6 +820,6 @@ void ff_vp3_idct_sse2(int16_t *input_data)
     SSE2_Row_IDCT();
 
     SSE2_Transpose();
-        
+
     SSE2_Column_IDCT();
 }

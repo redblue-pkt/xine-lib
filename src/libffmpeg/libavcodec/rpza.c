@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
 
@@ -119,8 +119,8 @@ static void rpza_decode_stream(RpzaContext *s)
             colorA = (opcode << 8) | (s->buf[stream_ptr++]);
             opcode = 0;
             if ((s->buf[stream_ptr] & 0x80) != 0) {
-                /* Must behave as opcode 110xxxxx, using colorA computed 
-                 * above. Use fake opcode 0x20 to enter switch block at 
+                /* Must behave as opcode 110xxxxx, using colorA computed
+                 * above. Use fake opcode 0x20 to enter switch block at
                  * the right place */
                 opcode = 0x20;
                 n_blocks = 1;

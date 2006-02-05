@@ -3,8 +3,8 @@ include $(top_srcdir)/misc/Makefile.common
 SUBDIRS = armv4l i386 mlib alpha ppc sparc libpostproc
 
 # some of ffmpeg's decoders are not used by xine yet
-EXTRA_DIST = motion_est_template.c imgresample.c \
-	adx.c cljr.c fdctref.c ffv1.c g726.c mdec.c raw.c svq3.c wmv2.c
+EXTRA_DIST = motion_est_template.c \
+	adx.c cljr.c fdctref.c ffv1.c g726.c jpeg_ls.c mdec.c raw.c svq3.c wmv2.c
 
 # we need to compile everything in debug mode, including the encoders,
 # otherwise we get unresolved symbols, because some unsatisfied function calls
@@ -45,6 +45,7 @@ libavcodec_la_SOURCES = \
 	huffyuv.c \
 	idcinvideo.c \
 	imgconvert.c \
+	imgresample.c \
 	indeo2.c \
 	indeo3.c \
 	interplayvideo.c \
@@ -74,6 +75,7 @@ libavcodec_la_SOURCES = \
 	ra288.c \
 	rangecoder.c \
 	ratecontrol.c \
+	resample2.c \
 	roqvideo.c \
 	rpza.c \
 	rv10.c \

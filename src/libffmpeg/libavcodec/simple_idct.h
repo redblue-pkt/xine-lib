@@ -15,14 +15,14 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /**
  * @file simple_idct.h
  * simple idct header.
  */
- 
+
 void simple_idct_put(uint8_t *dest, int line_size, DCTELEM *block);
 void simple_idct_add(uint8_t *dest, int line_size, DCTELEM *block);
 void ff_simple_idct_mmx(int16_t *block);

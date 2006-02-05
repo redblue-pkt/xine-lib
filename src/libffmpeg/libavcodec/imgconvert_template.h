@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 #ifndef RGB_OUT
@@ -787,7 +787,7 @@ static void glue(RGB_NAME, _to_pal8)(AVPicture *dst, const AVPicture *src,
     q = dst->data[0];
     dst_wrap = dst->linesize[0] - width;
     has_alpha = 0;
-    
+
     for(y=0;y<height;y++) {
         for(x=0;x<width;x++) {
 #ifdef RGBA_IN
@@ -817,11 +817,11 @@ static void glue(RGB_NAME, _to_pal8)(AVPicture *dst, const AVPicture *src,
 }
 
 #endif /* defined(FMT_RGB24) || defined(FMT_RGBA32) */
-        
+
 #ifdef RGBA_IN
 
 static int glue(get_alpha_info_, RGB_NAME)(const AVPicture *src,
-					   int width, int height)
+                                           int width, int height)
 {
     const unsigned char *p;
     int src_wrap, ret, x, y;

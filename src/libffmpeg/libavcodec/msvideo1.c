@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
 
@@ -156,8 +156,8 @@ static void msvideo1_decode_8bit(Msvideo1Context *s)
 
                 for (pixel_y = 0; pixel_y < 4; pixel_y++) {
                     for (pixel_x = 0; pixel_x < 4; pixel_x++, flags >>= 1)
-                        pixels[pixel_ptr++] = 
-                            colors[((pixel_y & 0x2) << 1) + 
+                        pixels[pixel_ptr++] =
+                            colors[((pixel_y & 0x2) << 1) +
                                 (pixel_x & 0x2) + ((flags & 0x1) ^ 1)];
                     pixel_ptr -= row_dec;
                 }
@@ -266,8 +266,8 @@ static void msvideo1_decode_16bit(Msvideo1Context *s)
 
                     for (pixel_y = 0; pixel_y < 4; pixel_y++) {
                         for (pixel_x = 0; pixel_x < 4; pixel_x++, flags >>= 1)
-                            pixels[pixel_ptr++] = 
-                                colors[((pixel_y & 0x2) << 1) + 
+                            pixels[pixel_ptr++] =
+                                colors[((pixel_y & 0x2) << 1) +
                                     (pixel_x & 0x2) + ((flags & 0x1) ^ 1)];
                         pixel_ptr -= row_dec;
                     }

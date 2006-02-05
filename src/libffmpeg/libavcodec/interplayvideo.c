@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
 
@@ -846,7 +846,7 @@ static void ipvideo_decode_opcodes(IpvideoContext *s)
     }
     if ((s->stream_ptr != s->stream_end) &&
         (s->stream_ptr + 1 != s->stream_end)) {
-        av_log(s->avctx, AV_LOG_ERROR, " Interplay video: decode finished with %d bytes left over\n",
+        av_log(s->avctx, AV_LOG_ERROR, " Interplay video: decode finished with %td bytes left over\n",
             s->stream_end - s->stream_ptr);
     }
 }

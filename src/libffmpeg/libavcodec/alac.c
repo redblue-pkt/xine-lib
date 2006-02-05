@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /**
@@ -84,7 +84,7 @@ static void allocate_buffers(ALACContext *alac)
     alac->outputsamples_buffer_b = av_malloc(alac->setinfo_max_samples_per_frame * 4);
 }
 
-void alac_set_info(ALACContext *alac)
+static void alac_set_info(ALACContext *alac)
 {
     unsigned char *ptr = alac->avctx->extradata;
 
@@ -125,7 +125,7 @@ static int count_leading_zeros(int32_t input)
     return i;
 }
 
-void bastardized_rice_decompress(ALACContext *alac,
+static void bastardized_rice_decompress(ALACContext *alac,
                                  int32_t *output_buffer,
                                  int output_size,
                                  int readsamplesize, /* arg_10 */
@@ -169,9 +169,9 @@ void bastardized_rice_decompress(ALACContext *alac,
             /* read k, that is bits as is */
             k = 31 - rice_kmodifier - count_leading_zeros((history >> 9) + 3);
 
-            if (k < 0) 
+            if (k < 0)
                 k += rice_kmodifier;
-            else 
+            else
                 k = rice_kmodifier;
 
             if (k != 1) {
@@ -444,7 +444,7 @@ static int alac_decode_frame(AVCodecContext *avctx,
     /* initialize from the extradata */
     if (!alac->context_initialized) {
         if (alac->avctx->extradata_size != ALAC_EXTRADATA_SIZE) {
-            av_log(NULL, AV_LOG_ERROR, "alac: expected %d extradata bytes\n", 
+            av_log(NULL, AV_LOG_ERROR, "alac: expected %d extradata bytes\n",
                 ALAC_EXTRADATA_SIZE);
             return input_buffer_size;
         }
@@ -728,7 +728,7 @@ static int alac_decode_frame(AVCodecContext *avctx,
             } else {
                 av_log(NULL, AV_LOG_ERROR, "FIXME: unhandled prediction type: %i\n", prediction_type_b);
             }
-        } else { 
+        } else {
          /* not compressed, easy case */
             if (alac->setinfo_sample_size <= 16) {
                 int i;

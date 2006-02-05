@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
 
@@ -25,8 +25,8 @@
  * @file qdm2.c
  * QDM2 decoder
  * @author Ewald Snel, Benjamin Larsson, Alex Beregszaszi, Roberto Togni
- * The decoder is not perfect yet, there are still some distorions expecially
- * on files encoded with 16 or 8 subbands
+ * The decoder is not perfect yet, there are still some distortions
+ * especially on files encoded with 16 or 8 subbands.
  */
 
 #include <math.h>
@@ -94,7 +94,7 @@ typedef struct {
 } QDM2SubPacket;
 
 /**
- * A node in subpacket list
+ * A node in the subpacket list
  */
 typedef struct _QDM2SubPNode {
     QDM2SubPacket *packet;      ///< packet
@@ -196,12 +196,12 @@ typedef struct {
     int8_t tone_level_idx_temp[MPA_MAX_CHANNELS][30][64];
 
     // Flags
-    int has_errors;         ///< packet have errors
+    int has_errors;         ///< packet has errors
     int superblocktype_2_3; ///< select fft tables and some algorithm based on superblock type
     int do_synth_filter;    ///< used to perform or skip synthesis filter
 
     int sub_packet;
-    int noise_idx; ///< Index for dithering noise table
+    int noise_idx; ///< index for dithering noise table
 } QDM2Context;
 
 
@@ -230,7 +230,7 @@ static float noise_samples[128];
 static MPA_INT mpa_window[512] __attribute__((aligned(16)));
 
 
-static void softclip_table_init() {
+static void softclip_table_init(void) {
     int i;
     double dfl = SOFTCLIP_THRESHOLD - 32767;
     float delta = 1.0 / -dfl;
@@ -240,7 +240,7 @@ static void softclip_table_init() {
 
 
 // random generated table
-static void rnd_table_init() {
+static void rnd_table_init(void) {
     int i,j;
     uint32_t ldw,hdw;
     uint64_t tmp64_1;
@@ -276,7 +276,7 @@ static void rnd_table_init() {
 }
 
 
-static void init_noise_samples() {
+static void init_noise_samples(void) {
     int i;
     int random_seed = 0;
     float delta = 1.0 / 16384.0;
@@ -287,7 +287,7 @@ static void init_noise_samples() {
 }
 
 
-static void qdm2_init_vlc()
+static void qdm2_init_vlc(void)
 {
     init_vlc (&vlc_tab_level, 8, 24,
         vlc_tab_level_huffbits, 1, 1,
@@ -401,7 +401,7 @@ static int qdm2_get_se_vlc (VLC *vlc, GetBitContext *gb, int depth)
  * @param length    data length
  * @param value     checksum value
  *
- * @return          0 if checksum is ok
+ * @return          0 if checksum is OK
  */
 static uint16_t qdm2_packet_checksum (uint8_t *data, int length, int value) {
     int i;
@@ -414,7 +414,7 @@ static uint16_t qdm2_packet_checksum (uint8_t *data, int length, int value) {
 
 
 /**
- * Fills a QDM2SubPacket structure with packet type, size, and data pointer
+ * Fills a QDM2SubPacket structure with packet type, size, and data pointer.
  *
  * @param gb            bitreader context
  * @param sub_packet    packet under analysis
@@ -441,15 +441,15 @@ static void qdm2_decode_sub_packet_header (GetBitContext *gb, QDM2SubPacket *sub
       sub_packet->data = &gb->buffer[get_bits_count(gb) / 8]; // FIXME: this depends on bitreader internal data
     }
 
-    av_log(NULL,AV_LOG_DEBUG,"Sub packet: type=%d size=%d start_offs=%x\n",
+    av_log(NULL,AV_LOG_DEBUG,"Subpacket: type=%d size=%d start_offs=%x\n",
         sub_packet->type, sub_packet->size, get_bits_count(gb) / 8);
 }
 
 
 /**
- * Return node pointer to first packet of requested type in list
+ * Return node pointer to first packet of requested type in list.
  *
- * @param list    list of subpacket to be scanned
+ * @param list    list of subpackets to be scanned
  * @param type    type of searched subpacket
  * @return        node pointer for subpacket if found, else NULL
  */
@@ -465,8 +465,8 @@ static QDM2SubPNode* qdm2_search_subpacket_type_in_list (QDM2SubPNode *list, int
 
 
 /**
- * Replaces 8 elements with their average value
- * Called by qdm2_decode_superblock before starting subblocks decoding
+ * Replaces 8 elements with their average value.
+ * Called by qdm2_decode_superblock before starting subblock decoding.
  *
  * @param q       context
  */
@@ -494,8 +494,8 @@ static void average_quantized_coeffs (QDM2Context *q)
 
 
 /**
- * Build subband samples with noise weighted by q->tone_level
- * Called by synthfilt_build_sb_samples
+ * Build subband samples with noise weighted by q->tone_level.
+ * Called by synthfilt_build_sb_samples.
  *
  * @param q     context
  * @param sb    subband index
@@ -518,14 +518,14 @@ static void build_sb_samples_from_noise (QDM2Context *q, int sb)
 
 
 /**
- * Called while processing data from subpackets 11 and 12
- * Used after making changes to coding_method array
+ * Called while processing data from subpackets 11 and 12.
+ * Used after making changes to coding_method array.
  *
  * @param sb               subband index
  * @param channels         number of channels
  * @param coding_method    q->coding_method[0][0][0]
  */
- void fix_coding_method_array (int sb, int channels, sb_int8_array coding_method)
+static void fix_coding_method_array (int sb, int channels, sb_int8_array coding_method)
 {
     int j,k;
     int ch;
@@ -657,7 +657,7 @@ static void fill_tone_level_array (QDM2Context *q, int flag)
  * c is built with data from subpacket 11
  * Most of this function is used only if superblock_type_2_3 == 0, never seen it in samples
  *
- * @param tone_level_idx           
+ * @param tone_level_idx
  * @param tone_level_idx_temp
  * @param coding_method        q->coding_method[0][0][0]
  * @param nb_channels          number of channels
@@ -790,7 +790,7 @@ static void fill_coding_method_array (sb_int8_array tone_level_idx, sb_int8_arra
  *
  * @param q         context
  * @param gb        bitreader context
- * @param length    packet length in bit
+ * @param length    packet length in bits
  * @param sb_min    lower subband processed (sb_min included)
  * @param sb_max    higher subband processed (sb_max excluded)
  */
@@ -916,7 +916,7 @@ static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int l
                             samples[0] = type30_dequant[qdm2_get_vlc(gb, &vlc_tab_type30, 0, 1)];
                         else
                             samples[0] = SB_DITHERING_NOISE(sb,q->noise_idx);
-                        
+
                         run = 1;
                         break;
 
@@ -968,14 +968,14 @@ static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int l
 
 
 /**
- * Init the first element of a channel in quantized_coeffs with data from packet 10 (quantized_coeffs[ch][0])
+ * Init the first element of a channel in quantized_coeffs with data from packet 10 (quantized_coeffs[ch][0]).
  * This is similar to process_subpacket_9, but for a single channel and for element [0]
- * same VLC tables as process_subpacket_9 are used
+ * same VLC tables as process_subpacket_9 are used.
  *
  * @param q         context
  * @param quantized_coeffs    pointer to quantized_coeffs[ch][0]
  * @param gb        bitreader context
- * @param length    packet length in bit
+ * @param length    packet length in bits
  */
 static void init_quantized_coeffs_elem0 (int8_t *quantized_coeffs, GetBitContext *gb, int length)
 {
@@ -995,10 +995,10 @@ static void init_quantized_coeffs_elem0 (int8_t *quantized_coeffs, GetBitContext
         if (BITS_LEFT(length,gb) < 16)
             break;
         diff = qdm2_get_se_vlc(&vlc_tab_diff, gb, 2);
-    
+
         for (k = 1; k <= run; k++)
             quantized_coeffs[i + k] = (level + ((k * diff) / run));
-    
+
         level += diff;
         i += run;
     }
@@ -1012,7 +1012,7 @@ static void init_quantized_coeffs_elem0 (int8_t *quantized_coeffs, GetBitContext
  *
  * @param q         context
  * @param gb        bitreader context
- * @param length    packet length in bit
+ * @param length    packet length in bits
  */
 static void init_tone_level_dequantization (QDM2Context *q, GetBitContext *gb, int length)
 {
@@ -1114,7 +1114,7 @@ static void process_subpacket_9 (QDM2Context *q, QDM2SubPNode *node)
  *
  * @param q         context
  * @param node      pointer to node with packet
- * @param length    packet length in bit
+ * @param length    packet length in bits
  */
 static void process_subpacket_10 (QDM2Context *q, QDM2SubPNode *node, int length)
 {
@@ -1160,7 +1160,7 @@ static void process_subpacket_11 (QDM2Context *q, QDM2SubPNode *node, int length
  *
  * @param q         context
  * @param node      pointer to node with packet
- * @param length    packet length in bit
+ * @param length    packet length in bits
  */
 static void process_subpacket_12 (QDM2Context *q, QDM2SubPNode *node, int length)
 {
@@ -1205,7 +1205,7 @@ static void process_synthesis_subpackets (QDM2Context *q, QDM2SubPNode *list)
 
 
 /*
- * Decode superblock, fill packet lists
+ * Decode superblock, fill packet lists.
  *
  * @param q    context
  */
@@ -1274,7 +1274,7 @@ static void qdm2_decode_super_block (QDM2Context *q)
                 break;
         }
 
-        /* decode sub packet */
+        /* decode subpacket */
         packet = &q->sub_packets[i];
         qdm2_decode_sub_packet_header(&gb, packet);
         next_index = packet->size + get_bits_count(&gb) / 8;
@@ -1291,10 +1291,10 @@ static void qdm2_decode_super_block (QDM2Context *q)
 
         packet_bytes -= sub_packet_size;
 
-        /* add sub packet to 'all sub packets' list */
+        /* add subpacket to 'all subpackets' list */
         q->sub_packet_list_A[i].packet = packet;
 
-        /* add sub packet to related list */
+        /* add subpacket to related list */
         if (packet->type == 8) {
             SAMPLES_NEEDED_2("packet type 8");
             return;
@@ -1435,11 +1435,11 @@ static void qdm2_decode_fft_packets (QDM2Context *q)
     for (i=0; i < 5; i++)
         q->fft_coefs_min_index[i] = -1;
 
-    /* process sub packets ordered by type, largest type first */
+    /* process subpackets ordered by type, largest type first */
     for (i = 0, max = 256; i < q->sub_packets_B; i++) {
         QDM2SubPacket *packet;
 
-        /* find sub packet with largest type less than max */
+        /* find subpacket with largest type less than max */
         for (j = 0, min = 0, packet = NULL; j < q->sub_packets_B; j++) {
             value = q->sub_packet_list_B[j].packet->type;
             if (value > min && value < max) {
@@ -1619,7 +1619,7 @@ static void qdm2_calculate_fft (QDM2Context *q, int channel, int sub_packet)
     float c, s, f0, f1, f2, f3;
     int i, j;
 
-    /* pre rotation (or something like that) */
+    /* prerotation (or something like that) */
     for (i=1; i < n2; i++) {
         j  = (n - i);
         c = q->exptab[i].re;
@@ -1690,7 +1690,7 @@ static void qdm2_synthesis_filter (QDM2Context *q, int index)
  *
  * @param q    context
  */
-void qdm2_init(QDM2Context *q) {
+static void qdm2_init(QDM2Context *q) {
     static int inited = 0;
 
     if (inited != 0)
@@ -1737,7 +1737,7 @@ static void dump_context(QDM2Context *q)
     for (i = q->fft_tone_start; i < q->fft_tone_end; i++)
     {
     FFTTone *t = &q->fft_tones[i];
-    
+
     av_log(NULL,AV_LOG_DEBUG,"Tone (%d) dump:\n", i);
     av_log(NULL,AV_LOG_DEBUG,"  level = %f\n", t->level);
 //  PRINT(" level", t->level);
@@ -1764,20 +1764,20 @@ static int qdm2_decode_init(AVCodecContext *avctx)
     int tmp_val, tmp, size;
     int i;
     float alpha;
-    
+
     /* extradata parsing
-    
+
     Structure:
     wave {
         frma (QDM2)
         QDCA
         QDCP
     }
-    
+
     32  size (including this field)
     32  tag (=frma)
     32  type (=QDM2 or QDMC)
-    
+
     32  size (including this field, in bytes)
     32  tag (=QDCA) // maybe mandatory parameters
     32  unknown (=1)
@@ -1787,7 +1787,7 @@ static int qdm2_decode_init(AVCodecContext *avctx)
     32  block size (=4096)
     32  frame size (=256) (for one channel)
     32  packet size (=1300)
-    
+
     32  size (including this field, in bytes)
     32  tag (=QDCP) // maybe some tuneable parameters
     32  float1 (=1.0)
@@ -1876,12 +1876,9 @@ static int qdm2_decode_init(AVCodecContext *avctx)
     s->group_order = av_log2(s->group_size) + 1;
     s->frame_size = s->group_size / 16; // 16 iterations per super block
 
-    if (s->fft_order == 8)
-        s->sub_sampling = 1;
-    else
-        s->sub_sampling = 2;
+    s->sub_sampling = s->fft_order - 7;
     s->frequency_range = 255 / (1 << (2 - s->sub_sampling));
-    
+
     switch ((s->sub_sampling * 2 + s->channels - 1)) {
         case 0: tmp = 40; break;
         case 1: tmp = 48; break;
@@ -1899,11 +1896,11 @@ static int qdm2_decode_init(AVCodecContext *avctx)
     s->cm_table_select = tmp_val;
 
     if (s->sub_sampling == 0)
-        tmp = 16000;
+        tmp = 7999;
     else
         tmp = ((-(s->sub_sampling -1)) & 8000) + 20000;
     /*
-    0: 16000 -> 1
+    0: 7999 -> 0
     1: 20000 -> 2
     2: 28000 -> 2
     */
@@ -1914,8 +1911,11 @@ static int qdm2_decode_init(AVCodecContext *avctx)
     else
         s->coeff_per_sb_select = 2;
 
-    if (s->fft_order != 8 && s->fft_order != 9)
+    // Fail on unknown fft order, if it's > 9 it can overflow s->exptab[]
+    if ((s->fft_order < 7) || (s->fft_order > 9)) {
         av_log(avctx, AV_LOG_ERROR, "Unknown FFT order (%d), contact the developers!\n", s->fft_order);
+        return -1;
+    }
 
     ff_fft_init(&s->fft_ctx, s->fft_order - 1, 1);
 
@@ -1925,9 +1925,8 @@ static int qdm2_decode_init(AVCodecContext *avctx)
         s->exptab[i].im = sin(alpha);
     }
 
-    ff_fft_init(&s->fft_ctx, s->fft_order - 1, 1);
     qdm2_init(s);
-    
+
 //    dump_context(s);
     return 0;
 }
@@ -1938,16 +1937,16 @@ static int qdm2_decode_close(AVCodecContext *avctx)
     QDM2Context *s = avctx->priv_data;
 
     ff_fft_end(&s->fft_ctx);
-    
+
     return 0;
 }
 
 
-void qdm2_decode (QDM2Context *q, uint8_t *in, int16_t *out)
+static void qdm2_decode (QDM2Context *q, uint8_t *in, int16_t *out)
 {
     int ch, i;
     const int frame_size = (q->frame_size * q->channels);
-  
+
     /* select input buffer */
     q->compressed_data = in;
     q->compressed_size = q->checksum_size;
@@ -1961,11 +1960,11 @@ void qdm2_decode (QDM2Context *q, uint8_t *in, int16_t *out)
     /* decode block of QDM2 compressed data */
     if (q->sub_packet == 0) {
         q->has_errors = 0; // zero it for a new super block
-        av_log(NULL,AV_LOG_DEBUG,"Super block follows\n");
+        av_log(NULL,AV_LOG_DEBUG,"Superblock follows\n");
         qdm2_decode_super_block(q);
     }
 
-    /* parse sub packets */
+    /* parse subpackets */
     if (!q->has_errors) {
         if (q->sub_packet == 2)
             qdm2_decode_fft_packets(q);

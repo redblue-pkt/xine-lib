@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /**
@@ -208,7 +208,7 @@ static const uint16_t idct_cosine_table[7] = {
     I(1) = d1 c1 b1 a1
     I(2) = d2 c2 b2 a2
     I(3) = d3 c3 b3 a3
-    
+
     J(4) = h0 g0 f0 e0
     J(5) = h1 g1 f1 e1
     J(6) = h2 g2 f2 e2

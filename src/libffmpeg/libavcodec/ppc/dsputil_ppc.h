@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 #ifndef _DSPUTIL_PPC_
@@ -114,10 +114,10 @@ extern unsigned long long perfdata[POWERPC_NUM_PMC_ENABLED][powerpc_perf_total][
 #define POWERPC_GET_PMC6(a) do {} while (0)
 #endif
 #endif /* POWERPC_MODE_64BITS */
-#define POWERPC_PERF_DECLARE(a, cond)				\
-  POWERP_PMC_DATATYPE						\
-    pmc_start[POWERPC_NUM_PMC_ENABLED],				\
-    pmc_stop[POWERPC_NUM_PMC_ENABLED],				\
+#define POWERPC_PERF_DECLARE(a, cond)   \
+  POWERP_PMC_DATATYPE                   \
+    pmc_start[POWERPC_NUM_PMC_ENABLED], \
+    pmc_stop[POWERPC_NUM_PMC_ENABLED],  \
     pmc_loop_index;
 #define POWERPC_PERF_START_COUNT(a, cond) do { \
   POWERPC_GET_PMC6(pmc_start[5]); \
@@ -141,8 +141,8 @@ extern unsigned long long perfdata[POWERPC_NUM_PMC_ENABLED][powerpc_perf_total][
         pmc_loop_index++)         \
     {                             \
       if (pmc_stop[pmc_loop_index] >= pmc_start[pmc_loop_index])  \
-	{							  \
-        POWERP_PMC_DATATYPE diff =				  \
+        {                                                         \
+        POWERP_PMC_DATATYPE diff =                                \
           pmc_stop[pmc_loop_index] - pmc_start[pmc_loop_index];   \
         if (diff < perfdata[pmc_loop_index][a][powerpc_data_min]) \
           perfdata[pmc_loop_index][a][powerpc_data_min] = diff;   \

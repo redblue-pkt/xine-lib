@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "avcodec.h"
 #include "mpegvideo.h"
@@ -34,7 +34,7 @@ AVCodecParserContext *av_parser_init(int codec_id)
     AVCodecParserContext *s;
     AVCodecParser *parser;
     int ret;
-    
+
     if(codec_id == CODEC_ID_NONE)
         return NULL;
 
@@ -71,15 +71,15 @@ AVCodecParserContext *av_parser_init(int codec_id)
 
 /* NOTE: buf_size == 0 is used to signal EOF so that the last frame
    can be returned if necessary */
-int av_parser_parse(AVCodecParserContext *s, 
+int av_parser_parse(AVCodecParserContext *s,
                     AVCodecContext *avctx,
-                    uint8_t **poutbuf, int *poutbuf_size, 
+                    uint8_t **poutbuf, int *poutbuf_size,
                     const uint8_t *buf, int buf_size,
                     int64_t pts, int64_t dts)
 {
     int index, i, k;
     uint8_t dummy_buf[FF_INPUT_BUFFER_PADDING_SIZE];
-    
+
     if (buf_size == 0) {
         /* padding is always necessary even if EOF, so we add it here */
         memset(dummy_buf, 0, sizeof(dummy_buf));
@@ -111,7 +111,7 @@ int av_parser_parse(AVCodecParserContext *s,
         s->frame_offset = s->last_frame_offset;
         s->pts = s->last_pts;
         s->dts = s->last_dts;
-        
+
         /* offset of the next frame */
         s->last_frame_offset = s->cur_offset + index;
         /* find the packet in which the new frame starts. It
@@ -129,7 +129,7 @@ int av_parser_parse(AVCodecParserContext *s,
 
         s->last_pts = s->cur_frame_pts[k];
         s->last_dts = s->cur_frame_dts[k];
-        
+
         /* some parsers tell us the packet size even before seeing the first byte of the next packet,
            so the next pts/dts is in the next chunk */
         if(index == buf_size){
@@ -148,9 +148,9 @@ int av_parser_parse(AVCodecParserContext *s,
  */
 int av_parser_change(AVCodecParserContext *s,
                      AVCodecContext *avctx,
-                     uint8_t **poutbuf, int *poutbuf_size, 
+                     uint8_t **poutbuf, int *poutbuf_size,
                      const uint8_t *buf, int buf_size, int keyframe){
-   
+
     if(s && s->parser->split){
         if((avctx->flags & CODEC_FLAG_GLOBAL_HEADER) || (avctx->flags2 & CODEC_FLAG2_LOCAL_HEADER)){
             int i= s->parser->split(avctx, buf, buf_size);
@@ -169,7 +169,7 @@ int av_parser_change(AVCodecParserContext *s,
             int size= buf_size + avctx->extradata_size;
             *poutbuf_size= size;
             *poutbuf= av_malloc(size + FF_INPUT_BUFFER_PADDING_SIZE);
-            
+
             memcpy(*poutbuf, avctx->extradata, avctx->extradata_size);
             memcpy((*poutbuf) + avctx->extradata_size, buf, buf_size + FF_INPUT_BUFFER_PADDING_SIZE);
             return 1;
@@ -191,11 +191,11 @@ void av_parser_close(AVCodecParserContext *s)
 
 //#define END_NOT_FOUND (-100)
 
-#define PICTURE_START_CODE	0x00000100
-#define SEQ_START_CODE		0x000001b3
-#define EXT_START_CODE		0x000001b5
-#define SLICE_MIN_START_CODE	0x00000101
-#define SLICE_MAX_START_CODE	0x000001af
+#define PICTURE_START_CODE      0x00000100
+#define SEQ_START_CODE          0x000001b3
+#define EXT_START_CODE          0x000001b5
+#define SLICE_MIN_START_CODE    0x00000101
+#define SLICE_MAX_START_CODE    0x000001af
 
 typedef struct ParseContext1{
     ParseContext pc;
@@ -246,7 +246,7 @@ int ff_combine_frame(ParseContext *pc, int next, uint8_t **buf, int *buf_size)
 
     *buf_size=
     pc->overread_index= pc->index + next;
-    
+
     /* append to buffer */
     if(pc->index){
         pc->buffer= av_fast_realloc(pc->buffer, &pc->buffer_size, next + pc->index + FF_INPUT_BUFFER_PADDING_SIZE);
@@ -272,33 +272,11 @@ int ff_combine_frame(ParseContext *pc, int next, uint8_t **buf, int *buf_size)
     return 0;
 }
 
-static int find_start_code(const uint8_t **pbuf_ptr, const uint8_t *buf_end)
-{
-    const uint8_t *buf_ptr;
-    unsigned int state=0xFFFFFFFF, v;
-    int val;
-
-    buf_ptr = *pbuf_ptr;
-    while (buf_ptr < buf_end) {
-        v = *buf_ptr++;
-        if (state == 0x000001) {
-            state = ((state << 8) | v) & 0xffffff;
-            val = state;
-            goto found;
-        }
-        state = ((state << 8) | v) & 0xffffff;
-    }
-    val = -1;
- found:
-    *pbuf_ptr = buf_ptr;
-    return val;
-}
-
 /* XXX: merge with libavcodec ? */
 #define MPEG1_FRAME_RATE_BASE 1001
 
 static const int frame_rate_tab[16] = {
-        0,        
+        0,
     24000,
     24024,
     25025,
@@ -320,7 +298,7 @@ static const int frame_rate_tab[16] = {
 };
 
 //FIXME move into mpeg12.c
-static void mpegvideo_extract_headers(AVCodecParserContext *s, 
+static void mpegvideo_extract_headers(AVCodecParserContext *s,
                                       AVCodecContext *avctx,
                                       const uint8_t *buf, int buf_size)
 {
@@ -335,7 +313,8 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
     s->repeat_pict = 0;
     buf_end = buf + buf_size;
     while (buf < buf_end) {
-        start_code = find_start_code(&buf, buf_end);
+        start_code= -1;
+        buf= ff_find_start_code(buf, buf_end, &start_code);
         bytes_left = buf_end - buf;
         switch(start_code) {
         case PICTURE_START_CODE:
@@ -386,7 +365,7 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
                         top_field_first = buf[3] & (1 << 7);
                         repeat_first_field = buf[3] & (1 << 1);
                         progressive_frame = buf[4] & (1 << 7);
-                    
+
                         /* check if we must repeat the frame */
                         if (repeat_first_field) {
                             if (pc->progressive_sequence) {
@@ -398,8 +377,8 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
                                 s->repeat_pict = 1;
                             }
                         }
-                        
-                        /* the packet only represents half a frame 
+
+                        /* the packet only represents half a frame
                            XXX,FIXME maybe find a different solution */
                         if(picture_structure != 3)
                             s->repeat_pict = -1;
@@ -413,7 +392,7 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
         default:
             /* we stop parsing when we encounter a slice. It ensures
                that this function takes a negligible amount of time */
-            if (start_code >= SLICE_MIN_START_CODE && 
+            if (start_code >= SLICE_MIN_START_CODE &&
                 start_code <= SLICE_MAX_START_CODE)
                 goto the_end;
             break;
@@ -424,31 +403,31 @@ static void mpegvideo_extract_headers(AVCodecParserContext *s,
 
 static int mpegvideo_parse(AVCodecParserContext *s,
                            AVCodecContext *avctx,
-                           uint8_t **poutbuf, int *poutbuf_size, 
+                           uint8_t **poutbuf, int *poutbuf_size,
                            const uint8_t *buf, int buf_size)
 {
     ParseContext1 *pc1 = s->priv_data;
     ParseContext *pc= &pc1->pc;
     int next;
-   
+
     if(s->flags & PARSER_FLAG_COMPLETE_FRAMES){
         next= buf_size;
     }else{
         next= ff_mpeg1_find_frame_end(pc, buf, buf_size);
-        
+
         if (ff_combine_frame(pc, next, (uint8_t **)&buf, &buf_size) < 0) {
             *poutbuf = NULL;
             *poutbuf_size = 0;
             return buf_size;
         }
-       
+
     }
     /* we have a full frame : we just parse the first few MPEG headers
        to have the full timing information. The time take by this
        function should be negligible for uncorrupted streams */
     mpegvideo_extract_headers(s, avctx, buf, buf_size);
 #if 0
-    printf("pict_type=%d frame_rate=%0.3f repeat_pict=%d\n", 
+    printf("pict_type=%d frame_rate=%0.3f repeat_pict=%d\n",
            s->pict_type, (double)avctx->time_base.den / avctx->time_base.num, s->repeat_pict);
 #endif
 
@@ -462,7 +441,7 @@ static int mpegvideo_split(AVCodecContext *avctx,
 {
     int i;
     uint32_t state= -1;
-    
+
     for(i=0; i<buf_size; i++){
         state= (state<<8) | buf[i];
         if(state != 0x1B3 && state != 0x1B5 && state < 0x200 && state >= 0x100)
@@ -490,7 +469,7 @@ static void parse1_close(AVCodecParserContext *s)
 
 /* used by parser */
 /* XXX: make it use less memory */
-static int av_mpeg4_decode_header(AVCodecParserContext *s1, 
+static int av_mpeg4_decode_header(AVCodecParserContext *s1,
                                   AVCodecContext *avctx,
                                   const uint8_t *buf, int buf_size)
 {
@@ -530,17 +509,17 @@ static int mpeg4video_parse_init(AVCodecParserContext *s)
 
 static int mpeg4video_parse(AVCodecParserContext *s,
                            AVCodecContext *avctx,
-                           uint8_t **poutbuf, int *poutbuf_size, 
+                           uint8_t **poutbuf, int *poutbuf_size,
                            const uint8_t *buf, int buf_size)
 {
     ParseContext *pc = s->priv_data;
     int next;
-    
+
     if(s->flags & PARSER_FLAG_COMPLETE_FRAMES){
         next= buf_size;
     }else{
         next= ff_mpeg4_find_frame_end(pc, buf, buf_size);
-    
+
         if (ff_combine_frame(pc, next, (uint8_t **)&buf, &buf_size) < 0) {
             *poutbuf = NULL;
             *poutbuf_size = 0;
@@ -559,7 +538,7 @@ static int mpeg4video_split(AVCodecContext *avctx,
 {
     int i;
     uint32_t state= -1;
-    
+
     for(i=0; i<buf_size; i++){
         state= (state<<8) | buf[i];
         if(state == 0x1B3 || state == 0x1B6)
@@ -571,7 +550,7 @@ static int mpeg4video_split(AVCodecContext *avctx,
 /*************************/
 
 typedef struct MpegAudioParseContext {
-    uint8_t inbuf[MPA_MAX_CODED_FRAME_SIZE];	/* input buffer */
+    uint8_t inbuf[MPA_MAX_CODED_FRAME_SIZE];    /* input buffer */
     uint8_t *inbuf_ptr;
     int frame_size;
     int free_format_frame_size;
@@ -596,7 +575,7 @@ static int mpegaudio_parse_init(AVCodecParserContext *s1)
 
 static int mpegaudio_parse(AVCodecParserContext *s1,
                            AVCodecContext *avctx,
-                           uint8_t **poutbuf, int *poutbuf_size, 
+                           uint8_t **poutbuf, int *poutbuf_size,
                            const uint8_t *buf, int buf_size)
 {
     MpegAudioParseContext *s = s1->priv_data;
@@ -608,8 +587,8 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
     *poutbuf_size = 0;
     buf_ptr = buf;
     while (buf_size > 0) {
-	len = s->inbuf_ptr - s->inbuf;
-	if (s->frame_size == 0) {
+        len = s->inbuf_ptr - s->inbuf;
+        if (s->frame_size == 0) {
             /* special case for next header for first frame in free
                format case (XXX: find a simpler method) */
             if (s->free_format_next_header != 0) {
@@ -621,62 +600,62 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
                 s->free_format_next_header = 0;
                 goto got_header;
             }
-	    /* no header seen : find one. We need at least MPA_HEADER_SIZE
+            /* no header seen : find one. We need at least MPA_HEADER_SIZE
                bytes to parse it */
-	    len = MPA_HEADER_SIZE - len;
-	    if (len > buf_size)
-		len = buf_size;
-	    if (len > 0) {
-		memcpy(s->inbuf_ptr, buf_ptr, len);
-		buf_ptr += len;
-		buf_size -= len;
-		s->inbuf_ptr += len;
-	    }
-	    if ((s->inbuf_ptr - s->inbuf) >= MPA_HEADER_SIZE) {
+            len = MPA_HEADER_SIZE - len;
+            if (len > buf_size)
+                len = buf_size;
+            if (len > 0) {
+                memcpy(s->inbuf_ptr, buf_ptr, len);
+                buf_ptr += len;
+                buf_size -= len;
+                s->inbuf_ptr += len;
+            }
+            if ((s->inbuf_ptr - s->inbuf) >= MPA_HEADER_SIZE) {
             got_header:
                 sr= avctx->sample_rate;
-		header = (s->inbuf[0] << 24) | (s->inbuf[1] << 16) |
-		    (s->inbuf[2] << 8) | s->inbuf[3];
+                header = (s->inbuf[0] << 24) | (s->inbuf[1] << 16) |
+                    (s->inbuf[2] << 8) | s->inbuf[3];
 
                 ret = mpa_decode_header(avctx, header);
                 if (ret < 0) {
                     s->header_count= -2;
-		    /* no sync found : move by one byte (inefficient, but simple!) */
-		    memmove(s->inbuf, s->inbuf + 1, s->inbuf_ptr - s->inbuf - 1);
-		    s->inbuf_ptr--;
+                    /* no sync found : move by one byte (inefficient, but simple!) */
+                    memmove(s->inbuf, s->inbuf + 1, s->inbuf_ptr - s->inbuf - 1);
+                    s->inbuf_ptr--;
                     dprintf("skip %x\n", header);
                     /* reset free format frame size to give a chance
                        to get a new bitrate */
                     s->free_format_frame_size = 0;
-		} else {
+                } else {
                     if((header&SAME_HEADER_MASK) != (s->header&SAME_HEADER_MASK) && s->header)
                         s->header_count= -3;
                     s->header= header;
                     s->header_count++;
                     s->frame_size = ret;
-                    
+
 #if 0
                     /* free format: prepare to compute frame size */
-		    if (decode_header(s, header) == 1) {
-			s->frame_size = -1;
+                    if (decode_header(s, header) == 1) {
+                        s->frame_size = -1;
                     }
 #endif
-		}
+                }
                 if(s->header_count <= 0)
                     avctx->sample_rate= sr; //FIXME ugly
-	    }
-        } else 
+            }
+        } else
 #if 0
         if (s->frame_size == -1) {
             /* free format : find next sync to compute frame size */
-	    len = MPA_MAX_CODED_FRAME_SIZE - len;
-	    if (len > buf_size)
-		len = buf_size;
+            len = MPA_MAX_CODED_FRAME_SIZE - len;
+            if (len > buf_size)
+                len = buf_size;
             if (len == 0) {
-		/* frame too long: resync */
+                /* frame too long: resync */
                 s->frame_size = 0;
-		memmove(s->inbuf, s->inbuf + 1, s->inbuf_ptr - s->inbuf - 1);
-		s->inbuf_ptr--;
+                memmove(s->inbuf, s->inbuf + 1, s->inbuf_ptr - s->inbuf - 1);
+                s->inbuf_ptr--;
             } else {
                 uint8_t *p, *pend;
                 uint32_t header1;
@@ -708,7 +687,7 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
                             s->free_format_frame_size -= padding * 4;
                         else
                             s->free_format_frame_size -= padding;
-                        dprintf("free frame size=%d padding=%d\n", 
+                        dprintf("free frame size=%d padding=%d\n",
                                 s->free_format_frame_size, padding);
                         decode_header(s, header1);
                         goto next_data;
@@ -720,52 +699,134 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
                 s->inbuf_ptr += len;
                 buf_size -= len;
             }
-	} else 
+        } else
 #endif
         if (len < s->frame_size) {
             if (s->frame_size > MPA_MAX_CODED_FRAME_SIZE)
                 s->frame_size = MPA_MAX_CODED_FRAME_SIZE;
-	    len = s->frame_size - len;
-	    if (len > buf_size)
-		len = buf_size;
-	    memcpy(s->inbuf_ptr, buf_ptr, len);
-	    buf_ptr += len;
-	    s->inbuf_ptr += len;
-	    buf_size -= len;
-	}
+            len = s->frame_size - len;
+            if (len > buf_size)
+                len = buf_size;
+            memcpy(s->inbuf_ptr, buf_ptr, len);
+            buf_ptr += len;
+            s->inbuf_ptr += len;
+            buf_size -= len;
+        }
         //    next_data:
-        if (s->frame_size > 0 && 
+        if (s->frame_size > 0 &&
             (s->inbuf_ptr - s->inbuf) >= s->frame_size) {
             if(s->header_count > 0){
                 *poutbuf = s->inbuf;
                 *poutbuf_size = s->inbuf_ptr - s->inbuf;
             }
-	    s->inbuf_ptr = s->inbuf;
-	    s->frame_size = 0;
-	    break;
-	}
+            s->inbuf_ptr = s->inbuf;
+            s->frame_size = 0;
+            break;
+        }
     }
     return buf_ptr - buf;
 }
-
-#ifdef CONFIG_AC3
-#ifdef CONFIG_A52BIN
-extern int ff_a52_syncinfo (AVCodecContext * avctx, const uint8_t * buf,
-                       int * flags, int * sample_rate, int * bit_rate);
-#else
-extern int a52_syncinfo (const uint8_t * buf, int * flags,
-                         int * sample_rate, int * bit_rate);
-#endif
 
 typedef struct AC3ParseContext {
     uint8_t inbuf[4096]; /* input buffer */
     uint8_t *inbuf_ptr;
     int frame_size;
-    int flags;
 } AC3ParseContext;
 
 #define AC3_HEADER_SIZE 7
-#define A52_LFE 16
+
+static const int ac3_sample_rates[4] = {
+    48000, 44100, 32000, 0
+};
+
+static const int ac3_frame_sizes[64][3] = {
+    { 64,   69,   96   },
+    { 64,   70,   96   },
+    { 80,   87,   120  },
+    { 80,   88,   120  },
+    { 96,   104,  144  },
+    { 96,   105,  144  },
+    { 112,  121,  168  },
+    { 112,  122,  168  },
+    { 128,  139,  192  },
+    { 128,  140,  192  },
+    { 160,  174,  240  },
+    { 160,  175,  240  },
+    { 192,  208,  288  },
+    { 192,  209,  288  },
+    { 224,  243,  336  },
+    { 224,  244,  336  },
+    { 256,  278,  384  },
+    { 256,  279,  384  },
+    { 320,  348,  480  },
+    { 320,  349,  480  },
+    { 384,  417,  576  },
+    { 384,  418,  576  },
+    { 448,  487,  672  },
+    { 448,  488,  672  },
+    { 512,  557,  768  },
+    { 512,  558,  768  },
+    { 640,  696,  960  },
+    { 640,  697,  960  },
+    { 768,  835,  1152 },
+    { 768,  836,  1152 },
+    { 896,  975,  1344 },
+    { 896,  976,  1344 },
+    { 1024, 1114, 1536 },
+    { 1024, 1115, 1536 },
+    { 1152, 1253, 1728 },
+    { 1152, 1254, 1728 },
+    { 1280, 1393, 1920 },
+    { 1280, 1394, 1920 },
+};
+
+static const int ac3_bitrates[64] = {
+    32, 32, 40, 40, 48, 48, 56, 56, 64, 64, 80, 80, 96, 96, 112, 112,
+    128, 128, 160, 160, 192, 192, 224, 224, 256, 256, 320, 320, 384,
+    384, 448, 448, 512, 512, 576, 576, 640, 640,
+};
+
+static const int ac3_channels[8] = {
+    2, 1, 2, 3, 3, 4, 4, 5
+};
+
+static int ac3_sync(const uint8_t *buf, int *channels, int *sample_rate,
+                    int *bit_rate)
+{
+    unsigned int fscod, frmsizecod, acmod, bsid, lfeon;
+    GetBitContext bits;
+
+    init_get_bits(&bits, buf, AC3_HEADER_SIZE * 8);
+
+    if(get_bits(&bits, 16) != 0x0b77)
+        return 0;
+
+    get_bits(&bits, 16);    /* crc */
+    fscod = get_bits(&bits, 2);
+    frmsizecod = get_bits(&bits, 6);
+
+    if(!ac3_sample_rates[fscod])
+        return 0;
+
+    bsid = get_bits(&bits, 5);
+    if(bsid > 8)
+        return 0;
+    get_bits(&bits, 3);     /* bsmod */
+    acmod = get_bits(&bits, 3);
+    if(acmod & 1 && acmod != 1)
+        get_bits(&bits, 2); /* cmixlev */
+    if(acmod & 4)
+        get_bits(&bits, 2); /* surmixlev */
+    if(acmod & 2)
+        get_bits(&bits, 2); /* dsurmod */
+    lfeon = get_bits(&bits, 1);
+
+    *sample_rate = ac3_sample_rates[fscod];
+    *bit_rate = ac3_bitrates[frmsizecod] * 1000;
+    *channels = ac3_channels[acmod] + lfeon;
+
+    return ac3_frame_sizes[frmsizecod][fscod] * 2;
+}
 
 static int ac3_parse_init(AVCodecParserContext *s1)
 {
@@ -776,15 +837,12 @@ static int ac3_parse_init(AVCodecParserContext *s1)
 
 static int ac3_parse(AVCodecParserContext *s1,
                      AVCodecContext *avctx,
-                     uint8_t **poutbuf, int *poutbuf_size, 
+                     uint8_t **poutbuf, int *poutbuf_size,
                      const uint8_t *buf, int buf_size)
 {
     AC3ParseContext *s = s1->priv_data;
     const uint8_t *buf_ptr;
-    int len, sample_rate, bit_rate;
-    static const int ac3_channels[8] = {
-	2, 1, 2, 3, 3, 4, 4, 5
-    };
+    int len, sample_rate, bit_rate, channels;
 
     *poutbuf = NULL;
     *poutbuf_size = 0;
@@ -794,57 +852,49 @@ static int ac3_parse(AVCodecParserContext *s1,
         len = s->inbuf_ptr - s->inbuf;
         if (s->frame_size == 0) {
             /* no header seen : find one. We need at least 7 bytes to parse it */
-            len = AC3_HEADER_SIZE - len;
-            if (len > buf_size)
-                len = buf_size;
-            memcpy(s->inbuf_ptr, buf_ptr, len);
-            buf_ptr += len;
-            s->inbuf_ptr += len;
-            buf_size -= len;
-            if ((s->inbuf_ptr - s->inbuf) == AC3_HEADER_SIZE) {
-#ifdef CONFIG_A52BIN
-                len = ff_a52_syncinfo(avctx, s->inbuf, &s->flags, &sample_rate, &bit_rate);
-#else
-                len = a52_syncinfo(s->inbuf, &s->flags, &sample_rate, &bit_rate);
-#endif
-                if (len == 0) {
-                    /* no sync found : move by one byte (inefficient, but simple!) */
-                    memmove(s->inbuf, s->inbuf + 1, AC3_HEADER_SIZE - 1);
-                    s->inbuf_ptr--;
-                } else {
-		    s->frame_size = len;
-                    /* update codec info */
-                    avctx->sample_rate = sample_rate;
-                    /* set channels,except if the user explicitly requests 1 or 2 channels, XXX/FIXME this is a bit ugly */
-                    if(avctx->channels!=1 && avctx->channels!=2){
-                        avctx->channels = ac3_channels[s->flags & 7];
-                        if (s->flags & A52_LFE)
-                            avctx->channels++;
-                    }
-		    avctx->bit_rate = bit_rate;
-                    avctx->frame_size = 6 * 256;
-                }
-            }
-        } else if (len < s->frame_size) {
-            len = s->frame_size - len;
-            if (len > buf_size)
-                len = buf_size;
+            len = FFMIN(AC3_HEADER_SIZE - len, buf_size);
 
             memcpy(s->inbuf_ptr, buf_ptr, len);
             buf_ptr += len;
             s->inbuf_ptr += len;
             buf_size -= len;
+            if ((s->inbuf_ptr - s->inbuf) == AC3_HEADER_SIZE) {
+                len = ac3_sync(s->inbuf, &channels, &sample_rate, &bit_rate);
+                if (len == 0) {
+                    /* no sync found : move by one byte (inefficient, but simple!) */
+                    memmove(s->inbuf, s->inbuf + 1, AC3_HEADER_SIZE - 1);
+                    s->inbuf_ptr--;
+                } else {
+                    s->frame_size = len;
+                    /* update codec info */
+                    avctx->sample_rate = sample_rate;
+                    /* set channels,except if the user explicitly requests 1 or 2 channels, XXX/FIXME this is a bit ugly */
+                    if(avctx->channels!=1 && avctx->channels!=2){
+                        avctx->channels = channels;
+                    }
+                    avctx->bit_rate = bit_rate;
+                    avctx->frame_size = 6 * 256;
+                }
+            }
         } else {
-            *poutbuf = s->inbuf;
-            *poutbuf_size = s->frame_size;
-            s->inbuf_ptr = s->inbuf;
-            s->frame_size = 0;
-            break;
+            len = FFMIN(s->frame_size - len, buf_size);
+
+            memcpy(s->inbuf_ptr, buf_ptr, len);
+            buf_ptr += len;
+            s->inbuf_ptr += len;
+            buf_size -= len;
+
+            if(s->inbuf_ptr - s->inbuf == s->frame_size){
+                *poutbuf = s->inbuf;
+                *poutbuf_size = s->frame_size;
+                s->inbuf_ptr = s->inbuf;
+                s->frame_size = 0;
+                break;
+            }
         }
     }
     return buf_ptr - buf;
 }
-#endif
 
 AVCodecParser mpegvideo_parser = {
     { CODEC_ID_MPEG1VIDEO, CODEC_ID_MPEG2VIDEO },
@@ -872,7 +922,6 @@ AVCodecParser mpegaudio_parser = {
     NULL,
 };
 
-#ifdef CONFIG_AC3
 AVCodecParser ac3_parser = {
     { CODEC_ID_AC3 },
     sizeof(AC3ParseContext),
@@ -880,4 +929,3 @@ AVCodecParser ac3_parser = {
     ac3_parse,
     NULL,
 };
-#endif
