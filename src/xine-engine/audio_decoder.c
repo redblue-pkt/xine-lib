@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.136 2005/10/30 02:18:35 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.137 2006/02/05 16:41:16 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -223,6 +223,19 @@ static void *audio_decoder_loop (void *stream_gen) {
 	xprintf(stream->xine, XINE_VERBOSITY_DEBUG, 
 		"audio_decoder: suggested switching to stream_id %02x\n", buf->decoder_info[0]);
 	stream->audio_channel_auto = buf->decoder_info[0] & 0xff;
+      }
+      break;
+
+    case BUF_CONTROL_RESET_TRACK_MAP:
+      if (stream->audio_track_map_entries)
+      {
+        xine_event_t ui_event;
+
+        stream->audio_track_map_entries = 0;
+
+        ui_event.type        = XINE_EVENT_UI_CHANNELS_CHANGED;
+        ui_event.data_length = 0;
+        xine_event_send(stream, &ui_event);
       }
       break;
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.153 2005/10/29 19:52:35 tmmm Exp $
+ * $Id: buffer.h,v 1.154 2006/02/05 16:41:16 miguelfreitas Exp $
  *
  *
  * contents:
@@ -74,18 +74,19 @@ extern "C" {
 
 /* control buffer types */
 
-#define BUF_CONTROL_BASE          0x01000000
-#define BUF_CONTROL_START         0x01000000
-#define BUF_CONTROL_END           0x01010000
-#define BUF_CONTROL_QUIT          0x01020000
-#define BUF_CONTROL_DISCONTINUITY 0x01030000 /* former AVSYNC_RESET */
-#define BUF_CONTROL_NOP           0x01040000
-#define BUF_CONTROL_AUDIO_CHANNEL 0x01050000
-#define BUF_CONTROL_SPU_CHANNEL   0x01060000
-#define BUF_CONTROL_NEWPTS        0x01070000
-#define BUF_CONTROL_RESET_DECODER 0x01080000
-#define BUF_CONTROL_HEADERS_DONE  0x01090000
-#define BUF_CONTROL_FLUSH_DECODER 0x010a0000
+#define BUF_CONTROL_BASE            0x01000000
+#define BUF_CONTROL_START           0x01000000
+#define BUF_CONTROL_END             0x01010000
+#define BUF_CONTROL_QUIT            0x01020000
+#define BUF_CONTROL_DISCONTINUITY   0x01030000 /* former AVSYNC_RESET */
+#define BUF_CONTROL_NOP             0x01040000
+#define BUF_CONTROL_AUDIO_CHANNEL   0x01050000
+#define BUF_CONTROL_SPU_CHANNEL     0x01060000
+#define BUF_CONTROL_NEWPTS          0x01070000
+#define BUF_CONTROL_RESET_DECODER   0x01080000
+#define BUF_CONTROL_HEADERS_DONE    0x01090000
+#define BUF_CONTROL_FLUSH_DECODER   0x010a0000
+#define BUF_CONTROL_RESET_TRACK_MAP 0x010b0000
 
 /* video buffer types:  (please keep in sync with buffer_types.c) */
 
