@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_filters.c,v 1.3 2005/07/16 16:36:59 miguelfreitas Exp $
+ * $Id: audio_filters.c,v 1.4 2006/02/05 20:38:36 miguelfreitas Exp $
  *
  * catalog for audio filter plugins
  */
@@ -33,6 +33,7 @@
 post_info_t upmix_special_info      = { XINE_POST_TYPE_AUDIO_FILTER };
 post_info_t upmix_mono_special_info = { XINE_POST_TYPE_AUDIO_FILTER };
 post_info_t stretch_special_info    = { XINE_POST_TYPE_AUDIO_FILTER };
+post_info_t volnorm_special_info    = { XINE_POST_TYPE_AUDIO_FILTER };
 
 
 plugin_info_t xine_plugin_info[] = {
@@ -40,5 +41,6 @@ plugin_info_t xine_plugin_info[] = {
   { PLUGIN_POST, 9, "upmix",      XINE_VERSION_CODE, &upmix_special_info,      &upmix_init_plugin },
   { PLUGIN_POST, 9, "upmix_mono", XINE_VERSION_CODE, &upmix_mono_special_info, &upmix_mono_init_plugin },
   { PLUGIN_POST, 9, "stretch",    XINE_VERSION_CODE, &stretch_special_info,    &stretch_init_plugin },
+  { PLUGIN_POST, 9, "volnorm",    XINE_VERSION_CODE, &volnorm_special_info,    &volnorm_init_plugin },
   { PLUGIN_NONE, 0, "",           0,                 NULL,                     NULL }
 };

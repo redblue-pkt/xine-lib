@@ -15,6 +15,7 @@ xine-lib (1.1.2)
   * Fix xxmc subpictures (broken since 1.1.1)
   * FFmpeg update (version 51.1.0)
   * Fix detection of locale containing a modifier (like "@euro")
+  * New volume normalization post plugin
   
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.
