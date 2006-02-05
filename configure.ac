@@ -617,8 +617,11 @@ AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
 dnl
 dnl Check if we can enable the xxmc plugin.
 dnl
-if test x$no_x = "x"; then
 
+AC_ARG_ENABLE([xvmc],
+  AS_HELP_STRING([--disable-xvmc], [Disable XxMC and XvMC outplut plugins]) )
+
+if test x$no_x = "x" && test "x$enable_xvmc" != "xno"; then
 
 AC_ARG_WITH(xxmc-path, AC_HELP_STRING([--with-xxmc-path=path], [where libXvMC libraries for the
 	xxmc plugin are  installed. Defalts to the default X library path.]),
@@ -709,7 +712,7 @@ AC_SUBST(XXMC_LIB)
 dnl
 dnl Check if we can enable the xvmc plugin.
 dnl
-if test x$no_x = "x"; then
+if test x$no_x = "x" && test "x$enable_xvmc" != "xno"; then
 
 AC_ARG_WITH(xvmc-path, AC_HELP_STRING([--with-xvmc-path=path], [where libXvMC libraries for the
 	xvmc plugin are  installed. Defalts to the default X library path.]),
