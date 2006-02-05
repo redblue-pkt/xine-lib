@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.196 2006/02/05 19:09:18 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.197 2006/02/05 19:18:28 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1338,7 +1338,7 @@ static int ao_update_resample_factor(aos_t *this) {
 static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mode) {
   int output_sample_rate;
 
-  if(this->driver_open)
+  if(this->driver_open && !this->grab_only)
     this->driver->close(this->driver);  
   this->driver_open = 0;
 
