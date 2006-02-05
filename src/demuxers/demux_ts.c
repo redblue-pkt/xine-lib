@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.117 2005/02/06 15:26:19 tmattern Exp $
+ * $Id: demux_ts.c,v 1.118 2006/02/05 17:27:56 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -170,7 +170,7 @@
 #define BODY_SIZE (188 - 4)
 /* more PIDS are needed due "auto-detection". 40 spare media entries  */
 #define MAX_PIDS ((BODY_SIZE - 1 - 13) / 4) + 40 
-#define MAX_PMTS ((BODY_SIZE - 1 - 13) / 4)
+#define MAX_PMTS ((BODY_SIZE - 1 - 13) / 4) + 10
 #define SYNC_BYTE   0x47
 
 #define MIN_SYNCS 3
@@ -583,7 +583,8 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
     program_count = 0;
 
     while ((this->program_number[program_count] != INVALID_PROGRAM) &&
-           (this->program_number[program_count] != program_number) ) {
+           (this->program_number[program_count] != program_number)  &&
+           (program_count+1 < MAX_PMTS ) ) {
       program_count++;
     }
     this->program_number[program_count] = program_number;
@@ -1675,7 +1676,8 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
    */
    program_count=0;
    if(this->media_num<MAX_PMTS)
-      while ((this->program_number[program_count] != INVALID_PROGRAM) ) {
+      while ((this->program_number[program_count] != INVALID_PROGRAM) && 
+      		 (program_count < MAX_PMTS)) {
         if (pid == this->pmt_pid[program_count]) {
     
 #ifdef TS_LOG
