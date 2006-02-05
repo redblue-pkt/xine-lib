@@ -1811,20 +1811,15 @@ AM_CONDITIONAL(EXTERNAL_LIBDTS, test x"$have_dts" = "xyes")
 dnl ---------------------------------------------
 dnl libmodplug support 
 dnl ---------------------------------------------
-if test x$PKG_CONFIG = xno ; then
-  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
-  echo "*** All of MODPLUG dependent parts will be disabled"
-else
-    LIBMODPLUG_REQUIRED_VERSION=0.7
-    if $PKG_CONFIG --atleast-version $LIBMODPLUG_REQUIRED_VERSION libmodplug ; then
-        LIBMODPLUG_CFLAGS=`$PKG_CONFIG --cflags libmodplug`
-        LIBMODPLUG_LIBS=`$PKG_CONFIG --libs libmodplug`
-        AC_DEFINE(HAVE_MODPLUG,1,[define this if you have libmodplug installed])
-        have_modplug="yes"
-    else
-        AC_MSG_RESULT([*** All of MODPLUG dependent parts will be disabled ***])
-    fi
+AC_ARG_ENABLE([modplug],
+  AS_HELP_STRING([--enable-modplug], [Enable modplub support]) )
+
+if test "x$enable_modplug" != "xno"; then
+  PKG_CHECK_MODULES([LIBMODPLUG], [libmodplug >= 0.7],
+    AC_DEFINE([HAVE_MODPLUG], 1, [define this if you have libmodplug installed]),
+    [enable_modplug=no])
 fi
+
 AC_SUBST(LIBMODPLUG_CFLAGS)
 AC_SUBST(LIBMODPLUG_LIBS)
 dnl AM_CONDITIONAL(HAVE_MODPLUG, [test x"$have_modplug" = x"yes"])
@@ -2466,7 +2461,7 @@ fi
 if test x"$have_libmng" = "xyes"; then
   echo "   - mng"
 fi
-if test x"$have_modplug" = x"yes"; then
+if test x"$enable_modplug" != x"no"; then
   echo "   - mod"
 fi
 if test x"$enable_a52dec" = "xyes"; then
