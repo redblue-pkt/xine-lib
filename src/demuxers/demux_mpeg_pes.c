@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.30 2005/02/06 15:26:17 tmattern Exp $
+ * $Id: demux_mpeg_pes.c,v 1.31 2006/02/06 12:07:44 miguelfreitas Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -51,7 +51,7 @@
 #define NUM_PREVIEW_BUFFERS   250
 #define DISC_TRESHOLD       90000
 
-#define WRAP_THRESHOLD     120000 
+#define WRAP_THRESHOLD     270000 
 #define PTS_AUDIO 0
 #define PTS_VIDEO 1
 
@@ -94,6 +94,9 @@ typedef struct demux_mpeg_pes_s {
   int64_t               last_cell_time;
   off_t                 last_cell_pos;
   int                   last_begin_time;
+
+  uint8_t               preview_data[ MAX_PREVIEW_SIZE ];
+  off_t                 preview_size, preview_done;
 } demux_mpeg_pes_t ;
 
 typedef struct {
@@ -157,7 +160,62 @@ static void check_newpts( demux_mpeg_pes_t *this, int64_t pts, int video )
   }
   
   if( pts )
+  {
+    /* don't detect a discontinuity only for video respectively audio. It's also a discontinuity
+       indication when audio and video pts differ to much e. g. when a pts wrap happens.
+       The original code worked well when the wrap happend like this:
+
+       V7 A7 V8 V9 A9 Dv V0 V1 da A1 V2 V3 A3 V4
+       
+       Legend:
+       Vn = video packet with timestamp n
+       An = audio packet with timestamp n
+       Dv = discontinuity detected on following video packet
+       Da = discontinuity detected on following audio packet
+       dv = discontinuity detected on following video packet but ignored
+       da = discontinuity detected on following audio packet but ignored
+
+       But with a certain delay between audio and video packets (e. g. the way DVB-S broadcasts
+       the packets) the code didn't work:
+
+       V7 V8 A7 V9 Dv V0 _A9_ V1 V2 Da _A1_ V3 V4 A3
+
+       Packet A9 caused audio to jump forward and A1 caused it to jump backward with inserting
+       a delay of almoust 26.5 hours!
+
+       The new code gives the following sequences for the above examples:
+       
+       V7 A7 V8 V9 A9 Dv V0 V1 A1 V2 V3 A3 V4
+
+       V7 V8 A7 V9 Dv V0 Da A9 Dv V1 V2 A1 V3 V4 A3
+
+       After proving this code it should be cleaned up to use just a single variable "last_pts". */
+    
+/*
     this->last_pts[video] = pts;
+*/    
+    this->last_pts[video] = this->last_pts[1-video] = pts;
+  }
+}
+
+static off_t read_data(demux_mpeg_pes_t *this, uint8_t *buf, off_t nlen)
+{
+  int preview_avail;
+
+  if (this->preview_size <= 0)
+    return this->input->read(this->input, (char *)buf, nlen);
+
+  preview_avail = this->preview_size - this->preview_done;
+  if (preview_avail <= 0)
+    return 0;
+
+  if (nlen > preview_avail)
+    nlen = preview_avail;
+
+  memcpy(buf, &this->preview_data[ this->preview_done ], nlen);
+  this->preview_done += nlen;
+
+  return nlen;
 }
 
 static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode) {
@@ -173,7 +231,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
   this->preview_mode = preview_mode;
 
   /* read first 6 bytes of PES packet into a local buffer. */
-  i = this->input->read (this->input, buf6, (off_t) 6);
+  i = read_data(this, buf6, (off_t) 6);
   if (i != 6) {
     this->status = DEMUX_FINISHED;
     return;
@@ -184,7 +242,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
   while ((p[2] != 1) || p[0] || p[1]) {
     /* resync code */
     for(n=0;n<5;n++) p[n]=p[n+1];
-    i = this->input->read (this->input, p+5, (off_t) 1);
+    i = read_data(this, p+5, (off_t) 1);
     if (i != 1) {
       this->status = DEMUX_FINISHED;
       return;
@@ -255,7 +313,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
     lprintf("stream_id=0x%x, packet_len=%d\n",this->stream_id, this->packet_len);
 
     if (this->packet_len <= (buf->max_size - 6)) {
-      i = this->input->read (this->input, buf->mem+6, (off_t) this->packet_len);
+      i = read_data(this, buf->mem+6, (off_t) this->packet_len);
       if (i != this->packet_len) {
         buf->free_buffer (buf);
         this->status = DEMUX_FINISHED;
@@ -265,7 +323,7 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
     } else {
       lprintf("Jumbo PES packet length=%d, stream_id=0x%x\n",this->packet_len, this->stream_id);
 
-      i = this->input->read (this->input, buf->mem+6, (off_t) (buf->max_size - 6));
+      i = read_data(this, buf->mem+6, (off_t) (buf->max_size - 6));
       if (i != ( buf->max_size - 6)) {
         buf->free_buffer (buf);
         this->status = DEMUX_FINISHED;
@@ -351,7 +409,7 @@ static int32_t parse_padding_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elem
     if ((todo - done) < size)
       size = todo - done;
     
-    i = this->input->read (this->input, buf->mem, (off_t)size);
+    i = read_data(this, buf->mem, (off_t)size);
     if (i != size)
       break;
 
@@ -465,7 +523,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
   /* program stream pack header */
   off_t          i;
 
-  i = this->input->read (this->input, buf->mem+6, (off_t) 6);
+  i = read_data(this, buf->mem+6, (off_t) 6);
   if (i != 6) {
     buf->free_buffer (buf);
     this->status = DEMUX_FINISHED;
@@ -522,7 +580,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
       this->rate |= (p[0xB] << 6);
       this->rate |= (p[0xC] >> 2);
     }
-    i = this->input->read (this->input, buf->mem+12, (off_t) 2);
+    i = read_data(this, buf->mem+12, (off_t) 2);
     if (i != 2) {
       buf->free_buffer (buf);
       this->status = DEMUX_FINISHED;
@@ -530,7 +588,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
     }
 
     num_stuffing_bytes = p[0xD] & 0x07;
-    i = this->input->read (this->input, buf->mem+14, (off_t) num_stuffing_bytes);
+    i = read_data(this, buf->mem+14, (off_t) num_stuffing_bytes);
     if (i != num_stuffing_bytes) {
       buf->free_buffer (buf);
       this->status = DEMUX_FINISHED;
@@ -969,7 +1027,7 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
         if (size > buf->max_size)
           size = buf->max_size;
         offset += size;
-        i = this->input->read (this->input, buf->mem, (off_t) (size));
+        i = read_data(this, buf->mem, (off_t) (size));
         if (i != size) {
           buf->free_buffer(buf);
           return this->packet_len + result;
@@ -1034,7 +1092,7 @@ static int32_t parse_video_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elemen
     } else {
       chunk_length = buf->max_size;
     }
-    i = this->input->read (this->input, buf->mem, (off_t) (chunk_length));
+    i = read_data(this, buf->mem, (off_t) (chunk_length));
       if (i !=  chunk_length) {
         buf->free_buffer (buf);
         this->status = DEMUX_FINISHED;
@@ -1300,7 +1358,17 @@ static void demux_mpeg_pes_send_headers (demux_plugin_t *this_gen) {
       num_buffers --;
     }
   } 
-  /* else FIXME: implement preview generation from PREVIEW data */
+  else if((this->input->get_capabilities(this->input) & INPUT_CAP_PREVIEW) != 0) {
+    
+    this->preview_size = this->input->get_optional_data(this->input, &this->preview_data, INPUT_OPTIONAL_DATA_PREVIEW);
+    this->preview_done = 0;
+
+    this->status = DEMUX_OK ;
+    while ( (this->preview_done < this->preview_size) && (this->status == DEMUX_OK) )
+      demux_mpeg_pes_parse_pack(this, 1);
+
+    this->preview_size = 0;
+  }
 
   this->status = DEMUX_OK;
 
@@ -1436,6 +1504,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   /* We need to system header in order to identify is the stream is mpeg1 or mpeg2. */
   this->wait_for_program_stream_pack_header=1;
 
+  this->preview_size = 0;
+
   lprintf ("open_plugin:detection_method=%d\n",
 	   stream->content_detection_method);
  
@@ -1450,10 +1520,44 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       return NULL;
     }
 
+    if (((input->get_capabilities(input) & INPUT_CAP_PREVIEW) != 0) ) {
+
+      int preview_size = input->get_optional_data(input, &this->preview_data, INPUT_OPTIONAL_DATA_PREVIEW);
+
+      if (preview_size >= 6) {
+	lprintf("open_plugin:get_optional_data worked\n");
+
+        if (this->preview_data[0] || this->preview_data[1]
+            || (this->preview_data[2] != 0x01) ) {
+	  lprintf("open_plugin:preview_data failed\n");
+
+          free (this->scratch_base);
+          free (this);
+          return NULL;
+        }
+        switch(this->preview_data[3]) {
+
+        case 0xe0 ... 0xef:
+        case 0xc0 ... 0xdf:
+        case 0xbd ... 0xbe:
+          break;
+        default:
+          free (this->scratch_base);
+          free (this);
+          return NULL;
+        }
+
+        demux_mpeg_pes_accept_input (this, input);
+        lprintf("open_plugin:Accepting detection_method XINE_DEMUX_CONTENT_STRATEGY (preview_data)\n");
+
+        break;
+      }
+    }
+
     if (((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
 
       input->seek(input, 0, SEEK_SET);
-      if (input->read(input, this->scratch, 6)) {
+      if (input->read(input, (char *)this->scratch, 6)) {
 	lprintf("open_plugin:read worked\n");
 
         if (this->scratch[0] || this->scratch[1]
@@ -1466,10 +1570,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         }
         switch(this->scratch[3]) {
 
-        case 0xe0:
-        case 0xc0:
-        case 0xc1:
-        case 0xbd:
+        case 0xe0 ... 0xef:
+        case 0xc0 ... 0xdf:
+        case 0xbd ... 0xbe:
           break;
         default:
           free (this->scratch_base);
@@ -1485,6 +1588,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         break;
       }
     }
+
     free (this->scratch_base);
     free (this);
     return NULL;
@@ -1505,6 +1609,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     }
 
     if (strncasecmp(ending, ".MPEG", 5)
+        && strncasecmp (ending, ".vdr", 4)
         && strncasecmp (ending, ".mpg", 4)) {
       free (this->scratch_base);
       free (this);
