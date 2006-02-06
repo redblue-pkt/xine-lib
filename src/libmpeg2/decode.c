@@ -415,6 +415,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	}
 
 	if (mpeg2dec->is_sequence_needed 
+	    || (picture->aspect_ratio_information != picture->saved_aspect_ratio)
 	    || (picture->frame_width != picture->coded_picture_width)
 	    || (picture->frame_height != picture->coded_picture_height)) {
 	    xine_event_t event;
@@ -451,6 +452,7 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 
 	    picture->frame_width = picture->coded_picture_width;
 	    picture->frame_height = picture->coded_picture_height;
+	    picture->saved_aspect_ratio = picture->aspect_ratio_information;
 	}
 	break;
 

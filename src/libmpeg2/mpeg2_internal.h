@@ -168,6 +168,7 @@ typedef struct picture_s {
     /* these things are not needed by the decoder */
     /* this is a temporary interface, we will build a better one later. */
     int aspect_ratio_information;
+    int saved_aspect_ratio;
     int frame_rate_code;
     int progressive_sequence;
     int repeat_first_field;
