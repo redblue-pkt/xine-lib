@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: noise.c,v 1.1 2006/02/05 21:07:54 miguelfreitas Exp $
+ * $Id: noise.c,v 1.2 2006/02/06 12:09:42 hadess Exp $
  *
  * mplayer's noise filter, ported by Jason Tackaberry.  Original filter
  * is copyright 2002 Michael Niedermayer <michaelni@gmx.at>
@@ -133,6 +133,17 @@ static int8_t *initNoise(noise_param_t *fp){
     return noise;
 }
 
+static inline void lineNoise_C(uint8_t *dst, uint8_t *src, int8_t *noise, int len, int shift){
+    int i;
+    noise+= shift;
+    for(i=0; i<len; i++)
+    {
+        int v= src[i]+ noise[i];
+        if(v>255)   dst[i]=255; //FIXME optimize
+        else if(v<0)    dst[i]=0;
+        else        dst[i]=v;
+    }
+}
 
 #ifdef ARCH_X86
 static inline void lineNoise_MMX(uint8_t *dst, uint8_t *src, int8_t *noise, int len, int shift){
@@ -190,19 +201,18 @@ static inline void lineNoise_MMX2(uint8_t *dst, uint8_t *src, int8_t *noise, int
 
 #endif
 
-static inline void lineNoise_C(uint8_t *dst, uint8_t *src, int8_t *noise, int len, int shift){
+/***************************************************************************/
+
+static inline void lineNoiseAvg_C(uint8_t *dst, uint8_t *src, int len, int8_t **shift){
     int i;
-    noise+= shift;
+    int8_t *src2= (int8_t*)src;
+
     for(i=0; i<len; i++)
     {
-        int v= src[i]+ noise[i];
-        if(v>255)   dst[i]=255; //FIXME optimize
-        else if(v<0)    dst[i]=0;
-        else        dst[i]=v;
+        const int n= shift[0][i] + shift[1][i] + shift[2][i];
+        dst[i]= src2[i]+((n*src2[i])>>7);
     }
 }
-
-/***************************************************************************/
 
 #ifdef ARCH_X86
 
@@ -246,18 +256,6 @@ static inline void lineNoiseAvg_MMX(uint8_t *dst, uint8_t *src, int len, int8_t 
     }
 }
 #endif
-
-static inline void lineNoiseAvg_C(uint8_t *dst, uint8_t *src, int len, int8_t **shift){
-    int i;
-    int8_t *src2= (int8_t*)src;
-
-    for(i=0; i<len; i++)
-    {
-        const int n= shift[0][i] + shift[1][i] + shift[2][i];
-        dst[i]= src2[i]+((n*src2[i])>>7);
-    }
-}
-
 
 /***************************************************************************/
 
