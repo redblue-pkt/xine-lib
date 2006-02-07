@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: gdkpixbuf.c,v 1.1 2006/02/02 20:39:32 hadess Exp $
+ * $Id: gdkpixbuf.c,v 1.2 2006/02/07 15:28:59 hadess Exp $
  *
  * a gdk-pixbuf-based image video decoder
  */
@@ -63,14 +63,14 @@ typedef struct image_decoder_s {
   xine_stream_t    *stream;
   int               video_open;
   
-  unsigned char    *image;
-  int               index;
+  GdkPixbufLoader  *loader;
 
 } image_decoder_t;
 
 
 static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   image_decoder_t *this = (image_decoder_t *) this_gen;
+  GError *error = NULL;
 
   if (!this->video_open) {
     lprintf("opening video\n");
@@ -78,11 +78,20 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->video_open = 1;
   }
 
-  xine_buffer_copyin(this->image, this->index, buf->mem, buf->size);
-  this->index += buf->size;
+  if (this->loader == NULL) {
+    this->loader = gdk_pixbuf_loader_new ();
+  }
+
+  if (gdk_pixbuf_loader_write (this->loader, buf->mem, buf->size, &error) == FALSE) {
+    lprintf("error loading image: %s\n", error->message);
+    g_error_free (error);
+    gdk_pixbuf_loader_close (this->loader, NULL);
+    g_object_unref (G_OBJECT (this->loader));
+    this->loader = NULL;
+    return;
+  }
 
   if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
-    GdkPixbufLoader   *loader;
     GdkPixbuf         *pixbuf;
     int                width, height, x, y, rowstride, n_channels, i;
     guchar            *img_buf;
@@ -92,22 +101,21 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     /*
      * this->image -> rgb data
      */
-    loader = gdk_pixbuf_loader_new ();
-    if (gdk_pixbuf_loader_write (loader, this->image, this->index, NULL) == FALSE) {
-      lprintf("error loading image\n");
+    if (gdk_pixbuf_loader_close (this->loader, &error) == FALSE) {
+      lprintf("error loading image: %s\n", error->message);
+      g_error_free (error);
+      g_object_unref (G_OBJECT (this->loader));
+      this->loader = NULL;
       return;
     }
 
-    if (gdk_pixbuf_loader_close (loader, NULL) == FALSE) {
-      lprintf("error loading image\n");
-      return;
-    }
-
-    pixbuf = gdk_pixbuf_loader_get_pixbuf (loader);
-    this->index = 0;
+    pixbuf = gdk_pixbuf_loader_get_pixbuf (this->loader);
+    if (pixbuf != NULL)
+      g_object_ref (G_OBJECT (pixbuf));
+    g_object_unref (this->loader);
+    this->loader = NULL;
 
     if (pixbuf == NULL) {
-      g_object_unref (loader);
       lprintf("error loading image\n");
       return;
     }
@@ -181,8 +189,12 @@ static void image_reset (video_decoder_t *this_gen) {
    * reset decoder after engine flush (prepare for new
    * video data not related to recently decoded data)
    */
-  
-  this->index = 0;
+
+  if (this->loader != NULL) {
+    gdk_pixbuf_loader_close (this->loader, NULL);
+    g_object_unref (G_OBJECT (this->loader));
+    this->loader = NULL;
+  }
 }
 
 
@@ -205,7 +217,11 @@ static void image_dispose (video_decoder_t *this_gen) {
     this->video_open = 0;
   }
 
-  xine_buffer_free(this->image);
+  if (this->loader != NULL) {
+    gdk_pixbuf_loader_close (this->loader, NULL);
+    g_object_unref (G_OBJECT (this->loader));
+    this->loader = NULL;
+  }
 
   lprintf("closed\n");
   free (this);
@@ -235,8 +251,6 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   /*
    * initialisation of privates
    */
-
-  this->image = xine_buffer_init(10240);
 
   return &this->video_decoder;
 }

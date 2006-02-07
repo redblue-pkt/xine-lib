@@ -22,6 +22,9 @@ endif
 if HAVE_WAND
 image_module = xineplug_dmx_image.la
 endif
+if HAVE_GDK_PIXBUF
+image_module = xineplug_dmx_image.la
+endif
 
 ##
 # IMPORTANT:
