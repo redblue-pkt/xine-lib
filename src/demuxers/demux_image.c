@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.19 2006/02/08 09:06:59 hadess Exp $
+ * $Id: demux_image.c,v 1.20 2006/02/08 18:29:02 hadess Exp $
  *
  * image dummy demultiplexer
  */
@@ -160,7 +160,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     }
     if (memcmp (header, "GIF", 3) == 0 /* GIF */
         || memcmp (header, "\377\330\377", 3) == 0 /* JPEG */
-	|| (header[0] & 0xFFFF) == 0xffd8 /* another JPEG */
+	|| (BE_16(&header[0]) == 0xffd8) /* another JPEG */
 	|| memcmp (header, "\x89PNG", 4) == 0) { /* PNG */
       break;
     }
