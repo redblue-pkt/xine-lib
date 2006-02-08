@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: gdkpixbuf.c,v 1.2 2006/02/07 15:28:59 hadess Exp $
+ * $Id: gdkpixbuf.c,v 1.3 2006/02/08 09:08:06 hadess Exp $
  *
  * a gdk-pixbuf-based image video decoder
  */
@@ -304,7 +304,7 @@ static uint32_t supported_types[] = { BUF_VIDEO_IMAGE,
 
 static decoder_info_t dec_info_image = {
   supported_types,     /* supported types */
-  6                    /* priority        */
+  7                    /* priority        */
 };
 
 plugin_info_t xine_plugin_info[] = {
