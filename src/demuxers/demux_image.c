@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.18 2005/02/13 18:42:49 holstsn Exp $
+ * $Id: demux_image.c,v 1.19 2006/02/08 09:06:59 hadess Exp $
  *
  * image dummy demultiplexer
  */
@@ -43,6 +43,8 @@
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
+
+#define IMAGE_HEADER_LEN 4
 
 typedef struct demux_image_s {
   demux_plugin_t        demux_plugin;
@@ -72,7 +74,7 @@ static int demux_image_next (demux_plugin_t *this_gen, int preview) {
   buf->content = buf->mem;
   buf->type = this->buf_type;
 
-  buf->size = this->input->read (this->input, buf->mem, buf->max_size-1);
+  buf->size = this->input->read (this->input, (char *)buf->mem, buf->max_size-1);
 
   if (buf->size <= 0) {
     buf->size = 0;
@@ -151,8 +153,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   switch (stream->content_detection_method) {
 
-  case METHOD_BY_CONTENT:
+  case METHOD_BY_CONTENT: {
+    char header[IMAGE_HEADER_LEN];
+    if (_x_demux_read_header(input, (unsigned char *)header, IMAGE_HEADER_LEN) != IMAGE_HEADER_LEN) {
+      return NULL;
+    }
+    if (memcmp (header, "GIF", 3) == 0 /* GIF */
+        || memcmp (header, "\377\330\377", 3) == 0 /* JPEG */
+	|| (header[0] & 0xFFFF) == 0xffd8 /* another JPEG */
+	|| memcmp (header, "\x89PNG", 4) == 0) { /* PNG */
+      break;
+    }
     return NULL;
+  }
   break;
 
   case METHOD_BY_EXTENSION: {
@@ -247,7 +260,7 @@ static void *init_class (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 demuxer_info_t demux_info_image = {
-  10                       /* priority */
+  11                       /* priority */
 };
 
 plugin_info_t xine_plugin_info[] = {
