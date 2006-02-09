@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.83 2006/02/05 14:32:07 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.84 2006/02/09 09:29:55 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1561,6 +1561,7 @@ static void _cdda_cddb_socket_close(cdda_input_plugin_t *this) {
 static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
   cdda_input_class_t *this_class = (cdda_input_class_t *)this->class;
   char buffer[2048], buffercache[32768], *m, *p;
+  char *dtitle = NULL;
   int err, i;
 
   if(this == NULL) {
@@ -1734,8 +1735,6 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
 			
     this->cddb.have_cddb_info = 1;
     memset(&buffercache, 0, sizeof(buffercache));
-
-    char *dtitle = NULL;
 
     while (strcmp(buffer, ".")) {
       char buf[2048];
