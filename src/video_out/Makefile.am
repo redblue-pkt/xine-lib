@@ -148,7 +148,7 @@ xineplug_vo_out_fb_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 xineplug_vo_out_fb_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
-xineplug_vo_out_directfb_la_SOURCES = video_out_directfb.c
+xineplug_vo_out_directfb_la_SOURCES = video_out_directfb.c $(X11OSD)
 xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS) $(X_LIBS) $(THREAD_LIBS)
 xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

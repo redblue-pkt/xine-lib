@@ -44,6 +44,10 @@
 #include "xineutils.h"
 #include "vo_scale.h"
 
+#ifdef HAVE_X11
+#include "x11osd.h"
+#endif
+
 #include <directfb.h>
 #include <directfb_version.h>
 
@@ -64,6 +68,7 @@ typedef struct directfb_driver_s {
   vo_driver_t                  vo_driver;
   
   int                          visual_type;
+  uint32_t                     capabilities;
 
   xine_t                      *xine;
   
@@ -71,6 +76,7 @@ typedef struct directfb_driver_s {
 
   /* DirectFB related stuff */
   IDirectFB                   *dfb;
+  IDirectFBDisplayLayer       *primary;
   IDirectFBDisplayLayer       *layer;
   IDirectFBSurface            *surface;
   DFBDisplayLayerCapabilities  caps;
@@ -106,6 +112,8 @@ typedef struct directfb_driver_s {
   Drawable                     drawable;
   GC                           gc;
   int                          depth;
+  x11osd                      *xoverlay;
+  int                          ovl_changed;
 #endif
 
   /* screen size */
@@ -135,7 +143,8 @@ typedef struct {
 /*** driver functions ***/
 
 static uint32_t directfb_get_capabilities (vo_driver_t *this_gen) {
-  return VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CROP;
+  directfb_driver_t *this = (directfb_driver_t *) this_gen;
+  return this->capabilities;
 }
 
 static void directfb_frame_field (vo_frame_t *vo_img, int which_field) {
@@ -245,34 +254,35 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
   frame->ratio = ratio;
 }
 
+#ifdef HAVE_X11
+static uint32_t directfb_colorkey_to_pixel (directfb_driver_t *this) {
+  switch (this->depth) {
+    case 8:
+      return ((this->colorkey & 0xe00000) >> 16) |
+             ((this->colorkey & 0x00e000) >> 11) |
+             ((this->colorkey & 0x0000c0) >>  6);
+    case 15:
+      return ((this->colorkey & 0xf80000) >>  9) |
+             ((this->colorkey & 0x00f800) >>  6) |
+             ((this->colorkey & 0x0000f8) >>  3);
+    case 16:
+      return ((this->colorkey & 0xf80000) >>  8) |
+             ((this->colorkey & 0x00fc00) >>  5) |
+             ((this->colorkey & 0x0000f8) >>  3);
+    default:
+      break;
+  }
+  
+  return this->colorkey;
+}
+#endif
+
 static void directfb_clean_output_area (directfb_driver_t *this) {
   if (this->visual_type == XINE_VISUAL_TYPE_X11) {
 #ifdef HAVE_X11
     if (this->config.options & DLOP_DST_COLORKEY) {
-      uint32_t pixel;
-      int      i;
-    
-      switch (this->depth) {
-        case 8:
-          pixel = ((this->colorkey & 0xe00000) >> 16) |
-                  ((this->colorkey & 0x00e000) >> 11) |
-                  ((this->colorkey & 0x0000c0) >>  6);
-          break;
-        case 15:
-          pixel = ((this->colorkey & 0xf80000) >>  9) |
-                  ((this->colorkey & 0x00f800) >>  6) |
-                  ((this->colorkey & 0x0000f8) >>  3);
-          break;
-        case 16:
-          pixel = ((this->colorkey & 0xf80000) >>  8) |
-                  ((this->colorkey & 0x00fc00) >>  5) |
-                  ((this->colorkey & 0x0000f8) >>  3);
-          break;
-        default:
-          pixel = this->colorkey;
-          break;
-      }
-        
+      int i;
+      
       XLockDisplay (this->display);    
       
       XSetForeground (this->display, this->gc, BlackPixel(this->display, this->screen));
@@ -285,10 +295,16 @@ static void directfb_clean_output_area (directfb_driver_t *this) {
         }
       }
     
-      XSetForeground (this->display, this->gc, pixel);
+      XSetForeground (this->display, this->gc, directfb_colorkey_to_pixel(this));
       XFillRectangle (this->display, this->drawable, this->gc, 
                       this->sc.output_xoffset, this->sc.output_yoffset,
                       this->sc.output_width, this->sc.output_height);
+                      
+  
+      if (this->xoverlay) {
+        x11osd_resize (this->xoverlay, this->sc.gui_width, this->sc.gui_height);
+        this->ovl_changed = 1;
+      }
     
       XFlush (this->display);
 
@@ -312,32 +328,75 @@ static void directfb_clean_output_area (directfb_driver_t *this) {
   }
 }
 
+static void directfb_overlay_begin (vo_driver_t *this_gen,
+                                    vo_frame_t  *frame_gen, int changed) {
+  directfb_driver_t *this = (directfb_driver_t *) this_gen;
+
+#ifdef HAVE_X11
+  this->ovl_changed += changed;
+
+  if (this->ovl_changed && this->xoverlay) {
+    XLockDisplay (this->display);
+    x11osd_clear (this->xoverlay); 
+    XUnlockDisplay (this->display);
+  }
+#endif
+  
+  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
+  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
+}
+
 static void directfb_overlay_blend (vo_driver_t *this_gen,
                                     vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   directfb_driver_t *this  = (directfb_driver_t *) this_gen;
   directfb_frame_t  *frame = (directfb_frame_t *) frame_gen;
   
-  this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
-  this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
-  
-  if (frame->format == DSPF_YUY2) {
-    _x_blend_yuy2 (frame->vo_frame.base[0], overlay,
-                frame->width, frame->height,
-                frame->vo_frame.pitches[0],
-                &this->alphablend_extra_data);
+  if (!overlay->rle)
+    return;
+    
+  if (overlay->unscaled) {
+#ifdef HAVE_X11
+    if (this->ovl_changed && this->xoverlay) {
+        XLockDisplay (this->display);
+        x11osd_blend (this->xoverlay, overlay); 
+        XUnlockDisplay (this->display);
+      }
+#endif
   }
   else {
-    _x_blend_yuv (frame->vo_frame.base, overlay, 
-               frame->width, frame->height,
-               frame->vo_frame.pitches,
-               &this->alphablend_extra_data);
+    if (frame->format == DSPF_YUY2) {
+      _x_blend_yuy2 (frame->vo_frame.base[0], overlay,
+                     frame->width, frame->height,
+                     frame->vo_frame.pitches[0],
+                     &this->alphablend_extra_data);
+    }
+    else {
+      _x_blend_yuv (frame->vo_frame.base, overlay, 
+                    frame->width, frame->height,
+                    frame->vo_frame.pitches,
+                    &this->alphablend_extra_data);
+    }
   }
+}
+
+static void directfb_overlay_end (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
+#ifdef HAVE_X11
+  directfb_driver_t *this = (directfb_driver_t *) this_gen;
+
+  if (this->ovl_changed && this->xoverlay) {
+    XLockDisplay (this->display);
+    x11osd_expose (this->xoverlay);
+    XUnlockDisplay (this->display);
+  }
+
+  this->ovl_changed = 0;
+#endif
 }
 
 static int directfb_redraw_needed (vo_driver_t *this_gen) {
   directfb_driver_t *this  = (directfb_driver_t *) this_gen;
   directfb_frame_t  *frame = this->cur_frame;
-
+  
   if (!frame)
     return 1;
       
@@ -352,6 +411,7 @@ static int directfb_redraw_needed (vo_driver_t *this_gen) {
   _x_vo_scale_compute_ideal_size (&this->sc);
  
   if (_x_vo_scale_redraw_needed (&this->sc)) {
+    lprintf ("redraw needed.\n");
     _x_vo_scale_compute_output_size (&this->sc);
 
     if (this->caps & DLCAPS_SCREEN_LOCATION) {
@@ -422,7 +482,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
     
     ret = this->layer->SetConfiguration (this->layer, &this->config);
     if (ret != DFB_OK)
-      DirectFBError( "IDirectFBDisplayLayer::SetConfiguration()", ret );      
+      DirectFBError ("IDirectFBDisplayLayer::SetConfiguration()", ret);      
     this->layer->GetConfiguration (this->layer, &this->config);
   }
   
@@ -430,7 +490,7 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
       this->sc.delivered_height != frame->height ||
       this->sc.delivered_ratio  != frame->ratio)
   {
-    lprintf ("forcing redraw\n");
+    lprintf ("forcing redraw.\n");
     this->sc.force_redraw = 1;
   }
   
@@ -532,7 +592,7 @@ static void directfb_display_frame2 (vo_driver_t *this_gen, vo_frame_t *frame_ge
       this->sc.delivered_height != frame->height ||
       this->sc.delivered_ratio  != frame->ratio)
   {
-    lprintf ("forcing redraw\n");
+    lprintf ("forcing redraw.\n");
     this->sc.force_redraw = 1;
   }
   
@@ -835,16 +895,37 @@ static int directfb_gui_data_exchange (vo_driver_t *this_gen,
   
   switch (data_type) {
     case XINE_GUI_SEND_DRAWABLE_CHANGED:
+      lprintf ("drawable changed.\n");
 #ifdef HAVE_X11
       if (this->visual_type == XINE_VISUAL_TYPE_X11) {
         this->drawable = (Drawable) data;
         XLockDisplay (this->display);
         XFreeGC (this->display, this->gc);
         this->gc = XCreateGC (this->display, this->drawable, 0, NULL);
+        if (this->xoverlay) {
+          x11osd_drawable_changed (this->xoverlay, this->drawable);
+          this->ovl_changed = 1;
+        }          
         XUnlockDisplay (this->display);
+        this->sc.force_redraw = 1;
+      }
+#endif 
+      directfb_clean_output_area (this);
+      break;
+
+    case XINE_GUI_SEND_EXPOSE_EVENT:
+      lprintf ("expose event.\n");
+#ifdef HAVE_X11
+      if (this->visual_type == XINE_VISUAL_TYPE_X11) {
+        if (this->xoverlay) {
+          XLockDisplay (this->display);
+	        x11osd_expose (this->xoverlay);
+	        XUnlockDisplay (this->display);
+	       }
       }
 #endif
-      return 0;
+      directfb_clean_output_area (this);
+      break;
       
     case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO: {
       int x1, y1, x2, y2;
@@ -860,13 +941,13 @@ static int directfb_gui_data_exchange (vo_driver_t *this_gen,
       rect->y = y1;
       rect->w = x2-x1;
       rect->h = y2-y1;
-    } return 0;
+    } break;
     
     default:
-      break;
+      return -1;
   }
   
-  return -1;
+  return 0;
 }
 
 static void directfb_dispose (vo_driver_t *this_gen) {
@@ -878,6 +959,8 @@ static void directfb_dispose (vo_driver_t *this_gen) {
 #ifdef HAVE_X11
   if (this->visual_type == XINE_VISUAL_TYPE_X11) {
     XLockDisplay (this->display);
+    if (this->xoverlay)
+      x11osd_destroy (this->xoverlay);
     XFreeGC (this->display, this->gc);
     XUnlockDisplay (this->display);
   }
@@ -925,7 +1008,7 @@ static DFBResult probe_device (directfb_driver_t *this, DFBDisplayLayerID id) {
     
   ret = this->dfb->GetDisplayLayer (this->dfb, id, &layer);
   if (ret != DFB_OK) {
-    DirectFBError( "IDirectFB::GetDisplayLayer()", ret );
+    DirectFBError ("IDirectFB::GetDisplayLayer()", ret);
     return ret;
   }
  
@@ -1023,6 +1106,12 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
     this->layer->SetDstColorKey (this->layer, (this->colorkey & 0xff0000) >> 16,
                                               (this->colorkey & 0x00ff00) >>  8,
                                               (this->colorkey & 0x0000ff) >>  0);
+#ifdef HAVE_X11
+    if (this->xoverlay) {
+      x11osd_colorkey (this->xoverlay, 
+                       directfb_colorkey_to_pixel(this), &this->sc);
+    }
+#endif
     directfb_clean_output_area (this);
   }
   else if (strcmp (entry->key, "video.device.directfb_flicker_filtering") == 0) {
@@ -1121,6 +1210,15 @@ static void init_config (directfb_driver_t *this) {
             "the field parity (\"none\"=disabled)."),
           10, update_config_cb, (void *)this);
   }
+}
+
+static DFBEnumerationResult find_underlay (DFBDisplayLayerID id,
+                                           DFBDisplayLayerDescription dsc, void *ctx) {
+  DFBDisplayLayerID *ret_id = (DFBDisplayLayerID *) ctx;
+  
+  *ret_id = id;
+  
+  return DFENUM_CANCEL;
 } 
 
 static DFBResult init_device (directfb_driver_t *this) {
@@ -1209,8 +1307,38 @@ static DFBResult init_device (directfb_driver_t *this) {
   
   this->surface = surface;
   
-  /* check if stretchblit is hardware accelerated */
-  if (!(this->caps & DLCAPS_SCREEN_LOCATION)) {
+  if (this->caps & DLCAPS_SCREEN_LOCATION) {  
+    IDirectFBScreen       *screen   = NULL;
+    DFBDisplayLayerID      layer_id = -1;
+    int                    width    = 640;
+    int                    height   = 480;
+  
+    this->layer->GetScreen (this->layer, &screen);
+    if (screen) {
+      screen->EnumDisplayLayers (screen, find_underlay, (void*)&layer_id);
+      screen->Release (screen);
+    }
+    
+    if (layer_id != -1) {
+      IDirectFBDisplayLayer *layer;
+      DFBDisplayLayerConfig  config;
+  
+      this->dfb->GetDisplayLayer (this->dfb, layer_id, &layer);
+      if (layer) { 
+        layer->GetConfiguration (layer, &config);
+        layer->Release (layer);
+        
+        width  = config.width;
+        height = config.height;
+      }
+    }
+
+    this->screen_width  = width;
+    this->screen_height = height;  
+  }
+  else {
+    /* playing to underlay,
+     * check if stretchblit is hardware accelerated. */
     IDirectFBSurface      *temp;
     DFBSurfaceDescription  dsc;
     DFBAccelerationMask    mask = DFXL_NONE;
@@ -1250,52 +1378,17 @@ static DFBResult init_device (directfb_driver_t *this) {
       else
         temp->Release (temp);
     }
-  }
-  
-  return DFB_OK;
-}    
 
-static DFBEnumerationResult find_underlay (DFBDisplayLayerID id,
-                                           DFBDisplayLayerDescription dsc, void *ctx) {
-  DFBDisplayLayerID *ret_id = (DFBDisplayLayerID *) ctx;
-  
-  *ret_id = id;
-  
-  return DFENUM_CANCEL;
-} 
-
-static void get_screen_size (directfb_driver_t *this, int *ret_w, int *ret_h) {
-  IDirectFBScreen       *screen   = NULL;
-  DFBDisplayLayerID      layer_id = -1;
-  int                    width    = 640;
-  int                    height   = 480;
-  
-  this->layer->GetScreen (this->layer, &screen);
-  if (screen) {
-    screen->EnumDisplayLayers (screen, find_underlay, (void*)&layer_id);
-    screen->Release (screen);
-  }
-    
-  if (layer_id != -1) {
-    IDirectFBDisplayLayer *layer = NULL;
-    DFBDisplayLayerConfig  config;
-  
-    this->dfb->GetDisplayLayer (this->dfb, layer_id, &layer);
-    if (layer) {
-      layer->GetConfiguration (layer, &config);
-      layer->Release (layer);
-      
-      width  = config.width;
-      height = config.height;
-    }
+    this->screen_width  = this->config.width;
+    this->screen_height = this->config.height;
   }
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
            "video_out_directfb: screen size is %dx%d.\n", 
-           width, height);
-
-  *ret_w = width; *ret_h = height;
-}
+           this->screen_width, this->screen_height);
+  
+  return DFB_OK;
+}    
 
 static void directfb_frame_output_cb (void *user_data, int video_width, int video_height,
                                       double video_pixel_aspect, int *dest_x, int *dest_y,
@@ -1391,6 +1484,7 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
   if (id == DLID_PRIMARY)
     this->caps &= ~(DLCAPS_SCREEN_LOCATION | DLCAPS_DST_COLORKEY);
   
+  this->capabilities      = VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CROP;
   /* set default configuration */
   this->buffermode        = 1; // double
   this->vsync             = 0;
@@ -1409,12 +1503,6 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
     free (this);
     return NULL;
   }
-  
-  if (!(this->caps & DLCAPS_SCREEN_LOCATION)) {
-    this->screen_width  = this->config.width;
-    this->screen_height = this->config.height;
-  } else
-    get_screen_size (this, &this->screen_width, &this->screen_height );
 
   _x_alphablend_init (&this->alphablend_extra_data, this->xine);
   
@@ -1434,9 +1522,9 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
   this->vo_driver.get_capabilities     = directfb_get_capabilities;
   this->vo_driver.alloc_frame          = directfb_alloc_frame;
   this->vo_driver.update_frame_format  = directfb_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_begin        = directfb_overlay_begin;
   this->vo_driver.overlay_blend        = directfb_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.overlay_end          = directfb_overlay_end;
   this->vo_driver.display_frame        = (this->caps & DLCAPS_SCREEN_LOCATION)
                                          ? directfb_display_frame
                                          : directfb_display_frame2;
@@ -1559,6 +1647,7 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
     return NULL;
   }
   
+  this->capabilities      = VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CROP;
   /* set default configuration */
   this->buffermode        = 1; // double
   this->vsync             = 0;
@@ -1578,6 +1667,8 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
     return NULL;
   }
   
+  
+  
   this->display  = visual->display;
   this->screen   = visual->screen;
   this->drawable = visual->d;
@@ -1594,13 +1685,28 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
   this->sc.gui_height      = attrs.height;
   this->sc.frame_output_cb = visual->frame_output_cb;
   this->sc.user_data       = visual->user_data;
+  
+  if (this->colorkeying) {
+    this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
+                                    this->drawable, X11OSD_COLORKEY);
+    if (this->xoverlay) {
+      x11osd_colorkey (this->xoverlay, 
+                       directfb_colorkey_to_pixel(this), &this->sc);
+    }
+  } else {
+    this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
+                                    this->drawable, X11OSD_SHAPED);
+  }
+  
+  if (this->xoverlay)
+    this->capabilities |= VO_CAP_UNSCALED_OVERLAY;
 
   this->vo_driver.get_capabilities     = directfb_get_capabilities;
   this->vo_driver.alloc_frame          = directfb_alloc_frame;
   this->vo_driver.update_frame_format  = directfb_update_frame_format;
-  this->vo_driver.overlay_begin        = NULL; /* not used */
+  this->vo_driver.overlay_begin        = directfb_overlay_begin;
   this->vo_driver.overlay_blend        = directfb_overlay_blend;
-  this->vo_driver.overlay_end          = NULL; /* not used */
+  this->vo_driver.overlay_end          = directfb_overlay_end;
   this->vo_driver.display_frame        = directfb_display_frame;
   this->vo_driver.get_property         = directfb_get_property;
   this->vo_driver.set_property         = directfb_set_property;
