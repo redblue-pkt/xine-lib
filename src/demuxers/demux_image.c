@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.20 2006/02/08 18:29:02 hadess Exp $
+ * $Id: demux_image.c,v 1.21 2006/02/11 21:28:02 dsalt Exp $
  *
  * image dummy demultiplexer
  */
@@ -42,6 +42,7 @@
 
 #include "xine_internal.h"
 #include "xineutils.h"
+#include "bswap.h"
 #include "demux.h"
 
 #define IMAGE_HEADER_LEN 4
