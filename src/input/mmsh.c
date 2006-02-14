@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.35 2005/08/25 15:36:29 valtri Exp $
+ * $Id: mmsh.c,v 1.36 2006/02/14 19:05:29 dsalt Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -82,61 +82,61 @@
 
 #define SCRATCH_SIZE             1024
 
-static const char* mmsh_FirstRequest =
-    "GET %s HTTP/1.0\r\n"
-    "Accept: */*\r\n"
-    USERAGENT
-    "Host: %s:%d\r\n"
-    "Pragma: no-cache,rate=1.000000,stream-time=0,stream-offset=0:0,request-context=%u,max-duration=0\r\n"
-    CLIENTGUID
-    "Connection: Close\r\n\r\n";
+#define mmsh_FirstRequest \
+    "GET %s HTTP/1.0\r\n" \
+    "Accept: */*\r\n" \
+    USERAGENT \
+    "Host: %s:%d\r\n" \
+    "Pragma: no-cache,rate=1.000000,stream-time=0,stream-offset=0:0,request-context=%u,max-duration=0\r\n" \
+    CLIENTGUID \
+    "Connection: Close\r\n\r\n"
 
-static const char* mmsh_SeekableRequest =
-    "GET %s HTTP/1.0\r\n"
-    "Accept: */*\r\n"
-    USERAGENT
-    "Host: %s:%d\r\n"
-    "Pragma: no-cache,rate=1.000000,stream-time=%u,stream-offset=%u:%u,request-context=%u,max-duration=%u\r\n"
-    CLIENTGUID
-    "Pragma: xPlayStrm=1\r\n"
-    "Pragma: stream-switch-count=%d\r\n"
-    "Pragma: stream-switch-entry=%s\r\n" /*  ffff:1:0 ffff:2:0 */
-    "Connection: Close\r\n\r\n";
+#define mmsh_SeekableRequest \
+    "GET %s HTTP/1.0\r\n" \
+    "Accept: */*\r\n" \
+    USERAGENT \
+    "Host: %s:%d\r\n" \
+    "Pragma: no-cache,rate=1.000000,stream-time=%u,stream-offset=%u:%u,request-context=%u,max-duration=%u\r\n" \
+    CLIENTGUID \
+    "Pragma: xPlayStrm=1\r\n" \
+    "Pragma: stream-switch-coun t=%d\r\n" \
+    "Pragma: stream-switch-entry=%s\r\n" /*  ffff:1:0 ffff:2:0 */ \
+    "Connection: Close\r\n\r\n"
 
-static const char* mmsh_LiveRequest =
-    "GET %s HTTP/1.0\r\n"
-    "Accept: */*\r\n"
-    USERAGENT
-    "Host: %s:%d\r\n"
-    "Pragma: no-cache,rate=1.000000,request-context=%u\r\n"
-    "Pragma: xPlayStrm=1\r\n"
-    CLIENTGUID
-    "Pragma: stream-switch-count=%d\r\n"
-    "Pragma: stream-switch-entry=%s\r\n"
-    "Connection: Close\r\n\r\n";
+#define mmsh_LiveRequest \
+    "GET %s HTTP/1.0\r\n" \
+    "Accept: */*\r\n" \
+    USERAGENT \
+    "Host: %s:%d\r\n" \
+    "Pragma: no-cache,rate=1.000000,request-context=%u\r\n" \
+    "Pragma: xPlayStrm=1\r\n" \
+    CLIENTGUID \
+    "Pragma: stream-switch-count=%d\r\n" \
+    "Pragma: stream-switch-entry=%s\r\n" \
+    "Connection: Close\r\n\r\n"
 
 /* Unused requests */
 #if 0
-static const char* mmsh_PostRequest =
-    "POST %s HTTP/1.0\r\n"
-    "Accept: */*\r\n"
-    USERAGENT
-    "Host: %s\r\n"
-    "Pragma: client-id=%u\r\n"
+#define mmsh_PostRequest \
+    "POST %s HTTP/1.0\r\n" \
+    "Accept: */*\r\n" \
+    USERAGENT \
+    "Host: %s\r\n" \
+    "Pragma: client-id=%u\r\n" \
 /*    "Pragma: log-line=no-cache,rate=1.000000,stream-time=%u,stream-offset=%u:%u,request-context=2,max-duration=%u\r\n"
- */
-    "Pragma: Content-Length: 0\r\n"
-    CLIENTGUID
-    "\r\n";
+ */ \
+    "Pragma: Content-Length: 0\r\n" \
+    CLIENTGUID \
+    "\r\n"
 
-static const char* mmsh_RangeRequest =
-    "GET %s HTTP/1.0\r\n"
-    "Accept: */*\r\n"
-    USERAGENT
-    "Host: %s:%d\r\n"
-    "Range: bytes=%Lu-\r\n"
-    CLIENTGUID
-    "Connection: Close\r\n\r\n";
+#define mmsh_RangeRequest \
+    "GET %s HTTP/1.0\r\n" \
+    "Accept: */*\r\n" \
+    USERAGENT \
+    "Host: %s:%d\r\n" \
+    "Range: bytes=%Lu-\r\n" \
+    CLIENTGUID \
+    "Connection: Close\r\n\r\n"
 #endif
 
 
@@ -575,7 +575,7 @@ static void interp_header (mmsh_t *this) {
   }
 }
 
-const static char *const mmsh_proto_s[] = { "mms", "mmsh", NULL };
+static const char *const mmsh_proto_s[] = { "mms", "mmsh", NULL };
 
 static int mmsh_valid_proto (char *proto) {
   int i = 0;
