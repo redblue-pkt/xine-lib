@@ -5,7 +5,10 @@ include $(top_srcdir)/misc/Makefile.common
 AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil -fomit-frame-pointer
 # CFLAGS is here to filter out -funroll-loops because it causes bad
 # behavior of libavcodec
-CFLAGS = `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
+CFLAGS := `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
+
+# Avoid "can't find register" failures with -O1 and higher
+dsputil_mmx.o dsputil_mmx.lo: CFLAGS=`echo @CFLAGS@ | sed -e 's/-funroll-loops//g; s/-O[0-9]/-Os/g'`
 
 ASFLAGS =
 
@@ -36,7 +39,6 @@ EXTRA_DIST = \
 if HAVE_FFMMX
 mmx_modules = $(libavcodec_mmx_src)
 endif
-
 
 libavcodec_mmx_la_SOURCES = $(mmx_modules) $(libavcodec_mmx_dummy)
 
