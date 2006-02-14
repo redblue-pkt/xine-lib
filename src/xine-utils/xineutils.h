@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.99 2006/01/28 17:09:59 tmattern Exp $
+ * $Id: xineutils.h,v 1.100 2006/02/14 19:12:16 dsalt Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -711,25 +711,25 @@ void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height);
 void free_yuv_planes(yuv_planes_t *yuv_planes);
 
 extern void (*yuv444_to_yuy2)
-  (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
+  (const yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
 extern void (*yuv9_to_yv12)
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height);
 extern void (*yuv411_to_yv12)
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height);
 extern void (*yv12_to_yuy2)
-  (unsigned char *y_src, int y_src_pitch,
-   unsigned char *u_src, int u_src_pitch,
-   unsigned char *v_src, int v_src_pitch,
+  (const unsigned char *y_src, int y_src_pitch,
+   const unsigned char *u_src, int u_src_pitch,
+   const unsigned char *v_src, int v_src_pitch,
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive);
 extern void (*yuy2_to_yv12)
-  (unsigned char *yuy2_map, int yuy2_pitch,
+  (const unsigned char *yuy2_map, int yuy2_pitch,
    unsigned char *y_dst, int y_dst_pitch,
    unsigned char *u_dst, int u_dst_pitch,
    unsigned char *v_dst, int v_dst_pitch,
@@ -782,12 +782,12 @@ extern int v_b_table[256];
 
 /* frame copying functions */
 extern void yv12_to_yv12
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dst, int y_dst_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dst, int u_dst_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dst, int v_dst_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dst, int y_dst_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dst, int u_dst_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dst, int v_dst_pitch,
    int width, int height);
 extern void yuy2_to_yuy2
-  (unsigned char *src, int src_pitch,
+  (const unsigned char *src, int src_pitch,
    unsigned char *dst, int dst_pitch,
    int width, int height);
 

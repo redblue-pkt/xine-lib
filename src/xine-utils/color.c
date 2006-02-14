@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.27 2005/07/03 20:22:10 miguelfreitas Exp $
+ * $Id: color.c,v 1.28 2006/02/14 19:12:16 dsalt Exp $
  */
 
 #include "xine_internal.h"
@@ -130,25 +130,25 @@ int v_r_table[256];
 int v_g_table[256];
 int v_b_table[256];
 
-void (*yuv444_to_yuy2) (yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
+void (*yuv444_to_yuy2) (const yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
 void (*yuv9_to_yv12)
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height);
 void (*yuv411_to_yv12)
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height);
 void (*yv12_to_yuy2)
-  (unsigned char *y_src, int y_src_pitch, 
-   unsigned char *u_src, int u_src_pitch, 
-   unsigned char *v_src, int v_src_pitch, 
+  (const unsigned char *y_src, int y_src_pitch, 
+   const unsigned char *u_src, int u_src_pitch, 
+   const unsigned char *v_src, int v_src_pitch, 
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive);
 void (*yuy2_to_yv12)
-  (unsigned char *yuy2_map, int yuy2_pitch,
+  (const unsigned char *yuy2_map, int yuy2_pitch,
    unsigned char *y_dst, int y_dst_pitch, 
    unsigned char *u_dst, int u_dst_pitch, 
    unsigned char *v_dst, int v_dst_pitch, 
@@ -201,7 +201,7 @@ void free_yuv_planes(yuv_planes_t *yuv_planes) {
  *
  *   YUY2 map: Y0 U0 Y1 V1  Y2 U2 Y3 V3
  */
-static void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map, 
+static void yuv444_to_yuy2_c(const yuv_planes_t *yuv_planes, unsigned char *yuy2_map, 
   int pitch) {
 
   int row_ptr, pixel_ptr;
@@ -315,7 +315,7 @@ static void yuv444_to_yuy2_c(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
  * enough.
  *
  */
-static void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
+static void yuv444_to_yuy2_mmx(const yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
   int pitch) {
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
   int h, i, j, k;
@@ -463,7 +463,7 @@ static void yuv444_to_yuy2_mmx(yuv_planes_t *yuv_planes, unsigned char *yuy2_map
 #endif
 }
 
-static void hscale_chroma_line (unsigned char *dst, unsigned char *src,
+static void hscale_chroma_line (unsigned char *dst, const unsigned char *src,
   int width) {
 
   unsigned int n1, n2;
@@ -483,7 +483,7 @@ static void hscale_chroma_line (unsigned char *dst, unsigned char *src,
 }
 
 static void vscale_chroma_line (unsigned char *dst, int pitch,
-  unsigned char *src1, unsigned char *src2, int width) {
+  const unsigned char *src1, const unsigned char *src2, int width) {
 
   unsigned int t1, t2;
   unsigned int n1, n2, n3, n4;
@@ -495,8 +495,8 @@ static void vscale_chroma_line (unsigned char *dst, int pitch,
 
   /* process blocks of 4 pixels */
   for (x=0; x < (width / 4); x++) {
-    n1  = *((unsigned int *) src1); src1 = (unsigned char *)(((unsigned int *) src1) + 1);
-    n2  = *((unsigned int *) src2); src2 = (unsigned char *)(((unsigned int *) src2) + 1);
+    n1  = *((unsigned int *) src1); src1 = (const unsigned char *)(((const unsigned int *) src1) + 1);
+    n2  = *((unsigned int *) src2); src2 = (const unsigned char *)(((const unsigned int *) src2) + 1);
     n3  = (n1 & 0xFF00FF00) >> 8;
     n4  = (n2 & 0xFF00FF00) >> 8;
     n1 &= 0x00FF00FF;
@@ -525,7 +525,7 @@ static void vscale_chroma_line (unsigned char *dst, int pitch,
   }
 }
 
-static void upsample_c_plane_c(unsigned char *src, int src_width, 
+static void upsample_c_plane_c(const unsigned char *src, int src_width, 
   int src_height, unsigned char *dest, 
   unsigned int src_pitch, unsigned int dest_pitch) {
 
@@ -570,9 +570,9 @@ static void upsample_c_plane_c(unsigned char *src, int src_width,
  *
  */
 static void yuv9_to_yv12_c
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height) {
 
   int y;
@@ -599,9 +599,9 @@ static void yuv9_to_yv12_c
  *
  */
 static void yuv411_to_yv12_c
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
    int width, int height) {
 
   int y;
@@ -670,18 +670,18 @@ static void yuv411_to_yv12_c
  * changed to support interlaced frames and use simple mean interpolation [MF]
  *****************************************************************************/
 static void yv12_to_yuy2_c
-  (unsigned char *y_src, int y_src_pitch, 
-   unsigned char *u_src, int u_src_pitch, 
-   unsigned char *v_src, int v_src_pitch, 
+  (const unsigned char *y_src, int y_src_pitch, 
+   const unsigned char *u_src, int u_src_pitch, 
+   const unsigned char *v_src, int v_src_pitch, 
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive) {
 
     uint8_t *p_line1, *p_line2 = yuy2_map;
-    uint8_t *p_y1, *p_y2 = y_src;
-    uint8_t *p_u = u_src;
-    uint8_t *p_v = v_src;
-    uint8_t *p_u2 = u_src + u_src_pitch;
-    uint8_t *p_v2 = v_src + v_src_pitch;
+    const uint8_t *p_y1, *p_y2 = y_src;
+    const uint8_t *p_u = u_src;
+    const uint8_t *p_v = v_src;
+    const uint8_t *p_u2 = u_src + u_src_pitch;
+    const uint8_t *p_v2 = v_src + v_src_pitch;
 
     int i_x, i_y;
 
@@ -825,18 +825,18 @@ do {                                                                            
 #endif
 
 static void yv12_to_yuy2_mmxext
-  (unsigned char *y_src, int y_src_pitch, 
-   unsigned char *u_src, int u_src_pitch, 
-   unsigned char *v_src, int v_src_pitch, 
+  (const unsigned char *y_src, int y_src_pitch, 
+   const unsigned char *u_src, int u_src_pitch, 
+   const unsigned char *v_src, int v_src_pitch, 
    unsigned char *yuy2_map, int yuy2_pitch,
    int width, int height, int progressive ) {
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
     uint8_t *p_line1, *p_line2 = yuy2_map;
-    uint8_t *p_y1, *p_y2 = y_src;
-    uint8_t *p_u = u_src;
-    uint8_t *p_v = v_src;
-    uint8_t *p_u2 = u_src + u_src_pitch;
-    uint8_t *p_v2 = v_src + v_src_pitch;
+    const uint8_t *p_y1, *p_y2 = y_src;
+    const uint8_t *p_u = u_src;
+    const uint8_t *p_v = v_src;
+    const uint8_t *p_u2 = u_src + u_src_pitch;
+    const uint8_t *p_v2 = v_src + v_src_pitch;
 
     int i_x, i_y;
 
@@ -963,13 +963,13 @@ static void yv12_to_yuy2_mmxext
     *p_v++ = (*p_line1++ + *p_line2++)>>1;
 
 static void yuy2_to_yv12_c
-  (unsigned char *yuy2_map, int yuy2_pitch,
+  (const unsigned char *yuy2_map, int yuy2_pitch,
    unsigned char *y_dst, int y_dst_pitch, 
    unsigned char *u_dst, int u_dst_pitch, 
    unsigned char *v_dst, int v_dst_pitch, 
    int width, int height) {
 
-    uint8_t *p_line1, *p_line2 = yuy2_map;
+    const uint8_t *p_line1, *p_line2 = yuy2_map;
     uint8_t *p_y1, *p_y2 = y_dst;
     uint8_t *p_u = u_dst;
     uint8_t *p_v = v_dst;
@@ -1056,13 +1056,13 @@ do {                                                                            
 #endif
 
 static void yuy2_to_yv12_mmxext
-  (unsigned char *yuy2_map, int yuy2_pitch,
+  (const unsigned char *yuy2_map, int yuy2_pitch,
    unsigned char *y_dst, int y_dst_pitch, 
    unsigned char *u_dst, int u_dst_pitch, 
    unsigned char *v_dst, int v_dst_pitch, 
    int width, int height) {
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
-    uint8_t *p_line1, *p_line2 = yuy2_map;
+    const uint8_t *p_line1, *p_line2 = yuy2_map;
     uint8_t *p_y1, *p_y2 = y_dst;
     uint8_t *p_u = u_dst;
     uint8_t *p_v = v_dst;

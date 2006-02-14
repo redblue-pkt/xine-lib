@@ -28,9 +28,9 @@
 #include "xineutils.h"
 
 void yv12_to_yv12
-  (unsigned char *y_src, int y_src_pitch, unsigned char *y_dst, int y_dst_pitch,
-   unsigned char *u_src, int u_src_pitch, unsigned char *u_dst, int u_dst_pitch,
-   unsigned char *v_src, int v_src_pitch, unsigned char *v_dst, int v_dst_pitch,
+  (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dst, int y_dst_pitch,
+   const unsigned char *u_src, int u_src_pitch, unsigned char *u_dst, int u_dst_pitch,
+   const unsigned char *v_src, int v_src_pitch, unsigned char *v_dst, int v_dst_pitch,
    int width, int height) {
    
   int y, half_width = width / 2;
@@ -65,7 +65,7 @@ void yv12_to_yv12
 }
 
 void yuy2_to_yuy2
-  (unsigned char *src, int src_pitch,
+  (const unsigned char *src, int src_pitch,
    unsigned char *dst, int dst_pitch,
    int width, int height) {
    

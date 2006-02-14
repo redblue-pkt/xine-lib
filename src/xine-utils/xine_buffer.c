@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.8 2003/12/09 00:02:39 f1rmb Exp $
+ * $Id: xine_buffer.c,v 1.9 2006/02/14 19:12:16 dsalt Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -199,7 +199,7 @@ void *_xine_buffer_copyin(void *buf, int index, const void *data, int len) {
  * no checks are made in data. It is treated as an ordinary
  * user-malloced data chunk.
  */
-void xine_buffer_copyout(void *buf, int index, void *data, int len) {
+void xine_buffer_copyout(const void *buf, int index, void *data, int len) {
 
 #ifdef CHECKS
   if (!buf || !data) {
@@ -247,7 +247,7 @@ void *_xine_buffer_set(void *buf, int index, uint8_t b, int len) {
  */
 #define xine_buffer_strcat(buf,data) \
   buf=_xine_buffer_strcat(buf,data)
-void *_xine_buffer_strcat(void *buf, char *data) {
+void *_xine_buffer_strcat(void *buf, const char *data) {
 
 #ifdef CHECKS
   if (!buf || !data) {
@@ -269,7 +269,7 @@ void *_xine_buffer_strcat(void *buf, char *data) {
  */
 #define xine_buffer_strcpy(buf,index,data) \
   buf=_xine_buffer_strcpy(buf,index,data)
-void *_xine_buffer_strcpy(void *buf, int index, char *data) {
+void *_xine_buffer_strcpy(void *buf, int index, const char *data) {
 
 #ifdef CHECKS
   if (!buf || !data) {
@@ -291,7 +291,7 @@ void *_xine_buffer_strcpy(void *buf, int index, char *data) {
  * note, that the returned pointer cannot be used
  * in any other xine_buffer_* functions.
  */
-char *xine_buffer_strchr(void *buf, int ch) {
+char *xine_buffer_strchr(const void *buf, int ch) {
 #ifdef CHECKS
   if (!buf) {
     lprintf("warning: got NULL pointer\n");
@@ -306,7 +306,7 @@ char *xine_buffer_strchr(void *buf, int ch) {
 /*
  * get allocated memory size
  */
-int xine_buffer_get_size(void *buf) {
+int xine_buffer_get_size(const void *buf) {
 
 #ifdef CHECKS
   if (!buf) {
