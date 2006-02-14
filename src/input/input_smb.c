@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.7 2006/02/04 12:08:22 miguelfreitas Exp $
+ * $Id: input_smb.c,v 1.8 2006/02/14 18:42:13 dsalt Exp $
  */
 
 
@@ -495,7 +495,7 @@ smb_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
 	return &this->input_plugin;
 }
 
-void smb_auth(const char *srv, const char *shr, char *wg, int wglen, char *un, int unlen, char *pw, int pwlen)
+static void smb_auth(const char *srv, const char *shr, char *wg, int wglen, char *un, int unlen, char *pw, int pwlen)
 {
 	wglen = unlen = pwlen = 0;
 }
