@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.219 2006/02/01 15:11:42 hadess Exp $
+ * $Id: load_plugins.c,v 1.220 2006/02/14 18:47:46 dsalt Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -521,7 +521,7 @@ static void _register_plugins_internal(xine_t *this, plugin_file_t *file, plugin
 }
 
 void xine_register_plugins(xine_t *self, plugin_info_t *info) {
-  return _register_plugins_internal(self, NULL, info);
+  _register_plugins_internal(self, NULL, info);
 }
 
 /*
