@@ -1518,7 +1518,7 @@ static void load_epg_data(dvb_input_plugin_t *this)
 		  "CHILDRENS","MUSIC","ARTS/CULTURE","CURRENT AFFAIRS",
 		  "EDUCATIONAL","INFOTAINMENT","SPECIAL","COMEDY","DRAMA",
 		  "DOCUMENTARY","UNK"};
-              snprintf(current_epg->content, MAX_EPG_CONTENT_TYPE_LENGTH, content[content_bits]);
+              snprintf(current_epg->content, MAX_EPG_CONTENT_TYPE_LENGTH, "%s", content[content_bits]);
             }
             break;
           case 0x55: {  /* Parental Rating descriptor describes minimum recommened age -3 */ 

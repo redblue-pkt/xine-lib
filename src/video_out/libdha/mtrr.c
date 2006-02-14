@@ -80,7 +80,7 @@ int	mtrr_set_type(unsigned base,unsigned size,int type)
 	char sout[256];
 	unsigned wr_len;
 	sprintf(sout,"base=0x%08X size=0x%08X type=%s\n",base,size,stype);
-	wr_len = fprintf(mtrr_fd,sout);
+	wr_len = fprintf(mtrr_fd,"%s",sout);
 	/*printf("MTRR: %s\n",sout);*/
 	fclose(mtrr_fd);
 	return wr_len == strlen(sout) ? 0 : EPERM;

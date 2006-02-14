@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.46 2005/10/29 20:51:01 miguelfreitas Exp $
+ * $Id: demux_sputext.c,v 1.47 2006/02/14 18:44:08 dsalt Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -1241,7 +1241,7 @@ static subtitle_t *sub_read_file (demux_sputext_t *this) {
     else
       strcat(buffer, "\n");
     
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, buffer);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "%s", buffer);
   }
   
   return first;
