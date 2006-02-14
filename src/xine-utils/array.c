@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: array.c,v 1.1 2006/01/16 08:04:44 tmattern Exp $
+ * $Id: array.c,v 1.2 2006/02/14 19:09:02 dsalt Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,7 @@
 #endif
 
 #include <stdlib.h>
+#include <string.h>
 #include "array.h"
 
 #define MIN_CHUNK_SIZE    32
