@@ -72,7 +72,9 @@
 
 #endif  /* !__linux__ */
 
-static void set_hc_result(xine_health_check_t* hc, int state, char *format, ...) {
+static void __attribute__ ((format (printf, 3, 4)))
+set_hc_result(xine_health_check_t* hc, int state, const char *format, ...)
+{
 
   va_list   args;
   char     *buf = NULL;
@@ -173,13 +175,12 @@ xine_health_check_t* _x_health_check_kernel (xine_health_check_t* hc) {
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
 xine_health_check_t* _x_health_check_mtrr (xine_health_check_t* hc) {
-  char *file = "/proc/mtrr";
   FILE *fd;
 
   hc->title       = "Check for MTRR support";
   hc->explanation = "Make sure your kernel has MTRR support compiled in.";
 
-  fd = fopen(file, "r");
+  fd = fopen("/proc/mtrr", "r");
   if (!fd) {
     set_hc_result (hc, XINE_HEALTH_CHECK_FAIL, 
 		   "FAILED: mtrr is not enabled.");
