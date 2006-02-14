@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.10 2005/01/16 18:47:19 mroi Exp $
+ *  $Id: xmllexer.c,v 1.11 2006/02/14 02:25:00 dsalt Exp $
  *
  */
 
@@ -38,13 +38,13 @@
 #define DATA         1  /* data lex mode */
 
 /* private global variables */
-static char * lexbuf;
+static const char * lexbuf;
 static int lexbuf_size = 0;
 static int lexbuf_pos  = 0;
 static int lex_mode    = NORMAL;
 static int in_comment  = 0;
 
-void lexer_init(char * buf, int size) {
+void lexer_init(const char * buf, int size) {
   lexbuf      = buf;
   lexbuf_size = size;
   lexbuf_pos  = 0;
@@ -427,7 +427,7 @@ static struct {
   { 0 }
 };
 
-char *lexer_decode_entities (char *tok)
+char *lexer_decode_entities (const char *tok)
 {
   char *buf = xine_xmalloc (strlen (tok) + 1);
   char *bp = buf;
@@ -440,7 +440,7 @@ char *lexer_decode_entities (char *tok)
     else
     {
       /* parse the character entity (on failure, treat it as literal text) */
-      char *tp = tok;
+      const char *tp = tok;
       long i;
 
       for (i = 0; lexer_entities[i].code; ++i)
@@ -465,9 +465,9 @@ char *lexer_decode_entities (char *tok)
        * (note: strtol() allows "0x" prefix for hexadecimal, but we don't)
        */
       if (*tp == 'x' && tp[1] && tp[2] != 'x')
-	i = strtol (tp + 1, &tp, 16);
+	i = strtol (tp + 1, (char **)&tp, 16);
       else
-	i = strtol (tp, &tp, 10);
+	i = strtol (tp, (char **)&tp, 10);
 
       if (i < 1 || i > 255 || *tp != ';')
       {

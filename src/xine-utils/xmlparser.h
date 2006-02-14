@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.h,v 1.3 2005/01/16 17:51:04 dsalt Exp $
+ *  $Id: xmlparser.h,v 1.4 2006/02/14 02:25:01 dsalt Exp $
  *
  */
 #ifndef XML_PARSER_H
@@ -48,16 +48,16 @@ typedef struct xml_node_s {
 	struct xml_node_s *next;
 } xml_node_t;
 
-void xml_parser_init(char * buf, int size, int mode);
+void xml_parser_init(const char * buf, int size, int mode);
 
 int xml_parser_build_tree(xml_node_t **root_node);
 
 void xml_parser_free_tree(xml_node_t *root_node);
 
-char *xml_parser_get_property (xml_node_t *node, const char *name);
-int   xml_parser_get_property_int (xml_node_t *node, const char *name, 
+char *xml_parser_get_property (const xml_node_t *node, const char *name);
+int   xml_parser_get_property_int (const xml_node_t *node, const char *name, 
 				   int def_value);
-int xml_parser_get_property_bool (xml_node_t *node, const char *name, 
+int xml_parser_get_property_bool (const xml_node_t *node, const char *name, 
 				  int def_value);
 
 /* for output:
@@ -76,6 +76,6 @@ char *xml_escape_string (const char *s, xml_escape_quote_t quote_type);
  * indented fashion
  */
 
-void xml_parser_dump_tree (xml_node_t *node) ;
+void xml_parser_dump_tree (const xml_node_t *node) ;
 
 #endif

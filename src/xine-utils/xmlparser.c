@@ -18,7 +18,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.c,v 1.14 2005/01/16 17:51:04 dsalt Exp $
+ *  $Id: xmlparser.c,v 1.15 2006/02/14 02:25:01 dsalt Exp $
  *
  */
 
@@ -72,10 +72,8 @@ static xml_node_t * new_xml_node(void) {
 }
 
 static void free_xml_node(xml_node_t * node) {
-  if (node->name)
-    free (node->name);
-  if (node->data)
-    free (node->data);
+  free (node->name);
+  free (node->data);
   free(node);
 }
 
@@ -90,14 +88,12 @@ static xml_property_t * new_xml_property(void) {
 }
 
 static void free_xml_property(xml_property_t * property) {
-  if (property->name)
-    free (property->name);
-  if (property->value)
-    free (property->value);
+  free (property->name);
+  free (property->value);
   free(property);
 }
 
-void xml_parser_init(char * buf, int size, int mode) {
+void xml_parser_init(const char * buf, int size, int mode) {
 
   lexer_init(buf, size);
   xml_parser_mode = mode;
@@ -470,7 +466,7 @@ int xml_parser_build_tree(xml_node_t **root_node) {
   return res;
 }
 
-char *xml_parser_get_property (xml_node_t *node, const char *name) {
+char *xml_parser_get_property (const xml_node_t *node, const char *name) {
 
   xml_property_t *prop;
 
@@ -490,7 +486,7 @@ char *xml_parser_get_property (xml_node_t *node, const char *name) {
   return NULL;
 }
 
-int xml_parser_get_property_int (xml_node_t *node, const char *name, 
+int xml_parser_get_property_int (const xml_node_t *node, const char *name, 
 				 int def_value) {
 
   char *v;
@@ -507,7 +503,7 @@ int xml_parser_get_property_int (xml_node_t *node, const char *name,
     return ret;
 }
 
-int xml_parser_get_property_bool (xml_node_t *node, const char *name, 
+int xml_parser_get_property_bool (const xml_node_t *node, const char *name, 
 				  int def_value) {
 
   char *v;
@@ -517,10 +513,7 @@ int xml_parser_get_property_bool (xml_node_t *node, const char *name,
   if (!v)
     return def_value;
 
-  if (!strcasecmp (v, "true"))
-    return 1;
-  else
-    return 0;
+  return !strcasecmp (v, "true");
 }
 
 static int xml_escape_string_internal (char *buf, const char *s,
@@ -557,28 +550,13 @@ char *xml_escape_string (const char *s, xml_escape_quote_t quote_type)
   return buf ? (xml_escape_string_internal (buf, s, quote_type), buf) : NULL;
 }
 
-static void printf_indent (int indent, const char *format, ...) {
-
-  int     i ;
-  va_list argp;
-
-  for (i=0; i<indent; i++)
-    printf (" ");
-
-  va_start (argp, format);
-    
-  vprintf (format, argp);
-
-  va_end (argp);
-}
-
-static void xml_parser_dump_node (xml_node_t *node, int indent) {
+static void xml_parser_dump_node (const xml_node_t *node, int indent) {
 
   xml_property_t *p;
   xml_node_t     *n;
   int             l;
 
-  printf_indent (indent, "<%s ", node->name);
+  printf ("%*s<%s ", indent, "", node->name);
 
   l = strlen (node->name);
 
@@ -589,8 +567,7 @@ static void xml_parser_dump_node (xml_node_t *node, int indent) {
     free (value);
     p = p->next;
     if (p) {
-      printf ("\n");
-      printf_indent (indent+2+l, "");
+      printf ("\n%*s", indent+2+l, "");
     }
   }
   printf (">\n");
@@ -603,9 +580,9 @@ static void xml_parser_dump_node (xml_node_t *node, int indent) {
     n = n->next;
   }
 
-  printf_indent (indent, "</%s>\n", node->name);
+  printf ("%*s</%s>\n", indent, "", node->name);
 }
 
-void xml_parser_dump_tree (xml_node_t *node) {
+void xml_parser_dump_tree (const xml_node_t *node) {
   xml_parser_dump_node (node, 0);
 }
