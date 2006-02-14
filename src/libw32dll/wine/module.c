@@ -35,6 +35,7 @@
 #endif
 #include "win32.h"
 #include "driver.h"
+#include "ext.h"
 
 #ifdef EMU_QTX_API
 #include "wrapper.h"
