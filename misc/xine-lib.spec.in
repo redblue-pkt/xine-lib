@@ -1,7 +1,6 @@
 %define shortname  libxine
 %define name       libxine1
 %define version    @SPEC_VERSION@
-%define dirversion 1.0.0
 %define release    0
 
 %define major      1
@@ -10,7 +9,7 @@
 # Build separat packages:
 # 1 create a sparate package
 # 0 include files in main package
-%if %{?BUILD_AA:0}%{!?BUILD_AA:1}
+%if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
 %define BUILD_AA        0
 %endif
 %if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
@@ -623,6 +622,7 @@ libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 
 %build
 export CFLAGS="${RPM_OPT_FLAGS}"
+export XINE_DOCPATH="%{_docdir}/libxine1"
 
 if [ ! -f configure ]; then
    NO_CONFIGURE=1 ./autogen.sh
@@ -646,6 +646,9 @@ fi
 # Error in libfaad when compiling with mmx or sse enabled, remove it
 mv src/libfaad/Makefile src/libfaad/Makefile_save
 cat src/libfaad/Makefile_save | sed -e "s/-mmmx/-mno-mmx/g" -e "s/-msse/-mno-sse/g" > src/libfaad/Makefile
+# another problem with libavcodec
+mv src/libffmpeg/libavcodec/i386/Makefile src/libffmpeg/libavcodec/i386/Makefile_save
+cat src/libffmpeg/libavcodec/i386/Makefile_save | sed -e "s/-O3/-Os/g" -e "s/-O2/-Os/g" > src/libffmpeg/libavcodec/i386/Makefile
 
 make
 
@@ -663,6 +666,7 @@ echo "%doc README TODO AUTHORS COPYING ChangeLog doc/hackersguide/*.sgml doc/hac
 %endif
 find . -type f | sed 's,^\.%{_datadir}/doc,\%doc %{_datadir}/doc,' | sed 's,^\.,,' >> ${RPM_BUILD_DIR}/filelist_libxine1_zw
 find . -type l | sed 's,^\.%{_datadir}/doc,\%doc %{_datadir}/doc,' | sed 's,^\.,,' >> ${RPM_BUILD_DIR}/filelist_libxine1_zw
+find . -type d | grep xine | sed 's,^\.,\%dir ,' >> ${RPM_BUILD_DIR}/filelist_libxine1_zw
 grep -v "/man/" ${RPM_BUILD_DIR}/filelist_libxine1_zw | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 grep "/man/" ${RPM_BUILD_DIR}/filelist_libxine1_zw | sed -e 's/$/\*/g' | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_zw
@@ -905,6 +909,10 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Wed Feb 15 2006 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- added dirs to filelist
+* Tue Feb 14 2006 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- i386 section of libavcodec doesn't work with -O2 or -O3
 * Thu Jan 06 2005 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - enabled defining build or not to build subpackages at runtime
   using '--define "BUILD_XYZ 1"', you can find possible BUILD_
