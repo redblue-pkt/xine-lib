@@ -1,24 +1,28 @@
-xine-lib (1.1.1-0) unstable; urgency=low
+xine-lib (1.1.1-1) unstable; urgency=low
 
-  * New upstream release! (Closes: #326936)
-  * Remove build dependencies on xlibs-dev, as well as alternatives on
-    xlibs-dev-static. Debian is on its way towards X11R7!
-  * Darren Salt:
+  * New upstream release! (Closes: #326936, #353150)
+
+  [ Reinhard Tartler ]
+    - adding myself to uploaders
+    - Remove build dependencies on xlibs-dev, as well as alternatives on
+      xlibs-dev-static. Debian is on its way towards X11R7!
+
+  [ Darren Salt ]
     - Add debian/watch file for uscan.
     - Convert debian/copyright to UTF-8.
     - Add build-deps on libxv-dev and libvcdinfo-dev.
-    - Bump standards version to 3.6.2 (no changes *yet* - CHECK THIS)
+    - Bump standards version to 3.6.2
     - Make "post-Sarge"-tagged changes to debian/rules and strip debian/tmp/
       from debian/*.install.
     - Remove *.gmo on clean (Just In Case). (Closes: #338000)
     - Do a little preparation for a possible -dbg package.
   * Acknowledge NMUs.
     Backports and gcc 4.0 fixes dropped since they're already in this version.
-    (Closes: #288189, #315986, #318838, #320317, #323276, #325960, #326935,   
+    (Closes: #288189, #315986, #318838, #320317, #323276, #325960, #326935,
              #327203, #328168, #328184, #328265, #328454, #332919, #333692,
-	     #337996)
+             #337996)
 
- -- Xxx Xxx <xxx@xxx.xx>  Tue, 06 Dec 2005 19:54:07 +0000
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 19 Feb 2006 18:34:51 +0100
 
 xine-lib (1.0.1-1.4) unstable; urgency=high
 
