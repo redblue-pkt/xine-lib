@@ -577,7 +577,9 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 #endif
 	  libmpeg2_accel_slice(&mpeg2dec->accel, picture, code, buffer, mpeg2dec->chunk_size, 
 			       mpeg2dec->chunk_buffer);
-	  if( picture->v_offset > picture->limit_y ) { 
+
+	  if( picture->v_offset > picture->limit_y || 
+	      picture->v_offset + 16 > picture->display_height ) { 
 	    picture->current_frame->bad_frame = 0;
 	  }
 	}
