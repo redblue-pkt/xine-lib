@@ -1,11 +1,13 @@
 xine-lib (1.1.1-1) unstable; urgency=low
 
-  * New upstream release! (Closes: #326936, #353150)
+  * New upstream release! (Closes: #326936, #353150, #332919)
 
   [ Reinhard Tartler ]
     - adding myself to uploaders
     - Remove build dependencies on xlibs-dev, as well as alternatives on
       xlibs-dev-static. Debian is on its way towards X11R7!
+      (Closes: #337997, #346488, #345499, #342208, #347162)
+    - Rechecking the long list of NMUs. Thanks to all submitters!
 
   [ Darren Salt ]
     - Add debian/watch file for uscan.
@@ -16,13 +18,40 @@ xine-lib (1.1.1-1) unstable; urgency=low
       from debian/*.install.
     - Remove *.gmo on clean (Just In Case). (Closes: #338000)
     - Do a little preparation for a possible -dbg package.
+
   * Acknowledge NMUs.
-    Backports and gcc 4.0 fixes dropped since they're already in this version.
-    (Closes: #288189, #315986, #318838, #320317, #323276, #325960, #326935,
-             #327203, #328168, #328184, #328265, #328454, #332919, #333692,
-             #337996)
+    - Backports and gcc 4.0 fixes dropped since they're already in this version.
+      Closes: #288189, #318838   
+    - slang transition: Closes: #315986
+    - aalib transition: Closes: #320317, #323276
+    - flac transition: Closes: #325960 
+    - fix of dependency generation script debian/shlibdeps.sh: 
+      Closes: #326935, #327203, #328168, #328184, #328265, #328454
+    - fix bashism in debian/rules: Closes: #337996
 
  -- Reinhard Tartler <siretart@tauware.de>  Sun, 19 Feb 2006 18:34:51 +0100
+
+xine-lib (1.0.1-1.6) unstable; urgency=low
+
+  * NMU - Brown paper bag release
+  * debian/control:
+  - make libxine-dev depend on the same -dev packages it build-depends on
+    instead of depending on xlibs-dev (Closes: #347162)
+
+ -- Gustavo Noronha Silva <kov@debian.org>  Wed, 11 Jan 2006 17:32:43 -0200
+
+xine-lib (1.0.1-1.5) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * debian/control:
+  - updated build-depends to no longer depend on the xlibs-dev package,
+    but on the split up packages it really needs
+    (Closes: #337997, #347162, #346488, #345499)
+  * debian/patches/heap-overflow-fix.diff:
+  - security fix for CVE-2005-4048 (Closes: #342208)
+    + urgency high because of this fix
+  * debian/copyright:
+  - updated FSF's address
 
 xine-lib (1.0.1-1.4) unstable; urgency=high
 
