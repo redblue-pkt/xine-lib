@@ -1,3 +1,10 @@
+xine-lib (1.1.1-2) unstable; urgency=low
+
+  * Use external libmad (Closes: #336437)
+  * enable support for libxvmc1, now that we have xorg in debian
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 25 Feb 2006 09:39:33 +0100
+
 xine-lib (1.1.1-1) unstable; urgency=low
 
   * New upstream release! (Closes: #326936, #353150, #332919)

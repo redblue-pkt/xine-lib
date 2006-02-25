@@ -51,6 +51,8 @@ ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
  DEB_BUILD_GNU_OPTION := --build=$(DEB_BUILD_GNU_TYPE)
 endif
 
+CONFIGURE_FLAGS := --prefix=/usr --mandir=\$${prefix}/share/man --with-external-libmad 
+
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
