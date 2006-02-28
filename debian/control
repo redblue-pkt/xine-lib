@@ -16,15 +16,16 @@ Description: the xine video player library, development packages
  This contains development files (headers, documentation and the like)
  for the xine library (libxine).
  .
- Libxine provides the complete infrastructure for a video/media player.
- It supports MPEG 1/2 and some AVI and Quicktime videos out of the box,
- so you can use it to play DVDs, (S)VCDs and most video files out there.
- It supports network streams, subtitles and even mp3 files. It's extensible
- to your heart's content via plugins for audio_out, video_out, input media,
- demuxers (stream types), audio/video and subtitle codecs.
+ Libxine provides the complete infrastructure for a video/media player. It
+ supports MPEG 1/2 and some AVI and Quicktime videos out of the box, so you
+ can use it to play DVDs, (S)VCDs and most video files out there. It
+ supports network streams, subtitles and even MP3 or Ogg files. It's
+ extensible to your heart's content via plugins for audio and video output,
+ input media, demuxers (stream types), audio/video and subtitle codecs.
+ .
  Building a GUI (or text based) frontend around this should be quite easy.
- The xine-ui package provides one for your convenience, so you can just
- start watching your VCDs ;-)
+ The xine-ui and gxine packages each provide one for your convenience, so
+ you can just start watching your VCDs ;-)
 
 Package: libxine1
 Architecture: any
@@ -35,13 +36,14 @@ Conflicts: sinek(<<0.7), xine-ui (<< 0.9.10), xine
 Replaces: xine-dvdnav, xine
 Description: the xine video/media player library, binary files
  This is the xine media player library (libxine). 
- Libxine provides the complete infrastructure for a video/media player.
- It supports MPEG 1/2 and some AVI and Quicktime videos out of the box,
- so you can use it to play DVDs, (S)VCDs and most video files out there.
- It supports network streams, subtitles and even mp3 or ogg files.
- It's extensible to your heart's content via plugins for audio_out,
- video_out, input media, demuxers (stream types), audio/video and
- subtitle codecs.
+ .
+ Libxine provides the complete infrastructure for a video/media player. It
+ supports MPEG 1/2 and some AVI and Quicktime videos out of the box, so you
+ can use it to play DVDs, (S)VCDs and most video files out there. It
+ supports network streams, subtitles and even MP3 or Ogg files. It's
+ extensible to your heart's content via plugins for audio and video output,
+ input media, demuxers (stream types), audio/video and subtitle codecs.
+ .
  Building a GUI (or text based) frontend around this should be quite easy.
- The xine-ui package provides one for your convenience, so you can just
- start watching your VCDs ;-)
+ The xine-ui and gxine packages each provide one for your convenience, so
+ you can just start watching your VCDs ;-)
