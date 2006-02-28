@@ -5,6 +5,10 @@ xine-lib (1.1.1-2) unstable; urgency=low
     (Closes: #281572)
   * Conflict/Replaces obsolete package 'xine' (Closes: #300852)
 
+  [ Darren Salt ]
+  * Tidy up the FAQ list and README installation to quieten dh_install.
+  * Re-update the FSF address in debian/copyright. It got lost in 1.1.1-1.
+
  -- Reinhard Tartler <siretart@tauware.de>  Sat, 25 Feb 2006 12:26:10 +0100
 
 xine-lib (1.1.1-1) unstable; urgency=low
