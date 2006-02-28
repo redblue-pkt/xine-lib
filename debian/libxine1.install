@@ -5,4 +5,5 @@ usr/lib/xine/plugins/*/vidix/*.so
 usr/share/locale
 usr/share/xine
 usr/share/man/man5/xine.5
-
+usr/share/doc/libxine1/faq/*
+usr/share/doc/libxine1/README*

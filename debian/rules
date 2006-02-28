@@ -92,13 +92,11 @@ binary-arch: build install
 	dh_testdir
 	dh_testroot
 	#
+	#ugly hack, documentation should never have been in /u/s/d/xine/...
+	mv debian/tmp/usr/share/doc/xine debian/tmp/usr/share/doc/libxine${major}
 	# build libxine${major} package by moving files from libxine-dev
 	dh_install --autodest --sourcedir=debian/tmp --list-missing
 	dh_installdocs
-	#ugly hack, documentation should never have been in /u/s/d/xine/...
-	mv debian/tmp/usr/share/doc/xine/faq \
-	   debian/tmp/usr/share/doc/xine/README* \
-	   debian/libxine1/usr/share/doc/libxine1
 	dh_installchangelogs -k ChangeLog
 	dh_link
 	dh_strip -k
