@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.14 2004/12/20 21:22:21 mroi Exp $ 
+ * $Id: info_helper.c,v 1.15 2006/03/01 23:34:58 hadess Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -205,7 +205,7 @@ static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, con
       }
     }
 
-    if (enc) {
+    if (enc && strcmp(enc, "UTF-8")) {
       cd = iconv_open("UTF-8", enc);
       if (cd == (iconv_t)-1)
         xprintf(stream->xine, XINE_VERBOSITY_LOG,
