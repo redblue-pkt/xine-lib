@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.7 2004/09/22 20:54:44 tmattern Exp $
+ * $Id: demux_flac.c,v 1.8 2006/03/02 04:18:08 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -182,10 +182,83 @@ static int open_flac_file(demux_flac_t *flac) {
       }
       break;
 
-    /* VORBIS_COMMENT */
+    /* VORBIS_COMMENT 
+     *
+     * For a description of the format please have a look at
+     * http://www.xiph.org/vorbis/doc/v-comment.html */
     case 4:
       lprintf ("VORBIS_COMMENT metadata\n");
-      flac->input->seek(flac->input, block_length, SEEK_CUR);
+      {
+        char comments[block_length];
+        void *ptr = comments;
+        uint32_t length, user_comment_list_length;
+        int cn;
+        char *comment;
+        char c;
+
+        if (flac->input->read(flac->input, comments, block_length) == block_length) {
+          int tracknumber = -1;
+          int tracktotal = -1;
+
+          length = LE_32(ptr);
+          ptr += 4 + length;
+
+          user_comment_list_length = LE_32(ptr);
+          ptr += 4;
+
+          cn = 0;
+          for (; cn < user_comment_list_length; cn++) {
+            length = LE_32(ptr);
+            ptr += 4;
+
+            comment = (char*) ptr;
+            c = comment[length];
+            comment[length] = 0;
+
+            lprintf ("comment[%02d] = %s\n", cn, comment);
+
+            if ((strncasecmp ("TITLE=", comment, 6) == 0) 
+                && (length - 6 > 0)) {
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_TITLE, comment + 6);
+            } else if ((strncasecmp ("ARTIST=", comment, 7) == 0)
+                && (length - 7 > 0)) {
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_ARTIST, comment + 7);
+            } else if ((strncasecmp ("ALBUM=", comment, 6) == 0)
+                && (length - 6 > 0)) {
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_ALBUM, comment + 6);
+            } else if ((strncasecmp ("DATE=", comment, 5) == 0)
+                && (length - 5 > 0)) {
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_YEAR, comment + 5);
+            } else if ((strncasecmp ("GENRE=", comments, 6) == 0)
+                && (length - 6 > 0)) {
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_GENRE, comment + 6);
+            } else if ((strncasecmp ("Comment=", comments, 8) == 0)
+                && (length - 8 > 0)) {
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_ARTIST, comment + 8);
+            } else if ((strncasecmp ("TRACKNUMBER=", comment, 12) == 0)
+                && (length - 12 > 0)) {
+              tracknumber = atoi (comment + 12);
+            } else if ((strncasecmp ("TRACKTOTAL=", comment, 11) == 0)
+                && (length - 11 > 0)) {
+              tracktotal = atoi (comment + 11);
+            }
+            comment[length] = c;
+
+            ptr += length;
+          }
+
+          if ((tracknumber > 0) && (tracktotal > 0)) {
+            char tn[16];
+            snprintf (tn, 16, "%02d/%02d", tracknumber, tracktotal);
+            _x_meta_info_set(flac->stream, XINE_META_INFO_TRACK_NUMBER, tn);
+          }
+          else if (tracknumber > 0) {
+            char tn[16];
+            snprintf (tn, 16, "%02d", tracknumber);
+            _x_meta_info_set(flac->stream, XINE_META_INFO_TRACK_NUMBER, tn);
+          }
+        }
+      }
       break;
 
     /* CUESHEET */
