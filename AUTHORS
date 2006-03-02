@@ -557,5 +557,8 @@ Jason Tackaberry <tack@sault.org>
 
 Claudio Ciccani <klan@users.sf.net>
   completely rewritten DirectFB video out plugin
+
+Maximilian Schwerin <mschwerin@users.sourceforge.net>
+  support for Vorbis-style comments in FLAC files
   
 (let us know if we've forgotten anyone)
