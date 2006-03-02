@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.8 2006/03/02 04:18:08 tmmm Exp $
+ * $Id: demux_flac.c,v 1.9 2006/03/02 14:35:02 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -229,12 +229,12 @@ static int open_flac_file(demux_flac_t *flac) {
             } else if ((strncasecmp ("DATE=", comment, 5) == 0)
                 && (length - 5 > 0)) {
               _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_YEAR, comment + 5);
-            } else if ((strncasecmp ("GENRE=", comments, 6) == 0)
+            } else if ((strncasecmp ("GENRE=", comment, 6) == 0)
                 && (length - 6 > 0)) {
               _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_GENRE, comment + 6);
-            } else if ((strncasecmp ("Comment=", comments, 8) == 0)
+            } else if ((strncasecmp ("Comment=", comment, 8) == 0)
                 && (length - 8 > 0)) {
-              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_ARTIST, comment + 8);
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_COMMENT, comment + 8);
             } else if ((strncasecmp ("TRACKNUMBER=", comment, 12) == 0)
                 && (length - 12 > 0)) {
               tracknumber = atoi (comment + 12);
