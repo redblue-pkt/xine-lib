@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.15 2006/03/01 23:34:58 hadess Exp $ 
+ * $Id: info_helper.c,v 1.16 2006/03/03 12:59:31 hadess Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -188,6 +188,31 @@ static void meta_info_set_unlocked_utf8(xine_stream_t *stream, int info, const c
   }
 }
 
+#ifdef HAVE_ICONV
+static int meta_info_validate_utf8 (const char *value)
+{
+  iconv_t cd;
+  char *utf8_value;
+  char *inbuf, *outbuf;
+  size_t inbytesleft, outbytesleft;
+
+  if ((cd = iconv_open("UTF-8", "UTF-8")) == (iconv_t)-1) {
+    return 0;
+  }
+
+  inbuf = (char *)value;
+  inbytesleft = strlen(value);
+  outbytesleft = 4 * inbytesleft; /* estimative (max) */
+  outbuf = utf8_value = malloc(outbytesleft+1);
+
+  iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
+  free(utf8_value);
+  iconv_close(cd);
+
+  return (inbytesleft == 0);
+}
+#endif
+
 /*
  * Set private meta info to value (can be NULL) with a given encoding.
  * if encoding is NULL assume locale.
@@ -206,6 +231,12 @@ static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, con
     }
 
     if (enc && strcmp(enc, "UTF-8")) {
+      /* Don't bother converting if it's already in UTF-8, but the encoding
+       * is badly reported */
+      if (meta_info_validate_utf8(value)) {
+        meta_info_set_unlocked_utf8(stream, info, value);
+	return;
+      }
       cd = iconv_open("UTF-8", enc);
       if (cd == (iconv_t)-1)
         xprintf(stream->xine, XINE_VERBOSITY_LOG,
@@ -223,7 +254,7 @@ static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, con
         inbytesleft = strlen(value);
         outbytesleft = 4 * inbytesleft; /* estimative (max) */
         outbuf = utf8_value = malloc(outbytesleft+1);
-        
+
         iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
         *outbuf = '\0';
 
