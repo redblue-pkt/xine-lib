@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.222 2006/01/05 21:34:55 tmattern Exp $
+ * $Id: demux_avi.c,v 1.223 2006/03/04 12:04:42 tmattern Exp $
  *
  * demultiplexer for avi streams
  *
@@ -421,17 +421,17 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, uint32_t posc,
     /* variable bitrate */
     lprintf("get_audio_pts: VBR: nBlockAlign=%d, dwSampleSize=%d, dwScale=%d, dwRate=%d\n",
             at->wavex->nBlockAlign, at->dwSampleSize, at->dwScale, at->dwRate);
-    return (int64_t)(90000.0 * (double)(posc) *
+    return (int64_t)(90000.0 * (double)(posc + at->dwStart) *
       (double)at->dwScale / (double)at->dwRate);
   } else {
     /* constant bitrate */
     lprintf("get_audio_pts: CBR: nBlockAlign=%d, dwSampleSize=%d, dwScale=%d, dwRate=%d\n",
             at->wavex->nBlockAlign, at->dwSampleSize, at->dwScale, at->dwRate);
     if( at->wavex && at->wavex->nBlockAlign ) {
-      return (int64_t)((double)(postot + posb) / (double)at->wavex->nBlockAlign *
+      return (int64_t)((double)((postot + posb) / (double)at->wavex->nBlockAlign + at->dwStart) *
         (double)at->dwScale / (double)at->dwRate * 90000.0);
     } else {
-      return (int64_t)((double)(postot + posb) / (double)at->dwSampleSize *
+      return (int64_t)((double)((postot + posb) / (double)at->dwSampleSize + at->dwStart) *
         (double)at->dwScale / (double)at->dwRate * 90000.0);
     }
   }
@@ -440,7 +440,7 @@ static int64_t get_audio_pts (demux_avi_t *this, int track, uint32_t posc,
 static int64_t get_video_pts (demux_avi_t *this, off_t pos) {
   lprintf("get_video_pts: dwScale=%d, dwRate=%d, pos=%" PRIdMAX "\n",
          this->avi->dwScale, this->avi->dwRate, (intmax_t)pos);
-  return (int64_t)(90000.0 * (double)pos *
+  return (int64_t)(90000.0 * (double)(pos + this->avi->dwStart) *
     (double)this->avi->dwScale / (double)this->avi->dwRate);
 }
 
