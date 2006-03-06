@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.173 2005/11/14 12:34:46 valtri Exp $
+ * $Id: demux_asf.c,v 1.174 2006/03/06 08:02:44 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -434,7 +434,7 @@ static int asf_read_header (demux_asf_t *this) {
 
           if (this->length) {
             /* FIXME: the rate is not constant ! */
-            this->rate = file_size / (this->length / 1000);
+            this->rate = (file_size * 1000) / this->length;
           } else {
             this->rate = 0;
           }
