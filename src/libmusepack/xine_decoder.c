@@ -23,7 +23,7 @@
  *   32bit float output
  *   Seeking??
  *
- * $Id: xine_decoder.c,v 1.4 2005/01/30 14:41:34 valtri Exp $
+ * $Id: xine_decoder.c,v 1.5 2006/03/07 08:03:10 tmattern Exp $
  */
 
 #include <stdio.h>
@@ -274,7 +274,7 @@ static void mpc_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->stream,
       this->bits_per_sample,
       this->sample_rate,
-      (this->channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
+      _x_ao_channels2mode(this->channels));
   }
 
   /* if the audio still isn't open, do not go any further with the decode */

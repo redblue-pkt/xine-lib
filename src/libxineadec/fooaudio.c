@@ -21,7 +21,7 @@
  * player. It really works too! It will output a continuous sine wave in
  * place of the data it should actually send.
  *
- * $Id: fooaudio.c,v 1.14 2004/12/16 13:59:12 mroi Exp $
+ * $Id: fooaudio.c,v 1.15 2006/03/07 08:03:21 tmattern Exp $
  */
 
 #include <stdio.h>
@@ -116,7 +116,7 @@ static void fooaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 /*      this->bits_per_sample, */
       16,
       this->sample_rate,
-/*      (this->channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);*/
+/*      _x_ao_channels2mode(this->channels));*/
       AO_CAP_MODE_MONO);
   }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.149 2005/11/21 10:29:57 valtri Exp $
+ * $Id: w32codec.c,v 1.150 2006/03/07 08:03:16 tmattern Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1181,7 +1181,7 @@ static int w32a_init_audio (w32a_decoder_t *this,
 
   this->output_open = this->stream->audio_out->open( this->stream->audio_out, this->stream,
 					      16, in_fmt->nSamplesPerSec, 
-					      (in_fmt->nChannels >= 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
+					      _x_ao_channels2mode(in_fmt->nChannels));
   if (!this->output_open) {
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	    "w32codec: (ACM_Decoder) Cannot open audio output device\n");

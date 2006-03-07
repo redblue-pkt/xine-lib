@@ -20,7 +20,7 @@
  * NSF Audio "Decoder" using the Nosefart NSF engine by Matt Conte
  *   http://www.baisoku.org/
  *
- * $Id: nsf.c,v 1.8 2004/12/16 13:59:12 mroi Exp $
+ * $Id: nsf.c,v 1.9 2006/03/07 08:03:22 tmattern Exp $
  */
 
 #include <stdio.h>
@@ -131,7 +131,7 @@ static void nsf_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->stream,
       this->bits_per_sample,
       this->sample_rate,
-      (this->channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
+      _x_ao_channels2mode(this->channels));
   }
 
   /* if the audio still isn't open, do not go any further with the decode */

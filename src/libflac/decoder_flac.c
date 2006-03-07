@@ -248,23 +248,7 @@ flac_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
         this->bits_per_sample = buf->decoder_info[2];
         this->channels        = buf->decoder_info[3];
 
-        switch (this->channels)
-        {
-            case 1:
-                mode = AO_CAP_MODE_MONO;
-            break;
-            case 2:
-                mode = AO_CAP_MODE_STEREO;
-            break;
-            case 4:
-                mode = AO_CAP_MODE_4CHANNEL;
-            break;
-            case 5:
-                mode = AO_CAP_MODE_5CHANNEL;
-            break;
-            case 6:
-                mode = AO_CAP_MODE_5_1CHANNEL;
-        }
+	mode = _x_ao_channels2mode(this->channels);
 
         if (!this->output_open)
         {

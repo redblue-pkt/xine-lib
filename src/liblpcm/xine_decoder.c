@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.56 2004/12/16 13:59:10 mroi Exp $
+ * $Id: xine_decoder.c,v 1.57 2006/03/07 08:03:10 tmattern Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -130,7 +130,7 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if (this->output_open)
         this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
-    this->ao_cap_mode=(this->number_of_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO;
+    this->ao_cap_mode=_x_ao_channels2mode(this->number_of_channels);
 
     /* force 24-bit samples into 16 bits for now */
     if (this->bits_per_sample == 24)

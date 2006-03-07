@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.197 2006/02/05 19:18:28 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.198 2006/03/07 08:03:22 tmattern Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -520,6 +520,24 @@ int _x_ao_mode2channels( int mode ) {
   }
   return 0;
 } 
+
+int _x_ao_channels2mode( int channels ) {
+
+  switch( channels ) {
+    case 1:
+      return AO_CAP_MODE_MONO;
+    case 2:
+      return AO_CAP_MODE_STEREO;
+    case 3:
+    case 4:
+      return AO_CAP_MODE_4CHANNEL;
+    case 5:
+      return AO_CAP_MODE_5CHANNEL;
+    case 6:
+      return AO_CAP_MODE_5_1CHANNEL;
+  }
+  return AO_CAP_NOCAP;
+}
 
 static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
 

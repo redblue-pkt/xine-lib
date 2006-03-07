@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.75 2005/09/11 22:07:48 miguelfreitas Exp $
+ * $Id: audio_out.h,v 1.76 2006/03/07 08:03:29 tmattern Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -293,6 +293,10 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_o
  * converts the audio output mode into the number of channels
  */
 int _x_ao_mode2channels( int mode );
+/*
+ * converts the number of channels into the audio output mode
+ */
+int _x_ao_channels2mode( int channels );
 
 #define AO_CAP_MIXER_VOL        0x00000100 /* driver supports mixer control */
 #define AO_CAP_PCM_VOL          0x00000200 /* driver supports pcm control   */

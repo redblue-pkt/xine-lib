@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.39 2004/12/17 13:39:54 mroi Exp $
+ * $Id: qt_decoder.c,v 1.40 2006/03/07 08:03:10 tmattern Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -399,27 +399,7 @@ static void qta_init_driver (qta_decoder_t *this, buf_element_t *buf) {
 
   lprintf ("audio: opening output.\n");
 
-  switch (this->wave.nChannels) {
-  case 1: 
-    mode = AO_CAP_MODE_MONO;
-    break;
-  case 2: 
-    mode = AO_CAP_MODE_STEREO;
-    break;
-  case 4: 
-    mode = AO_CAP_MODE_4CHANNEL;
-    break;
-  case 5: 
-    mode = AO_CAP_MODE_5CHANNEL;
-    break;
-  case 6: 
-    mode = AO_CAP_MODE_5_1CHANNEL;
-    break;
-  default:
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	     "qt_audio: help, %d channels ?!\n", this->wave.nChannels);
-    _x_abort ();
-  }
+  mode = _x_ao_channels2mode(this->wave.nChannels);
 
   this->frame_size = this->wave.nChannels * this->wave.wBitsPerSample / 8;
 

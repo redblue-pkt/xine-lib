@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.16 2004/12/16 13:59:11 mroi Exp $
+ * $Id: xine_decoder.c,v 1.17 2006/03/07 08:03:10 tmattern Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -276,29 +276,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->header_count--;
 
       if (!this->header_count) {
-	int mode = AO_CAP_MODE_MONO;
-
-	switch (this->channels) {
-	case 1: 
-	  mode = AO_CAP_MODE_MONO;
-	  break;
-	case 2: 
-	  mode = AO_CAP_MODE_STEREO;
-	  break;
-	case 4: 
-	  mode = AO_CAP_MODE_4CHANNEL;
-	  break;
-	case 5: 
-	  mode = AO_CAP_MODE_5CHANNEL;
-	  break;
-	case 6: 
-	  mode = AO_CAP_MODE_5_1CHANNEL;
-	  break;
-	default:
-	  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		   "libspeex: help, %d channels ?!\n", this->channels);
-	  /* FIXME: handle error */
-	}
+        int mode = _x_ao_channels2mode(this->channels);
 	
 	if (!this->output_open) {
 	  this->output_open =

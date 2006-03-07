@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvaudio_decoder.c,v 1.7 2005/08/25 15:36:30 valtri Exp $
+ * $Id: dvaudio_decoder.c,v 1.8 2006/03/07 08:03:08 tmattern Exp $
  *
  * dv audio decoder based on patch by Dan Dennedy <dan@dennedy.org>
  *
@@ -289,7 +289,7 @@ static void dvaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
     if (!this->output_open) {
       this->output_open = this->stream->audio_out->open(this->stream->audio_out,
         this->stream, this->audio_bits, this->audio_sample_rate,
-        (this->audio_channels == 2) ? AO_CAP_MODE_STEREO : AO_CAP_MODE_MONO);
+	_x_ao_channels2mode(this->audio_channels));
     }
 
     /* if the audio still isn't open, bail */

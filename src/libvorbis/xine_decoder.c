@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.43 2005/01/27 11:17:28 holstsn Exp $
+ * $Id: xine_decoder.c,v 1.44 2006/03/07 08:03:10 tmattern Exp $
  *
  * (ogg/)vorbis audio decoder plugin (libvorbis wrapper) for xine
  */
@@ -166,28 +166,7 @@ static void vorbis_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	
 	get_metadata (this);
 
-	
-	switch (this->vi.channels) {
-	case 1: 
-	  mode = AO_CAP_MODE_MONO;
-	  break;
-	case 2: 
-	  mode = AO_CAP_MODE_STEREO;
-	  break;
-	case 4: 
-	  mode = AO_CAP_MODE_4CHANNEL;
-	  break;
-	case 5: 
-	  mode = AO_CAP_MODE_5CHANNEL;
-	  break;
-	case 6: 
-	  mode = AO_CAP_MODE_5_1CHANNEL;
-	  break;
-	default:
-	  printf ("libvorbis: help, %d channels ?!\n",
-		  this->vi.channels);
-	  /* FIXME: handle error */
-	}
+	mode = _x_ao_channels2mode(this->vi.channels);
 	
 	this->convsize=MAX_NUM_SAMPLES/this->vi.channels;
 
