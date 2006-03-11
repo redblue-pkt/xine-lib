@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.154 2006/02/05 16:41:16 miguelfreitas Exp $
+ * $Id: buffer.h,v 1.155 2006/03/11 08:49:40 tmattern Exp $
  *
  *
  * contents:
@@ -285,7 +285,7 @@ struct extra_info_s {
 };
 
 
-#define BUF_NUM_DEC_INFO 4
+#define BUF_NUM_DEC_INFO 5
 
 typedef struct buf_element_s buf_element_t;
 struct buf_element_s {
