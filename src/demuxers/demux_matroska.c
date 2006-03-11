@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.43 2006/01/24 22:01:05 molivier Exp $
+ * $Id: demux_matroska.c,v 1.44 2006/03/11 09:03:24 tmattern Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1959,7 +1959,8 @@ static int parse_seek_entry(demux_matroska_t *this) {
   int next_level = 3;
   int has_id = 0;
   int has_position = 0;
-  uint64_t id, pos;
+  uint64_t id = 0;
+  uint64_t pos;
   
   while (next_level == 3) {
     ebml_elem_t elem;
