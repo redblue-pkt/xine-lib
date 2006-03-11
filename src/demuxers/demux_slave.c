@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.16 2006/01/27 07:46:12 tmattern Exp $
+ * $Id: demux_slave.c,v 1.17 2006/03/11 08:55:10 tmattern Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -210,7 +210,7 @@ static int demux_slave_next (demux_slave_t *this) {
 
     if( sscanf(s,"index=%d decoder_info=%u has_data=%d",
                &i, &decoder_info, &has_data) != 3 ||
-               i < 0 || i > BUF_NUM_DEC_INFO) {
+               i < 0 || i >= BUF_NUM_DEC_INFO) {
       lprintf("'decoder_info' command error\n");
       this->status = DEMUX_FINISHED;
       return 0;
