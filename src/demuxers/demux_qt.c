@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.203 2005/10/02 17:00:52 tmmm Exp $
+ * $Id: demux_qt.c,v 1.204 2006/03/16 21:44:14 tmattern Exp $
  *
  */
 
@@ -1510,10 +1510,11 @@ free_trak:
   free(trak->sample_to_chunk_table);
   free(trak->time_to_sample_table);
   free(trak->decoder_config);
-  for (i = 0; i < trak->stsd_atoms_count; i++)
-    free(trak->stsd_atoms[i].video.properties_atom);
-  free(trak->stsd_atoms);
-
+  if (trak->stsd_atoms) {
+    for (i = 0; i < trak->stsd_atoms_count; i++)
+      free(trak->stsd_atoms[i].video.properties_atom);
+    free(trak->stsd_atoms);
+  }
   return last_error;
 }
 
