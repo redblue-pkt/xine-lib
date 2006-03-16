@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.106 2006/03/16 10:52:32 hadess Exp $
+ * $Id: input_file.c,v 1.107 2006/03/16 22:17:16 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -812,8 +812,12 @@ static xine_mrl_t **file_class_get_dir (input_class_t *this_gen,
     free(norm_files);
     
   }
-  else 
+  else {
+    free(hide_files);
+    free(dir_files);
+    free(norm_files);
     return NULL;
+  }
   
   /*
    * Inform caller about files found number.
