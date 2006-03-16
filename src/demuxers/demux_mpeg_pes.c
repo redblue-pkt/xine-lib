@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.31 2006/02/06 12:07:44 miguelfreitas Exp $
+ * $Id: demux_mpeg_pes.c,v 1.32 2006/03/16 21:47:37 tmattern Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -1008,12 +1008,9 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
       if( !this->preview_mode )
         check_newpts( this, this->pts, PTS_AUDIO );
 
-      if(this->audio_fifo) {
-        this->audio_fifo->put (this->audio_fifo, buf);
-        lprintf ("A52 PACK put on fifo\n");
-      } else {
-        buf->free_buffer(buf);
-      }
+      this->audio_fifo->put (this->audio_fifo, buf);
+      lprintf ("A52 PACK put on fifo\n");
+
       if (size == this->packet_len) {
         return this->packet_len + result;
       }
