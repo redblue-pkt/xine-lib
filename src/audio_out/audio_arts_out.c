@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.27 2004/07/11 11:23:48 hadess Exp $
+ * $Id: audio_arts_out.c,v 1.28 2006/03/16 21:38:17 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -312,11 +312,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     class->inited++;
   } else {
     xprintf (this->xine, XINE_VERBOSITY_LOG, "audio_arts_out: not trying to initialise a second time\n");
+    free(this);
     return NULL;
   }
 
   if (rc < 0) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG,"audio_arts_out: arts_init failed: %s\n", arts_error_text(rc));
+    free(this);
     return NULL;
   }
   
