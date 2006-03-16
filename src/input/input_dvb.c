@@ -900,6 +900,7 @@ static channel_t *load_channels(dvb_input_plugin_t *this, int *num_ch, fe_type_t
 
     num_channels++;
   }
+  fclose(f);
 
   if(num_channels > 0) 
     xprintf (xine, XINE_VERBOSITY_DEBUG, "input_dvb: found %d channels...\n", num_channels);
@@ -1159,6 +1160,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
     xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Error setting up Internal PAT filter - reverting to rc6 hehaviour\n");
     dvb_set_pidfilter (this,VIDFILTER,this->channels[this->channel].pid[VIDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
     dvb_set_pidfilter (this,AUDFILTER,this->channels[this->channel].pid[AUDFILTER], DMX_PES_OTHER, DMX_OUT_TS_TAP);
+    free(tmpbuffer);
     return;
   }
   result = read (tuner->fd_pidfilter[INTERNAL_FILTER], tmpbuffer, 3);
@@ -1362,6 +1364,8 @@ static void load_epg_data(dvb_input_plugin_t *this)
     if (poll(&fd,1,2000)<1) {
        xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"(Timeout in EPG loop!! Quitting\n");
        pthread_mutex_unlock(&this->channel_change_mutex);
+       free(seen_channels);
+       free(foo);
        return;  
     }
     n = read(this->tuner->fd_pidfilter[EITFILTER], eit, 3);
@@ -2571,9 +2575,6 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
   if(this->mrl)
     free (this->mrl);
 
-  if (this->channels)
-    free (this->channels);
-
   /* Free the EPG data. */
   for (i = 0; i < this->num_channels; ++i) {
       for (j = 0; j < MAX_EPG_ENTRIES_PER_CHANNEL && this->channels[i].epg[j]; ++j) {
@@ -2588,6 +2589,9 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
 	this->channels[i].epg[j] = NULL;
       }
   }
+  if (this->channels)
+    free (this->channels);
+
 
   /* Make the EPG updater thread return. */
   this->epg_updater_stop = 1;
@@ -2636,10 +2640,10 @@ dvb_zoom_cb (void *this_gen, xine_cfg_entry_t *cfg)
 {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
 
-  this->zoom_ok = cfg->num_value;
-
   if (!this)
     return;
+
+  this->zoom_ok = cfg->num_value;
 
   if (this->zoom_ok) {
     this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 133);
@@ -2656,7 +2660,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
     tuner_t *tuner;
     channel_t *channels;
-    int num_channels;
+    int num_channels = 0;
     config_values_t *config = this->stream->xine->config;
     char str[256];
     char *ptr;
@@ -3076,6 +3080,8 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
        class->mrls[2]="from the dvb drivers apps package";
        class->mrls[3]="and place the file in ~/.xine/";
        *num_files=4;
+       free(tmpbuffer);
+       free(foobuffer);
        return class->mrls;
     } else {  
       while (fgets(str, BUFSIZE, f)) 
