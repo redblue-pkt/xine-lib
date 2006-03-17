@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.107 2006/03/16 22:17:16 tmattern Exp $
+ * $Id: input_file.c,v 1.108 2006/03/17 18:21:23 hadess Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -295,7 +295,7 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
 
   /* don't check length of fifo or character device node */
   if (fstat (this->fh, &sbuf) == 0) {
-    if (S_ISFIFO(sbuf.st_mode) || S_ISCHR(sbuf.st_mode))
+    if (!S_ISREG(sbuf.st_mode))
       return 1;
   }
 
