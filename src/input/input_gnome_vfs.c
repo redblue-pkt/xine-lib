@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.28 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_gnome_vfs.c,v 1.29 2006/03/17 18:10:35 hadess Exp $
  */
 
 
@@ -304,7 +304,7 @@ gnomevfs_klass_dispose (input_class_t *this_gen)
 	g_free (this);
 }
 
-static char * ignore_scheme[] = { "cdda", "file" };
+static char * ignore_scheme[] = { "cdda", "file", "http" };
 
 static input_plugin_t *
 gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
