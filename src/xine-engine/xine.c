@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.321 2006/01/27 07:46:16 tmattern Exp $
+ * $Id: xine.c,v 1.322 2006/03/17 18:52:04 hadess Exp $
  */
 
 /*
@@ -999,15 +999,15 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 	  if (retval == 0) {
 	    /* the option not found */
 	    xine_log(stream->xine, XINE_LOG_MSG, _("xine: error while parsing MRL\n"));
+	    stream->err = XINE_ERROR_MALFORMED_MRL;
+	    stream->status = XINE_STATUS_IDLE;
+	    free(config_entry);
+	    return 0;
 	  } else {
             /* not permitted to change from MRL */
             xine_log(stream->xine, XINE_LOG_MSG, _("xine: changing option '%s' from MRL isn't permitted\n"),
 	      config_entry);
 	  }
-          stream->err = XINE_ERROR_MALFORMED_MRL;
-          stream->status = XINE_STATUS_IDLE;
-	  free(config_entry);
-          return 0;
 	}
 	free(config_entry);
       }
