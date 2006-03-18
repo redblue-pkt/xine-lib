@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.21 2005/06/25 13:21:30 siggi Exp $
+ * $Id: real.c,v 1.22 2006/03/18 09:35:03 tmattern Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -538,6 +538,7 @@ rmff_header_t *real_parse_sdp(char *data, char **stream_rules, uint32_t bandwidt
 
   rmff_fix_header(header);
   xine_buffer_free(buf);
+  sdpplin_free(desc);
 
   return header;
 }
