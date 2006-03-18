@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.5 2004/12/24 01:59:11 dsalt Exp $ 
+ * $Id: http_helper.c,v 1.6 2006/03/18 09:15:00 tmattern Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -59,10 +59,10 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
 
   /* proto */  
   start = strstr(url, "://");
-  end  = start + strlen(start) - 1;
   if (!start || (start == url))
     goto error;
   
+  end  = start + strlen(start) - 1;
   *proto = strndup(url, start - url);
 
   /* user:password */
