@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.19 2005/04/16 07:10:51 tmmm Exp $
+ * $Id: rtsp.c,v 1.20 2006/03/18 09:42:43 tmattern Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -417,6 +417,7 @@ int rtsp_read_data(rtsp_t *s, char *buffer, unsigned int size) {
       rest = malloc(sizeof(char)*17);
       sprintf(rest,"CSeq: %u", seq);
       rtsp_put(s, rest);
+      free(rest);
       rtsp_put(s, "");
       i=_x_io_tcp_read(s->stream, s->s, buffer, size);
     } else
@@ -561,6 +562,7 @@ char *rtsp_search_answers(rtsp_t *s, const char *tag) {
   while (*answer) {
     if (!strncasecmp(*answer,tag,strlen(tag))) {
       ptr=strchr(*answer,':');
+      if (!ptr) return NULL;
       ptr++;
       while(*ptr==' ') ptr++;
       return ptr;
