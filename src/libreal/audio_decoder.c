@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.44 2005/10/22 22:09:47 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.45 2006/03/18 09:59:11 tmattern Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -212,7 +212,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
 
     char path[1024];
 
-    snprintf(path, sizeof(path) - 1, "DT_Codecs=%s", entry->str_value);
+    snprintf(path, sizeof(path) - 2, "DT_Codecs=%s", entry->str_value);
     if (path[strlen(path)-1]!='/'){
       path[strlen(path)+1]=0;
       path[strlen(path)]='/';
