@@ -30,7 +30,7 @@
  * One more catch: Raw RGB from a Microsoft file is upside down. This is 
  * indicated by a negative height parameter.
  * 
- * $Id: rgb.c,v 1.30 2005/04/24 13:37:34 tmattern Exp $
+ * $Id: rgb.c,v 1.31 2006/03/18 10:05:21 tmattern Exp $
  */
 
 #include <stdio.h>
@@ -122,9 +122,6 @@ static void rgb_decode_data (video_decoder_t *this_gen,
   
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
-
-    if(this->buf)
-      free(this->buf);
 
     bih = (xine_bmiheader *) buf->content;
     this->width = (bih->biWidth + 3) & ~0x03;
