@@ -71,6 +71,8 @@ xine-lib (1.0.1-1.5) unstable; urgency=high
   * debian/copyright:
   - updated FSF's address
 
+ -- Gustavo Noronha Silva <kov@debian.org>  Wed, 11 Jan 2006 00:56:18 -0200
+
 xine-lib (1.0.1-1.4) unstable; urgency=high
 
   * Non-maintainer upload for RC-(security-)bugs.
