@@ -28,7 +28,7 @@
  *   8 (long and short)
  * - untested (found no testfiles) IFF-ANIM OPT 3, 4 and 6
  *
- * $Id: bitplane.c,v 1.11 2004/12/16 13:59:12 mroi Exp $
+ * $Id: bitplane.c,v 1.12 2006/03/21 07:39:18 tmattern Exp $
  */
 
 #include <stdio.h>
@@ -260,15 +260,19 @@ static uint8_t *bitplane_decode_byterun1 (uint8_t *compressed,
           pixel_ptr < size_uncompressed ) {
     if( compressed[i] <= 127 ) {
       j = compressed[i++];
-      if( (i+j) > size_compressed )
+      if( (i+j) > size_compressed ) {
+	free(uncompressed);
         return NULL;
+      }
       for( ; (j >= 0) && (pixel_ptr < size_uncompressed); j-- ) {
         uncompressed[pixel_ptr++] = compressed[i++];
       }
     } else if ( compressed[i] > 128 ) {
       j = 256 - compressed[i++];
-      if( i >= size_compressed )
+      if( i >= size_compressed ) {
+	free(uncompressed);
         return NULL;
+      }
       for( ; (j >= 0) && (pixel_ptr < size_uncompressed); j-- ) {
         uncompressed[pixel_ptr++] = compressed[i];
       }
@@ -432,8 +436,8 @@ static void bitplane_sdelta_opt_3 (bitplane_decoder_t *this) {
     data                                = (uint16_t *)(&this->buf[BE_32(&deltadata[palette_index])]);
     if( data != (uint16_t *)this->buf ) {
       /* This 8 Pointers are followd by another 8                    */
-/*      ptr                               = (uint16_t *)(&this->buf[BE_32(&deltadata[(palette_index+8)])]);
-*/
+      ptr                               = (uint16_t *)(&this->buf[BE_32(&deltadata[(palette_index+8)])]);
+
       /* in this case, I think big/little endian is not important ;-) */
       while( *data !=  0xFFFF) {
         row_ptr                         = 0;
@@ -1143,9 +1147,6 @@ static void bitplane_decode_data (video_decoder_t *this_gen,
 
   if (buf->decoder_flags & BUF_FLAG_STDHEADER) { /* need to initialize */
     this->stream->video_out->open (this->stream->video_out, this->stream);
-
-    if(this->buf)
-      free(this->buf);
 
     bih                                 = (xine_bmiheader *) buf->content;
     this->width                         = (bih->biWidth + 15) & ~0x0f;
