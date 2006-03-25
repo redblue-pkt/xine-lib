@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.224 2006/03/25 01:17:44 dsalt Exp $
+ * $Id: video_out.c,v 1.225 2006/03/25 01:26:34 dsalt Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -63,7 +63,7 @@
  * in the same format as requested (avoid unnecessary free/alloc in
  * vo driver). up to 25% less cpu load using deinterlace with film mode.
  */ 
-#define EXPERIMENTAL_FRAME_QUEUE_OPTIMIZATION 0
+#define EXPERIMENTAL_FRAME_QUEUE_OPTIMIZATION 1
 
 static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img );
 
