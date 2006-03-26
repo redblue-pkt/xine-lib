@@ -1850,7 +1850,7 @@ static long WINAPI expReleaseSemaphore(long hsem, long increment, long* prev_cou
 static long WINAPI expRegOpenKeyExA(long key, const char* subkey, long reserved, long access, int* newkey)
 {
     long result=RegOpenKeyExA(key, subkey, reserved, access, newkey);
-    dbgprintf("RegOpenKeyExA(key 0x%x, subkey %s, reserved %d, access 0x%x, pnewkey 0x%x) => %d\n",
+    dbgprintf("RegOpenKeyExA(key 0x%x, subkey %s, reserved %d, access 0x%x, pnewkey 0x%p) => %d\n",
 	      key, subkey, reserved, access, newkey, result);
     if(newkey)dbgprintf("  New key: 0x%x\n", *newkey);
     return result;
@@ -1874,8 +1874,8 @@ static long WINAPI expRegCreateKeyExA(long key, const char* name, long reserved,
 				      void* sec_attr, int* newkey, int* status)
 {
     long result=RegCreateKeyExA(key, name, reserved, classs, options, security, sec_attr, newkey, status);
-    dbgprintf("RegCreateKeyExA(key 0x%x, name 0x%x='%s', reserved=0x%x,"
-	      " 0x%x, 0x%x, 0x%x, newkey=0x%x, status=0x%x) => %d\n",
+    dbgprintf("RegCreateKeyExA(key 0x%x, name 0x%p='%s', reserved=0x%x,"
+	      " 0x%p, 0x%x, 0x%x, 0x%p, newkey=0x%p, status=0x%p) => %d\n",
 	      key, name, name, reserved, classs, options, security, sec_attr, newkey, status, result);
     if(!result && newkey) dbgprintf("  New key: 0x%x\n", *newkey);
     if(!result && status) dbgprintf("  New key status: 0x%x\n", *status);
