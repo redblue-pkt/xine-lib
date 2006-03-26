@@ -1892,7 +1892,7 @@ static long WINAPI expRegSetValueExA(long key, const char* name, long v1, long v
 static long WINAPI expRegOpenKeyA (long hKey, LPCSTR lpSubKey, int* phkResult)
 {
     long result=RegOpenKeyExA(hKey, lpSubKey, 0, 0, phkResult);
-    dbgprintf("RegOpenKeyExA(key 0x%x, subkey '%s', 0x%x) => %d\n",
+    dbgprintf("RegOpenKeyExA(key 0x%x, subkey '%s', 0x%p) => %d\n",
 	      hKey, lpSubKey, phkResult, result);
     if(!result && phkResult) dbgprintf("  New key: 0x%x\n", *phkResult);
     return result;
@@ -3631,7 +3631,7 @@ static WIN_BOOL WINAPI expWriteFile(HANDLE h,LPCVOID pv,DWORD size,LPDWORD wr,LP
 static DWORD  WINAPI expSetFilePointer(HANDLE h, LONG val, LPLONG ext, DWORD whence)
 {
     int wh;
-    dbgprintf("SetFilePointer(%d, 0x%x, 0x%x = %d, %d)\n", h, val, ext, *ext, whence);
+    dbgprintf("SetFilePointer(%d, 0x%x, 0x%x = %d, %d)\n", h, val, ext, ext ? *ext : -1, whence);
     //why would DLL want temporary file with >2Gb size?
     switch(whence)
     {
