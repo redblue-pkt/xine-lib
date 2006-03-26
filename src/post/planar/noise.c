@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: noise.c,v 1.2 2006/02/06 12:09:42 hadess Exp $
+ * $Id: noise.c,v 1.3 2006/03/26 14:45:41 valtri Exp $
  *
  * mplayer's noise filter, ported by Jason Tackaberry.  Original filter
  * is copyright 2002 Michael Niedermayer <michaelni@gmx.at>
@@ -57,6 +57,7 @@ typedef struct noise_param_t {
         shiftptr;
     int8_t *noise,
            *prev_shift[MAX_RES][3];
+    void *base;
 } noise_param_t;
 
 static int nonTempRandShift[MAX_RES]= {-1};
@@ -71,9 +72,11 @@ static int8_t *initNoise(noise_param_t *fp){
     int uniform= fp->uniform;
     int averaged= fp->averaged;
     int pattern= fp->pattern;
-    int8_t *noise= memalign(16, MAX_NOISE*sizeof(int8_t));
+    int8_t *noise;
     int i, j;
+    void *base;
 
+    noise = xine_xmalloc_aligned(16, MAX_NOISE*sizeof(int8_t), &base);
     srand(123457);
 
     for(i=0,j=0; i<MAX_NOISE; i++,j++)
@@ -129,6 +132,7 @@ static int8_t *initNoise(noise_param_t *fp){
     }
 
     fp->noise= noise;
+    fp->base = base;
     fp->shiftptr= 0;
     return noise;
 }
