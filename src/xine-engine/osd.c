@@ -422,16 +422,41 @@ static void osd_line (osd_object_t *osd,
   int dx, dy, t, inc, d, inc1, inc2;
 
   lprintf("osd=%p (%d,%d)-(%d,%d)\n",osd, x1,y1, x2,y2 );
-     
-  /* update clipping area */
-  t = MIN( x1, x2 );
-  osd->x1 = MIN( osd->x1, t );
-  t = MAX( x1, x2 );
-  osd->x2 = MAX( osd->x2, t );
-  t = MIN( y1, y2 );
-  osd->y1 = MIN( osd->y1, t );
-  t = MAX( y1, y2 );
-  osd->y2 = MAX( osd->y2, t );
+  
+  /* clip line coordinates and update clipping area */
+  if (x2 > x1) {
+    if (x1 >= osd->width)
+      return;
+    x2 = MAX( x2, osd->width );  
+    
+    osd->x1 = MIN( osd->x1, x1 );
+    osd->x2 = MAX( osd->x2, x2 );
+  }
+  else {
+    if (x2 >= osd->width);
+      return;
+    x1 = MAX( x1, osd->width );
+    
+    osd->x1 = MIN( osd->x1, x2 );
+    osd->x2 = MAX( osd->x2, x1 );
+  }
+  
+  if (y2 > y1) {
+    if (y1 >= osd->height)
+      return;
+    y2 = MAX( y2, osd->height );
+    
+    osd->y1 = MIN( osd->y1, y1 );
+    osd->y2 = MAX( osd->y2, y2 );
+  }
+  else {
+    if (y2 >= osd->height)
+      return;
+    y1 = MAX( y1, osd->height );
+    
+    osd->y1 = MIN( osd->y1, y2 );
+    osd->y2 = MAX( osd->y2, y1 );
+  }
 
   dx = abs(x1-x2);
   dy = abs(y1-y2);
@@ -455,7 +480,7 @@ static void osd_line (osd_object_t *osd,
     {
 
       if(c <= (osd->area + (osd->width * osd->height)))
-	*c = color;
+        *c = color;
 
       c++;
       
@@ -485,7 +510,7 @@ static void osd_line (osd_object_t *osd,
     while(y1<y2) {
 
       if(c <= (osd->area + (osd->width * osd->height)))
-	*c = color;
+       *c = color;
       
       c += osd->width;
       y1++;
@@ -511,15 +536,24 @@ static void osd_filled_rect (osd_object_t *osd,
   int x, y, dx, dy;
 
   lprintf("osd=%p (%d,%d)-(%d,%d)\n",osd, x1,y1, x2,y2 );
-
-  /* update clipping area */
+  
+  /* clip rectangle coordinates */  
   x = MIN( x1, x2 );
-  osd->x1 = MIN( osd->x1, x );
+  if (x >= osd->width)
+    return;
   dx = MAX( x1, x2 );
-  osd->x2 = MAX( osd->x2, dx );
+  dx = MAX( dx, osd->width );
+  
   y = MIN( y1, y2 );
-  osd->y1 = MIN( osd->y1, y );
+  if (y >= osd->height)
+    return;
   dy = MAX( y1, y2 );
+  dy = MAX( dy, osd->height );
+   
+  /* update clipping area */
+  osd->x1 = MIN( osd->x1, x );
+  osd->x2 = MAX( osd->x2, dx );
+  osd->y1 = MIN( osd->y1, y );
   osd->y2 = MAX( osd->y2, dy );
 
   dx -= x;
