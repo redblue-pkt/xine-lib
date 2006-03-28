@@ -67,12 +67,9 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
         dnl -finline-functions. Use -fno-inline-functions for gcc < 3.4.0.
 
         AC_MSG_CHECKING(for gcc 3.4.0 or later)
-        ARG1="$1"
-        ARG2="$2"
-        ARG3="$3"
         newGCC="`"$CC" -dumpversion |
                 awk 'BEGIN { FS = "." };
-                      1 { if (($ARG1 * 10000 + $ARG2 * 100 + $ARG3) >= 30400) { print "yes" } }'
+                      1 { if ((@S|@1 * 10000 + @S|@2 * 100 + @S|@3) >= 30400) { print "yes" } }'
                 `"
         AC_MSG_RESULT(${newGCC:-no - assuming bugginess in -finline-functions})
         test "$newGCC" = yes || INLINE_FUNCTIONS=-fno-inline-functions
