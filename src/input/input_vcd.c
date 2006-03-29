@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.81 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_vcd.c,v 1.82 2006/03/29 21:00:45 valtri Exp $
  *
  */
 
@@ -25,6 +25,7 @@
 #include "config.h"
 #endif
 
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
