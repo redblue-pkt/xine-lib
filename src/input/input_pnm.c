@@ -50,10 +50,6 @@
 
 #define BUFSIZE 4096
 
-#if !defined(NDELAY) && defined(O_NDELAY)
-#define FNDELAY O_NDELAY
-#endif
-
 typedef struct {
 
   input_class_t     input_class;

@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.61 2006/01/24 22:25:34 molivier Exp $ 
+ * $Id: demux.c,v 1.62 2006/04/05 22:12:20 valtri Exp $ 
  */
 
 
@@ -634,8 +634,8 @@ void _x_demux_send_mrl_reference (xine_stream_t *stream, int alternative,
   data.e->alternative = alternative;
   data.e->start_time = start_time;
   data.e->duration = duration;
-  strcpy (data.e->mrl, mrl);
-  strcpy (data.e->mrl + mrl_len + 1, title ? title : "");
+  strcpy((char *)data.e->mrl, mrl);
+  strcpy((char *)data.e->mrl + mrl_len + 1, title ? title : "");
 
   event.type = XINE_EVENT_MRL_REFERENCE_EXT;
   xine_event_send (stream, &event);

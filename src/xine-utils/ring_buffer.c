@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ring_buffer.c,v 1.2 2006/01/27 19:37:15 tmattern Exp $
+ * $Id: ring_buffer.c,v 1.3 2006/04/05 22:12:20 valtri Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -44,14 +44,14 @@ struct xine_ring_buffer_chunk_s {
 };
 
 /* init */
-void xine_ring_buffer_chunk_create(void *object) {
+static void xine_ring_buffer_chunk_create(void *object) {
   xine_ring_buffer_chunk_t *chunk = (xine_ring_buffer_chunk_t *)object;
   chunk->mem = NULL;
   chunk->size = 0;
 }
 
 /* cleanup */
-void xine_ring_buffer_chunk_return(void *object) {
+static void xine_ring_buffer_chunk_return(void *object) {
   xine_ring_buffer_chunk_t *chunk = (xine_ring_buffer_chunk_t *)object;
   chunk->mem = NULL;
   chunk->size = 0;

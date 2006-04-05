@@ -93,7 +93,7 @@ int media_eject_media (xine_t *xine, const char *device)
 
 #else 
 
-  int ret, status, fd;
+  int fd;
 
   /* printf("input_dvd: Eject Device %s current device %s opened=%d handle=%p trying...\n",device, this->current_dvd_device, this->opened, this->dvdnav); */
   media_umount_media(device);
@@ -102,6 +102,7 @@ int media_eject_media (xine_t *xine, const char *device)
   if ((fd = open (device, O_RDONLY|O_NONBLOCK)) > -1) {
 
 #if defined (__linux__)
+    int ret, status;
 
     if((status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT)) > 0) {
       switch(status) {

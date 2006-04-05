@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.39 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: video_overlay.c,v 1.40 2006/04/05 22:12:20 valtri Exp $
  *
  */
 
@@ -347,8 +347,8 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
     handle=this->events[this_event].event->object.handle;
 #ifdef LOG_DEBUG
     printf ("video_overlay: video_overlay_event: handle = %d\n", handle);
-    assert(handle >=0);
 #endif
+    _x_assert(handle >= 0);
     switch( this->events[this_event].event->event_type ) {
       case OVERLAY_EVENT_SHOW:
 #ifdef LOG_DEBUG

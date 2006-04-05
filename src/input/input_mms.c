@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.59 2006/03/25 11:59:29 hadess Exp $
+ * $Id: input_mms.c,v 1.60 2006/04/05 22:12:19 valtri Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -54,10 +54,6 @@
 #define PROTOCOL_UNDEFINED 0
 #define PROTOCOL_MMST      1
 #define PROTOCOL_MMSH      2
-
-#if !defined(NDELAY) && defined(O_NDELAY)
-#define FNDELAY O_NDELAY
-#endif
 
 /* network bandwidth */
 const uint32_t mms_bandwidths[]={14400,19200,28800,33600,34430,57600,

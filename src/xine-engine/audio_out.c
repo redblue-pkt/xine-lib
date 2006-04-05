@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.200 2006/03/24 20:05:38 dsalt Exp $
+ * $Id: audio_out.c,v 1.201 2006/04/05 22:12:20 valtri Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -977,6 +977,7 @@ static void *ao_loop (void *this_gen) {
 
   last_sync_time = bufs_since_sync = 0;
   in_buf = NULL;
+  cur_time = -1;
 
   while ((this->audio_loop_running) ||
 	 (!this->audio_loop_running && this->out_fifo->first)) {
@@ -1034,6 +1035,7 @@ static void *ao_loop (void *this_gen) {
 	}
       }
 
+      _x_assert(cur_time >= 0);
       if ((in_buf->vpts - cur_time) > 2 * 90000)
 	xprintf (this->xine, XINE_VERBOSITY_DEBUG,
 		 "audio_out: vpts/clock error, in_buf->vpts=%" PRId64 " cur_time=%" PRId64 "\n",

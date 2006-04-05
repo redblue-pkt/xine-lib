@@ -487,6 +487,7 @@ COutputPin* COutputPinCreate(const AM_MEDIA_TYPE* amt)
     if (!This->vt || !This->mempin || !ivt)
     {
         COutputPin_Destroy(This);
+        free(ivt);
 	return NULL;
     }
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.70 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: video_out_vidix.c,v 1.71 2006/04/05 22:12:19 valtri Exp $
  * 
  * video_out_vidix.c
  *
@@ -343,6 +343,7 @@ static uint32_t vidix_get_capabilities (vo_driver_t *this_gen) {
   return this->capabilities;
 }
 
+#ifdef HAVE_FB
 static void vidixfb_frame_output_cb(void *user_data, int video_width, int video_height, double video_pixel_aspect, int *dest_x, int *dest_y, int *dest_width, int *dest_height, double *dest_pixel_aspect, int *win_x, int *win_y) {
   vidix_driver_t *this = (vidix_driver_t *) user_data;
 
@@ -354,6 +355,7 @@ static void vidixfb_frame_output_cb(void *user_data, int video_width, int video_
   *win_x             = 0;
   *win_y             = 0;
 }
+#endif
 
 static void vidix_frame_field (vo_frame_t *vo_img, int which_field) {
   /* not needed for vidix */

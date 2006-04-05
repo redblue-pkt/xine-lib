@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ldt_keeper.c,v 1.13 2004/09/21 19:35:57 hadess Exp $
+ * $Id: ldt_keeper.c,v 1.14 2006/04/05 22:12:21 valtri Exp $
  *
  *
  * contents:
@@ -293,6 +293,7 @@ ldt_fs_t* Setup_LDT_Keeper(void)
         ldt_fs->fd = open("/dev/zero", O_RDWR);
         if(ldt_fs->fd<0){
             perror( "Cannot open /dev/zero for READ+WRITE. Check permissions! error: ");
+	    free(ldt_fs);
 	    return NULL;
         }
     

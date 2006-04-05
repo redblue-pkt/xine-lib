@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.h,v 1.2 2006/01/27 07:46:16 tmattern Exp $
+ * $Id: list.h,v 1.3 2006/04/05 22:12:20 valtri Exp $
  *
  * Doubly-linked linked list.
  *
@@ -50,7 +50,7 @@ typedef struct xine_list_s xine_list_t;
 typedef void* xine_list_iterator_t;
 
 /* Constructor */
-xine_list_t *xine_list_new();
+xine_list_t *xine_list_new(void);
 
 /* Destructor */
 void xine_list_delete(xine_list_t *list);

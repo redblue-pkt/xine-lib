@@ -18,6 +18,7 @@ xine-lib (1.1.2)
   * New volume normalization post plugin
   * New image noise post plugin (useful for mitigating some compression artifacts)
   * Support for Vorbis-style comments in FLAC files
+  * Coverity fixes
   
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

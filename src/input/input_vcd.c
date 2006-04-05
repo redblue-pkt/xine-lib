@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.82 2006/03/29 21:00:45 valtri Exp $
+ * $Id: input_vcd.c,v 1.83 2006/04/05 22:12:19 valtri Exp $
  *
  */
 
@@ -623,6 +623,7 @@ static buf_element_t *vcd_plugin_read_block (input_plugin_t *this_gen,
 }
 #endif
 
+#if defined (__linux__) || defined(__sun) || defined(HOST_OS_DARWIN)
 static off_t vcd_time_to_offset (int min, int sec, int frame) {
   return min * 60 * 75 + sec * 75 + frame;
 }
@@ -637,7 +638,6 @@ static void vcd_offset_to_time (off_t offset, uint8_t *min, uint8_t *sec,
 
 }
 
-#if defined (__linux__) || defined(__sun) || defined(HOST_OS_DARWIN)
 static off_t vcd_plugin_seek (input_plugin_t *this_gen, 
 			      off_t offset, int origin) {
 

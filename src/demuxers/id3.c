@@ -29,7 +29,7 @@
  *
  * ID3v2 specs: http://www.id3.org/
  *
- * $Id: id3.c,v 1.11 2005/09/16 23:01:10 tmattern Exp $
+ * $Id: id3.c,v 1.12 2006/04/05 22:12:18 valtri Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -227,11 +227,13 @@ static int id3v2_parse_genre(char* dest, char *src, int len) {
   return 1;
 }
 
+#if 0
 /* parse an unsynchronized 16bits integer */
 static uint16_t BE_16_synchsafe(uint8_t buf[2]) {
   return ((uint16_t)(buf[0] & 0x7F) << 7) |
           (uint16_t)(buf[1] & 0x7F);
 }
+#endif
 
 /* parse an unsynchronized 24bits integer */
 static uint32_t BE_24_synchsafe(uint8_t buf[3]) {

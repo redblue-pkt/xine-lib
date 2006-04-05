@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.17 2006/03/11 08:55:10 tmattern Exp $
+ * $Id: demux_slave.c,v 1.18 2006/04/05 22:12:18 valtri Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -303,7 +303,7 @@ static void demux_slave_dispose (demux_plugin_t *this_gen) {
   xine_list_iterator_t ite;
 
   /* free all decoder information */
-  while (ite = xine_list_front(this->dec_infos)) {
+  while ((ite = xine_list_front(this->dec_infos)) != NULL) {
     data = xine_list_get_value(this->dec_infos, ite);
     free(data);
     xine_list_remove (this->dec_infos, ite);

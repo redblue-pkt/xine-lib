@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.10 2006/01/27 07:46:16 tmattern Exp $
+ * $Id: list.c,v 1.11 2006/04/05 22:12:20 valtri Exp $
  *
  */
 
@@ -138,7 +138,7 @@ static void xine_list_recycle_elem(xine_list_t *list,  xine_list_elem_t *elem) {
 }
 
 /* List constructor */
-xine_list_t *xine_list_new() {
+xine_list_t *xine_list_new(void) {
   xine_list_t *new_list;
 
   new_list = (xine_list_t*)malloc(sizeof(xine_list_t));

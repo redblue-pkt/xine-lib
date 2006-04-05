@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.21 2005/05/06 04:22:51 tmmm Exp $
+ * $Id: xine_encoder.c,v 1.22 2006/04/05 22:12:19 valtri Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -246,6 +246,12 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   size = avcodec_encode_video(this->context, this->ffmpeg_buffer, DEFAULT_BUFFER_SIZE, this->picture);
 
   frame->vo_frame.free(&frame->vo_frame);
+
+  if (size < 0) {
+      xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
+        "dxr3_mpeg_encoder: encoding failed\n");
+      return 0;
+  }
 
   written = write(drv->fd_video, this->ffmpeg_buffer, size);
   if (written < 0) {

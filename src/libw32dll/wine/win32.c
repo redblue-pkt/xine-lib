@@ -1430,7 +1430,7 @@ static void WINAPI expDeleteCriticalSection(CRITICAL_SECTION *c)
 static int WINAPI expGetCurrentThreadId()
 {
     dbgprintf("GetCurrentThreadId() => %d\n", pthread_self());
-    return pthread_self();
+    return (int)pthread_self();
 }
 static int WINAPI expGetCurrentProcess()
 {
@@ -1519,7 +1519,7 @@ static int WINAPI expTlsFree(int idx)
 {
     int index = (int) idx;
     dbgprintf("TlsFree(%d)\n",index);
-    if((index<0) || (index>64))
+    if((index<0) || (index>=64))
 	return 0;
     tls_use_map[index]=0;
     return 1;
@@ -2619,7 +2619,7 @@ static int WINAPI expEnumWindows(int (*callback_func)(), void *callback_param)
 
 static int WINAPI expGetWindowThreadProcessId(HWND win, int *pid_data)
 {
-    int tid = pthread_self();
+    int tid = (int)pthread_self();
     dbgprintf("GetWindowThreadProcessId(0x%x, 0x%x) => %d\n",
 	win, pid_data, tid);
     if (pid_data)
@@ -3131,6 +3131,8 @@ static int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int 
      p = getenv(name);
      if (p) strncpy(field,p,size);
      */
+    if (!field || size < sizeof("__GLOBAL_HEAP_SELECTED,1"))
+      return 0;
     if (strcmp(name,"__MSVCRT_HEAP_SELECT")==0)
 	strcpy(field,"__GLOBAL_HEAP_SELECTED,1");
     dbgprintf("GetEnvironmentVariableA(0x%x='%s', 0x%x, %d) => %d\n", name, name, field, size, strlen(field));
@@ -3558,7 +3560,8 @@ static UINT WINAPI expGetSystemDirectoryA(
   UINT uSize        // size of directory buffer
 ){
     dbgprintf("GetSystemDirectoryA(%p,%d)\n", lpBuffer,uSize);
-    if(!lpBuffer) strcpy(lpBuffer,".");
+    if (!lpBuffer || uSize < 2) return 0;
+    strcpy(lpBuffer,".");
     return 1;
 }
 /*
