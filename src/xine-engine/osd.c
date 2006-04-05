@@ -400,6 +400,11 @@ static void osd_point (osd_object_t *osd, int x, int y, int color) {
   
   lprintf("osd=%p (%d x %d)\n", osd, x, y);
   
+  if (x < 0 || x >= osd->width)
+    return;
+  if (y < 0 || y >= osd->height)
+    return;
+  
   /* update clipping area */
   osd->x1 = MIN(osd->x1, x);
   osd->x2 = MAX(osd->x2, (x + 1));
@@ -407,8 +412,7 @@ static void osd_point (osd_object_t *osd, int x, int y, int color) {
   osd->y2 = MAX(osd->y2, (y + 1));
 
   c = osd->area + y * osd->width + x;
-  if(c <= (osd->area + (osd->width * osd->height)))
-    *c = color;
+  *c = color;
 }
 
 /*
@@ -420,46 +424,66 @@ static void osd_line (osd_object_t *osd,
      
   uint8_t *c;
   int dx, dy, t, inc, d, inc1, inc2;
+  int swap_x = 0;
+  int swap_y = 0;
 
   lprintf("osd=%p (%d,%d)-(%d,%d)\n",osd, x1,y1, x2,y2 );
   
-  /* clip line coordinates and update clipping area */
-  if (x2 > x1) {
-    if (x1 >= osd->width)
-      return;
-    x2 = MAX( x2, osd->width );  
-    
-    osd->x1 = MIN( osd->x1, x1 );
-    osd->x2 = MAX( osd->x2, x2 );
+  /* sort line */
+  if (x2 < x1) {
+    t  = x1;
+    x1 = x2;
+    x2 = t;
+    swap_x = 1;
   }
-  else {
-    if (x2 >= osd->width);
-      return;
-    x1 = MAX( x1, osd->width );
-    
-    osd->x1 = MIN( osd->x1, x2 );
-    osd->x2 = MAX( osd->x2, x1 );
-  }
-  
-  if (y2 > y1) {
-    if (y1 >= osd->height)
-      return;
-    y2 = MAX( y2, osd->height );
-    
-    osd->y1 = MIN( osd->y1, y1 );
-    osd->y2 = MAX( osd->y2, y2 );
-  }
-  else {
-    if (y2 >= osd->height)
-      return;
-    y1 = MAX( y1, osd->height );
-    
-    osd->y1 = MIN( osd->y1, y2 );
-    osd->y2 = MAX( osd->y2, y1 );
+  if (y2 < y1) {
+    t  = y1;
+    y1 = y2;
+    y2 = t;
+    swap_y = 1;
   }
 
-  dx = abs(x1-x2);
-  dy = abs(y1-y2);
+  /* clip line */ 
+  if (x1 < 0) {
+    y1 = y1 + (y2-y1) * -x1 / (x2-x1);
+    x1 = 0;
+  }
+  if (y1 < 0) {
+    x1 = x1 + (x2-x1) * -y1 / (y2-y1);
+    y1 = 0;
+  }
+  if (x2 > osd->width) {
+    y2 = y1 + (y2-y1) * (osd->width-x1) / (x2-x1);
+    x2 = osd->width;
+  }
+  if (y2 > osd->height) {
+    x2 = x1 + (x2-x1) * (osd->height-y1) / (y2-y1);
+    y2 = osd->height;
+  }
+  
+  if (x1 >= osd->width || y1 >= osd->height)
+    return;
+ 
+  /* update clipping area */
+  osd->x1 = MIN( osd->x1, x1 );
+  osd->x2 = MAX( osd->x2, x2 );
+  osd->y1 = MIN( osd->y1, y1 );
+  osd->y2 = MAX( osd->y2, y2 );
+  
+  dx = x2 - x1;
+  dy = y2 - y1;
+  
+  /* unsort line */
+  if (swap_x) {
+    t  = x1;
+    x1 = x2;
+    x2 = t;
+  }
+  if (swap_y) {
+    t  = y1;
+    y1 = y2;
+    y2 = t;
+  }
 
   if( dx>=dy ) {
     if( x1>x2 )
@@ -478,11 +502,7 @@ static void osd_line (osd_object_t *osd,
     
     while(x1<x2)
     {
-
-      if(c <= (osd->area + (osd->width * osd->height)))
-        *c = color;
-
-      c++;
+      *c++ = color;
       
       x1++;
       if( d<0 ) {
@@ -508,9 +528,7 @@ static void osd_line (osd_object_t *osd,
     c = osd->area + y1 * osd->width + x1;
 
     while(y1<y2) {
-
-      if(c <= (osd->area + (osd->width * osd->height)))
-       *c = color;
+      *c = color; 
       
       c += osd->width;
       y1++;
@@ -537,17 +555,26 @@ static void osd_filled_rect (osd_object_t *osd,
 
   lprintf("osd=%p (%d,%d)-(%d,%d)\n",osd, x1,y1, x2,y2 );
   
-  /* clip rectangle coordinates */  
-  x = MIN( x1, x2 );
-  if (x >= osd->width)
-    return;
+  /* sort rectangle */
+  x  = MIN( x1, x2 );
   dx = MAX( x1, x2 );
-  dx = MAX( dx, osd->width );
-  
-  y = MIN( y1, y2 );
-  if (y >= osd->height)
-    return;
+  y  = MIN( y1, y2 );
   dy = MAX( y1, y2 );
+  
+  /* clip rectangle */
+  if (x >= osd->width || y >= osd->height)
+    return;
+ 
+  if (x < 0) {
+    dx += x;
+    x = 0;
+  }
+  if (y < 0) {
+    dy += y;
+    y = 0;
+  }
+
+  dx = MAX( dx, osd->width );
   dy = MAX( dy, osd->height );
    
   /* update clipping area */
