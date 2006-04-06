@@ -42,7 +42,8 @@
 typedef enum {
         FE_QPSK,
         FE_QAM,
-        FE_OFDM
+        FE_OFDM,
+	FE_ATSC
 } fe_type_t;
 
 
@@ -69,6 +70,8 @@ typedef enum {
 	FE_CAN_BANDWIDTH_AUTO         = 0x40000,
 	FE_CAN_GUARD_INTERVAL_AUTO    = 0x80000,
 	FE_CAN_HIERARCHY_AUTO         = 0x100000,
+	FE_CAN_8VSB                   = 0x200000,
+	FE_CAN_16VSB                  = 0x400000,
 	FE_CAN_MUTE_TS                = 0x80000000,
 	FE_CAN_CLEAN_SETUP            = 0x40000000
 } fe_caps_t;
@@ -163,7 +166,9 @@ typedef enum {
         QAM_64,
         QAM_128,
         QAM_256,
-	QAM_AUTO
+	QAM_AUTO,
+	VSB_8,
+	VSB_16
 } fe_modulation_t;
 
 
@@ -211,6 +216,9 @@ struct dvb_qam_parameters {
         fe_modulation_t  modulation;  /* modulation type (see above) */
 };
 
+struct dvb_vsb_parameters {
+	fe_modulation_t	modulation;  /* modulation type (see above) */
+};
 
 struct dvb_ofdm_parameters {
         fe_bandwidth_t      bandwidth;
@@ -231,6 +239,7 @@ struct dvb_frontend_parameters {
 		struct dvb_qpsk_parameters qpsk;
 		struct dvb_qam_parameters  qam;
 		struct dvb_ofdm_parameters ofdm;
+		struct dvb_vsb_parameters vsb;
 	} u;
 };
 

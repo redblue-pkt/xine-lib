@@ -39,7 +39,9 @@
  *             - Now tuning to an erroneus channel shouldn't hang but stop
  *               the playback and output a log describing the error.
  *             - Style cleanups here and there.
- *
+ * 
+ * 06-Apr-2006 Jack Steven Kelliher
+ *	       - Add ATSC support
  *   
  * TODO/Wishlist: (not in any order)
  * - Parse all Administrative PIDs - NIT,SDT,CAT etc
@@ -397,6 +399,14 @@ static const Param hierarchy_list [] = {
         { NULL, 0 }
 };
 
+static const Param atsc_list [] = {
+	{ "8VSB", VSB_8 },
+	{ "QAM_256", QAM_256 },
+	{ "QAM_64", QAM_64 },
+	{ "QAM", QAM_AUTO },
+        { NULL, 0 }
+};
+
 static const Param qam_list [] = {
 	{ "QPSK", QPSK },
 	{ "QAM_128", QAM_128 },
@@ -624,6 +634,7 @@ static tuner_t *tuner_init(xine_t * xine, int adapter)
    if(this->feinfo.type==FE_QPSK) xprintf(this->xine,XINE_VERBOSITY_DEBUG,"SAT Card\n");
    if(this->feinfo.type==FE_QAM) xprintf(this->xine,XINE_VERBOSITY_DEBUG,"CAB Card\n");
    if(this->feinfo.type==FE_OFDM) xprintf(this->xine,XINE_VERBOSITY_DEBUG,"TER Card\n");
+   if(this->feinfo.type==FE_ATSC) xprintf(this->xine,XINE_VERBOSITY_DEBUG,"US Card\n");
 
    if ((test_video=open(video_device, O_RDWR)) < 0) {
        xprintf(this->xine,XINE_VERBOSITY_DEBUG,"input_dvb: Card has no hardware decoder\n");
@@ -701,6 +712,7 @@ static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t 
 		(DVBT) OFDM: <channel name>:<frequency>:<inversion>:
 						<bw>:<fec_hp>:<fec_lp>:<qam>:
 						<transmissionm>:<guardlist>:<hierarchinfo>:<vpid>:<apid>
+		(DVBA) ATSC: <channel name>:<frequency>:<qam>:<vpid>:<apid>
 		
 		<channel name> = any string not containing ':'
 		<frequency>    = unsigned long
@@ -711,7 +723,7 @@ static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t 
 		
 		<inversion>    = INVERSION_ON | INVERSION_OFF | INVERSION_AUTO
 		<fec>          = FEC_1_2, FEC_2_3, FEC_3_4 .... FEC_AUTO ... FEC_NONE
-		<qam>          = QPSK, QAM_128, QAM_16 ...
+		<qam>          = QPSK, QAM_128, QAM_16, ATSC ...
 
 		<bw>           = BANDWIDTH_6_MHZ, BANDWIDTH_7_MHZ, BANDWIDTH_8_MHZ
 		<fec_hp>       = <fec>
@@ -818,6 +830,14 @@ static int extract_channel_from_string(channel_t * channel,char * str,fe_type_t 
 			if(!(field = strsep(&tmp, ":")))return -1;
 			channel->front_param.u.ofdm.hierarchy_information = find_param(hierarchy_list, field);
 		break;
+		case FE_ATSC:
+			channel->front_param.frequency = freq;
+			
+			/* find out the qam */
+			if(!(field = strsep(&tmp, ":")))return -1;
+			channel->front_param.u.vsb.modulation = find_param(atsc_list, field);
+		break;
+
 	}
 
    /* Video PID - not used but we'll take it anyway */
@@ -1119,8 +1139,17 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
         }
 	break;
 	}
-      break;
-      };
+        break;
+      case 0x81: /* AC3 audio */
+	fprintf(stderr, "  pid type 0x%x,  has audio %d\n",buf[0],has_audio); //jsk
+        if(!has_audio) {
+	  xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding AUDIO     : PID 0x%04x\n", elementary_pid);
+	  dvb_set_pidfilter(this, AUDFILTER, elementary_pid, DMX_PES_AUDIO, DMX_OUT_TS_TAP);
+	  has_audio=1;
+	}
+        break;
+
+      }; 
 
     buf += descriptor_len + 5;
     section_length -= descriptor_len + 5;
@@ -2834,6 +2863,33 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
         return 0;
       }
       this->channel = 0;
+    } else if (strncasecmp(this->mrl, "dvba://", 7) == 0) 
+    {
+      fprintf(stderr,"input_dvb: 2a %x\n",tuner->feinfo.type); //jsk
+      /*
+       * This is dvbc://<channel name>:<qam tuning parameters>
+       */
+       if (tuner->feinfo.type != FE_ATSC) 
+       {
+	 fprintf(stderr,"input_dvb: FAILED 1\n"); //jsk
+         xprintf(this->class->xine, XINE_VERBOSITY_LOG,
+	 _("input_dvb: dvbc mrl specified but the tuner doesn't appear to be QAM (DVB-C)\n"));
+         tuner_dispose(tuner);
+         return 0;
+      }
+      ptr = this->mrl;
+      ptr += 7;
+      channels = xine_xmalloc(sizeof(channel_t));
+      _x_assert(channels != NULL);
+      if (extract_channel_from_string(channels, ptr, tuner->feinfo.type) < 0)
+      {
+	fprintf(stderr,"input_dvb: FAILED 2\n"); 
+        free(channels);
+	channels = NULL;
+        tuner_dispose(tuner);
+        return 0;
+      }
+      this->channel = 0;
     }else {
 	   /* not our mrl */
 	   tuner_dispose(tuner);
@@ -2982,7 +3038,10 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
     if(strncasecmp(mrl,"dvbs://",7))
       if(strncasecmp(mrl,"dvbt://",7))
         if(strncasecmp(mrl,"dvbc://",7))
-          return NULL;
+	  if(strncasecmp(mrl,"dvba://",7))
+	    return NULL;
+
+  fprintf(stderr, "input_dvb: continuing in get_instance\n"); //jsk
 
   this = (dvb_input_plugin_t *) xine_xmalloc (sizeof(dvb_input_plugin_t));
 
@@ -3168,7 +3227,8 @@ static void *init_class (xine_t *xine, void *data) {
   this->mrls[1] = "dvbs://";
   this->mrls[2] = "dvbc://";
   this->mrls[3] = "dvbt://";
-  this->mrls[4] = 0;
+  this->mrls[4] = "dvba://";
+  this->mrls[5] = 0;
 
   xprintf(this->xine,XINE_VERBOSITY_DEBUG,"init class succeeded\n");
 
