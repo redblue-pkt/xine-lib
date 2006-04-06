@@ -445,7 +445,8 @@ Ramon van der Aar <rvda@itsec-ps.nl>
 
 Jack Steven Kelliher <kelliher@xmission.com>
   XvMC support
-  
+  ATSC support for the DVB plugin
+
 Wang WenRui <wangwr@ustc.edu>
   encoding of URL with multibyte characters in MMS
 
