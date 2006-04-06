@@ -1141,7 +1141,7 @@ static void parse_pmt(dvb_input_plugin_t *this, const unsigned char *buf, int se
 	}
         break;
       case 0x81: /* AC3 audio */
-	fprintf(stderr, "  pid type 0x%x,  has audio %d\n",buf[0],has_audio); //jsk
+	fprintf(stderr, "  pid type 0x%x,  has audio %d\n",buf[0],has_audio); 
         if(!has_audio) {
 	  xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"input_dvb: Adding AUDIO     : PID 0x%04x\n", elementary_pid);
 	  dvb_set_pidfilter(this, AUDFILTER, elementary_pid, DMX_PES_AUDIO, DMX_OUT_TS_TAP);
@@ -2865,13 +2865,13 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
       this->channel = 0;
     } else if (strncasecmp(this->mrl, "dvba://", 7) == 0) 
     {
-      fprintf(stderr,"input_dvb: 2a %x\n",tuner->feinfo.type); //jsk
+      fprintf(stderr,"input_dvb: 2a %x\n",tuner->feinfo.type); 
       /*
        * This is dvbc://<channel name>:<qam tuning parameters>
        */
        if (tuner->feinfo.type != FE_ATSC) 
        {
-	 fprintf(stderr,"input_dvb: FAILED 1\n"); //jsk
+	 fprintf(stderr,"input_dvb: FAILED 1\n"); 
          xprintf(this->class->xine, XINE_VERBOSITY_LOG,
 	 _("input_dvb: dvbc mrl specified but the tuner doesn't appear to be QAM (DVB-C)\n"));
          tuner_dispose(tuner);
@@ -3041,7 +3041,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
 	  if(strncasecmp(mrl,"dvba://",7))
 	    return NULL;
 
-  fprintf(stderr, "input_dvb: continuing in get_instance\n"); //jsk
+  fprintf(stderr, "input_dvb: continuing in get_instance\n");
 
   this = (dvb_input_plugin_t *) xine_xmalloc (sizeof(dvb_input_plugin_t));
 
