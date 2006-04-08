@@ -2,10 +2,11 @@ include $(top_srcdir)/misc/Makefile.common
 
 # -fomit-frame-pointer is always needed. it might cause debug to not
 # work, but at least it compiles.
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil -fomit-frame-pointer
+AM_CFLAGS = -fomit-frame-pointer
 # CFLAGS is here to filter out -funroll-loops because it causes bad
 # behavior of libavcodec
 CFLAGS := `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
+AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil
 
 # Avoid "can't find register" failures with -O1 and higher
 dsputil_mmx.o dsputil_mmx.lo: CFLAGS=`echo @CFLAGS@ | sed -e 's/-funroll-loops//g; s/-O[0-9]/-Os/g'`

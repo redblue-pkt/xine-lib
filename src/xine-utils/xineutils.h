@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2005 the xine project
+ * Copyright (C) 2000-2006 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.100 2006/02/14 19:12:16 dsalt Exp $
+ * $Id: xineutils.h,v 1.101 2006/04/08 16:42:38 valtri Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -65,9 +65,14 @@ extern "C" {
 
 #include <stdio.h>
 #include <string.h>
-/* for alloca under MinGW */
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
+
+/* 
+ * Mark exported data symbols for link engine library clients with older
+ * Win32 compilers
+ */
+#if defined(WIN32) && !defined(XINE_LIBRARY_COMPILE)
+#  define DL_IMPORT __declspec(dllimport)
+#  define extern DL_IMPORT extern
 #endif
 
   /*
@@ -595,18 +600,7 @@ typedef	union {
 
 		     /* Optimized/fast memcpy */
 
-/*
-   TODO : fix dll linkage problem for xine_fast_memcpy on win32
-
-   xine_fast_memcpy dll linkage is screwy here.
-   declaring as dllimport seems to fix the problem
-   but causes compiler warning with libxineutils
-*/
-#ifdef _MSC_VER
-__declspec( dllimport ) extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
-#else
 extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
-#endif
 
 #ifdef HAVE_XINE_INTERNAL_H
 /* Benchmark available memcpy methods */
@@ -977,6 +971,11 @@ const char *xine_guess_spu_encoding(void);
  * note: it will be a monotonic clock, if available.
  */
 int xine_monotonic_clock(struct timeval *tv, struct timezone *tz);      
+
+/* don't harm following code */
+#ifdef extern
+#  undef extern
+#endif
 
 #ifdef __cplusplus
 }

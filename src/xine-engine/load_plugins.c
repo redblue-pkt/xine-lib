@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2005 the xine project
+ * Copyright (C) 2000-2006 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.220 2006/02/14 18:47:46 dsalt Exp $
+ * $Id: load_plugins.c,v 1.221 2006/04/08 16:42:37 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -39,6 +39,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <ctype.h>
 #include <signal.h>
 

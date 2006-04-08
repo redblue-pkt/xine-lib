@@ -185,7 +185,8 @@ AC_TYPE_SIZE_T
 AC_CHECK_SIZEOF(long)
 dnl AC_CHECK_TYPES([ptrdiff_t])
 dnl For systems without inttypes.h would be needed extend generated replacement.
-dnl AC_CHECK_GENERATE_INTTYPES([lib])
+AC_CHECK_GENERATE_INTTYPES([lib])
+AM_CONDITIONAL(GENERATED_INTTYPES_H, test x"$ac_cv_header_inttypes_h" != x"yes")
 AC_CHECK_TYPE(ssize_t, :, AC_DEFINE(ssize_t, __int64, [define ssize_t to __int64 if it's missing in default includes]))
 
 
@@ -354,16 +355,21 @@ dnl mpeg2lib and ffmpeg stuff
 dnl ---------------------------------------------
 
 AC_SUBST(LIBMPEG2_CFLAGS)
-AC_SUBST(LIBFFMPEG_CFLAGS)
+AC_SUBST(LIBFFMPEG_CPPFLAGS)
 
 LIBMPEG2_CFLAGS=""
-LIBFFMPEG_CFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL"
+LIBFFMPEG_CPPFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DUSE_FASTMEMCPY -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL"
 
 AC_CHECK_DECL(lrintf,[
 	AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' function is declared in math.h])
 	AC_DEFINE(_ISOC9X_SOURCE,1,[Define this if you are ISO C9X compliant])
       ],,[
 #define _ISOC9X_SOURCE
+#include <math.h>
+])
+AC_CHECK_DECL(rintf,[
+	AC_DEFINE(HAVE_RINTF,1,[Define this if the 'rintf' function is declared in math.h])
+      ],,[
 #include <math.h>
 ])
 
@@ -1879,12 +1885,11 @@ dnl ---------------------------------------------
 
 AC_SYS_LARGEFILE
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset strchr])
+AC_CHECK_FUNCS([_vsnprintf _snprintf _stricmp _strnicmp vsscanf sigaction sigset getpwuid_r nanosleep lstat memset readlink strchr strcasecmp strncasecmp])
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
 AC_CHECK_HEADERS(assert.h byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h)
 AC_REPLACE_FUNCS(basename gettimeofday setenv strndup strpbrk strsep strtok_r timegm unsetenv)
-AC_CHECK_FUNCS(readlink)
 
 AC_LIBSOURCE(hstrerror.c)
 AC_LINK_IFELSE([#include <netdb.h>
@@ -2183,7 +2188,7 @@ dnl ---------------------------------------------
 dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl ---------------------------------------------
 
-INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_CPPFLAGS) -I$(top_srcdir)/lib'
+INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_CPPFLAGS) -I$(top_builddir)/lib -I$(top_srcdir)/lib'
 AC_SUBST(INCLUDES)
 
 

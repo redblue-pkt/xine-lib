@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004 the xine project
+ * Copyright (C) 2004-2006 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: os_types.h,v 1.4 2005/02/03 07:19:03 valtri Exp $ Ext
+ * $Id: os_types.h,v 1.5 2006/04/08 16:42:23 valtri Exp $ Ext
  *
  * Platform dependent types needed by public xine.h. 
  * Types not needed by xine.h are specified in os_internal.h.
@@ -97,22 +97,12 @@
    typedef long int64_t;
    typedef unsigned long int64_t;
 
-#elif defined(HOST_OS_DARWIN)
-
-  /* Darwin (Mac OS X) needs __STDC_LIBRARY_SUPPORTED__ for SCNx64 and
-   * SCNxMAX macros */
-#  ifndef __STDC_LIBRARY_SUPPORTED__
-#    define __STDC_LIBRARY_SUPPORTED__
-#  endif /* __STDC_LIBRARY_SUPPORTED__ */
-
-#  include <inttypes.h>
-
 #else
 
   /* 
    * CygWin: _WIN32 & __GNUC__
    * BeOS:   __BEOS__
-   * Linux, Solaris and others
+   * Linux, Solaris, Mac and others
    */
 #  include <inttypes.h>
 

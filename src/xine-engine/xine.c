@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2005 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.322 2006/03/17 18:52:04 hadess Exp $
+ * $Id: xine.c,v 1.323 2006/04/08 16:42:37 valtri Exp $
  */
 
 /*
@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdarg.h>
+#include <stdio.h>
 #if defined (__linux__)
 #include <endian.h>
 #elif defined (__FreeBSD__)

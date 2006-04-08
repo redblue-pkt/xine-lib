@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS)
 # CFLAGS is here to filter out -funroll-loops because it causes bad
 # behavior of libavcodec
 CFLAGS = `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`

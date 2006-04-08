@@ -361,17 +361,6 @@ diff -u -p -r1.13 goom_core.c
 diff -r -u xine-lib-1.1.0-orig/src/post/goom/convolve_fx.c xine-lib-1.1.0/src/post/goom/convolve_fx.c
 --- convolve_fx.c	2005-07-22 12:42:00.000000000 -0400
 +++ convolve_fx.c	2005-11-11 14:59:39.925112333 -0500
-@@ -7,6 +7,10 @@
- #include <stdlib.h>
- #include <string.h>
- 
-+#if HAVE_CONFIG_H
-+#  include "config.h"
-+#endif
-+
- //#define CONV_MOTIF_W 32
- //#define CONV_MOTIF_WMASK 0x1f
- 
 @@ -151,7 +155,8 @@
      ytex = yprime + yi + CONV_MOTIF_W * 0x10000 / 2;
      yprime += c;
@@ -494,3 +483,18 @@ diff -r -u xine-lib-1.1.0-orig/src/post/goom/xmmx.c xine-lib-1.1.0/src/post/goom
  }
  
  #define DRAWMETHOD_PLUS_XMMX(_out,_backbuf,_col) \
+Index: goom_config.h
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/goom_config.h,v
+retrieving revision 1.9
+diff -u -p -r1.9 goom_config.h
+--- goom_config.h	21 Nov 2004 15:10:40 -0000	1.9
++++ goom_config.h	8 Apr 2006 15:35:01 -0000
+@@ -1,3 +1,7 @@
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
+ #if WORDS_BIGENDIAN
+ #define COLOR_ARGB
+ #else

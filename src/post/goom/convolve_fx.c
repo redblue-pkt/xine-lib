@@ -7,10 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
 //#define CONV_MOTIF_W 32
 //#define CONV_MOTIF_WMASK 0x1f
 

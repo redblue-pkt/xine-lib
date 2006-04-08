@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = $(LIBFFMPEG_CFLAGS)
+AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS)
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavutil.la

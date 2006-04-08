@@ -15,6 +15,9 @@
  * coefficients will be stored.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <math.h>
 #include "dsp.h"
 

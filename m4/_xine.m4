@@ -179,11 +179,21 @@ AC_DEFUN([AC_TRY_CFLAGS],
 dnl AC_CHECK_GENERATE_INTTYPES_H (INCLUDE-DIRECTORY)
 dnl generate a default inttypes.h if the header file does not exist already
 AC_DEFUN([AC_CHECK_GENERATE_INTTYPES],
-    [AC_CHECK_HEADER([inttypes.h],[],
-        [AC_COMPILE_CHECK_SIZEOF([char],[1])
-        AC_COMPILE_CHECK_SIZEOF([short],[2])
-        AC_COMPILE_CHECK_SIZEOF([int],[4])
-        AC_COMPILE_CHECK_SIZEOF([long long],[8])
+    [AC_CHECK_HEADER([inttypes.h],,
+        [[ ! -d $1 ] && mkdir $1
+        AC_CHECK_HEADER([stdint.h],
+            [cat >$1/inttypes.h << EOF
+#ifndef _INTTYPES_H
+#define _INTTYPES_H
+/* helper inttypes.h for people who do not have it on their system */
+
+#include <stdint.h>
+EOF
+            ],
+            [AC_COMPILE_CHECK_SIZEOF([char],[1])
+            AC_COMPILE_CHECK_SIZEOF([short],[2])
+            AC_COMPILE_CHECK_SIZEOF([int],[4])
+            AC_COMPILE_CHECK_SIZEOF([long long],[8])
         cat >$1/inttypes.h << EOF
 #ifndef _INTTYPES_H
 #define _INTTYPES_H
@@ -206,9 +216,137 @@ typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 #endif
 #endif
+EOF
+            ])
+        cat >>$1/inttypes.h << EOF
+
+#ifdef WIN32
+#  define PRI64_PREFIX "I64"
+#else
+#  define PRI64_PREFIX "l"
+#endif
+
+#ifndef PRId8
+#  define PRId8 "d"
+#endif
+#ifndef PRId16
+#  define PRId16 "d"
+#endif
+#ifndef PRId32
+#  define PRId32 "d"
+#endif
+#ifndef PRId64
+#  define PRId64 PRI64_PREFIX "d"
+#endif
+
+#ifndef PRIu8
+#  define PRIu8 "u"
+#endif
+#ifndef PRIu16
+#  define PRIu16 "u"
+#endif
+#ifndef PRIu32
+#  define PRIu32 "u"
+#endif
+#ifndef PRIu64
+#  define PRIu64 PRI64_PREFIX "u"
+#endif
+
+#ifndef PRIx8
+#  define PRIx8 "x"
+#endif
+#ifndef PRIx16
+#  define PRIx16 "x"
+#endif
+#ifndef PRIx32
+#  define PRIx32 "x"
+#endif
+#ifndef PRIx64
+#  define PRIx64 PRI64_PREFIX "x"
+#endif
+
+#ifndef PRIdFAST8
+#  define PRIdFAST8 "d"
+#endif
+#ifndef PRIdFAST16
+#  define PRIdFAST16 "d"
+#endif
+#ifndef PRIdFAST32
+#  define PRIdFAST32 "d"
+#endif
+#ifndef PRIdFAST64
+#  define PRIdFAST64 "d"
+#endif
+
+#ifndef PRIuFAST8
+#  define PRIuFAST8 "u"
+#endif
+#ifndef PRIuFAST16
+#  define PRIuFAST16 "u"
+#endif
+#ifndef PRIuFAST32
+#  define PRIuFAST32 "u"
+#endif
+#ifndef PRIuFAST64
+#  define PRIuFAST64 PRI64_PREFIX "u"
+#endif
+
+#ifndef PRIxFAST8
+#  define PRIxFAST8 "x"
+#endif
+#ifndef PRIxFAST16
+#  define PRIxFAST16 "x"
+#endif
+#ifndef PRIxFAST32
+#  define PRIxFAST32 "x"
+#endif
+#ifndef PRIxFAST64
+#  define PRIxFAST64 PRI64_PREFIX "x"
+#endif
+
+#ifndef SCNd8
+#  define SCNd8 "hhd"
+#endif
+#ifndef SCNd16
+#  define SCNd16 "hd"
+#endif
+#ifndef SCNd32
+#  define SCNd32 "d"
+#endif
+#ifndef SCNd64
+#  define SCNd64 PRI64_PREFIX "d"
+#endif
+
+#ifndef SCNu8
+#  define SCNu8 "hhu"
+#endif
+#ifndef SCNu16
+#  define SCNu16 "hu"
+#endif
+#ifndef SCNu32
+#  define SCNu32 "u"
+#endif
+#ifndef SCNu64
+#  define SCNu64 PRI64_PREFIX "u"
+#endif
+
+#ifndef PRIdMAX
+#  define PRIdMAX PRId64
+#endif
+#ifndef PRIuMAX
+#  define PRIuMAX PRIu64
+#endif
+#ifndef PRIxMAX
+#  define PRIxMAX PRIx64
+#endif
+#ifndef SCNdMAX
+#  define SCNdMAX SCNd64
+#endif
+
 #endif
 EOF
-        ])])
+        ])]
+)
 
 
 dnl AC_COMPILE_CHECK_SIZEOF (TYPE SUPPOSED-SIZE)

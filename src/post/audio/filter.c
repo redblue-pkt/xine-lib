@@ -10,6 +10,9 @@
 
 /* Design and implementation of different types of digital filters */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 #include <string.h>
 #include <math.h>
 #include "dsp.h"

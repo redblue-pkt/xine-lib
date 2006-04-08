@@ -1,6 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = -O2 $(LIBFFMPEG_CFLAGS)
+AM_CFLAGS = -O2
+AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS)
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec_armv4l.la

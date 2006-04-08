@@ -18,6 +18,10 @@
  *    X_DISPLAY_MISSING 1
  *    HAVE_MEMCPY 1
  *    XINE_REL_PLUGINDIR "lib\\xine\\plugins"
+ *    HAVE__SNPRINTF 1
+ *    HAVE__VSNPRINTF 1
+ *    HAVE__STRICMP 1
+ *    HAVE__STRNICMP 1
  * Disable:
  *  esd, arts, alsa, gnome_vfs, png, sdl, speex, x11, theora
  */
@@ -620,5 +624,9 @@
 /* Define this to plugin directory relative to execution prefix */
 #define XINE_REL_PLUGINDIR "lib\\xine\\plugins"
 
+#define HAVE__SNPRINTF 1
+#define HAVE__VSNPRINTF 1
+#define HAVE__STRICMP 1
+#define HAVE__STRNICMP 1
 
 #include "os_internal.h"

@@ -2,19 +2,20 @@
 #define _XINE_OS_INTERNAL_H
 
 #include <stddef.h>
-#include "os_types.h"
 
+#ifdef HOST_OS_DARWIN
+  /* Darwin (Mac OS X) needs __STDC_LIBRARY_SUPPORTED__ for SCNx64 and
+   * SCNxMAX macros */
+#  ifndef __STDC_LIBRARY_SUPPORTED__
+#    define __STDC_LIBRARY_SUPPORTED__
+#  endif /* __STDC_LIBRARY_SUPPORTED__ */
+#endif
 
 #if defined (__SVR4) && defined (__sun)
 #  include <sys/int_types.h>
-
-/* maybe needed for FreeBSD 4-STABLE */
-/* 
-#elif defined (__FreeBSD__)
-#  include <stdint.h>
-*/
-
 #endif
+
+#include <inttypes.h>
 
 
 #if defined(WIN32) || defined(__CYGWIN__)
@@ -97,19 +98,38 @@ time_t _xine_private_timegm(struct tm *tm);
 void _xine_private_unsetenv(const char *name);
 #endif
 
-/* macross needed for MSVC */
-#ifdef _MSC_VER
+/* handle non-standard function names */
+#if !defined(HAVE_SNPRINTF) && defined(HAVE__SNPRINTF)
 #  define snprintf _snprintf
+#endif
+#if !defined(HAVE_VSNPRINTF) && defined(HAVE__VSNPRINTF)
 #  define vsnprintf _vsnprintf
+#endif
+#if !defined(HAVE_STRCASECMP) && defined(HAVE__STRICMP)
 #  define strcasecmp _stricmp
+#endif
+#if !defined(HAVE_STRNCASECMP) && defined(HAVE__STRNICMP)
 #  define strncasecmp _strnicmp
+#endif
+
+#include <math.h>
+#ifndef M_PI
 #  define M_PI 3.14159265358979323846
+#endif
+#ifndef HAVE_LRINTF
+#define lrint(X) (long)((X) + ((X) >= 0 ? 0.5 : -0.5))
+#endif
+#ifndef HAVE_RINTF
+#define rint(X) (int)((X) + ((X) >= 0 ? 0.5 : -0.5))
 #endif
 
 #ifdef WIN32
 #  include <io.h>
 #  ifdef _MSC_VER
 #    include <direct.h>
+#  endif
+#  ifdef HAVE_SYS_STAT_H
+#    include <sys/stat.h>
 #  endif
 #  define mkdir(A, B) _mkdir((A))
 
@@ -156,6 +176,23 @@ void _xine_private_unsetenv(const char *name);
 #  if !S_IXUGO
 #    define S_IXUGO (S_IXUSR | S_IXGRP | S_IXOTH)
 #  endif
+
+/*
+ * workaround compatibility code due to 'near' and 'far' keywords in windef.h
+ * (do it only inside ffmpeg)
+ */
+#  ifdef HAVE_AV_CONFIG_H
+#    include <windef.h>
+#    ifdef near
+#      undef near
+#    endif
+#    ifdef far
+#      undef far
+#    endif
+     /* it sucks everywhere :-) */
+#    define near win32_sucks_near
+#    define far win32_sucks_far
+#  endif /* av_config */
 
 #endif
 
