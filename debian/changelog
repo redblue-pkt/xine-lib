@@ -10,11 +10,12 @@ xine-lib (1.1.1-2) unstable; urgency=low
   * Re-update the FSF address in debian/copyright. It got lost in 1.1.1-1.
   * Add build-dep alternatives for those of us who do backports to sarge.
   * Tidy up the package descriptions a little.
+  * Create libxine1-dbg. (Needs a build-dep on binutils.)
 
   * Empty config file no longer prevents the config from being saved.
     (Fixed in upstream 1.1.1) (Closes: #320164)
 
- -- Reinhard Tartler <siretart@tauware.de>  Sat, 25 Feb 2006 12:26:10 +0100
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 09 Apr 2006 02:52:02 +0100
 
 xine-lib (1.1.1-1) unstable; urgency=low
 

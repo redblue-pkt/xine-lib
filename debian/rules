@@ -6,6 +6,9 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+# This file depends on debhelper compatibility level 4.
+# If a higher level is used, the dh_strip invocation will need to be fixed.
+
 # assuming created lib in src/xine-engine/.libs/libxine.so.<version>
 version=`ls src/xine-engine/.libs/libxine*.so.* | \
  awk '{if (match($$0,/[0-9]+\.[0-9]+\.[0-9]+$$/)) print substr($$0,RSTART)}'`
@@ -99,7 +102,7 @@ binary-arch: build install
 	dh_installdocs
 	dh_installchangelogs -k ChangeLog
 	dh_link
-	dh_strip -k
+	dh_strip --dbg-package=libxine1
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs -V 'libxine1 (>= 1.0.1)'
