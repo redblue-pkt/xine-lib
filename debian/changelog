@@ -11,6 +11,7 @@ xine-lib (1.1.1-2) unstable; urgency=low
   * Add build-dep alternatives for those of us who do backports to sarge.
   * Tidy up the package descriptions a little.
   * Create libxine1-dbg. (Needs a build-dep on binutils.)
+  * Bump shlibs to >= 1.1.0 due to new functions. (Closes: #358429)
 
   * Empty config file no longer prevents the config from being saved.
     (Fixed in upstream 1.1.1) (Closes: #320164)

@@ -105,7 +105,7 @@ binary-arch: build install
 	dh_strip --dbg-package=libxine1
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine1 (>= 1.0.1)'
+	dh_makeshlibs -V 'libxine1 (>= 1.1.0)'
 	dh_installdeb
 #	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh
