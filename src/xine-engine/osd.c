@@ -574,8 +574,8 @@ static void osd_filled_rect (osd_object_t *osd,
     y = 0;
   }
 
-  dx = MAX( dx, osd->width );
-  dy = MAX( dy, osd->height );
+  dx = MIN( dx, osd->width );
+  dy = MIN( dy, osd->height );
    
   /* update clipping area */
   osd->x1 = MIN( osd->x1, x );
