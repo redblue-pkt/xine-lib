@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.111 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: input_http.c,v 1.112 2006/04/12 15:37:07 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -931,15 +931,23 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   /* http_input_class_t  *cls = (http_input_class_t *) cls_gen;*/
   http_input_plugin_t *this;
   
-  if (strncasecmp (mrl, "http://", 7) && (strncasecmp (mrl, "unsv://", 7))) {
+  if (strncasecmp (mrl, "http://", 7) && 
+      strncasecmp (mrl, "unsv://", 7) &&
+      strncasecmp (mrl, "peercast://pls/", 15)) {
     return NULL;
   }
   this = (http_input_plugin_t *) xine_xmalloc(sizeof(http_input_plugin_t));
 
-  this->mrl     = strdup(mrl);
-  this->stream  = stream;
-  this->fh      = -1;
-  this->nbc     = nbc_init (this->stream);
+  if (!strncasecmp (mrl, "peercast://pls/", 15)) {
+    this->mrl = xine_xmalloc (30 + strlen(mrl) - 15);
+    sprintf (this->mrl, "http://127.0.0.1:7144/stream/%s", mrl+15);
+  } else {    
+    this->mrl = strdup (mrl);
+  }
+  
+  this->stream = stream;
+  this->fh     = -1;
+  this->nbc    = nbc_init (this->stream);
   
   this->input_plugin.open              = http_plugin_open;
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;
