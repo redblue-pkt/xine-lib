@@ -59,7 +59,7 @@ CONFIGURE_FLAGS := --prefix=/usr --mandir=\$${prefix}/share/man --with-external-
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure --prefix=/usr --mandir=\$${prefix}/share/man \
+	./configure --prefix=/usr --mandir=\$${prefix}/share/man --with-external-libmad --with-xv-path=/usr/lib \
                     $(DEB_BUILD_GNU_OPTION) CFLAGS="$(CFLAGS)"
 	touch configure-stamp
 

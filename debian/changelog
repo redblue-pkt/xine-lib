@@ -1,6 +1,7 @@
 xine-lib (1.1.1-2) unstable; urgency=low
 
-  * Use external libmad (Closes: #336437)
+  [ Reinhard Tartler ]
+  * Use external libmad, acknowledging NMU (Closes: #336437)
   * enable support for libxvmc1, now that we have xorg in debian
     (Closes: #281572)
   * Conflict/Replaces obsolete package 'xine' (Closes: #300852)
@@ -17,6 +18,16 @@ xine-lib (1.1.1-2) unstable; urgency=low
     (Fixed in upstream 1.1.1) (Closes: #320164)
 
  -- Reinhard Tartler <siretart@tauware.de>  Sun, 09 Apr 2006 02:52:02 +0100
+
+xine-lib (1.1.1-1.1) unstable; urgency=low
+
+  * NMU.
+  * Use external libmad, which fixes crashes on amd64 on apps loading both
+    libxine1 and libmad0. (Closes: #336437)
+  * Pass --with-xv-path=/usr/lib to configure, since otherwise Xv support was
+    lost when compiling against modular X.
+
+ -- Adeodato Simó <dato@net.com.org.es>  Sat, 15 Apr 2006 19:34:33 +0200
 
 xine-lib (1.1.1-1) unstable; urgency=low
 
