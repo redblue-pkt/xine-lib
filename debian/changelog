@@ -13,11 +13,10 @@ xine-lib (1.1.1-2) unstable; urgency=low
   * Tidy up the package descriptions a little.
   * Create libxine1-dbg. (Needs a build-dep on binutils.)
   * Bump shlibs to >= 1.1.0 due to new functions. (Closes: #358429)
-
   * Empty config file no longer prevents the config from being saved.
     (Fixed in upstream 1.1.1) (Closes: #320164)
 
- -- Reinhard Tartler <siretart@tauware.de>  Sun, 09 Apr 2006 02:52:02 +0100
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 17 Apr 2006 16:48:06 +0200
 
 xine-lib (1.1.1-1.1) unstable; urgency=low
 
