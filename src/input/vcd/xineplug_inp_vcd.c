@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.45 2005/10/14 21:02:16 miguelfreitas Exp $
+  $Id: xineplug_inp_vcd.c,v 1.46 2006/04/18 13:51:33 hadess Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1495,6 +1495,8 @@ static void
 vcd_class_dispose (input_class_t *this_gen) {
   vcd_input_class_t  *class = (vcd_input_class_t *) this_gen;
 
+  class->xine->config->unregister_callback(class->xine->config,
+					   "media.vcd.device");
   gl_default_vcd_log_handler  = vcd_log_set_handler (uninit_log_handler);
   gl_default_cdio_log_handler = 
     cdio_log_set_handler ((cdio_log_handler_t) uninit_log_handler);
