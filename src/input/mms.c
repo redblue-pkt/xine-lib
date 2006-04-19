@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.56 2005/04/21 19:02:43 mroi Exp $
+ * $Id: mms.c,v 1.57 2006/04/19 17:30:12 dsalt Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -627,7 +627,7 @@ static void interp_asf_header (mms_t *this) {
   }
 }
 
-const static char *const mmst_proto_s[] = { "mms", "mmst", NULL };
+static const char *const mmst_proto_s[] = { "mms", "mmst", NULL };
 
 static int mmst_valid_proto (char *proto) {
   int i = 0;
@@ -710,7 +710,7 @@ static void mms_gen_guid(char guid[]) {
 /*
  * return 0 on error
  */
-int static mms_choose_best_streams(mms_t *this) {
+static int mms_choose_best_streams(mms_t *this) {
   int     i;
   int     video_stream = 0;
   int     audio_stream = 0;
