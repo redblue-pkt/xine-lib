@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.92 2006/01/27 07:46:16 tmattern Exp $
+ * $Id: xine_interface.c,v 1.93 2006/04/19 17:35:47 dsalt Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -900,25 +900,26 @@ int _x_message(xine_stream_t *stream, int type, ...) {
   char                   *args[1024];
   static char            *std_explanation[] = {
     "",
-    "Warning:",
-    "Unknown host:",
-    "Unknown device:",
-    "Network unreachable",
-    "Connection refused:",
-    "File not found:",
-    "Read error from:",
-    "Error loading library:",
-    "Encrypted media stream detected",
-    "Security message:",
-    "Audio device unavailable",
-    "Permission error",
+    N_("Warning:"),
+    N_("Unknown host:"),
+    N_("Unknown device:"),
+    N_("Network unreachable"),
+    N_("Connection refused:"),
+    N_("File not found:"),
+    N_("Read error from:"),
+    N_("Error loading library:"),
+    N_("Encrypted media stream detected"),
+    N_("Security message:"),
+    N_("Audio device unavailable"),
+    N_("Permission error"),
+    N_("File is empty:"),
   };
 
   if (!stream) return 0;
 
   if( type >= 0 && type < sizeof(std_explanation)/
                            sizeof(std_explanation[0]) ) {
-    explanation = std_explanation[type];
+    explanation = _(std_explanation[type]);
     size = strlen(explanation)+1;
   } else {
     explanation = NULL;
