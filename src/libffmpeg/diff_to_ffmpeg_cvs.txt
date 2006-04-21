@@ -67,6 +67,26 @@ diff -u -r1.127 dsputil.h
  
  //#define DEBUG
  /* dct code */
+Index: libavcodec/interplayvideo.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libffmpeg/libavcodec/interplayvideo.c,v
+retrieving revision 1.5
+diff -u -r1.5 interplayvideo.c
+--- src/libffmpeg/libavcodec/interplayvideo.c	5 Feb 2006 14:11:35 -0000	1.5
++++ src/libffmpeg/libavcodec/interplayvideo.c	21 Apr 2006 22:48:33 -0000
+@@ -49,7 +49,11 @@
+ #if DEBUG_INTERPLAY
+ #define debug_interplay(x,...) av_log(NULL, AV_LOG_DEBUG, x, __VA_ARGS__)
+ #else
+-static inline void debug_interplay(const char *format, ...) { }
++static inline void
++#ifdef __GNUC__
++__attribute__ ((__format__ (__printf__, 1, 2)))
++#endif
++debug_interplay(const char *format, ...) { }
+ #endif
+ 
+ typedef struct IpvideoContext {
 Index: libavcodec/motion_est.c
 ===================================================================
 RCS file: /cvsroot/ffmpeg/ffmpeg/libavcodec/motion_est.c,v

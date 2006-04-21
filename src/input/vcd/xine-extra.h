@@ -1,5 +1,5 @@
 /* 
-  $Id: xine-extra.h,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+  $Id: xine-extra.h,v 1.2 2006/04/21 23:15:45 dsalt Exp $
  
   Copyright (C) 2002 Rocky Bernstein <rocky@panix.com>
   
@@ -80,7 +80,11 @@ bool xine_log_init(xine_t *this);
   an error, such as logging wasn't initialized. On error, nothing is 
   logged.
 */
-bool xine_log_msg(const char *format, ...);
+bool xine_log_msg(const char *format, ...)
+#ifdef __GNUC__
+__attribute__((format (printf, 1, 2)))
+#endif
+;
 
 /*! This routine is like xine_log without any xine-specific paramenters.
   Before calling this routine you should have set up a xine log buffer via
@@ -92,7 +96,11 @@ bool xine_log_msg(const char *format, ...);
   an error, such as logging wasn't initialized. On error, nothing is 
   logged.
 */
-bool xine_log_err(const char *format, ...);
+bool xine_log_err(const char *format, ...)
+#ifdef __GNUC__
+__attribute__((format (printf, 1, 2)))
+#endif
+;
 
 /* Free all (num_mrls) MRLS. */
 void xine_free_mrls(int *num_mrls, xine_mrl_t **mrls);

@@ -49,7 +49,11 @@
 #if DEBUG_INTERPLAY
 #define debug_interplay(x,...) av_log(NULL, AV_LOG_DEBUG, x, __VA_ARGS__)
 #else
-static inline void debug_interplay(const char *format, ...) { }
+static inline void
+#ifdef __GNUC__
+__attribute__ ((__format__ (__printf__, 1, 2)))
+#endif
+debug_interplay(const char *format, ...) { }
 #endif
 
 typedef struct IpvideoContext {

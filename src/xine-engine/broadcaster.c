@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.9 2006/01/27 07:46:15 tmattern Exp $
+ * $Id: broadcaster.c,v 1.10 2006/04/21 23:15:45 dsalt Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -136,7 +136,11 @@ static int sock_data_write(xine_t *xine, int socket, char *buf, int len) {
   return wlen;
 }
 
-static int sock_string_write(xine_t *xine, int socket, char *msg, ...) {
+static int
+#ifdef __GNUC__
+__attribute__((format (printf, 3, 4)))
+#endif
+sock_string_write(xine_t *xine, int socket, char *msg, ...) {
   char     buf[_BUFSIZ];
   va_list  args;
   
@@ -177,7 +181,11 @@ static void broadcaster_data_write(broadcaster_t *this, char *buf, int len) {
   }
 }
 
-static void broadcaster_string_write(broadcaster_t *this, char *msg, ...) {
+static void
+#ifdef __GNUC__
+__attribute__((format (printf, 2, 3)))
+#endif
+broadcaster_string_write(broadcaster_t *this, char *msg, ...) {
   char     buf[_BUFSIZ];
   va_list  args;
   
@@ -266,7 +274,7 @@ static void send_buf (broadcaster_t *this, char *from, buf_element_t *buf) {
     }
   }
       
-  broadcaster_string_write(this, "buffer fifo=%s size=%ld type=%lu pts=%lld disc=%lld flags=%lu",
+  broadcaster_string_write(this, "buffer fifo=%s size=%d type=%u pts=%lld disc=%lld flags=%u",
                            from, buf->size, buf->type, buf->pts, buf->disc_off, buf->decoder_flags );
 
   if( buf->size )

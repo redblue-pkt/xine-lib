@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.84 2006/02/09 09:29:55 miguelfreitas Exp $
+ * $Id: input_cdda.c,v 1.85 2006/04/21 23:15:45 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -908,7 +908,11 @@ static int parse_url (char *urlbuf, char** host, int *port) {
 }
 #endif
 
-static int network_command( xine_stream_t *stream, int socket, char *data_buf, char *msg, ...)
+static int
+#ifdef __GNUC__
+__attribute__((format (printf, 4, 5)))
+#endif
+network_command( xine_stream_t *stream, int socket, char *data_buf, char *msg, ...)
 {
   char     buf[_BUFSIZ];
   va_list  args;

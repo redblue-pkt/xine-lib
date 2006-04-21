@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.158 2006/01/27 07:46:09 tmattern Exp $
+ * $Id: audio_alsa_out.c,v 1.159 2006/04/21 23:15:44 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -272,7 +272,11 @@ static long ao_alsa_get_volume_from_percent(int val, long min, long max) {
  * Error callback, we need to control this, 
  * error message should be printed only in DEBUG mode.
  */
-static void error_callback(const char *file, int line, 
+static void
+#ifdef __GNUC__
+	    __attribute__((format (printf, 5, 6)))
+#endif
+	    error_callback(const char *file, int line, 
 			   const char *function, int err, const char *fmt, ...) {
 #ifdef DEBUG
   va_list   args;

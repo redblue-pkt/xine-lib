@@ -20,7 +20,7 @@
 ** log.h
 **
 ** Error logging header file
-** $Id: log.h,v 1.2 2003/12/05 15:55:01 f1rmb Exp $
+** $Id: log.h,v 1.3 2006/04/21 23:15:45 dsalt Exp $
 */
 
 #ifndef _LOG_H_
@@ -31,12 +31,19 @@
 extern int log_init(void);
 extern void log_shutdown(void);
 extern void log_print(const char *string);
-extern void log_printf(const char *format, ...);
+extern void log_printf(const char *format, ...)
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+;
 
 #endif /* _LOG_H_ */
 
 /*
 ** $Log: log.h,v $
+** Revision 1.3  2006/04/21 23:15:45  dsalt
+** Add printf format attributes.
+**
 ** Revision 1.2  2003/12/05 15:55:01  f1rmb
 ** cleanup phase II. use xprintf when it's relevant, use xine_xmalloc when it's relevant too. Small other little fix (can't remember). Change few internal function prototype because it xine_t pointer need to be used if some xine's internal sections. NOTE: libdvd{nav,read} is still too noisy, i will take a look to made it quit, without invasive changes. To be continued...
 **

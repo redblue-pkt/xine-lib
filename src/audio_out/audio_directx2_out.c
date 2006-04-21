@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_directx2_out.c,v 1.4 2005/09/05 17:02:57 valtri Exp $
+ * $Id: audio_directx2_out.c,v 1.5 2006/04/21 23:15:45 dsalt Exp $
  *
  *
  * xine audio output plugin using DirectX
@@ -151,7 +151,11 @@ static int buffer_ready(dx2_driver_t *this);
 
 
 /* popup a dialog with error */
-static void error_message(const char *fmt, ...) {
+static void
+#ifdef __GNUC__
+	    __attribute__((format (printf, 1, 2)))
+#endif
+	    error_message(const char *fmt, ...) {
   char message[256];
   va_list ap;
 

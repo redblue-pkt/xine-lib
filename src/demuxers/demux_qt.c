@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.204 2006/03/16 21:44:14 tmattern Exp $
+ * $Id: demux_qt.c,v 1.205 2006/04/21 23:15:45 dsalt Exp $
  *
  */
 
@@ -410,34 +410,38 @@ typedef struct {
 #define DEBUG_DUMP_MOOV 0
 #define RAW_MOOV_FILENAME "moovatom.raw"
 
+#ifndef __GNUC__
+#define __attribute__(x)
+#endif
+
 #if DEBUG_ATOM_LOAD
 #define debug_atom_load printf
 #else
-static inline void debug_atom_load(const char *format, ...) { }
+static inline void __attribute__((format (printf, 1, 2))) debug_atom_load(const char *format, ...) {}
 #endif
 
 #if DEBUG_EDIT_LIST
 #define debug_edit_list printf
 #else
-static inline void debug_edit_list(const char *format, ...) { }
+static inline void __attribute__((format (printf, 1, 2))) debug_edit_list(const char *format, ...) {}
 #endif
 
 #if DEBUG_FRAME_TABLE
 #define debug_frame_table printf
 #else
-static inline void debug_frame_table(const char *format, ...) { }
+static inline void __attribute__((format (printf, 1, 2))) debug_frame_table(const char *format, ...) {}
 #endif
 
 #if DEBUG_VIDEO_DEMUX
 #define debug_video_demux printf
 #else
-static inline void debug_video_demux(const char *format, ...) { }
+static inline void __attribute__((format (printf, 1, 2))) debug_video_demux(const char *format, ...) {}
 #endif
 
 #if DEBUG_AUDIO_DEMUX
 #define debug_audio_demux printf
 #else
-static inline void debug_audio_demux(const char *format, ...) { }
+static inline void __attribute__((format (printf, 1, 2))) debug_audio_demux(const char *format, ...) {}
 #endif
 
 static inline void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {

@@ -72,7 +72,10 @@
 
 #endif  /* !__linux__ */
 
-static void __attribute__ ((format (printf, 3, 4)))
+static void
+#ifdef __GNUC__
+__attribute__((format (printf, 3, 4)))
+#endif
 set_hc_result(xine_health_check_t* hc, int state, const char *format, ...)
 {
 
