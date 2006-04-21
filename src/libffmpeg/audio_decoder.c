@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.23 2006/03/07 08:03:08 tmattern Exp $
+ * $Id: audio_decoder.c,v 1.24 2006/04/21 23:22:04 dsalt Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -242,6 +242,13 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   } else if (!(buf->decoder_flags & BUF_FLAG_SPECIAL)) {
 
     if( !this->decoder_ok ) {
+      if ( ! this->context || ! this->codec ) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+		_("ffmpeg_audio_dec: trying to open null codec\n"));
+	_x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_HANDLED, 0);
+	return;
+      }
+
       pthread_mutex_lock (&ffmpeg_lock);
       if (avcodec_open (this->context, this->codec) < 0) {
 	pthread_mutex_unlock (&ffmpeg_lock);
