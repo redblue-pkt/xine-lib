@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.112 2006/04/12 15:37:07 klan Exp $
+ * $Id: input_http.c,v 1.113 2006/04/21 23:27:49 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -657,7 +657,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   if (this->port == 0)
     this->port = DEFAULT_HTTP_PORT;
   
-  if ((this->user && strlen(this->user)) && use_proxy) {
+  if (this->user && strlen(this->user)) {
     if (http_plugin_basicauth (this->user, this->password, this->auth, BUFSIZE)) {
       _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "basic auth error", NULL);
       return 0;
