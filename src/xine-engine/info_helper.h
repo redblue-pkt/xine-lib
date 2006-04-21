@@ -123,7 +123,11 @@ void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, 
  *   ...           one or more meta info, followed by a NULL pointer
  *
  */
-void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...);
+void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...)
+#ifdef __GNUC__
+__attribute__((sentinel))
+#endif
+;
 
 /*
  * set a stream meta info

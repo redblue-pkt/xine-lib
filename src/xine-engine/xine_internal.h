@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.171 2006/01/27 07:46:16 tmattern Exp $
+ * $Id: xine_internal.h,v 1.172 2006/04/21 22:46:33 dsalt Exp $
  *
  */
 
@@ -358,7 +358,11 @@ void _x_handle_stream_end      (xine_stream_t *stream, int non_user);
 
 /* report message to UI. usually these are async errors */
 
-int _x_message(xine_stream_t *stream, int type, ...);
+int _x_message(xine_stream_t *stream, int type, ...)
+#ifdef __GNUC__
+__attribute__((sentinel))
+#endif
+;
 
 /* flush the message queues */
 
