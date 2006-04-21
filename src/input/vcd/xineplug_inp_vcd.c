@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.46 2006/04/18 13:51:33 hadess Exp $
+  $Id: xineplug_inp_vcd.c,v 1.47 2006/04/21 22:34:19 dsalt Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -370,7 +370,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
 
   class->mrls = calloc(class->num_mrls, sizeof(xine_mrl_t *));
   if (NULL == class->mrls) {
-    LOG_ERR("Can't calloc %d MRL entries", class->mrls);
+    LOG_ERR("Can't calloc %d MRL entries", class->num_mrls);
     class->num_mrls = 0;
     return false;
   }
