@@ -1255,6 +1255,7 @@ if test "x$with_imagemagick" = "xyes"; then
     have_imagemagick="no"
   else
     WAND_CFLAGS=`$WAND_CONFIG --cflags`
+    WAND_CPPFLAGS=`$WAND_CONFIG --cppflags`
     WAND_LDFLAGS=`$WAND_CONFIG --ldflags`
     WAND_LIBS=`$WAND_CONFIG --libs`
     have_imagemagick="yes"
@@ -1266,6 +1267,7 @@ fi
 
 AM_CONDITIONAL(HAVE_WAND, test x"$have_imagemagick" = "xyes" )
 AC_SUBST(WAND_CFLAGS)
+AC_SUBST(WAND_CPPFLAGS)
 AC_SUBST(WAND_LDFLAGS)
 AC_SUBST(WAND_LIBS)
 

@@ -31,6 +31,7 @@ xineplug_decode_yuv_la_LIBADD = $(XINE_LIB)
 xineplug_decode_yuv_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 
 xineplug_decode_image_la_SOURCES = image.c
+xineplug_decode_image_la_CPPFLAGS = $(WAND_CPPFLAGS)
 xineplug_decode_image_la_CFLAGS = $(WAND_CFLAGS)
 xineplug_decode_image_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(WAND_LIBS)
 xineplug_decode_image_la_LDFLAGS = $(WAND_LDFLAGS) -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
