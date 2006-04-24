@@ -414,7 +414,7 @@ diff -r -u xine-lib-1.1.0-orig/src/post/goom/mmx.c xine-lib-1.1.0/src/post/goom/
  		"movd %%mm0,%0 \n\t"
 -		  :"=g"(expix2[loop])
 -		  :"r"(pos),"r"(coeffs),"r"(expix1)
-+		  :"=g"(expix2[loop]),"=r"(pos)
++		  :"=g"(expix2[loop]),"+r"(pos)
 +		  :"r"(coeffs),"r"(expix1),"g"(sizeX)
  
  		);
