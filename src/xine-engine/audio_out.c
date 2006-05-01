@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.201 2006/04/05 22:12:20 valtri Exp $
+ * $Id: audio_out.c,v 1.202 2006/05/01 12:05:09 valtri Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1033,13 +1033,12 @@ static void *ao_loop (void *this_gen) {
 	  in_buf = NULL;
 	  continue;
 	}
-      }
 
-      _x_assert(cur_time >= 0);
-      if ((in_buf->vpts - cur_time) > 2 * 90000)
-	xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+        if ((in_buf->vpts - cur_time) > 2 * 90000)
+	  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
 		 "audio_out: vpts/clock error, in_buf->vpts=%" PRId64 " cur_time=%" PRId64 "\n",
 		 in_buf->vpts, cur_time);
+      }
 
       lprintf ("loop:pause: I feel sleepy (%d buffers).\n", this->out_fifo->num_buffers);
       xine_usec_sleep (10000);
