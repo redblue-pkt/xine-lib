@@ -39,5 +39,5 @@ xineplug_decode_image_la_LDFLAGS = $(WAND_LDFLAGS) -avoid-version -module @XINE_
 xineplug_decode_gdk_pixbuf_la_SOURCES = gdkpixbuf.c
 xineplug_decode_gdk_pixbuf_la_CFLAGS = $(GDK_PIXBUF_CFLAGS)
 xineplug_decode_gdk_pixbuf_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(GDK_PIXBUF_LIBS)
-xineplug_decode_gdk_pixbuf_la_LDFLAGS = $(GDK_PIXBUF_LDFLAGS) -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_gdk_pixbuf_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 

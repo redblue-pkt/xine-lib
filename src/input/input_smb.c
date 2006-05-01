@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.9 2006/03/18 09:25:02 tmattern Exp $
+ * $Id: input_smb.c,v 1.10 2006/05/01 21:35:30 valtri Exp $
  */
 
 
@@ -240,6 +240,7 @@ static xine_mrl_t **smb_class_get_dir (input_class_t *this_gen,
 	smb_input_class_t   *this = (smb_input_class_t *) this_gen;
 	int                 (*func) ()        = _sortfiles_default;
 	unsigned int        dir;
+	int i;
 	struct smbc_dirent  *pdirent;
 	char current_path [XINE_PATH_MAX + 1];
 	char current_path_smb [XINE_PATH_MAX + 1];
@@ -351,7 +352,6 @@ static xine_mrl_t **smb_class_get_dir (input_class_t *this_gen,
 		/*
 		 * Add directories entries
 		 */
-		int i;
 		for(i = 0; i < num_dir_files; i++) {
 			if (num_files >= this->mrls_allocated_entries) {
 				++this->mrls_allocated_entries;
