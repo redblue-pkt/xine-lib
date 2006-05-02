@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.215 2006/01/27 07:46:15 tmattern Exp $
+ * $Id: video_out_xv.c,v 1.216 2006/05/02 21:19:32 dsalt Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -616,7 +616,7 @@ static void xv_compute_output_size (xv_driver_t *this) {
   /* onefield_xv divide by 2 the number of lines */
   if (this->deinterlace_enabled
       && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
-      && (this->cur_frame->format == XINE_IMGFMT_YV12)) {
+      && this->cur_frame && (this->cur_frame->format == XINE_IMGFMT_YV12)) {
     this->sc.displayed_height  = this->sc.displayed_height / 2 - 1;
     this->sc.displayed_yoffset = this->sc.displayed_yoffset / 2;
   }
