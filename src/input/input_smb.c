@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.10 2006/05/01 21:35:30 valtri Exp $
+ * $Id: input_smb.c,v 1.11 2006/05/03 19:46:07 dsalt Exp $
  */
 
 
@@ -537,7 +537,7 @@ static input_info_t input_info_smb = {
   0                       /* priority */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
 	{ PLUGIN_INPUT, 17, "smb", XINE_VERSION_CODE, &input_info_smb,
 		init_input_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }

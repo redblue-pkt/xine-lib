@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_none_out.c,v 1.7 2003/12/14 22:13:22 siggi Exp $
+ * $Id: audio_none_out.c,v 1.8 2006/05/03 19:46:06 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -257,7 +257,7 @@ static ao_info_t ao_info_none = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_OUT, AO_OUT_NONE_IFACE_VERSION, "none", XINE_VERSION_CODE, &ao_info_none, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

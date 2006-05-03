@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.54 2005/05/29 00:47:48 miguelfreitas Exp $
+ * $Id: xine_decoder.c,v 1.55 2006/05/03 19:46:08 dsalt Exp $
  *
  * stuff needed to turn libmad into a xine decoder plugin
  */
@@ -368,7 +368,7 @@ static decoder_info_t dec_info_audio = {
   7                    /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_DECODER, 15, "mad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

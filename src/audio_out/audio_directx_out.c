@@ -20,7 +20,7 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.12 2004/09/02 19:56:40 valtri Exp $
+ * $Id: audio_directx_out.c,v 1.13 2006/05/03 19:46:06 dsalt Exp $
  */
 
 /*
@@ -863,7 +863,7 @@ static ao_info_t ao_info_directx = {
 /*
  * exported plugin catalog entry
  */
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_OUT, AO_DIRECTX_IFACE_VERSION, "directx", XINE_VERSION_CODE, &ao_info_directx, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

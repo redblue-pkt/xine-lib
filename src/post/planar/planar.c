@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: planar.c,v 1.10 2006/02/05 21:07:54 miguelfreitas Exp $
+ * $Id: planar.c,v 1.11 2006/05/03 19:46:09 dsalt Exp $
  *
  * catalog for planar post plugins
  */
@@ -56,7 +56,7 @@ post_info_t pp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 extern void *noise_init_plugin(xine_t *xine, void *);
 post_info_t noise_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_POST, 9, "expand", XINE_VERSION_CODE, &expand_special_info, &expand_init_plugin },
   { PLUGIN_POST, 9, "fill", XINE_VERSION_CODE, &fill_special_info, &fill_init_plugin },

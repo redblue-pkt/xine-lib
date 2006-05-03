@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_filters.c,v 1.4 2006/02/05 20:38:36 miguelfreitas Exp $
+ * $Id: audio_filters.c,v 1.5 2006/05/03 19:46:08 dsalt Exp $
  *
  * catalog for audio filter plugins
  */
@@ -36,7 +36,7 @@ post_info_t stretch_special_info    = { XINE_POST_TYPE_AUDIO_FILTER };
 post_info_t volnorm_special_info    = { XINE_POST_TYPE_AUDIO_FILTER };
 
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_POST, 9, "upmix",      XINE_VERSION_CODE, &upmix_special_info,      &upmix_init_plugin },
   { PLUGIN_POST, 9, "upmix_mono", XINE_VERSION_CODE, &upmix_mono_special_info, &upmix_mono_init_plugin },

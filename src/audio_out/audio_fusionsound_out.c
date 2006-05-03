@@ -479,7 +479,7 @@ static ao_info_t ao_info_fusionsound = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_OUT, AO_OUT_FS_IFACE_VERSION, "FusionSound",
     XINE_VERSION_CODE, &ao_info_fusionsound, init_class },

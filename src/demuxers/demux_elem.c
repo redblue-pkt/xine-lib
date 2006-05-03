@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.86 2005/02/06 15:26:16 tmattern Exp $
+ * $Id: demux_elem.c,v 1.87 2006/05/03 19:46:06 dsalt Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -305,7 +305,7 @@ demuxer_info_t demux_info_elem = {
   0                       /* priority */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_DEMUX, 26, "elem", XINE_VERSION_CODE, &demux_info_elem, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

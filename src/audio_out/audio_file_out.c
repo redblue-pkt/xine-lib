@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_file_out.c,v 1.3 2004/10/29 23:11:37 miguelfreitas Exp $
+ * $Id: audio_file_out.c,v 1.4 2006/05/03 19:46:06 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -396,7 +396,7 @@ static ao_info_t ao_info_file = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
 	/* type, API, "name", version, special_info, init_function */  
 	{ PLUGIN_AUDIO_OUT, AO_OUT_FILE_IFACE_VERSION, "file", XINE_VERSION_CODE, &ao_info_file, init_class },
 	{ PLUGIN_NONE, 0, "", 0, NULL, NULL }

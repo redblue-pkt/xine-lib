@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_polyp_out.c,v 1.5 2004/12/19 20:39:06 miguelfreitas Exp $
+ * $Id: audio_polyp_out.c,v 1.6 2006/05/03 19:46:06 dsalt Exp $
  *
  * ao plugin for polypaudio:
  * http://0pointer.de/lennart/projects/polypaudio/
@@ -568,7 +568,7 @@ static ao_info_t ao_info_polyp = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_AUDIO_OUT, 8, "polypaudio", XINE_VERSION_CODE, &ao_info_polyp, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

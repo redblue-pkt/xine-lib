@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvaudio_decoder.c,v 1.8 2006/03/07 08:03:08 tmattern Exp $
+ * $Id: dvaudio_decoder.c,v 1.9 2006/05/03 19:46:07 dsalt Exp $
  *
  * dv audio decoder based on patch by Dan Dennedy <dan@dennedy.org>
  *
@@ -442,7 +442,7 @@ decoder_info_t dec_info_dvaudio = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_DECODER, 15, "dvaudio", XINE_VERSION_CODE, &dec_info_dvaudio, init_dvaudio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

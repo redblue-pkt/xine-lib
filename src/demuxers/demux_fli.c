@@ -24,7 +24,7 @@
  * avoid while programming a FLI decoder, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_fli.c,v 1.56 2005/02/06 15:26:16 tmattern Exp $
+ * $Id: demux_fli.c,v 1.57 2006/05/03 19:46:06 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -398,7 +398,7 @@ demuxer_info_t demux_info_fli = {
   10                       /* priority */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 26, "fli", XINE_VERSION_CODE, &demux_info_fli, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

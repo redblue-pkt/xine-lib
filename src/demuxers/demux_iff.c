@@ -36,7 +36,7 @@
  * * ANIM (Animations)
  *   - Animation works fine, without seeking.
  *
- * $Id: demux_iff.c,v 1.14 2005/11/28 12:24:57 valtri Exp $
+ * $Id: demux_iff.c,v 1.15 2006/05/03 19:46:06 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1334,7 +1334,7 @@ demuxer_info_t demux_info_iff = {
   10                       /* priority */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 26, "iff", XINE_VERSION_CODE, &demux_info_iff, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

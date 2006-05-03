@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.45 2006/03/18 09:59:11 tmattern Exp $
+ * $Id: audio_decoder.c,v 1.46 2006/05/03 19:46:08 dsalt Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -758,7 +758,7 @@ static decoder_info_t dec_info_audio = {
   5                    /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 15, "realadec", XINE_VERSION_CODE, &dec_info_audio, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

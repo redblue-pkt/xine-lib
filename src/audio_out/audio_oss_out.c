@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.113 2004/12/12 22:01:02 mroi Exp $
+ * $Id: audio_oss_out.c,v 1.114 2006/05/03 19:46:06 dsalt Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -1179,7 +1179,7 @@ static ao_info_t ao_info_oss = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_OUT, AO_OUT_OSS_IFACE_VERSION, "oss", XINE_VERSION_CODE, &ao_info_oss, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

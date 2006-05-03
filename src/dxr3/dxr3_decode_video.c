@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.60 2005/11/28 12:24:57 valtri Exp $
+ * $Id: dxr3_decode_video.c,v 1.61 2006/05/03 19:46:07 dsalt Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -74,7 +74,7 @@ static decoder_info_t dxr3_video_decoder_info = {
   10                   /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 18, "dxr3-mpeg2", XINE_VERSION_CODE, &dxr3_video_decoder_info, &dxr3_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

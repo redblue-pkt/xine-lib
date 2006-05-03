@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.17 2006/03/07 08:03:10 tmattern Exp $
+ * $Id: xine_decoder.c,v 1.18 2006/05/03 19:46:08 dsalt Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -436,7 +436,7 @@ static decoder_info_t dec_info_audio = {
   5                    /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_DECODER, 15, "speex", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

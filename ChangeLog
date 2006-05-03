@@ -20,6 +20,7 @@ xine-lib (1.1.2)
   * Support for Vorbis-style comments in FLAC files
   * Coverity fixes
   * Add ATSC support to the DVB plugin
+  * Make various structures and arrays constant.
   
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

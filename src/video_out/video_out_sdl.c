@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_sdl.c,v 1.45 2005/11/28 12:25:21 valtri Exp $
+ * $Id: video_out_sdl.c,v 1.46 2006/05/03 19:46:09 dsalt Exp $
  *
  * video_out_sdl.c, Simple DirectMedia Layer
  *
@@ -608,7 +608,7 @@ static vo_info_t vo_info_sdl = {
   XINE_VISUAL_TYPE_X11, /* visual type supported by this plugin */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_VIDEO_OUT, 21, "sdl", XINE_VERSION_CODE, &vo_info_sdl, init_class },
   { PLUGIN_NONE, 0, "" , 0 , NULL, NULL}

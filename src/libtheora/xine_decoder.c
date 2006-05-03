@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.23 2005/04/12 03:28:48 athp Exp $
+ * $Id: xine_decoder.c,v 1.24 2006/05/03 19:46:08 dsalt Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -395,7 +395,7 @@ static decoder_info_t dec_info_video = {
   5                        /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 18, "theora", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

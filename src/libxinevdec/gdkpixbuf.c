@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: gdkpixbuf.c,v 1.3 2006/02/08 09:08:06 hadess Exp $
+ * $Id: gdkpixbuf.c,v 1.4 2006/05/03 19:46:08 dsalt Exp $
  *
  * a gdk-pixbuf-based image video decoder
  */
@@ -307,7 +307,7 @@ static decoder_info_t dec_info_image = {
   7                    /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 18, "gdkpixbuf", XINE_VERSION_CODE, &dec_info_image, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

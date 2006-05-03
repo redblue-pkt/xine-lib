@@ -21,7 +21,7 @@
  * player. It really works too! It will output a continuous sine wave in
  * place of the data it should actually send.
  *
- * $Id: fooaudio.c,v 1.15 2006/03/07 08:03:21 tmattern Exp $
+ * $Id: fooaudio.c,v 1.16 2006/05/03 19:46:08 dsalt Exp $
  */
 
 #include <stdio.h>
@@ -342,7 +342,7 @@ static decoder_info_t dec_info_audio = {
 
 /* The plugin catalog entry. This is the only information that this plugin
  * will export to the public. */
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* { type, API version, "name", version, special_info, init_function }, */
   { PLUGIN_AUDIO_DECODER, 15, "fooaudio", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

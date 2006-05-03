@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.56 2004/03/16 14:12:05 mroi Exp $
+ * $Id: xine_decoder.c,v 1.57 2006/05/03 19:46:08 dsalt Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -177,7 +177,7 @@ static decoder_info_t dec_info_mpeg2 = {
   7                    /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 18, "mpeg2", XINE_VERSION_CODE, &dec_info_mpeg2, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

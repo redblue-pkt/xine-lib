@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.65 2005/11/28 12:24:57 valtri Exp $
+ * $Id: input_net.c,v 1.66 2006/05/03 19:46:07 dsalt Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -543,7 +543,7 @@ static void *init_class (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_INPUT, 17, "tcp", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

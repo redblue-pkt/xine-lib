@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xxmc.c,v 1.19 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: video_out_xxmc.c,v 1.20 2006/05/03 19:46:09 dsalt Exp $
  *
  * video_out_xxmc.c, X11 decoding accelerated video extension interface for xine
  *
@@ -2645,7 +2645,7 @@ static vo_info_t vo_info_xxmc = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_VIDEO_OUT, 21, "xxmc", XINE_VERSION_CODE, &vo_info_xxmc, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.59 2006/01/27 07:46:13 tmattern Exp $
+ * $Id: xine_goom.c,v 1.60 2006/05/03 19:46:08 dsalt Exp $
  *
  * GOOM post plugin.
  *
@@ -50,7 +50,7 @@
 #define GOOM_HEIGHT 240
 
 /* colorspace conversion methods */
-const char * goom_csc_methods[]={
+static const char const * goom_csc_methods[]={
   "Fast but not photorealistic",
   "Slow but looks better",
   NULL
@@ -108,11 +108,11 @@ static void *goom_init_plugin(xine_t *xine, void *);
 
 
 /* plugin catalog information */
-post_info_t goom_special_info = { 
+const post_info_t goom_special_info = { 
   XINE_POST_TYPE_AUDIO_VISUALIZATION
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 9, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

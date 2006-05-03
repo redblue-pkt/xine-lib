@@ -28,7 +28,7 @@
  *   8 (long and short)
  * - untested (found no testfiles) IFF-ANIM OPT 3, 4 and 6
  *
- * $Id: bitplane.c,v 1.12 2006/03/21 07:39:18 tmattern Exp $
+ * $Id: bitplane.c,v 1.13 2006/05/03 19:46:08 dsalt Exp $
  */
 
 #include <stdio.h>
@@ -1585,7 +1585,7 @@ static decoder_info_t dec_info_video = {
   1                    /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_VIDEO_DECODER, 18, "bitplane", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

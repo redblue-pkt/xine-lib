@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.63 2005/05/28 11:22:05 jstembridge Exp $
+ * $Id: xine_decoder.c,v 1.64 2006/05/03 19:46:07 dsalt Exp $
  *
  * 04-09-2001 DTS passtrough  (C) Joachim Koenig 
  * 09-12-2001 DTS passthrough inprovements (C) James Courtier-Dutton
@@ -607,7 +607,7 @@ static decoder_info_t dec_info_audio = {
   1                    /* priority        */
 };
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_DECODER, 15, "dts", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
