@@ -1,5 +1,5 @@
 #include "goom_config.h"
-#include "gfontrle.h"
+#include "gfontrle.c"
 #include "gfontlib.h"
 #include <string.h>
 #include <stdlib.h>

@@ -30,7 +30,7 @@ xineplug_post_goom_la_SOURCES = $(extra_files) xine_goom.c \
 xineplug_post_goom_la_LIBADD = $(XINE_LIB) $(GOOM_LIBS) $(THREAD_LIBS)
 xineplug_post_goom_la_LDFLAGS = -avoid-version -module $(XINE_PLUGIN_MIN_SYMS)
 
-noinst_HEADERS = cpu_info.h default_scripts.h drawmethods.h gfontlib.h gfontrle.h goom.h \
+noinst_HEADERS = cpu_info.h default_scripts.h drawmethods.h gfontlib.h goom.h \
 	goom_config.h goom_config_param.h goom_filters.h goom_fx.h goom_graphic.h \
 	goom_plugin_info.h goom_tools.h goom_typedefs.h goom_visual_fx.h goomsl.h goomsl_hash.h \
 	goomsl_heap.h goomsl_private.h goomsl_yacc.h ifs.h lines.h mathtools.h mmx.h \
