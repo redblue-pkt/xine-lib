@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2006 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.29 2005/02/09 20:03:20 tmattern Exp $
+ * $Id: input_rip.c,v 1.30 2006/05/07 09:37:31 valtri Exp $
  */
 
 /* TODO:
@@ -104,6 +104,8 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
   off_t retlen, npreview, nread, nwrite, nread_orig, nread_file;
 
   lprintf("reading %lld bytes (curpos = %lld, savepos = %lld)\n", len, this->curpos, this->savepos);
+
+  if (len < 0) return -1;
 
   /* compute sizes and copy data from preview */
   if (this->curpos < this->preview_size && this->preview) {
@@ -212,7 +214,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
 
   lprintf("reading %lld bytes (curpos = %lld, savepos = %lld) (block)\n", todo, this->curpos, this->savepos);
 
-  if (!todo) return NULL;
+  if (todo <= 0) return NULL;
 
   /* compute sizes and copy data from preview */
   if (this->curpos < this->preview_size && this->preview) {
