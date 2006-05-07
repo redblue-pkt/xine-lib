@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.151 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: w32codec.c,v 1.152 2006/05/07 09:31:57 valtri Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -856,7 +856,7 @@ static void w32v_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       vo_frame_t *img;
       uint8_t    *img_buffer = this->img_buffer;
 
-      Check_FS_Segment();
+      Check_FS_Segment(this->ldt_fs);
 
       /* decoder video frame */
 
@@ -1494,7 +1494,7 @@ static void w32a_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if( (int)buf->size <= 0 )
       return;
 
-    Check_FS_Segment();
+    Check_FS_Segment(this->ldt_fs);
     
     w32a_decode_audio (this, buf->content, buf->size,
 		       buf->decoder_flags & BUF_FLAG_FRAME_END, 

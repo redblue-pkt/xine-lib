@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.41 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: qt_decoder.c,v 1.42 2006/05/07 09:31:57 valtri Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -458,7 +458,7 @@ static void qta_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       long out_frames, out_bytes;
       int error, frames_left, bytes_sent;
     
-      Check_FS_Segment();
+      Check_FS_Segment(this->ldt_fs);
 
       pthread_mutex_lock(&win32_codec_mutex);
       error = this->SoundConverterConvertBuffer (this->myConverter,
@@ -900,6 +900,7 @@ static void qtv_init_driver (qtv_decoder_t *this, buf_element_t *buf) {
   lprintf ("video: framedescHandle = %x\n", this->framedescHandle);
 
   memcpy (*this->framedescHandle, id, id->idSize);
+  free(id);
 
   /*
    * alloc video plane
@@ -988,7 +989,7 @@ static void qtv_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       ComponentResult  cres;
       vo_frame_t      *img;
     
-      Check_FS_Segment();
+      Check_FS_Segment(this->ldt_fs);
 
       pthread_mutex_lock(&win32_codec_mutex);
 
