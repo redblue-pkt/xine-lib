@@ -117,13 +117,13 @@
     </para>
     <para>
      To check out xine-modules from CVS, first do this:
-     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@cvs.xine.sf.net:/cvsroot/xine login</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@xine.cvs.sourceforge.net:/cvsroot/xine login</command></screen>
      The password is empty, just press Enter.
     </para>
     <para>
      Then, to check out individual modules (e.g. <filename>xine-lib</filename>, 
      <filename>gnome-xine</filename> or <filename>xine-ui</filename>):
-     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@cvs.xine.sf.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@xine.cvs.sourceforge.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
     </para>
    </sect2>
 
