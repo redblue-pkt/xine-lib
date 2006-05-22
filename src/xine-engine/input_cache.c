@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.9 2005/11/28 12:25:21 valtri Exp $
+ * $Id: input_cache.c,v 1.10 2006/05/22 17:00:40 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,7 +73,7 @@ static off_t cache_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
   if (len <= (this->buf_len - this->buf_pos)) {
     /* all bytes are in the buffer */
     switch (len) {
-#if !(defined(sparc) || defined(__sparc__))
+#if !(defined(sparc) || defined(__sparc__) || defined __ia64__)
       case 8:
         *((uint64_t *)buf) = *(uint64_t *)(&(this->buf[this->buf_pos]));
         break;
