@@ -740,7 +740,7 @@ static void zoomFilterVisualFXWrapper_apply (struct _VISUAL_FX *_this, Pixel *sr
 
 VisualFX zoomFilterVisualFXWrapper_create(void)
 {
-    VisualFX fx;
+    VisualFX fx = {0};
     fx.init = zoomFilterVisualFXWrapper_init;
     fx.free = zoomFilterVisualFXWrapper_free;
     fx.apply = zoomFilterVisualFXWrapper_apply;

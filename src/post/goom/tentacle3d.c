@@ -95,7 +95,7 @@ static void tentacle_fx_free(VisualFX *_this) {
 }
 
 VisualFX tentacle_fx_create(void) {
-	VisualFX fx;
+	VisualFX fx = {0};
 	fx.init = tentacle_fx_init;
 	fx.apply = tentacle_fx_apply;
 	fx.free = tentacle_fx_free;

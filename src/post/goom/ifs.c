@@ -762,7 +762,7 @@ static void ifs_vfx_free(VisualFX *_this) {
 }
 
 VisualFX ifs_visualfx_create(void) {
-	VisualFX vfx;
+	VisualFX vfx = {0};
 	vfx.init = ifs_vfx_init;
 	vfx.free = ifs_vfx_free;
 	vfx.apply = ifs_vfx_apply;
