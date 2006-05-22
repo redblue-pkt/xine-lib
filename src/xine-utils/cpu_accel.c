@@ -189,7 +189,7 @@ static void sigill_handler (int sig)
 static uint32_t arch_accel (void)
 {
   /* FIXME: Autodetect cache line size via AUX ELF vector or otherwise */
-  uint32_t flags = MM_ACCEL_PPC_CACHE32;
+  uint32_t flags = 0;
 
   signal (SIGILL, sigill_handler);
   if (sigsetjmp (jmpbuf, 1)) {
