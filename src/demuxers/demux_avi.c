@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.224 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: demux_avi.c,v 1.225 2006/05/22 16:43:56 mshopf Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1029,7 +1029,14 @@ static avi_t *AVI_init(demux_avi_t *this) {
          lprintf("Invalid Header, bIndexSubType != 0\n");
       }
 
-      superindex->aIndex = malloc (superindex->wLongsPerEntry * superindex->nEntriesInUse * sizeof (uint32_t));
+      if (superindex->nEntriesInUse > n / sizeof (avisuperindex_entry))
+      {
+         lprintf("broken index !, dwSize=%d, entries=%d\n", n, superindex->nEntriesInUse);
+         i += 8 + n;
+         continue;
+      }
+
+      superindex->aIndex = malloc (superindex->nEntriesInUse * sizeof (avisuperindex_entry));
       /* position of ix## chunks */
       for (j = 0; j < superindex->nEntriesInUse; ++j) {
         superindex->aIndex[j].qwOffset = LE_64 (a);   a += 8;
