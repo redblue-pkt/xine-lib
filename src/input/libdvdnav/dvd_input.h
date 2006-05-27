@@ -38,6 +38,7 @@ extern int         (*dvdinput_seek)  (dvd_input_t, int);
 extern int         (*dvdinput_title) (dvd_input_t, int); 
 extern int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
 extern char *      (*dvdinput_error) (dvd_input_t);
+extern int         (*dvdinput_is_encrypted) (dvd_input_t);
 
 /**
  * Setup function accessed by dvd_reader.c.  Returns 1 if there is CSS support.

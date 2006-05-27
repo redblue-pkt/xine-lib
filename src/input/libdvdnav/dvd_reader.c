@@ -480,6 +480,13 @@ dvd_reader_t *DVDOpen( const char *ppath )
 			     me->mnt_fsname,
 			     me->mnt_dir );
                     auth_drive = DVDOpenImageFile( me->mnt_fsname, have_css );
+		    /* If the device is not encrypted, don't access the device
+		     * directly as it would fail for non-UDF DVDs */
+		    if ( dvdinput_is_encrypted( auth_drive->dev ) == 0) {
+		      DVDClose( auth_drive );
+		      auth_drive = NULL;
+		      break;
+		    }
 		    dev_name = strdup(me->mnt_fsname);
                     break;
                 }

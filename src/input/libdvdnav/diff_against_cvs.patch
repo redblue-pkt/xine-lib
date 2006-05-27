@@ -55,3 +55,171 @@
      struct stat fileinfo;
      dvd_file_t *dvd_file;
      int i;
+Index: dvd_input.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/input/libdvdnav/dvd_input.c,v
+retrieving revision 1.6
+diff -u -r1.6 dvd_input.c
+--- dvd_input.c	5 Apr 2004 18:01:09 -0000	1.6
++++ dvd_input.c	27 May 2006 16:11:09 -0000
+@@ -35,6 +35,7 @@
+ int         (*dvdinput_title) (dvd_input_t, int); 
+ int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
+ char *      (*dvdinput_error) (dvd_input_t);
++int         (*dvdinput_is_encrypted) (dvd_input_t);
+ 
+ #ifdef HAVE_DVDCSS_DVDCSS_H
+ /* linking to libdvdcss */
+@@ -55,6 +56,73 @@
+ #include "../../msvc/contrib/dlfcn.c"
+ #endif
+ 
++/* Copied from css.h */
++#define KEY_SIZE 5
++
++typedef uint8_t dvd_key_t[KEY_SIZE];
++
++typedef struct dvd_title_s
++{
++    int                 i_startlb;
++    dvd_key_t           p_key;
++    struct dvd_title_s *p_next;
++} dvd_title_t;
++
++typedef struct css_s
++{
++    int             i_agid;      /* Current Authenication Grant ID. */
++    dvd_key_t       p_bus_key;   /* Current session key. */
++    dvd_key_t       p_disc_key;  /* This DVD disc's key. */
++    dvd_key_t       p_title_key; /* Current title key. */
++} css_t;
++
++/* Copied from libdvdcss.h */
++
++#ifndef PATH_MAX
++#define PATH_MAX 4096
++#endif
++
++struct dvdcss_s
++{
++    /* File descriptor */
++    char * psz_device;
++    int    i_fd;
++    int    i_read_fd;
++    int    i_pos;
++
++    /* File handling */
++    void *pf_seek;
++    void *pf_read;
++    void *pf_readv;
++
++    /* Decryption stuff */
++    int          i_method;
++    css_t        css;
++    int          b_ioctls;
++    int          b_scrambled;
++    dvd_title_t *p_titles;
++
++    /* Key cache directory and pointer to the filename */
++    char   psz_cachefile[PATH_MAX];
++    char * psz_block;
++
++    /* Error management */
++    char * psz_error;
++    int    b_errors;
++    int    b_debug;
++
++#ifdef WIN32
++    int    b_file;
++    char * p_readv_buffer;
++    int    i_readv_buf_size;
++#endif
++
++#ifndef WIN32
++    int    i_raw_fd;
++#endif
++};
++
++
+ typedef struct dvdcss_s *dvdcss_handle;
+ static dvdcss_handle (*DVDcss_open)  (const char *);
+ static int           (*DVDcss_close) (dvdcss_handle);
+@@ -149,8 +217,13 @@
+   return 0;
+ }
+ 
+-
+-
++static int css_is_encrypted (dvd_input_t dev)
++{
++  if (dev->dvdcss == NULL) {
++    return 0;
++  }
++  return dev->dvdcss->b_scrambled;
++}
+ 
+ 
+ 
+@@ -269,6 +342,10 @@
+   return 0;
+ }
+ 
++static int file_is_encrypted (dvd_input_t dev)
++{
++  return 0;
++}
+ 
+ /**
+  * Setup read functions with either libdvdcss or minimal DVD access.
+@@ -347,6 +424,7 @@
+     dvdinput_title = css_title;
+     dvdinput_read  = css_read;
+     dvdinput_error = css_error;
++    dvdinput_is_encrypted = css_is_encrypted;
+     return 1;
+     
+   } else {
+@@ -359,6 +437,7 @@
+     dvdinput_title = file_title;
+     dvdinput_read  = file_read;
+     dvdinput_error = file_error;
++    dvdinput_is_encrypted = file_is_encrypted;
+     return 0;
+   }
+ }
+Index: dvd_input.h
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/input/libdvdnav/dvd_input.h,v
+retrieving revision 1.1
+diff -u -r1.1 dvd_input.h
+--- dvd_input.h	29 Apr 2003 15:58:29 -0000	1.1
++++ dvd_input.h	27 May 2006 16:11:09 -0000
+@@ -38,6 +38,7 @@
+ extern int         (*dvdinput_title) (dvd_input_t, int); 
+ extern int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
+ extern char *      (*dvdinput_error) (dvd_input_t);
++extern int         (*dvdinput_is_encrypted) (dvd_input_t);
+ 
+ /**
+  * Setup function accessed by dvd_reader.c.  Returns 1 if there is CSS support.
+Index: dvd_reader.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/input/libdvdnav/dvd_reader.c,v
+retrieving revision 1.11
+diff -u -r1.11 dvd_reader.c
+--- dvd_reader.c	20 Sep 2004 19:30:04 -0000	1.11
++++ dvd_reader.c	27 May 2006 16:11:09 -0000
+@@ -480,6 +480,13 @@
+ 			     me->mnt_fsname,
+ 			     me->mnt_dir );
+                     auth_drive = DVDOpenImageFile( me->mnt_fsname, have_css );
++		    /* If the device is not encrypted, don't access the device
++		     * directly as it would fail for non-UDF DVDs */
++		    if ( dvdinput_is_encrypted( auth_drive->dev ) == 0) {
++		      DVDClose( auth_drive );
++		      auth_drive = NULL;
++		      break;
++		    }
+ 		    dev_name = strdup(me->mnt_fsname);
+                     break;
+                 }

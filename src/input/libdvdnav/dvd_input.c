@@ -35,6 +35,7 @@ int         (*dvdinput_seek)  (dvd_input_t, int);
 int         (*dvdinput_title) (dvd_input_t, int); 
 int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
 char *      (*dvdinput_error) (dvd_input_t);
+int         (*dvdinput_is_encrypted) (dvd_input_t);
 
 #ifdef HAVE_DVDCSS_DVDCSS_H
 /* linking to libdvdcss */
@@ -54,6 +55,73 @@ char *      (*dvdinput_error) (dvd_input_t);
 /* Only needed on MINGW at the moment */
 #include "../../msvc/contrib/dlfcn.c"
 #endif
+
+/* Copied from css.h */
+#define KEY_SIZE 5
+
+typedef uint8_t dvd_key_t[KEY_SIZE];
+
+typedef struct dvd_title_s
+{
+    int                 i_startlb;
+    dvd_key_t           p_key;
+    struct dvd_title_s *p_next;
+} dvd_title_t;
+
+typedef struct css_s
+{
+    int             i_agid;      /* Current Authenication Grant ID. */
+    dvd_key_t       p_bus_key;   /* Current session key. */
+    dvd_key_t       p_disc_key;  /* This DVD disc's key. */
+    dvd_key_t       p_title_key; /* Current title key. */
+} css_t;
+
+/* Copied from libdvdcss.h */
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+struct dvdcss_s
+{
+    /* File descriptor */
+    char * psz_device;
+    int    i_fd;
+    int    i_read_fd;
+    int    i_pos;
+
+    /* File handling */
+    void *pf_seek;
+    void *pf_read;
+    void *pf_readv;
+
+    /* Decryption stuff */
+    int          i_method;
+    css_t        css;
+    int          b_ioctls;
+    int          b_scrambled;
+    dvd_title_t *p_titles;
+
+    /* Key cache directory and pointer to the filename */
+    char   psz_cachefile[PATH_MAX];
+    char * psz_block;
+
+    /* Error management */
+    char * psz_error;
+    int    b_errors;
+    int    b_debug;
+
+#ifdef WIN32
+    int    b_file;
+    char * p_readv_buffer;
+    int    i_readv_buf_size;
+#endif
+
+#ifndef WIN32
+    int    i_raw_fd;
+#endif
+};
+
 
 typedef struct dvdcss_s *dvdcss_handle;
 static dvdcss_handle (*DVDcss_open)  (const char *);
@@ -149,8 +217,13 @@ static int css_close(dvd_input_t dev)
   return 0;
 }
 
-
-
+static int css_is_encrypted (dvd_input_t dev)
+{
+  if (dev->dvdcss == NULL) {
+    return 0;
+  }
+  return dev->dvdcss->b_scrambled;
+}
 
 
 
@@ -269,6 +342,10 @@ static int file_close(dvd_input_t dev)
   return 0;
 }
 
+static int file_is_encrypted (dvd_input_t dev)
+{
+  return 0;
+}
 
 /**
  * Setup read functions with either libdvdcss or minimal DVD access.
@@ -347,6 +424,7 @@ int dvdinput_setup(void)
     dvdinput_title = css_title;
     dvdinput_read  = css_read;
     dvdinput_error = css_error;
+    dvdinput_is_encrypted = css_is_encrypted;
     return 1;
     
   } else {
@@ -359,6 +437,7 @@ int dvdinput_setup(void)
     dvdinput_title = file_title;
     dvdinput_read  = file_read;
     dvdinput_error = file_error;
+    dvdinput_is_encrypted = file_is_encrypted;
     return 0;
   }
 }
