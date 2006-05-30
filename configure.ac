@@ -446,6 +446,16 @@ AM_CONDITIONAL(HAVE_X11, [test x"$no_x" != "xyes"])
 
 
 dnl ---------------------------------------------
+dnl Locate libraries needed for X health check
+dnl ---------------------------------------------
+
+x_lib_location="`ls "$x_libraries/libX11.so"* | sed -e '/[0-9]$/! d; s%^.*/%%; t q; b; :q q'`"
+AC_DEFINE([LIBX11_SO], [${x_lib_location:-libX11.so}])
+x_lib_location="`ls "$x_libraries/libXv.so"* | sed -e '/[0-9]$/! d; s%^.*/%%; t q; b; :q q'`"
+AC_DEFINE([LIBXV_SO], [${x_lib_location:-libXv.so}])
+
+
+dnl ---------------------------------------------
 dnl socket library
 dnl ---------------------------------------------
 

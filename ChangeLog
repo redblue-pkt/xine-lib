@@ -21,6 +21,8 @@ xine-lib (1.1.2)
   * Coverity fixes
   * Add ATSC support to the DVB plugin
   * Make various structures and arrays constant.
+  * Fix up health check to find libX11 and libXv shared objects even if
+    devel packages aren't installed (where appropriate). (Ubuntu 47357)
   
 xine-lib (1.1.1)
   * Improve sound quality when using alsa 1.0.9 or above.

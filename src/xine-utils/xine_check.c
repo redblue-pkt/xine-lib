@@ -373,7 +373,7 @@ xine_health_check_t* _x_health_check_xv (xine_health_check_t* hc) {
   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
 
   dlerror(); /* clear error code */
-  x11_handle = dlopen("libX11.so", RTLD_LAZY);
+  x11_handle = dlopen(LIBX11_SO, RTLD_LAZY);
   if(!x11_handle) {
     hc->msg = dlerror();
     hc->status = XINE_HEALTH_CHECK_FAIL;
@@ -399,7 +399,7 @@ xine_health_check_t* _x_health_check_xv (xine_health_check_t* hc) {
   }
   
   dlerror(); /* clear error code */
-  xv_handle = dlopen("libXv.so", RTLD_LAZY);
+  xv_handle = dlopen(LIBXV_SO, RTLD_LAZY);
   if(!xv_handle) {
     hc->msg = dlerror();
     /* Xv might still work when linked statically into the output plugin,
