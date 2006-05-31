@@ -30,9 +30,12 @@ exec_prefix = @exec_prefix@
 transform = @program_transform_name@
 libdir = @libdir@
 includedir = @includedir@
+ifeq ($(datarootdir),\@datarootdir\@)
+datarootdir = @datadir@
+endif
 datadir = @datadir@
-localedir = $(datadir)/locale
-gettextsrcdir = $(datadir)/gettext/intl
+localedir = $(datarootdir)/locale
+gettextsrcdir = $(datarootdir)/gettext/intl
 aliaspath = $(localedir)
 subdir = intl
 EXTRA_DIST = ChangeLog.inst libintl.glibc

@@ -23,9 +23,13 @@ VPATH = @srcdir@
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
+datarootdir = @datarootdir@
+ifeq ($(datarootdir),\@datarootdir\@)
+datarootdir = @datadir@
+endif
 datadir = @datadir@
 localedir = @XINE_LOCALEDIR@
-gettextsrcdir = $(datadir)/gettext/po
+gettextsrcdir = $(datarootdir)/gettext/po
 install_sh = @install_sh@
 mkdir_p = @mkdir_p@
 

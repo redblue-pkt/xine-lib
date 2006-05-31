@@ -2117,18 +2117,27 @@ dnl Note:
 dnl   use AC_DEFINE for runtime
 dnl   use AC_SUBST for installation
 dnl
+
+makeexpand () {
+  local i
+  local j
+  i="$1"
+  while test "$i" != "$j"; do j="$i"; eval i="$j"; done
+  echo "$i"
+}
+
 XINE_PLUGINDIR="$libdir/xine/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
 XINE_FONTDIR="${datadir}/xine/libxine$XINE_MAJOR/fonts"
 XINE_LOCALEDIR="${datadir}/locale"
-eval XINE_REL_PLUGINDIR="$XINE_PLUGINDIR"
-XINE_REL_PLUGINDIR=`eval echo "$XINE_REL_PLUGINDIR" | sed -e "s,^${prefix}/,,"`
-XINE_REL_FONTDIR=`eval echo "$XINE_FONTDIR" | sed -e "s,^${prefix}/,,"`
-XINE_REL_LOCALEDIR=`eval echo "$XINE_LOCALEDIR" | sed -e "s,^${prefix}/,,"`
+XINE_REL_PLUGINDIR="`makeexpand "$XINE_PLUGINDIR"`"
+XINE_REL_PLUGINDIR="`makeexpand "$XINE_REL_PLUGINDIR" | sed -e "s,^${prefix}/,,"`"
+XINE_REL_FONTDIR="`makeexpand "$XINE_FONTDIR" | sed -e "s,^${prefix}/,,"`"
+XINE_REL_LOCALEDIR="`makeexpand "$XINE_LOCALEDIR" | sed -e "s,^${prefix}/,,"`"
 if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   dnl polish paths (MinGW runtime accepts both \ and / anyway)
-  XINE_REL_PLUGINDIR=`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`
-  XINE_REL_FONTDIR=`echo "$XINE_REL_FONTDIR" | sed -e 's/\\//\\\\\\\\/g'`
-  XINE_REL_LOCALEDIR=`echo "$XINE_REL_LOCALEDIR" | sed -e 's/\\//\\\\\\\\/g'`
+  XINE_REL_PLUGINDIR="`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`"
+  XINE_REL_FONTDIR="`echo "$XINE_REL_FONTDIR" | sed -e 's/\\//\\\\\\\\/g'`"
+  XINE_REL_LOCALEDIR="`echo "$XINE_REL_LOCALEDIR" | sed -e 's/\\//\\\\\\\\/g'`"
   dnl prefix in xine-config
   XINE_CONFIG_PREFIX="\`dirname \$0\`/.."
   dnl installation directories (in xine-config)
@@ -2141,11 +2150,11 @@ if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   AC_DEFINE(XINE_LOCALEDIR,[xine_get_localedir()],[Path where catalog files will be.])
 else
   dnl prefix in xine-config
-  XINE_CONFIG_PREFIX="${prefix}"
+  XINE_CONFIG_PREFIX="`makeexpand "${prefix}"`"
   dnl directories from xine-config and runtime directories
-  eval XINE_PLUGINPATH=`eval echo "$XINE_PLUGINDIR"`
-  eval XINE_FONTPATH="$XINE_FONTDIR"
-  eval XINE_LOCALEPATH="$XINE_LOCALEDIR"
+  XINE_PLUGINPATH="`makeexpand "$XINE_PLUGINDIR"`"
+  XINE_FONTPATH="`makeexpand "$XINE_FONTDIR"`"
+  XINE_LOCALEPATH="`makeexpand "$XINE_LOCALEDIR"`"
   dnl defining runtime directories
   AC_DEFINE_UNQUOTED(XINE_PLUGINDIR,"$XINE_PLUGINPATH",[Define this to plugins directory location])
   AC_DEFINE_UNQUOTED(XINE_FONTDIR,"$XINE_FONTPATH",[Define this to osd fonts dir location])
@@ -2163,16 +2172,16 @@ AC_SUBST(XINE_FONTDIR)
 AC_SUBST(XINE_LOCALEDIR)
 
 dnl Where aclocal m4 files should be installed
-XINE_ACFLAGS="-I ${datadir}/aclocal"
+XINE_ACFLAGS="-I `makeexpand "${datarootdir:-${datadir}}/aclocal"`"
 AC_DEFINE_UNQUOTED(XINE_ACFLAGS, "$XINE_ACFLAGS", [Path where aclocal m4 files will be.])
 AC_SUBST(XINE_ACFLAGS)
 
 dnl Where architecture independent data (e.g. logo) will/should be installed
-eval XINE_DATADIR="${datadir}/xine"
+XINE_DATADIR="`makeexpand "${datarootdir:-${datadir}}/xine"`"
 AC_SUBST(XINE_DATADIR)
 
 dnl Where scripts will/should be installed.
-eval XINE_SCRIPTPATH="${datadir}/xine/scripts"
+eval XINE_SCRIPTPATH="$XINE_DATADIR/xine/scripts"
 AC_SUBST(XINE_SCRIPTPATH)
 
 
