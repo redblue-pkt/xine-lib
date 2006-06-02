@@ -5,7 +5,7 @@
 #ifndef __ASM_MACROS_GENERIC_H
 #define __ASM_MACROS_GENERIC_H
 
-#warn This stuff is not ported on yur system
+#warning This stuff is not ported on your system
 
 static __inline__ void outb(short port,char val)
 {

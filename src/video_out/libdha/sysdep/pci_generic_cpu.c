@@ -1,7 +1,7 @@
 /*
     Generic stuff to compile VIDIX only on any system (SCRATCH)
 */
-#warn This stuff is not ported on yur system
+#warning This stuff is not ported on your system
 
 static int pci_config_type( void )
 {
