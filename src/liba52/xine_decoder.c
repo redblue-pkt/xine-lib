@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.77 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.78 2006/06/02 19:54:05 dsalt Exp $
  *
  * stuff needed to turn liba52 into a xine decoder plugin
  */
@@ -63,6 +63,8 @@
 
 #include "buffer.h"
 #include "xineutils.h"
+
+#include "crc.c"
 
 #undef DEBUG_A52
 #ifdef DEBUG_A52
