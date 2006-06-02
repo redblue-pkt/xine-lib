@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.116 2006/05/31 21:14:40 dsalt Exp $
+ * $Id: input_http.c,v 1.117 2006/06/02 22:44:58 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -300,9 +300,14 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
     lprintf ("http_plugin_read_metainf: %s\n", metadata_buf);
 
     /* Extract the title of the current song */
-    if ((songtitle = strstr(metadata_buf, "StreamTitle='"))) {
-      songtitle += 13; /* skip "StreamTitle='" */
-      if ((title_end = strchr(songtitle, '\''))) {
+    if ((songtitle = strstr(metadata_buf, "StreamTitle="))) {
+      char terminator[] = { ';', 0, 0 };
+      songtitle += 12; /* skip "StreamTitle=" */
+      if (*songtitle == '\'' || *songtitle == '"') {
+        terminator[0] = *songtitle++;
+        terminator[1] = ';';
+      }
+      if ((title_end = strstr(songtitle, terminator))) {
         *title_end = '\0';
         
         if ((!this->shoutcast_songtitle ||
