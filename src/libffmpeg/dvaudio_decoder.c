@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvaudio_decoder.c,v 1.9 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: dvaudio_decoder.c,v 1.10 2006/06/02 22:13:45 dsalt Exp $
  *
  * dv audio decoder based on patch by Dan Dennedy <dan@dennedy.org>
  *
@@ -433,7 +433,7 @@ static uint32_t supported_audio_types[] = {
   0
 };
 
-decoder_info_t dec_info_dvaudio = {
+static const decoder_info_t dec_info_dvaudio = {
   supported_audio_types,   /* supported types */
   5                        /* priority        */
 };

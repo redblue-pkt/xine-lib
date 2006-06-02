@@ -44,7 +44,7 @@
  * Carsten Bormann
  * --------------------------------------------------------------------
  *
- * $Id: gsm610.c,v 1.17 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: gsm610.c,v 1.18 2006/06/02 22:13:45 dsalt Exp $
  *
  */
 
@@ -284,7 +284,7 @@ static uint32_t audio_types[] = {
   0
 };
 
-static decoder_info_t dec_info_audio = {
+static const decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
   9                    /* priority        */
 };

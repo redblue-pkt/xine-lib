@@ -2,7 +2,8 @@ include $(top_srcdir)/misc/Makefile.common
 
 libdir = $(XINE_PLUGINDIR)/post
 
-EXTRA_DIST = mmx.c xmmx.c ppc_drawings.s ppc_zoom_ultimate.s diff_against_release.patch
+EXTRA_DIST = mmx.c xmmx.c ppc_drawings.s ppc_zoom_ultimate.s diff_against_release.patch \
+	gfontrle.c mathtools.c
 
 ## -fomit-frame-pointer segfaults here
 ## Use -O2 if -Os is stripped or x86 does not build
@@ -24,8 +25,8 @@ endif
 
 xineplug_post_goom_la_SOURCES = $(extra_files) xine_goom.c \
 	config_param.c convolve_fx.c cpu_info.c drawmethods.c filters.c flying_stars_fx.c \
-	gfontlib.c gfontrle.c goom_core.c goom_tools.c goomsl.c goomsl_hash.c goomsl_heap.c \
-	goomsl_lex.c goomsl_yacc.c graphic.c ifs.c lines.c mathtools.c \
+	gfontlib.c goom_core.c goom_tools.c goomsl.c goomsl_hash.c goomsl_heap.c \
+	goomsl_lex.c goomsl_yacc.c graphic.c ifs.c lines.c \
 	plugin_info.c sound_tester.c surf3d.c tentacle3d.c v3d.c
 xineplug_post_goom_la_LIBADD = $(XINE_LIB) $(GOOM_LIBS) $(THREAD_LIBS)
 xineplug_post_goom_la_LDFLAGS = -avoid-version -module $(XINE_PLUGIN_MIN_SYMS)

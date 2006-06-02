@@ -29,8 +29,7 @@
 #define SINCOS(f,s,c) {s=sin(f);c=cos(f);}
 #endif
 
-extern float sin256[256];
-extern float cos256[256];
+#include "mathtools.c"
 
 #endif
 

@@ -20,7 +20,7 @@
  * NSF Audio "Decoder" using the Nosefart NSF engine by Matt Conte
  *   http://www.baisoku.org/
  *
- * $Id: nsf.c,v 1.10 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: nsf.c,v 1.11 2006/06/02 22:13:45 dsalt Exp $
  */
 
 #include <stdio.h>
@@ -279,7 +279,7 @@ static uint32_t audio_types[] = {
  * the priority that the plugin should be given with respect to other
  * plugins that handle the same buffer type. A plugin with priority (n+1) 
  * will be used instead of a plugin with priority (n). */
-static decoder_info_t dec_info_audio = {
+static const decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
   5                    /* priority        */
 };
