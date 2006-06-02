@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_file_out.c,v 1.4 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: audio_file_out.c,v 1.5 2006/06/02 22:18:56 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -388,7 +388,7 @@ static void *init_class (xine_t *xine, void *data) {
 	return this;
 }
 
-static ao_info_t ao_info_file = {
+static const ao_info_t ao_info_file = {
 	-1 /* do not auto probe this one */
 };
 

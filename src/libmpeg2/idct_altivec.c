@@ -489,7 +489,7 @@ void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride)
 	 );
 }
 
-static int16_t constants[5][8] ATTR_ALIGN(16) __attribute__((used)) = {
+static const int16_t constants[5][8] ATTR_ALIGN(16) __attribute__((used)) = {
     {23170, 13573, 6518, 21895, -23170, -21895, 32, 31},
     {16384, 22725, 21407, 19266, 16384, 19266, 21407, 22725},
     {22725, 31521, 29692, 26722, 22725, 26722, 29692, 31521},

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.11 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: input_smb.c,v 1.12 2006/06/02 22:18:57 dsalt Exp $
  */
 
 
@@ -533,7 +533,7 @@ static void
 	return (input_class_t *) this;
 }
 
-static input_info_t input_info_smb = {
+static const input_info_t input_info_smb = {
   0                       /* priority */
 };
 

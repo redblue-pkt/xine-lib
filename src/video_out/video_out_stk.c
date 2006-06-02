@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_stk.c,v 1.17 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_stk.c,v 1.18 2006/06/02 22:18:59 dsalt Exp $
  *
  * video_out_stk.c, Libstk Surface Video Driver
  * more info on Libstk at http://www.libstk.org
@@ -479,7 +479,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 }
 
 /* what priority should we be (what is low), what vistype should we declare ? */
-static vo_info_t vo_info_stk = {
+static const vo_info_t vo_info_stk = {
     4,                    /* priority */
     XINE_VISUAL_TYPE_FB,  /* visual type supported by this plugin */
 };

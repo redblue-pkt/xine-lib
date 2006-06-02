@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_aa.c,v 1.47 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_aa.c,v 1.48 2006/06/02 22:18:58 dsalt Exp $
  *
  * video_out_aa.c, ascii-art output plugin for xine
  *
@@ -332,7 +332,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_aa = {
+static const vo_info_t vo_info_aa = {
   6,
   XINE_VISUAL_TYPE_AA
 };

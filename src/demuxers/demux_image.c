@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.22 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: demux_image.c,v 1.23 2006/06/02 22:18:56 dsalt Exp $
  *
  * image dummy demultiplexer
  */
@@ -260,7 +260,7 @@ static void *init_class (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_image = {
+static const demuxer_info_t demux_info_image = {
   11                       /* priority */
 };
 

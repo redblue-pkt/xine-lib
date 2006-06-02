@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_audio.c,v 1.22 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: group_audio.c,v 1.23 2006/06/02 22:18:57 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,72 +35,72 @@
  * exported plugin catalog entries
  */
 
-demuxer_info_t demux_info_aac = {
+static const demuxer_info_t demux_info_aac = {
   0                       /* priority */
 };
 
-demuxer_info_t demux_info_ac3 = {
+static const demuxer_info_t demux_info_ac3 = {
   8                       /* priority */
 };
 
-demuxer_info_t demux_info_aud = {
+static const demuxer_info_t demux_info_aud = {
   10                      /* priority */
 };
 
-demuxer_info_t demux_info_aiff = {
+static const demuxer_info_t demux_info_aiff = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_cdda = {
+static const demuxer_info_t demux_info_cdda = {
   6                        /* priority */
 };
 
-demuxer_info_t demux_info_dts = {
+static const demuxer_info_t demux_info_dts = {
   8                        /* priority */
 };
 
-demuxer_info_t demux_info_flac = {
+static const demuxer_info_t demux_info_flac = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_mpgaudio = {
+static const demuxer_info_t demux_info_mpgaudio = {
   0                       /* priority */
 };
 
-demuxer_info_t demux_info_mpc = {
+static const demuxer_info_t demux_info_mpc = {
   0                        /* priority */
 };
 
-demuxer_info_t demux_info_nsf = {
+static const demuxer_info_t demux_info_nsf = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_realaudio = {
+static const demuxer_info_t demux_info_realaudio = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_shn = {
+static const demuxer_info_t demux_info_shn = {
   0                        /* priority */
 };
 
-demuxer_info_t demux_info_snd = {
+static const demuxer_info_t demux_info_snd = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_voc = {
+static const demuxer_info_t demux_info_voc = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_vox = {
+static const demuxer_info_t demux_info_vox = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_wav = {
+static const demuxer_info_t demux_info_wav = {
   6                        /* priority */
 };
 
 #ifdef HAVE_MODPLUG
-demuxer_info_t demux_info_mod = {
+static const demuxer_info_t demux_info_mod = {
   10                       /* priority */
 };
 #endif

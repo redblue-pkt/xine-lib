@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.42 2006/05/07 09:31:57 valtri Exp $
+ * $Id: qt_decoder.c,v 1.43 2006/06/02 22:18:58 dsalt Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -617,7 +617,7 @@ static uint32_t audio_types[] = {
   0
 };
 
-static decoder_info_t qta_dec_info = {
+static const decoder_info_t qta_dec_info = {
   audio_types,         /* supported types */
   1                    /* priority        */
 };
@@ -1148,7 +1148,7 @@ static void *qtv_init_class (xine_t *xine, void *data) {
 
 static uint32_t qtv_supported_types[] = { BUF_VIDEO_SORENSON_V3, 0 };
 
-static decoder_info_t qtv_dec_info = {
+static const decoder_info_t qtv_dec_info = {
   qtv_supported_types,     /* supported types */
   1                        /* priority        */
 };

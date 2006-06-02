@@ -1577,7 +1577,7 @@ static void *init_class_fb (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_directfb_fb = {
+static const vo_info_t vo_info_directfb_fb = {
   8,                   /* priority    */
   XINE_VISUAL_TYPE_FB  /* visual type */
 };
@@ -1768,7 +1768,7 @@ static void *init_class_x11 (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_directfb_x11 = {
+static const vo_info_t vo_info_directfb_x11 = {
   8,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };

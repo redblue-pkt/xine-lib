@@ -46,7 +46,7 @@
 #include "vlc.h"
 /* original (non-patched) scan tables */
 
-static uint8_t mpeg2_scan_norm_orig[64] ATTR_ALIGN(16) =
+static const uint8_t mpeg2_scan_norm_orig[64] ATTR_ALIGN(16) =
 {
     /* Zig-Zag scan pattern */
      0, 1, 8,16, 9, 2, 3,10,
@@ -59,7 +59,7 @@ static uint8_t mpeg2_scan_norm_orig[64] ATTR_ALIGN(16) =
     53,60,61,54,47,55,62,63
 };
 
-static uint8_t mpeg2_scan_alt_orig[64] ATTR_ALIGN(16) =
+static const uint8_t mpeg2_scan_alt_orig[64] ATTR_ALIGN(16) =
 {
     /* Alternate scan pattern */
     0,8,16,24,1,9,2,10,17,25,32,40,48,56,57,49,
@@ -68,9 +68,9 @@ static uint8_t mpeg2_scan_alt_orig[64] ATTR_ALIGN(16) =
     53,61,22,30,7,15,23,31,38,46,54,62,39,47,55,63
 };
 
-uint8_t mpeg2_scan_alt_ptable[64] ATTR_ALIGN(16);
-uint8_t mpeg2_scan_norm_ptable[64] ATTR_ALIGN(16);
-uint8_t mpeg2_scan_orig_ptable[64] ATTR_ALIGN(16);
+static uint8_t mpeg2_scan_alt_ptable[64] ATTR_ALIGN(16);
+static uint8_t mpeg2_scan_norm_ptable[64] ATTR_ALIGN(16);
+static uint8_t mpeg2_scan_orig_ptable[64] ATTR_ALIGN(16);
 
 void xvmc_setup_scan_ptable( void )
 {
@@ -83,7 +83,7 @@ void xvmc_setup_scan_ptable( void )
 }
     
 
-static int non_linear_quantizer_scale [] = {
+static const int non_linear_quantizer_scale [] = {
     0,  1,  2,  3,  4,  5,   6,   7,
     8, 10, 12, 14, 16, 18,  20,  22,
     24, 28, 32, 36, 40, 44,  48,  52,

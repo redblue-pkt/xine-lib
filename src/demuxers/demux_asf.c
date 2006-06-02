@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.175 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: demux_asf.c,v 1.176 2006/06/02 22:18:56 dsalt Exp $
  *
  * demultiplexer for asf streams
  *
@@ -2332,7 +2332,7 @@ static void *init_class (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_asf = {
+static const demuxer_info_t demux_info_asf = {
   10                       /* priority */
 };
  

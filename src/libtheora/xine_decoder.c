@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.24 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.25 2006/06/02 22:18:58 dsalt Exp $
  *
  * xine decoder plugin using libtheora
  *
@@ -390,7 +390,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 static uint32_t supported_types[] = { BUF_VIDEO_THEORA, 0 };
 
-static decoder_info_t dec_info_video = {
+static const decoder_info_t dec_info_video = {
   supported_types,   /* supported types */
   5                        /* priority        */
 };

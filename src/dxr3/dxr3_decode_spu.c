@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.53 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: dxr3_decode_spu.c,v 1.54 2006/06/02 22:18:57 dsalt Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -68,7 +68,7 @@ static void   *dxr3_spudec_init_plugin(xine_t *xine, void *);
 /* plugin catalog information */
 static uint32_t supported_types[] = { BUF_SPU_DVD, 0 };
 
-static decoder_info_t dxr3_spudec_info = {
+static const decoder_info_t dxr3_spudec_info = {
   supported_types,     /* supported types */
   10                   /* priority        */
 };

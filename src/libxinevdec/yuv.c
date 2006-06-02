@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.35 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: yuv.c,v 1.36 2006/06/02 22:18:58 dsalt Exp $
  */
 
 #include <stdio.h>
@@ -371,7 +371,7 @@ static void *init_plugin (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
-static uint32_t video_types[] = { 
+static const uint32_t video_types[] = { 
   BUF_VIDEO_YUY2, 
   BUF_VIDEO_YV12,
   BUF_VIDEO_YVU9,
@@ -380,7 +380,7 @@ static uint32_t video_types[] = {
   0
  };
 
-static decoder_info_t dec_info_video = {
+static const decoder_info_t dec_info_video = {
   video_types,         /* supported types */
   1                    /* priority        */
 };

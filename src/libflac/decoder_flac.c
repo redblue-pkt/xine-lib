@@ -395,7 +395,7 @@ static uint32_t audio_types[] = {
   BUF_AUDIO_FLAC, 0
  };
 
-static decoder_info_t dec_info_audio = {
+static const decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
   5                    /* priority        */
 };

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  *
- * $Id: video_out_pgx64.c,v 1.76 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_pgx64.c,v 1.77 2006/06/02 22:18:58 dsalt Exp $
  *
  * video_out_pgx64.c, Sun XVR100/PGX64/PGX24 output plugin for xine
  *
@@ -1343,7 +1343,7 @@ static void pgx64_dispose_class(video_driver_class_t *class_gen)
   free(class);
 }
 
-static vo_info_t vo_info_pgx64 = {
+static const vo_info_t vo_info_pgx64 = {
   10,
   XINE_VISUAL_TYPE_X11
 };

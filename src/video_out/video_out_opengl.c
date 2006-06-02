@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.55 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_opengl.c,v 1.56 2006/06/02 22:18:58 dsalt Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -1982,7 +1982,7 @@ static void *opengl_init_class (xine_t *xine, void *visual_gen) {
 }
 
 
-static vo_info_t vo_info_opengl = {
+static const vo_info_t vo_info_opengl = {
   7,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };

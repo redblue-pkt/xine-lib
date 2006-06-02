@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_games.c,v 1.13 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: group_games.c,v 1.14 2006/06/02 22:18:57 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,47 +35,47 @@
  * exported plugin catalog entries
  */
 
-demuxer_info_t demux_info_eawve = {
+static const demuxer_info_t demux_info_eawve = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_idcin = {
+static const demuxer_info_t demux_info_idcin = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_ipmovie = {
+static const demuxer_info_t demux_info_ipmovie = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_vqa = {
+static const demuxer_info_t demux_info_vqa = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_wc3movie = {
+static const demuxer_info_t demux_info_wc3movie = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_roq = {
+static const demuxer_info_t demux_info_roq = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_str = {
+static const demuxer_info_t demux_info_str = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_film = {
+static const demuxer_info_t demux_info_film = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_smjpeg = {
+static const demuxer_info_t demux_info_smjpeg = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_fourxm = {
+static const demuxer_info_t demux_info_fourxm = {
   10                       /* priority */
 };
 
-demuxer_info_t demux_info_vmd = {
+static const demuxer_info_t demux_info_vmd = {
   10                       /* priority */
 };
 

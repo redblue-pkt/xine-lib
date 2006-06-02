@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_none.c,v 1.25 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_none.c,v 1.26 2006/06/02 22:18:58 dsalt Exp $
  *
  * Was originally part of toxine frontend.
  * ...but has now been adapted to xine coding style standards ;)
@@ -301,7 +301,7 @@ static void *init_class (xine_t *xine, void *visual) {
   return this;
 }
 
-static vo_info_t vo_info_none = {
+static const vo_info_t vo_info_none = {
   5,                        /* Priority    */
   XINE_VISUAL_TYPE_NONE     /* Visual type */
 };

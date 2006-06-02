@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.143 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_xshm.c,v 1.144 2006/06/02 22:18:59 dsalt Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1289,7 +1289,7 @@ static void *xshm_init_class (xine_t *xine, void *visual_gen) {
 }
 
 
-static vo_info_t vo_info_xshm = {
+static const vo_info_t vo_info_xshm = {
   6,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };

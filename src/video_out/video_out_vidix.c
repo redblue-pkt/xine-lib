@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_vidix.c,v 1.72 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_vidix.c,v 1.73 2006/06/02 22:18:59 dsalt Exp $
  * 
  * video_out_vidix.c
  *
@@ -1218,7 +1218,7 @@ static void *vidix_init_class (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_vidix = {
+static const vo_info_t vo_info_vidix = {
   2,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
@@ -1300,7 +1300,7 @@ static void *vidixfb_init_class (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_vidixfb = {
+static const vo_info_t vo_info_vidixfb = {
   2,                    /* priority    */
   XINE_VISUAL_TYPE_FB   /* visual type */
 };

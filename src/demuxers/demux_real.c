@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.107 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: demux_real.c,v 1.108 2006/06/02 22:18:57 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1651,7 +1651,7 @@ static void *init_class (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_real = {
+static const demuxer_info_t demux_info_real = {
   10                       /* priority */
 };
 

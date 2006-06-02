@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_macosx.m,v 1.14 2005/11/14 12:34:46 valtri Exp $
+ * $Id: video_out_macosx.m,v 1.15 2006/06/02 22:18:58 dsalt Exp $
  *
  * This output driver makes use of xine's objective-c video_output 
  * classes located in the macosx folder.
@@ -372,7 +372,7 @@ static void *init_class (xine_t *xine, void *visual) {
   return this;
 }
 
-static vo_info_t vo_info_macosx = {
+static const vo_info_t vo_info_macosx = {
   1,                        /* Priority    */
   XINE_VISUAL_TYPE_MACOSX   /* Visual type */
 };

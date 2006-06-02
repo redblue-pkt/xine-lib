@@ -24,7 +24,7 @@
  * tools, visit:
  *   http://mjpeg.sourceforge.net/
  *
- * $Id: demux_yuv4mpeg2.c,v 1.41 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: demux_yuv4mpeg2.c,v 1.42 2006/06/02 22:18:57 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -494,7 +494,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_yuv4mpeg2 = {
+static const demuxer_info_t demux_info_yuv4mpeg2 = {
   10                       /* priority */
 };
 

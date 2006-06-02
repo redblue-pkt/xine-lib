@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.20 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: demux_yuv_frames.c,v 1.21 2006/06/02 22:18:57 dsalt Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -272,7 +272,7 @@ static void *init_class (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_yuv_frames = {
+static const demuxer_info_t demux_info_yuv_frames = {
   0                       /* priority */
 };
 

@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.24 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: foovideo.c,v 1.25 2006/06/02 22:18:58 dsalt Exp $
  */
 
 #include <stdio.h>
@@ -274,7 +274,7 @@ static void *init_plugin (xine_t *xine, void *data) {
  * list of valid buffer types (and add a new one if the one you need does
  * not exist). Terminate the list with a 0.
  */
-static uint32_t video_types[] = { 
+static const uint32_t video_types[] = { 
   /* BUF_VIDEO_FOOVIDEO, */
   BUF_VIDEO_VQA,
   BUF_VIDEO_SORENSON_V3,
@@ -287,7 +287,7 @@ static uint32_t video_types[] = {
  * plugins that handle the same buffer type. A plugin with priority (n+1)
  * will be used instead of a plugin with priority (n).
  */
-static decoder_info_t dec_info_video = {
+static const decoder_info_t dec_info_video = {
   video_types,         /* supported types */
   5                    /* priority        */
 };

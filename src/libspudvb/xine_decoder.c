@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.19 2006/06/02 22:18:58 dsalt Exp $
  *
  * DVB Subtitle decoder (ETS 300 743)
  * (c) 2004 Mike Lampard <mlampard@users.sourceforge.net>
@@ -864,7 +864,7 @@ static void *init_spu_decoder_plugin (xine_t * xine, void *data)
 /* plugin catalog information */
 static uint32_t supported_types[] = { BUF_SPU_DVB, 0 };
 
-static decoder_info_t spudec_info = {
+static const decoder_info_t spudec_info = {
   supported_types,		/* supported types */
   1				/* priority        */
 };

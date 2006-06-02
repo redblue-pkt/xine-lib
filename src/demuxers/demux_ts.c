@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.119 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: demux_ts.c,v 1.120 2006/06/02 22:18:57 dsalt Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -2200,7 +2200,7 @@ static void *init_class (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_ts = {
+static const demuxer_info_t demux_info_ts = {
   10                       /* priority */
 };
 

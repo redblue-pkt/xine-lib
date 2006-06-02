@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xvmc.c,v 1.26 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_xvmc.c,v 1.27 2006/06/02 22:18:59 dsalt Exp $
  * 
  * video_out_xvmc.c, X11 video motion compensation extension interface for xine
  *
@@ -1786,7 +1786,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_xvmc = {
+static const vo_info_t vo_info_xvmc = {
   /* priority must be low until it supports displaying non-accelerated stuff */
   0,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */

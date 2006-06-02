@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.13 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: audio_irixal_out.c,v 1.14 2006/06/02 22:18:56 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -405,7 +405,7 @@ static void *init_audio_out_plugin (config_values_t *config)
   return this;
 }
 
-static ao_info_t ao_info_irixal = {
+static const ao_info_t ao_info_irixal = {
   "xine audio output plugin using IRIX libaudio",
   10
 };

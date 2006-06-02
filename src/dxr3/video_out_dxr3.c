@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.112 2006/01/27 07:46:12 tmattern Exp $
+ * $Id: video_out_dxr3.c,v 1.113 2006/06/02 22:18:57 dsalt Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -80,18 +80,18 @@ static dxr3_driver_class_t *dxr3_vo_init_plugin(xine_t *xine, void *visual_gen);
 
 /* plugin catalog information */
 #ifdef HAVE_X11
-static vo_info_t   vo_info_dxr3_x11 = {
+static const vo_info_t   vo_info_dxr3_x11 = {
   10,                  /* priority        */
   XINE_VISUAL_TYPE_X11 /* visual type     */
 };
 #endif
 
-static vo_info_t   vo_info_dxr3_aa = {
+static const vo_info_t   vo_info_dxr3_aa = {
   10,                  /* priority        */
   XINE_VISUAL_TYPE_AA  /* visual type     */
 };
 
-plugin_info_t      xine_plugin_info[] = {
+const plugin_info_t      xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
   { PLUGIN_VIDEO_OUT, 21, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
@@ -223,12 +223,12 @@ static vo_driver_t *dxr3_vo_open_plugin(video_driver_class_t *class_gen, const v
   plugin_node_t *node;
 
 #ifdef HAVE_X11
-  static char *videoout_modes[] = { "letterboxed tv",      "widescreen tv",
+  static const char const *videoout_modes[] = { "letterboxed tv",      "widescreen tv",
 				    "letterboxed overlay", "widescreen overlay", NULL };
 #else
-  static char *videoout_modes[] = { "letterboxed tv", "widescreen tv", NULL };
+  static const char const *videoout_modes[] = { "letterboxed tv", "widescreen tv", NULL };
 #endif
-  static char *tv_modes[] = { "ntsc", "pal", "pal60" , "default", NULL };
+  static const char const *tv_modes[] = { "ntsc", "pal", "pal60" , "default", NULL };
   int list_id, list_size;
   xine_sarray_t *plugin_list;
   
@@ -1247,7 +1247,7 @@ static void dxr3_dispose(vo_driver_t *this_gen)
   close(this->fd_control);
   pthread_mutex_lock(&this->spu_device_lock);
   if (this->fd_spu) {
-    uint8_t empty_spu[] = {
+    static const uint8_t empty_spu[] = {
       0x00, 0x26, 0x00, 0x08, 0x80, 0x00, 0x00, 0x80,
       0x00, 0x00, 0x00, 0x20, 0x01, 0x03, 0x00, 0x00,
       0x04, 0x00, 0x00, 0x05, 0x00, 0x00, 0x01, 0x00,

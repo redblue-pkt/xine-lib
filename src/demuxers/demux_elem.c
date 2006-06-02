@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.87 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: demux_elem.c,v 1.88 2006/06/02 22:18:56 dsalt Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -301,7 +301,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_elem = {
+static const demuxer_info_t demux_info_elem = {
   0                       /* priority */
 };
 

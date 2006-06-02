@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several visualization post plugins.
  *
- * $Id: visualizations.c,v 1.12 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: visualizations.c,v 1.13 2006/06/02 22:18:58 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -41,9 +41,9 @@ void *fftgraph_init_plugin(xine_t *xine, void *data);
  */
 
 /* plugin catalog information */
-post_info_t oscope_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
-post_info_t fftscope_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
-post_info_t fftgraph_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
+static const post_info_t oscope_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
+static const post_info_t fftscope_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
+static const post_info_t fftgraph_special_info = { XINE_POST_TYPE_AUDIO_VISUALIZATION };
 
 
 const plugin_info_t xine_plugin_info[] = {

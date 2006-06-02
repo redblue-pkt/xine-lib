@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: planar.c,v 1.11 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: planar.c,v 1.12 2006/06/02 22:18:58 dsalt Exp $
  *
  * catalog for planar post plugins
  */
@@ -27,34 +27,34 @@
 #include "xineutils.h"
 
 extern void *invert_init_plugin(xine_t *xine, void *);
-post_info_t invert_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t invert_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *expand_init_plugin(xine_t *xine, void *);
-post_info_t expand_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t expand_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *fill_init_plugin(xine_t *xine, void*);
-post_info_t fill_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t fill_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *eq_init_plugin(xine_t *xine, void *);
-post_info_t eq_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t eq_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *boxblur_init_plugin(xine_t *xine, void *);
-post_info_t boxblur_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t boxblur_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *denoise3d_init_plugin(xine_t *xine, void *);
-post_info_t denoise3d_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t denoise3d_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *eq2_init_plugin(xine_t *xine, void *);
-post_info_t eq2_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t eq2_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *unsharp_init_plugin(xine_t *xine, void *);
-post_info_t unsharp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t unsharp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *pp_init_plugin(xine_t *xine, void *);
-post_info_t pp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t pp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 extern void *noise_init_plugin(xine_t *xine, void *);
-post_info_t noise_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+static const post_info_t noise_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
 const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */  

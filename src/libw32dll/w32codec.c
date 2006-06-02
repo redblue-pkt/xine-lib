@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.152 2006/05/07 09:31:57 valtri Exp $
+ * $Id: w32codec.c,v 1.153 2006/06/02 22:18:58 dsalt Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -1700,7 +1700,7 @@ static uint32_t video_types[] = {
   0
  };
 
-static decoder_info_t dec_info_video = {
+static const decoder_info_t dec_info_video = {
   video_types,         /* supported types */
   1                    /* priority        */
 };
@@ -1713,7 +1713,7 @@ static uint32_t audio_types[] = {
   0
  };
 
-static decoder_info_t dec_info_audio = {
+static const decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
   1                    /* priority        */
 };

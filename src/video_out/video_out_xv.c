@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.217 2006/05/03 19:46:09 dsalt Exp $
+ * $Id: video_out_xv.c,v 1.218 2006/06/02 22:18:59 dsalt Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -1597,7 +1597,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   return this;
 }
 
-static vo_info_t vo_info_xv = {
+static const vo_info_t vo_info_xv = {
   9,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };

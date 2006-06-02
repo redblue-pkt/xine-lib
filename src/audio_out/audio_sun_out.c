@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.41 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: audio_sun_out.c,v 1.42 2006/06/02 22:18:56 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -993,7 +993,7 @@ static void *ao_sun_init_class (xine_t *xine, void *data) {
 }
 
 
-static ao_info_t ao_info_sun = {
+static const ao_info_t ao_info_sun = {
   10
 };
 

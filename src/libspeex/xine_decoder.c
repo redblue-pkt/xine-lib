@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.18 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.19 2006/06/02 22:18:57 dsalt Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -431,7 +431,7 @@ static uint32_t audio_types[] = {
   BUF_AUDIO_SPEEX, 0
  };
 
-static decoder_info_t dec_info_audio = {
+static const decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
   5                    /* priority        */
 };

@@ -23,7 +23,7 @@
  * For more information regarding the NSV file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_nsv.c,v 1.22 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: demux_nsv.c,v 1.23 2006/06/02 22:18:56 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -685,7 +685,7 @@ static void *demux_nsv_init_plugin (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_nsv = {
+static const demuxer_info_t demux_info_nsv = {
   10                       /* priority */
 };
 

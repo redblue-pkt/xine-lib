@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.26 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: demux_rawdv.c,v 1.27 2006/06/02 22:18:56 dsalt Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -443,7 +443,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_raw_dv = {
+static const demuxer_info_t demux_info_raw_dv = {
   1                       /* priority */
 };
 

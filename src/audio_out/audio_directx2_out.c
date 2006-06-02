@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_directx2_out.c,v 1.6 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: audio_directx2_out.c,v 1.7 2006/06/02 22:18:56 dsalt Exp $
  *
  *
  * xine audio output plugin using DirectX
@@ -1024,7 +1024,7 @@ static void *init_class(xine_t *xine, void *data) {
 }
 
 
-static ao_info_t ao_info_directx2 = {
+static const ao_info_t ao_info_directx2 = {
   10
 };
 

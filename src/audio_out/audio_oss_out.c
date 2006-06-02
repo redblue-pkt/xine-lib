@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.114 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: audio_oss_out.c,v 1.115 2006/06/02 22:18:56 dsalt Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -1171,7 +1171,7 @@ static void *init_class (xine_t *xine, void *data) {
   return this;
 }
 
-static ao_info_t ao_info_oss = {
+static const ao_info_t ao_info_oss = {
   9 /* less than alsa so xine will use alsa's native interface by default */
 };
 

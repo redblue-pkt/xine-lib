@@ -23,7 +23,7 @@
  *   32bit float output
  *   Seeking??
  *
- * $Id: xine_decoder.c,v 1.6 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.7 2006/06/02 22:18:57 dsalt Exp $
  */
 
 #include <stdio.h>
@@ -454,7 +454,7 @@ static uint32_t audio_types[] = {
   0
 };
 
-static decoder_info_t dec_info_audio = {
+static const decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
   5                    /* priority        */
 };

@@ -23,7 +23,7 @@
 #include "mpeg2_internal.h"
 #include "xvmc_vld.h"
 
-static uint8_t zig_zag_scan[64] ATTR_ALIGN(16) =
+static const uint8_t zig_zag_scan[64] ATTR_ALIGN(16) =
 {
     /* Zig-Zag scan pattern */
      0, 1, 8,16, 9, 2, 3,10,
@@ -36,7 +36,7 @@ static uint8_t zig_zag_scan[64] ATTR_ALIGN(16) =
     53,60,61,54,47,55,62,63
 };
 
-static uint8_t alternate_scan [64] ATTR_ALIGN(16) =
+static const uint8_t alternate_scan [64] ATTR_ALIGN(16) =
 {
     /* Alternate scan pattern */
     0,8,16,24,1,9,2,10,17,25,32,40,48,56,57,49,

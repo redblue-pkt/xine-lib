@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.61 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: dxr3_decode_video.c,v 1.62 2006/06/02 22:18:57 dsalt Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -69,7 +69,7 @@ static void     *dxr3_init_plugin(xine_t *xine, void *);
 /* plugin catalog information */
 static uint32_t supported_types[] = { BUF_VIDEO_MPEG, 0 };
 
-static decoder_info_t dxr3_video_decoder_info = {
+static const decoder_info_t dxr3_video_decoder_info = {
   supported_types,     /* supported types */
   10                   /* priority        */
 };

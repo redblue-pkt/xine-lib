@@ -471,7 +471,7 @@ static void* init_class(xine_t *xine, void *data) {
   return class;
 }
 
-static ao_info_t ao_info_fusionsound = {
+static const ao_info_t ao_info_fusionsound = {
   4
 };
 

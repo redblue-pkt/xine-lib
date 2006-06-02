@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.57 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.58 2006/06/02 22:18:57 dsalt Exp $
  *
  * stuff needed to turn libmpeg2 into a xine decoder plugin
  */
@@ -172,7 +172,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 
 static uint32_t supported_types[] = { BUF_VIDEO_MPEG, 0 };
 
-static decoder_info_t dec_info_mpeg2 = {
+static const decoder_info_t dec_info_mpeg2 = {
   supported_types,     /* supported types */
   7                    /* priority        */
 };

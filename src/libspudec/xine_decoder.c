@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.114 2006/05/03 19:46:08 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.115 2006/06/02 22:18:58 dsalt Exp $
  *
  * stuff needed to turn libspu into a xine decoder plugin
  */
@@ -392,7 +392,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 /* plugin catalog information */
 static uint32_t supported_types[] = { BUF_SPU_DVD, 0 };
 
-static decoder_info_t dec_info_data = {
+static const decoder_info_t dec_info_data = {
   supported_types,     /* supported types */
   5                    /* priority        */
 };

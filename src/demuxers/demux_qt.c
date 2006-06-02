@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.206 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: demux_qt.c,v 1.207 2006/06/02 22:18:56 dsalt Exp $
  *
  */
 
@@ -3090,7 +3090,7 @@ static void *init_plugin (xine_t *xine, void *data) {
 /*
  * exported plugin catalog entry
  */
-demuxer_info_t demux_info_qt = {
+static const demuxer_info_t demux_info_qt = {
   10                       /* priority */
 };
 
