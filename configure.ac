@@ -450,9 +450,9 @@ dnl Locate libraries needed for X health check
 dnl ---------------------------------------------
 
 x_lib_location="`ls "$x_libraries/libX11.so"* | sed -e '/[0-9]$/! d; s%^.*/%%; t q; b; :q q'`"
-AC_DEFINE([LIBX11_SO], [${x_lib_location:-libX11.so}])
+AC_DEFINE([LIBX11_SO], [${x_lib_location:-libX11.so}], [Filename of libX11, for use in dlopen() by the health check code])
 x_lib_location="`ls "$x_libraries/libXv.so"* | sed -e '/[0-9]$/! d; s%^.*/%%; t q; b; :q q'`"
-AC_DEFINE([LIBXV_SO], [${x_lib_location:-libXv.so}])
+AC_DEFINE([LIBXV_SO], [${x_lib_location:-libXv.so}], [Filename of libXv, for use in dlopen() by the health check code])
 
 
 dnl ---------------------------------------------
