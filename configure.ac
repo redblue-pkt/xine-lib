@@ -2009,8 +2009,6 @@ case "$host_or_hostalias" in
     
     if test x$enable_altivec = xyes; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you have a Motorola 74xx CPU])
-        CFLAGS="-Wa,-m7400 $CFLAGS"
-	DEBUG_CFLAGS="-Wa,-m7400 $DEBUG_CFLAGS"
     fi
     ;;
   sparc*-*-linux*)
