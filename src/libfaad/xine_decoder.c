@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.46 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.47 2006/06/03 12:36:52 dsalt Exp $
  *
  */
 
@@ -38,7 +38,12 @@
 #include "audio_out.h"
 #include "buffer.h"
 #include "xineutils.h"
-#include "faad.h"
+#include "common.h"
+#include "structs.h"
+#include "decoder.h"
+#include "syntax.h"
+
+#define FAAD_MIN_STREAMSIZE 768 /* 6144 bits/channel */
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -50,9 +55,9 @@ typedef struct faad_decoder_s {
   xine_stream_t    *stream;
   
   /* faad2 stuff */
-  faacDecHandle           faac_dec;
-  faacDecConfigurationPtr faac_cfg;
-  faacDecFrameInfo        faac_finfo;
+  NeAACDecHandle           faac_dec;
+  NeAACDecConfigurationPtr faac_cfg;
+  NeAACDecFrameInfo        faac_finfo;
   int                     faac_failed;
  
   int              raw_mode;
@@ -66,7 +71,7 @@ typedef struct faad_decoder_s {
   unsigned char   *dec_config;
   int              dec_config_size;
   
-  unsigned long    rate;
+  uint32_t         rate;
   int              bits_per_sample; 
   unsigned char    num_channels; 
   int              sbr;

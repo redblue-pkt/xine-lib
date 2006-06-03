@@ -66,7 +66,6 @@ noinst_HEADERS = \
 	drc.h \
 	drm_dec.h \
 	error.h \
-	faad.h  \
 	filtbank.h \
 	fixed.h \
 	huffman.h \
