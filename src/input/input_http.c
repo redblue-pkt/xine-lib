@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.117 2006/06/02 22:44:58 dsalt Exp $
+ * $Id: input_http.c,v 1.118 2006/06/06 16:39:25 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -900,10 +900,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	len = 0;
     } else
       len ++;
-    if ( len >= buflen ) {
+    if ( len >= BUFSIZE ) {
        _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
        xine_log (this->stream->xine, XINE_LOG_MSG,
-         _("input_http: buffer exhausted after %d bytes."), buflen);
+         _("input_http: buffer exhausted after %d bytes."), BUFSIZE);
        return 0;
     }
   }
