@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.113 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: video_out_dxr3.c,v 1.114 2006/06/07 22:52:29 dsalt Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -1210,7 +1210,7 @@ static int dxr3_gui_data_exchange(vo_driver_t *this_gen, int data_type, void *da
     break;
   case XINE_GUI_SEND_VIDEOWIN_VISIBLE:
     {
-      int window_showing = (int)data;
+      long window_showing = (long)data;
       int val;
       if (!window_showing) {
         llprintf(LOG_VID, "Hiding video window and diverting video to TV\n");
