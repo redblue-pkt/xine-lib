@@ -1,4 +1,6 @@
 xine-lib (1.1.2)
+  * SECURITY:
+    - Fix possible overflow in the HTTP plugin. (CVE-2006-1664)
   * Czech translation update
   * Disable the XXMC plugin if Xv support isn't there
   * Also look for Xv support in /usr/lib for X.org's new location
