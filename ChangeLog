@@ -1,6 +1,8 @@
 xine-lib (1.1.2)
-  * SECURITY:
-    - Fix possible overflow in the HTTP plugin. (CVE-2006-2802)
+  * Security fixes:
+    - CVE-2005-4048: possible buffer overflow in libavcodec (crafted PNGs).
+    - CVE-2006-2802: possible buffer overflow in the HTTP plugin. 
+    - possible buffer overflow via bad indexes in specially-crafted AVI files
   * Czech translation update
   * Disable the XXMC plugin if Xv support isn't there
   * Also look for Xv support in /usr/lib for X.org's new location
