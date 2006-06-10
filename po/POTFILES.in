@@ -1,5 +1,5 @@
 # For updating this file, look at the result of:
-#  head -n 3 po/POTFILES.in > /tmp/POTFILES.in && grep -l '[^A-Za-z_]_(' . -r --include '*.chy' --exclude xineintl.h >> /tmp/POTFILES.in && cp /tmp/POTFILES.in po/
+#  head -n 3 po/POTFILES.in > /tmp/POTFILES.in && grep -l '[^A-Za-z_]_(' . -r --include '*.[chy]' --exclude xineintl.h | sed -e 's:^\./::' >> /tmp/POTFILES.in && cp /tmp/POTFILES.in po/
 
 src/liba52/xine_decoder.c
 src/libw32dll/qt_decoder.c
@@ -127,3 +127,4 @@ src/libffmpeg/audio_decoder.c
 src/libffmpeg/dvaudio_decoder.c
 src/libffmpeg/video_decoder.c
 src/libfaad/xine_decoder.c
+lib/hstrerror.c
