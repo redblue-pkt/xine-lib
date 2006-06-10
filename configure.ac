@@ -85,7 +85,7 @@ AC_SUBST(SPEC_VERSION)
 LIBNAME=libxine$XINE_MAJOR
 AC_SUBST(LIBNAME)
 
-AC_DEFINE_UNQUOTED(XINE_TEXTDOMAIN, "$LIBNAME", [catalog message text domain])
+AC_DEFINE_UNQUOTED(XINE_TEXTDOMAIN, "xine-lib", [catalog message text domain])
 
 dnl
 AC_CANONICAL_TARGET
