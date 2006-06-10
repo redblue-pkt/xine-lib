@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.43 2006/02/05 16:15:12 miguelfreitas Exp $
+ * $Id: utils.c,v 1.44 2006/06/10 00:21:51 dgp85 Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -50,7 +50,7 @@
 #include <ucontext.h>
 #endif
 
-#ifdef HAVE_LANGINFO_CODESET
+#ifdef HAVE_NL_LANGINFO
 #include <langinfo.h>
 #endif
 
@@ -531,7 +531,7 @@ static char *_get_lang(void) {
 char *xine_get_system_encoding(void) {
   char *codeset = NULL;
   
-#ifdef HAVE_LANGINFO_CODESET
+#ifdef HAVE_NL_LANGINFO
   codeset = nl_langinfo(CODESET);
 #endif
   /*

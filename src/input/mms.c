@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.57 2006/04/19 17:30:12 dsalt Exp $
+ * $Id: mms.c,v 1.58 2006/06/10 00:21:51 dgp85 Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -45,7 +45,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_CODESET)
+#if defined(HAVE_ICONV) && defined(HAVE_NL_LANGINFO)
 #define USE_ICONV
 #include <iconv.h>
 #include <locale.h>

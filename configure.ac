@@ -171,6 +171,8 @@ fi
 AC_SUBST(INTLDIR)
 
 
+AC_CHECK_FUNCS([nl_langinfo])
+
 dnl ---------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl ---------------------------------------------
