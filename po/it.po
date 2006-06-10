@@ -1,4 +1,4 @@
-# translation of xine-lib.po to Italian
+# translation of it.po to Italian
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
 #
@@ -7,10 +7,10 @@
 # Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>, 2006.
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib\n"
+"Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2006-06-10 03:56+0200\n"
-"PO-Revision-Date: 2006-06-07 20:23+0200\n"
+"PO-Revision-Date: 2006-06-10 04:06+0200\n"
 "Last-Translator: Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>\n"
 "Language-Team: Italian\n"
 "MIME-Version: 1.0\n"
@@ -1556,61 +1556,55 @@ msgstr ""
 
 #: src/xine-engine/xine_interface.c:903
 msgid "Warning:"
-msgstr ""
+msgstr "Attenzione:"
 
 #: src/xine-engine/xine_interface.c:904
-#, fuzzy
 msgid "Unknown host:"
-msgstr "errore sconosciuto"
+msgstr "Host sconosciuto:"
 
 #: src/xine-engine/xine_interface.c:905
-#, fuzzy
 msgid "Unknown device:"
-msgstr "Tipo di evento sconosciuto: "
+msgstr "Dispositivo sconosciuto:"
 
 #: src/xine-engine/xine_interface.c:906
 msgid "Network unreachable"
-msgstr ""
+msgstr "Rete irraggiungibile"
 
 #: src/xine-engine/xine_interface.c:907
-#, fuzzy
 msgid "Connection refused:"
-msgstr "io_helper: Connessionr rifiutata\n"
+msgstr "Connessione rifiutata:"
 
 #: src/xine-engine/xine_interface.c:908
-#, fuzzy
 msgid "File not found:"
-msgstr "io_helper: File non trovato\n"
+msgstr "File non trovato:"
 
 #: src/xine-engine/xine_interface.c:909
 msgid "Read error from:"
-msgstr ""
+msgstr "Errore leggendo da:"
 
 #: src/xine-engine/xine_interface.c:910
-#, fuzzy
 msgid "Error loading library:"
-msgstr "osd: errore nel caricamento del glifo.\n"
+msgstr "Errore nel caricamento della libreria:"
 
 #: src/xine-engine/xine_interface.c:911
 msgid "Encrypted media stream detected"
-msgstr ""
+msgstr "Individuato flusso multimediale cifrato"
 
 #: src/xine-engine/xine_interface.c:912
 msgid "Security message:"
-msgstr ""
+msgstr "Messaggio di sicurezza:"
 
 #: src/xine-engine/xine_interface.c:913
-#, fuzzy
 msgid "Audio device unavailable"
-msgstr "nome dispositivo audio Sun"
+msgstr "Dispositivo audio non disponibile"
 
 #: src/xine-engine/xine_interface.c:914
 msgid "Permission error"
-msgstr ""
+msgstr "Errore di permessi"
 
 #: src/xine-engine/xine_interface.c:915
 msgid "File is empty:"
-msgstr ""
+msgstr "Il file è vuoto:"
 
 #: src/xine-engine/audio_out.c:1084
 msgid ""
@@ -5115,6 +5109,21 @@ msgid ""
 "\n"
 "* mplayer's noise (C) Michael Niedermayer\n"
 msgstr ""
+"Aggiunge rumore casuale al video.\n"
+"\n"
+"Parametri:\n"
+"  luma_strength: forza del rumore aggiunto al canale luminosità (0-100, "
+"default: 8)\n"
+"  chroma_strength: forza del rumore aggiungo al canale cromatico (0-100, "
+"default: 5)\n"
+"  quality: livello di qualità del rumore.  fixed: schema costante; temporal: "
+"lo schema varia tra i frame; averaged temporal: schema più liscio che cambia "
+"tra i frame. (default: averaged_temporal)\n"
+"  type: tipo di rumore: uniforme o gaussiano (default: gaussiano)\n"
+"  patter: mescola il rumore casuale con uno schema semi-regolare. (default: "
+"falso)\n"
+"\n"
+"* mplayer's noise (C) Michael Niedermayer\n"
 
 #: src/post/planar/expand.c:230
 msgid ""
@@ -5247,6 +5256,13 @@ msgid ""
 "weighted mean over past samples (default); 2: use several samples to smooth "
 "the variations via the standard weighted mean over past samples.\n"
 msgstr ""
+"Normalizza l'audio massimizzando il volume senza distorcere il suono.\n"
+"\n"
+"Parametri:\n"
+"  method: 1: utilizza un singolo campione per assottigliare le variazioni "
+"attraverso la media standard pesata sui campioni precedenti (default; 2: "
+"utilizza diversi campioni per assottigliare le variazioni attraverso la "
+"media standard pesata sui campioni precedenti.\n"
 
 #: src/post/audio/upmix_mono.c:109
 msgid ""
@@ -5633,29 +5649,25 @@ msgid "libfaad: libfaad NeAACDecInit failed.\n"
 msgstr "libfaad: libfaad NeAACDecInit fallita.\n"
 
 #: lib/hstrerror.c:17
-#, fuzzy
 msgid "No error"
-msgstr "errore sconosciuto"
+msgstr "Nessun errore"
 
 #: lib/hstrerror.c:18
-#, fuzzy
 msgid "Unknown host"
-msgstr "errore sconosciuto"
+msgstr "Host sconosciuto"
 
 #: lib/hstrerror.c:19
 msgid "No address associated with name"
-msgstr ""
+msgstr "Nessun indirizzo associato con il nome"
 
 #: lib/hstrerror.c:20
-#, fuzzy
 msgid "Unknown server error"
-msgstr "errore sconosciuto"
+msgstr "Errore del server sconosciuto"
 
 #: lib/hstrerror.c:21
 msgid "Host name lookup failure"
-msgstr ""
+msgstr "Errore nella ricerca dell'host"
 
 #: lib/hstrerror.c:22
-#, fuzzy
 msgid "Unknown error"
-msgstr "errore sconosciuto"
+msgstr "Errore sconosciuto"
