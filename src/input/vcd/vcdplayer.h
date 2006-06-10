@@ -1,5 +1,5 @@
 /* 
-  $Id: vcdplayer.h,v 1.11 2006/06/10 00:29:39 dgp85 Exp $
+  $Id: vcdplayer.h,v 1.12 2006/06/10 17:38:47 dgp85 Exp $
 
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -33,7 +33,7 @@
 #ifdef ENABLE_NLS
 #include <locale.h>
 #    include <libintl.h>
-#    define _(String) dgettext ("xine-lib", String)
+#    define _(String) dgettext (XINE_TEXTDOMAIN, String)
 #else
 /* Stubs that do something close enough.  */
 #    define _(String) (String)

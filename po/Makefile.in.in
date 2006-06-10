@@ -11,6 +11,7 @@
 # Origin: gettext-0.14.4
 
 PACKAGE = @PACKAGE@
+LIBNAME = @LIBNAME@
 VERSION = @VERSION@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 
@@ -23,9 +24,13 @@ VPATH = @srcdir@
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
+datarootdir = @datarootdir@
+ifeq ($(datarootdir),\@datarootdir\@)
+datarootdir = @datadir@
+endif
 datadir = @datadir@
 localedir = $(datadir)/locale
-gettextsrcdir = $(datadir)/gettext/po
+gettextsrcdir = $(datarootdir)/gettext/po
 
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
