@@ -159,17 +159,9 @@ dnl NLS Support
 dnl ---------------------------------------------
 
 dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
-ALL_LINGUAS="fr pt_BR de sk es pl cs it eu"
 AM_ICONV
-AM_GNU_GETTEXT(use-libtool, need-ngettext)
+AM_GNU_GETTEXT([external])
 AC_PROG_GMSGFMT_PLURAL
-AC_CONFIG_LINKS($nls_cv_header_libgt, $nls_cv_header_intl)
-AM_CONDITIONAL(INCLUDED_INTL, test x$USE_INCLUDED_LIBINTL = "xyes")
-if test x"$USE_INCLUDED_LIBINTL" = x"yes"; then
-   INTLDIR="-I\$(top_builddir)/intl -I\$(top_srcdir)/intl"
-fi
-AC_SUBST(INTLDIR)
-
 
 AC_CHECK_FUNCS([nl_langinfo])
 
@@ -2292,7 +2284,6 @@ doc/hackersguide/Makefile
 doc/faq/Makefile
 include/Makefile
 include/xine.h
-intl/Makefile
 lib/Makefile
 m4/Makefile
 misc/Makefile

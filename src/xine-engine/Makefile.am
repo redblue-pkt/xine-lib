@@ -24,12 +24,9 @@ libxine_la_SOURCES = xine.c metronom.c configfile.c buffer.c \
 # FIXME: these are currently unused:
 EXTRA_DIST = lrb.c lrb.h accel_xvmc.h
 
-if INCLUDED_INTL
-INCLUDED_INTLLIBS = @INTLLIBS@
-endif
-libxine_la_DEPENDENCIES = $(INCLUDED_INTLLIBS) $(XINEUTILS_LIB) \
+libxine_la_DEPENDENCIES = $(XINEUTILS_LIB) \
                           $(pthread_dep) $(LIBXINEPOSIX)
-libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) @INTLLIBS@ $(ZLIB_LIBS) \
+libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) $(LTLIBINTL) $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) \
                     $(LIBXINEPOSIX) $(RT_LIBS)
 
@@ -53,9 +50,6 @@ install-exec-local:
 uninstall-local:
 	rm -f $(DEF_FILE)
 endif
-
-@INCLUDED_INTL_TRUE@@INTLLIBS@:
-@INCLUDED_INTL_TRUE@	@cd $(top_builddir)/intl && $(MAKE) libintl.la
 
 $(XINEUTILS_LIB):
 	$(MAKE) -C $(top_builddir)/src/xine-utils libxineutils.la

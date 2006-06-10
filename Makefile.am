@@ -6,13 +6,13 @@ AUTOMAKE_OPTIONS = 1.3
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = doc m4 intl po misc include lib src win32
+SUBDIRS = doc m4 po misc include lib src win32
 
 DEBFILES = debian/README.Debian debian/changelog debian/control \
 	debian/copyright debian/rules debian/compat \
 	debian/shlibdeps.sh debian/libxine-dev.install debian/libxine1.install
 
-EXTRA_DIST = autogen.sh \
+EXTRA_DIST = config.rpath mkinstalldirs  autogen.sh \
 	     automake.diff \
 	     $(DEBFILES) \
 	     ChangeLog \
