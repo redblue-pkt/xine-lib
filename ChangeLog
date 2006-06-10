@@ -3,6 +3,9 @@ xine-lib (1.1.2)
     - CVE-2005-4048: possible buffer overflow in libavcodec (crafted PNGs).
     - CVE-2006-2802: possible buffer overflow in the HTTP plugin. 
     - possible buffer overflow via bad indexes in specially-crafted AVI files
+  * Update gettext support to 0.14.5, disable internal gettext, fix locales
+    handling, use the correct domain for strings.
+  * Italian translation update
   * Czech translation update
   * Disable the XXMC plugin if Xv support isn't there
   * Also look for Xv support in /usr/lib for X.org's new location
