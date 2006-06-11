@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: qt_decoder.c,v 1.43 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: qt_decoder.c,v 1.44 2006/06/11 15:09:47 valtri Exp $
  *
  * quicktime video/audio decoder plugin, using win32 dlls
  * most of this code comes directly from MPlayer
@@ -48,6 +48,8 @@
 #include "wine/win32.h"
 #include "wine/windef.h"
 #include "wine/ldt_keeper.h"
+
+#include "common.c"
 
 /*
  * This version of the macro avoids compiler warnings about
@@ -587,6 +589,9 @@ static void *qta_init_class (xine_t *xine, void *data) {
   qta_class_t     *this;
   config_values_t *cfg;
 
+  cfg = xine->config;
+  if ((win32_def_path = get_win32_codecs_path(cfg)) == NULL) return NULL;
+
   pthread_once (&once_control, init_routine);
 
   this = (qta_class_t *) xine_xmalloc (sizeof (qta_class_t));
@@ -595,17 +600,6 @@ static void *qta_init_class (xine_t *xine, void *data) {
   this->decoder_class.get_identifier  = qta_get_identifier;
   this->decoder_class.get_description = qta_get_description;
   this->decoder_class.dispose         = qta_dispose_class;
-
-  cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
-					 _("path to Win32 codecs"),
-					 _("If you have the Windows or Apple Quicktime codec packs "
-					   "installed, specify the path the codec directory here. "
-					   "If xine can find the Windows or Apple Quicktime codecs, "
-					   "it will use them to decode various Windows Media and "
-					   "Quicktime streams for you. Consult the xine FAQ for "
-					   "more information on how to install the codecs."),
-					 10, NULL, NULL);
 
   return this;
 }
@@ -1116,17 +1110,9 @@ static void codec_path_cb (void *data, xine_cfg_entry_t *cfg) {
 static void *qtv_init_class (xine_t *xine, void *data) {
 
   qtv_class_t        *this;
-  config_values_t    *cfg = xine->config; 
+  config_values_t    *cfg = xine->config;
 
-  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
-					 _("path to Win32 codecs"),
-					 _("If you have the Windows or Apple Quicktime codec packs "
-					   "installed, specify the path the codec directory here. "
-					   "If xine can find the Windows or Apple Quicktime codecs, "
-					   "it will use them to decode various Windows Media and "
-					   "Quicktime streams for you. Consult the xine FAQ for "
-					   "more information on how to install the codecs."),
-					 10, NULL, NULL);
+  if ((win32_def_path = get_win32_codecs_path(cfg)) == NULL) return NULL;
 
   lprintf ("%s...\n", __XINE_FUNCTION__);
 

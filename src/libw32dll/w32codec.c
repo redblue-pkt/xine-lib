@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: w32codec.c,v 1.153 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: w32codec.c,v 1.154 2006/06/11 15:09:47 valtri Exp $
  *
  * routines for using w32 codecs
  * DirectShow support by Miguel Freitas (Nov/2001)
@@ -58,6 +58,8 @@
 #include "audio_out.h"
 #include "buffer.h"
 #include "xineutils.h"
+
+#include "common.c"
 
 static GUID CLSID_Voxware =
 {
@@ -1592,15 +1594,7 @@ static void *init_video_decoder_class (xine_t *xine, void *data) {
   config_values_t *cfg;
 
   cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
-					 _("path to Win32 codecs"),
-					 _("If you have the Windows or Apple Quicktime codec packs "
-					   "installed, specify the path the codec directory here. "
-					   "If xine can find the Windows or Apple Quicktime codecs, "
-					   "it will use them to decode various Windows Media and "
-					   "Quicktime streams for you. Consult the xine FAQ for "
-					   "more information on how to install the codecs."),
-					 10, NULL, NULL);
+  if ((win32_def_path = get_win32_codecs_path(cfg)) == NULL) return NULL;
 
   this = (w32v_class_t *) xine_xmalloc (sizeof (w32v_class_t));
 
@@ -1661,23 +1655,15 @@ static void *init_audio_decoder_class (xine_t *xine, void *data) {
   w32a_class_t    *this;
   config_values_t *cfg;
   
+  cfg = xine->config;
+  if ((win32_def_path = get_win32_codecs_path(cfg)) == NULL) return NULL;
+
   this = (w32a_class_t *) xine_xmalloc (sizeof (w32a_class_t));
 
   this->decoder_class.open_plugin     = open_audio_decoder_plugin;
   this->decoder_class.get_identifier  = get_identifier;
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
-
-  cfg = xine->config;
-  win32_def_path = cfg->register_string (cfg, "decoder.external.win32_codecs_path", WIN32_PATH,
-					 _("path to Win32 codecs"),
-					 _("If you have the Windows or Apple Quicktime codec packs "
-					   "installed, specify the path the codec directory here. "
-					   "If xine can find the Windows or Apple Quicktime codecs, "
-					   "it will use them to decode various Windows Media and "
-					   "Quicktime streams for you. Consult the xine FAQ for "
-					   "more information on how to install the codecs."),
-					 10, NULL, NULL);
 
   pthread_once (&once_control, init_routine);
 

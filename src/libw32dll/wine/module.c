@@ -363,7 +363,6 @@ static WIN_BOOL MODULE_FreeLibrary( WINE_MODREF *wm )
 HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 {
 	WINE_MODREF *wm = 0;
-	char* listpath[] = { "", "", "/usr/lib/codecs", "/usr/local/lib/codecs", "/usr/lib/win32", "/usr/local/lib/win32", 0 };
 	char path[512];
 	char checked[2000];
         int i = -1;
@@ -381,31 +380,19 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 //	if(fs_installed==0)
 //	    install_fs();
 
-	while (wm == 0 && listpath[++i])
+	for (i = 0; !wm && (i < 2); i++)
 	{
 	    memset (&path, 0, sizeof (path));
 
-	    if (i < 2)
-	    {
-		if (i == 0)
-		    /* check just original file name */
-		    strncpy(path, libname, 511);
-                else
-		    /* check default user path */
-		    strncpy(path, win32_def_path, 300);
+	    if (i == 0) {
+	        /* check just original file name */
+	        strncpy(path, libname, sizeof(path) - 1);
+            } else {
+	        /* check default user path */
+	        strncpy(path, win32_def_path, sizeof(path) - 2);
+	        strcat(path, "/");
+	        strncat(path, libname, sizeof(path) - strlen(libname));
 	    }
-	    else if (strcmp(win32_def_path, listpath[i]))
-                /* path from the list */
-		strncpy(path, listpath[i], 300);
-	    else
-		continue;
-
-	    if (i > 0)
-	    {
-		strcat(path, "/");
-		strncat(path, libname, 100);
-	    }
-	    path[511] = 0;
 	    wm = MODULE_LoadLibraryExA( path, hfile, flags );
 
 	    if (!wm)

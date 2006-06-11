@@ -13,6 +13,8 @@ libdir = $(XINE_PLUGINDIR)
 
 lib_LTLIBRARIES = $(w32dll_codec) $(qt_codec)
 
+EXTRA_DIST = common.c
+
 xineplug_decode_w32dll_la_SOURCES = w32codec.c
 xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_w32dll_la_LIBADD = \
