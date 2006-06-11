@@ -180,7 +180,7 @@ dnl AC_CHECK_GENERATE_INTTYPES_H (INCLUDE-DIRECTORY)
 dnl generate a default inttypes.h if the header file does not exist already
 AC_DEFUN([AC_CHECK_GENERATE_INTTYPES],
     [AC_CHECK_HEADER([inttypes.h],,
-        [[ ! -d $1 ] && mkdir $1
+        [if test ! -d $1; then mkdir $1; fi
         AC_CHECK_HEADER([stdint.h],
             [cat >$1/inttypes.h << EOF
 #ifndef _INTTYPES_H
