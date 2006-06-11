@@ -10,6 +10,23 @@ diff -ru goom2k4-0/src/filters.c xine-lib/src/post/goom/filters.c
      data->waveEffect = 0;
      data->hypercosEffect = 0;
      data->vPlaneEffect = 0;
+Index: filters.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/filters.c,v
+retrieving revision 1.19
+retrieving revision 1.20
+diff -u -p -r1.19 -r1.20
+--- filters.c	25 Aug 2005 15:36:30 -0000	1.19
++++ filters.c	22 May 2006 16:57:36 -0000	1.20
+@@ -740,7 +740,7 @@ static void zoomFilterVisualFXWrapper_ap
+ 
+ VisualFX zoomFilterVisualFXWrapper_create(void)
+ {
+-    VisualFX fx;
++    VisualFX fx = {0};
+     fx.init = zoomFilterVisualFXWrapper_init;
+     fx.free = zoomFilterVisualFXWrapper_free;
+     fx.apply = zoomFilterVisualFXWrapper_apply;
 diff -ru goom2k4-0/src/goom_core.c xine-lib/src/post/goom/goom_core.c
 --- goom_core.c	2005-02-07 11:46:41.000000000 -0200
 +++ goom_core.c	2005-07-19 12:39:22.000000000 -0300
@@ -63,6 +80,23 @@ diff -ru goom2k4-0/src/ifs.c xine-lib/src/post/goom/ifs.c
  			tmp++;
  		}
  	}
+Index: ifs.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/ifs.c,v
+retrieving revision 1.11
+retrieving revision 1.12
+diff -u -p -r1.11 -r1.12
+--- ifs.c	19 Jul 2005 18:10:30 -0000	1.11
++++ ifs.c	22 May 2006 16:57:36 -0000	1.12
+@@ -762,7 +762,7 @@ static void ifs_vfx_free(VisualFX *_this
+ }
+ 
+ VisualFX ifs_visualfx_create(void) {
+-	VisualFX vfx;
++	VisualFX vfx = {0};
+ 	vfx.init = ifs_vfx_init;
+ 	vfx.free = ifs_vfx_free;
+ 	vfx.apply = ifs_vfx_apply;
 diff -ru goom2k4-0/src/tentacle3d.c xine-lib/src/post/goom/tentacle3d.c
 --- tentacle3d.c	2005-02-07 11:46:41.000000000 -0200
 +++ tentacle3d.c	2005-07-19 14:04:57.000000000 -0300
@@ -75,6 +109,23 @@ diff -ru goom2k4-0/src/tentacle3d.c xine-lib/src/post/goom/tentacle3d.c
  #define definitionz 45
  
  typedef struct _TENTACLE_FX_DATA {
+Index: tentacle3d.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/tentacle3d.c,v
+retrieving revision 1.5
+retrieving revision 1.6
+diff -u -p -r1.5 -r1.6
+--- tentacle3d.c	19 Jul 2005 18:10:31 -0000	1.5
++++ tentacle3d.c	22 May 2006 16:57:36 -0000	1.6
+@@ -95,7 +95,7 @@ static void tentacle_fx_free(VisualFX *_
+ }
+ 
+ VisualFX tentacle_fx_create(void) {
+-	VisualFX fx;
++	VisualFX fx = {0};
+ 	fx.init = tentacle_fx_init;
+ 	fx.apply = tentacle_fx_apply;
+ 	fx.free = tentacle_fx_free;
 diff -ru goom2k4-0/src/xmmx.c xine-lib/src/post/goom/xmmx.c
 --- xmmx.c	2005-02-07 11:46:41.000000000 -0200
 +++ xmmx.c	2005-07-18 15:26:23.000000000 -0300
@@ -498,3 +549,107 @@ diff -u -p -r1.9 goom_config.h
  #if WORDS_BIGENDIAN
  #define COLOR_ARGB
  #else
+Index: gfontlib.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/gfontlib.c,v
+retrieving revision 1.4
+retrieving revision 1.5
+diff -u -p -r1.4 -r1.5
+--- gfontlib.c	21 Jul 2004 14:38:29 -0000	1.4
++++ gfontlib.c	4 May 2006 20:50:55 -0000	1.5
+@@ -1,5 +1,5 @@
+ #include "goom_config.h"
+-#include "gfontrle.h"
++#include "gfontrle.c"
+ #include "gfontlib.h"
+ #include <string.h>
+ #include <stdlib.h>
+Index: gfontrle.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/gfontrle.c,v
+retrieving revision 1.4
+retrieving revision 1.5
+diff -u -p -r1.4 -r1.5
+--- gfontrle.c	4 May 2006 18:10:40 -0000	1.4
++++ gfontrle.c	4 May 2006 20:50:55 -0000	1.5
+@@ -1,6 +1,6 @@
+ /* RGBA C-Source image dump (with zRLE compression) */
+ 
+-const struct {
++static const struct {
+   unsigned int width;
+   unsigned int height;
+   unsigned int bytes_per_pixel;
+--- gfontrle.h	Sun Jun 11 17:22:15 2006	1.2
++++ gfontrle.h	Sun Jun 11 17:22:15 2006
+@@ -1,7 +0,0 @@
+-extern const struct {
+-	unsigned int width;
+-	unsigned int height;
+-	unsigned int bytes_per_pixel;
+-	unsigned int rle_size;
+-	unsigned char rle_pixel [49725];
+-} the_font ;
+Index: goomsl_heap.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/goomsl_heap.c,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -p -r1.1 -r1.2
+--- goomsl_heap.c	19 Jul 2005 18:10:30 -0000	1.1
++++ goomsl_heap.c	7 Jun 2006 22:52:29 -0000	1.2
+@@ -39,7 +39,7 @@ static void align_it(GoomHeap *_this, in
+ {
+   if ((alignment > 1) && (_this->number_of_arrays>0)) {
+     void *last_array = _this->arrays[_this->number_of_arrays - 1];
+-    int   last_address = (int)last_array + _this->consumed_in_last_array;
++    long  last_address = (long)last_array + _this->consumed_in_last_array;
+     int   decal = (last_address % alignment);
+     if (decal != 0) {
+       _this->consumed_in_last_array += alignment - decal;
+Index: mathtools.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/mathtools.c,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -p -r1.1 -r1.2
+--- mathtools.c	27 Jun 2004 11:58:47 -0000	1.1
++++ mathtools.c	2 Jun 2006 22:13:45 -0000	1.2
+@@ -8,9 +8,7 @@
+ */
+ /*---------------------------------------------------------------------------*/
+ 
+-#include "mathtools.h"
+-
+-float sin256[256] = {
++static const float sin256[256] = {
+   0,0.0245412,0.0490677,0.0735646,0.0980171,0.122411,0.14673,0.170962
+   ,0.19509,0.219101,0.24298,0.266713,0.290285,0.313682,0.33689,0.359895
+   ,0.382683,0.405241,0.427555,0.449611,0.471397,0.492898,0.514103,0.534998
+@@ -46,7 +44,7 @@ float sin256[256] = {
+ 
+ };
+ 
+-float cos256[256] = {
++static const float cos256[256] = {
+   0,0.999699,0.998795,0.99729,0.995185,0.99248,0.989177,0.985278
+   ,0.980785,0.975702,0.970031,0.963776,0.95694,0.949528,0.941544,0.932993
+   ,0.92388,0.91421,0.903989,0.893224,0.881921,0.870087,0.857729,0.844854
+Index: mathtools.h
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/post/goom/mathtools.h,v
+retrieving revision 1.2
+retrieving revision 1.3
+diff -u -p -r1.2 -r1.3
+--- mathtools.h	27 Jun 2004 11:58:47 -0000	1.2
++++ mathtools.h	2 Jun 2006 22:13:45 -0000	1.3
+@@ -29,8 +29,7 @@
+ #define SINCOS(f,s,c) {s=sin(f);c=cos(f);}
+ #endif
+ 
+-extern float sin256[256];
+-extern float cos256[256];
++#include "mathtools.c"
+ 
+ #endif
+ 
