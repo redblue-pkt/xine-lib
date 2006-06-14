@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.42 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: audio_sun_out.c,v 1.43 2006/06/14 15:44:54 komadori Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -98,6 +98,7 @@ typedef struct sun_driver_s {
   }		 use_rtsc;
 
   int		 convert_u8_s8;	       /* Builtin conversion 8-bit UNSIGNED->SIGNED */
+  int		 mixer_volume;
 
 #if	CS4231_WORKAROUND
   /*
@@ -773,9 +774,10 @@ static int ao_sun_get_property (ao_driver_t *this_gen, int property) {
   switch(property) {
   case AO_PROP_MIXER_VOL:
   case AO_PROP_PCM_VOL:
-    if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
-      return 0;
-    return info.play.gain * 100 / AUDIO_MAX_GAIN;
+    if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) > -1) {
+      this->mixer_volume = info.play.gain * 100 / AUDIO_MAX_GAIN;
+    }
+    return this->mixer_volume;
 #if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
   case AO_PROP_MUTE_VOL:
     if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
@@ -800,6 +802,7 @@ static int ao_sun_set_property (ao_driver_t *this_gen, int property, int value) 
   switch(property) {
   case AO_PROP_MIXER_VOL:
   case AO_PROP_PCM_VOL:
+    this->mixer_volume = value;
     info.play.gain = value * AUDIO_MAX_GAIN / 100;
     if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
       return ~value;
@@ -906,16 +909,15 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
    * open the device
    */
 
-  audio_fd = open(this->audio_dev = devname, O_WRONLY|O_NONBLOCK);
+  this->audio_fd = open(this->audio_dev = devname, O_WRONLY|O_NONBLOCK);
 
-  if(audio_fd < 0) 
+  if(this->audio_fd < 0) 
   {
     xprintf(this->xine, XINE_VERBOSITY_LOG,
 	    _("audio_sun_out: opening audio device %s failed: %s\n"), devname, strerror(errno));
 
     free (this);
     return NULL;
-
   }
 
   /*
@@ -926,7 +928,15 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
   info.play.encoding = AUDIO_ENCODING_LINEAR;
   info.play.precision = AUDIO_PRECISION_16;
   info.play.sample_rate = 44100;
-  status = ioctl(audio_fd, AUDIO_SETINFO, &info);
+  status = ioctl(this->audio_fd, AUDIO_SETINFO, &info);
+  
+  if (status < 0) {
+    xprintf(this->xine, XINE_VERBOSITY_LOG,
+	    _("audio_sun_out: audio ioctl on device %s failed: %s\n"), devname, strerror(errno));
+
+    free (this);
+    return NULL;
+  }
 
   /*
    * get capabilities
@@ -935,10 +945,16 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
   this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_8BITS
   		     | AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL;
 
-  close (audio_fd);
+  /*
+   * get initial mixer volume
+   */
+
+  this->mixer_volume = ao_sun_get_property(&this->ao_driver, AO_PROP_MIXER_VOL);
+
+  close (this->audio_fd);
+  this->audio_fd = -1;
 
   this->xine = class->xine;
-  this->audio_fd = -1;
   this->use_rtsc = realtime_samplecounter_available(this->xine, this->audio_dev);
   this->output_sample_rate = 0;
 
