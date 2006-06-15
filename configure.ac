@@ -2270,6 +2270,8 @@ dnl as long as neither autoconf nor automake offer an A[CM]_PROG_OBJC
 dnl check we will have to call it
 _AM_DEPENDENCIES([OBJC])
 
+AM_CONDITIONAL([BUILD_DMX_IMAGE], [test x"$have_imagemagick" = "xyes" -o x"$no_gdkpixbuf" != "xyes"])
+
 
 dnl ---------------------------------------------
 dnl Output configuration files

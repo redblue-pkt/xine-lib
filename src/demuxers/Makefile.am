@@ -19,10 +19,7 @@ if HAVE_LIBMNG
 mng_module = xineplug_dmx_mng.la
 endif
 
-if HAVE_WAND
-image_module = xineplug_dmx_image.la
-endif
-if HAVE_GDK_PIXBUF
+if BUILD_DMX_IMAGE
 image_module = xineplug_dmx_image.la
 endif
 
