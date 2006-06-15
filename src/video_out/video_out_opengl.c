@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.56 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: video_out_opengl.c,v 1.57 2006/06/15 21:40:05 komadori Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -709,7 +709,10 @@ static void *getdladdr (const GLubyte *_funcName) {
   return res;
 
 #elif defined (__sun) || defined (__sgi)
-   static void *handle = dlopen (NULL, RTLD_LAZY);
+   static void *handle = NULL;
+   if (!handle) {
+     handle = dlopen (NULL, RTLD_LAZY);
+   }
    return dlsym (handle, funcName);
     
 #else /* all other Un*xes */
