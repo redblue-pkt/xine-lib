@@ -11,7 +11,7 @@ docs: $(docs_DATA)
 distclean-local: clean-docs
 
 docs-prepare: $(srcdir)/faq.sgml
-	if test "$(srcdir)" != "." ; then \
+	if test "$(srcdir)" != "." -a "$(srcdir)" != `pwd`; then \
 	  test -f ./faq.sgml -a ./faq.sgml -nt $(srcdir)/faq.sgml || cp $^ . ; \
 	fi
 
