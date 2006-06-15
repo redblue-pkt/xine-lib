@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS)
+AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec_mlib.la
