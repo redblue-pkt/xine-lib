@@ -25,7 +25,7 @@ docs: $(docs_DATA)
 distclean-local: clean-docs
 
 docs-prepare: $(addprefix $(srcdir)/, $(hackersguide_sgml))
-	if test "$(srcdir)" != "."  -a "$(srcdir)" != `pwd`; then \
+	if test "$(srcdir)" != "."  -a "$(srcdir)" != "`pwd`"; then \
 	  for file in $(hackersguide_sgml) ; do \
 	    test -f ./$$file -a ./$$file -nt $(srcdir)/$$file || cp $(srcdir)/$$file .; \
 	  done ; \
