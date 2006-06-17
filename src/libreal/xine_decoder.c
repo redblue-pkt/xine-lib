@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.81 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.82 2006/06/17 12:28:31 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -153,13 +153,17 @@ static inline int is_x86_64_object(const char *filename)
  * real codec loader
  */
 
-static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
+static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
+			    const char *alt_codec_name) {
 
   cfg_entry_t* entry = this->stream->xine->config->lookup_entry(
 			 this->stream->xine->config, "decoder.external.real_codecs_path");
   char path[1024];
+  struct stat sb;
 
   snprintf (path, sizeof(path), "%s/%s", entry->str_value, codec_name);
+  if (stat(path, &sb))
+    snprintf (path, sizeof(path), "%s/%s", entry->str_value, alt_codec_name);
 
 #ifdef __x86_64__
   /* check whether it's a real x86-64 library */
@@ -191,6 +195,19 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
       this->rvyuv_transform) 
     return 1;
 
+  this->rvyuv_custom_message = dlsym (this->rv_handle, "RV40toYUV420CustomMessage");
+  this->rvyuv_free           = dlsym (this->rv_handle, "RV40toYUV420Free");
+  this->rvyuv_hive_message   = dlsym (this->rv_handle, "RV40toYUV420HiveMessage");
+  this->rvyuv_init           = dlsym (this->rv_handle, "RV40toYUV420Init");
+  this->rvyuv_transform      = dlsym (this->rv_handle, "RV40toYUV420Transform");
+  
+  if (this->rvyuv_custom_message &&
+      this->rvyuv_free &&
+      this->rvyuv_hive_message &&
+      this->rvyuv_init &&
+      this->rvyuv_transform) 
+    return 1;
+
   xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
 	   _("libreal: Error resolving symbols! (version incompatibility?)\n"));
   return 0;
@@ -206,17 +223,17 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   switch (buf->type) {
   case BUF_VIDEO_RV20:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 2.0");
-    if (!load_syms_linux (this, "drv2.so.6.0"))
+    if (!load_syms_linux (this, "drv2.so", "drv2.so.6.0"))
       return 0;
     break;
   case BUF_VIDEO_RV30:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 3.0");
-    if (!load_syms_linux (this, "drv3.so.6.0"))
+    if (!load_syms_linux (this, "drvc.so", "drv3.so.6.0"))
       return 0;
     break;
   case BUF_VIDEO_RV40:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 4.0");
-    if (!load_syms_linux(this, "drv4.so.6.0"))
+    if (!load_syms_linux(this, "drvc.so", "drv4.so.6.0"))
       return 0;
     break;
   default:
@@ -599,10 +616,14 @@ static void *init_class (xine_t *xine, void *data) {
     default_real_codec_path = "/opt/RealPlayer8/Codecs";
   if (!stat ("/usr/lib/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib/RealPlayer9/users/Real/Codecs";
+  if (!stat ("/usr/lib/RealPlayer10/codecs/drvc.so", &s)) 
+    default_real_codec_path = "/usr/lib/RealPlayer10/codecs";
   if (!stat ("/usr/lib64/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib64/RealPlayer8/Codecs";
   if (!stat ("/usr/lib64/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib64/RealPlayer9/users/Real/Codecs";
+  if (!stat ("/usr/lib64/RealPlayer10/codecs/drvc.so", &s)) 
+    default_real_codec_path = "/usr/lib64/RealPlayer10/codecs";
   if (!stat ("/usr/lib/codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib/codecs";
   if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.47 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: audio_decoder.c,v 1.48 2006/06/17 12:28:31 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -164,14 +164,18 @@ static inline int is_x86_64_object(const char *filename)
 }
 #endif
 
-static int load_syms_linux (realdec_decoder_t *this, char *codec_name) {
+static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
+			    const char *alt_codec_name) {
 
   cfg_entry_t* entry = this->stream->xine->config->lookup_entry(
 			 this->stream->xine->config, "decoder.external.real_codecs_path");
   char path[1024];
+  struct stat sb;
 
   snprintf (path, sizeof(path), "%s/%s", entry->str_value, codec_name);
-
+  if (stat(path, &sb))
+    snprintf (path, sizeof(path), "%s/%s", entry->str_value, alt_codec_name);
+    
 #ifdef __x86_64__
   /* check whether it's a real x86-64 library */
   if (!is_x86_64_object(path))
@@ -293,32 +297,32 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   switch (buf->type) {
   case BUF_AUDIO_COOK:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Cook");
-    if (!load_syms_linux (this, "cook.so.6.0"))
+    if (!load_syms_linux (this, "cook.so", "cook.so.6.0"))
       return 0;
     break;
     
   case BUF_AUDIO_ATRK:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Atrac");
-    if (!load_syms_linux (this, "atrc.so.6.0"))
+    if (!load_syms_linux (this, "atrc.so", "atrc.so.6.0"))
       return 0;
     this->block_align = 384;
     break;
 
   case BUF_AUDIO_14_4:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 14.4");
-    if (!load_syms_linux (this, "14_4.so.6.0"))
+    if (!load_syms_linux (this, "14_4.so", "14_4.so.6.0"))
       return 0;
     break;
 
   case BUF_AUDIO_28_8:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 28.8");
-    if (!load_syms_linux (this, "28_8.so.6.0"))
+    if (!load_syms_linux (this, "28_8.so", "28_8.so.6.0"))
       return 0;
     break;
 
   case BUF_AUDIO_SIPRO:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Sipro");
-    if (!load_syms_linux (this, "sipr.so.6.0"))
+    if (!load_syms_linux (this, "sipr.so", "sipr.so.6.0"))
       return 0;
     /* this->block_align = 19; */
     break;
@@ -719,10 +723,14 @@ static void *init_class (xine_t *xine, void *data) {
     default_real_codec_path = "/opt/RealPlayer8/Codecs";
   if (!stat ("/usr/lib/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib/RealPlayer9/users/Real/Codecs";
+  if (!stat ("/usr/lib/RealPlayer10/codecs/drvc.so", &s)) 
+    default_real_codec_path = "/usr/lib/RealPlayer10/codecs";
   if (!stat ("/usr/lib64/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib64/RealPlayer8/Codecs";
   if (!stat ("/usr/lib64/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib64/RealPlayer9/users/Real/Codecs";
+  if (!stat ("/usr/lib64/RealPlayer10/codecs/drvc.so", &s)) 
+    default_real_codec_path = "/usr/lib64/RealPlayer10/codecs";
   if (!stat ("/usr/lib/codecs/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib/codecs";
   if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
