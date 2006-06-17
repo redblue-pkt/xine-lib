@@ -205,7 +205,7 @@ static inline int get_motion_delta (picture_t * picture, int f_code)
 #undef bit_ptr
 }
 
-static inline int bound_motion_vector (int vector, int f_code)
+static inline int bound_motion_vector (int vec, int f_code)
 {
 #if 1
     unsigned int limit;
@@ -213,11 +213,11 @@ static inline int bound_motion_vector (int vector, int f_code)
 
     limit = 16 << f_code;
 
-    if ((unsigned int)(vector + limit) < 2 * limit)
-	return vector;
+    if ((unsigned int)(vec + limit) < 2 * limit)
+	return vec;
     else {
-	sign = ((int32_t)vector) >> 31;
-	return vector - ((2 * limit) ^ sign) + sign;
+	sign = ((int32_t)vec) >> 31;
+	return vec - ((2 * limit) ^ sign) + sign;
     }
 #else
     return ((int32_t)vector << (27 - f_code)) >> (27 - f_code);

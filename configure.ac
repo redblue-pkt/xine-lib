@@ -1989,6 +1989,8 @@ case "$host_or_hostalias" in
     dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
     dnl from automake 1.6.
     
+    AC_CHECK_HEADER([altivec.h], , enable_altivec=no)
+    
     if test x$enable_altivec = xyes; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you want to use altivec on PowerPC CPUs])
         CFLAGS="$CFLAGS -faltivec"
@@ -2000,9 +2002,13 @@ case "$host_or_hostalias" in
     AS="$CC"
     AC_DEFINE_UNQUOTED(FPM_PPC,,[Define to select libmad fixed point arithmetic implementation])
     AC_DEFINE_UNQUOTED(ARCH_PPC,,[Define this if you're running PowerPC architecture])
+
+    AC_CHECK_HEADER([altivec.h], , enable_altivec=no)
     
     if test x$enable_altivec = xyes; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you have a Motorola 74xx CPU])
+        CFLAGS="$CFLAGS -maltivec"
+        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -maltivec"
     fi
     ;;
   sparc*-*-linux*)

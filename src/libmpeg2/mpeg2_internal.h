@@ -27,6 +27,10 @@
 #include "video_out.h"
 #include "accel_xvmc.h"
 
+#ifdef ENABLE_ALTIVEC
+#include <altivec.h>
+#endif
+
 /* macroblock modes */
 #define MACROBLOCK_INTRA            XINE_MACROBLOCK_INTRA
 #define MACROBLOCK_PATTERN          XINE_MACROBLOCK_PATTERN
@@ -243,10 +247,6 @@ void mpeg2_zero_block_mmx (int16_t * block);
 void mpeg2_idct_mmx_init (void);
 
 /* idct_altivec.c */
-#ifndef HOST_OS_DARWIN
-void mpeg2_idct_copy_altivec (int16_t * block, uint8_t * dest, int stride);
-void mpeg2_idct_add_altivec (int16_t * block, uint8_t * dest, int stride);
-#else /* HOST_OS_DARWIN */
 # ifdef ENABLE_ALTIVEC
 void mpeg2_idct_copy_altivec (vector signed short * block, unsigned char * dest,
 			      int stride);
@@ -258,7 +258,6 @@ void mpeg2_idct_copy_altivec (signed short * block, unsigned char * dest,
 void mpeg2_idct_add_altivec (signed short * block, unsigned char * dest,
 			     int stride);
 # endif /* ENABLE_ALTIVEC */
-#endif /* HOST_OS_DARWIN */
 void mpeg2_idct_altivec_init (void);
 
 /* motion_comp.c */
