@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: output.c,v 1.7 2005/10/29 23:57:07 tmmm Exp $
+** $Id: output.c,v 1.8 2006/06/17 20:43:57 dgp85 Exp $
 **/
 
 #include "common.h"
@@ -463,7 +463,7 @@ static INLINE real_t get_sample(real_t **input, uint8_t channel, uint16_t sample
     }
 }
 
-void* output_to_PCM(NeAACDecHandle hDecoder,
+static void* output_to_PCM_orig(NeAACDecHandle hDecoder,
                     real_t **input, void *sample_buffer, uint8_t channels,
                     uint16_t frame_len, uint8_t format)
 {
@@ -548,6 +548,58 @@ void* output_to_PCM(NeAACDecHandle hDecoder,
                 int_sample_buffer[(i*channels)+ch] = (int32_t)tmp;
             }
             break;
+        }
+    }
+
+    return sample_buffer;
+}
+
+void *output_to_PCM(NeAACDecHandle hDecoder,
+                    real_t **input, void *sample_buffer, uint8_t channels,
+                    uint16_t frame_len, uint8_t format)
+{
+    int ch, i;
+    int16_t *short_sample_buffer;
+    real_t *ch0, *ch1, *ch2, *ch3, *ch4;
+
+    if (format != FAAD_FMT_16BIT)
+        return output_to_PCM_orig(hDecoder, input, sample_buffer, channels, frame_len, format);
+
+    short_sample_buffer = (int16_t *)sample_buffer;
+    ch0 = input[hDecoder->internal_channel[0]];
+    ch1 = input[hDecoder->internal_channel[1]];
+    ch2 = input[hDecoder->internal_channel[2]];
+    ch3 = input[hDecoder->internal_channel[3]];
+    ch4 = input[hDecoder->internal_channel[4]];
+
+    if (hDecoder->downMatrix)
+    {
+        for (i = 0; i < frame_len; ++i)
+        {
+            int32_t tmp = (ch1[i] + ((ch0[i] + ch3[i]) >> 1) + ((ch0[i] + ch3[i]) >> 2) + (1 << (REAL_BITS))) >> (REAL_BITS + 1);
+            if ((tmp + 0x8000) & ~0xffff)
+                tmp = ~(tmp >> 31) - 0x8000;
+            short_sample_buffer[0] = tmp;
+            tmp = (ch2[i] + ((ch0[i] + ch4[i]) >> 1) + ((ch0[i] + ch4[i]) >> 2) + (1 << (REAL_BITS))) >> (REAL_BITS + 1);
+            if ((tmp + 0x8000) & ~0xffff)
+                tmp = ~(tmp >> 31) - 0x8000;
+            short_sample_buffer[1] = tmp;
+            short_sample_buffer += channels;
+        }
+        return sample_buffer;
+    }
+
+    /* Copy output to a standard PCM buffer */
+    for (i = 0; i < frame_len; ++i)
+    {
+        for (ch = 0; ch < channels; ++ch)
+        {
+            int32 tmp = input[hDecoder->internal_channel[ch]][i];
+            tmp += (1 << (REAL_BITS - 1));
+            tmp >>= REAL_BITS;
+            if ((tmp + 0x8000) & ~0xffff)
+                tmp = ~(tmp >> 31) - 0x8000;
+            *(short_sample_buffer++) = tmp;
         }
     }
 

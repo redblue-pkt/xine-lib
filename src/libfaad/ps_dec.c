@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: ps_dec.c,v 1.1 2005/10/30 00:50:19 tmmm Exp $
+** $Id: ps_dec.c,v 1.2 2006/06/17 20:43:57 dgp85 Exp $
 **/
 
 #include "common.h"
@@ -159,7 +159,7 @@ typedef struct
 
 /* static function declarations */
 static void ps_data_decode(ps_info *ps);
-static hyb_info *hybrid_init();
+static hyb_info *hybrid_init(void);
 static void channel_filter2(hyb_info *hyb, uint8_t frame_len, const real_t *filter,
                             qmf_t *buffer, qmf_t **X_hybrid);
 static void INLINE DCT3_4_unscaled(real_t *y, real_t *x);
@@ -189,7 +189,7 @@ static void ps_mix_phase(ps_info *ps, qmf_t X_left[38][64], qmf_t X_right[38][64
 /*  */
 
 
-static hyb_info *hybrid_init()
+static hyb_info *hybrid_init(void)
 {
     uint8_t i;
 
@@ -1935,8 +1935,8 @@ ps_info *ps_init(uint8_t sr_index)
 /* main Parametric Stereo decoding function */
 uint8_t ps_decode(ps_info *ps, qmf_t X_left[38][64], qmf_t X_right[38][64])
 {
-    qmf_t X_hybrid_left[32][32] = {{0}};
-    qmf_t X_hybrid_right[32][32] = {{0}};
+    qmf_t X_hybrid_left[32][32] = {{{0}}};
+    qmf_t X_hybrid_right[32][32] = {{{0}}};
 
     /* delta decoding of the bitstream data */
     ps_data_decode(ps);

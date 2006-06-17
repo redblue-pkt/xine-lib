@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: specrec.c,v 1.9 2005/10/29 23:57:07 tmmm Exp $
+** $Id: specrec.c,v 1.10 2006/06/17 20:43:57 dgp85 Exp $
 **/
 
 /*
@@ -673,29 +673,19 @@ static uint8_t allocate_single_channel(NeAACDecHandle hDecoder, uint8_t channel,
     /* MAIN object type prediction */
     if (hDecoder->object_type == MAIN)
     {
-        /* allocate the state only when needed */
-        if (hDecoder->pred_stat[channel] == NULL)
-        {
-            hDecoder->pred_stat[channel] = (pred_state*)faad_malloc(hDecoder->frameLength * sizeof(pred_state));
+            hDecoder->pred_stat[channel] = (pred_state*)realloc(hDecoder->pred_stat[channel], hDecoder->frameLength * sizeof(pred_state));
             reset_all_predictors(hDecoder->pred_stat[channel], hDecoder->frameLength);
-        }
     }
 #endif
 
 #ifdef LTP_DEC
     if (is_ltp_ot(hDecoder->object_type))
     {
-        /* allocate the state only when needed */
-        if (hDecoder->lt_pred_stat[channel] == NULL)
-        {
-            hDecoder->lt_pred_stat[channel] = (int16_t*)faad_malloc(hDecoder->frameLength*4 * sizeof(int16_t));
+            hDecoder->lt_pred_stat[channel] = (int16_t*)realloc(hDecoder->lt_pred_stat[channel], hDecoder->frameLength*4 * sizeof(int16_t));
             memset(hDecoder->lt_pred_stat[channel], 0, hDecoder->frameLength*4 * sizeof(int16_t));
-        }
     }
 #endif
 
-    if (hDecoder->time_out[channel] == NULL)
-    {
         mul = 1;
 #ifdef SBR_DEC
         hDecoder->sbr_alloced[hDecoder->fr_ch_ele] = 0;
@@ -706,41 +696,28 @@ static uint8_t allocate_single_channel(NeAACDecHandle hDecoder, uint8_t channel,
             hDecoder->sbr_alloced[hDecoder->fr_ch_ele] = 1;
         }
 #endif
-        hDecoder->time_out[channel] = (real_t*)faad_malloc(mul*hDecoder->frameLength*sizeof(real_t));
+        hDecoder->time_out[channel] = (real_t*)realloc(hDecoder->time_out[channel], mul*hDecoder->frameLength*sizeof(real_t));
         memset(hDecoder->time_out[channel], 0, mul*hDecoder->frameLength*sizeof(real_t));
-    }
 #if (defined(PS_DEC) || defined(DRM_PS))
     if (output_channels == 2)
     {
-        if (hDecoder->time_out[channel+1] == NULL)
-        {
-            hDecoder->time_out[channel+1] = (real_t*)faad_malloc(mul*hDecoder->frameLength*sizeof(real_t));
+            hDecoder->time_out[channel+1] = (real_t*)realloc(hDecoder->time_out[channel+1], mul*hDecoder->frameLength*sizeof(real_t));
             memset(hDecoder->time_out[channel+1], 0, mul*hDecoder->frameLength*sizeof(real_t));
-        }
     }
 #endif
 
-    if (hDecoder->fb_intermed[channel] == NULL)
-    {
-        hDecoder->fb_intermed[channel] = (real_t*)faad_malloc(hDecoder->frameLength*sizeof(real_t));
+        hDecoder->fb_intermed[channel] = (real_t*)realloc(hDecoder->fb_intermed[channel], hDecoder->frameLength*sizeof(real_t));
         memset(hDecoder->fb_intermed[channel], 0, hDecoder->frameLength*sizeof(real_t));
-    }
 
 #ifdef SSR_DEC
     if (hDecoder->object_type == SSR)
     {
-        if (hDecoder->ssr_overlap[channel] == NULL)
-        {
-            hDecoder->ssr_overlap[channel] = (real_t*)faad_malloc(2*hDecoder->frameLength*sizeof(real_t));
-            memset(hDecoder->ssr_overlap[channel], 0, 2*hDecoder->frameLength*sizeof(real_t));
-        }
-        if (hDecoder->prev_fmd[channel] == NULL)
-        {
             uint16_t k;
-            hDecoder->prev_fmd[channel] = (real_t*)faad_malloc(2*hDecoder->frameLength*sizeof(real_t));
+            hDecoder->ssr_overlap[channel] = (real_t*)realloc(hDecoder->ssr_overlap[channel], 2*hDecoder->frameLength*sizeof(real_t));
+            memset(hDecoder->ssr_overlap[channel], 0, 2*hDecoder->frameLength*sizeof(real_t));
+            hDecoder->prev_fmd[channel] = (real_t*)realloc(hDecoder->prev_fmd[channel], 2*hDecoder->frameLength*sizeof(real_t));
             for (k = 0; k < 2*hDecoder->frameLength; k++)
                 hDecoder->prev_fmd[channel][k] = REAL_CONST(-1);
-        }
     }
 #endif
 
@@ -865,22 +842,14 @@ uint8_t reconstruct_single_channel(NeAACDecHandle hDecoder, ic_stream *ics,
 
     /* always allocate 2 channels, PS can always "suddenly" turn up */
 #if (defined(PS_DEC) || defined(DRM_PS))
-    output_channels = 2;
+    output_channels = hDecoder->ps_used[hDecoder->fr_ch_ele] ? 2 : 1;
 #else
     output_channels = 1;
 #endif
 
-    if (hDecoder->element_output_channels[hDecoder->fr_ch_ele] == 0)
+    if (hDecoder->element_output_channels[hDecoder->fr_ch_ele] < output_channels)
     {
-        /* element_output_channels not set yet */
         hDecoder->element_output_channels[hDecoder->fr_ch_ele] = output_channels;
-    } else if (hDecoder->element_output_channels[hDecoder->fr_ch_ele] != output_channels) {
-        /* element inconsistency */
-        return 21;
-    }
-
-    if (hDecoder->element_alloced[hDecoder->fr_ch_ele] == 0)
-    {
         retval = allocate_single_channel(hDecoder, sce->channel, output_channels);
         if (retval > 0)
             return retval;
@@ -1026,11 +995,10 @@ uint8_t reconstruct_single_channel(NeAACDecHandle hDecoder, ic_stream *ics,
     {
         return 23;
     }
-#endif
 
     /* copy L to R when no PS is used */
 #if (defined(PS_DEC) || defined(DRM_PS))
-    if ((hDecoder->ps_used[hDecoder->fr_ch_ele] == 0))
+    if ((hDecoder->ps_used[hDecoder->fr_ch_ele] == 0) && (output_channels == 2))
     {
         uint8_t ele = hDecoder->fr_ch_ele;
         uint8_t ch = sce->channel;
@@ -1039,6 +1007,7 @@ uint8_t reconstruct_single_channel(NeAACDecHandle hDecoder, ic_stream *ics,
 
         memcpy(hDecoder->time_out[ch+1], hDecoder->time_out[ch], frame_size);
     }
+#endif
 #endif
 
     return 0;

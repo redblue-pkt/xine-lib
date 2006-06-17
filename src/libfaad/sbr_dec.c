@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: sbr_dec.c,v 1.8 2005/10/29 23:57:07 tmmm Exp $
+** $Id: sbr_dec.c,v 1.9 2006/06/17 20:43:57 dgp85 Exp $
 **/
 
 
@@ -526,8 +526,8 @@ uint8_t sbrDecodeSingleFramePS(sbr_info *sbr, real_t *left_channel, real_t *righ
     uint8_t l, k;
     uint8_t dont_process = 0;
     uint8_t ret = 0;
-    ALIGN qmf_t X_left[38][64] = {{0}};
-    ALIGN qmf_t X_right[38][64] = {{0}}; /* must set this to 0 */
+    ALIGN qmf_t X_left[38][64] = {{{0}}};
+    ALIGN qmf_t X_right[38][64] = {{{0}}}; /* must set this to 0 */
 
     if (sbr == NULL)
         return 20;

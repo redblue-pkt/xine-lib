@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: common.h,v 1.16 2005/10/30 01:21:53 tmmm Exp $
+** $Id: common.h,v 1.17 2006/06/17 20:43:57 dgp85 Exp $
 **/
 
 #ifndef __COMMON_H__
@@ -32,9 +32,11 @@
 extern "C" {
 #endif
 
-#ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#ifdef __CYGWIN__
+#define __STRICT_ANSI__
 #endif
+
+#include "../config.h"
 
 #define INLINE __inline
 #if 0 //defined(_WIN32) && !defined(_WIN32_WCE)
@@ -61,7 +63,7 @@ extern "C" {
 /* Use if target platform has address generators with autoincrement */
 //#define PREFER_POINTERS
 
-#ifdef _WIN32_WCE
+#if defined(_WIN32_WCE) || defined(__arm__)
 #define FIXED_POINT
 #endif
 
@@ -116,6 +118,9 @@ extern "C" {
 #ifdef FIXED_POINT
 # ifdef MAIN_DEC
 #  undef MAIN_DEC
+# endif
+# ifdef SBR_DEC
+#  undef SBR_DEC
 # endif
 #endif // FIXED_POINT
 
@@ -326,6 +331,8 @@ char *strchr(), *strrchr();
 
   #else
 
+#include <math.h>
+
 #ifdef HAVE_LRINTF
 #  define HAS_LRINTF
 #  define _ISOC9X_SOURCE 1
@@ -333,8 +340,6 @@ char *strchr(), *strrchr();
 #  define __USE_ISOC9X   1
 #  define __USE_ISOC99   1
 #endif
-
-    #include <math.h>
 
 #ifdef HAVE_SINF
 #  define sin sinf
