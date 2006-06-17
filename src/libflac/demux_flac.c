@@ -595,8 +595,15 @@ open_plugin (demux_class_t *class_gen,
      */
     this->status = DEMUX_OK;
     FLAC__seekable_stream_decoder_process_until_end_of_metadata (this->flac_decoder);
-    
-    lprintf("Processed file until end of metadata\n");
+
+    lprintf("Processed file until end of metadata: %s\n",
+	    this->status == DEMUX_OK ? "success" : "failure");
+
+    if (this->status != DEMUX_OK) {
+        FLAC__seekable_stream_decoder_delete (this->flac_decoder);
+        free (this);
+        return NULL;
+    }
 
     return &this->demux_plugin;
 }
