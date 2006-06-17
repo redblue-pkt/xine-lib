@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.93 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.94 2006/06/17 12:50:18 hadess Exp $
  *
  */
 
@@ -855,7 +855,17 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
   return (spu_decoder_t *) this;
 }
 
-static void sputext_class_dispose (spu_decoder_class_t *this) {
+static void sputext_class_dispose (spu_decoder_class_t *class_gen) {
+  sputext_class_t *this = (sputext_class_t *)class_gen;
+
+  this->xine->config->unregister_callback(this->xine->config,
+					  "subtitles.separate.src_encoding");
+  this->xine->config->unregister_callback(this->xine->config,
+					  "subtitles.separate.subtitle_size");
+  this->xine->config->unregister_callback(this->xine->config,
+					  "subtitles.separate.vertical_offset");
+  this->xine->config->unregister_callback(this->xine->config,
+					  "subtitles.separate.use_unscaled_osd");
   free (this);
 }
 
