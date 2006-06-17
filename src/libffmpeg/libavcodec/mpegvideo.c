@@ -239,6 +239,9 @@ void ff_write_quant_matrix(PutBitContext *pb, int16_t *matrix){
 const uint8_t *ff_find_start_code(const uint8_t * restrict p, const uint8_t *end, uint32_t * restrict state){
     int i;
 
+    if(p>=end)
+        return end;
+
     for(i=0; i<3; i++){
         uint32_t tmp= *state << 8;
         *state= tmp + *(p++);
