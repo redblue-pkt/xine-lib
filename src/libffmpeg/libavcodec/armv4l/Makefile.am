@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = -O2
+AM_CFLAGS = -O2 -fno-strict-aliasing
 AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS)
 ASFLAGS =
 

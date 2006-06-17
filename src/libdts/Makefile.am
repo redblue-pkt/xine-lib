@@ -22,6 +22,7 @@ xineplug_decode_dts_la_LIBADD = $(XINE_LIB) $(LIBDTS_LIBS)
 xineplug_decode_dts_la_CFLAGS = $(LIBDTS_CFLAGS)
 else
 xineplug_decode_dts_la_LIBADD = $(XINE_LIB)
+xineplug_decode_dts_la_CFLAGS = -fno-strict-aliasing
 endif
 
 noinst_HEADERS = bitstream.h dts.h dts_internal.h tables.h tables_adpcm.h \

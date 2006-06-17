@@ -1,6 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS)
+AM_CFLAGS = -fno-strict-aliasing
 
 EXTRA_DIST = asm.h \
 	dsputil_alpha.c \

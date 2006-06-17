@@ -1,6 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS)
+AM_CFLAGS = -fno-strict-aliasing
 # CFLAGS is here to filter out -funroll-loops because it causes bad
 # behavior of libavcodec
 CFLAGS = `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`

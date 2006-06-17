@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = -DNSF_PLAYER
+AM_CFLAGS = -DNSF_PLAYER -fno-strict-aliasing
 
 noinst_LTLIBRARIES = libnosefart.la
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.34 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: demux_mpeg_pes.c,v 1.35 2006/06/17 15:20:56 dgp85 Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -1495,7 +1495,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_optional_data = demux_mpeg_pes_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
-  this->scratch    = xine_xmalloc_aligned (512, 4096, (void**) &this->scratch_base);
+  this->scratch    = xine_xmalloc_aligned (512, 4096, &this->scratch_base);
   this->status     = DEMUX_FINISHED;
   /* Don't start demuxing stream until we see a program_stream_pack_header */
   /* We need to system header in order to identify is the stream is mpeg1 or mpeg2. */

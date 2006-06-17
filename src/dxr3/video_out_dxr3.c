@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.114 2006/06/07 22:52:29 dsalt Exp $
+ * $Id: video_out_dxr3.c,v 1.115 2006/06/17 15:20:56 dgp85 Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -734,7 +734,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
       /* planar format, only base[0] */
       /* add one extra line for field swap stuff */
       frame->real_base[0] = xine_xmalloc_aligned(16, image_size + frame->vo_frame.pitches[0],
-        (void**)&frame->mem);
+        &frame->mem);
 
       /* don't use first line */
       frame->real_base[0] += frame->vo_frame.pitches[0];
@@ -762,7 +762,7 @@ static void dxr3_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_ge
 
       /* add one extra line for field swap stuff */
       frame->real_base[0] = xine_xmalloc_aligned(16, image_size_y + frame->vo_frame.pitches[0] +
-        image_size_u + image_size_v, (void**)&frame->mem);
+        image_size_u + image_size_v, &frame->mem);
 
       /* don't use first line */
       frame->real_base[0] += frame->vo_frame.pitches[0];

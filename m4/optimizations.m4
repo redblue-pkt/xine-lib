@@ -22,7 +22,6 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
         dnl
         AC_TRY_CFLAGS("-mpreferred-stack-boundary=2",
             m_psb="-mpreferred-stack-boundary=2", m_psb="")
-        AC_TRY_CFLAGS("-fno-strict-aliasing", f_nsa="-fno-strict-aliasing", f_nsa="")
         AC_TRY_CFLAGS("-fschedule-insns2", f_si="-fschedule-insns2", f_si="")
         AC_TRY_CFLAGS("-mwide-multiply", m_wm="-mwide-multiply", m_wm="")
         dnl
@@ -104,7 +103,7 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
             AC_TRY_CFLAGS("$sarchopt=athlon", k7cpu="athlon", k7cpu="i686")
 
             dnl add x86 specific gcc CFLAGS
-            CFLAGS="-O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS $CFLAGS"
+            CFLAGS="-O3 -pipe -fomit-frame-pointer $f_af $f_al $f_aj $m_wm $m_psb -fexpensive-optimizations $f_si -ffast-math $INLINE_FUNCTIONS $CFLAGS"
 
             DEBUG_CFLAGS="-O $DEBUG_CFLAGS"
 
@@ -188,11 +187,11 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
         DEBUG_CFLAGS="-O3 -mieee $DEBUG_CFLAGS"
         ;;
       *darwin*)
-        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
+        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si -ffast-math $INLINE_FUNCTIONS -no-cpp-precomp -D_INTL_REDIRECT_MACROS $CFLAGS"
         DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
         ;;
       ppc-*-linux* | powerpc-*)
-        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS $CFLAGS"
+        CFLAGS="-O3 -pipe -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si -ffast-math $INLINE_FUNCTIONS $CFLAGS"
         DEBUG_CFLAGS="-O3 $DEBUG_CFLAGS"
         ;;
       sparc*-*-linux*)
@@ -243,7 +242,7 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
         DEBUG_CFLAGS="$cc_debug_cflags $DEBUG_CFLAGS"
         ;;
       x86_64-*)
-        CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si $f_nsa -ffast-math $INLINE_FUNCTIONS $CFLAGS"
+        CFLAGS="-O3 -fomit-frame-pointer $m_wm $m_psb -fexpensive-optimizations $f_si -ffast-math $INLINE_FUNCTIONS $CFLAGS"
         DEBUG_CFLAGS="-g $DEBUG_CFLAGS"
         ;;
       armv4l-*-linux*)

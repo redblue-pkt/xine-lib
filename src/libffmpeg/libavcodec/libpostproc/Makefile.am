@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 # -fomit-frame-pointer is always needed. it might cause debug to not
 # work, but at least it compiles.
-AM_CFLAGS = -fomit-frame-pointer
+AM_CFLAGS = -fomit-frame-pointer -fno-strict-aliasing
 AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavcodec  
 ASFLAGS =
 

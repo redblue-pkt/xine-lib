@@ -12,6 +12,7 @@ lib_LTLIBRARIES = $(faad_module)
 
 VPATH = @srcdir@:@srcdir@/codebook:
 
+xineplug_decode_faad_la_CFLAGS = $(AM_CFLAGS) -fno-strict-aliasing
 xineplug_decode_faad_la_SOURCES = \
 	bits.c \
 	cfft.c \

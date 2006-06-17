@@ -11,12 +11,13 @@ VIDIX_CFLAGS = -I$(top_builddir)/src/video_out/vidix \
 AM_CFLAGS = $(X_CFLAGS) -DXINE_COMPILE \
         $(SUNDGA_CFLAGS) $(SDL_CFLAGS) $(VIDIX_CFLAGS) \
 	$(AALIB_CFLAGS) $(MLIB_CFLAGS) $(LIBSTK_CFLAGS) \
-	$(DIRECTFB_CFLAGS) $(CACA_CFLAGS)
+	$(DIRECTFB_CFLAGS) $(CACA_CFLAGS) $(X11OSD_STRICT_ALIASING)
 
 libdir = $(XINE_PLUGINDIR)
 
 if HAVE_X11
 X11OSD = x11osd.c
+X11OSD_STRICT_ALIASING = -fno-strict-aliasing
 xshm_module = xineplug_vo_out_xshm.la
 if HAVE_XV
 xv_module = xineplug_vo_out_xv.la

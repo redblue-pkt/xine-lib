@@ -69,10 +69,10 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 
     if( !mpeg2dec->chunk_buffer )
       mpeg2dec->chunk_buffer = xine_xmalloc_aligned (16, BUFFER_SIZE + 4, 
-						     (void**)&mpeg2dec->chunk_base);
+						     &mpeg2dec->chunk_base);
     if( !mpeg2dec->picture )
       mpeg2dec->picture = xine_xmalloc_aligned (16, sizeof (picture_t),
-						(void**)&mpeg2dec->picture_base);
+						&mpeg2dec->picture_base);
 
     mpeg2dec->shift = 0xffffff00;
     mpeg2dec->new_sequence = 0;

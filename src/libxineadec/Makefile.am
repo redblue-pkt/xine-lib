@@ -19,7 +19,7 @@ xineplug_decode_gsm610_la_LIBADD = \
 	$(top_builddir)/src/libxineadec/gsm610/libgsm610.la
 
 xineplug_decode_nsf_la_SOURCES = nsf.c
-#xineplug_decode_nsf_la_CFLAGS = -DNSF_PLAYER
+xineplug_decode_nsf_la_CFLAGS = -DNSF_PLAYER -fno-strict-aliasing
 xineplug_decode_nsf_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
 xineplug_decode_nsf_la_LIBADD = \
 	$(XINE_LIB) \
