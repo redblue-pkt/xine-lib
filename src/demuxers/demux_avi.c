@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.226 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: demux_avi.c,v 1.227 2006/06/18 19:41:39 dgp85 Exp $
  *
  * demultiplexer for avi streams
  *
@@ -468,7 +468,7 @@ static int audio_pos_stopper(demux_avi_t *this, void *data) {
  * is in the index. */
 static int start_pos_stopper(demux_avi_t *this, void *data) {
   off_t start_pos = *(off_t *)data;
-  uint32_t maxframe = this->avi->video_idx.video_frames - 1;
+  int32_t maxframe = this->avi->video_idx.video_frames - 1;
 
   while( maxframe >= 0 && this->avi->video_idx.vindex[maxframe].pos >= start_pos ) {
     if ( this->avi->video_idx.vindex[maxframe].flags & AVIIF_KEYFRAME )
@@ -482,7 +482,7 @@ static int start_pos_stopper(demux_avi_t *this, void *data) {
  * is in the index. */
 static int start_time_stopper(demux_avi_t *this, void *data) {
   int64_t video_pts = *(int64_t *)data;
-  uint32_t maxframe = this->avi->video_idx.video_frames - 1;
+  int32_t maxframe = this->avi->video_idx.video_frames - 1;
 
   while( maxframe >= 0 && get_video_pts(this,maxframe) >= video_pts ) {
     if ( this->avi->video_idx.vindex[maxframe].flags & AVIIF_KEYFRAME )
