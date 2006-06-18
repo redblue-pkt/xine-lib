@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-06-10 19:13+0200\n"
+"POT-Creation-Date: 2006-06-18 22:35+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -56,72 +56,57 @@ msgid ""
 "that the additional channels are mixed into the stereo signal."
 msgstr ""
 
-#: src/libw32dll/qt_decoder.c:601 src/libw32dll/qt_decoder.c:1122
-#: src/libw32dll/w32codec.c:1596 src/libw32dll/w32codec.c:1673
-msgid "path to Win32 codecs"
-msgstr ""
-
-#: src/libw32dll/qt_decoder.c:602 src/libw32dll/qt_decoder.c:1123
-#: src/libw32dll/w32codec.c:1597 src/libw32dll/w32codec.c:1674
-msgid ""
-"If you have the Windows or Apple Quicktime codec packs installed, specify "
-"the path the codec directory here. If xine can find the Windows or Apple "
-"Quicktime codecs, it will use them to decode various Windows Media and "
-"Quicktime streams for you. Consult the xine FAQ for more information on how "
-"to install the codecs."
-msgstr ""
-
-#: src/libw32dll/w32codec.c:586
+#: src/libw32dll/w32codec.c:588
 #, c-format
 msgid "w32codec: ICOpen failed! unknown codec %08lx / wrong parameters?\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:595
+#: src/libw32dll/w32codec.c:597
 #, c-format
 msgid "w32codec: ICDecompressGetFormat (%.4s %08lx/%d) failed: Error %ld\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:628
+#: src/libw32dll/w32codec.c:630
 #, c-format
 msgid "w32codec: ICDecompressQuery failed: Error %ld\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:639
+#: src/libw32dll/w32codec.c:641
 #, c-format
 msgid "w32codec: ICDecompressBegin failed: Error %ld\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:685
+#: src/libw32dll/w32codec.c:687
 #, c-format
 msgid ""
 "w32codec: DS_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:696
+#: src/libw32dll/w32codec.c:698
 #, c-format
 msgid ""
 "w32codec: DMO_VideoDecoder failed! unknown codec %08lx / wrong parameters?\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:816 src/libw32dll/w32codec.c:1485
+#: src/libw32dll/w32codec.c:818 src/libw32dll/w32codec.c:1487
 #, c-format
 msgid "w32codec: decoder failed to start. Is '%s' installed?\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1219
+#: src/libw32dll/w32codec.c:1221
 msgid "w32codec: (ACM_Decoder) Unappropriate audio format\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1222
+#: src/libw32dll/w32codec.c:1224
 #, c-format
 msgid "w32codec: (ACM_Decoder) acmStreamOpen error %d\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1241
+#: src/libw32dll/w32codec.c:1243
 msgid "w32codec: Error initializing DirectShow Audio\n"
 msgstr ""
 
-#: src/libw32dll/w32codec.c:1259
+#: src/libw32dll/w32codec.c:1261
 msgid "w32codec: Error initializing DMO Audio\n"
 msgstr ""
 
@@ -318,16 +303,16 @@ msgstr ""
 msgid "xine output plugin for Coreaudio/Mac OS X"
 msgstr ""
 
-#: src/audio_out/audio_sun_out.c:441 src/audio_out/audio_sun_out.c:914
+#: src/audio_out/audio_sun_out.c:442 src/audio_out/audio_sun_out.c:917
 #, c-format
 msgid "audio_sun_out: opening audio device %s failed: %s\n"
 msgstr ""
 
-#: src/audio_out/audio_sun_out.c:889
+#: src/audio_out/audio_sun_out.c:892
 msgid "Sun audio device name"
 msgstr ""
 
-#: src/audio_out/audio_sun_out.c:890
+#: src/audio_out/audio_sun_out.c:893
 msgid ""
 "Specifies the file name for the Sun audio device to be used.\n"
 "This setting is security critical, because when changed to a different file, "
@@ -335,7 +320,12 @@ msgid ""
 "careful that the value you enter really is a proper Sun audio device."
 msgstr ""
 
-#: src/audio_out/audio_sun_out.c:970
+#: src/audio_out/audio_sun_out.c:935
+#, c-format
+msgid "audio_sun_out: audio ioctl on device %s failed: %s\n"
+msgstr ""
+
+#: src/audio_out/audio_sun_out.c:986
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
 msgstr ""
 
@@ -1704,7 +1694,7 @@ msgstr ""
 
 #: src/video_out/video_out_xvmc.c:1461 src/video_out/video_out_xxmc.c:2463
 #: src/video_out/video_out_vidix.c:1015 src/video_out/video_out_xv.c:1452
-#: src/video_out/video_out_opengl.c:1915
+#: src/video_out/video_out_opengl.c:1918
 msgid "enable double buffering"
 msgstr ""
 
@@ -2156,11 +2146,11 @@ msgstr ""
 msgid "video_out_xv: this adaptor supports the yuy2 format.\n"
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1886
+#: src/video_out/video_out_opengl.c:1889
 msgid "OpenGL renderer"
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1887
+#: src/video_out/video_out_opengl.c:1890
 msgid ""
 "The OpenGL plugin provides several render modules:\n"
 "\n"
@@ -2189,24 +2179,24 @@ msgid ""
 "Show images reflected in a spinning torus. Way cool =)"
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1909
+#: src/video_out/video_out_opengl.c:1912
 msgid "OpenGL minimum framerate"
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1910
+#: src/video_out/video_out_opengl.c:1913
 msgid ""
 "Minimum framerate for animated render routines.\n"
 "Ignored for static render routines.\n"
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1916
+#: src/video_out/video_out_opengl.c:1919
 msgid ""
 "For OpenGL double buffering does not only remove tearing artifacts,\n"
 "it also reduces flickering a lot.\n"
 "It should not have any performance impact."
 msgstr ""
 
-#: src/video_out/video_out_opengl.c:1963
+#: src/video_out/video_out_opengl.c:1966
 msgid "xine video output plugin using the OpenGL 3D graphics API"
 msgstr ""
 
@@ -2496,15 +2486,15 @@ msgid ""
 "individual lines."
 msgstr ""
 
-#: src/libspucmml/xine_decoder.c:478
+#: src/libspucmml/xine_decoder.c:480
 msgid "font for external subtitles"
 msgstr ""
 
-#: src/libspucmml/xine_decoder.c:484
+#: src/libspucmml/xine_decoder.c:486
 msgid "subtitle vertical offset (relative window size)"
 msgstr ""
 
-#: src/libspucmml/xine_decoder.c:530
+#: src/libspucmml/xine_decoder.c:532
 msgid "encoding of subtitles"
 msgstr ""
 
@@ -3324,27 +3314,27 @@ msgstr ""
 msgid "Tuner name not found\n"
 msgstr ""
 
-#: src/input/input_v4l.c:1875
+#: src/input/input_v4l.c:1876
 msgid "v4l tv input plugin"
 msgstr ""
 
-#: src/input/input_v4l.c:1879
+#: src/input/input_v4l.c:1880
 msgid "v4l radio input plugin"
 msgstr ""
 
-#: src/input/input_v4l.c:1911
+#: src/input/input_v4l.c:1912
 msgid "v4l video device"
 msgstr ""
 
-#: src/input/input_v4l.c:1912
+#: src/input/input_v4l.c:1913
 msgid "The path to your Video4Linux video device."
 msgstr ""
 
-#: src/input/input_v4l.c:1937
+#: src/input/input_v4l.c:1938
 msgid "v4l radio device"
 msgstr ""
 
-#: src/input/input_v4l.c:1938
+#: src/input/input_v4l.c:1939
 msgid "The path to your Video4Linux radio device."
 msgstr ""
 
@@ -3566,39 +3556,39 @@ msgid ""
 "in the subtitle being shown until the next one takes over."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:900
+#: src/libsputext/xine_decoder.c:910
 msgid "subtitle size"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:901
+#: src/libsputext/xine_decoder.c:911
 msgid ""
 "You can adjust the subtitle size here. The setting will be evaluated "
 "relative to the window size."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:907
+#: src/libsputext/xine_decoder.c:917
 msgid "subtitle vertical offset"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:908
+#: src/libsputext/xine_decoder.c:918
 msgid ""
 "You can adjust the vertical position of the subtitle. The setting will be "
 "evaluated relative to the window size."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:914
+#: src/libsputext/xine_decoder.c:924
 msgid "font for subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:915
+#: src/libsputext/xine_decoder.c:925
 msgid "A font from the xine font directory to be used for the subtitle text."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:922
+#: src/libsputext/xine_decoder.c:932
 msgid "encoding of the subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:923
+#: src/libsputext/xine_decoder.c:933
 msgid ""
 "The encoding of the subtitle text in the stream. This setting is used to "
 "render non-ASCII characters correctly. If non-ASCII characters are not "
@@ -3606,11 +3596,11 @@ msgid ""
 "used."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:931
+#: src/libsputext/xine_decoder.c:941
 msgid "use unscaled OSD if possible"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:932
+#: src/libsputext/xine_decoder.c:942
 msgid ""
 "The unscaled OSD will be rendered independently of the video frame and will "
 "always be sharp, even if the video is magnified. This will look better, but "
@@ -3973,30 +3963,30 @@ msgstr ""
 msgid "video_out_dxr3: ERROR Reading overlay init file. Run autocal!\n"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:207
+#: src/libreal/audio_decoder.c:211
 #, c-format
 msgid "libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:364
+#: src/libreal/audio_decoder.c:368
 #, c-format
 msgid "libareal: decoder init failed, error code: 0x%x\n"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:378
+#: src/libreal/audio_decoder.c:382
 #, c-format
 msgid "libareal: decoder flavor setup failed, error code: 0x%x\n"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:415
+#: src/libreal/audio_decoder.c:419
 msgid "libareal: oups, real can do more than 2 channels ?\n"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:733 src/libreal/xine_decoder.c:613
+#: src/libreal/audio_decoder.c:741 src/libreal/xine_decoder.c:634
 msgid "path to RealPlayer codecs"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:734 src/libreal/xine_decoder.c:614
+#: src/libreal/audio_decoder.c:742 src/libreal/xine_decoder.c:635
 msgid ""
 "If you have RealPlayer installed, specify the path to its codec directory "
 "here. You can easily find the codec directory by looking for a file named "
@@ -4005,7 +3995,7 @@ msgid ""
 "information on how to install the codecs."
 msgstr ""
 
-#: src/libreal/xine_decoder.c:195
+#: src/libreal/xine_decoder.c:212
 msgid "libreal: Error resolving symbols! (version incompatibility?)\n"
 msgstr ""
 
@@ -4500,16 +4490,16 @@ msgstr ""
 msgid "ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:155
+#: src/libffmpeg/audio_decoder.c:156
 #, c-format
 msgid "ffmpeg_audio_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:247
+#: src/libffmpeg/audio_decoder.c:248
 msgid "ffmpeg_audio_dec: trying to open null codec\n"
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:256
+#: src/libffmpeg/audio_decoder.c:257
 msgid "ffmpeg_audio_dec: couldn't open decoder\n"
 msgstr ""
 
