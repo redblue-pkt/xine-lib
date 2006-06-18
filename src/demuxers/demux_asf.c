@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.176 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: demux_asf.c,v 1.177 2006/06/18 19:36:47 dgp85 Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1744,8 +1744,8 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
              */
             const char *href = NULL;
             const char *title = NULL;
-            uint32_t start_time = -1;
-            uint32_t duration = -1;
+            uint32_t start_time = (uint32_t)-1;
+            uint32_t duration = (uint32_t)-1;
 
             for (asx_ref = asx_entry->child; asx_ref; asx_ref = asx_ref->next)
             {
@@ -1779,13 +1779,13 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
 
               else if (!strcasecmp (asx_ref->name, "STARTTIME"))
               {
-                if (start_time < 0) 
+                if (start_time == (uint32_t)-1) 
                   start_time = asx_get_time_value (asx_ref);
               }
 
               else if (!strcasecmp (asx_ref->name, "DURATION"))
               {
-                if (duration < 0) 
+                if (duration == (uint32_t)-1) 
                   duration = asx_get_time_value (asx_ref);
               }
 
@@ -1797,8 +1797,8 @@ static int demux_asf_parse_asx_references( demux_asf_t *this) {
             /* FIXME: prepend ref_base_href to href */
             if (href && *href)
               _x_demux_send_mrl_reference (this->stream, 0, href, title,
-                                           start_time < 0 ? 0 : start_time,
-                                           duration < 0 ? -1 : duration);
+                                           start_time == (uint32_t)-1 ? 0 : start_time,
+                                           duration == (uint32_t)-1 ? -1 : duration);
           }
 
           else if (!strcasecmp (asx_entry->name, "ENTRYREF"))
