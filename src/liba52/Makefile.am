@@ -20,7 +20,6 @@ internal_sources = \
 endif
 
 xineplug_decode_a52_la_SOURCES = \
-	crc.c \
 	xine_decoder.c \
 	$(internal_sources)
 
@@ -36,4 +35,5 @@ noinst_HEADERS = \
 	a52.h \
 	a52_internal.h \
 	bitstream.h \
-	tables.h
+	tables.h \
+	crc.c
