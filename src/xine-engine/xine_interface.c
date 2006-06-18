@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.93 2006/04/19 17:35:47 dsalt Exp $
+ * $Id: xine_interface.c,v 1.94 2006/06/18 22:51:29 dgp85 Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -326,6 +326,12 @@ int xine_port_send_gui_data (xine_video_port_t *vo,
 }
 
 void xine_set_param (xine_stream_t *stream, int param, int value) {
+  /* Avoid crashing */
+  if ( ! stream ) {
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+      "xine_interface: xine_set_param called with NULL stream.");
+    return;
+  }
 
   switch (param) {
   case XINE_PARAM_SPEED:
