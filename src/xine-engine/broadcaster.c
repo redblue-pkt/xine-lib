@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.10 2006/04/21 23:15:45 dsalt Exp $
+ * $Id: broadcaster.c,v 1.11 2006/06/18 18:50:55 dgp85 Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -274,7 +274,7 @@ static void send_buf (broadcaster_t *this, char *from, buf_element_t *buf) {
     }
   }
       
-  broadcaster_string_write(this, "buffer fifo=%s size=%d type=%u pts=%lld disc=%lld flags=%u",
+  broadcaster_string_write(this, "buffer fifo=%s size=%d type=%u pts=%"PRId64" disc=%"PRId64" flags=%u",
                            from, buf->size, buf->type, buf->pts, buf->disc_off, buf->decoder_flags );
 
   if( buf->size )
