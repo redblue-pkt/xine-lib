@@ -803,7 +803,8 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
 {
   int          found       = 0;
   int          tuner_found = 0;
-  int          i, j, ret;
+  int          i, ret;
+  unsigned int j;
   cfg_entry_t *entry;
   
   lprintf("open_video_capture_device\n");

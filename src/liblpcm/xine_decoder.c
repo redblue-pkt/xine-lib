@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.59 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.60 2006/06/18 20:29:04 dgp85 Exp $
  * 
  * 31-8-2001 Added LPCM rate sensing.
  *   (c) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -88,9 +88,9 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   /* get config byte from mpeg2 stream */
   if ( (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
         buf->decoder_info[1] == BUF_SPECIAL_LPCM_CONFIG ) {
-    int bits_per_sample = 16;
-    int sample_rate = 0;
-    int num_channels;
+    unsigned int bits_per_sample = 16;
+    unsigned int sample_rate = 0;
+    unsigned int num_channels;
       
     num_channels = (buf->decoder_info[2] & 0x7) + 1;
     switch ((buf->decoder_info[2]>>4) & 3) {

@@ -23,7 +23,7 @@
  *   32bit float output
  *   Seeking??
  *
- * $Id: xine_decoder.c,v 1.7 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.8 2006/06/18 20:29:04 dgp85 Exp $
  */
 
 #include <stdio.h>
@@ -87,7 +87,7 @@ typedef struct mpc_decoder_s {
  *************************************************************************/
     
 /* Reads size bytes of data into buffer at ptr. */
-static int32_t mpc_reader_read(void *data, void *ptr, int32_t size) {
+static int32_t mpc_reader_read(void *data, void *ptr, int size) {
   mpc_decoder_t *this = (mpc_decoder_t *) data;
   
   lprintf("mpc_reader_read: size=%d\n", size);

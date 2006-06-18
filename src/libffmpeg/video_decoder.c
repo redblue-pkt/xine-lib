@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.59 2005/11/04 22:37:14 tmattern Exp $
+ * $Id: video_decoder.c,v 1.60 2006/06/18 20:29:04 dgp85 Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -274,8 +274,8 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_MPEG,        CODEC_ID_MPEG1VIDEO, "MPEG 1/2 (ffmpeg)"} };
 
 
-static void init_video_codec (ff_video_decoder_t *this, int codec_type) {
-  int i;
+static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type) {
+  size_t i;
 
   /* find the decoder */
   this->codec = NULL;
@@ -858,8 +858,6 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
 }
 
 static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
-  int i;
-
   /* take care of all the various types of special buffers 
   * note that order is important here */
   lprintf("special buffer\n");
@@ -885,6 +883,7 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
       buf->decoder_info[2]);
       
   } else if (buf->decoder_info[1] == BUF_SPECIAL_PALETTE) {
+    unsigned int i;
 
     palette_entry_t *demuxer_palette;
     AVPaletteControl *decoder_palette;
@@ -903,6 +902,7 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
     decoder_palette->palette_changed = 1;
 
   } else if (buf->decoder_info[1] == BUF_SPECIAL_RV_CHUNK_TABLE) {
+    int i;
   
     lprintf("BUF_SPECIAL_RV_CHUNK_TABLE\n");
     this->context->slice_count = buf->decoder_info[2]+1;

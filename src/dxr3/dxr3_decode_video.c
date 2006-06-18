@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_video.c,v 1.62 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: dxr3_decode_video.c,v 1.63 2006/06/18 20:29:04 dgp85 Exp $
  */
  
 /* dxr3 video decoder plugin.
@@ -622,7 +622,7 @@ static void dxr3_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   }
   if (written != buf->size)
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-	    "dxr3_decode_video: Could only write %d of %d video bytes.\n", written, buf->size);
+	    "dxr3_decode_video: Could only write %zd of %d video bytes.\n", written, buf->size);
 }
 
 static void dxr3_reset(video_decoder_t *this_gen)

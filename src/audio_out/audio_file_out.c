@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_file_out.c,v 1.5 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: audio_file_out.c,v 1.6 2006/06/18 20:29:03 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -203,7 +203,7 @@ static int ao_file_write(ao_driver_t *this_gen, int16_t *data,
 	}
 #endif
 	while(len) {
-		size_t thislen = write(this->fd, data, len);
+		ssize_t thislen = write(this->fd, data, len);
 
 		if (thislen == -1) {
 			xprintf (this->xine, XINE_VERBOSITY_LOG, "audio_file_out: Failed to write data to file '%s': %s\n",
@@ -259,7 +259,7 @@ static void ao_file_close(ao_driver_t *this_gen)
 	uint32_t len;
 
 	len = le2me_32(this->bytes_written);
-	xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_file_out: Close file '%s'. %d KiB written\n",
+	xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_file_out: Close file '%s'. %zu KiB written\n",
 		 this->fname, this->bytes_written / 1024);
 
 	if (lseek(this->fd, 40, SEEK_SET) != -1) {

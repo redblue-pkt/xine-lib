@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.207 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: demux_qt.c,v 1.208 2006/06/18 20:29:03 dgp85 Exp $
  *
  */
 
@@ -1397,7 +1397,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
       for (j = 0; j < trak->chunk_offset_count; j++) {
         trak->chunk_offset_table[j] =
           BE_32(&trak_atom[i + 12 + j * 4]);
-        debug_atom_load("      chunk %d @ 0x%llX\n",
+        debug_atom_load("      chunk %d @ 0x%"PRIX64"\n",
           j, trak->chunk_offset_table[j]);
       }
 
@@ -1428,7 +1428,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
         trak->chunk_offset_table[j] <<= 32;
         trak->chunk_offset_table[j] |=
           BE_32(&trak_atom[i + 12 + j * 8 + 4]);
-        debug_atom_load("      chunk %d @ 0x%llX\n",
+        debug_atom_load("      chunk %d @ 0x%"PRIX64"\n",
           j, trak->chunk_offset_table[j]);
       }
 
@@ -1579,7 +1579,7 @@ static qt_error parse_reference_atom (reference_t *ref,
       ref->data_rate = BE_32(&ref_atom[i + 8]);
       ref->data_rate *= 10;
 
-      debug_atom_load("    qt rmdr data rate = %lld\n", ref->data_rate);
+      debug_atom_load("    qt rmdr data rate = %"PRId64"\n", ref->data_rate);
 
     } else if (current_atom == RMVC_ATOM) {
 
@@ -1615,7 +1615,7 @@ static void get_next_edit_list_entry(qt_trak *trak,
 
     *edit_list_media_time = 0;
     *edit_list_duration = MAX_DURATION;
-    debug_edit_list("  qt: no edit list table, initial = %d, %lld\n", *edit_list_media_time, *edit_list_duration);
+    debug_edit_list("  qt: no edit list table, initial = %d, %"PRId64"\n", *edit_list_media_time, *edit_list_duration);
     return;
 
   } else while (*edit_list_index < trak->edit_list_count) {
@@ -1644,7 +1644,7 @@ static void get_next_edit_list_entry(qt_trak *trak,
    */
   if (*edit_list_index == trak->edit_list_count)
     *edit_list_duration = MAX_DURATION;
-  debug_edit_list("  qt: edit list table exists, initial = %d, %lld\n", *edit_list_media_time, *edit_list_duration);
+  debug_edit_list("  qt: edit list table exists, initial = %d, %"PRId64"\n", *edit_list_media_time, *edit_list_duration);
 }
 
 static qt_error build_frame_table(qt_trak *trak,
@@ -1785,7 +1785,7 @@ static qt_error build_frame_table(qt_trak *trak,
     edit_list_pts_counter = 0;
     for (i = 0; i < trak->frame_count; i++) {
 
-      debug_edit_list("    %d: (before) pts = %lld...", i, trak->frames[i].pts);
+      debug_edit_list("    %d: (before) pts = %"PRId64"...", i, trak->frames[i].pts);
 
       if (trak->frames[i].pts < edit_list_media_time) 
         trak->frames[i].pts = edit_list_pts_counter;
@@ -1794,13 +1794,13 @@ static qt_error build_frame_table(qt_trak *trak,
           frame_duration = 
             (trak->frames[i + 1].pts - trak->frames[i].pts);
 
-        debug_edit_list("duration = %lld...", frame_duration);
+        debug_edit_list("duration = %"PRId64"...", frame_duration);
         trak->frames[i].pts = edit_list_pts_counter;
         edit_list_pts_counter += frame_duration;
         edit_list_duration -= frame_duration;
       }
 
-      debug_edit_list("(fixup) pts = %lld...", trak->frames[i].pts);
+      debug_edit_list("(fixup) pts = %"PRId64"...", trak->frames[i].pts);
 
       /* reload media time and duration */
       if (edit_list_duration <= 0) {
@@ -1808,14 +1808,14 @@ static qt_error build_frame_table(qt_trak *trak,
           &edit_list_media_time, &edit_list_duration, global_timescale);
       }
 
-      debug_edit_list("(after) pts = %lld...\n", trak->frames[i].pts);
+      debug_edit_list("(after) pts = %"PRId64"...\n", trak->frames[i].pts);
     }
 
     /* compute final pts values */
     for (i = 0; i < trak->frame_count; i++) {
       trak->frames[i].pts *= 90000;
       trak->frames[i].pts /= trak->timescale;
-      debug_edit_list("  final pts for sample %d = %lld\n", i, trak->frames[i].pts);
+      debug_edit_list("  final pts for sample %d = %"PRId64"\n", i, trak->frames[i].pts);
     }
 
     /* decide which video properties atom to use */
@@ -2015,7 +2015,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
 
     /* dump the frame table in debug mode */
     for (j = 0; j < info->traks[i].frame_count; j++)
-      debug_frame_table("      %d: %8X bytes @ %llX, %lld pts, media id %d%s\n",
+      debug_frame_table("      %d: %8X bytes @ %"PRIX64", %"PRId64" pts, media id %d%s\n",
         j,
         info->traks[i].frames[j].size,
         info->traks[i].frames[j].offset,
@@ -2056,7 +2056,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
         info->chosen_reference = i;
     }
 
-    debug_atom_load("  qt: chosen reference is ref #%d, qtim version %04X, %lld bps\n      URL: %s\n",
+    debug_atom_load("  qt: chosen reference is ref #%d, qtim version %04X, %"PRId64" bps\n      URL: %s\n",
       info->chosen_reference,
       info->references[info->chosen_reference].qtim_version,
       info->references[info->chosen_reference].data_rate,
@@ -2376,7 +2376,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION,
                          frame_duration);
 
-    debug_video_demux("  qt: sending off video frame %d from offset 0x%llX, %d bytes, media id %d, %lld pts\n",
+    debug_video_demux("  qt: sending off video frame %d from offset 0x%"PRIX64", %d bytes, media id %d, %"PRId64" pts\n",
       i, 
       video_trak->frames[i].offset,
       video_trak->frames[i].size,
@@ -2434,7 +2434,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     this->input->seek(this->input, audio_trak->frames[i].offset,
       SEEK_SET);
 
-    debug_audio_demux("  qt: sending off audio frame %d from offset 0x%llX, %d bytes, media id %d, %lld pts\n",
+    debug_audio_demux("  qt: sending off audio frame %d from offset 0x%"PRIX64", %d bytes, media id %d, %"PRId64" pts\n",
       i, 
       audio_trak->frames[i].offset,
       audio_trak->frames[i].size,

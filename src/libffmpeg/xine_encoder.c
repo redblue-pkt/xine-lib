@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.22 2006/04/05 22:12:19 valtri Exp $
+ * $Id: xine_encoder.c,v 1.23 2006/06/18 20:29:04 dgp85 Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -261,7 +261,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
     }
   if (written != size)
       xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
-        "dxr3_mpeg_encoder: Could only write %d of %d mpeg bytes.\n", written, size);
+        "dxr3_mpeg_encoder: Could only write %zd of %d mpeg bytes.\n", written, size);
   return 1;
 }
 

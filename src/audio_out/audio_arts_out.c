@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.29 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: audio_arts_out.c,v 1.30 2006/06/18 20:29:03 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -91,7 +91,7 @@ static void ao_arts_volume(void *buffer, int length, int volume) {
     v=(int) ((*(data) * volume) / 100);
     *(data)=(v>32767) ? 32767 : ((v<-32768) ? -32768 : v);
     *(data)=LE_16(data);
-    *(data++);
+    data++;
   }
 }
 /* End volume control */

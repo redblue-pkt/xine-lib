@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.24 2006/04/21 23:22:04 dsalt Exp $
+ * $Id: audio_decoder.c,v 1.25 2006/06/18 20:29:04 dgp85 Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -134,7 +134,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->size += buf->size;
     
     if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
-      int i, codec_type;
+      size_t i;
+      unsigned int codec_type;
       xine_waveformatex *audio_header;
   
       codec_type = buf->type & 0xFFFF0000;

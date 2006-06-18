@@ -879,7 +879,7 @@ static channel_t *load_channels(dvb_input_plugin_t *this, int *num_ch, fe_type_t
   f = fopen(filename, "rb");
   if (!f) {
     xprintf(xine, XINE_VERBOSITY_LOG, _("input_dvb: failed to open dvb channel file '%s'\n"), filename);
-    _x_message(this->stream, XINE_MSG_FILE_NOT_FOUND, filename, "Please run the dvbscan utility.");
+    _x_message(this->stream, XINE_MSG_FILE_NOT_FOUND, filename, "Please run the dvbscan utility.", NULL);
     return NULL;
   }
 
@@ -1268,7 +1268,7 @@ static void dvb_parse_si(dvb_input_plugin_t *this) {
 /* Helper function for finding the channel index in the channels struct
    given the service_id. If channel is not found, -1 is returned. */
 static int channel_index(dvb_input_plugin_t* this, unsigned int service_id) {
-  int n;
+  unsigned int n;
   for (n=0; n < this->num_channels; n++)
     if (this->channels[n].service_id == service_id) 
 	return n;

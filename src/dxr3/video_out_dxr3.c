@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.115 2006/06/17 15:20:56 dgp85 Exp $
+ * $Id: video_out_dxr3.c,v 1.116 2006/06/18 20:29:04 dgp85 Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -897,7 +897,7 @@ static void dxr3_overlay_end(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 	    "video_out_dxr3: spu device write failed (%s)\n", strerror(errno));
   else if (written != this->spu_enc->size)
     xprintf(this->class->xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_dxr3: Could only write %d of %d spu bytes.\n", written, this->spu_enc->size);
+	    "video_out_dxr3: Could only write %zd of %d spu bytes.\n", written, this->spu_enc->size);
   /* set clipping */
   btn.color = 0x7654;
   btn.contrast =

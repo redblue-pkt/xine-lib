@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dxr3_decode_spu.c,v 1.54 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: dxr3_decode_spu.c,v 1.55 2006/06/18 20:29:04 dgp85 Exp $
  */
  
 /* dxr3 spu decoder plugin.
@@ -545,7 +545,7 @@ static void dxr3_spudec_decode_data(spu_decoder_t *this_gen, buf_element_t *buf)
   }
   if (written != buf->size)
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
-	    "dxr3_decode_spu: Could only write %d of %d spu bytes.\n", written, buf->size);
+	    "dxr3_decode_spu: Could only write %zd of %d spu bytes.\n", written, buf->size);
   
   pthread_mutex_unlock(&this->dxr3_vo->spu_device_lock);
 }

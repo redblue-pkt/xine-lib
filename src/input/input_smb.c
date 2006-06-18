@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.12 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: input_smb.c,v 1.13 2006/06/18 20:29:04 dgp85 Exp $
  */
 
 
@@ -239,7 +239,7 @@ static xine_mrl_t **smb_class_get_dir (input_class_t *this_gen,
   
 	smb_input_class_t   *this = (smb_input_class_t *) this_gen;
 	int                 (*func) ()        = _sortfiles_default;
-	unsigned int        dir;
+	int        dir;
 	int i;
 	struct smbc_dirent  *pdirent;
 	char current_path [XINE_PATH_MAX + 1];

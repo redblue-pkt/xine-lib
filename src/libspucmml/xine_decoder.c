@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.6 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.7 2006/06/18 20:29:04 dgp85 Exp $
  *
  */
 
@@ -140,7 +140,8 @@ static void update_font_size (spucmml_decoder_t *this) {
 }
 
 static int get_width(spucmml_decoder_t *this, char* text) {
-  int i=0,width=0,w,dummy;
+  size_t i=0;
+  int width=0,w,dummy;
   char letter[2]={0, 0};
 
   while (i<=strlen(text)) {
@@ -187,7 +188,8 @@ static int get_width(spucmml_decoder_t *this, char* text) {
 }
 
 static void render_line(spucmml_decoder_t *this, int x, int y, char* text) {
-  int i=0,w,dummy;
+  size_t i=0;
+  int w,dummy;
   char letter[2]={0,0};
 
   while (i<=strlen(text)) {
@@ -235,7 +237,7 @@ static void draw_subtitle(spucmml_decoder_t *this, int64_t sub_start) {
   this->stream->osd_renderer->show (this->osd, sub_start);
   
   llprintf (LOG_SCHEDULING,
-      "spucmml: scheduling subtitle >%s< at %lld, current time is %lld\n",
+      "spucmml: scheduling subtitle >%s< at %"PRId64", current time is %"PRId64"\n",
       this->text[0], sub_start,
       this->stream->xine->clock->get_current_time (this->stream->xine->clock));
 }

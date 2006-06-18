@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.47 2006/04/21 22:34:19 dsalt Exp $
+  $Id: xineplug_inp_vcd.c,v 1.48 2006/06/18 20:29:04 dgp85 Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -261,7 +261,7 @@ vcd_add_mrl_slot(vcd_input_class_t *this, const char *mrl, off_t size,
   
   this->mrls[*i] = malloc(sizeof(xine_mrl_t));
   if (NULL==this->mrls[*i]) {
-    LOG_ERR("Can't malloc %d bytes for MRL slot %d (%s)", 
+    LOG_ERR("Can't malloc %zu bytes for MRL slot %u (%s)", 
             sizeof(xine_mrl_t), *i, mrl);
     return;
   }
@@ -272,7 +272,7 @@ vcd_add_mrl_slot(vcd_input_class_t *this, const char *mrl, off_t size,
   
   this->mrls[*i]->mrl = (char *) malloc(strlen(mrl) + 1);
   if (NULL==this->mrls[*i]->mrl) {
-    LOG_ERR("Can't malloc %d bytes for MRL name %s", sizeof(xine_mrl_t), mrl);
+    LOG_ERR("Can't malloc %zu bytes for MRL name %s", sizeof(xine_mrl_t), mrl);
   } else {
     sprintf(this->mrls[*i]->mrl, "%s", mrl);
   }
