@@ -16,7 +16,7 @@ install-data-hook:
 	    for p in $$list; do \
 	      p="`echo $$p | sed -e 's/\.la$$/\.so/g;s|^.*/||'`"; \
 	      echo " chcon system_u:object_r:texrel_shlib_t $(DESTDIR)$(libdir)/$$p"; \
-	      chcon system_u:object_r:texrel_shlib_t $(DESTDIR)$(libdir)/$$p; \
+	      chcon system_u:object_r:texrel_shlib_t $(DESTDIR)$(libdir)/$$p || :; \
 	    done; \
 	  fi; \
 	fi
