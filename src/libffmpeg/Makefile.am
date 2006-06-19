@@ -34,7 +34,8 @@ else
 AM_CPPFLAGS = $(ff_cppflags) $(ZLIB_CPPFLAGS)
 xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c \
                                 mpeg_parser.c
-xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@ \
+                                @IMPURE_TEXT_LDFLAGS@
 endif
 
 xineplug_decode_ff_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) -lm $(ZLIB_LIBS) \

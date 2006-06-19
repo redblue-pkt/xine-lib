@@ -16,7 +16,8 @@ lib_LTLIBRARIES = $(w32dll_codec) $(qt_codec)
 EXTRA_DIST = common.c
 
 xineplug_decode_w32dll_la_SOURCES = w32codec.c
-xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module \
+	@XINE_PLUGIN_MIN_SYMS@ @IMPURE_TEXT_LDFLAGS@
 xineplug_decode_w32dll_la_LIBADD = \
 	$(top_builddir)/src/libw32dll/wine/libwine.la \
 	$(XINE_LIB) \
@@ -25,7 +26,8 @@ xineplug_decode_w32dll_la_LIBADD = \
 	@KSTAT_LIBS@
 
 xineplug_decode_qt_la_SOURCES = qt_decoder.c
-xineplug_decode_qt_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_qt_la_LDFLAGS = -avoid-version -module \
+	@XINE_PLUGIN_MIN_SYMS@ @IMPURE_TEXT_LDFLAGS@
 xineplug_decode_qt_la_LIBADD = \
 	$(top_builddir)/src/libw32dll/wine/libwine.la \
 	$(XINE_LIB) \

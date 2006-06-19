@@ -1959,6 +1959,7 @@ case "$host_or_hostalias" in
     AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
     AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
     enable_ffmmx="yes"
+    enable_impure_text="yes"
 
     case "$host_or_hostalias" in
       *-*-cygwin) 
@@ -2087,7 +2088,23 @@ fi
 
 AC_SUBST(XINE_PLUGIN_MIN_SYMS)
 
+dnl ---------------------------------------------
+dnl Set IMPURE_TEXT_LDFLAGS
+dnl ---------------------------------------------
 
+IMPURE_TEXT_LDFLAGS=""
+if test x"$enable_impure_text" = xyes; then
+  case "$host_or_hostalias" in
+    *solaris*)
+      if test "$GCC" = yes; then
+        IMPURE_TEXT_LDFLAGS="-mimpure-text"
+      else
+        IMPURE_TEXT_LDFLAGS="-z textoff"
+      fi
+    ;;
+  esac
+fi
+AC_SUBST(IMPURE_TEXT_LDFLAGS)
 
 dnl ---------------------------------------------
 dnl HAVE_ARMV4L is currently used in libavcodec makefile.am

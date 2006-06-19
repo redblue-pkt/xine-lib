@@ -23,7 +23,8 @@ xineplug_post_planar_la_SOURCES = planar.c invert.c expand.c fill.c boxblur.c \
                                   denoise3d.c eq.c eq2.c unsharp.c pp.c noise.c
 xineplug_post_planar_la_DEPENDENCIES = $(postproc_dep)
 xineplug_post_planar_la_LIBADD = $(XINE_LIB) $(postproc_lib) -lm $(THREAD_LIBS)
-xineplug_post_planar_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_post_planar_la_LDFLAGS = -avoid-version -module \
+	@XINE_PLUGIN_MIN_SYMS@ @IMPURE_TEXT_LDFLAGS@
 
 $(POSTPROC_INT_LIB):
 	cd $(top_builddir)/src/libffmpeg/libavcodec/libpostproc && $(MAKE) libpostprocess.la
