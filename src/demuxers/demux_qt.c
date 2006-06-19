@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.208 2006/06/18 20:29:03 dgp85 Exp $
+ * $Id: demux_qt.c,v 1.209 2006/06/19 13:51:04 hadess Exp $
  *
  */
 
@@ -685,6 +685,7 @@ static int is_qt_file(input_plugin_t *qt_file) {
   /* if the input is non-seekable, be much more stringent about qualifying
    * a QT file: In this case, the moov must be the first atom in the file */
   if ((qt_file->get_capabilities(qt_file) & INPUT_CAP_SEEKABLE) == 0) {
+    memset (&preview, 0, MAX_PREVIEW_SIZE);
     len = qt_file->get_optional_data(qt_file, preview, INPUT_OPTIONAL_DATA_PREVIEW);
     if (BE_32(&preview[4]) == MOOV_ATOM)
       return 1;
@@ -2093,6 +2094,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input,
   if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE))
     find_moov_atom(input, &moov_atom_offset, &moov_atom_size);
   else {
+    memset (&preview, 0, MAX_PREVIEW_SIZE);
     input->get_optional_data(input, preview, INPUT_OPTIONAL_DATA_PREVIEW);
     if (BE_32(&preview[4]) != MOOV_ATOM) {
       /* special case if there is an ftyp atom first */
