@@ -1895,7 +1895,7 @@ static void colorToPalette(const uint32_t *icolor, unsigned char *palette_p,
 			   unsigned num_xvmc_components, char *xvmc_components) 
 {
   const clut_t *color = (const clut_t *) icolor;
-  int i;
+  unsigned int i;
   for (i=0; i<num_xvmc_components; ++i) {
     switch(xvmc_components[i]) {
     case 'V': *palette_p = color->cr; break;
@@ -1903,7 +1903,7 @@ static void colorToPalette(const uint32_t *icolor, unsigned char *palette_p,
     case 'Y': 
     default:  *palette_p = color->y; break;
     }
-    *palette_p++;
+    palette_p++;
   }
 }
 
@@ -1912,7 +1912,7 @@ void _x_xx44_to_xvmc_palette(const xx44_palette_t *p,unsigned char *xvmc_palette
 			  unsigned first_xx44_entry, unsigned num_xx44_entries,
 			  unsigned num_xvmc_components, char *xvmc_components) 
 {
-  register int i;
+  register unsigned int i;
   register const uint32_t *cluts = p->cluts + first_xx44_entry;
 
   for (i=0; i<num_xx44_entries; ++i) {
@@ -1926,7 +1926,7 @@ void _x_xx44_to_xvmc_palette(const xx44_palette_t *p,unsigned char *xvmc_palette
 static int xx44_paletteIndex(xx44_palette_t *p, int color, uint32_t clut) 
 {
 
-  register int i;
+  register unsigned int i;
   register uint32_t *cluts = p->cluts;
   register int tmp;
 

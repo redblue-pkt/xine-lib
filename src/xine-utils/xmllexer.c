@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmllexer.c,v 1.11 2006/02/14 02:25:00 dsalt Exp $
+ *  $Id: xmllexer.c,v 1.12 2006/06/20 00:35:08 dgp85 Exp $
  *
  */
 
@@ -424,7 +424,7 @@ static struct {
   { '\'', 4, "apos" },
   { '<',  2, "lt" },
   { '>',  2, "gt" },
-  { 0 }
+  { '\0', 0, "" }
 };
 
 char *lexer_decode_entities (const char *tok)

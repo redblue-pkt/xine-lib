@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.28 2006/02/14 19:12:16 dsalt Exp $
+ * $Id: color.c,v 1.29 2006/06/20 00:35:08 dgp85 Exp $
  */
 
 #include "xine_internal.h"
@@ -204,7 +204,7 @@ void free_yuv_planes(yuv_planes_t *yuv_planes) {
 static void yuv444_to_yuy2_c(const yuv_planes_t *yuv_planes, unsigned char *yuy2_map, 
   int pitch) {
 
-  int row_ptr, pixel_ptr;
+  unsigned int row_ptr, pixel_ptr;
   int yuy2_index;
 
   /* copy the Y samples */
@@ -318,7 +318,8 @@ static void yuv444_to_yuy2_c(const yuv_planes_t *yuv_planes, unsigned char *yuy2
 static void yuv444_to_yuy2_mmx(const yuv_planes_t *yuv_planes, unsigned char *yuy2_map,
   int pitch) {
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
-  int h, i, j, k;
+  unsigned int i;
+  int h, j, k;
   int width_div_8 = yuv_planes->row_width / 8;
   int width_mod_8 = yuv_planes->row_width % 8;
   unsigned char *source_plane;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.9 2006/02/14 19:12:16 dsalt Exp $
+ * $Id: xine_buffer.c,v 1.10 2006/06/20 00:35:08 dgp85 Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -187,7 +187,7 @@ void *_xine_buffer_copyin(void *buf, int index, const void *data, int len) {
   CHECK_MAGIC(buf);
 #endif
 
-  GROW_TO(buf, index+len);
+  GROW_TO(buf, (size_t)index+len);
 
   xine_fast_memcpy(((uint8_t*)buf)+index, data, len);
 

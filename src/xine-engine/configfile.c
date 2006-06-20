@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.79 2005/08/21 17:01:02 dsalt Exp $
+ * $Id: configfile.c,v 1.80 2006/06/20 00:35:07 dgp85 Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -969,7 +969,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
       size_t   rlen;
       
       buf = (char *) xine_xmalloc(config_stat.st_size + 1);
-      if((rlen = fread(buf, 1, config_stat.st_size, f_config)) && (rlen == config_stat.st_size)) {
+      if((rlen = fread(buf, 1, config_stat.st_size, f_config)) && ((off_t)rlen == config_stat.st_size)) {
 	(void) fwrite(buf, 1, rlen, f_backup);
       }
       free(buf);

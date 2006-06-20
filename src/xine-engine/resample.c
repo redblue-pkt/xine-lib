@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.c,v 1.8 2003/12/09 00:02:37 f1rmb Exp $
+ * $Id: resample.c,v 1.9 2006/06/20 00:35:08 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -32,7 +32,7 @@
 void _x_audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples, 
 				int16_t* output_samples, uint32_t out_samples)
 {
-  int osample;
+  unsigned int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
   uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
@@ -63,7 +63,7 @@ void _x_audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples,
 void _x_audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples, 
 				  int16_t* output_samples, uint32_t out_samples)
 {
-  int osample;
+  unsigned int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
   uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
@@ -101,7 +101,7 @@ void _x_audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples,
 void _x_audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples, 
 				    int16_t* output_samples, uint32_t out_samples)
 {
-  int osample;
+  unsigned int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
   uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
@@ -155,7 +155,7 @@ void _x_audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples,
 void _x_audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples, 
 				    int16_t* output_samples, uint32_t out_samples)
 {
-  int osample;
+  unsigned int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
   uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);
@@ -216,7 +216,7 @@ void _x_audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples,
 void _x_audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples, 
 				    int16_t* output_samples, uint32_t out_samples)
 {
-  int osample;
+  unsigned int osample;
   /* 16+16 fixed point math */
   uint32_t isample = 0;
   uint32_t istep = ((in_samples-2) << 16)/(out_samples-2);

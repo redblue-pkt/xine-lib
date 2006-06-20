@@ -359,7 +359,7 @@ xine_health_check_t* _x_health_check_xv (xine_health_check_t* hc) {
   Display               *(*xopendisplay)(char*);
   char                  *(*xdisplayname)(char*);
   int                   (*xvqueryextension)(Display*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*);
-  int                   (*xvqueryadaptors)(Display*, Window, unsigned int*, XvAdaptorInfo**);
+  int                   (*xvqueryadaptors)(Display*, Window, int*, XvAdaptorInfo**);
   XvImageFormatValues   *(*xvlistimageformats)(Display*, XvPortID, int*);
   char                  *err = NULL;
   int                   formats, adaptors, i;

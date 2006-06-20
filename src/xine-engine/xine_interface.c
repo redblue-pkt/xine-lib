@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.94 2006/06/18 22:51:29 dgp85 Exp $
+ * $Id: xine_interface.c,v 1.95 2006/06/20 00:35:08 dgp85 Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -923,7 +923,7 @@ int _x_message(xine_stream_t *stream, int type, ...) {
 
   if (!stream) return 0;
 
-  if( type >= 0 && type < sizeof(std_explanation)/
+  if( type >= 0 && (size_t)type < sizeof(std_explanation)/
                            sizeof(std_explanation[0]) ) {
     explanation = _(std_explanation[type]);
     size = strlen(explanation)+1;

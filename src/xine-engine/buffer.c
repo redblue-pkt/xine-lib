@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.c,v 1.35 2004/03/03 20:09:16 mroi Exp $
+ * $Id: buffer.c,v 1.36 2006/06/20 00:35:07 dgp85 Exp $
  *
  *
  * contents:
@@ -501,7 +501,7 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   fifo_buffer_t *this;
   int            i;
   int            alignment = 2048;
-  char          *multi_buffer = NULL;
+  unsigned char *multi_buffer = NULL;
 
   this = xine_xmalloc (sizeof (fifo_buffer_t));
 

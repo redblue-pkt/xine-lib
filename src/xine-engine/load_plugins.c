@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.221 2006/04/08 16:42:37 valtri Exp $
+ * $Id: load_plugins.c,v 1.222 2006/06/20 00:35:08 dgp85 Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -286,18 +286,24 @@ static void _insert_node (xine_t *this,
 			  plugin_info_t *info,
 			  int api_version){
 
-  plugin_catalog_t  *catalog = this->plugin_catalog;
-  plugin_node_t     *entry;
-  vo_info_t         *vo_new, *vo_old;
-  ao_info_t         *ao_new, *ao_old;
-  decoder_info_t    *decoder_new, *decoder_old;
-  post_info_t       *post_new, *post_old;
-  demuxer_info_t    *demux_new, *demux_old;
-  input_info_t      *input_new, *input_old;
-  uint32_t          *types;
-  char               key[80];
-  char               desc[100];
-  int                i;
+  plugin_catalog_t     *catalog = this->plugin_catalog;
+  plugin_node_t        *entry;
+  vo_info_t            *vo_new;
+  const vo_info_t      *vo_old;
+  ao_info_t            *ao_new;
+  const ao_info_t      *ao_old;
+  decoder_info_t       *decoder_new;
+  const decoder_info_t *decoder_old;
+  post_info_t          *post_new;
+  const post_info_t    *post_old;
+  demuxer_info_t       *demux_new;
+  const demuxer_info_t *demux_old;
+  input_info_t         *input_new;
+  const input_info_t   *input_old;
+  uint32_t             *types;
+  char                  key[80];
+  char                  desc[100];
+  int                   i;
 
   _x_assert(list);
   _x_assert(info);
@@ -792,14 +798,14 @@ static void load_required_plugins(xine_t *this) {
  */
 static void save_plugin_list(FILE *fp, xine_sarray_t *list) {
 
-  plugin_node_t *node;
-  plugin_file_t *file;
-  decoder_info_t *decoder_info;
-  demuxer_info_t *demuxer_info;
-  input_info_t *input_info;
-  vo_info_t *vo_info;
-  ao_info_t *ao_info;
-  post_info_t *post_info;
+  const plugin_node_t *node;
+  const plugin_file_t *file;
+  const decoder_info_t *decoder_info;
+  const demuxer_info_t *demuxer_info;
+  const input_info_t *input_info;
+  const vo_info_t *vo_info;
+  const ao_info_t *ao_info;
+  const post_info_t *post_info;
   
   int i;
   int list_id = 0;

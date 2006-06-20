@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.10 2006/05/22 17:00:40 mshopf Exp $
+ * $Id: input_cache.c,v 1.11 2006/06/20 00:35:07 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +45,7 @@ typedef struct {
   input_plugin_t   *main_input_plugin; /* original input plugin */
   xine_stream_t    *stream;
 
-  uint8_t           buf[BUFFER_SIZE];
+  char              buf[BUFFER_SIZE];
   int               buf_len;
   int               buf_pos;
 
