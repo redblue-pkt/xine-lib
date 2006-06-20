@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_smb.c,v 1.13 2006/06/18 20:29:04 dgp85 Exp $
+ * $Id: input_smb.c,v 1.14 2006/06/20 01:46:41 dgp85 Exp $
  */
 
 
@@ -94,7 +94,7 @@ smb_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
 	buf->content = buf->mem;
 	buf->type = BUF_DEMUX_BLOCK;
 
-	total_bytes = smb_plugin_read (this_gen, buf->content, todo);
+	total_bytes = smb_plugin_read (this_gen, (char*)buf->content, todo);
 
 	if (total_bytes == todo) buf->size = todo;
 	else

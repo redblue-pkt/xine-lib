@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.36 2006/02/14 19:05:29 dsalt Exp $
+ * $Id: mmsh.c,v 1.37 2006/06/20 01:46:41 dgp85 Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -247,7 +247,7 @@ static int get_answer (mmsh_t *this) {
 
   while (!done) {
 
-    if (_x_io_tcp_read(this->stream, this->s, &(this->buf[len]), 1) != 1) {
+    if (_x_io_tcp_read(this->stream, this->s, (char*)&(this->buf[len]), 1) != 1) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                "libmmsh: alert: end of stream\n");
       return 0;
@@ -271,7 +271,7 @@ static int get_answer (mmsh_t *this) {
         int httpver, httpsub, httpcode;
         char httpstatus[51];
 
-        if (sscanf(this->buf, "HTTP/%d.%d %d %50[^\015\012]", &httpver, &httpsub,
+        if (sscanf((char*)this->buf, "HTTP/%d.%d %d %50[^\015\012]", &httpver, &httpsub,
             &httpcode, httpstatus) != 4) {
           xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("libmmsh: bad response format\n"));
@@ -293,14 +293,14 @@ static int get_answer (mmsh_t *this) {
         }
       } else {
 
-        if (!strncasecmp(this->buf, "Location: ", 10)) {
+        if (!strncasecmp((char*)this->buf, "Location: ", 10)) {
           xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("libmmsh: Location redirection not implemented\n"));
           return 0;
         }
         
-        if (!strncasecmp(this->buf, "Pragma:", 7)) {
-          features = strstr(this->buf + 7, "features=");
+        if (!strncasecmp((char*)this->buf, "Pragma:", 7)) {
+          features = strstr((char*)(this->buf + 7), "features=");
           if (features) {
             if (strstr(features, "seekable")) {
               lprintf("seekable stream\n");
@@ -341,7 +341,7 @@ static int get_chunk_header (mmsh_t *this) {
   lprintf ("get_chunk_header\n");
 
   /* read chunk header */
-  read_len = _x_io_tcp_read(this->stream, this->s, chunk_header, CHUNK_HEADER_LENGTH);
+  read_len = _x_io_tcp_read(this->stream, this->s, (char*)chunk_header, CHUNK_HEADER_LENGTH);
   if (read_len != CHUNK_HEADER_LENGTH) {
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
              "libmmsh: chunk header read failed, %d != %d\n", read_len, CHUNK_HEADER_LENGTH);
@@ -368,7 +368,7 @@ static int get_chunk_header (mmsh_t *this) {
   }
   /* read extended header */
   if (ext_header_len > 0) {
-    read_len = _x_io_tcp_read(this->stream, this->s, ext_header, ext_header_len);
+    read_len = _x_io_tcp_read(this->stream, this->s, (char*)ext_header, ext_header_len);
     if (read_len != ext_header_len) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                "extended header read failed, %d != %d\n", read_len, ext_header_len);
@@ -430,7 +430,7 @@ static int get_header (mmsh_t *this) {
                    "libmmsh: the asf header exceed %d bytes\n", ASF_HEADER_SIZE);
           return 0;
         } else {
-          len = _x_io_tcp_read(this->stream, this->s, this->asf_header + this->asf_header_len,
+          len = _x_io_tcp_read(this->stream, this->s, (char*)(this->asf_header + this->asf_header_len),
                              this->chunk_length);
           this->asf_header_len += len;
           if (len != this->chunk_length) {
@@ -448,7 +448,7 @@ static int get_header (mmsh_t *this) {
 
   if (this->chunk_type == CHUNK_TYPE_DATA) {
     /* read the first data chunk */
-    len = _x_io_tcp_read(this->stream, this->s, this->buf, this->chunk_length);
+    len = _x_io_tcp_read(this->stream, this->s, (char*)this->buf, this->chunk_length);
     if (len != this->chunk_length) {
       return 0;
     } else {
@@ -462,7 +462,7 @@ static int get_header (mmsh_t *this) {
 
 static void interp_header (mmsh_t *this) {
 
-  int i;
+  unsigned int i;
 
   lprintf ("interp_header, header_len=%d\n", this->asf_header_len);
 
@@ -947,7 +947,7 @@ static int get_media_packet (mmsh_t *this) {
         return 0;
     }
 
-    len = _x_io_tcp_read (this->stream, this->s, this->buf, this->chunk_length);
+    len = _x_io_tcp_read (this->stream, this->s, (char*)this->buf, this->chunk_length);
       
     if (len == this->chunk_length) {
       /* explicit padding with 0 */
@@ -971,8 +971,8 @@ static int get_media_packet (mmsh_t *this) {
   }
 }
 
-int mmsh_peek_header (mmsh_t *this, char *data, int maxsize) {
-  int len;
+size_t mmsh_peek_header (mmsh_t *this, char *data, size_t maxsize) {
+  size_t len;
 
   lprintf("mmsh_peek_header\n");
 

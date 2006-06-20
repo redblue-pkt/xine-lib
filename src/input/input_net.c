@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.66 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: input_net.c,v 1.67 2006/06/20 01:46:41 dgp85 Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -293,7 +293,7 @@ static buf_element_t *net_plugin_read_block (input_plugin_t *this_gen,
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
   
-  total_bytes = net_plugin_read (this_gen, buf->content, todo);
+  total_bytes = net_plugin_read (this_gen, (char*)buf->content, todo);
 
   if (total_bytes != todo) {
     buf->free_buffer (buf);

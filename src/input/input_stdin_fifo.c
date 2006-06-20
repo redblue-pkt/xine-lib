@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.65 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: input_stdin_fifo.c,v 1.66 2006/06/20 01:46:41 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -126,7 +126,7 @@ static buf_element_t *stdin_plugin_read_block (input_plugin_t *this_gen, fifo_bu
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
 
-  total_bytes = stdin_plugin_read (this_gen, buf->content, todo);
+  total_bytes = stdin_plugin_read (this_gen, (char*)buf->content, todo);
 
   if (total_bytes != todo) {
     buf->free_buffer (buf);

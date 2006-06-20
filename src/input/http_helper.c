@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.6 2006/03/18 09:15:00 tmattern Exp $ 
+ * $Id: http_helper.c,v 1.7 2006/06/20 01:46:41 dgp85 Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -196,7 +196,7 @@ error:
 
 char *_x_canonicalise_url (const char *base, const char *url) {
 
-  int base_length;
+  size_t base_length;
   char *cut, *ret;
 
   if ((cut = strstr (url, "://")))
@@ -213,9 +213,9 @@ char *_x_canonicalise_url (const char *base, const char *url) {
     if (cut)
       ++cut;
   }
-  base_length = cut ? cut - base : strlen (base);
+  base_length = cut ? (size_t)(cut - base) : strlen (base);
   ret = malloc (base_length + strlen (url) + 1);
-  sprintf (ret, "%.*s%s", base_length, base, url);
+  sprintf (ret, "%.*s%s", (int)base_length, base, url);
   return ret;
 }
 

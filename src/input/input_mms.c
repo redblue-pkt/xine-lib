@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.61 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: input_mms.c,v 1.62 2006/06/20 01:46:41 dgp85 Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -127,7 +127,7 @@ static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen,
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
   
-  total_bytes = mms_plugin_read (this_gen, buf->content, todo);
+  total_bytes = mms_plugin_read (this_gen, (char*)buf->content, todo);
 
   if (total_bytes != todo) {
     buf->free_buffer (buf);

@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.60 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: input_pvr.c,v 1.61 2006/06/20 01:46:41 dgp85 Exp $
  */
 
 /**************************************************************************
@@ -579,7 +579,7 @@ static int pvr_break_rec_page (pvr_input_plugin_t *this) {
   
   char *filename;
   
-  if( this->session == -1 ) /* not recording */
+  if( this->session == (unsigned)-1 ) /* not recording */
     return 1;
      
   if( this->rec_fd != -1 && this->rec_fd != this->play_fd ) {
@@ -607,9 +607,9 @@ static int pvr_break_rec_page (pvr_input_plugin_t *this) {
   free(filename);
      
   /* erase first_page if old and not to be saved */
-  if( this->max_page_age != -1 && 
+  if( this->max_page_age != (unsigned)-1 && 
       this->rec_page - this->max_page_age == this->first_page &&
-      (this->save_page == -1 || this->first_page < this->save_page) ) {
+      (this->save_page == (unsigned)-1 || this->first_page < this->save_page) ) {
     
     filename = make_temp_name(this, this->first_page);
 
@@ -635,7 +635,7 @@ static int pvr_rec_file(pvr_input_plugin_t *this) {
   
   off_t pos;
 
-  if( this->session == -1 ) /* not recording */
+  if( this->session == (unsigned)-1 ) /* not recording */
     return 1;
   
   /* check if it's time to change page/file */
@@ -907,7 +907,7 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       
       src_filename = make_temp_name(this, i);
       
-      if( this->save_page == -1 || i < this->save_page ) {
+      if( this->save_page == (unsigned)-1 || i < this->save_page ) {
         lprintf("erasing old pvr file (%s)\n", src_filename);
 
         remove(src_filename);
@@ -926,7 +926,7 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
       free(src_filename);
     }
     
-    if( this->save_page != -1 && (!this->save_name || !strlen(this->save_name)) ) {
+    if( this->save_page != (unsigned)-1 && (!this->save_name || !strlen(this->save_name)) ) {
       saved_show_t        *show = malloc(sizeof(saved_show_t));
       xine_event_t         event;
       xine_pvr_save_data_t data;

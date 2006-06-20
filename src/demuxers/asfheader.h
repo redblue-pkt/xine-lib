@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asfheader.h,v 1.5 2006/04/08 16:42:24 valtri Exp $
+ * $Id: asfheader.h,v 1.6 2006/06/20 01:46:41 dgp85 Exp $
  *
  * demultiplexer for asf streams
  *
@@ -129,7 +129,7 @@ static const struct
 } guids[] =
 {
     { "error",
-    { 0x0,} },
+    { 0x0, 0x0, 0x0, { 0x0 } } },
 
 
     /* base ASF objects */

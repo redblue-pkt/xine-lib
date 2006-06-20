@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.58 2006/06/10 00:21:51 dgp85 Exp $
+ * $Id: mms.c,v 1.59 2006/06/20 01:46:41 dgp85 Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -153,8 +153,8 @@ struct mms_s {
 };
 
 
-static void mms_buffer_init (mms_buffer_t *mms_buffer, uint8_t *buffer) {
-  mms_buffer->buffer = buffer;
+static void mms_buffer_init (mms_buffer_t *mms_buffer, char *buffer) {
+  mms_buffer->buffer = (uint8_t*)buffer;
   mms_buffer->pos = 0;
 }
 
@@ -359,14 +359,14 @@ static int get_packet_header (mms_t *this, mms_packet_header_t *header) {
   header->packet_seq     = 0;
   header->flags          = 0;
   header->packet_id_type = 0;
-  len = _x_io_tcp_read (this->stream, this->s, this->buf, 8);
+  len = _x_io_tcp_read (this->stream, this->s, (char*)this->buf, 8);
   if (len != 8)
     goto error;
     
   if (LE_32(this->buf + 4) == 0xb00bface) {
     /* command packet */
     header->flags = this->buf[3];
-    len = _x_io_tcp_read (this->stream, this->s, this->buf + 8, 4);
+    len = _x_io_tcp_read (this->stream, this->s, (char*)(this->buf + 8), 4);
     if (len != 4)
       goto error;
     
@@ -403,12 +403,12 @@ static int get_packet_command (mms_t *this, uint32_t packet_len) {
   /* always enter this loop */
   lprintf("packet_len: %d bytes\n", packet_len);
 
-  len = _x_io_tcp_read (this->stream, this->s, this->buf + 12, packet_len) ;
+  len = _x_io_tcp_read (this->stream, this->s, (char*)(this->buf + 12), packet_len) ;
   if (len != packet_len) {
     return 0;
   }
 
-  print_command (this->buf, len);
+  print_command ((char*)this->buf, len);
   
   /* check protocol type ("MMS ") */
   if (LE_32(this->buf + 12) != 0x20534D4D) {
@@ -498,7 +498,7 @@ static int get_asf_header (mms_t *this) {
       case MMS_PACKET_ASF_HEADER:
       case MMS_PACKET_ASF_PACKET:
         len = _x_io_tcp_read (this->stream, this->s,
-                              this->asf_header + this->asf_header_len, header.packet_len);
+                              (char*)(this->asf_header + this->asf_header_len), header.packet_len);
         if (len != header.packet_len) {
           xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
                   "libmms: get_header failed\n");
@@ -517,7 +517,7 @@ static int get_asf_header (mms_t *this) {
 
 static void interp_asf_header (mms_t *this) {
 
-  int i;
+  unsigned int i;
  
   this->asf_packet_len = 0;
   this->num_stream_ids = 0;
@@ -714,11 +714,11 @@ static int mms_choose_best_streams(mms_t *this) {
   int     i;
   int     video_stream = 0;
   int     audio_stream = 0;
-  int     max_arate    = 0;
-  int     min_vrate    = 0;
-  int     min_bw_left  = 0;
+  unsigned int max_arate = 0;
+  unsigned int min_vrate = 0;
+  unsigned int min_bw_left = 0;
   int     stream_id;
-  int     bandwitdh_left;
+  unsigned int bandwitdh_left;
   int     res;
 
   /* command 0x33 */
@@ -740,10 +740,7 @@ static int mms_choose_best_streams(mms_t *this) {
   }
   
   /* choose a video stream adapted to the user bandwidth */
-  bandwitdh_left = this->bandwidth - max_arate;
-  if (bandwitdh_left < 0) {
-    bandwitdh_left = 0;
-  }
+  bandwitdh_left = (int)( this->bandwidth - max_arate ) < 0 ? 0 : this->bandwidth - max_arate;
   lprintf("bandwitdh %d, left %d\n", this->bandwidth, bandwitdh_left);
 
   min_bw_left = bandwitdh_left;
@@ -1189,7 +1186,7 @@ static int get_media_packet (mms_t *this) {
           return 0;
         }
 
-        len = _x_io_tcp_read (this->stream, this->s, this->buf, header.packet_len);
+        len = _x_io_tcp_read (this->stream, this->s, (char*)this->buf, header.packet_len);
         if (len != header.packet_len) {
           xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                    "libmms: read failed\n");
@@ -1210,9 +1207,9 @@ static int get_media_packet (mms_t *this) {
 }
 
 
-int mms_peek_header (mms_t *this, char *data, int maxsize) {
+size_t mms_peek_header (mms_t *this, char *data, size_t maxsize) {
 
-  int len;
+  size_t len;
 
   len = (this->asf_header_len < maxsize) ? this->asf_header_len : maxsize;
 

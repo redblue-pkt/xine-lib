@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pnm.c,v 1.21 2004/12/15 12:53:36 miguelfreitas Exp $
+ * $Id: pnm.c,v 1.22 2006/06/20 01:46:41 dgp85 Exp $
  *
  * pnm protocol implementation 
  * based upon code from joschka
@@ -126,14 +126,14 @@ const unsigned char pnm_data_header[]={
 #define PNA_CLIENT_STRING    0x63
 #define PNA_PATH_REQUEST     0x52
 
-const unsigned char pnm_challenge[] = "0990f6b4508b51e801bd6da011ad7b56";
-const unsigned char pnm_timestamp[] = "[15/06/1999:22:22:49 00:00]";
-const unsigned char pnm_guid[]      = "3eac2411-83d5-11d2-f3ea-d7c3a51aa8b0";
-const unsigned char pnm_response[]  = "97715a899cbe41cee00dd434851535bf";
-const unsigned char client_string[] = "WinNT_9.0_6.0.6.45_plus32_MP60_en-US_686l";
+static const char pnm_challenge[] = "0990f6b4508b51e801bd6da011ad7b56";
+static const char pnm_timestamp[] = "[15/06/1999:22:22:49 00:00]";
+static const char pnm_guid[]      = "3eac2411-83d5-11d2-f3ea-d7c3a51aa8b0";
+static const char pnm_response[]  = "97715a899cbe41cee00dd434851535bf";
+static const char client_string[] = "WinNT_9.0_6.0.6.45_plus32_MP60_en-US_686l";
 
 #define PNM_HEADER_SIZE 11
-const unsigned char pnm_header[] = {
+static const unsigned char pnm_header[] = {
         'P','N','A',
         0x00, 0x0a,
         0x00, 0x14,
@@ -141,7 +141,7 @@ const unsigned char pnm_header[] = {
         0x00, 0x01 };
 
 #define PNM_CLIENT_CAPS_SIZE 126
-const unsigned char pnm_client_caps[] = {
+static const unsigned char pnm_client_caps[] = {
     0x07, 0x8a, 'p','n','r','v', 
        0, 0x90, 'p','n','r','v', 
        0, 0x64, 'd','n','e','t', 
@@ -164,12 +164,12 @@ const unsigned char pnm_client_caps[] = {
        0, 0x12, 'l','p','c','J', 
        0, 0x07, '0','5','_','6' };
 
-const uint32_t pnm_default_bandwidth=10485800;
-const uint32_t pnm_available_bandwidths[]={14400,19200,28800,33600,34430,57600,
+static const uint32_t pnm_default_bandwidth=10485800;
+static const uint32_t pnm_available_bandwidths[]={14400,19200,28800,33600,34430,57600,
                                   115200,262200,393216,524300,1544000,10485800};
 
 #define PNM_TWENTYFOUR_SIZE 16
-unsigned char pnm_twentyfour[]={
+static unsigned char pnm_twentyfour[]={
     0xd5, 0x42, 0xa3, 0x1b, 0xef, 0x1f, 0x70, 0x24,
     0x85, 0x29, 0xb3, 0x8d, 0xba, 0x11, 0xf3, 0xd6 };
 
@@ -361,7 +361,7 @@ static void pnm_send_request(pnm_t *p, uint32_t bandwidth) {
   c+=pnm_write_chunk(PNA_CLIENT_CHALLANGE,strlen(pnm_challenge),
           pnm_challenge,&p->buffer[c]);
   c+=pnm_write_chunk(PNA_CLIENT_CAPS,PNM_CLIENT_CAPS_SIZE,
-          pnm_client_caps,&p->buffer[c]);
+          (char*)pnm_client_caps,&p->buffer[c]);
   c+=pnm_write_chunk(0x0a,0,NULL,&p->buffer[c]);
   c+=pnm_write_chunk(0x0c,0,NULL,&p->buffer[c]);
   c+=pnm_write_chunk(0x0d,0,NULL,&p->buffer[c]);
@@ -380,7 +380,7 @@ static void pnm_send_request(pnm_t *p, uint32_t bandwidth) {
   c+=pnm_write_chunk(PNA_GUID,strlen(pnm_guid),
           pnm_guid,&p->buffer[c]);
   c+=pnm_write_chunk(PNA_TWENTYFOUR,PNM_TWENTYFOUR_SIZE,
-          pnm_twentyfour,&p->buffer[c]);
+          (char*)pnm_twentyfour,&p->buffer[c]);
   
   /* data after chunks */
   memcpy(&p->buffer[c],after_chunks,after_chunks_length);
@@ -437,10 +437,10 @@ static void pnm_send_response(pnm_t *p, const char *response) {
 static int pnm_get_headers(pnm_t *p, int *need_response) {
 
   uint32_t chunk_type;
-  uint8_t  *ptr=p->header;
-  uint8_t  *prop_hdr=NULL;
+  char     *ptr=(char*)p->header;
+  char     *prop_hdr=NULL;
   int      chunk_size,size=0;
-  int      nr;
+  int      nr =0;
 /*  rmff_header_t *h; */
 
   *need_response=0;
@@ -578,7 +578,7 @@ static int pnm_calc_stream(pnm_t *p) {
 
 static int pnm_get_stream_chunk(pnm_t *p) {
 
-  int  n;
+  unsigned int n;
   char keepalive='!';
   unsigned int fof1, fof2, stream;
 
@@ -665,7 +665,7 @@ static int pnm_get_stream_chunk(pnm_t *p) {
   p->seq_current[0]=be2me_16(*(uint16_t*)(&p->buffer[5]));
   
   /* now read the rest of stream chunk */
-  n = _x_io_tcp_read (p->stream, p->s, &p->recv[5], fof1-5);
+  n = _x_io_tcp_read (p->stream, p->s, (char*)&p->recv[5], fof1-5);
   if (n<(fof1-5)) return 0;
 
   /* get second index */
@@ -706,7 +706,7 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
   
   char *mrl_ptr=strdup(mrl);
   char *slash, *colon;
-  int pathbegin, hostend;
+  size_t pathbegin, hostend;
   pnm_t *p;
   int fd;
   int need_response=0;
@@ -788,7 +788,7 @@ int pnm_read (pnm_t *this, char *data, int len) {
   
   int to_copy=len;
   char *dest=data;
-  char *source=this->recv + this->recv_read;
+  char *source=(char*)(this->recv + this->recv_read);
   int fill=this->recv_size - this->recv_read;
   
   if (len < 0) return 0;
@@ -804,7 +804,7 @@ int pnm_read (pnm_t *this, char *data, int len) {
 
       return len-to_copy;
     }
-    source = this->recv;
+    source = (char*)this->recv;
     fill = this->recv_size - this->recv_read;
   }
 

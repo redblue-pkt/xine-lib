@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.118 2006/06/06 16:39:25 mshopf Exp $
+ * $Id: input_http.c,v 1.119 2006/06/20 01:46:41 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -286,7 +286,7 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
   xine_ui_data_t data;
     
   /* get the length of the metadata */
-  if (_x_io_tcp_read (this->stream, this->fh, &len, 1) != 1)
+  if (_x_io_tcp_read (this->stream, this->fh, (char*)&len, 1) != 1)
     return 0;
 
   lprintf ("http_plugin_read_metainf: len=%d\n", len);
@@ -439,7 +439,7 @@ static int resync_nsv(http_input_plugin_t *this) {
   lprintf("resyncing NSV stream\n");
   while ((pos < 3) && (read_bytes < (1024*1024))) {
   
-    if (http_plugin_read_int(this, &c, 1) != 1)
+    if (http_plugin_read_int(this, (char*)&c, 1) != 1)
       return 1;
 
     this->preview[pos] = c;
@@ -486,7 +486,7 @@ static buf_element_t *http_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
 
-  total_bytes = http_plugin_read (this_gen, buf->content, todo);
+  total_bytes = http_plugin_read (this_gen, (char*)buf->content, todo);
 
   if (total_bytes != todo) {
     buf->free_buffer (buf);

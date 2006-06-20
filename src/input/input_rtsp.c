@@ -102,7 +102,7 @@ static buf_element_t *rtsp_plugin_read_block (input_plugin_t *this_gen,
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
   
-  total_bytes = rtsp_plugin_read (this_gen, buf->content, todo);
+  total_bytes = rtsp_plugin_read (this_gen, (char*)buf->content, todo);
 
   if (total_bytes != todo) {
     buf->free_buffer (buf);
