@@ -1,22 +1,75 @@
-xine-lib (1.1.1-2) unstable; urgency=low
+xine-lib (1.1.1-3) UNRELEASED; urgency=low
+
+  * (re)introduce libxine1-dbg package. (Closes: #373135)
+
+ -- Reinhard Tartler <siretart@tauware.de>  Wed, 14 Jun 2006 11:27:35 +0200
+
+xine-lib (1.1.1-2) unstable; urgency=medium
 
   [ Reinhard Tartler ]
+
   * Use external libmad, acknowledging NMU (Closes: #336437)
   * enable support for libxvmc1, now that we have xorg in debian
     (Closes: #281572)
   * Conflict/Replaces obsolete package 'xine' (Closes: #300852)
+  * Incorporated Darrens Changes into a new maintainer upload
+  * medium urgency, although security fixes a lot of other functionality
+    changes
+  * Some more fixages to inline usage in internal copy of ffmpeg, continuing
+    the patch from Darren Salt.
+  * Verified that this upload fixes build on mips, and other build failiures
+    look pretty similar. Therefore (Closes: #354436)
+  * Verified that /usr/share/doc/libxine1/faq/faq.{html,txt} is now installed
+    correctly (Closes: #369658)
+  * fix gnome-vfs plugin to allow play back of http URLs again. Patch from
+    upstream CVS, thank you for pointing this out, Sam Morris (Closes: #369974)
 
   [ Darren Salt ]
+
+   * SECURITY FIXES (closes: #369876):
+    - Possible buffer overflow in the AVI demuxer, caused by
+      specially-crafted files or streams;
+    - Possible buffer overflow in the HTTP header-fetching code.
+      (CVE-2006-2802)
+
   * Tidy up the FAQ list and README installation to quieten dh_install.
   * Re-update the FSF address in debian/copyright. It got lost in 1.1.1-1.
   * Add build-dep alternatives for those of us who do backports to sarge.
   * Tidy up the package descriptions a little.
-  * Create libxine1-dbg. (Needs a build-dep on binutils.)
-  * Bump shlibs to >= 1.1.0 due to new functions. (Closes: #358429)
+  * Bump shlibs to >= 1.1.0 due to new functions. (Closes: #358429, #368247)
   * Empty config file no longer prevents the config from being saved.
     (Fixed in upstream 1.1.1) (Closes: #320164)
+  * Pulled in some patches from CVS:
+    - the above security fixes;
+    - fix ALSA resume-from-suspend;
+    - fix incorrect size calculation in interlaced Matroska demuxing;
+    - various uninitialised variables, some of which should be non-zero;
+    - HTTP MRLs requiring authentication would only work when using a proxy;
+    - fix possibly-broken locale handling in the SMB input plugin;
+    - avoid problems where the ffmpeg audio decoder can't find a codec;
+    - avoid a couple of compiler warnings (libavutil);
+    - fix up some typecasting in the win32 codec interface;
+    - avoid problems with negative sizes (general demuxing);
+    - some plugin cache reading code should also be used on ia64;
+    - fix a couple of printf warnings on 64-bit;
+    - add some locking around playback speed change code;
+    - incorrect default CPU acceleration setting on powerpc;
+    - fix crash at startup if VO deinterlacing is enabled, onefield_xv is
+      selected and the image format is YV12;
+    - avoid possible segfault with 1x1 PNGs when handled by the ffmpeg plugin;
+    - wrong names used for libX11 and libXv in the health check code (we now
+      detect the correct names at build time);
+    - add a missing -I to src/libffmpeg/libavcodec/sparc/Makefile.am (should
+      fix an FTBFS on sparc);
+    - alter configure.ac to avoid FTBFS when configure is regenerated with
+      autoconf 2.59c or later.
+  * Add AM_MAINTAINER_MODE.
+  * Fix usage of inlined functions in libffmpeg before they're defined. This is
+    not implemented for all architectures in gcc 4.0.x and was causing FTBFS.
+  * Kill some pointer<->int casting warnings on 64-bit architectures. (Taken
+    from CVS HEAD)
 
- -- Reinhard Tartler <siretart@tauware.de>  Mon, 17 Apr 2006 16:48:06 +0200
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 12 Jun 2006 18:16:30 +0200
 
 xine-lib (1.1.1-1.1) unstable; urgency=low
 
