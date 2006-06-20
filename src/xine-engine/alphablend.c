@@ -1117,9 +1117,9 @@ static uint8_t *(*blend_yuv_grow_extra_data(alphablend_t *extra_data, int osd_wi
     int id;
     int max_width;
     uint8_t *data[ 3 ][ 2 ];
-  } **header = (struct header_s **)&extra_data->buffer;
+  } *header = (struct header_s *)extra_data->buffer;
   
-  int needed_buffer_size = sizeof (**header) + osd_width * sizeof (uint8_t[ 3 ][ 2 ]);
+  int needed_buffer_size = sizeof (*header) + osd_width * sizeof (uint8_t[ 3 ][ 2 ]);
   
   if (extra_data->buffer_size < needed_buffer_size) {
     
@@ -1132,22 +1132,22 @@ static uint8_t *(*blend_yuv_grow_extra_data(alphablend_t *extra_data, int osd_wi
     }
     
     extra_data->buffer_size = needed_buffer_size;
-    (*header)->max_width = 0;
+    header->max_width = 0;
   }
 
-  if ((*header)->id != ME_FOURCC('y', 'u', 'v', 0) || (*header)->max_width < osd_width) {
-    (*header)->id = ME_FOURCC('y', 'u', 'v', 0);
-    (*header)->max_width = osd_width;
+  if (header->id != ME_FOURCC('y', 'u', 'v', 0) || header->max_width < osd_width) {
+    header->id = ME_FOURCC('y', 'u', 'v', 0);
+    header->max_width = osd_width;
 
-    (*header)->data[ 0 ][ 0 ] = ((uint8_t *)extra_data->buffer) + sizeof (**header);
-    (*header)->data[ 0 ][ 1 ] = (*header)->data[ 0 ][ 0 ] + osd_width;
-    (*header)->data[ 1 ][ 0 ] = (*header)->data[ 0 ][ 1 ] + osd_width;
-    (*header)->data[ 1 ][ 1 ] = (*header)->data[ 1 ][ 0 ] + osd_width;
-    (*header)->data[ 2 ][ 0 ] = (*header)->data[ 1 ][ 1 ] + osd_width;
-    (*header)->data[ 2 ][ 1 ] = (*header)->data[ 2 ][ 0 ] + osd_width;
+    header->data[ 0 ][ 0 ] = ((uint8_t *)extra_data->buffer) + sizeof (*header);
+    header->data[ 0 ][ 1 ] = header->data[ 0 ][ 0 ] + osd_width;
+    header->data[ 1 ][ 0 ] = header->data[ 0 ][ 1 ] + osd_width;
+    header->data[ 1 ][ 1 ] = header->data[ 1 ][ 0 ] + osd_width;
+    header->data[ 2 ][ 0 ] = header->data[ 1 ][ 1 ] + osd_width;
+    header->data[ 2 ][ 1 ] = header->data[ 2 ][ 0 ] + osd_width;
   }
 
-  return &(*header)->data;
+  return &(header->data);
 }
   
 void _x_blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
@@ -1528,9 +1528,9 @@ static uint8_t *(*blend_yuy2_grow_extra_data(alphablend_t *extra_data, int osd_w
     int id;
     int max_width;
     uint8_t *data[ 3 ];
-  } **header = (struct header_s **)&extra_data->buffer;
+  } *header = (struct header_s *)extra_data->buffer;
   
-  int needed_buffer_size = sizeof (**header) + osd_width * sizeof (uint8_t[ 3 ]);
+  int needed_buffer_size = sizeof (*header) + osd_width * sizeof (uint8_t[ 3 ]);
   
   if (extra_data->buffer_size < needed_buffer_size) {
     
@@ -1543,19 +1543,19 @@ static uint8_t *(*blend_yuy2_grow_extra_data(alphablend_t *extra_data, int osd_w
     }
     
     extra_data->buffer_size = needed_buffer_size;
-    (*header)->max_width = 0;
+    header->max_width = 0;
   }
 
-  if ((*header)->id != ME_FOURCC('y', 'u', 'y', '2') || (*header)->max_width < osd_width) {
-    (*header)->id = ME_FOURCC('y', 'u', 'y', '2');
-    (*header)->max_width = osd_width;
+  if (header->id != ME_FOURCC('y', 'u', 'y', '2') || header->max_width < osd_width) {
+    header->id = ME_FOURCC('y', 'u', 'y', '2');
+    header->max_width = osd_width;
 
-    (*header)->data[ 0 ] = ((uint8_t *)extra_data->buffer) + sizeof (**header);
-    (*header)->data[ 1 ] = (*header)->data[ 0 ] + osd_width;
-    (*header)->data[ 2 ] = (*header)->data[ 1 ] + osd_width;
+    header->data[ 0 ] = ((uint8_t *)extra_data->buffer) + sizeof (*header);
+    header->data[ 1 ] = header->data[ 0 ] + osd_width;
+    header->data[ 2 ] = header->data[ 1 ] + osd_width;
   }
 
-  return &(*header)->data;
+  return &(header->data);
 }
 
 void _x_blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,

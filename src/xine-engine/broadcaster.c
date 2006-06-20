@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.11 2006/06/18 18:50:55 dgp85 Exp $
+ * $Id: broadcaster.c,v 1.12 2006/06/20 00:18:44 dgp85 Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -206,8 +206,11 @@ broadcaster_string_write(broadcaster_t *this, char *msg, ...) {
  */
 static void *manager_loop (void *this_gen) {
   broadcaster_t *this = (broadcaster_t *) this_gen;
-  struct sockaddr_in fsin; /* the from address of a client */
-  int  alen;               /* from-address length */
+  union { /* the from address of a client */
+    struct sockaddr_in in;
+    struct sockaddr sa;
+  } fsin;
+  socklen_t alen;          /* from-address length */
   fd_set rfds;             /* read file descriptor set */
   fd_set efds;             /* exception descriptor set */
   
@@ -224,9 +227,9 @@ static void *manager_loop (void *this_gen) {
       if (FD_ISSET(this->msock, &rfds))
       {
         int   ssock;
-        alen = sizeof(fsin);
+        alen = sizeof(fsin.in);
   
-        ssock = accept(this->msock, (struct sockaddr *)&fsin, &alen);
+        ssock = accept(this->msock, &(fsin.sa), &alen);
         if (ssock >= 0) {
           /* identification string, helps demuxer probing */
           if( sock_string_write(this->stream->xine, ssock,"master xine v1") > 0 ) {
