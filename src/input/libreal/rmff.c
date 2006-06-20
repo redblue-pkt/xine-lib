@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rmff.c,v 1.7 2003/12/05 15:54:58 f1rmb Exp $
+ * $Id: rmff.c,v 1.8 2006/06/20 01:07:58 dgp85 Exp $
  *
  * functions for real media file format
  * adopted from joschkas real tools
@@ -393,7 +393,7 @@ rmff_header_t *rmff_scan_header(const char *data) {
 	int           chunk_size;
 	uint32_t      chunk_type;
   const char    *ptr=data;
-  int           i;
+  unsigned int   i;
 
   header->fileheader=NULL;
 	header->prop=NULL;
@@ -722,8 +722,8 @@ void rmff_print_header(rmff_header_t *h) {
 
 void rmff_fix_header(rmff_header_t *h) {
 
-  int num_headers=0;
-  int header_size=0;
+  unsigned int num_headers=0;
+  unsigned int header_size=0;
   rmff_mdpr_t **streams;
   int num_streams=0;
 

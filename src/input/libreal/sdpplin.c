@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sdpplin.c,v 1.5 2004/04/23 21:59:04 miguelfreitas Exp $
+ * $Id: sdpplin.c,v 1.6 2006/06/20 01:07:58 dgp85 Exp $
  *
  * sdp/sdpplin parser.
  *
@@ -41,7 +41,8 @@
 static char *b64_decode(const char *in, char *out, int *size)
 {
   char dtable[256];              /* Encode / decode table */
-  int i,j,k;
+  int i,k;
+  size_t j;
 
   for (i = 0; i < 255; i++) {
     dtable[i] = 0x80;
@@ -101,12 +102,12 @@ static char *nl(char *data) {
 static int filter(const char *in, const char *filter, char **out) {
 
   int flen=strlen(filter);
-  int len;
+  size_t len;
   
   if (!in)
     return 0;
   
-  len = (strchr(in,'\n')) ? strchr(in,'\n')-in : strlen(in);
+  len = (strchr(in,'\n')) ? (size_t)(strchr(in,'\n')-in) : strlen(in);
 
   if (!strncmp(in,filter,flen))
   {

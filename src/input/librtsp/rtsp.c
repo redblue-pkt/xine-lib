@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp.c,v 1.20 2006/03/18 09:42:43 tmattern Exp $
+ * $Id: rtsp.c,v 1.21 2006/06/20 01:07:58 dgp85 Exp $
  *
  * a minimalistic implementation of rtsp protocol,
  * *not* RFC 2326 compilant yet.
@@ -442,7 +442,8 @@ rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_ag
   rtsp_t *s = malloc(sizeof(rtsp_t));
   char *mrl_ptr=strdup(mrl);
   char *slash, *colon;
-  int hostend, pathbegin, i;
+  int hostend, i;
+  size_t pathbegin;
   
   if (strncmp(mrl,"rtsp://",7))
   {

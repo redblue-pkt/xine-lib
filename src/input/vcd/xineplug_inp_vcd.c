@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.48 2006/06/18 20:29:04 dgp85 Exp $
+  $Id: xineplug_inp_vcd.c,v 1.49 2006/06/20 01:07:58 dgp85 Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -167,8 +167,10 @@ vcd_input_plugin_t  my_vcd;
 /* Prototype definitions */
 static bool vcd_handle_events (void);
 static void vcd_close(vcd_input_class_t *class);
+#if LIBVCD_VERSION_NUM >= 23
 static void send_mouse_enter_leave_event(vcd_input_plugin_t *p_this, 
                                          bool b_mouse_in);
+#endif
 
 /* 
    If class->vcd_device is NULL or the empty string, 
@@ -948,7 +950,7 @@ vcd_plugin_get_mrl (input_plugin_t *this_gen)
 {
   vcd_input_plugin_t *t         = (vcd_input_plugin_t *) this_gen;
   vcdplayer_t        *vcdplayer = &my_vcd.player;
-  unsigned int n;
+  int n;
   int size; /* need something to feed get_mrl_type_offset */
   int offset;
 
@@ -1172,7 +1174,9 @@ vcd_handle_events (void)
         xine_input_data_t *p_input = p_event->data;
         if (p_input->button == 1) 
         {
+#if LIBVCD_VERSION_NUM >= 23
           int i_selection;
+#endif
 
           dbg_print(INPUT_DBG_EVENT, 
                     "Button to x: %d, y: %d, scaled x: %d, scaled y %d\n", 
@@ -1281,11 +1285,11 @@ vcd_get_optional_data (input_plugin_t *this_gen,
     
   case INPUT_OPTIONAL_DATA_AUDIOLANG: 
     {
-      int8_t   channel;
-      channel = (int8_t) _x_get_audio_channel(my_vcd.stream);
+      uint8_t   channel;
+      channel = _x_get_audio_channel(my_vcd.stream);
 
       dbg_print(INPUT_DBG_EXT, "AUDIO CHANNEL = %d\n", channel);
-      if (-1 == channel) {
+      if (channel == (uint8_t)-1) {
         sprintf(data, " %s", "auto");
       } else {
         const vcdinfo_obj_t *p_vcdinfo= my_vcd.player.vcd;
@@ -1349,7 +1353,7 @@ vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_files)
     *num_files = 0;
     return NULL;
   } else {
-    unsigned int i;
+    int i;
     int size = 0;
     vcdinfo_item_enum_t itemtype = 
       autoplay2itemtype[my_vcd.player.default_autoplay];
@@ -1539,6 +1543,7 @@ vcd_update_title_display(void)
   xine_event_send(my_vcd.stream, &uevent);
 }
 
+#if LIBVCD_VERSION_NUM >= 23
 static void 
 send_mouse_enter_leave_event(vcd_input_plugin_t *p_this, bool b_mouse_in) 
 {
@@ -1566,6 +1571,7 @@ send_mouse_enter_leave_event(vcd_input_plugin_t *p_this, bool b_mouse_in)
   if (!b_mouse_in)
     p_this->i_mouse_button = -1;
 }
+#endif
  
 /* 
    Not much special initialization needed here. All of the initialization 

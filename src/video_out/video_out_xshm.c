@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.144 2006/06/02 22:18:59 dsalt Exp $
+ * $Id: video_out_xshm.c,v 1.145 2006/06/20 01:07:58 dgp85 Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -595,7 +595,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
 
 static void xshm_overlay_clut_yuv2rgb(xshm_driver_t  *this, vo_overlay_t *overlay,
 				      xshm_frame_t *frame) {
-  int     i;
+  size_t  i;
   clut_t* clut = (clut_t*) overlay->color;
 
   if (!overlay->rgb_clut) {
@@ -1021,10 +1021,10 @@ static int ImlibPaletteLUTGet(xshm_driver_t *this) {
 		     &bytes_after, &retval);
   if (retval != 0 && num_ret > 0 && format_ret > 0) {
     if (format_ret == 8) {
-      int j, i, num_colors;
+      unsigned int i;
+      unsigned long j;
 	  
-      num_colors = retval[0];
-      j = 1 + num_colors*4;
+      j = 1 + retval[0]*4;
       this->yuv2rgb_cmap = malloc(sizeof(uint8_t) * 32 * 32 * 32);
       for (i = 0; i < 32 * 32 * 32 && j < num_ret; i++)
 	this->yuv2rgb_cmap[i] = retval[1+4*retval[j++]+3];

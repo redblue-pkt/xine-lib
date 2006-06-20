@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_opengl.c,v 1.57 2006/06/15 21:40:05 komadori Exp $
+ * $Id: video_out_opengl.c,v 1.58 2006/06/20 01:07:58 dgp85 Exp $
  * 
  * video_out_opengl.c, OpenGL based interface for xine
  *
@@ -945,7 +945,7 @@ static int render_setup_fp_yuv (opengl_driver_t *this) {
   ret = render_setup_tex2d (this);
   if (! this->has_fragprog)
     return 0;
-  if (this->fprog == -1)
+  if (this->fprog == (GLuint)-1)
     this->glGenProgramsARB (1, &this->fprog);
   this->glBindProgramARB   (MYGL_FRAGMENT_PROGRAM_ARB, this->fprog);
   this->glProgramStringARB (MYGL_FRAGMENT_PROGRAM_ARB,

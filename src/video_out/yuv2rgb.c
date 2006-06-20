@@ -23,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: yuv2rgb.c,v 1.51 2004/04/11 12:25:35 komadori Exp $
+ * $Id: yuv2rgb.c,v 1.52 2006/06/20 01:07:59 dgp85 Exp $
  */
 
 #include "config.h"
@@ -1276,7 +1276,7 @@ static scale_line_func_t find_scale_line_func(int step) {
     {  1,  2, scale_line_1_2,   "2*zoom" },
     {  1,  1, scale_line_1_1,   "non-scaled" },
   };
-  int i;
+  size_t i;
 #ifdef	LOG
   /* to filter out multiple messages about the scale_line variant we're using */
   static int reported_for_step;

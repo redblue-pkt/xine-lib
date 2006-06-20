@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.22 2006/03/18 09:35:03 tmattern Exp $
+ * $Id: real.c,v 1.23 2006/06/20 01:07:58 dgp85 Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -40,7 +40,8 @@
 #include "xineutils.h"
 #include "bswap.h"
 
-const unsigned char xor_table[] = {
+#define XOR_TABLE_LEN 37
+static const unsigned char xor_table[] = {
     0x05, 0x18, 0x74, 0xd0, 0x0d, 0x09, 0x02, 0x53,
     0xc0, 0x01, 0x05, 0x05, 0x67, 0x03, 0x19, 0x70,
     0x08, 0x27, 0x66, 0x10, 0x10, 0x72, 0x08, 0x09,
@@ -215,9 +216,9 @@ static void hash(char *field, char *param) {
   LE_32C(field+12, d);
 }
 
-static void call_hash (char *key, char *challenge, int len) {
+static void call_hash (char *key, char *challenge, unsigned int len) {
 
-  uint8_t *ptr1, *ptr2;
+  char *ptr1, *ptr2;
   uint32_t a, b, c, d, tmp;
   
   ptr1=(key+16);
@@ -262,7 +263,7 @@ static void calc_response (char *result, char *field) {
 
   char buf1[128];
   char buf2[128];
-  int i;
+  unsigned int i;
 
   memset (buf1, 0, 64);
   *buf1 = 128;
@@ -318,7 +319,7 @@ static void calc_response_string (char *result, char *challenge) {
 
 void real_calc_response_and_checksum (char *response, char *chksum, char *challenge) {
 
-  int   ch_len, table_len, resp_len;
+  int   ch_len, resp_len;
   int   i;
   char *ptr;
   char  buf[128];
@@ -351,16 +352,9 @@ void real_calc_response_and_checksum (char *response, char *chksum, char *challe
     memcpy(ptr, challenge, ch_len);
   }
   
-  if (xor_table != NULL)
-  {
-    table_len = strlen(xor_table);
-
-    if (table_len > 56) table_len=56;
-
-    /* xor challenge bytewise with xor_table */
-    for (i=0; i<table_len; i++)
-      ptr[i] = ptr[i] ^ xor_table[i];
-  }
+  /* xor challenge bytewise with xor_table */
+  for (i=0; i<XOR_TABLE_LEN; i++)
+    ptr[i] = ptr[i] ^ xor_table[i];
 
   calc_response_string (response, buf);
 
