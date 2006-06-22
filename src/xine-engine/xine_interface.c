@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.95 2006/06/20 00:35:08 dgp85 Exp $
+ * $Id: xine_interface.c,v 1.96 2006/06/22 10:38:38 klan Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -604,6 +604,8 @@ int xine_get_param (xine_stream_t *stream, int param) {
   case XINE_PARAM_VO_ZOOM_X:
   case XINE_PARAM_VO_ZOOM_Y:
   case XINE_PARAM_VO_TVMODE:
+  case XINE_PARAM_VO_WINDOW_WIDTH:
+  case XINE_PARAM_VO_WINDOW_HEIGHT:
   case XINE_PARAM_VO_CROP_LEFT:
   case XINE_PARAM_VO_CROP_RIGHT:
   case XINE_PARAM_VO_CROP_TOP:
