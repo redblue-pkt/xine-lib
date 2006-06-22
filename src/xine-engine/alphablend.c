@@ -1124,14 +1124,13 @@ static uint8_t *(*blend_yuv_grow_extra_data(alphablend_t *extra_data, int osd_wi
   if (extra_data->buffer_size < needed_buffer_size) {
     
     free(extra_data->buffer);
-    extra_data->buffer = xine_xmalloc(needed_buffer_size);
-
-    if (!extra_data->buffer) {
+    header = xine_xmalloc(needed_buffer_size);
+    if (!header) {
       extra_data->buffer_size = 0;
       return 0;
     }
-    
     extra_data->buffer_size = needed_buffer_size;
+    extra_data->buffer = header;
     header->max_width = 0;
   }
 
@@ -1535,14 +1534,13 @@ static uint8_t *(*blend_yuy2_grow_extra_data(alphablend_t *extra_data, int osd_w
   if (extra_data->buffer_size < needed_buffer_size) {
     
     free(extra_data->buffer);
-    extra_data->buffer = xine_xmalloc(needed_buffer_size);
-
-    if (!extra_data->buffer) {
+    header = xine_xmalloc(needed_buffer_size);
+    if (!header) {
       extra_data->buffer_size = 0;
       return 0;
     }
-    
     extra_data->buffer_size = needed_buffer_size;
+    extra_data->buffer = header;
     header->max_width = 0;
   }
 
