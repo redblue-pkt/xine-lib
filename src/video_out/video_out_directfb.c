@@ -442,7 +442,27 @@ static void directfb_subpicture_paint (directfb_driver_t *this,
       }
         
       if (alpha) {
-        int flush;
+        if (n_rects == MAX_RECTS || (p_index != -1 && p_index != index)) {
+          lprintf ("flushing %d rect(s).\n", n_rects);
+          this->spic_surface->FillRectangles (this->spic_surface, rects, n_rects);
+          n_rects = 0;
+        }
+               
+        if (p_index != index) {
+          if (!colors[index].a) {
+            YCBCR_TO_RGB (color.y, color.cb, color.cr,
+                          colors[index].r, colors[index].g, colors[index].b);
+            colors[index].a = alpha * 17;
+          }
+            
+          lprintf ("color change to %02x%02x%02x%02x.\n",
+                   colors[index].a, colors[index].r,
+                   colors[index].g, colors[index].b);
+          this->spic_surface->SetColor (this->spic_surface,
+                                        colors[index].r, colors[index].g,
+                                        colors[index].b, colors[index].a);
+          p_index = index;
+        }
         
         rects[n_rects].x = x + xoffset;
         rects[n_rects].y = y + yoffset;
@@ -457,31 +477,6 @@ static void directfb_subpicture_paint (directfb_driver_t *this,
           }
         }              
         n_rects++;
-        flush = (n_rects == MAX_RECTS);
-        
-        if (p_index != index) {
-          if (!colors[index].a) {
-            YCBCR_TO_RGB (color.y, color.cb, color.cr,
-                          colors[index].r, colors[index].g, colors[index].b);
-            colors[index].a = alpha * 17;
-          }
-            
-          lprintf ("color change to %02x%02x%02x%02x.\n",
-                   colors[index].a, colors[index].r,
-                   colors[index].g, colors[index].b);
-          this->spic_surface->SetColor (this->spic_surface,
-                                        colors[index].r, colors[index].g,
-                                        colors[index].b, colors[index].a);
-          if (p_index != -1)
-            flush = 1;
-          p_index = index;
-        }
-        
-        if (flush) {
-          lprintf ("flushing %d rect(s).\n", n_rects);
-          this->spic_surface->FillRectangles (this->spic_surface, rects, n_rects);
-          n_rects = 0;
-        }
       }
       
       x += width;
