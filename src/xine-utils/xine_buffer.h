@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.h,v 1.5 2006/02/14 19:12:16 dsalt Exp $
+ * $Id: xine_buffer.h,v 1.6 2006/06/23 18:24:22 dsalt Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -76,7 +76,7 @@ void *_xine_buffer_free(void *buf);
 /*
  * duplicates a buffer
  */
-void *xine_buffer_dup(void *buf);
+void *xine_buffer_dup(const void *buf);
 
 /*
  * will copy len bytes of data into buf at position index.
@@ -100,7 +100,7 @@ void xine_buffer_copyout(const void *buf, int index, void *data, int len);
 void *_xine_buffer_set(void *buf, int index, uint8_t b, int len);
 
 /*
- * concatnates given buf (which schould contain a null terminated string)
+ * concatenates given buf (which should contain a null terminated string)
  * with another string.
  */
 #define xine_buffer_strcat(buf,data) \

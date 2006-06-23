@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.101 2006/04/08 16:42:38 valtri Exp $
+ * $Id: xineutils.h,v 1.102 2006/06/23 18:24:22 dsalt Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -86,10 +86,10 @@ extern "C" {
   } xine_mutex_t;
 
   int xine_mutex_init    (xine_mutex_t *mutex, const pthread_mutexattr_t *mutexattr,
-			  char *id);
+			  const char *id);
 
-  int xine_mutex_lock    (xine_mutex_t *mutex, char *who);
-  int xine_mutex_unlock  (xine_mutex_t *mutex, char *who);
+  int xine_mutex_lock    (xine_mutex_t *mutex, const char *who);
+  int xine_mutex_unlock  (xine_mutex_t *mutex, const char *who);
   int xine_mutex_destroy (xine_mutex_t *mutex);
 
 
@@ -615,7 +615,7 @@ void xine_probe_fast_memcpy(xine_t *xine);
  * profiling (unworkable in non DEBUG isn't defined)
  */
 void xine_profiler_init (void);
-int xine_profiler_allocate_slot (char *label);
+int xine_profiler_allocate_slot (const char *label);
 void xine_profiler_start_count (int id);
 void xine_profiler_stop_count (int id);
 void xine_profiler_print_results (void);

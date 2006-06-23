@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.c,v 1.10 2006/06/20 00:35:08 dgp85 Exp $
+ * $Id: xine_buffer.c,v 1.11 2006/06/23 18:24:22 dsalt Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -152,7 +152,7 @@ void *_xine_buffer_free(void *buf) {
 /*
  * duplicates a buffer
  */
-void *xine_buffer_dup(void *buf) {
+void *xine_buffer_dup(const void *buf) {
 
   uint8_t *new;
   
@@ -242,26 +242,13 @@ void *_xine_buffer_set(void *buf, int index, uint8_t b, int len) {
 }
 
 /*
- * concatnates given buf (which schould contain a null terminated string)
+ * concatenates given buf (which should contain a null terminated string)
  * with another string.
  */
 #define xine_buffer_strcat(buf,data) \
   buf=_xine_buffer_strcat(buf,data)
 void *_xine_buffer_strcat(void *buf, const char *data) {
-
-#ifdef CHECKS
-  if (!buf || !data) {
-    lprintf("warning: got NULL pointer\n");
-    return NULL;
-  }
-  CHECK_MAGIC(buf);
-#endif
-
-  GROW_TO(buf, strlen(buf)+strlen(data)+1);
-
-  strcat(buf, data);
-
-  return buf;
+  return _xine_buffer_strcpy(buf, strlen(buf), data);
 }
 
 /*

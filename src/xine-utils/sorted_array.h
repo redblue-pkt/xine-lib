@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sorted_array.h,v 1.1 2006/01/16 08:04:44 tmattern Exp $
+ * $Id: sorted_array.h,v 1.2 2006/06/23 18:24:22 dsalt Exp $
  *
  * Sorted array which grows automatically when you add elements.
  * A binary search is used to find the position of a new element.
@@ -72,7 +72,7 @@ xine_sarray_t *xine_sarray_new(size_t initial_size, xine_sarray_comparator_t com
 void xine_sarray_delete(xine_sarray_t *sarray);
 
 /* Returns the number of element stored in the array */
-size_t xine_sarray_size(xine_sarray_t *sarray);
+size_t xine_sarray_size(const xine_sarray_t *sarray);
 
 /* Removes all elements from an array */
 void xine_sarray_clear(xine_sarray_t *sarray);

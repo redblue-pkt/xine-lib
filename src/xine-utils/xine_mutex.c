@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_mutex.c,v 1.2 2003/12/09 00:02:39 f1rmb Exp $
+ * $Id: xine_mutex.c,v 1.3 2006/06/23 18:24:22 dsalt Exp $
  *
  */
 
@@ -32,16 +32,17 @@
 #define DBG_MUTEX
 
 int xine_mutex_init (xine_mutex_t *mutex, const pthread_mutexattr_t *mutexattr,
-		     char *id) {
+		     const char *id) {
 
 #ifdef DBG_MUTEX
-  strcpy (mutex->id, id);
+  strncpy (mutex->id, sizeof (mutex->id), id);
+  mutex->id[sizeof (mutex->id) - 1] = 0;
 #endif
 
   return pthread_mutex_init (&mutex->mutex, mutexattr);
 }
   
-int xine_mutex_lock (xine_mutex_t *mutex, char *who) {
+int xine_mutex_lock (xine_mutex_t *mutex, const char *who) {
 
 #ifndef DBG_MUTEX
 
@@ -65,7 +66,7 @@ int xine_mutex_lock (xine_mutex_t *mutex, char *who) {
 #endif
 }
 
-int xine_mutex_unlock  (xine_mutex_t *mutex, char *who) {
+int xine_mutex_unlock  (xine_mutex_t *mutex, const char *who) {
 
   printf ("xine_mutex: mutex %s unlocked by %s\n",
 	  mutex->id, who);

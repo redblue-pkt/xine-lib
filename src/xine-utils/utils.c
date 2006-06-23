@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: utils.c,v 1.44 2006/06/10 00:21:51 dgp85 Exp $
+ * $Id: utils.c,v 1.45 2006/06/23 18:24:22 dsalt Exp $
  *
  */
 #define	_POSIX_PTHREAD_SEMANTICS 1	/* for 5-arg getpwuid_r on solaris */
@@ -70,7 +70,7 @@ typedef struct {
 /*
  * information about locales used in xine
  */
-static lang_locale_t lang_locales[] = {
+static const lang_locale_t lang_locales[] = {
   { "af_ZA",    "iso-8859-1",  "iso-8859-1",  NULL       },
   { "ar_AE",    "iso-8859-6",  "iso-8859-6",  NULL       },
   { "ar_BH",    "iso-8859-6",  "iso-8859-6",  NULL       },
@@ -488,12 +488,12 @@ void xine_hexdump (const char *buf, int length) {
 }
 
 
-static const lang_locale_t *_get_first_lang_locale(char *lcal) {
+static const lang_locale_t *_get_first_lang_locale(const char *lcal) {
   const lang_locale_t *llocale;
   int lang_len;
   char *mod;
 
-  if(lcal && strlen(lcal)) {
+  if(lcal && *lcal) {
     llocale = &*lang_locales;
 
     if ((mod = strchr(lcal, '@')))

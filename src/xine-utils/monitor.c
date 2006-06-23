@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: monitor.c,v 1.7 2003/12/09 00:02:39 f1rmb Exp $
+ * $Id: monitor.c,v 1.8 2006/06/23 18:24:22 dsalt Exp $
  *
  * debug print and profiling functions - implementation
  *
@@ -35,10 +35,10 @@
 
 #ifdef DEBUG
 
-long long int profiler_times[MAX_ID] ;
-long long int profiler_start[MAX_ID] ;
-long profiler_calls[MAX_ID] ;
-char * profiler_label[MAX_ID] ;
+static long long int profiler_times[MAX_ID] ;
+static long long int profiler_start[MAX_ID] ;
+static long profiler_calls[MAX_ID] ;
+static const char *profiler_label[MAX_ID] ;
 
 void xine_profiler_init () {
   int i;
@@ -50,7 +50,7 @@ void xine_profiler_init () {
   }
 }
 
-int xine_profiler_allocate_slot (char *label) {
+int xine_profiler_allocate_slot (const char *label) {
   int id;
 
   for (id = 0; id < MAX_ID && profiler_label[id] != NULL; id++)
@@ -65,7 +65,7 @@ int xine_profiler_allocate_slot (char *label) {
 
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
-__inline__ unsigned long long int rdtsc()
+__inline__ unsigned long long int rdtsc(void)
 {
   unsigned long long int x;
   __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));     
@@ -92,7 +92,7 @@ void xine_profiler_stop_count (int id) {
   profiler_calls[id]++;
 }
 
-void xine_profiler_print_results () {
+void xine_profiler_print_results (void) {
   int i;
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
@@ -143,7 +143,7 @@ void xine_profiler_print_results () {
 void xine_profiler_init (void) {
   NO_PROFILER_MSG
 }
-int xine_profiler_allocate_slot (char *label) {
+int xine_profiler_allocate_slot (const char *label) {
   return -1;
 }
 void xine_profiler_start_count (int id) {

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sorted_array.c,v 1.1 2006/01/16 08:04:44 tmattern Exp $
+ * $Id: sorted_array.c,v 1.2 2006/06/23 18:24:22 dsalt Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -56,7 +56,7 @@ void xine_sarray_delete(xine_sarray_t *sarray) {
   free(sarray);
 }
 
-size_t xine_sarray_size(xine_sarray_t *sarray) {
+size_t xine_sarray_size(const xine_sarray_t *sarray) {
   return xine_array_size(sarray->array);
 }
 

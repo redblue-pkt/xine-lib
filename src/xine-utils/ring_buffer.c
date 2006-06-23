@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: ring_buffer.c,v 1.3 2006/04/05 22:12:20 valtri Exp $
+ * $Id: ring_buffer.c,v 1.4 2006/06/23 18:24:22 dsalt Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -138,7 +138,7 @@ void xine_ring_buffer_delete(xine_ring_buffer_t *ring_buffer) {
   free (ring_buffer);
 }
 
-static void xine_ring_buffer_display_stat(xine_ring_buffer_t *ring_buffer) {
+static void xine_ring_buffer_display_stat(const xine_ring_buffer_t *ring_buffer) {
 #if DEBUG_RING_BUFFER
   size_t free_size, full_size;
 
