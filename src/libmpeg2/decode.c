@@ -29,6 +29,7 @@
 #include <string.h>	/* memcpy/memset, try to remove */
 #include <stdlib.h>
 #include <inttypes.h>
+#include <math.h>
 
 #define LOG_MODULE "decode"
 #define LOG_VERBOSE
@@ -104,40 +105,22 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
 
 static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
 {
-  switch (mpeg2dec->picture->frame_rate_code) {
-  case 1: /* 23.976 fps */
-    frame->duration      = 3754;  /* actually it's 3753.75 */
-    break;
-  case 2: /* 24 fps */
-    frame->duration      = 3750;
-    break;
-  case 3: /* 25 fps */
-    frame->duration      = 3600;
-    break;
-  case 4: /* 29.97 fps */
-    frame->duration      = 3003;
-    break;
-  case 5: /* 30 fps */
-    frame->duration      = 3000;
-    break;
-  case 6: /* 50 fps */
-    frame->duration      = 1800;
-    break;
-  case 7: /* 59.94 fps */
-    frame->duration      = 1502;  /* actually it's 1501.5 */
-    break;
-  case 8: /* 60 fps */
-    frame->duration      = 1500;
-    break;
-  default:
-       /* printf ("invalid/unknown frame rate code : %d \n",
-               frame->frame_rate_code); */
-    frame->duration      = 0;
-  }
+  static const double durations[] = {
+    0,		/* invalid */
+    3753.75,	/* 23.976 fps */
+    3750,	/* 24 fps */
+    3600,	/* 25 fps */
+    3003,	/* 29.97 fps */
+    3000,	/* 30 fps */
+    1800,	/* 50 fps */
+    1501.5,	/* 59.94 fps */
+    1500,	/* 60 fps */
+  };
+  double duration = ((unsigned) mpeg2dec->picture->frame_rate_code > 8u)
+		    ? 0 : durations[mpeg2dec->picture->frame_rate_code];
   
-  frame->duration = frame->duration *
-    ((mpeg2dec->picture->frame_rate_ext_n + 1) /
-     (mpeg2dec->picture->frame_rate_ext_d + 1));
+  duration = duration * (mpeg2dec->picture->frame_rate_ext_n + 1.0) /
+			(mpeg2dec->picture->frame_rate_ext_d + 1.0);
  
   /* this should be used to detect any special rff pattern */
   mpeg2dec->rff_pattern = mpeg2dec->rff_pattern << 1;
@@ -147,7 +130,7 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
       (mpeg2dec->rff_pattern & 0xff) == 0x55) &&
       !mpeg2dec->picture->progressive_sequence ) {
     /* special case for ntsc 3:2 pulldown */
-    frame->duration += frame->duration/4;
+    duration *= 5 / 4;
   }
   else
   {  
@@ -156,14 +139,16 @@ static inline void get_frame_duration (mpeg2dec_t * mpeg2dec, vo_frame_t *frame)
            frame->progressive_frame ) {
         /* decoder should output 3 fields, so adjust duration to
            count on this extra field time */
-        frame->duration += frame->duration/2;     
+        duration *= 3 / 2;
       } else if( mpeg2dec->picture->progressive_sequence ) {
         /* for progressive sequences the output should repeat the
            frame 1 or 2 times depending on top_field_first flag. */
-        frame->duration *= (frame->top_field_first)?3:2;
+        duration *= (frame->top_field_first) ? 3 : 2;
       }
     }
   }
+
+  frame->duration = (int) ceil (duration);
   _x_stream_info_set(mpeg2dec->stream, XINE_STREAM_INFO_FRAME_DURATION, frame->duration);
   /*printf("mpeg2dec: rff=%u\n",frame->repeat_first_field);*/
 } 
