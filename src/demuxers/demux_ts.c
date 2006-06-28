@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.120 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: demux_ts.c,v 1.121 2006/06/28 20:20:54 dsalt Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1106,9 +1106,9 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
 		      | this->pmt[program_count][2]) & 0x03ff;
   }
 
-  count=ts_payloadsize(pkt);
+  count=ts_payloadsize(originalPkt);
 
-  ptr = pkt+offset+(PKT_SIZE-count);
+  ptr = originalPkt+offset+(PKT_SIZE-count);
   len = count-offset;
   memcpy (this->pmt_write_ptr[program_count], ptr, len);
   this->pmt_write_ptr[program_count] +=len;
