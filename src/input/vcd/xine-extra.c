@@ -1,5 +1,5 @@
 /* 
-  $Id: xine-extra.c,v 1.1 2003/10/13 11:47:11 f1rmb Exp $
+  $Id: xine-extra.c,v 1.2 2006/06/29 12:28:06 dgp85 Exp $
  
   Copyright (C) 2002 Rocky Bernstein <rocky@panix.com>
   
@@ -40,7 +40,7 @@ static xine_t *my_xine = NULL;
    prints it to stream.
 */
 
-static void 
+static void __attribute__(__format__(__printf__(4, 0)))
 xine_vflog(xine_t *this, FILE *stream, int buf, const char *format, 
            va_list args)
 {

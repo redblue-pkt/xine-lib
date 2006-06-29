@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.16 2003/12/09 00:02:37 f1rmb Exp $
+ * $Id: scratch.c,v 1.17 2006/06/29 12:28:06 dgp85 Exp $
  *
  * top-level xine functions
  *
@@ -40,7 +40,9 @@
 #include "scratch.h"
 #include "xineutils.h"
 
-static void scratch_printf (scratch_buffer_t *this, const char *format, va_list argp) {
+static void __attribute__((__format__(__printf__, 2, 0)))
+  scratch_printf (scratch_buffer_t *this, const char *format, va_list argp)
+{
   vsnprintf (this->lines[this->cur], SCRATCH_LINE_LEN_MAX, format, argp);
   lprintf ("printing format %s to line %d\n", format, this->cur);
   this->cur = (this->cur + 1) % this->num_lines;
