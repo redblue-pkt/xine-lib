@@ -2305,6 +2305,10 @@ if test "x$wformat" != "x"; then
 fi
 CFLAGS="$CFLAGS $wformat"
 
+AC_TRY_CFLAGS("-Wstrict-aliasing", wsa="-Wstrict-aliasing")
+AC_TRY_CFLAGS("-Wstrict-aliasing=2", wsa="-Wstrict-aliasing=2")
+CFLAGS="$CFLAGS $wsa"
+
 dnl ---------------------------------------------
 dnl Output configuration files
 dnl ---------------------------------------------
