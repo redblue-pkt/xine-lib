@@ -2295,6 +2295,15 @@ _AM_DEPENDENCIES([OBJC])
 
 AM_CONDITIONAL([BUILD_DMX_IMAGE], [test x"$have_imagemagick" = "xyes" -o x"$no_gdkpixbuf" != "xyes"])
 
+dnl Important warnings we _don't_ want to skip
+dnl Don't put these under conditional for optimisations, because these
+dnl need always to be enabled.
+AC_TRY_CFLAGS("-Wformat", wformat="-Wformat")
+AC_TRY_CFLAGS("-Wformat=2", wformat="-Wformat=2")
+if test "x$wformat" != "x"; then
+   AC_TRY_CFLAGS("-Wno-format-zero-length", wformat="$wformat -Wno-format-zero-length")
+fi
+CFLAGS="$CFLAGS $wformat"
 
 dnl ---------------------------------------------
 dnl Output configuration files
