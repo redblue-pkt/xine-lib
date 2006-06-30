@@ -1356,6 +1356,21 @@ static DFBEnumerationResult find_underlay (DFBDisplayLayerID id,
   return DFENUM_OK;
 }
 
+static DFBEnumerationResult find_subpicture (DFBDisplayLayerID id,
+                                             DFBDisplayLayerDescription dsc, void *ctx) {
+  DFBDisplayLayerID *ret_id = (DFBDisplayLayerID *) ctx;
+  
+  if (id != DLID_PRIMARY &&
+      dsc.caps & DLCAPS_SURFACE &&
+      dsc.caps & DLCAPS_ALPHACHANNEL) {
+    lprintf ("subpicture's id = %d.\n", id);
+    *ret_id = id;
+    return DFENUM_CANCEL;
+  }
+  
+  return DFENUM_OK;
+}
+
 static void init_subpicture (directfb_driver_t *this) {
   DFBResult ret;
   
@@ -1367,9 +1382,6 @@ static void init_subpicture (directfb_driver_t *this) {
     if (dsc.caps & DLCAPS_ALPHACHANNEL) {
       DFBDisplayLayerConfig config;
       
-      /* put overlay under underlay */
-      this->layer->SetLevel (this->layer, -1);
-      
       /* enable alphachannel on the underlay */ 
       config.flags       = DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
       config.pixelformat = DSPF_ARGB;
@@ -1378,14 +1390,50 @@ static void init_subpicture (directfb_driver_t *this) {
       if (ret == DFB_OK) {
         this->underlay->AddRef (this->underlay);
         this->spic_layer = this->underlay;
-      }
-      else {
-        this->layer->SetLevel (this->layer, 1);
+        /* put overlay under underlay */
+        this->layer->SetLevel (this->layer, -1);
       }
     }
   }
   
-  /* TODO: add support for different types of subpicture layers. */
+  /* most common type of supicture layer */
+  if (!this->spic_layer) {
+    IDirectFBScreen   *screen;
+    DFBDisplayLayerID  video_id, id = -1;
+    
+    this->layer->GetID (this->layer, &video_id);
+    
+    if (this->layer->GetScreen (this->layer, &screen) == DFB_OK) {
+      screen->EnumDisplayLayers (screen, find_subpicture, (void *)&id);
+      screen->Release (screen);
+    }
+    
+    if (id != -1 && id != video_id) {     
+      ret = this->dfb->GetDisplayLayer (this->dfb, id, &this->spic_layer);
+      if (ret == DFB_OK) {
+        DFBDisplayLayerConfig config;
+      
+        this->spic_layer->GetConfiguration (this->spic_layer, &config);
+        
+        config.flags = DLCONF_OPTIONS;
+        config.options = DLOP_ALPHACHANNEL;
+        if (!DFB_PIXELFORMAT_HAS_ALPHA(config.pixelformat)) {
+          config.flags |= DLCONF_PIXELFORMAT;
+          config.pixelformat = DSPF_ALUT44;
+        }
+        
+        ret = this->spic_layer->SetConfiguration (this->spic_layer, &config);
+        if (ret) {
+          lprintf ("failed to set subpicture layer configuration!\n");
+          this->spic_layer->Release (this->spic_layer);
+          this->spic_layer = NULL;
+        }
+      }
+      else {
+        DirectFBError ("IDirectFB::GetDisplayLayer()", ret);
+      }
+    }
+  }
           
   if (this->spic_layer) {
     ret = this->spic_layer->GetSurface (this->spic_layer, &this->spic_surface);
@@ -1538,7 +1586,7 @@ static DFBResult init_device (directfb_driver_t *this) {
   
     this->layer->GetScreen (this->layer, &screen);
     if (screen) {
-      screen->EnumDisplayLayers (screen, find_underlay, (void*)&id);
+      screen->EnumDisplayLayers (screen, find_underlay, (void *)&id);
       screen->Release (screen);
     }
     
