@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.23 2006/06/18 20:29:04 dgp85 Exp $
+ * $Id: xine_encoder.c,v 1.24 2006/06/30 00:21:30 dgp85 Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -157,6 +157,9 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
       "dxr3_mpeg_encoder: Couldn't allocate ffmpeg frame\n");
     return 0;
   }
+
+  /* mpeg1 encoder only support YUV420P */
+  this->context->pix_fmt = PIX_FMT_YUVJ420P;
   
   /* put sample parameters */
   this->context->bit_rate = drv->class->xine->config->register_range(drv->class->xine->config,
