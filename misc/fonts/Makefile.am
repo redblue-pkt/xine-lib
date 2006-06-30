@@ -42,4 +42,4 @@ font_DATA = \
 #
 # font used for osd
 #
-EXTRA_DIST = cetus.ttf README.cetus $(data_DATA)
+EXTRA_DIST = cetus.ttf README.cetus $(font_DATA)
