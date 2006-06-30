@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-06-18 22:35+0200\n"
+"POT-Creation-Date: 2006-06-30 20:23+0200\n"
 "PO-Revision-Date: 2005-12-11 20:47+0100\n"
 "Last-Translator: František Dvořák <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -1281,11 +1281,11 @@ msgstr ""
 "vnitřní frontě. Vyšší hodnoty znamenají hladší přehrávání u nespolehlivých "
 "vstupů, ale také zvýšené zpoždění a spotřebu paměti."
 
-#: src/xine-engine/alphablend.c:2121
+#: src/xine-engine/alphablend.c:2119
 msgid "disable exact alpha blending of overlays"
 msgstr "zakázat přesné alfa míchání overlayů"
 
-#: src/xine-engine/alphablend.c:2122
+#: src/xine-engine/alphablend.c:2120
 msgid ""
 "If you experience a performance impact when an On Screen Display or other "
 "overlays like DVD subtitles are active, then you might want to enable this "
@@ -1501,63 +1501,63 @@ msgid ""
 "info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"
 msgstr "info_helper: nepodporovaná konverze %s -> UTF-8, nebude prováděna\n"
 
-#: src/xine-engine/xine_interface.c:903
+#: src/xine-engine/xine_interface.c:911
 msgid "Warning:"
 msgstr ""
 
 # standarní hláška hstrerror
-#: src/xine-engine/xine_interface.c:904
+#: src/xine-engine/xine_interface.c:912
 #, fuzzy
 msgid "Unknown host:"
 msgstr "Neznámý počítač"
 
-#: src/xine-engine/xine_interface.c:905
+#: src/xine-engine/xine_interface.c:913
 #, fuzzy
 msgid "Unknown device:"
 msgstr "Neznámý typ události: "
 
-#: src/xine-engine/xine_interface.c:906
+#: src/xine-engine/xine_interface.c:914
 msgid "Network unreachable"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:907
+#: src/xine-engine/xine_interface.c:915
 #, fuzzy
 msgid "Connection refused:"
 msgstr "io_helper: Spojení odmítnuto\n"
 
-#: src/xine-engine/xine_interface.c:908
+#: src/xine-engine/xine_interface.c:916
 #, fuzzy
 msgid "File not found:"
 msgstr "io_helper: Soubor nenalezen\n"
 
-#: src/xine-engine/xine_interface.c:909
+#: src/xine-engine/xine_interface.c:917
 msgid "Read error from:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:910
+#: src/xine-engine/xine_interface.c:918
 #, fuzzy
 msgid "Error loading library:"
 msgstr "osd: chyba načítaní glyfu\n"
 
-#: src/xine-engine/xine_interface.c:911
+#: src/xine-engine/xine_interface.c:919
 #, fuzzy
 msgid "Encrypted media stream detected"
 msgstr "ogg: detekována zvuková data vorbis\n"
 
-#: src/xine-engine/xine_interface.c:912
+#: src/xine-engine/xine_interface.c:920
 msgid "Security message:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:913
+#: src/xine-engine/xine_interface.c:921
 #, fuzzy
 msgid "Audio device unavailable"
 msgstr "jméno zvukového zařízení Sun"
 
-#: src/xine-engine/xine_interface.c:914
+#: src/xine-engine/xine_interface.c:922
 msgid "Permission error"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:915
+#: src/xine-engine/xine_interface.c:923
 msgid "File is empty:"
 msgstr ""
 
@@ -1711,7 +1711,7 @@ msgid "audio_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "audio_out: Litujeme, toto by se nemělo přihodit. Prosím restartujte xine.\n"
 
-#: src/xine-engine/load_plugins.c:306
+#: src/xine-engine/load_plugins.c:312
 #, c-format
 msgid ""
 "load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n"
@@ -1719,12 +1719,12 @@ msgstr ""
 "load_plugins: ignoruje se zásuvný modul %s, nesprávná verze rozhraní %d "
 "(měla by být %d)\n"
 
-#: src/xine-engine/load_plugins.c:363
+#: src/xine-engine/load_plugins.c:369
 #, c-format
 msgid "priority for %s decoder"
 msgstr "priorita dekodéru %s"
 
-#: src/xine-engine/load_plugins.c:374
+#: src/xine-engine/load_plugins.c:380
 msgid ""
 "The priority provides a ranking in case some media can be handled by more "
 "than one decoder.\n"
@@ -1734,7 +1734,7 @@ msgstr ""
 "zpracovávána více než jedním dekodérem.\n"
 "Priorita 0 povolí výchozí prioritu dekodéru."
 
-#: src/xine-engine/load_plugins.c:402
+#: src/xine-engine/load_plugins.c:408
 #, c-format
 msgid ""
 "load_plugins: demuxer plugin %s does not provide a priority, xine-lib will "
@@ -1743,7 +1743,7 @@ msgstr ""
 "load_plugins: demultiplexní modul %s neposkytuje prioritu, xine-lib použije "
 "výchozí hodnotu.\n"
 
-#: src/xine-engine/load_plugins.c:419
+#: src/xine-engine/load_plugins.c:425
 #, c-format
 msgid ""
 "load_plugins: input plugin %s does not provide a priority, xine-lib will use "
@@ -1752,41 +1752,41 @@ msgstr ""
 "load_plugins: vstupní modul %s neposkytuje prioritu, xine-lib použije "
 "výchozí hodnotu.\n"
 
-#: src/xine-engine/load_plugins.c:475
+#: src/xine-engine/load_plugins.c:481
 #, c-format
 msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: nalezen modul %s\n"
 
-#: src/xine-engine/load_plugins.c:478
+#: src/xine-engine/load_plugins.c:484
 msgid "load_plugins: static plugin found\n"
 msgstr "load_plugins: nalezen statický modul\n"
 
-#: src/xine-engine/load_plugins.c:485
+#: src/xine-engine/load_plugins.c:491
 #, c-format
 msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr "load_plugins: dosažen limit počtu modulů, %s nemohl být nahrán\n"
 
-#: src/xine-engine/load_plugins.c:488
+#: src/xine-engine/load_plugins.c:494
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
 msgstr ""
 "load_plugins: dosažen limit počtu modulů, statický modul nemohl být nahrán\n"
 
-#: src/xine-engine/load_plugins.c:505
+#: src/xine-engine/load_plugins.c:511
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr "load_plugins: neznámý typ modulu %d v %s\n"
 
-#: src/xine-engine/load_plugins.c:509
+#: src/xine-engine/load_plugins.c:515
 #, c-format
 msgid "load_plugins: unknown statically linked plugin type %d\n"
 msgstr "load_plugins: neznámý typ %d staticky liknovaného modulu\n"
 
-#: src/xine-engine/load_plugins.c:569
+#: src/xine-engine/load_plugins.c:575
 #, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr "load_plugins: nelze provést stat na %s\n"
 
-#: src/xine-engine/load_plugins.c:610
+#: src/xine-engine/load_plugins.c:616
 #, c-format
 msgid ""
 "load_plugins: cannot open plugin lib %s:\n"
@@ -1795,7 +1795,7 @@ msgstr ""
 "load_plugins: nelze otevřít knihovnu modulu %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:625
+#: src/xine-engine/load_plugins.c:631
 #, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
@@ -1804,12 +1804,12 @@ msgstr ""
 "load_plugins: nelze získat informace modulu z %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:643
+#: src/xine-engine/load_plugins.c:649
 #, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
 msgstr "load_plugins: přeskočí se adresář s moduly %s.\n"
 
-#: src/xine-engine/load_plugins.c:668
+#: src/xine-engine/load_plugins.c:674
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -1818,27 +1818,27 @@ msgstr ""
 "load_plugins: nelze (fáze 2) otevřít knihovnu modulu %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:697
+#: src/xine-engine/load_plugins.c:703
 #, c-format
 msgid "load_plugins: Yikes! %s doesn't contain plugin info.\n"
 msgstr "load_plugins: Co?! %s neobsahuje informace modulu.\n"
 
-#: src/xine-engine/load_plugins.c:1263
+#: src/xine-engine/load_plugins.c:1269
 #, c-format
 msgid "load_plugins: unknown content detection strategy %d\n"
 msgstr "load_plugins: neznámá strategie %d zjišťování obsahu\n"
 
-#: src/xine-engine/load_plugins.c:1373
+#: src/xine-engine/load_plugins.c:1379
 #, c-format
 msgid "load_plugins: using demuxer '%s'\n"
 msgstr "load_plugins: použije se demultiplexor '%s'\n"
 
-#: src/xine-engine/load_plugins.c:1684
+#: src/xine-engine/load_plugins.c:1690
 #, c-format
 msgid "load_plugins: failed to load audio output plugin <%s>\n"
 msgstr "load_plugins: nelze načíst zvukový modul <%s>\n"
 
-#: src/xine-engine/load_plugins.c:1687
+#: src/xine-engine/load_plugins.c:1693
 msgid ""
 "load_plugins: audio output auto-probing didn't find any usable audio "
 "driver.\n"
@@ -1846,7 +1846,7 @@ msgstr ""
 "load_plugins: automatické testování zvukového výstupu nenašlo žádný "
 "použitelný zvukový ovladač.\n"
 
-#: src/xine-engine/load_plugins.c:1969
+#: src/xine-engine/load_plugins.c:1975
 #, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
@@ -2779,11 +2779,11 @@ msgstr "výstupní modul videa xine použije zařízení framebuffer"
 msgid "xine video output plugin using the Color AsCii Art library"
 msgstr "výstupní modul videa xine použije knihovnu Color AsCii Art"
 
-#: src/video_out/video_out_directfb.c:1167
+#: src/video_out/video_out_directfb.c:1283
 msgid "video layer buffering mode"
 msgstr "režim bufferování vrstvy videa"
 
-#: src/video_out/video_out_directfb.c:1168
+#: src/video_out/video_out_directfb.c:1284
 msgid ""
 "Select the buffering mode of the output layer. Double or triple buffering "
 "give a smoother playback, but consume more video memory."
@@ -2791,11 +2791,11 @@ msgstr ""
 "Vyberte režim bufferování výstupní vrstvy. Dvojité nebo trojité bufferování "
 "dává hladší přehrávání, ale spotřebuje více videopaměti."
 
-#: src/video_out/video_out_directfb.c:1175
+#: src/video_out/video_out_directfb.c:1291
 msgid "wait for vertical retrace"
 msgstr "čekat na zpětný běh"
 
-#: src/video_out/video_out_directfb.c:1176
+#: src/video_out/video_out_directfb.c:1292
 msgid ""
 "Enable synchronizing the update of the video image to the repainting of the "
 "entire screen (\"vertical retrace\")."
@@ -2803,11 +2803,11 @@ msgstr ""
 "Povolí synchronizaci změn obrazu videa s překreslováním celé obrazovky "
 "(\"vertikální zpětný běh paprsku\")."
 
-#: src/video_out/video_out_directfb.c:1183
+#: src/video_out/video_out_directfb.c:1299
 msgid "enable video color key"
 msgstr "povolit klíčovou barvu videa"
 
-#: src/video_out/video_out_directfb.c:1184
+#: src/video_out/video_out_directfb.c:1300
 msgid ""
 "Enable using a color key to tell the graphics card where to overlay the "
 "video image."
@@ -2815,11 +2815,11 @@ msgstr ""
 "Povolí použití klíčové barvy, která říká grafické kartě, kde vykreslovat "
 "obraz videa."
 
-#: src/video_out/video_out_directfb.c:1190
+#: src/video_out/video_out_directfb.c:1306
 msgid "video color key"
 msgstr "klíčová barva videa"
 
-#: src/video_out/video_out_directfb.c:1191
+#: src/video_out/video_out_directfb.c:1307
 msgid ""
 "The color key is used to tell the graphics card where to overlay the video "
 "image. Try different values, if you experience windows becoming transparent."
@@ -2828,20 +2828,20 @@ msgstr ""
 "obraz videa. Jestliže zjistíte, že se okna stávají transparentní, "
 "vyzkoušejte jiné hodnoty."
 
-#: src/video_out/video_out_directfb.c:1200
+#: src/video_out/video_out_directfb.c:1316
 msgid "flicker filtering"
 msgstr "filtr mihotání"
 
-#: src/video_out/video_out_directfb.c:1201
+#: src/video_out/video_out_directfb.c:1317
 msgid "Enable Flicker Filetring for a smooth output on an interlaced display."
 msgstr ""
 "Povolí filtr mihotání k docílení hladkého výstupu na prokládém zobrazovači."
 
-#: src/video_out/video_out_directfb.c:1208
+#: src/video_out/video_out_directfb.c:1324
 msgid "field parity"
 msgstr "parita pole"
 
-#: src/video_out/video_out_directfb.c:1209
+#: src/video_out/video_out_directfb.c:1325
 msgid ""
 "For an interlaced display, enable controlling the field parity (\"none"
 "\"=disabled)."
@@ -2849,12 +2849,48 @@ msgstr ""
 "U prokládaného zobrazovače, povolí řízení parity pole (\"none\" znamená "
 "zakázáno)."
 
-#: src/video_out/video_out_directfb.c:1358
+#: src/video_out/video_out_directfb.c:1451
+#, fuzzy
+msgid "video_out_directfb: using hardware subpicture acceleration.\n"
+msgstr ""
+"video_out_directfb: použije se hardwarově urychlované škálování obrazu.\n"
+
+#: src/video_out/video_out_directfb.c:1465
+#, fuzzy
+msgid "video_out_directfb: layer supports video output.\n"
+msgstr "video_out_vidix: adaptér podporuje formát yuy2\n"
+
+#: src/video_out/video_out_directfb.c:1474
+#, fuzzy
+msgid "video_out_directfb: layer doesn't support YV12!\n"
+msgstr "video_out_syncfb: info. (modul SyncFB podporuje YUY2)\n"
+
+#: src/video_out/video_out_directfb.c:1481
+#, fuzzy
+msgid "video_out_directfb: layer doesn't support YUY2!\n"
+msgstr "video_out_syncfb: info. (modul SyncFB podporuje YUY2)\n"
+
+#: src/video_out/video_out_directfb.c:1492
+msgid ""
+"video_out_directfb:need at least DirectFB 0.9.25 to play on this layer!\n"
+msgstr ""
+
+#: src/video_out/video_out_directfb.c:1527
+#, fuzzy, c-format
+msgid "video_out_directfb: layer doesn't support buffermode %d!\n"
+msgstr "video_out_directfb: žádná použitelná vrstva výstupu nebyla nalezena!\n"
+
+#: src/video_out/video_out_directfb.c:1533
+#, c-format
+msgid "video_out_directfb: layer doesn't support options 0x%08x!\n"
+msgstr ""
+
+#: src/video_out/video_out_directfb.c:1627
 msgid "video_out_directfb: using hardware accelerated image scaling.\n"
 msgstr ""
 "video_out_directfb: použije se hardwarově urychlované škálování obrazu.\n"
 
-#: src/video_out/video_out_directfb.c:1370
+#: src/video_out/video_out_directfb.c:1639
 msgid ""
 "video_out_directfb: image scaling with deinterlacing is hardware "
 "accelerated.\n"
@@ -2862,27 +2898,31 @@ msgstr ""
 "video_out_directfb: škálování obrazu s korekcí prokládání je hardwarově "
 "urychklované.\n"
 
-#: src/video_out/video_out_directfb.c:1472
-msgid "video layer id"
+#: src/video_out/video_out_directfb.c:1722
+#, fuzzy
+msgid "video layer id (auto: -1)"
 msgstr "ID vrstvy videa"
 
-#: src/video_out/video_out_directfb.c:1473
+#: src/video_out/video_out_directfb.c:1723
 msgid "Select the video output layer by its id."
 msgstr "Vybere vrstvu výstupu videa podle jeho ID."
 
-#: src/video_out/video_out_directfb.c:1478
-msgid "video_out_directfb: no usable output layer was found!\n"
-msgstr "video_out_directfb: žádná použitelná vrstva výstupu nebyla nalezena!\n"
+#: src/video_out/video_out_directfb.c:1744
+#: src/video_out/video_out_directfb.c:1953
+#, fuzzy, c-format
+msgid "video_out_directfb: using display layer #%d.\n"
+msgstr "video_out_directfb: žádná použitelná vrstva overlay nebyla nalezena!\n"
 
-#: src/video_out/video_out_directfb.c:1546
+#: src/video_out/video_out_directfb.c:1828
 msgid "xine video output plugin using DirectFB."
 msgstr "výstupní modul videa xine použije DirectFB."
 
-#: src/video_out/video_out_directfb.c:1644
-msgid "video_out_directfb: no usable overlay layer was found!\n"
+#: src/video_out/video_out_directfb.c:1946
+#, fuzzy
+msgid "video_out_directfb: no usable display layer was found!\n"
 msgstr "video_out_directfb: žádná použitelná vrstva overlay nebyla nalezena!\n"
 
-#: src/video_out/video_out_directfb.c:1726
+#: src/video_out/video_out_directfb.c:2029
 msgid "xine video output plugin using DirectFB under XDirectFB."
 msgstr "výstupní modul videa xine použije DirectFB pod XDirectFB."
 
@@ -2996,52 +3036,52 @@ msgstr "SEEK_END ještě není implementováno."
 msgid "seek not implemented yet for"
 msgstr "posuv ještě není implementován"
 
-#: src/input/vcd/xineplug_inp_vcd.c:189
+#: src/input/vcd/xineplug_inp_vcd.c:191
 msgid "failed to find a device with a VCD"
 msgstr "selhalo hledání zařízení s VCD"
 
-#: src/input/vcd/xineplug_inp_vcd.c:325
+#: src/input/vcd/xineplug_inp_vcd.c:327
 msgid "was passed a null class parameter"
 msgstr "byl předán parametr třídy null"
 
-#: src/input/vcd/xineplug_inp_vcd.c:965
+#: src/input/vcd/xineplug_inp_vcd.c:967
 msgid "Invalid current entry type"
 msgstr "Neplatný typ aktuální položky"
 
-#: src/input/vcd/xineplug_inp_vcd.c:989
+#: src/input/vcd/xineplug_inp_vcd.c:991
 msgid ""
 "Video CD plugin with PBC and support for: (X)VCD, (X)SVCD, HQVCD, CVD ... "
 msgstr "modul video CD s PBC a podporou: (X)VCD, (X)SVCD, HQVCD, CVD ... "
 
-#: src/input/vcd/xineplug_inp_vcd.c:1090
+#: src/input/vcd/xineplug_inp_vcd.c:1092
 msgid "selection has no RETURN entry"
 msgstr "výběr nemá položku NÁVRAT"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1119
+#: src/input/vcd/xineplug_inp_vcd.c:1121
 msgid "DEFAULT selected, but PBC is not on."
 msgstr "VÝCHOZÍ vybráno, ale PBC není zapnuto."
 
-#: src/input/vcd/xineplug_inp_vcd.c:1124
+#: src/input/vcd/xineplug_inp_vcd.c:1126
 msgid "selection has no NEXT entry"
 msgstr "výběr nemá položku DALŠÍ"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1132
+#: src/input/vcd/xineplug_inp_vcd.c:1134
 msgid "selection has no PREVIOUS entry"
 msgstr "výběr nemá položku PŘEDCHOZÍ"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1139
+#: src/input/vcd/xineplug_inp_vcd.c:1141
 msgid "Unknown event type: "
 msgstr "Neznámý typ události: "
 
-#: src/input/vcd/xineplug_inp_vcd.c:1437 src/input/vcd/xineplug_inp_vcd.c:1484
+#: src/input/vcd/xineplug_inp_vcd.c:1441 src/input/vcd/xineplug_inp_vcd.c:1488
 msgid "The above message had unknown vcdimager log level"
 msgstr "Výše uvedená zpráva má neznámou logovací úroveň vcdimageru"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1813
+#: src/input/vcd/xineplug_inp_vcd.c:1819
 msgid "VCD default type to use on autoplay"
 msgstr "výchozí typ VCD, který se použije na automatické přehrání"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1814
+#: src/input/vcd/xineplug_inp_vcd.c:1820
 msgid ""
 "The VCD play unit to use when none is specified in an MRL, e.g. vcd:// or "
 "vcd:///dev/dvd:"
@@ -3049,11 +3089,11 @@ msgstr ""
 "Jednotka přehrávání VCD, kterou použít, jestliže není žádná uvedena v MRL. "
 "Např. vcd:// nebo vcd:///dev/dvd:"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1824
+#: src/input/vcd/xineplug_inp_vcd.c:1830
 msgid "CD-ROM drive used for VCD when none given"
 msgstr "výchozí zařízení CD-ROM použité pro VCD, jestliže není žádné zadáno"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1825
+#: src/input/vcd/xineplug_inp_vcd.c:1831
 msgid ""
 "What to use if no drive specified. If the setting is empty, xine will scan "
 "for CD drives."
@@ -3061,28 +3101,28 @@ msgstr ""
 "Co použít, jestliže není uvedeno zařízení. Jestliže je nastavení prázdné, "
 "xine prozkoumá jednotky CD."
 
-#: src/input/vcd/xineplug_inp_vcd.c:1835
+#: src/input/vcd/xineplug_inp_vcd.c:1841
 msgid "VCD position slider range"
 msgstr "rozsah ukazatele pozice VCD"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1836
+#: src/input/vcd/xineplug_inp_vcd.c:1842
 msgid ""
 "range that the stream playback position slider represents playing a VCD."
 msgstr "Rozsah ukazatele pozice přehrávání přítomného při přehrávání."
 
-#: src/input/vcd/xineplug_inp_vcd.c:1844
+#: src/input/vcd/xineplug_inp_vcd.c:1850
 msgid "VCD read-ahead caching?"
 msgstr "read-ahead cachování VCD?"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1845
+#: src/input/vcd/xineplug_inp_vcd.c:1851
 msgid "Class may lead to jerky playback on low-end machines."
 msgstr "Na slabších strojích může toto vést k trhanému přehrávání"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1855
+#: src/input/vcd/xineplug_inp_vcd.c:1861
 msgid "automatically advance VCD track/entry"
 msgstr "automaticky postupovat po stopách nebo položkách VCD"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1856
+#: src/input/vcd/xineplug_inp_vcd.c:1862
 msgid ""
 "If enabled, we should automatically advance to the next entry or track. Used "
 "only when playback control (PBC) is disabled."
@@ -3090,11 +3130,11 @@ msgstr ""
 "Jestliže je povoleno, měli bychom automaticky postoupit na další položku "
 "nebo stopu. Použito pouze, když není zapnuta kontrola přehrávání (PBC)."
 
-#: src/input/vcd/xineplug_inp_vcd.c:1865
+#: src/input/vcd/xineplug_inp_vcd.c:1871
 msgid "show 'rejected' VCD LIDs"
 msgstr "zobrazit 'odmítané' VCD LID?"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1866
+#: src/input/vcd/xineplug_inp_vcd.c:1872
 msgid ""
 "Some playback list IDs (LIDs) are marked not showable, but you can see them "
 "in the MRL list if this is set. Rejected entries are marked with an asterisk "
@@ -3104,11 +3144,11 @@ msgstr ""
 "nezobrazovaly. Ale pokud je nastavena tato volba, můžete je vidět v seznamu "
 "MRL. Odmítané položky jsou označeny hvězdičkou (*) přidanou na konec MRL."
 
-#: src/input/vcd/xineplug_inp_vcd.c:1877
+#: src/input/vcd/xineplug_inp_vcd.c:1883
 msgid "VCD format string for display banner"
 msgstr "VCD formát řetězce pro nápis na obrazovce"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1878
+#: src/input/vcd/xineplug_inp_vcd.c:1884
 msgid ""
 "VCD format used in the GUI Title. Similar to the Unix date command. Format "
 "specifiers start with a percent sign. Specifiers are:\n"
@@ -3146,11 +3186,11 @@ msgstr ""
 "      číslo 1 až počet svazků\n"
 " %% : %\n"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1903
+#: src/input/vcd/xineplug_inp_vcd.c:1909
 msgid "VCD format string for stream comment field"
 msgstr "formátovací řetězec VCD pro pole komentáře proudu dat"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1904
+#: src/input/vcd/xineplug_inp_vcd.c:1910
 msgid ""
 "VCD format used in the GUI Title. Similar to the Unix date command. Format "
 "specifiers start with a percent sign. Specifiers are %A, %C, %c, %F, %I, %L, "
@@ -3162,11 +3202,11 @@ msgstr ""
 "c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v a %%.\n"
 "Jejich význam viz. help k title_format."
 
-#: src/input/vcd/xineplug_inp_vcd.c:1916
+#: src/input/vcd/xineplug_inp_vcd.c:1922
 msgid "VCD debug flag mask"
 msgstr "debugovací maska příznaků VCD"
 
-#: src/input/vcd/xineplug_inp_vcd.c:1917
+#: src/input/vcd/xineplug_inp_vcd.c:1923
 msgid ""
 "For tracking down bugs in the VCD plugin. Mask values are:\n"
 "   1: Meta information\n"
@@ -3902,12 +3942,12 @@ msgstr "input_rtp: nelze vytvořit nové vlákno (%s)\n"
 msgid "RTP and UDP input plugin as shipped with xine"
 msgstr "vstupní modul pro RTP a UDP dodaný se xine"
 
-#: src/input/librtsp/rtsp.c:449
+#: src/input/librtsp/rtsp.c:450
 #, c-format
 msgid "rtsp: bad mrl: %s\n"
 msgstr "rtsp: špatné MRL: %s\n"
 
-#: src/input/librtsp/rtsp.c:509
+#: src/input/librtsp/rtsp.c:510
 #, c-format
 msgid "rtsp: failed to connect to '%s'\n"
 msgstr "rtsp: nelze se připojit k '%s'\n"
@@ -5405,11 +5445,11 @@ msgstr "demux_snd: špatné parametry hlavičky\n"
 msgid "demux_snd: unsupported audio type: %d\n"
 msgstr "demux_snd: nepodporovaný typ zvuku: %d\n"
 
-#: src/libffmpeg/xine_encoder.c:164
+#: src/libffmpeg/xine_encoder.c:167
 msgid "libavcodec mpeg output bitrate (kbit/s)"
 msgstr "výstupní rychlost libavcodec mpeg (kbit/s)"
 
-#: src/libffmpeg/xine_encoder.c:165
+#: src/libffmpeg/xine_encoder.c:168
 msgid ""
 "The bitrate the libavcodec mpeg encoder should use for DXR3's encoding mode. "
 "Higher values will increase quality and CPU usage.\n"
@@ -5419,11 +5459,11 @@ msgstr ""
 "v režimu kódování DXR3. Vyšší hodnoty zvýší využití procesoru a kvalitu.\n"
 "Toto nastavení je uvažováno pouze, když je zakázán režim konstantní kvality."
 
-#: src/libffmpeg/xine_encoder.c:172
+#: src/libffmpeg/xine_encoder.c:175
 msgid "constant quality mode"
 msgstr "režim konstantní kvality"
 
-#: src/libffmpeg/xine_encoder.c:173
+#: src/libffmpeg/xine_encoder.c:176
 msgid ""
 "When enabled, libavcodec will use a constant quality mode by dynamically "
 "compressing the images based on their complexity. When disabled, libavcodec "
@@ -5433,20 +5473,20 @@ msgstr ""
 "kompresí obrázků na základě jejich složitosti. Když bude zakázáno, "
 "libavcodec použije režim konstantní bitové rychlosti."
 
-#: src/libffmpeg/xine_encoder.c:180
+#: src/libffmpeg/xine_encoder.c:183
 msgid "minimum compression"
 msgstr "minimálné komprese"
 
-#: src/libffmpeg/xine_encoder.c:181
+#: src/libffmpeg/xine_encoder.c:184
 msgid "The minimum compression to apply to an image in constant quality mode."
 msgstr ""
 "Minimální komprese, která se použije na obraz v režimu konstatní kvality."
 
-#: src/libffmpeg/xine_encoder.c:186
+#: src/libffmpeg/xine_encoder.c:189
 msgid "maximum quantizer"
 msgstr "Maximální kvantizér"
 
-#: src/libffmpeg/xine_encoder.c:187
+#: src/libffmpeg/xine_encoder.c:190
 msgid "The maximum compression to apply to an image in constant quality mode."
 msgstr ""
 "Maximální komprese, která se použije na obraz v režimu konstantní kvality."
