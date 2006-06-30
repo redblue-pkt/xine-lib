@@ -1,7 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
-datadir = $(XINE_FONTDIR)
-data_DATA = \
+fontdir = $(XINE_FONTPATH)
+font_DATA = \
 	cetus-16.xinefont.gz \
 	cetus-20.xinefont.gz \
 	cetus-24.xinefont.gz \
