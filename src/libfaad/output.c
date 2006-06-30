@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: output.c,v 1.8 2006/06/17 20:43:57 dgp85 Exp $
+** $Id: output.c,v 1.9 2006/06/30 21:36:27 dgp85 Exp $
 **/
 
 #include "common.h"
@@ -594,7 +594,7 @@ void *output_to_PCM(NeAACDecHandle hDecoder,
     {
         for (ch = 0; ch < channels; ++ch)
         {
-            int32 tmp = input[hDecoder->internal_channel[ch]][i];
+            int32_t tmp = input[hDecoder->internal_channel[ch]][i];
             tmp += (1 << (REAL_BITS - 1));
             tmp >>= REAL_BITS;
             if ((tmp + 0x8000) & ~0xffff)
