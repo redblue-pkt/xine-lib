@@ -315,18 +315,24 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
   off_t total = 0;
   int sret;
   int state = 0;
+  xine_cfg_entry_t cfgentry;
+  unsigned int timeout;
 
   if ((cmd == XIO_TCP_READ) || (cmd == XIO_FILE_READ)) {
     state = XIO_READ_READY;
   } else {
     state = XIO_WRITE_READY;
   }
+
+  if (xine_config_lookup_entry (stream->xine, "media.network.timeout", &cfgentry)) {
+    timeout = entry.num_value * 1000;
+  } else {
+    timeout = 30000; /* 30K msecs = 30 secs */
+  }
   
   while (total < todo) {
 
-    do {
-      sret = _x_io_select(stream, fd, state, 500); /* 500 ms */
-    } while (sret == XIO_TIMEOUT);
+    sret = _x_io_select(stream, fd, state, timeout);
     
     if (sret != XIO_READY)
       return -1;

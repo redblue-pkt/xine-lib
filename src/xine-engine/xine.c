@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.323 2006/04/08 16:42:37 valtri Exp $
+ * $Id: xine.c,v 1.324 2006/07/03 10:55:37 dgp85 Exp $
  */
 
 /*
@@ -1545,6 +1545,18 @@ void xine_init (xine_t *this) {
 	"arbitrarily change your configuration, you might end with a totally "
 	"messed up xine."),
       XINE_CONFIG_SECURITY, NULL, this);
+
+  /*
+   * timeout for network I/O to avoid freezes
+   */
+  this->config->register_num(this->config,
+      "media.network.timeout", 30,
+      _("Timeout for network stream reading (in seconds)"),
+      _("Specifies the timeout when reading from network streams, in seconds."
+	"Too low values might stop streaming when the source is slow or the"
+	"bandwidth is occupied, too high values will freeze the player if the"
+	"connection is lost."),
+      0, NULL, this);
 
   /*
    * keep track of all opened streams
