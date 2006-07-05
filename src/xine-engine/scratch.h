@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.h,v 1.9 2006/06/29 12:28:06 dgp85 Exp $
+ * $Id: scratch.h,v 1.10 2006/07/05 12:55:44 valtri Exp $
  *
  * scratch buffer for log output
  *
@@ -34,7 +34,10 @@ typedef struct scratch_buffer_s scratch_buffer_t;
 
 struct scratch_buffer_s {
 
-  void         __attribute__((__format__(__printf__, 2, 0)))
+  void
+#if __GNUC__ >= 3
+               __attribute__((__format__(__printf__, 2, 0)))
+#endif
                (*scratch_printf) (scratch_buffer_t *this, const char *format, va_list ap);
 
   const char **(*get_content) (scratch_buffer_t *this);
