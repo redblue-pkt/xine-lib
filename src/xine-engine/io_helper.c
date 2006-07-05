@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project,
+ * Copyright (C) 2000-2006 the xine project,
  *
  * This file is part of xine, a free video player.
  *
@@ -325,7 +325,7 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
   }
 
   if (xine_config_lookup_entry (stream->xine, "media.network.timeout", &cfgentry)) {
-    timeout = entry.num_value * 1000;
+    timeout = cfgentry.num_value * 1000;
   } else {
     timeout = 30000; /* 30K msecs = 30 secs */
   }
