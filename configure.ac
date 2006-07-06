@@ -443,9 +443,14 @@ dnl ---------------------------------------------
 dnl Locate libraries needed for X health check
 dnl ---------------------------------------------
 
-x_lib_location="`ls -1 "${x_libraries:-/usr/local/lib}/libX11.so"* "${x_libraries:-/usr/lib}/libX11.so"* 2>/dev/null | sed -e '/[[0-9]]$/! d; s%^.*/%%; t q; b; :q q'`"
+soname_script="/[[0-9]]$/! d; s%^.*/%%
+t q
+b
+:q
+q"
+x_lib_location="`ls -1 "${x_libraries:-/usr/local/lib}/libX11.so"* "${x_libraries:-/usr/lib}/libX11.so"* 2>/dev/null | sed -e \"${soname_script}\"`"
 AC_DEFINE_UNQUOTED([LIBX11_SO], "${x_lib_location:-libX11.so}", [The soname of libX11, needed for dlopen()])
-x_lib_location="`ls -1 "${x_libraries:-/usr/local/lib}/libXv.so"*  "${x_libraries:-/usr/lib}/libXv.so"*  2>/dev/null | sed -e '/[[0-9]]$/! d; s%^.*/%%; t q; b; :q q'`"
+x_lib_location="`ls -1 "${x_libraries:-/usr/local/lib}/libXv.so"*  "${x_libraries:-/usr/lib}/libXv.so"*  2>/dev/null | sed -e \"${soname_script}\"`"
 AC_DEFINE_UNQUOTED([LIBXV_SO],  "${x_lib_location:-libXv.so}",  [The soname of libXv, needed for dlopen()])
 
 
