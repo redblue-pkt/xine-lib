@@ -54,28 +54,40 @@ ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
  DEB_BUILD_GNU_OPTION := --build=$(DEB_BUILD_GNU_TYPE)
 endif
 
-CONFIGURE_FLAGS := --prefix=/usr --mandir=\$${prefix}/share/man --with-external-libmad 
+CONFIGURE_FLAGS := --prefix=/usr \
+	--mandir=\$${prefix}/share/man \
+	--with-external-libmad \
+	$(DEB_BUILD_GNU_OPTION) \
+	CFLAGS="$(CFLAGS)"
 
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure --prefix=/usr --mandir=\$${prefix}/share/man --with-external-libmad --with-xv-path=/usr/lib \
-                    $(DEB_BUILD_GNU_OPTION) CFLAGS="$(CFLAGS)"
+	# let's run autohell on the buildds!
+	chmod +x ./autogen.sh
+	./autogen.sh $(CONFIGURE_FLAGS)
 	touch configure-stamp
 
 build: configure-stamp build-stamp
 build-stamp:
 	dh_testdir
-
 	$(MAKE)
-
 	touch build-stamp
+
+update-config-sub-guess:
+	@echo updateing config.sub and config.guess
+	@echo package autotools-dev must be installed!
+	cp -f /usr/share/misc/config.sub config.sub
+	cp -f /usr/share/misc/config.guess config.guess
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp configure-stamp po/*.gmo
-	test -f Makefile && $(MAKE) distclean || true
+	rm -f build-stamp configure-stamp po/*.gmo po/stamp-po
+	-$(MAKE) distclean
+	# remove more cruft leftover by autohell
+	-find . -name Makefile.in -print | xargs rm
+	rm -rf compile config.guess configure depcomp install-sh ltmain.sh missing
 	dh_clean
 
 install: build
@@ -83,7 +95,6 @@ install: build
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
-
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp \
 			LIBRARY_PATH=$(CURDIR)/debian/tmp/usr/lib
 
@@ -105,9 +116,8 @@ binary-arch: build install
 	dh_strip --dbg-package=libxine1
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V 'libxine1 (>= 1.1.0)'
+	dh_makeshlibs -V 'libxine1 (>= 1.1.1+cvs20060621-1)'
 	dh_installdeb
-#	dh_shlibdeps
 	chmod +x debian/shlibdeps.sh
 	debian/shlibdeps.sh libxine${major}
 	dh_gencontrol
