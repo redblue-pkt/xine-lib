@@ -375,9 +375,7 @@ AC_ARG_ENABLE(altivec,
 		enable_altivec=yes)
 
 AC_ARG_ENABLE(vis,
-	AC_HELP_STRING([--disable-vis], [do not use assembly codes for Sun UltraSPARC CPUs]),
-         	enable_vis=$enableval,
-		enable_vis=yes)
+	AC_HELP_STRING([--disable-vis], [do not use assembly codes for Sun UltraSPARC CPUs]))
 
 AC_ARG_ENABLE(mlib,
 	AC_HELP_STRING([--disable-mlib], [do not build Sun mediaLib support]),
@@ -2018,8 +2016,8 @@ case "$host_or_hostalias" in
     fi
     ;;
   sparc*-*-linux*)
-    if test x$enable_vis = xyes; then
-      AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
+    if test x$enable_vis != xno; then
+      has_vis=yes
     fi
 
     AC_DEFINE_UNQUOTED(FPM_SPARC,,[Define to select libmad fixed point arithmetic implementation])
@@ -2030,8 +2028,8 @@ case "$host_or_hostalias" in
       case `$CC --version 2>/dev/null` in
 	1.*|2.*) ;;
         *)
-          if test x$enable_vis = xyes; then
-            AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
+          if test x$enable_vis != xno; then
+	     has_vis=yes
           fi
 	  ;;
       esac
@@ -2058,6 +2056,15 @@ case "$host_or_hostalias" in
 esac
 
 AM_CONDITIONAL(HOST_OS_DARWIN, test x"$HOST_OS_DARWIN" = "x1")
+
+if test "x$has_vis" = "xyes"; then
+   AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
+   case $CFLAGS in
+     *-mcpu=*) ;;
+     *) CFLAGS="$CFLAGS -mcpu=v9" ;;
+   esac
+fi
+AM_CONDITIONAL(ENABLE_VIS, test x"$has_vis" = "xyes")
 
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
 
