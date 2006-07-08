@@ -38,7 +38,7 @@
 #include "bswap.h"
 
 
-#define BLEND_COLOR(dst, src, mask, o) ((((((src&mask)-(dst&mask))*(o*0x1111+1))>>16)+(dst&mask))&mask)
+#define BLEND_COLOR(dst, src, mask, o) ((((((src&mask)-(dst&mask))*(o*0x111+1))>>12)+(dst&mask))&mask)
 
 #define BLEND_BYTE(dst, src, o) (((((src)-(dst))*(o*0x1111+1))>>16)+(dst))
 
