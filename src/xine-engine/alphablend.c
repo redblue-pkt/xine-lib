@@ -38,9 +38,9 @@
 #include "bswap.h"
 
 
-#define BLEND_COLOR(dst, src, mask, o) ((((src&mask)*o + ((dst&mask)*(0x0f-o)))/0xf) & mask)
+#define BLEND_COLOR(dst, src, mask, o) ((((((src&mask)-(dst&mask))*(o*0x1111+1))>>16)+(dst&mask))&mask)
 
-#define BLEND_BYTE(dst, src, o) (((src)*o + ((dst)*(0xf-o)))/0xf)
+#define BLEND_BYTE(dst, src, o) (((((src)-(dst))*(o*0x1111+1))>>16)+(dst))
 
 static void mem_blend16(uint16_t *mem, uint16_t clr, uint8_t o, int len) {
   uint16_t *limit = mem + len;
