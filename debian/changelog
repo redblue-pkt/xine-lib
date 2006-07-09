@@ -2,6 +2,10 @@ xine-lib (1.1.1+cvs20060702-2) UNRELEASED; urgency=low
 
   * updated README.Debian
 
+  [Darren Salt]
+  * Option to prevent autogen.sh from being run on package build.
+    Use DEB_BUILD_OPTIONS='noauto'.
+
  -- Reinhard Tartler <siretart@tauware.de>  Mon,  3 Jul 2006 11:13:30 +0200
 
 xine-lib (1.1.1+cvs20060702-1) experimental; urgency=low
@@ -50,7 +54,7 @@ xine-lib (1.1.1-2) unstable; urgency=medium
   * enable support for libxvmc1, now that we have xorg in debian
     (Closes: #281572)
   * Conflict/Replaces obsolete package 'xine' (Closes: #300852)
-  * Incorporated Darrens Changes into a new maintainer upload
+  * Incorporated Darren's changes into a new maintainer upload.
   * medium urgency, although security fixes a lot of other functionality
     changes
   * Some more fixages to inline usage in internal copy of ffmpeg, continuing

@@ -30,6 +30,7 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 	INSTALL_TARGET := install-debug
 	BUILD_TARGET := debug
 endif
+# note also "noauto" to inhibit running of autogen.sh
 
 DEB_BUILD_GNU_OPTION := 
 # the "optimize" flag disables compatibility hacks
@@ -60,12 +61,16 @@ CONFIGURE_FLAGS := --prefix=/usr \
 	$(DEB_BUILD_GNU_OPTION) \
 	CFLAGS="$(CFLAGS)"
 
-configure: configure-stamp
+configure: configure-stamp $(AUTOGEN)
 configure-stamp:
 	dh_testdir
+ifeq (,$(findstring noauto,$(DEB_BUILD_OPTIONS))
 	# let's run autohell on the buildds!
 	chmod +x ./autogen.sh
 	./autogen.sh $(CONFIGURE_FLAGS)
+else
+	./configure $(CONFIGURE_FLAGS)
+endif
 	touch configure-stamp
 
 build: configure-stamp build-stamp
