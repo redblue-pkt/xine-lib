@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.210 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_qt.c,v 1.211 2006/07/10 22:17:49 dgp85 Exp $
  *
  */
 
@@ -3054,13 +3054,13 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "mov qt mp4 m4a";
+  return "mov qt mp4 m4a m4b";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
   return "video/quicktime: mov,qt: Quicktime animation;"
          "video/x-quicktime: mov,qt: Quicktime animation;"
-         "audio/x-m4a: m4a: MPEG-4 audio;"
+         "audio/x-m4a: m4a,m4b: MPEG-4 audio;"
          "application/x-quicktimeplayer: qtl: Quicktime list;";
 }
 
