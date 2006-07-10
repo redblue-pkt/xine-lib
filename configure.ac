@@ -369,25 +369,19 @@ AC_CHECK_DECL(rintf,[
 
 AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -DEMULATE_FAST_INT"])
 
-AC_ARG_ENABLE(altivec,
-	AC_HELP_STRING([--disable-altivec], [do not use assembly codes for Motorola 74xx CPUs]),
-		enable_altivec=$enableval,
-		enable_altivec=yes)
+AC_ARG_ENABLE([altivec],
+	AS_HELP_STRING([--disable-altivec], [do not use assembly codes for Motorola 74xx CPUs]))
 
-AC_ARG_ENABLE(vis,
-	AC_HELP_STRING([--disable-vis], [do not use assembly codes for Sun UltraSPARC CPUs]))
+AC_ARG_ENABLE([vis],
+	AS_HELP_STRING([--disable-vis], [do not use assembly codes for Sun UltraSPARC CPUs]))
 
-AC_ARG_ENABLE(mlib,
-	AC_HELP_STRING([--disable-mlib], [do not build Sun mediaLib support]),
-		enable_mlib=$enableval,
-		enable_mlib=yes)
+AC_ARG_ENABLE([mlib],
+	AS_HELP_STRING([--disable-mlib], [do not build Sun mediaLib support]))
 
-AC_ARG_ENABLE(mlib-lazyload,
-	AC_HELP_STRING([--enable-mlib-lazyload], [check for Sun mediaLib at runtime]),
-		enable_mlib_lazyload=$enableval,
-		enable_mlib_lazyload=no)
+AC_ARG_ENABLE([mlib-lazyload],
+	AS_HELP_STRING([--enable-mlib-lazyload], [check for Sun mediaLib at runtime]))
 
-if test x$enable_mlib = xyes; then
+if test x$enable_mlib != xno; then
     if test x"$MLIBHOME" = x; then
 	mlibhome=/opt/SUNWmlib
     else
@@ -1416,10 +1410,9 @@ dnl gdk-pixbuf support
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([gdkpixbuf],
-  AC_HELP_STRING([--disable-gdkpixbuf], [do not build gdk-pixbuf support]),
-  [with_gdkpixbuf=$enableval], [with_gdkpixbuf=yes])
+   AS_HELP_STRING([--disable-gdkpixbuf], [do not build gdk-pixbuf support]))
 
-if test "x$with_gdkpixbuf" = "xyes"; then
+if test "x$enable_gdkpixbuf" != "xno"; then
   PKG_CHECK_MODULES(GDK_PIXBUF, gdk-pixbuf-2.0,
                 no_gdkpixbuf=no,
 		no_gdkpixbuf=yes)
@@ -1790,18 +1783,16 @@ dnl ---------------------------------------------
 dnl ASF build can be optional
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(asf, AC_HELP_STRING([--disable-asf], [do not build ASF demuxer]),
-	      enable_asf=$enableval, enable_asf=yes)
-AM_CONDITIONAL(BUILD_ASF, test x"$enable_asf" = "xyes")
+AC_ARG_ENABLE([asf], AS_HELP_STRING([--disable-asf], [do not build ASF demuxer]))
+AM_CONDITIONAL(BUILD_ASF, test x"$enable_asf" != "xno")
 
 
 dnl ---------------------------------------------
 dnl FAAD build can be optional
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(faad, AC_HELP_STRING([--disable-faad], [do not build FAAD decoder]),
-	      enable_faad=$enableval, enable_faad=yes)
-AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" = "xyes")
+AC_ARG_ENABLE([faad], AS_HELP_STRING([--disable-faad], [do not build FAAD decoder]))
+AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" != "xno")
 
 dnl ---------------------------------------------
 dnl Optional and external libdts
@@ -2010,7 +2001,7 @@ case "$host_or_hostalias" in
     
     AC_CHECK_HEADER([altivec.h], , enable_altivec=no)
     
-    if test x$enable_altivec = xyes; then
+    if test x$enable_altivec != xno; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you want to use altivec on PowerPC CPUs])
         CFLAGS="$CFLAGS -faltivec"
         LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec"
@@ -2024,7 +2015,7 @@ case "$host_or_hostalias" in
 
     AC_CHECK_HEADER([altivec.h], , enable_altivec=no)
     
-    if test x$enable_altivec = xyes; then
+    if test x$enable_altivec != xno; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you have a Motorola 74xx CPU])
         CFLAGS="$CFLAGS -maltivec"
         LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -maltivec"
