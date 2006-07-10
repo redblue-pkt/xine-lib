@@ -1981,24 +1981,12 @@ case "$host_or_hostalias" in
     AC_DEFINE(FPM_64BIT,1,[Define to select libmad fixed point arithmetic implementation])
     enable_ffmmx="yes"
     ;;
-  *darwin*)
-    HOST_OS_DARWIN=1
-    AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
-    
+  powerpc-*-darwin*)
     dnl avoid ppc compilation crash
     AS="$CC"
     AC_DEFINE_UNQUOTED(FPM_PPC,,[Define to select libmad fixed point arithmetic implementation])
     AC_DEFINE_UNQUOTED(ARCH_PPC,,[Define this if you're running PowerPC architecture])
 
-    OBJC=${CC:-gcc}
-    AC_SUBST(OBJC)
-    OBJCFLAGS="-D_INTL_REDIRECT_MACROS $CFLAGS $OBJCFLAGS"
-    AC_SUBST(OBJCFLAGS)
-    OBJCDEPMODE="depmode=gcc3"
-    dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
-    dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
-    dnl from automake 1.6.
-    
     AC_CHECK_HEADER([altivec.h], , enable_altivec=no)
     
     if test x$enable_altivec != xno; then
@@ -2061,8 +2049,6 @@ case "$host_or_hostalias" in
     ;;
 esac
 
-AM_CONDITIONAL(HOST_OS_DARWIN, test x"$HOST_OS_DARWIN" = "x1")
-
 if test "x$has_vis" = "xyes"; then
    AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
    case $CFLAGS in
@@ -2073,6 +2059,23 @@ fi
 AM_CONDITIONAL(ENABLE_VIS, test x"$has_vis" = "xyes")
 
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
+
+case $host_os in
+  darwin*)
+      HOST_OS_DARWIN=1
+      AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
+      OBJC=${CC:-gcc}
+      AC_SUBST(OBJC)
+      OBJCFLAGS="-D_INTL_REDIRECT_MACROS $CFLAGS $OBJCFLAGS"
+      AC_SUBST(OBJCFLAGS)
+      OBJCDEPMODE="depmode=gcc3"
+      dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
+      dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
+      dnl from automake 1.6.
+  *)
+	;;
+esac
+AM_CONDITIONAL(HOST_OS_DARWIN, test x"$HOST_OS_DARWIN" = "x1")
 
 dnl ---------------------------------------------
 dnl Set IMPURE_TEXT_LDFLAGS
