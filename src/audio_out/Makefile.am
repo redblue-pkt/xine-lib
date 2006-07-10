@@ -11,9 +11,7 @@ oss_module = xineplug_ao_out_oss.la
 endif
 
 if HAVE_ALSA
-if HAVE_ALSA09
 alsa_module = xineplug_ao_out_alsa.la
-endif
 endif
 
 if HAVE_ESD

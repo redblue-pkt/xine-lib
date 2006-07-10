@@ -1317,15 +1317,19 @@ dnl ---------------------------------------------
 dnl Alsa support
 dnl ---------------------------------------------
 
-AM_PATH_ALSA(0.9.0rc4, 
-        [ AC_DEFINE(HAVE_ALSA,1,[Define this if you have Alsa (libasound) installed])
-          if test x"$have_alsa09" = "xyes"; then
-            AC_DEFINE(HAVE_ALSA09,1,[Define this if you have ALSA 0.9.x or later installed])
-          fi
-        ],
-	AC_MSG_RESULT(*** All of ALSA dependent parts will be disabled ***))
-AM_CONDITIONAL(HAVE_ALSA, test x"$no_alsa" != "xyes")
-AM_CONDITIONAL(HAVE_ALSA09, test x"$have_alsa09" = "xyes")
+AC_ARG_WITH([alsa],
+   AS_HELP_STRING([--without-alsa], [Disable ALSA output plugin (default: check)]))
+
+if test "x$with_alsa" != "xno"; then
+   PKG_CHECK_MODULES([ALSA], [alsa >= 0.9.0], [have_alsa=yes], [have_alsa=no])
+   if test "x$have_alsa" = "xyes"; then
+      AC_DEFINE([HAVE_ALSA], [1], [Define this if you have ALSA installed])
+   elif test "x$with_alsa" = "xyes"; then
+      AC_MSG_ERROR([ALSA support requested but not found.])
+   fi
+fi
+
+AM_CONDITIONAL([HAVE_ALSA], [test "x$have_alsa" = "xyes"])
 
 dnl ---------------------------------------------
 dnl ESD support
@@ -2742,12 +2746,8 @@ echo " * audio driver plugins:"
 if test x"$have_ossaudio" = "xyes"; then
   echo "   - oss (Open Sound System)"
 fi
-if test x"$no_alsa" != "xyes"; then
-  if test x"$have_alsa_1_0_9" = "xyes"; then
-    echo "   - alsa (ALSA >= 1.0.9)"
-  elif test x"$have_alsa09" = "xyes"; then
-    echo "   - alsa (ALSA >= 0.9, < 1.0.9)"
-  fi
+if test "x$have_alsa" = "xyes"; then
+  echo "   - alsa"
 fi
 if test x"$no_esd" != "xyes"; then
   echo "   - esd (Enlightened Sound Daemon)"
