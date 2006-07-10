@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.23 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: demux_image.c,v 1.24 2006/07/10 22:08:13 dgp85 Exp $
  *
  * image dummy demultiplexer
  */
@@ -264,7 +264,7 @@ static const demuxer_info_t demux_info_image = {
   11                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 26, "image", XINE_VERSION_CODE, &demux_info_image, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

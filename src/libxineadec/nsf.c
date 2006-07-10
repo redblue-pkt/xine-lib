@@ -20,7 +20,7 @@
  * NSF Audio "Decoder" using the Nosefart NSF engine by Matt Conte
  *   http://www.baisoku.org/
  *
- * $Id: nsf.c,v 1.11 2006/06/02 22:13:45 dsalt Exp $
+ * $Id: nsf.c,v 1.12 2006/07/10 22:08:43 dgp85 Exp $
  */
 
 #include <stdio.h>
@@ -286,7 +286,7 @@ static const decoder_info_t dec_info_audio = {
 
 /* The plugin catalog entry. This is the only information that this plugin
  * will export to the public. */
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* { type, API version, "name", version, special_info, init_function }, */
   { PLUGIN_AUDIO_DECODER, 15, "nsf", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

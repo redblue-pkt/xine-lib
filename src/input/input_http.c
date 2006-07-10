@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.119 2006/06/20 01:46:41 dgp85 Exp $
+ * $Id: input_http.c,v 1.120 2006/07/10 22:08:15 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1076,7 +1076,7 @@ static void *init_class (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 17, "http", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

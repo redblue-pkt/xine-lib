@@ -21,7 +21,7 @@
  * Actually, this decoder just reorganizes chunks of raw YUV data in such
  * a way that xine can display them.
  * 
- * $Id: yuv.c,v 1.36 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: yuv.c,v 1.37 2006/07/10 22:08:43 dgp85 Exp $
  */
 
 #include <stdio.h>
@@ -385,7 +385,7 @@ static const decoder_info_t dec_info_video = {
   1                    /* priority        */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 18, "yuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

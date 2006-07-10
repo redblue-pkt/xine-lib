@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.166 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: demux_ogg.c,v 1.167 2006/07/10 22:08:13 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -2124,7 +2124,7 @@ static const demuxer_info_t demux_info_ogg = {
   10                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_DEMUX, 26, "ogg", XINE_VERSION_CODE, &demux_info_ogg, ogg_init_class },
   { PLUGIN_DEMUX, 26, "anx", XINE_VERSION_CODE, &demux_info_anx, anx_init_class },

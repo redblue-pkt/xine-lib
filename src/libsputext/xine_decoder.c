@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.94 2006/06/17 12:50:18 hadess Exp $
+ * $Id: xine_decoder.c,v 1.95 2006/07/10 22:08:30 dgp85 Exp $
  *
  */
 
@@ -959,7 +959,7 @@ static const decoder_info_t spudec_info = {
   1                    /* priority        */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_SPU_DECODER | PLUGIN_MUST_PRELOAD, 16, "sputext", XINE_VERSION_CODE, &spudec_info, &init_spu_decoder_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

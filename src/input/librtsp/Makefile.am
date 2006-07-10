@@ -8,6 +8,7 @@ librtsp_la_SOURCES = \
   rtsp.c \
   rtsp_session.c
 
+librtsp_la_CFLAGS = $(VISIBILITY_FLAG)
 librtsp_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = \

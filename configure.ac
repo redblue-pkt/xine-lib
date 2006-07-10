@@ -1942,6 +1942,17 @@ dnl WARNING! Do not move this check behind the $(MULTIPASS_CFLAGS)!
 dnl (the alignment test macro does not like variables in the CFLAGS)
 AC_C_ATTRIBUTE_ALIGNED
 
+CC_FLAG_VISIBILITY([
+		AC_DEFINE([EXPORTED],
+			[__attribute__((visibility("default")))],
+			[Mark a symbol as being exported if visibility is changed])
+		VISIBILITY_FLAG="-fvisibility=hidden"
+	], [
+		AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
+	])
+
+AC_SUBST([VISIBILITY_FLAG])
+
 dnl Common cflags for all platforms
 CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
 DEBUG_CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
@@ -2067,38 +2078,6 @@ fi
 AM_CONDITIONAL(ENABLE_VIS, test x"$has_vis" = "xyes")
 
 AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
-
-dnl ---------------------------------------------
-dnl Build xine plugins with only the "xine_plugin_info" symbol exported
-dnl (let the user disable this feature, in case libtool does not offer this
-dnl feature on the target platform)
-dnl ---------------------------------------------
-
-AC_ARG_ENABLE(min-symtab,
-   AC_HELP_STRING([--disable-min-symtab], [export all global symbols from xine plugins]),
-   [
-     if test "x$enableval" = "xno" ; then
-       XINE_PLUGIN_MIN_SYMS=""
-     else
-       XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info"
-     fi
-   ],
-   XINE_PLUGIN_MIN_SYMS="-export-symbols-regex xine_plugin_info")
-
-if test "$with_gnu_ld" = yes; then
-   dnl
-   dnl -export-symbols-regex in libtool 1.4.X is broken, when GNU ld is
-   dnl used for linking.  libtool / gnu ld does not touch the dynamic
-   dnl symbol table, but removes the unwanted symbols from the
-   dnl symbol table => The debug versions of the the xine-lib plugins
-   dnl cannot be debugged.
-   dnl
-   dnl Don't use libtool's -export-symbols-regex on such a platform for now
-   dnl
-   XINE_PLUGIN_MIN_SYMS=""
-fi
-
-AC_SUBST(XINE_PLUGIN_MIN_SYMS)
 
 dnl ---------------------------------------------
 dnl Set IMPURE_TEXT_LDFLAGS

@@ -34,11 +34,11 @@ xineplug_decode_mad_la_SOURCES = \
 
 if EXTERNAL_LIBMAD
 xineplug_decode_mad_la_LIBADD = $(XINE_LIB) $(LIBMAD_LIBS)
-xineplug_decode_mad_la_CFLAGS = $(LIBMAD_CFLAGS)
 else
 xineplug_decode_mad_la_LIBADD = $(XINE_LIB)
 endif
-xineplug_decode_mad_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_mad_la_CFLAGS = $(LIBMAD_CFLAGS) $(VISIBILITY_FLAG)
+xineplug_decode_mad_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = \
 	D.dat \

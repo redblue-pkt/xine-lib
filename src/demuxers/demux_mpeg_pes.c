@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.35 2006/06/17 15:20:56 dgp85 Exp $
+ * $Id: demux_mpeg_pes.c,v 1.36 2006/07/10 22:08:13 dgp85 Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -1676,7 +1676,7 @@ static const demuxer_info_t demux_info_mpeg_pes = {
   10                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_DEMUX, 26, "mpeg_pes", XINE_VERSION_CODE, &demux_info_mpeg_pes, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

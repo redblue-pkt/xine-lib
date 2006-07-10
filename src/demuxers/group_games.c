@@ -19,7 +19,7 @@
  *
  * This file contains plugin entries for several demuxers used in games
  *
- * $Id: group_games.c,v 1.14 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: group_games.c,v 1.15 2006/07/10 22:08:13 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -79,7 +79,7 @@ static const demuxer_info_t demux_info_vmd = {
   10                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_DEMUX, 26, "wve",      XINE_VERSION_CODE, &demux_info_eawve,    demux_eawve_init_plugin},
   { PLUGIN_DEMUX, 26, "idcin",    XINE_VERSION_CODE, &demux_info_idcin,    demux_idcin_init_plugin },

@@ -1,7 +1,5 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = $(LIBFLAC_CFLAGS)
-
 if HAVE_FLAC
 flac_module = xineplug_flac.la
 endif
@@ -12,6 +10,7 @@ lib_LTLIBRARIES = $(flac_module)
 
 xineplug_flac_la_SOURCES = demux_flac.c decoder_flac.c
 xineplug_flac_la_LIBADD = $(LIBFLAC_LIBS) $(XINE_LIB)
-xineplug_flac_la_LDFLAGS = -avoid-version -module -lFLAC @XINE_PLUGIN_MIN_SYMS@
+xineplug_flac_la_CFLAGS = $(LIBFLAC_CFLAGS) $(VISIBILITY_FLAG)
+xineplug_flac_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = demux_flac.h

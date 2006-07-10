@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_vcd.c,v 1.84 2006/05/03 19:46:07 dsalt Exp $
+ * $Id: input_vcd.c,v 1.85 2006/07/10 22:08:16 dgp85 Exp $
  *
  */
 
@@ -1114,7 +1114,7 @@ static void *init_class (xine_t *xine, void *data) {
  * exported plugin catalog entry
  */
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 17, "VCDO", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

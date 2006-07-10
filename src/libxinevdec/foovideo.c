@@ -23,7 +23,7 @@
  * value from the last frame. This creates a slowly rotating solid color
  * frame when the frames are played in succession.
  *
- * $Id: foovideo.c,v 1.25 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: foovideo.c,v 1.26 2006/07/10 22:08:43 dgp85 Exp $
  */
 
 #include <stdio.h>
@@ -296,7 +296,7 @@ static const decoder_info_t dec_info_video = {
  * The plugin catalog entry. This is the only information that this plugin
  * will export to the public.
  */
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* { type, API, "name", version, special_info, init_function } */
   { PLUGIN_VIDEO_DECODER, 18, "foovideo", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

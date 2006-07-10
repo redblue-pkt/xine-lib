@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.43 2006/06/14 15:44:54 komadori Exp $
+ * $Id: audio_sun_out.c,v 1.44 2006/07/10 22:08:12 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1017,7 +1017,7 @@ static const ao_info_t ao_info_sun = {
  * exported plugin catalog entry
  */
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_OUT, AO_SUN_IFACE_VERSION, "sun", XINE_VERSION_CODE, &ao_info_sun, ao_sun_init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

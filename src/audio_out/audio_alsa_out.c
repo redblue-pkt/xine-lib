@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.160 2006/05/03 19:46:06 dsalt Exp $
+ * $Id: audio_alsa_out.c,v 1.161 2006/07/10 22:08:12 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1685,7 +1685,7 @@ static ao_info_t ao_info_alsa = {
  * exported plugin catalog entry
  */
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_OUT, AO_OUT_ALSA_IFACE_VERSION, "alsa", XINE_VERSION_CODE, &ao_info_alsa, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

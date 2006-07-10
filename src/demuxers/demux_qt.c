@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.209 2006/06/19 13:51:04 hadess Exp $
+ * $Id: demux_qt.c,v 1.210 2006/07/10 22:08:13 dgp85 Exp $
  *
  */
 
@@ -3096,7 +3096,7 @@ static const demuxer_info_t demux_info_qt = {
   10                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_DEMUX, 26, "quicktime", XINE_VERSION_CODE, &demux_info_qt, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

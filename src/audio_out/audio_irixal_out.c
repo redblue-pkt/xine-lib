@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.14 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: audio_irixal_out.c,v 1.15 2006/07/10 22:08:12 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -420,7 +420,7 @@ ao_info_t *get_audio_out_plugin_info()
  * exported plugin catalog entry
  */
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_AUDIO_OUT, AO_OUT_IRIXAL_IFACE_VERSION, "irixal", XINE_VERSION_CODE, &ao_info_irixal, init_audio_out_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

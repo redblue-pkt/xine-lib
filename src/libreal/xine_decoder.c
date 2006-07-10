@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.82 2006/06/17 12:28:31 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.83 2006/07/10 22:08:30 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -577,6 +577,10 @@ static void dispose_class (video_decoder_class_t *this) {
 /*
  * some fake functions to make real codecs happy 
  */
+void *__builtin_vec_new(uint32_t size) EXPORTED;
+void __builtin_vec_delete(void *mem) EXPORTED;
+void __pure_virtual(void) EXPORTED;
+
 void *__builtin_vec_new(uint32_t size) {
   return malloc(size);
 }
@@ -660,7 +664,7 @@ static const decoder_info_t dec_info_real = {
   7                    /* priority        */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 18, "real", XINE_VERSION_CODE, &dec_info_real, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

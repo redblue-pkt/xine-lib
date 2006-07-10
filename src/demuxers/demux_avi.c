@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.227 2006/06/18 19:41:39 dgp85 Exp $
+ * $Id: demux_avi.c,v 1.228 2006/07/10 22:08:13 dgp85 Exp $
  *
  * demultiplexer for avi streams
  *
@@ -2361,7 +2361,7 @@ static const demuxer_info_t demux_info_avi = {
   10                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 26, "avi", XINE_VERSION_CODE, &demux_info_avi, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

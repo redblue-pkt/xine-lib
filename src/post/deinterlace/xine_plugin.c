@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.50 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: xine_plugin.c,v 1.51 2006/07/10 22:08:44 dgp85 Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -47,7 +47,7 @@ static void *deinterlace_init_plugin(xine_t *xine, void *);
 /* plugin catalog information */
 static const post_info_t deinterlace_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 9, "tvtime", XINE_VERSION_CODE, &deinterlace_special_info, &deinterlace_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

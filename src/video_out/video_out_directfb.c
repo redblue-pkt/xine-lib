@@ -2079,7 +2079,7 @@ static const vo_info_t vo_info_directfb_x11 = {
 
 /*********/
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_VIDEO_OUT, VIDEO_OUT_DRIVER_IFACE_VERSION, "DirectFB",
     XINE_VERSION_CODE, &vo_info_directfb_fb, init_class_fb },

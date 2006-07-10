@@ -48,6 +48,7 @@ libdeinterlaceplugins_la_SOURCES = \
 	kdetv_greedyh.c \
 	kdetv_tomsmocomp.c
 libdeinterlaceplugins_la_LIBADD = $(XINE_LIB)
-libdeinterlaceplugins_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+libdeinterlaceplugins_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
+libdeinterlaceplugins_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = plugins.h greedyhmacros.h

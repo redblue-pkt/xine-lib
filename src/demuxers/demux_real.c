@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.108 2006/06/02 22:18:57 dsalt Exp $
+ * $Id: demux_real.c,v 1.109 2006/07/10 22:08:13 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1655,7 +1655,7 @@ static const demuxer_info_t demux_info_real = {
   10                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 26, "real", XINE_VERSION_CODE, &demux_info_real, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

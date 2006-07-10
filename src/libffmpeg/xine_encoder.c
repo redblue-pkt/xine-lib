@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_encoder.c,v 1.24 2006/06/30 00:21:30 dgp85 Exp $
+ * $Id: xine_encoder.c,v 1.25 2006/07/10 22:08:29 dgp85 Exp $
  */
  
 /* mpeg encoders for the dxr3 video out plugin. */
@@ -51,8 +51,8 @@
 #define DEFAULT_BUFFER_SIZE 512*1024
 
 
-/*initialisation function*/
-int         dxr3_encoder_init(dxr3_driver_t *drv);
+/*initialisation function, used by the dxr3 plugin */
+int         dxr3_encoder_init(dxr3_driver_t *drv) EXPORTED;
 
 /* functions required by encoder api */
 static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame);

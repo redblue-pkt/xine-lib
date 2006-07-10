@@ -23,7 +23,7 @@
  *   32bit float output
  *   Seeking??
  *
- * $Id: xine_decoder.c,v 1.8 2006/06/18 20:29:04 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.9 2006/07/10 22:08:29 dgp85 Exp $
  */
 
 #include <stdio.h>
@@ -459,7 +459,7 @@ static const decoder_info_t dec_info_audio = {
   5                    /* priority        */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* { type, API version, "name", version, special_info, init_function }, */
   { PLUGIN_AUDIO_DECODER, 15, "mpc", XINE_VERSION_CODE, &dec_info_audio, &init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

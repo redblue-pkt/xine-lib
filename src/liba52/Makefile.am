@@ -29,7 +29,8 @@ else
 xineplug_decode_a52_la_LIBADD = $(XINE_LIB)
 endif
 
-xineplug_decode_a52_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_a52_la_CFLAGS = $(VISIBILITY_FLAG)
+xineplug_decode_a52_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = \
 	a52.h \

@@ -30,7 +30,7 @@
  * One more catch: Raw RGB from a Microsoft file is upside down. This is 
  * indicated by a negative height parameter.
  * 
- * $Id: rgb.c,v 1.33 2006/06/02 22:18:58 dsalt Exp $
+ * $Id: rgb.c,v 1.34 2006/07/10 22:08:43 dgp85 Exp $
  */
 
 #include <stdio.h>
@@ -458,7 +458,7 @@ static const decoder_info_t dec_info_video = {
   1                    /* priority        */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER, 18, "rgb", XINE_VERSION_CODE, &dec_info_video, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

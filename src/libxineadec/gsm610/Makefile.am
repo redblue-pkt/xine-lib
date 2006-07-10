@@ -14,6 +14,7 @@ libgsm610_la_SOURCES = \
 	short_term.c \
 	table.c
 
+libgsm610_la_CFLAGS = $(VISIBILITY_FLAG)
 libgsm610_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = \

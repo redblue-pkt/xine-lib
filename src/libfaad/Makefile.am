@@ -12,7 +12,7 @@ lib_LTLIBRARIES = $(faad_module)
 
 VPATH = @srcdir@:@srcdir@/codebook:
 
-xineplug_decode_faad_la_CFLAGS = $(AM_CFLAGS) -fno-strict-aliasing
+xineplug_decode_faad_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS) -fno-strict-aliasing
 xineplug_decode_faad_la_SOURCES = \
 	bits.c \
 	cfft.c \
@@ -54,7 +54,7 @@ xineplug_decode_faad_la_SOURCES = \
 	tns.c \
 	xine_decoder.c
 
-xineplug_decode_faad_la_LDFLAGS = -avoid-version -module @XINE_PLUGIN_MIN_SYMS@
+xineplug_decode_faad_la_LDFLAGS = -avoid-version -module
 xineplug_decode_faad_la_LIBADD = $(XINE_LIB)
 
 noinst_HEADERS = \

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.61 2006/06/02 22:13:45 dsalt Exp $
+ * $Id: xine_goom.c,v 1.62 2006/07/10 22:08:44 dgp85 Exp $
  *
  * GOOM post plugin.
  *
@@ -112,7 +112,7 @@ static const post_info_t goom_special_info = {
   XINE_POST_TYPE_AUDIO_VISUALIZATION
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_POST | PLUGIN_MUST_PRELOAD, 9, "goom", XINE_VERSION_CODE, &goom_special_info, &goom_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

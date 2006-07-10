@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.46 2006/06/02 22:18:56 dsalt Exp $
+ * $Id: demux_matroska.c,v 1.47 2006/07/10 22:08:13 dgp85 Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -2731,7 +2731,7 @@ static const demuxer_info_t demux_info_matroska = {
   10                       /* priority */
 };
 
-const plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_DEMUX, 26, "matroska", XINE_VERSION_CODE, &demux_info_matroska, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }

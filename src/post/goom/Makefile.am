@@ -29,7 +29,8 @@ xineplug_post_goom_la_SOURCES = $(extra_files) xine_goom.c \
 	goomsl_lex.c goomsl_yacc.c graphic.c ifs.c lines.c \
 	plugin_info.c sound_tester.c surf3d.c tentacle3d.c v3d.c
 xineplug_post_goom_la_LIBADD = $(XINE_LIB) $(GOOM_LIBS) $(THREAD_LIBS)
-xineplug_post_goom_la_LDFLAGS = -avoid-version -module $(XINE_PLUGIN_MIN_SYMS)
+xineplug_post_goom_la_CFLAGS = $(VISIBILITY_FLAG)
+xineplug_post_goom_la_LDFLAGS = -avoid-version -module
 
 noinst_HEADERS = cpu_info.h default_scripts.h drawmethods.h gfontlib.h goom.h \
 	goom_config.h goom_config_param.h goom_filters.h goom_fx.h goom_graphic.h \

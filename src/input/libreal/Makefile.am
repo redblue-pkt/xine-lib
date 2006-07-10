@@ -10,7 +10,7 @@ libreal_la_SOURCES = \
   rmff.c \
   sdpplin.c
 
-libreal_la_LDFLAGS = -avoid-version -module
+libreal_la_CFLAGS = $(VISIBILITY_FLAG)
 
 noinst_HEADERS = \
   real.h \
