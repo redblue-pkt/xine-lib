@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.161 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_alsa_out.c,v 1.162 2006/07/11 03:11:51 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,13 +45,7 @@
 
 #define ALSA_PCM_NEW_HW_PARAMS_API
 #define ALSA_PCM_NEW_SW_PARAMS_API
-#ifdef HAVE_ALSA_ASOUNDLIB_H
-#include <alsa/asoundlib.h>
-#elif HAVE_SYS_ASOUNDLIB_H
-#include <sys/asoundlib.h>
-#else
-#error "required asoundlib.h neither in sys/ nor alsa/ - unable to compile."
-#endif
+#include <asoundlib.h>
 
 #include <sys/ioctl.h>
 #include <inttypes.h>
