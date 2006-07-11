@@ -1877,14 +1877,6 @@ fi
 
 
 dnl ---------------------------------------------
-dnl Using or not using -fPIC (override default behavior - system dependent)
-dnl ---------------------------------------------
-
-AC_ARG_ENABLE(fpic, AC_HELP_STRING([--disable-fpic], [disable -fPIC on shared libs (default on x86)]),
-   enable_fpic=$enableval)
-
-
-dnl ---------------------------------------------
 dnl Some extra checks.
 dnl ---------------------------------------------
 
@@ -2402,43 +2394,6 @@ win32/Makefile
 win32/include/Makefile])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT
-
-
-dnl ---------------------------------------------
-dnl Hack the libtool script (if required).
-dnl
-dnl If user intentionnaly overrided detection, use wish.
-dnl ---------------------------------------------
-
-if test x"$enable_fpic" != x; then
-   case "${enable_fpic}" in
-     yes)
-       no_fpic="no"
-       ;;
-     *)
-       no_fpic="yes"
-       ;;
-   esac
-fi
-
-dnl made libtool define BUILD_BASENAME
-dnl cat libtool | sed -e 's/s/command\=\"\$base_compile\ \$srcfile/command\=\"\$base_compile\ \$srcfile\ \-DBUILD_BASENAME\=\`echo\ \$srcfile\ \|\ sed\ \-e\ '\''s\/\\.\[csS\]\/\/g'\''\`/g' > libtool.tmp
-dnl cat libtool.tmp > libtool
-dnl chmod +x libtool
-
-dnl make libtool-nofpic silent and not installing plugins's .la files
-cat libtool | sed -e 's/^.*echo \"---------.*$/exit 0/;s/# Install the pseudo-library.*/continue/' > libtool.tmp
-
-dnl Remove fPIC flag, if necessary
-if test x$no_fpic = "xyes"; then
-  cat libtool.tmp | sed -e 's/^pic_flag=/#pic_flag=/;s/^ *pic_mode=.*$/pic_mode=no/' > libtool-nofpic
-else
-  cat libtool.tmp > libtool-nofpic
-fi
-
-rm -f libtool.tmp
-chmod +x libtool-nofpic
-
 
 dnl ---------------------------------------------
 dnl Some infos:
