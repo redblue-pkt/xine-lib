@@ -963,35 +963,13 @@ dnl ---------------------------------------------
 dnl check for polypaudio
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([polypaudio],
-  AC_HELP_STRING([--disable-polypaudio], [do not build Polypaudio support]),
-  [with_polypaudio=$enableval], [with_polypaudio=yes])
+AC_ARG_WITH([polypaudio],
+  AS_HELP_STRING([--with-polypaudio], [Build Polypaudio support (deprecated)]))
 
 if test "x$with_polypaudio" = "xyes"; then
-  AC_MSG_CHECKING(for polypaudio)
-  dnl do some actual testing here
-  if test x$PKG_CONFIG = xno ; then
-    AC_MSG_RESULT(no)
-    echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
-    echo "*** All of polypaudio dependent parts will be disabled"
-  else
-      POLYPAUDIO_REQUIRED_VERSION=0.6
-      if $PKG_CONFIG --atleast-version $POLYPAUDIO_REQUIRED_VERSION polyplib ; then
-          POLYPAUDIO_CFLAGS=`$PKG_CONFIG --cflags polyplib`
-          POLYPAUDIO_LIBS=`$PKG_CONFIG --libs polyplib`
-          have_polypaudio="yes"
-          AC_MSG_RESULT(yes)
-      else
-          AC_MSG_RESULT(no)
-          AC_MSG_RESULT([*** All of polypaudio dependent parts will be disabled ***])
-      fi
-  fi
-  AC_SUBST(POLYPAUDIO_CFLAGS)
-  AC_SUBST(POLYPAUDIO_LIBS)
-else
-  have_polypaudio=no
+   PKG_CHECK_MODULES([POLYPAUDIO], [polyplib >= 0.6], [have_polypaudio="yes"], [have_polypaudio="no"])
 fi
-AM_CONDITIONAL(HAVE_POLYPAUDIO, [test x"$have_polypaudio" = x"yes"])
+AM_CONDITIONAL(HAVE_POLYPAUDIO, [test "x$have_polypaudio" = "xyes"])
 
 dnl ---------------------------------------------
 dnl check for pulseaudio
