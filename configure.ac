@@ -2072,6 +2072,7 @@ case $host_os in
       dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
       dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
       dnl from automake 1.6.
+        ;;
   *)
 	;;
 esac
