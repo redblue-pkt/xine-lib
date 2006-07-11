@@ -43,6 +43,10 @@ if HAVE_POLYPAUDIO
 polypaudio_module = xineplug_ao_out_polypaudio.la
 endif
 
+if HAVE_PULSEAUDIO
+pulseaudio_module = xineplug_ao_out_pulseaudio.la
+endif
+
 if HAVE_FUSIONSOUND
 fusionsound_module = xineplug_ao_out_fusionsound.la
 endif
@@ -63,6 +67,7 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la xineplug_ao_out_file.la \
 	$(directx_module) \
 	$(coreaudio_module) \
 	$(polypaudio_module) \
+	$(pulseaudio_module) \
 	$(directx2_module)	\
 	$(fusionsound_module)
 
@@ -133,6 +138,11 @@ xineplug_ao_out_polypaudio_la_SOURCES = audio_polyp_out.c
 xineplug_ao_out_polypaudio_la_LIBADD = $(POLYPAUDIO_LIBS) $(XINE_LIB)
 xineplug_ao_out_polypaudio_la_CFLAGS = $(VISIBILITY_FLAG) $(POLYPAUDIO_CFLAGS)
 xineplug_ao_out_polypaudio_la_LDFLAGS = -avoid-version -module
+
+xineplug_ao_out_pulseaudio_la_SOURCES = audio_pulse_out.c
+xineplug_ao_out_pulseaudio_la_LIBADD = $(PULSEAUDIO_LIBS) $(XINE_LIB)
+xineplug_ao_out_pulseaudio_la_CFLAGS = $(VISIBILITY_FLAG) $(PULSEAUDIO_CFLAGS)
+xineplug_ao_out_pulseaudio_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_directx2_la_SOURCES = audio_directx2_out.c
 xineplug_ao_out_directx2_la_CPPFLAGS = $(DIRECTX_CPPFLAGS)

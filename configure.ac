@@ -994,6 +994,18 @@ fi
 AM_CONDITIONAL(HAVE_POLYPAUDIO, [test x"$have_polypaudio" = x"yes"])
 
 dnl ---------------------------------------------
+dnl check for pulseaudio
+dnl ---------------------------------------------
+
+AC_ARG_WITH([pulseaudio],
+   AS_HELP_STRING([--without-pulseaudio], [Do not build Pulseaudio support]))
+
+if test "x$with_pulseaudio" != "xno"; then
+   PKG_CHECK_MODULES([PULSEAUDIO], [libpulse], [have_pulseaudio="yes"], [have_pulseaudio="no"])
+fi
+AM_CONDITIONAL(HAVE_PULSEAUDIO, [test x"$have_pulseaudio" = x"yes"])
+
+dnl ---------------------------------------------
 dnl check for DirectX
 dnl ---------------------------------------------
 
@@ -2722,6 +2734,9 @@ if test x"$have_coreaudio" = "xyes"; then
 fi  
 if test x"$have_polypaudio" = "xyes"; then
   echo "   - polypaudio sound server"
+fi
+if test "x$have_pulseaudio" = "xyes"; then
+  echo "   - pulseaudio sound server"
 fi
 echo "---"
 
