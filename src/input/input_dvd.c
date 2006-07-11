@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.208 2006/07/10 22:08:15 dgp85 Exp $
+ * $Id: input_dvd.c,v 1.209 2006/07/11 03:22:59 dgp85 Exp $
  *
  */
 
@@ -1783,8 +1783,13 @@ static void *init_class (xine_t *xine, void *data) {
 					     _("The path to the device, usually a "
 					       "DVD drive, which you intend to use for playing DVDs."),
 					     10, device_change_cb, (void *)this);
-  
-  if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
+
+#ifdef HOST_OS_DARWIN
+  if ((dvdcss = dlopen("libdvdcss.2.dylib", RTLD_LAZY)) != NULL)
+#else
+  if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL)
+#endif
+  {
     /* we have found libdvdcss, enable the specific config options */
     char *raw_device;
     static char *decrypt_modes[] = { "key", "disc", "title", NULL };

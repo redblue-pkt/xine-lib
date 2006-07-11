@@ -1991,8 +1991,8 @@ case "$host_or_hostalias" in
     
     if test x$enable_altivec != xno; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you want to use altivec on PowerPC CPUs])
-        CFLAGS="$CFLAGS -faltivec"
-        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec"
+        CFLAGS="$CFLAGS -faltivec -maltivec"
+        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec -maltivec"
     fi
     ;;
   ppc-*-linux* | powerpc-*) 

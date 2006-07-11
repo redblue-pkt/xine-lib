@@ -364,10 +364,12 @@ int dvdinput_setup(void)
 #else
   /* dlopening libdvdcss */
 
-#ifndef WIN32
-  dvdcss_library = dlopen("libdvdcss.so.2", RTLD_LAZY);
-#else
+#ifdef HOST_OS_DARWIN
+  dvdcss_library = dlopen("libdvdcss.2.dylib", RTLD_LAZY);
+#elif defined(WIN32)
   dvdcss_library = dlopen("libdvdcss.dll", RTLD_LAZY);
+#else
+  dvdcss_library = dlopen("libdvdcss.so.2", RTLD_LAZY);
 #endif
 
   if(dvdcss_library != NULL) {
@@ -400,7 +402,7 @@ int dvdinput_setup(void)
       dvdcss_library = NULL;
     } else if(!DVDcss_open  || !DVDcss_close || !DVDcss_title || !DVDcss_seek
 	      || !DVDcss_read || !DVDcss_error || !dvdcss_version) {
-      fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss.so.2, "
+      fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss, "
 	      "this shouldn't happen !\n");
       dlclose(dvdcss_library);
     }
