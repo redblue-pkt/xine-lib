@@ -1,3 +1,14 @@
+xine-lib (1.1.3)
+  * Update build system to support x86 Darwin setups, and merge patches to
+    support Darwin OS better.
+  * Replace custom ALSA check with pkg-config check, and make sure 0.9.0 is
+    the requried version.
+  * When the compiler supports it, enable hidden visibility for all the
+    plugins to export only the plugin info entry (and eventual needed
+    special functions), to replace the min-symtab option that wasn't working.
+  * Add "m4b" to the list of supported file extensions for the Qt demuxer, to
+    allow playing (unprotected) audiobooks in AAC format.
+	
 xine-lib (1.1.2)
   * Security fixes:
     - CVE-2005-4048: possible buffer overflow in libavcodec (crafted PNGs).
