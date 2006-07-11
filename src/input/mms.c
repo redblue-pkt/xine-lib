@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.59 2006/06/20 01:46:41 dgp85 Exp $
+ * $Id: mms.c,v 1.60 2006/07/11 09:37:31 mshopf Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -138,7 +138,7 @@ struct mms_s {
   int           num_stream_ids;
   int           stream_ids[ASF_MAX_NUM_STREAMS];
   int           stream_types[ASF_MAX_NUM_STREAMS];
-  int           asf_packet_len;
+  uint32_t      asf_packet_len;
   uint64_t      file_len;
   char          guid[37];
   uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
@@ -371,13 +371,17 @@ static int get_packet_header (mms_t *this, mms_packet_header_t *header) {
       goto error;
     
     header->packet_len = LE_32(this->buf + 8) + 4;
+    if (header->packet_len > BUF_SIZE - 12) {
+      header->packet_len = 0;
+      goto error;
+    }
     lprintf("mms command\n");
     packet_type = MMS_PACKET_COMMAND;
   } else {
     header->packet_seq     = LE_32(this->buf);
     header->packet_id_type = this->buf[4];
     header->flags          = this->buf[5];
-    header->packet_len     = LE_16(this->buf + 6) - 8;
+    header->packet_len     = (LE_16(this->buf + 6) - 8) & 0xffff;
     if (header->packet_id_type == ASF_HEADER_PACKET_ID_TYPE) {
       lprintf("asf header\n");
       packet_type = MMS_PACKET_ASF_HEADER;
@@ -497,6 +501,11 @@ static int get_asf_header (mms_t *this) {
         break;
       case MMS_PACKET_ASF_HEADER:
       case MMS_PACKET_ASF_PACKET:
+	if (header.packet_len + this->asf_header_len > ASF_HEADER_LEN) {
+	    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+		     "libmms: asf packet too large\n");
+	    return 0;
+	}
         len = _x_io_tcp_read (this->stream, this->s,
                               (char*)(this->asf_header + this->asf_header_len), header.packet_len);
         if (len != header.packet_len) {
@@ -542,6 +551,12 @@ static void interp_asf_header (mms_t *this) {
       case GUID_ASF_FILE_PROPERTIES:
 
         this->asf_packet_len = LE_32(this->asf_header + i + 92 - 24);
+        if (this->asf_packet_len > BUF_SIZE) {
+          this->asf_packet_len = 0;
+	  xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+		   "libmms: asf packet len too large\n");
+	  break;
+        }
         this->file_len       = LE_64(this->asf_header + i + 40 - 24);
         lprintf ("file object, file_length = %lld, packet length = %d",
 		 this->file_len, this->asf_packet_len);

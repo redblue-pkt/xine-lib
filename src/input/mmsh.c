@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.37 2006/06/20 01:46:41 dgp85 Exp $
+ * $Id: mmsh.c,v 1.38 2006/07/11 09:37:31 mshopf Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -182,7 +182,7 @@ struct mmsh_s {
   int           num_stream_ids;
   int           stream_ids[ASF_MAX_NUM_STREAMS];
   int           stream_types[ASF_MAX_NUM_STREAMS];
-  int           packet_length;
+  uint32_t      packet_length;
   int64_t       file_length;
   char          guid[37];
   uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
@@ -491,6 +491,10 @@ static void interp_header (mmsh_t *this) {
       case GUID_ASF_FILE_PROPERTIES:
 
         this->packet_length = LE_32(this->asf_header + i + 92 - 24);
+	if (this->packet_length > CHUNK_SIZE) {
+	  this->packet_length = 0;
+	  break;
+	}
         this->file_length   = LE_64(this->asf_header + i + 40 - 24);
         /*lprintf ("file object, file_length = %lld, packet length = %d",
 		 this->file_length, this->packet_count);*/
