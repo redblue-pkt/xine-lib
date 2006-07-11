@@ -1,10 +1,15 @@
-xine-lib (1.1.1+cvs20060702-2) UNRELEASED; urgency=low
+xine-lib (1.1.2-1) UNRELEASED; urgency=low
 
+  * New upstream release.
+
+  [Reinhard Tartler]
   * updated README.Debian
 
   [Darren Salt]
-  * Option to prevent autogen.sh from being run on package build.
-    Use DEB_BUILD_OPTIONS='noauto'.
+  * Option to prevent autogen.sh from being run on package build and the
+    generated files from being removed on cleanup.
+    Use DEB_BUILD_OPTIONS='noauto' at build time to invoke this behaviour.
+  * Make DEB_BUILD_OPTIONS='noopt' also use --disable-optimizations.
 
  -- Reinhard Tartler <siretart@tauware.de>  Mon,  3 Jul 2006 11:13:30 +0200
 

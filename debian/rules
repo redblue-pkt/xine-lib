@@ -20,9 +20,12 @@ major=`ls src/xine-engine/.libs/libxine*.so.* | \
 DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
+DEB_BUILD_CONFIG_OPTIONS :=
+
 CFLAGS += -g
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -O0
+	DEB_BUILD_CONFIG_OPTIONS += --disable-optimizations
 endif
 INSTALL_TARGET := install
 BUILD_TARGET := all
@@ -52,23 +55,26 @@ ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
   $(warning          ignoring DEB_HOST_GNU_TYPE = $(DEB_HOST_GNU_TYPE))
   DEB_HOST_GNU_TYPE := $(DEB_BUILD_GNU_TYPE)
  endif
- DEB_BUILD_GNU_OPTION := --build=$(DEB_BUILD_GNU_TYPE)
+ DEB_BUILD_CONFIG_OPTIONS += --build=$(DEB_BUILD_GNU_TYPE)
 endif
 
+# --mandir - remove after etch released (autoconf >= 2.59c gets it right)
 CONFIGURE_FLAGS := --prefix=/usr \
 	--mandir=\$${prefix}/share/man \
 	--with-external-libmad \
-	$(DEB_BUILD_GNU_OPTION) \
+	$(DEB_BUILD_CONFIG_OPTIONS) \
 	CFLAGS="$(CFLAGS)"
 
-configure: configure-stamp $(AUTOGEN)
+configure: configure-stamp
 configure-stamp:
 	dh_testdir
-ifeq (,$(findstring noauto,$(DEB_BUILD_OPTIONS))
+ifeq (,$(findstring noauto,$(DEB_BUILD_OPTIONS)))
 	# let's run autohell on the buildds!
+	-rm -f .noauto
 	chmod +x ./autogen.sh
 	./autogen.sh $(CONFIGURE_FLAGS)
 else
+	touch .noauto
 	./configure $(CONFIGURE_FLAGS)
 endif
 	touch configure-stamp
@@ -91,8 +97,8 @@ clean:
 	rm -f build-stamp configure-stamp po/*.gmo po/stamp-po
 	-$(MAKE) distclean
 	# remove more cruft leftover by autohell
-	-find . -name Makefile.in -print | xargs rm
-	rm -rf compile config.guess configure depcomp install-sh ltmain.sh missing
+	-test -f .noauto || find . -name Makefile.in -print | xargs rm
+	test -f .noauto || rm -rf compile config.guess configure depcomp install-sh ltmain.sh missing
 	dh_clean
 
 install: build
