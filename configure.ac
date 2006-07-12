@@ -173,7 +173,7 @@ AC_C_BIGENDIAN
 dnl AC_C_BIGENDIAN triggers an AC_TRY_RUN warning; we can't cross compile
 dnl xine (oh, well)
 AC_C_CONST
-AC_C_ALWAYS_INLINE
+dnl AC_C_ALWAYS_INLINE removal allows ffmpeg to be more widely buildable
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_CHECK_SIZEOF(long)
