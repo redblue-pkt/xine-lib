@@ -52,16 +52,12 @@ static deinterlace_method_t scalerbobmethod =
     0,
     0,
     0,
-    { "Expands each field independently without",
-      "blurring or copying in time.  Use this if you",
-      "want TV-quality with low CPU, and you have",
-      "configured your monitor to run at the refresh",
-      "rate of the video signal.",
-      "",
-      "Half resolution is poor quality but low CPU",
-      "requirements for watching in a small window.",
-      "",
-      "" }
+    "Expands each field independently without blurring or copying in time.  "
+    "Use this if you want TV-quality with low CPU, and you have configured "
+    "your monitor to run at the refresh rate of the video signal.\n"
+    "\n"
+    "Half resolution is poor quality but low CPU requirements for watching "
+    "in a small window."
 };
 
 deinterlace_method_t *scalerbob_get_method( void )

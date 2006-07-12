@@ -63,16 +63,7 @@ static deinterlace_method_t greedy2framemethod =
     0,
     DeinterlaceGreedy2Frame_SSE,
     1,
-    { "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "" }
+    NULL
 };
 
 deinterlace_method_t *greedy2frame_get_method( void )

@@ -64,16 +64,12 @@ static deinterlace_method_t linearmethod =
     copy_scanline,
     0,
     0,
-    { "Expands each field independently without",
-      "blurring or copying in time.  Use this if you",
-      "want TV-quality with low CPU, and you have",
-      "configured your monitor to run at the refresh",
-      "rate of the video signal.",
-      "",
-      "Full resolution mode expands each field",
-      "to full size for high quality fullscreen use.",
-      "",
-      "" }
+    "Expands each field independently without blurring or copying in time.  "
+    "Use this if you want TV-quality with low CPU, and you have configured "
+    "your monitor to run at the refresh rate of the video signal.\n"
+    "\n"
+    "Full resolution mode expands each field to full size for high quality "
+    "fullscreen use."
 };
 
 deinterlace_method_t *linear_get_method( void )

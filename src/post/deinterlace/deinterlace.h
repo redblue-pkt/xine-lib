@@ -130,7 +130,7 @@ struct deinterlace_method_s
     deinterlace_copy_scanline_t copy_scanline;
     deinterlace_frame_t deinterlace_frame;
     int delaysfield; /* xine: this method delays output by one field relative to input */
-    const char *description[ 10 ];
+    const char *description;
 };
 
 /**

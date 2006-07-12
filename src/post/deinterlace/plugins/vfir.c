@@ -148,16 +148,12 @@ static deinterlace_method_t vfirmethod =
     copy_scanline,
     0,
     0,
-    { "Avoids flicker by blurring consecutive frames",
-      "of input.  Use this if you want to run your",
-      "monitor at an arbitrary refresh rate and not",
-      "use much CPU, and are willing to sacrifice",
-      "detail.",
-      "",
-      "Vertical mode blurs favouring the most recent",
-      "field for less visible trails.  From the",
-      "deinterlacer filter in ffmpeg.",
-      "" }
+    "Avoids flicker by blurring consecutive frames of input.  Use this if you "
+    "want to run your monitor at an arbitrary refresh rate and not use much "
+    "CPU, and are willing to sacrifice detail.\n"
+    "\n"
+    "Vertical mode blurs favouring the most recent field for less visible "
+    "trails.  From the deinterlacer filter in ffmpeg."
 };
 
 deinterlace_method_t *vfir_get_method( void )

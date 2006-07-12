@@ -116,16 +116,13 @@ static deinterlace_method_t greedymethod =
     0,
     deinterlace_frame_di_greedyh,
     0,
-    { "Uses heuristics to detect motion in the input",
-      "frames and reconstruct image detail where",
-      "possible.  Use this for high quality output",
-      "even on monitors set to an arbitrary refresh",
-      "rate.",
-      "",
-      "Advanced detection uses linear interpolation",
-      "where motion is detected, using a four-field",
-      "buffer.  This is the Greedy: High Motion",
-      "deinterlacer from DScaler." }
+    "Uses heuristics to detect motion in the input frames and reconstruct "
+    "image detail where possible.  Use this for high quality output even "
+    "on monitors set to an arbitrary refresh rate.\n"
+    "\n"
+    "Advanced detection uses linear interpolation where motion is "
+    "detected, using a four-field buffer.  This is the Greedy: High Motion "
+    "deinterlacer from DScaler."
 };
 
 deinterlace_method_t *dscaler_greedyh_get_method( void )

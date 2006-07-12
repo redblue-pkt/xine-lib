@@ -188,16 +188,13 @@ static deinterlace_method_t greedymethod =
     deinterlace_greedy_packed422_scanline_mmxext,
     0,
     1,
-    { "Uses heuristics to detect motion in the input",
-      "frames and reconstruct image detail where",
-      "possible.  Use this for high quality output",
-      "even on monitors set to an arbitrary refresh",
-      "rate.",
-      "",
-      "Simple detection uses linear interpolation",
-      "where motion is detected, using a two-field",
-      "buffer.  This is the Greedy: Low Motion",
-      "deinterlacer from DScaler." }
+    "Uses heuristics to detect motion in the input frames and reconstruct "
+    "image detail where possible.  Use this for high quality output even "
+    "on monitors set to an arbitrary refresh rate.\n"
+    "\n"
+    "Simple detection uses linear interpolation where motion is detected, "
+    "using a two-field buffer.  This is the Greedy: Low Motion deinterlacer "
+    "from DScaler."
 };
 
 deinterlace_method_t *greedy_get_method( void )

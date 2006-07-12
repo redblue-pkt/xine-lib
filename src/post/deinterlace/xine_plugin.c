@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.c,v 1.51 2006/07/10 22:08:44 dgp85 Exp $
+ * $Id: xine_plugin.c,v 1.52 2006/07/12 21:08:46 dsalt Exp $
  *
  * advanced video deinterlacer plugin
  * Jun/2003 by Miguel Freitas
@@ -57,7 +57,7 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
 typedef struct post_plugin_deinterlace_s post_plugin_deinterlace_t;
 
 #define MAX_NUM_METHODS 30
-static char *enum_methods[MAX_NUM_METHODS];
+static const char *enum_methods[MAX_NUM_METHODS];
 static char *enum_pulldown[] = { "none", "vektor", NULL };
 static char *enum_framerate[] = { "full", "half_top", "half_bottom", NULL };
 
@@ -331,29 +331,19 @@ static void *deinterlace_init_plugin(xine_t *xine, void *data)
 
   enum_methods[0] = "use_vo_driver";
   for(i = 0; i < get_num_deinterlace_methods(); i++ ) {
-    int j, desc_len;
     deinterlace_method_t *method;
 
     method = get_deinterlace_method(i);
     
-    enum_methods[i+1] = (char *)method->short_name;
+    enum_methods[i+1] = method->short_name;
     xine_buffer_strcat( help_string, "[" );
-    xine_buffer_strcat( help_string, (char *)method->short_name );
+    xine_buffer_strcat( help_string, method->short_name );
     xine_buffer_strcat( help_string, "] " );
-    xine_buffer_strcat( help_string, (char *)method->name );
+    xine_buffer_strcat( help_string, method->name );
     xine_buffer_strcat( help_string, ":\n" );
-
-    desc_len = 0;
-    for(j = 0; j < sizeof(method->description)/sizeof(method->description[0]); j++ ) {
-      if( strlen(method->description[j]) )
-        desc_len = j+1;
-    }
-
-    for(j = 0; j < desc_len; j++ ) {
-      xine_buffer_strcat( help_string, (char *)method->description[j] );
-      xine_buffer_strcat( help_string, "\n" );
-    }
-    xine_buffer_strcat( help_string, "---\n" );
+    if (method->description)
+      xine_buffer_strcat( help_string, method->description );
+    xine_buffer_strcat( help_string, "\n---\n" );
   }
   enum_methods[i+1] = NULL;
   

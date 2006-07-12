@@ -61,16 +61,7 @@ static deinterlace_method_t doublemethod =
     copy_scanline,
     0,
     0,
-    { "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "" }
+    NULL
 };
 
 deinterlace_method_t *double_get_method( void )

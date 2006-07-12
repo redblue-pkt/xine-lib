@@ -132,16 +132,12 @@ static deinterlace_method_t tomsmocompmethod =
     0,
     deinterlace_frame_di_tomsmocomp,
     0,
-    { "Uses heuristics to detect motion in the input",
-      "frames and reconstruct image detail where",
-      "possible.  Use this for high quality output",
-      "even on monitors set to an arbitrary refresh",
-      "rate.",
-      "",
-      "Motion search mode finds and follows motion",
-      "vectors for accurate interpolation.  This is",
-      "the TomsMoComp deinterlacer from DScaler.",
-      "" }
+    "Uses heuristics to detect motion in the input frames and reconstruct "
+    "image detail where possible.  Use this for high quality output even "
+    "on monitors set to an arbitrary refresh rate.\n"
+    "\n"
+    "Motion search mode finds and follows motion vectors for accurate "
+    "interpolation.  This is the TomsMoComp deinterlacer from DScaler."
 };
 
 deinterlace_method_t *dscaler_tomsmocomp_get_method( void )
