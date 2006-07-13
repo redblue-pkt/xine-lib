@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_mutex.c,v 1.3 2006/06/23 18:24:22 dsalt Exp $
+ * $Id: xine_mutex.c,v 1.4 2006/07/13 09:49:32 mshopf Exp $
  *
  */
 
@@ -35,7 +35,7 @@ int xine_mutex_init (xine_mutex_t *mutex, const pthread_mutexattr_t *mutexattr,
 		     const char *id) {
 
 #ifdef DBG_MUTEX
-  strncpy (mutex->id, sizeof (mutex->id), id);
+  strncpy (mutex->id, id, sizeof (mutex->id));
   mutex->id[sizeof (mutex->id) - 1] = 0;
 #endif
 
