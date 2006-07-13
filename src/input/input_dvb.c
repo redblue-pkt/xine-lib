@@ -2512,7 +2512,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
 
   /* no data for several seconds - tell the user a possible reason */
   if(this->read_failcount==5){
-    _x_message(this->stream,1,"DVB Signal Lost.  Please check connections."); 
+    _x_message(this->stream,1,"DVB Signal Lost.  Please check connections.", NULL); 
   }
 #ifdef DVB_NO_BUFFERING
   if(this->newchannel){
