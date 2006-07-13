@@ -33,9 +33,9 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 	INSTALL_TARGET := install-debug
 	BUILD_TARGET := debug
 endif
+
 # note also "noauto" to inhibit running of autogen.sh
 
-DEB_BUILD_GNU_OPTION := 
 # the "optimize" flag disables compatibility hacks
 ifeq (,$(findstring optimize,$(DEB_BUILD_OPTIONS)))
  $(warning trying to disable machine-specific optimizations)

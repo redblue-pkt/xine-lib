@@ -1,17 +1,33 @@
-xine-lib (1.1.2-1) UNRELEASED; urgency=low
+xine-lib (1.1.2-2) unstable; urgency=low
 
-  * New upstream release.
+  * readd debian/watch file
+  * update debian/rules from CVS. more complete handling of noauto flag
+    to prevent running auto* tools.
+  * disable AC_C_ALWAYS_INLINE from configure.ac. Should fix FTBFS on a
+    number of architectures.
+  * added patch from Darren Salt to fix build with -O0 on at least amd64
+    in src/libffmpeg/libavcodec/i386/Makefile.am
 
-  [Reinhard Tartler]
+ -- Reinhard Tartler <siretart@tauware.de>  Thu, 13 Jul 2006 11:18:10 +0200
+
+xine-lib (1.1.2-1) unstable; urgency=low
+
+  * New upstream release: 1.1.2
+  * use internal ffmpeg for upload to unstable, we will reinvestigate again
+    in experimental later..
+  * [sparc] Upstream fixed '--enable-vis'. So if compiling with vis, we are
+    using -mcpu=v9. This creates binaries, which probably segfault on 'true'
+    sparc32, but these poor old machines are not going to have much fun with
+    xine anyway... If there is an increasing demand for non-vis sparc
+    binaries, please contact me
   * updated README.Debian
+  * use AM_MAINTAINER_MODE in configure.ac again
 
   [Darren Salt]
-  * Option to prevent autogen.sh from being run on package build and the
-    generated files from being removed on cleanup.
-    Use DEB_BUILD_OPTIONS='noauto' at build time to invoke this behaviour.
-  * Make DEB_BUILD_OPTIONS='noopt' also use --disable-optimizations.
+  * Option to prevent autogen.sh from being run on package build.
+    Use DEB_BUILD_OPTIONS='noauto'.
 
- -- Reinhard Tartler <siretart@tauware.de>  Mon,  3 Jul 2006 11:13:30 +0200
+ -- Reinhard Tartler <siretart@tauware.de>  Wed, 12 Jul 2006 09:53:38 +0200
 
 xine-lib (1.1.1+cvs20060702-1) experimental; urgency=low
 
