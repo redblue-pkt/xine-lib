@@ -2,6 +2,7 @@
 #define _XINE_OS_INTERNAL_H
 
 #include <stddef.h>
+#include <stdarg.h>
 
 #ifdef HOST_OS_DARWIN
   /* Darwin (Mac OS X) needs __STDC_LIBRARY_SUPPORTED__ for SCNx64 and
@@ -96,6 +97,26 @@ time_t _xine_private_timegm(struct tm *tm);
 #ifndef HAVE_UNSETENV
 #define unsetenv(NAME) _xine_private_unsetenv((NAME))
 void _xine_private_unsetenv(const char *name);
+#endif
+
+/* replacement of asprintf & vasprintf */
+#ifndef HAVE_ASPRINTF
+#ifdef __GNUC__
+  #define asprintf(STRINGPP, FORMAT, ARGS...) _xine_private_asprintf((STRINGPP), FORMAT, ##ARGS)
+#elif defined (_MSC_VER)
+  #define asprintf(STRINGPP, FORMATARGS) _xine_private_asprintf((STRINGPP), FORMATARGS)
+#else
+  #define asprintf(STRINGPP, FORMAT, ...) _xine_private_asprintf((STRINGPP), FORMAT, __VA_ARGS__)
+#endif
+#define vasprintf(STRINGPP, FORMAT, VA_ARG) _xine_private_vasprintf((STRINGPP), (FORMAT), (VA_ARG))
+int _xine_private_asprintf(char **string, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
+int _xine_private_vasprintf(char **string, const char *format, va_list ap) __attribute__ ((format (printf, 2, 0)));
+#endif
+
+/* replacement of strndup */
+#ifndef HAVE_STRNDUP
+#define strndup(S, N) _xine_private_strndup((S), (N))
+char *_xine_private_strndup(const char *s, size_t n);
 #endif
 
 /* handle non-standard function names */
