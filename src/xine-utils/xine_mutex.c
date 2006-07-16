@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_mutex.c,v 1.4 2006/07/13 09:49:32 mshopf Exp $
+ * $Id: xine_mutex.c,v 1.5 2006/07/16 14:45:24 dsalt Exp $
  *
  */
 
@@ -29,7 +29,9 @@
 #include <pthread.h>
 #include "xineutils.h"
 
+/*
 #define DBG_MUTEX
+*/
 
 int xine_mutex_init (xine_mutex_t *mutex, const pthread_mutexattr_t *mutexattr,
 		     const char *id) {
