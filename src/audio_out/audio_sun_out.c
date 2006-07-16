@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_sun_out.c,v 1.44 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_sun_out.c,v 1.45 2006/07/16 16:18:09 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -880,6 +880,8 @@ static ao_driver_t *ao_sun_open_plugin (audio_driver_class_t *class_gen, const v
   audio_info_t	       info;
 
   this = (sun_driver_t *) xine_xmalloc (sizeof (sun_driver_t));
+  if (!this)
+    return NULL;
 
   this->xine = class->xine;
 
@@ -997,6 +999,8 @@ static void *ao_sun_init_class (xine_t *xine, void *data) {
   sun_class_t         *this;
 
   this = (sun_class_t *) xine_xmalloc (sizeof (sun_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = ao_sun_open_plugin;
   this->driver_class.get_identifier  = ao_sun_get_identifier;

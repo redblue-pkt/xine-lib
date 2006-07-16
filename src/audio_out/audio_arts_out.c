@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_arts_out.c,v 1.31 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_arts_out.c,v 1.32 2006/07/16 16:18:09 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -306,6 +306,10 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   lprintf ("audio_arts_out: open_plugin called\n");
 
   this = (arts_driver_t *) xine_xmalloc (sizeof (arts_driver_t));
+  if (!this)
+    return NULL;
+
+  this->xine = class->xine;
 
   if (class->inited == 0) {
     rc = arts_init();
@@ -328,8 +332,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   this->mixer.mute      = 0;
   this->mixer.vol_scale = 60;
   this->mixer.v_mixer   = 0;
-
-  this->xine = class->xine;
   /*
    * set capabilities
    */
@@ -385,6 +387,9 @@ static void *init_class (xine_t *xine, void *data) {
   lprintf ("audio_arts_out: init class\n");
 
   this = (arts_class_t *) xine_xmalloc (sizeof (arts_class_t));
+  if (!this)
+    return NULL;
+
   this->inited = 0;
 
   this->driver_class.open_plugin     = open_plugin;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_none_out.c,v 1.10 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_none_out.c,v 1.11 2006/07/16 16:18:09 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -189,6 +189,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   lprintf ("open_plugin called\n");
 
   this = (none_driver_t *) xine_xmalloc (sizeof (none_driver_t));
+  if (!this)
+    return NULL;
 
   this->xine = class->xine;
   this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO;
@@ -237,6 +239,8 @@ static void *init_class (xine_t *xine, void *data) {
   lprintf ("init class\n");
 
   this = (none_class_t *) xine_xmalloc (sizeof (none_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

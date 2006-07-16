@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_esd_out.c,v 1.34 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_esd_out.c,v 1.35 2006/07/16 16:18:09 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -523,10 +523,15 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
 
   esd_close(audio_fd);
 
-
   this                     = (esd_driver_t *) xine_xmalloc (sizeof (esd_driver_t));
+  if (!this)
+    return NULL;
   this->xine               = class->xine;
   this->pname              = strdup("xine esd audio output plugin");
+  if (!this->pname) {
+    free (this);
+    return NULL;
+  }
   this->output_sample_rate = 0;
   this->server_sample_rate = server_sample_rate;
   this->audio_fd           = -1;
@@ -581,6 +586,8 @@ static void *init_class (xine_t *xine, void *data) {
   esd_class_t        *this;
 
   this = (esd_class_t *) xine_xmalloc (sizeof (esd_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

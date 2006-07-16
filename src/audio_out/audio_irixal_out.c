@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_irixal_out.c,v 1.15 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_irixal_out.c,v 1.16 2006/07/16 16:18:09 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -348,6 +348,8 @@ static void *init_audio_out_plugin (config_values_t *config)
 
   /* allocate struct */
   this = (irixal_driver_t *) calloc (sizeof (irixal_driver_t), 1);
+  if (!this)
+    return NULL;
 
   /* get capabilities */
   if ( (numvalues = alQueryValues (useresource, AL_CHANNELS, values, 32, NULL, 0)) > 0)

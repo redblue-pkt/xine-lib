@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.162 2006/07/11 03:11:51 dgp85 Exp $
+ * $Id: audio_alsa_out.c,v 1.163 2006/07/16 16:18:09 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -274,36 +274,13 @@ static void
 			   const char *function, int err, const char *fmt, ...) {
 #ifdef DEBUG
   va_list   args;
-  char     *buf;
-  int       n, size = 100;
-  
-  printf("%s:%s:%d entered\n", __FILE__, __FUNCTION__, __LINE__ );
-  if(!(buf = xine_xmalloc(size))) 
-    return;
-  
-  while(1) {
-    
-    va_start(args, fmt);
-    n = vsnprintf(buf, size, fmt, args);
-    va_end(args);
-    
-    if(n > -1 && n < size)
-      break;
-    
-    if(n > -1)
-      size = n + 1;
-    else
-      size *= 2;
-    
-    if((buf = realloc(buf, size)) == NULL)
-      return;
-  }
-  
-   
-  printf("%s: %s() %s.\n", file, function, buf);
+  char     *buf = NULL;
 
-  if(buf)
-    free(buf);
+  va_start(args, fmt);
+  vasprintf(buf, fmt, args);
+  va_end(args);
+  printf("%s: %s() %s.\n", file, function, buf);
+  free(buf);
 #endif
 }
 
@@ -1348,6 +1325,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   int speakers;
 
   this = (alsa_driver_t *) xine_xmalloc (sizeof (alsa_driver_t));
+  if (!this)
+    return NULL;
 
   this->class = class;
 
@@ -1432,6 +1411,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
           _("snd_pcm_open() failed:%d:%s\n"), err, snd_strerror(err)); 
     xine_log (this->class->xine, XINE_LOG_MSG,
           _(">>> Check if another program already uses PCM <<<\n")); 
+    free(this);
     return NULL; 
   }
 
@@ -1442,6 +1422,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: broken configuration for this PCM: no configurations available\n");
+    snd_pcm_close(this->audio_fd);
+    free(this);
     return NULL;
   }
   err = snd_pcm_hw_params_set_access(this->audio_fd, params,
@@ -1449,6 +1431,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, 
 	     "audio_alsa_out: access type not available");
+    snd_pcm_close(this->audio_fd);
+    free(this);
     return NULL;
   }
 
@@ -1582,6 +1566,12 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                                "information on alsa devices."),
                                              10, NULL,
                                              NULL);
+  if (!this->mixer.name) {
+    if (this->audio_fd)
+      snd_pcm_close (this->audio_fd);
+    free(this);
+    return NULL;
+  }
 
   pthread_mutex_init(&this->mixer.mutex, NULL);
   ao_alsa_mixer_init(&this->ao_driver);
@@ -1660,6 +1650,8 @@ static void *init_class (xine_t *xine, void *data) {
   alsa_class_t        *this;
 
   this = (alsa_class_t *) xine_xmalloc (sizeof (alsa_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

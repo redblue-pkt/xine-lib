@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.116 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_oss_out.c,v 1.117 2006/07/16 16:18:09 dsalt Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -723,6 +723,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   
   this = (oss_driver_t *) xine_xmalloc (sizeof (oss_driver_t));
+  if (!this)
+    return NULL;
 
   /*
    * find best device driver/channel
@@ -1159,6 +1161,8 @@ static void *init_class (xine_t *xine, void *data) {
   oss_class_t        *this;
 
   this = (oss_class_t *) xine_xmalloc (sizeof (oss_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

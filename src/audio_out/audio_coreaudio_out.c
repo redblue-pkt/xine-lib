@@ -529,6 +529,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen,
   lprintf ("open_plugin called\n");
 
   this = (coreaudio_driver_t *) xine_xmalloc (sizeof (coreaudio_driver_t));
+  if (!this)
+    return NULL;
 
   this->xine = class->xine;
   this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO;
@@ -579,6 +581,8 @@ static void *init_class (xine_t *xine, void *data) {
   lprintf ("init class\n");
 
   this = (coreaudio_class_t *) xine_xmalloc (sizeof (coreaudio_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_directx2_out.c,v 1.8 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_directx2_out.c,v 1.9 2006/07/16 16:18:09 dsalt Exp $
  *
  *
  * xine audio output plugin using DirectX
@@ -961,6 +961,9 @@ static ao_driver_t *open_plugin(audio_driver_class_t *class_gen, const void *dat
   lprintf("open plugin called\n");
 
   this = (dx2_driver_t *)xine_xmalloc(sizeof(dx2_driver_t));
+  if (!this)
+    return NULL;
+
   this->class = class;
 
   this->ao_driver.get_capabilities    = ao_dx2_get_capabilities;
@@ -1012,6 +1015,8 @@ static void *init_class(xine_t *xine, void *data) {
   lprintf("init class\n");
 
   this = (dx2_class_t *)xine_xmalloc(sizeof(dx2_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;

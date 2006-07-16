@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_polyp_out.c,v 1.8 2006/07/10 22:08:12 dgp85 Exp $
+ * $Id: audio_polyp_out.c,v 1.9 2006/07/16 16:18:09 dsalt Exp $
  *
  * ao plugin for polypaudio:
  * http://0pointer.de/lennart/projects/polypaudio/
@@ -458,6 +458,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   lprintf ("audio_polyp_out: open_plugin called\n");
 
   this = (polyp_driver_t *) xine_xmalloc (sizeof (polyp_driver_t));
+  if (!this)
+    return NULL;
   this->xine = class->xine;
 
   /*
@@ -549,6 +551,8 @@ static void *init_class (xine_t *xine, void *data) {
   lprintf ("audio_polyp_out: init class\n");
 
   this = (polyp_class_t *) xine_xmalloc (sizeof (polyp_class_t));
+  if (!this)
+    return NULL;
 
   this->driver_class.open_plugin     = open_plugin;
   this->driver_class.get_identifier  = get_identifier;
