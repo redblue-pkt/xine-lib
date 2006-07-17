@@ -61,7 +61,7 @@
  * instructions), these macros will automatically map to those special
  * instructions.
  *
- * $Id: color.c,v 1.29 2006/06/20 00:35:08 dgp85 Exp $
+ * $Id: color.c,v 1.30 2006/07/17 18:31:24 hadess Exp $
  */
 
 #include "xine_internal.h"
@@ -164,6 +164,8 @@ void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height) {
 
   int plane_size;
 
+  memset (yuv_planes, 0, sizeof (yuv_planes));
+
   yuv_planes->row_width = width;
   yuv_planes->row_count = height;
   plane_size = yuv_planes->row_width * yuv_planes->row_count;
@@ -179,9 +181,12 @@ void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height) {
  * This frees the memory used by the YUV planes.
  */
 void free_yuv_planes(yuv_planes_t *yuv_planes) {
-  free(yuv_planes->y);
-  free(yuv_planes->u);
-  free(yuv_planes->v);
+  if (yuv_planes->y)
+    free(yuv_planes->y);
+  if (yuv_planes->u)
+    free(yuv_planes->u);
+  if (yuv_planes->v)
+    free(yuv_planes->v);
 }
 
 /* 
