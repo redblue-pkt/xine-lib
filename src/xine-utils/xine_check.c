@@ -93,32 +93,12 @@ set_hc_result(xine_health_check_t* hc, int state, const char *format, ...)
     _x_abort();
   }
 
-  size = strlen(format) + 1;
+  va_start(args, format);
+  asprintf (&buf, format, args);
+  va_end(args);
 
-  if (!(buf = xine_xmalloc(size)))
+  if (!buf)
     _x_abort();
-
-  while(1) {
-    va_start(args, format);
-    n = vsnprintf(buf, size, format, args);
-    va_end(args);
-
-    if(n > -1 && n < size) {
-      break;
-      }
-
-    if(n > -1) {
-      size = n + 1;
-    }
-    else {
-      size *= 2;
-    }
-
-    if((buf = realloc(buf, size)) == NULL) {
-      printf("%s() GASP, realloc() failed\n", __XINE_FUNCTION__);
-      _x_abort();
-    }
-  }
 
   hc->msg         = buf;
   hc->status      = state;
