@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.17 2006/06/29 12:28:06 dgp85 Exp $
+ * $Id: scratch.c,v 1.18 2006/07/17 17:59:56 dsalt Exp $
  *
  * top-level xine functions
  *
@@ -43,7 +43,17 @@
 static void __attribute__((__format__(__printf__, 2, 0)))
   scratch_printf (scratch_buffer_t *this, const char *format, va_list argp)
 {
-  vsnprintf (this->lines[this->cur], SCRATCH_LINE_LEN_MAX, format, argp);
+  time_t t;
+  struct tm tm;
+  size_t l;
+
+  time (&t);
+  localtime_r (&t, &tm);
+
+  strftime (this->lines[this->cur], SCRATCH_LINE_LEN_MAX, "%X: ", &tm);
+  l = strlen (this->lines[this->cur]);
+  vsnprintf (this->lines[this->cur] + l, SCRATCH_LINE_LEN_MAX - l, format, argp);
+
   lprintf ("printing format %s to line %d\n", format, this->cur);
   this->cur = (this->cur + 1) % this->num_lines;
 }
