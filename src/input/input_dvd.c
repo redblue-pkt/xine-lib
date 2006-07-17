@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.209 2006/07/11 03:22:59 dgp85 Exp $
+ * $Id: input_dvd.c,v 1.210 2006/07/17 17:15:34 dsalt Exp $
  *
  */
 
@@ -1547,7 +1547,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 
     tt = strtol(title_part, NULL, 10);
     dvdnav_get_number_of_titles(this->dvdnav, &titles);
-    if((tt <= 0) || (tt > titles)) {
+    if((tt < 0) || (tt > titles)) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 	      "input_dvd: Title %i is out of range (1 to %i).\n", tt, titles);
       dvdnav_close(this->dvdnav);
@@ -1560,7 +1560,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
     if(delimiter) {
       pr = strtol(delimiter+1, NULL, 10);
       dvdnav_get_number_of_parts(this->dvdnav, tt, &parts);
-      if ((pr <= 0) || (pr > parts)) {
+      if ((pr < 0) || (pr > parts)) {
 	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, 
 		"input_dvd: Part %i is out of range (1 to %i).\n", pr, parts);
 	dvdnav_close(this->dvdnav);
@@ -1572,11 +1572,13 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
 #ifdef INPUT_DEBUG
     printf("input_dvd: Jumping to TT >%i<, PTT >%i<\n", tt, pr);
 #endif
-    if(pr != -1) {
-      dvdnav_part_play(this->dvdnav, tt, pr);
-    } else {
-      dvdnav_title_play(this->dvdnav, tt);
-    }
+    if (tt > 0) {
+      if (pr > 0)
+        dvdnav_part_play(this->dvdnav, tt, pr);
+      else
+        dvdnav_title_play(this->dvdnav, tt);
+    } else
+      this->mode = MODE_NAVIGATE;
   }
 #ifdef INPUT_DEBUG
   printf("input_dvd: DVD device successfully opened.\n");
