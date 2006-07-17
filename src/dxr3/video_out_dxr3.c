@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_dxr3.c,v 1.116 2006/06/18 20:29:04 dgp85 Exp $
+ * $Id: video_out_dxr3.c,v 1.117 2006/07/17 17:19:51 dsalt Exp $
  */
  
 /* mpeg1 encoding video out plugin for the dxr3.  
@@ -91,7 +91,7 @@ static const vo_info_t   vo_info_dxr3_aa = {
   XINE_VISUAL_TYPE_AA  /* visual type     */
 };
 
-const plugin_info_t      xine_plugin_info[] = {
+const plugin_info_t      xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
 #ifdef HAVE_X11
   { PLUGIN_VIDEO_OUT, 21, "dxr3", XINE_VERSION_CODE, &vo_info_dxr3_x11, &dxr3_x11_init_plugin },
