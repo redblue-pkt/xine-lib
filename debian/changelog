@@ -8,6 +8,9 @@ xine-lib (1.1.2-2) unstable; urgency=low
   * added patch from Darren Salt to fix build with -O0 on at least amd64
     in src/libffmpeg/libavcodec/i386/Makefile.am
 
+  [Darren Salt]
+  * Updated the watch file - should work regardless of changes at Souceforge.
+
  -- Reinhard Tartler <siretart@tauware.de>  Thu, 13 Jul 2006 11:18:10 +0200
 
 xine-lib (1.1.2-1) unstable; urgency=low

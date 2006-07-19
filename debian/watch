@@ -1,4 +1,3 @@
 version=3
-http://xinehq.de/index.php/releases \
-	(?:.*/)?xine/xine-lib-([\d\.]*).tar.gz \
-	debian uupdate
+opts="uversionmangle=s/\.(gz|bz2)$//" \
+http://qa.debian.org/watch/sf.php?project=xine xine-lib-([\d\.]*)\.tar\.(gz|bz2) debian uupdate
