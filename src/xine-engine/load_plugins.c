@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.222 2006/06/20 00:35:08 dgp85 Exp $
+ * $Id: load_plugins.c,v 1.223 2006/07/21 03:31:42 dgp85 Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -402,7 +402,7 @@ static void _insert_node (xine_t *this,
     
     if (demux_old) {
       entry->priority = demux_new->priority = demux_old->priority;
-      lprintf("demux: %s, priority: %d\n", info->id, priority);
+      lprintf("demux: %s, priority: %d\n", info->id, entry->priority);
     } else {
       xprintf(this, XINE_VERBOSITY_LOG, 
               _("load_plugins: demuxer plugin %s does not provide a priority,"
@@ -419,7 +419,7 @@ static void _insert_node (xine_t *this,
     
     if (input_old) {
       entry->priority = input_new->priority = input_old->priority;
-      lprintf("input: %s, priority: %d\n", info->id, priority);
+      lprintf("input: %s, priority: %d\n", info->id, entry->priority);
     } else {
       xprintf(this, XINE_VERBOSITY_LOG, 
               _("load_plugins: input plugin %s does not provide a priority,"
