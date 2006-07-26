@@ -1306,6 +1306,8 @@ AC_ARG_WITH([alsa],
 
 if test "x$with_alsa" != "xno"; then
    PKG_CHECK_MODULES([ALSA], [alsa >= 0.9.0], [have_alsa=yes], [have_alsa=no])
+   AC_SUBST([ALSA_LIBS])
+   AC_SUBST([ALSA_CFLAGS])
    if test "x$have_alsa" = "xyes"; then
       AC_DEFINE([HAVE_ALSA], [1], [Define this if you have ALSA installed])
    elif test "x$with_alsa" = "xyes"; then
