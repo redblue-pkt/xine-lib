@@ -568,11 +568,13 @@ fi
 AM_CONDITIONAL(HAVE_V4L, [test x"$have_v4l" = "xyes"])
 
 dnl ----------------------------------------------
-dnl Check for XShm support (required)
+dnl Check for XShm support (required with X)
 dnl ----------------------------------------------
 
-AC_CHECK_HEADERS([X11/extensions/XShm.h], [],
-		 [AC_MSG_ERROR([XShm extension is required])])
+if test x"$no_x" != "xyes"; then
+  AC_CHECK_HEADERS([X11/extensions/XShm.h], [],
+		   [AC_MSG_ERROR([XShm extension is required])])
+fi
 
 dnl ----------------------------------------------
 dnl Check for Xv and XvMC support
