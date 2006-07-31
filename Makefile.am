@@ -14,7 +14,6 @@ DEBFILES = debian/README.Debian debian/changelog debian/control \
 
 EXTRA_DIST = config.rpath autogen.sh \
 	     automake.diff \
-	     $(DEBFILES) \
 	     ChangeLog \
 	     configure \
 	     config.guess \
