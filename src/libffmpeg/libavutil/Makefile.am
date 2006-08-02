@@ -25,7 +25,7 @@ noinst_HEADERS = \
 	common.h \
 	crc.h \
 	integer.h \
-	internal.h
+	internal.h \
 	intfloat_readwrite.h \
 	lls.h \
 	log.h \
