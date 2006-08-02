@@ -29,7 +29,7 @@ noinst_HEADERS = \
 	intfloat_readwrite.h \
 	lls.h \
 	log.h \
-	mathematics.c \
+	mathematics.h \
 	md5.h \
 	rational.h \
 	x86_cpu.h
