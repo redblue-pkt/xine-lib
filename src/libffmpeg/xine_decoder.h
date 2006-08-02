@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.h,v 1.6 2005/11/04 22:37:13 tmattern Exp $
+ * $Id: xine_decoder.h,v 1.7 2006/08/02 07:15:27 tmmm Exp $
  *
  */
  
@@ -45,6 +45,7 @@ void *init_video_plugin (xine_t *xine, void *data);
 
 extern decoder_info_t dec_info_ffmpeg_video;
 extern decoder_info_t dec_info_ffmpeg_wmv8;
+extern decoder_info_t dec_info_ffmpeg_wmv9;
 extern decoder_info_t dec_info_ffmpeg_audio;
 
 extern pthread_once_t once_control;

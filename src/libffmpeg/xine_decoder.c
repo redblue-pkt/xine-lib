@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.169 2006/07/10 22:08:29 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.170 2006/08/02 07:15:27 tmmm Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -131,6 +131,20 @@ void avcodec_register_all(void)
     register_avcodec(&shorten_decoder);
     register_avcodec(&qdm2_decoder);
     register_avcodec(&truemotion2_decoder);
+    register_avcodec(&wmv3_decoder);
+    register_avcodec(&cscd_decoder);
+    register_avcodec(&mmvideo_decoder);
+    register_avcodec(&zmbv_decoder);
+    register_avcodec(&avs_decoder);
+    register_avcodec(&smacker_decoder);
+    register_avcodec(&smackaud_decoder);
+    register_avcodec(&nuv_decoder);
+    register_avcodec(&kmvc_decoder);
+    register_avcodec(&flashsv_decoder);
+    register_avcodec(&cavs_decoder);
+    register_avcodec(&cook_decoder);
+    register_avcodec(&truespeech_decoder);
+    register_avcodec(&tta_decoder);
 }
 
 void init_once_routine(void) {
@@ -147,6 +161,7 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */  
   { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 18, "ffmpegvideo", XINE_VERSION_CODE, &dec_info_ffmpeg_video, init_video_plugin },
   { PLUGIN_VIDEO_DECODER, 18, "ffmpeg-wmv8", XINE_VERSION_CODE, &dec_info_ffmpeg_wmv8, init_video_plugin },
+  { PLUGIN_VIDEO_DECODER, 18, "ffmpeg-wmv9", XINE_VERSION_CODE, &dec_info_ffmpeg_wmv9, init_video_plugin },
   { PLUGIN_AUDIO_DECODER, 15, "ffmpegaudio", XINE_VERSION_CODE, &dec_info_ffmpeg_audio, init_audio_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };

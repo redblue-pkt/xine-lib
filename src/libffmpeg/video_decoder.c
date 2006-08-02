@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.60 2006/06/18 20:29:04 dgp85 Exp $
+ * $Id: video_decoder.c,v 1.61 2006/08/02 07:15:27 tmmm Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -217,6 +217,7 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_MSMPEG4_V3,  CODEC_ID_MSMPEG4V3, "Microsoft MPEG-4 v3 (ffmpeg)"},
   {BUF_VIDEO_WMV7,        CODEC_ID_WMV1,      "MS Windows Media Video 7 (ffmpeg)"},
   {BUF_VIDEO_WMV8,        CODEC_ID_WMV2,      "MS Windows Media Video 8 (ffmpeg)"},
+  {BUF_VIDEO_WMV9,        CODEC_ID_WMV3,      "MS Windows Media Video 9 (ffmpeg)"},
   {BUF_VIDEO_MPEG4,       CODEC_ID_MPEG4,     "ISO MPEG-4 (ffmpeg)"},
   {BUF_VIDEO_XVID,        CODEC_ID_MPEG4,     "ISO MPEG-4 (XviD, ffmpeg)"},
   {BUF_VIDEO_DIVX5,       CODEC_ID_MPEG4,     "ISO MPEG-4 (DivX5, ffmpeg)"},
@@ -271,7 +272,17 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_XL,          CODEC_ID_VIXL,       "Miro/Pinnacle VideoXL (ffmpeg)"},
   {BUF_VIDEO_RT21,        CODEC_ID_INDEO2,     "Indeo/RealTime 2 (ffmpeg)"},
   {BUF_VIDEO_FPS1,        CODEC_ID_FRAPS,      "Fraps (ffmpeg)"},
-  {BUF_VIDEO_MPEG,        CODEC_ID_MPEG1VIDEO, "MPEG 1/2 (ffmpeg)"} };
+  {BUF_VIDEO_MPEG,        CODEC_ID_MPEG1VIDEO, "MPEG 1/2 (ffmpeg)"},
+  {BUF_VIDEO_CSCD,        CODEC_ID_CSCD,       "CamStudio (ffmpeg)"},
+  {BUF_VIDEO_AVS,         CODEC_ID_AVS,        "AVS (ffmpeg)"},
+  {BUF_VIDEO_ALGMM,       CODEC_ID_MMVIDEO,    "American Laser Games MM (ffmpeg)"},
+  {BUF_VIDEO_ZMBV,        CODEC_ID_ZMBV,       "Zip Motion Blocks Video (ffmpeg)"},
+  {BUF_VIDEO_SMACKER,     CODEC_ID_SMACKVIDEO, "Smacker (ffmpeg)"},
+  {BUF_VIDEO_NUV,         CODEC_ID_NUV,        "NuppelVideo (ffmpeg)"},
+  {BUF_VIDEO_KMVC,        CODEC_ID_KMVC,       "Karl Morton's Video Codec (ffmpeg)"},
+  {BUF_VIDEO_FLASHSV,     CODEC_ID_FLASHSV,    "Flash Screen Video (ffmpeg)"},
+  {BUF_VIDEO_CAVS,        CODEC_ID_CAVS,       "Chinese AVS (ffmpeg)"},
+};
 
 
 static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type) {
@@ -820,7 +831,7 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
       memcpy ( &this->bih, this->buf, sizeof(xine_bmiheader) );
 
       if (this->bih.biSize > sizeof(xine_bmiheader)) {
-        this->context->extradata_size = this->bih.biSize - sizeof(xine_bmiheader);
+      this->context->extradata_size = this->bih.biSize - sizeof(xine_bmiheader);
         this->context->extradata = malloc(this->context->extradata_size + 
                                           FF_INPUT_BUFFER_PADDING_SIZE);
         memcpy(this->context->extradata, this->buf + sizeof(xine_bmiheader),
@@ -1517,11 +1528,26 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_XL,
   BUF_VIDEO_RT21,
   BUF_VIDEO_FPS1,
+  BUF_VIDEO_WMV9,
+  BUF_VIDEO_CSCD,
+  BUF_VIDEO_ALGMM,
+  BUF_VIDEO_ZMBV,
+  BUF_VIDEO_AVS,
+  BUF_VIDEO_SMACKER,
+  BUF_VIDEO_NUV,
+  BUF_VIDEO_KMVC,
+  BUF_VIDEO_FLASHSV,
+  BUF_VIDEO_CAVS,
   0 
 };
 
 static uint32_t wmv8_video_types[] = { 
   BUF_VIDEO_WMV8,
+  0 
+};
+
+static uint32_t wmv9_video_types[] = { 
+  BUF_VIDEO_WMV9,
   0 
 };
 
@@ -1532,5 +1558,10 @@ decoder_info_t dec_info_ffmpeg_video = {
 
 decoder_info_t dec_info_ffmpeg_wmv8 = {
   wmv8_video_types,        /* supported types */
+  0                        /* priority        */
+};
+
+decoder_info_t dec_info_ffmpeg_wmv9 = {
+  wmv9_video_types,        /* supported types */
   0                        /* priority        */
 };

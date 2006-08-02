@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.25 2006/06/18 20:29:04 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.26 2006/08/02 07:15:27 tmmm Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -102,7 +102,11 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_FLAC,       CODEC_ID_FLAC,           "FLAC (ffmpeg)"},
   {BUF_AUDIO_SHORTEN,    CODEC_ID_SHORTEN,        "Shorten (ffmpeg)"},
   {BUF_AUDIO_ALAC,       CODEC_ID_ALAC,           "ALAC (ffmpeg)"},
-  {BUF_AUDIO_QDESIGN2,   CODEC_ID_QDM2,           "QDM2 (ffmpeg)"} };
+  {BUF_AUDIO_COOK,       CODEC_ID_COOK,           "RealAudio Cooker (ffmpeg)"},
+  {BUF_AUDIO_TRUESPEECH, CODEC_ID_TRUESPEECH,     "TrueSpeech (ffmpeg)"},
+  {BUF_AUDIO_TTA,        CODEC_ID_TTA,            "True Audio Lossless (ffmpeg)"},
+  {BUF_AUDIO_SMACKER,    CODEC_ID_SMACKAUDIO,     "Smacker (ffmpeg)"},
+};
 
 
  static void ff_audio_ensure_buffer_size(ff_audio_decoder_t *this, int size) {
@@ -463,6 +467,10 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_SHORTEN,
   BUF_AUDIO_MPEG,
   BUF_AUDIO_QDESIGN2,
+  BUF_AUDIO_COOK,
+  BUF_AUDIO_TRUESPEECH,
+  BUF_AUDIO_TTA,
+  BUF_AUDIO_SMACKER,
   0
 };
 
