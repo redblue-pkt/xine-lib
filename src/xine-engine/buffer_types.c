@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.104 2006/03/06 00:19:50 hadess Exp $
+ * $Id: buffer_types.c,v 1.105 2006/08/02 06:19:12 tmmm Exp $
  *
  *
  * contents:
@@ -738,6 +738,30 @@ static video_db_t video_db[] = {
   },
   BUF_VIDEO_DUCKTM2,
   "Duck TrueMotion 2"
+},
+{
+  {
+    meFOURCC('C','S','C','D'),
+    0
+  },
+  BUF_VIDEO_CSCD,
+  "CamStudio"
+},
+{
+  {
+    meFOURCC('Z','M','B','V'),
+    0
+  },
+  BUF_VIDEO_ZMBV,
+  "Zip Motion Blocks Video"
+},
+{
+  {
+    meFOURCC('K','M','V','C'),
+    0
+  },
+  BUF_VIDEO_KMVC,
+  "Karl Morton's Video Codec"
 },
 { { 0 }, 0, "last entry" }
 };
