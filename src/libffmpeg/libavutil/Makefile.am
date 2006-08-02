@@ -25,9 +25,11 @@ noinst_HEADERS = \
 	common.h \
 	crc.h \
 	integer.h \
+	internal.h
 	intfloat_readwrite.h \
 	lls.h \
 	log.h \
 	mathematics.c \
 	md5.h \
-	rational.h
+	rational.h \
+	x86_cpu.h

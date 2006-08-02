@@ -143,6 +143,7 @@ noinst_HEADERS = \
 	h261data.h \
 	h263data.h \
 	h264data.h \
+	lzo.h \
 	mpeg4data.h \
 	mpeg12data.h \
 	mpegaudio.h \
@@ -155,10 +156,13 @@ noinst_HEADERS = \
 	ra144.h \
 	ra288.h \
 	rangecoder.h \
+	rtjpeg.h \
 	simple_idct.h \
+	snow.h \
 	sp5x.h \
 	svq1_cb.h \
 	svq1_vlc.h \
+	swscale.h \
 	truemotion1data.h \
 	truespeech_data.h \
 	ulti_cb.h \
