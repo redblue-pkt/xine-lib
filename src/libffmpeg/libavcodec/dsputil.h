@@ -38,6 +38,7 @@
 //#define DEBUG
 /* dct code */
 typedef short DCTELEM;
+typedef int DWTELEM;
 
 void fdct_ifast (DCTELEM *data);
 void fdct_ifast248 (DCTELEM *data);
@@ -55,6 +56,8 @@ void ff_fdct_sse2(DCTELEM *block);
 
 void ff_h264_idct8_add_c(uint8_t *dst, DCTELEM *block, int stride);
 void ff_h264_idct_add_c(uint8_t *dst, DCTELEM *block, int stride);
+void ff_h264_idct8_dc_add_c(uint8_t *dst, DCTELEM *block, int stride);
+void ff_h264_idct_dc_add_c(uint8_t *dst, DCTELEM *block, int stride);
 void ff_h264_lowres_idct_add_c(uint8_t *dst, int stride, DCTELEM *block);
 void ff_h264_lowres_idct_put_c(uint8_t *dst, int stride, DCTELEM *block);
 
@@ -75,6 +78,15 @@ extern uint8_t cropTbl[256 + 2 * MAX_NEG_CROP];
 void ff_vp3_idct_c(DCTELEM *block/* align 16*/);
 void ff_vp3_idct_put_c(uint8_t *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/);
 void ff_vp3_idct_add_c(uint8_t *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/);
+
+/* 1/2^n downscaling functions from imgconvert.c */
+void ff_img_copy_plane(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
+void ff_shrink22(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
+void ff_shrink44(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
+void ff_shrink88(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
+
+void ff_gmc_c(uint8_t *dst, uint8_t *src, int stride, int h, int ox, int oy,
+              int dxx, int dxy, int dyx, int dyy, int shift, int r, int width, int height);
 
 /* minimum alignment rules ;)
 if u notice errors in the align stuff, need more alignment for some asm code for some cpu
@@ -133,6 +145,9 @@ static void a(uint8_t *block, const uint8_t *pixels, int line_size, int h){\
 // allthough currently h<4 is not used as functions with width <8 are not used and neither implemented
 typedef int (*me_cmp_func)(void /*MpegEncContext*/ *s, uint8_t *blk1/*align width (8 or 16)*/, uint8_t *blk2/*align 1*/, int line_size, int h)/* __attribute__ ((const))*/;
 
+
+// for snow slices
+typedef struct slice_buffer_s slice_buffer;
 
 /**
  * DSPContext.
@@ -262,6 +277,15 @@ typedef struct DSPContext {
     h264_weight_func weight_h264_pixels_tab[10];
     h264_biweight_func biweight_h264_pixels_tab[10];
 
+    /* AVS specific */
+    qpel_mc_func put_cavs_qpel_pixels_tab[2][16];
+    qpel_mc_func avg_cavs_qpel_pixels_tab[2][16];
+    void (*cavs_filter_lv)(uint8_t *pix, int stride, int alpha, int beta, int tc, int bs1, int bs2);
+    void (*cavs_filter_lh)(uint8_t *pix, int stride, int alpha, int beta, int tc, int bs1, int bs2);
+    void (*cavs_filter_cv)(uint8_t *pix, int stride, int alpha, int beta, int tc, int bs1, int bs2);
+    void (*cavs_filter_ch)(uint8_t *pix, int stride, int alpha, int beta, int tc, int bs1, int bs2);
+    void (*cavs_idct8_add)(uint8_t *dst, DCTELEM *block, int stride);
+
     me_cmp_func pix_abs[2][4];
 
     /* huffyuv specific */
@@ -333,6 +357,29 @@ typedef struct DSPContext {
 
     void (*h264_idct_add)(uint8_t *dst, DCTELEM *block, int stride);
     void (*h264_idct8_add)(uint8_t *dst, DCTELEM *block, int stride);
+    void (*h264_idct_dc_add)(uint8_t *dst, DCTELEM *block, int stride);
+    void (*h264_idct8_dc_add)(uint8_t *dst, DCTELEM *block, int stride);
+
+    /* snow wavelet */
+    void (*vertical_compose97i)(DWTELEM *b0, DWTELEM *b1, DWTELEM *b2, DWTELEM *b3, DWTELEM *b4, DWTELEM *b5, int width);
+    void (*horizontal_compose97i)(DWTELEM *b, int width);
+    void (*inner_add_yblock)(uint8_t *obmc, const int obmc_stride, uint8_t * * block, int b_w, int b_h, int src_x, int src_y, int src_stride, slice_buffer * sb, int add, uint8_t * dst8);
+
+    void (*prefetch)(void *mem, int stride, int h);
+
+    void (*shrink[4])(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
+
+    /* vc1 functions */
+    void (*vc1_inv_trans_8x8)(DCTELEM *b);
+    void (*vc1_inv_trans_8x4)(DCTELEM *b, int n);
+    void (*vc1_inv_trans_4x8)(DCTELEM *b, int n);
+    void (*vc1_inv_trans_4x4)(DCTELEM *b, int n);
+    void (*vc1_v_overlap)(uint8_t* src, int stride, int rnd);
+    void (*vc1_h_overlap)(uint8_t* src, int stride, int rnd);
+    /* put 8x8 block with bicubic interpolation and quarterpel precision
+     * last argument is actually round value instead of height
+     */
+    op_pixels_func put_vc1_mspel_pixels_tab[16];
 } DSPContext;
 
 void dsputil_static_init(void);
@@ -409,6 +456,7 @@ int mm_support(void);
 #define MM_SSE    0x0008 /* SSE functions */
 #define MM_SSE2   0x0010 /* PIV SSE2 functions */
 #define MM_3DNOWEXT  0x0020 /* AMD 3DNowExt */
+#define MM_SSE3   0x0040 /* Prescott SSE3 functions */
 
 extern int mm_flags;
 
@@ -531,6 +579,7 @@ struct unaligned_16 { uint16_t l; } __attribute__((packed));
 #define LD32(a) (*((uint32_t*)(a)))
 #define LD64(a) (*((uint64_t*)(a)))
 
+#define ST16(a, b) *((uint16_t*)(a)) = (b)
 #define ST32(a, b) *((uint32_t*)(a)) = (b)
 
 #endif /* !__GNUC__ */
@@ -563,6 +612,8 @@ int ff_fft_init(FFTContext *s, int nbits, int inverse);
 void ff_fft_permute(FFTContext *s, FFTComplex *z);
 void ff_fft_calc_c(FFTContext *s, FFTComplex *z);
 void ff_fft_calc_sse(FFTContext *s, FFTComplex *z);
+void ff_fft_calc_3dn(FFTContext *s, FFTComplex *z);
+void ff_fft_calc_3dn2(FFTContext *s, FFTComplex *z);
 void ff_fft_calc_altivec(FFTContext *s, FFTComplex *z);
 
 static inline void ff_fft_calc(FFTContext *s, FFTComplex *z)

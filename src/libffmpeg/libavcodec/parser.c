@@ -145,6 +145,7 @@ int av_parser_parse(AVCodecParserContext *s,
 /**
  *
  * @return 0 if the output buffer is a subset of the input, 1 if it is allocated and must be freed
+ * @deprecated use AVBitstreamFilter
  */
 int av_parser_change(AVCodecParserContext *s,
                      AVCodecContext *avctx,
@@ -297,6 +298,7 @@ static const int frame_rate_tab[16] = {
     25025,
 };
 
+#ifdef CONFIG_MPEGVIDEO_PARSER
 //FIXME move into mpeg12.c
 static void mpegvideo_extract_headers(AVCodecParserContext *s,
                                       AVCodecContext *avctx,
@@ -449,6 +451,7 @@ static int mpegvideo_split(AVCodecContext *avctx,
     }
     return 0;
 }
+#endif /* CONFIG_MPEGVIDEO_PARSER */
 
 void ff_parse_close(AVCodecParserContext *s)
 {
@@ -467,6 +470,7 @@ static void parse1_close(AVCodecParserContext *s)
 
 /*************************/
 
+#ifdef CONFIG_MPEG4VIDEO_PARSER
 /* used by parser */
 /* XXX: make it use less memory */
 static int av_mpeg4_decode_header(AVCodecParserContext *s1,
@@ -532,6 +536,33 @@ static int mpeg4video_parse(AVCodecParserContext *s,
     *poutbuf_size = buf_size;
     return next;
 }
+#endif
+
+#ifdef CONFIG_CAVSVIDEO_PARSER
+static int cavsvideo_parse(AVCodecParserContext *s,
+                           AVCodecContext *avctx,
+                           uint8_t **poutbuf, int *poutbuf_size,
+                           const uint8_t *buf, int buf_size)
+{
+    ParseContext *pc = s->priv_data;
+    int next;
+
+    if(s->flags & PARSER_FLAG_COMPLETE_FRAMES){
+        next= buf_size;
+    }else{
+        next= ff_cavs_find_frame_end(pc, buf, buf_size);
+
+        if (ff_combine_frame(pc, next, (uint8_t **)&buf, &buf_size) < 0) {
+            *poutbuf = NULL;
+            *poutbuf_size = 0;
+            return buf_size;
+        }
+    }
+    *poutbuf = (uint8_t *)buf;
+    *poutbuf_size = buf_size;
+    return next;
+}
+#endif /* CONFIG_CAVSVIDEO_PARSER */
 
 static int mpeg4video_split(AVCodecContext *avctx,
                            const uint8_t *buf, int buf_size)
@@ -549,6 +580,7 @@ static int mpeg4video_split(AVCodecContext *avctx,
 
 /*************************/
 
+#ifdef CONFIG_MPEGAUDIO_PARSER
 typedef struct MpegAudioParseContext {
     uint8_t inbuf[MPA_MAX_CODED_FRAME_SIZE];    /* input buffer */
     uint8_t *inbuf_ptr;
@@ -726,15 +758,23 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
     }
     return buf_ptr - buf;
 }
+#endif /* CONFIG_MPEGAUDIO_PARSER */
 
+#if defined(CONFIG_AC3_PARSER) || defined(CONFIG_AAC_PARSER)
+/* also used for ADTS AAC */
 typedef struct AC3ParseContext {
-    uint8_t inbuf[4096]; /* input buffer */
     uint8_t *inbuf_ptr;
     int frame_size;
+    int header_size;
+    int (*sync)(const uint8_t *buf, int *channels, int *sample_rate,
+                int *bit_rate, int *samples);
+    uint8_t inbuf[8192]; /* input buffer */
 } AC3ParseContext;
 
 #define AC3_HEADER_SIZE 7
+#define AAC_HEADER_SIZE 7
 
+#ifdef CONFIG_AC3_PARSER
 static const int ac3_sample_rates[4] = {
     48000, 44100, 32000, 0
 };
@@ -789,9 +829,22 @@ static const int ac3_bitrates[64] = {
 static const int ac3_channels[8] = {
     2, 1, 2, 3, 3, 4, 4, 5
 };
+#endif /* CONFIG_AC3_PARSER */
 
+#ifdef CONFIG_AAC_PARSER
+static const int aac_sample_rates[16] = {
+    96000, 88200, 64000, 48000, 44100, 32000,
+    24000, 22050, 16000, 12000, 11025, 8000, 7350
+};
+
+static const int aac_channels[8] = {
+    0, 1, 2, 3, 4, 5, 6, 8
+};
+#endif
+
+#ifdef CONFIG_AC3_PARSER
 static int ac3_sync(const uint8_t *buf, int *channels, int *sample_rate,
-                    int *bit_rate)
+                    int *bit_rate, int *samples)
 {
     unsigned int fscod, frmsizecod, acmod, bsid, lfeon;
     GetBitContext bits;
@@ -801,7 +854,7 @@ static int ac3_sync(const uint8_t *buf, int *channels, int *sample_rate,
     if(get_bits(&bits, 16) != 0x0b77)
         return 0;
 
-    get_bits(&bits, 16);    /* crc */
+    skip_bits(&bits, 16);       /* crc */
     fscod = get_bits(&bits, 2);
     frmsizecod = get_bits(&bits, 6);
 
@@ -811,30 +864,90 @@ static int ac3_sync(const uint8_t *buf, int *channels, int *sample_rate,
     bsid = get_bits(&bits, 5);
     if(bsid > 8)
         return 0;
-    get_bits(&bits, 3);     /* bsmod */
+    skip_bits(&bits, 3);        /* bsmod */
     acmod = get_bits(&bits, 3);
     if(acmod & 1 && acmod != 1)
-        get_bits(&bits, 2); /* cmixlev */
+        skip_bits(&bits, 2);    /* cmixlev */
     if(acmod & 4)
-        get_bits(&bits, 2); /* surmixlev */
+        skip_bits(&bits, 2);    /* surmixlev */
     if(acmod & 2)
-        get_bits(&bits, 2); /* dsurmod */
-    lfeon = get_bits(&bits, 1);
+        skip_bits(&bits, 2);    /* dsurmod */
+    lfeon = get_bits1(&bits);
 
     *sample_rate = ac3_sample_rates[fscod];
     *bit_rate = ac3_bitrates[frmsizecod] * 1000;
     *channels = ac3_channels[acmod] + lfeon;
+    *samples = 6 * 256;
 
     return ac3_frame_sizes[frmsizecod][fscod] * 2;
 }
+#endif /* CONFIG_AC3_PARSER */
 
+#ifdef CONFIG_AAC_PARSER
+static int aac_sync(const uint8_t *buf, int *channels, int *sample_rate,
+                    int *bit_rate, int *samples)
+{
+    GetBitContext bits;
+    int size, rdb, ch, sr;
+
+    init_get_bits(&bits, buf, AAC_HEADER_SIZE * 8);
+
+    if(get_bits(&bits, 12) != 0xfff)
+        return 0;
+
+    skip_bits1(&bits);          /* id */
+    skip_bits(&bits, 2);        /* layer */
+    skip_bits1(&bits);          /* protection_absent */
+    skip_bits(&bits, 2);        /* profile_objecttype */
+    sr = get_bits(&bits, 4);    /* sample_frequency_index */
+    if(!aac_sample_rates[sr])
+        return 0;
+    skip_bits1(&bits);          /* private_bit */
+    ch = get_bits(&bits, 3);    /* channel_configuration */
+    if(!aac_channels[ch])
+        return 0;
+    skip_bits1(&bits);          /* original/copy */
+    skip_bits1(&bits);          /* home */
+
+    /* adts_variable_header */
+    skip_bits1(&bits);          /* copyright_identification_bit */
+    skip_bits1(&bits);          /* copyright_identification_start */
+    size = get_bits(&bits, 13); /* aac_frame_length */
+    skip_bits(&bits, 11);       /* adts_buffer_fullness */
+    rdb = get_bits(&bits, 2);   /* number_of_raw_data_blocks_in_frame */
+
+    *channels = aac_channels[ch];
+    *sample_rate = aac_sample_rates[sr];
+    *samples = (rdb + 1) * 1024;
+    *bit_rate = size * 8 * *sample_rate / *samples;
+
+    return size;
+}
+#endif /* CONFIG_AAC_PARSER */
+
+#ifdef CONFIG_AC3_PARSER
 static int ac3_parse_init(AVCodecParserContext *s1)
 {
     AC3ParseContext *s = s1->priv_data;
     s->inbuf_ptr = s->inbuf;
+    s->header_size = AC3_HEADER_SIZE;
+    s->sync = ac3_sync;
     return 0;
 }
+#endif
 
+#ifdef CONFIG_AAC_PARSER
+static int aac_parse_init(AVCodecParserContext *s1)
+{
+    AC3ParseContext *s = s1->priv_data;
+    s->inbuf_ptr = s->inbuf;
+    s->header_size = AAC_HEADER_SIZE;
+    s->sync = aac_sync;
+    return 0;
+}
+#endif
+
+/* also used for ADTS AAC */
 static int ac3_parse(AVCodecParserContext *s1,
                      AVCodecContext *avctx,
                      uint8_t **poutbuf, int *poutbuf_size,
@@ -842,7 +955,7 @@ static int ac3_parse(AVCodecParserContext *s1,
 {
     AC3ParseContext *s = s1->priv_data;
     const uint8_t *buf_ptr;
-    int len, sample_rate, bit_rate, channels;
+    int len, sample_rate, bit_rate, channels, samples;
 
     *poutbuf = NULL;
     *poutbuf_size = 0;
@@ -851,29 +964,35 @@ static int ac3_parse(AVCodecParserContext *s1,
     while (buf_size > 0) {
         len = s->inbuf_ptr - s->inbuf;
         if (s->frame_size == 0) {
-            /* no header seen : find one. We need at least 7 bytes to parse it */
-            len = FFMIN(AC3_HEADER_SIZE - len, buf_size);
+            /* no header seen : find one. We need at least s->header_size
+               bytes to parse it */
+            len = FFMIN(s->header_size - len, buf_size);
 
             memcpy(s->inbuf_ptr, buf_ptr, len);
             buf_ptr += len;
             s->inbuf_ptr += len;
             buf_size -= len;
-            if ((s->inbuf_ptr - s->inbuf) == AC3_HEADER_SIZE) {
-                len = ac3_sync(s->inbuf, &channels, &sample_rate, &bit_rate);
+            if ((s->inbuf_ptr - s->inbuf) == s->header_size) {
+                len = s->sync(s->inbuf, &channels, &sample_rate, &bit_rate,
+                              &samples);
                 if (len == 0) {
                     /* no sync found : move by one byte (inefficient, but simple!) */
-                    memmove(s->inbuf, s->inbuf + 1, AC3_HEADER_SIZE - 1);
+                    memmove(s->inbuf, s->inbuf + 1, s->header_size - 1);
                     s->inbuf_ptr--;
                 } else {
                     s->frame_size = len;
                     /* update codec info */
                     avctx->sample_rate = sample_rate;
                     /* set channels,except if the user explicitly requests 1 or 2 channels, XXX/FIXME this is a bit ugly */
-                    if(avctx->channels!=1 && avctx->channels!=2){
+                    if(avctx->codec_id == CODEC_ID_AC3){
+                        if(avctx->channels!=1 && avctx->channels!=2){
+                            avctx->channels = channels;
+                        }
+                    } else {
                         avctx->channels = channels;
                     }
                     avctx->bit_rate = bit_rate;
-                    avctx->frame_size = 6 * 256;
+                    avctx->frame_size = samples;
                 }
             }
         } else {
@@ -895,7 +1014,9 @@ static int ac3_parse(AVCodecParserContext *s1,
     }
     return buf_ptr - buf;
 }
+#endif /* CONFIG_AC3_PARSER || CONFIG_AAC_PARSER */
 
+#ifdef CONFIG_MPEGVIDEO_PARSER
 AVCodecParser mpegvideo_parser = {
     { CODEC_ID_MPEG1VIDEO, CODEC_ID_MPEG2VIDEO },
     sizeof(ParseContext1),
@@ -904,7 +1025,8 @@ AVCodecParser mpegvideo_parser = {
     parse1_close,
     mpegvideo_split,
 };
-
+#endif
+#ifdef CONFIG_MPEG4VIDEO_PARSER
 AVCodecParser mpeg4video_parser = {
     { CODEC_ID_MPEG4 },
     sizeof(ParseContext1),
@@ -913,7 +1035,18 @@ AVCodecParser mpeg4video_parser = {
     parse1_close,
     mpeg4video_split,
 };
-
+#endif
+#ifdef CONFIG_CAVSVIDEO_PARSER
+AVCodecParser cavsvideo_parser = {
+    { CODEC_ID_CAVS },
+    sizeof(ParseContext1),
+    NULL,
+    cavsvideo_parse,
+    parse1_close,
+    mpeg4video_split,
+};
+#endif
+#ifdef CONFIG_MPEGAUDIO_PARSER
 AVCodecParser mpegaudio_parser = {
     { CODEC_ID_MP2, CODEC_ID_MP3 },
     sizeof(MpegAudioParseContext),
@@ -921,7 +1054,8 @@ AVCodecParser mpegaudio_parser = {
     mpegaudio_parse,
     NULL,
 };
-
+#endif
+#ifdef CONFIG_AC3_PARSER
 AVCodecParser ac3_parser = {
     { CODEC_ID_AC3 },
     sizeof(AC3ParseContext),
@@ -929,3 +1063,13 @@ AVCodecParser ac3_parser = {
     ac3_parse,
     NULL,
 };
+#endif
+#ifdef CONFIG_AAC_PARSER
+AVCodecParser aac_parser = {
+    { CODEC_ID_AAC },
+    sizeof(AC3ParseContext),
+    aac_parse_init,
+    ac3_parse,
+    NULL,
+};
+#endif

@@ -1,7 +1,6 @@
 /*
  * utils for libavcodec
  * Copyright (c) 2001 Fabrice Bellard.
- * Copyright (c) 2003 Michel Bardiaux for the av_log API
  * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * This library is free software; you can redistribute it and/or
@@ -29,9 +28,13 @@
 #include "mpegvideo.h"
 #include "integer.h"
 #include "opt.h"
+#include "crc.h"
 #include <stdarg.h>
 #include <limits.h>
 #include <float.h>
+#ifdef __MINGW32__
+#include <fcntl.h>
+#endif
 
 const uint8_t ff_reverse[256]={
 0x00,0x80,0x40,0xC0,0x20,0xA0,0x60,0xE0,0x10,0x90,0x50,0xD0,0x30,0xB0,0x70,0xF0,
@@ -446,7 +449,7 @@ static const char* context_to_name(void* ptr) {
 #define E AV_OPT_FLAG_ENCODING_PARAM
 #define D AV_OPT_FLAG_DECODING_PARAM
 
-static AVOption options[]={
+static const AVOption options[]={
 {"bit_rate", NULL, OFFSET(bit_rate), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|A|E},
 {"bit_rate_tolerance", NULL, OFFSET(bit_rate_tolerance), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|E},
 {"flags", NULL, OFFSET(flags), FF_OPT_TYPE_FLAGS, DEFAULT, INT_MIN, INT_MAX, V|A|E|D, "flags"},
@@ -495,7 +498,7 @@ static AVOption options[]={
 {"sample_rate", NULL, OFFSET(sample_rate), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX},
 {"channels", NULL, OFFSET(channels), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX},
 {"cutoff", "set cutoff bandwidth", OFFSET(cutoff), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, A|E},
-{"frame_size", NULL, OFFSET(frame_size), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX},
+{"frame_size", NULL, OFFSET(frame_size), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, A|E},
 {"frame_number", NULL, OFFSET(frame_number), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX},
 {"real_pict_num", NULL, OFFSET(real_pict_num), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX},
 {"delay", NULL, OFFSET(delay), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX},
@@ -650,8 +653,10 @@ static AVOption options[]={
 {"vsad", NULL, 0, FF_OPT_TYPE_CONST, FF_CMP_VSAD, INT_MIN, INT_MAX, V|E, "cmp_func"},
 {"vsse", NULL, 0, FF_OPT_TYPE_CONST, FF_CMP_VSSE, INT_MIN, INT_MAX, V|E, "cmp_func"},
 {"nsse", NULL, 0, FF_OPT_TYPE_CONST, FF_CMP_NSSE, INT_MIN, INT_MAX, V|E, "cmp_func"},
+#ifdef CONFIG_SNOW_ENCODER
 {"w53", NULL, 0, FF_OPT_TYPE_CONST, FF_CMP_W53, INT_MIN, INT_MAX, V|E, "cmp_func"},
 {"w97", NULL, 0, FF_OPT_TYPE_CONST, FF_CMP_W97, INT_MIN, INT_MAX, V|E, "cmp_func"},
+#endif
 {"dctmax", NULL, 0, FF_OPT_TYPE_CONST, FF_CMP_DCTMAX, INT_MIN, INT_MAX, V|E, "cmp_func"},
 {"chroma", NULL, 0, FF_OPT_TYPE_CONST, FF_CMP_CHROMA, INT_MIN, INT_MAX, V|E, "cmp_func"},
 {"pre_dia_size", NULL, OFFSET(pre_dia_size), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|E},
@@ -716,7 +721,7 @@ static AVOption options[]={
 {"refs", NULL, OFFSET(refs), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|E},
 {"chromaoffset", NULL, OFFSET(chromaoffset), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|E},
 {"bframebias", NULL, OFFSET(bframebias), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|E},
-{"trellis", NULL, OFFSET(trellis), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|E},
+{"trellis", NULL, OFFSET(trellis), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|A|E},
 {"directpred", NULL, OFFSET(directpred), FF_OPT_TYPE_INT, DEFAULT, INT_MIN, INT_MAX, V|E},
 {"bpyramid", NULL, 0, FF_OPT_TYPE_CONST, CODEC_FLAG2_BPYRAMID, INT_MIN, INT_MAX, V|E, "flags2"},
 {"wpred", NULL, 0, FF_OPT_TYPE_CONST, CODEC_FLAG2_WPRED, INT_MIN, INT_MAX, V|E, "flags2"},
@@ -735,6 +740,17 @@ static AVOption options[]={
 {"partp8x8", NULL, 0, FF_OPT_TYPE_CONST, X264_PART_P8X8, INT_MIN, INT_MAX, V|E, "partitions"},
 {"partb8x8", NULL, 0, FF_OPT_TYPE_CONST, X264_PART_B8X8, INT_MIN, INT_MAX, V|E, "partitions"},
 {"sc_factor", NULL, OFFSET(scenechange_factor), FF_OPT_TYPE_INT, 6, 0, INT_MAX, V|E},
+{"mv0_threshold", NULL, OFFSET(mv0_threshold), FF_OPT_TYPE_INT, 256, 0, INT_MAX, V|E},
+{"ivlc", "intra vlc table", 0, FF_OPT_TYPE_CONST, CODEC_FLAG2_INTRA_VLC, INT_MIN, INT_MAX, V|E, "flags2"},
+{"b_sensitivity", NULL, OFFSET(b_sensitivity), FF_OPT_TYPE_INT, 40, 1, INT_MAX, V|E},
+{"compression_level", NULL, OFFSET(compression_level), FF_OPT_TYPE_INT, FF_COMPRESSION_DEFAULT, INT_MIN, INT_MAX, V|A|E},
+{"use_lpc", NULL, OFFSET(use_lpc), FF_OPT_TYPE_INT, -1, INT_MIN, INT_MAX, A|E},
+{"lpc_coeff_precision", NULL, OFFSET(lpc_coeff_precision), FF_OPT_TYPE_INT, DEFAULT, 0, INT_MAX, A|E},
+{"min_prediction_order", NULL, OFFSET(min_prediction_order), FF_OPT_TYPE_INT, -1, INT_MIN, INT_MAX, A|E},
+{"max_prediction_order", NULL, OFFSET(max_prediction_order), FF_OPT_TYPE_INT, -1, INT_MIN, INT_MAX, A|E},
+{"prediction_order_method", NULL, OFFSET(prediction_order_method), FF_OPT_TYPE_INT, -1, INT_MIN, INT_MAX, A|E},
+{"min_partition_order", NULL, OFFSET(min_partition_order), FF_OPT_TYPE_INT, -1, INT_MIN, INT_MAX, A|E},
+{"max_partition_order", NULL, OFFSET(max_partition_order), FF_OPT_TYPE_INT, -1, INT_MIN, INT_MAX, A|E},
 {NULL},
 };
 
@@ -788,6 +804,16 @@ void avcodec_get_context_defaults(AVCodecContext *s){
     s->pix_fmt= PIX_FMT_NONE;
     s->frame_skip_cmp= FF_CMP_DCTMAX;
     s->nsse_weight= 8;
+    s->sample_fmt= SAMPLE_FMT_S16; // FIXME: set to NONE
+    s->mv0_threshold= 256;
+    s->b_sensitivity= 40;
+    s->compression_level = FF_COMPRESSION_DEFAULT;
+    s->use_lpc = -1;
+    s->min_prediction_order = -1;
+    s->max_prediction_order = -1;
+    s->prediction_order_method = -1;
+    s->min_partition_order = -1;
+    s->max_partition_order = -1;
 
     s->intra_quant_bias= FF_DEFAULT_QUANT_BIAS;
     s->inter_quant_bias= FF_DEFAULT_QUANT_BIAS;
@@ -843,9 +869,6 @@ int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
     if(avctx->codec)
         goto end;
 
-    avctx->codec = codec;
-    avctx->codec_id = codec->id;
-    avctx->frame_number = 0;
     if (codec->priv_data_size > 0) {
         avctx->priv_data = av_mallocz(codec->priv_data_size);
         if (!avctx->priv_data)
@@ -864,9 +887,13 @@ int avcodec_open(AVCodecContext *avctx, AVCodec *codec)
         goto end;
     }
 
+    avctx->codec = codec;
+    avctx->codec_id = codec->id;
+    avctx->frame_number = 0;
     ret = avctx->codec->init(avctx);
     if (ret < 0) {
         av_freep(&avctx->priv_data);
+        avctx->codec= NULL;
         goto end;
     }
     ret=0;
@@ -1216,6 +1243,15 @@ unsigned avcodec_build( void )
   return LIBAVCODEC_BUILD;
 }
 
+static void init_crcs(void){
+    av_crc04C11DB7= av_mallocz_static(sizeof(AVCRC) * 257);
+    av_crc8005    = av_mallocz_static(sizeof(AVCRC) * 257);
+    av_crc07      = av_mallocz_static(sizeof(AVCRC) * 257);
+    av_crc_init(av_crc04C11DB7, 0, 32, 0x04c11db7, sizeof(AVCRC)*257);
+    av_crc_init(av_crc8005    , 0, 16, 0x8005    , sizeof(AVCRC)*257);
+    av_crc_init(av_crc07      , 0,  8, 0x07      , sizeof(AVCRC)*257);
+}
+
 /* must be called before any other functions */
 void avcodec_init(void)
 {
@@ -1226,6 +1262,7 @@ void avcodec_init(void)
     inited = 1;
 
     dsputil_static_init();
+    init_crcs();
 }
 
 /**
@@ -1266,55 +1303,39 @@ char av_get_pict_type_char(int pict_type){
     }
 }
 
-/* av_log API */
-
-static int av_log_level = AV_LOG_INFO;
-
-static void av_log_default_callback(void* ptr, int level, const char* fmt, va_list vl)
-{
-    static int print_prefix=1;
-    AVClass* avc= ptr ? *(AVClass**)ptr : NULL;
-    if(level>av_log_level)
-        return;
-/* #undef fprintf */
-    if(print_prefix && avc) {
-            fprintf(stderr, "[%s @ %p]", avc->item_name(ptr), avc);
+int av_get_bits_per_sample(enum CodecID codec_id){
+    switch(codec_id){
+    case CODEC_ID_ADPCM_SBPRO_2:
+        return 2;
+    case CODEC_ID_ADPCM_SBPRO_3:
+        return 3;
+    case CODEC_ID_ADPCM_SBPRO_4:
+    case CODEC_ID_ADPCM_CT:
+        return 4;
+    case CODEC_ID_PCM_ALAW:
+    case CODEC_ID_PCM_MULAW:
+    case CODEC_ID_PCM_S8:
+    case CODEC_ID_PCM_U8:
+        return 8;
+    case CODEC_ID_PCM_S16BE:
+    case CODEC_ID_PCM_S16LE:
+    case CODEC_ID_PCM_U16BE:
+    case CODEC_ID_PCM_U16LE:
+        return 16;
+    case CODEC_ID_PCM_S24DAUD:
+    case CODEC_ID_PCM_S24BE:
+    case CODEC_ID_PCM_S24LE:
+    case CODEC_ID_PCM_U24BE:
+    case CODEC_ID_PCM_U24LE:
+        return 24;
+    case CODEC_ID_PCM_S32BE:
+    case CODEC_ID_PCM_S32LE:
+    case CODEC_ID_PCM_U32BE:
+    case CODEC_ID_PCM_U32LE:
+        return 32;
+    default:
+        return 0;
     }
-/* #define fprintf please_use_av_log */
-
-    print_prefix= strstr(fmt, "\n") != NULL;
-
-    vfprintf(stderr, fmt, vl);
-}
-
-static void (*av_log_callback)(void*, int, const char*, va_list) = av_log_default_callback;
-
-void av_log(void* avcl, int level, const char *fmt, ...)
-{
-    va_list vl;
-    va_start(vl, fmt);
-    av_vlog(avcl, level, fmt, vl);
-    va_end(vl);
-}
-
-void av_vlog(void* avcl, int level, const char *fmt, va_list vl)
-{
-    av_log_callback(avcl, level, fmt, vl);
-}
-
-int av_log_get_level(void)
-{
-    return av_log_level;
-}
-
-void av_log_set_level(int level)
-{
-    av_log_level = level;
-}
-
-void av_log_set_callback(void (*callback)(void*, int, const char*, va_list))
-{
-    av_log_callback = callback;
 }
 
 #if !defined(HAVE_THREADS)
@@ -1335,4 +1356,40 @@ unsigned int av_xiphlacing(unsigned char *s, unsigned int v)
     *s = v;
     n++;
     return n;
+}
+
+/* Wrapper to work around the lack of mkstemp() on mingw/cygin.
+ * Also, tries to create file in /tmp first, if possible.
+ * *prefix can be a character constant; *filename will be allocated internally.
+ * Returns file descriptor of opened file (or -1 on error)
+ * and opened file name in **filename. */
+int av_tempfile(char *prefix, char **filename) {
+    int fd=-1;
+#ifdef __MINGW32__
+    *filename = tempnam(".", prefix);
+#else
+    size_t len = strlen(prefix) + 12; /* room for "/tmp/" and "XXXXXX\0" */
+    *filename = av_malloc(len);
+#endif
+    /* -----common section-----*/
+    if (*filename == NULL) {
+        av_log(NULL, AV_LOG_ERROR, "ff_tempfile: Cannot allocate file name\n");
+        return -1;
+    }
+#ifdef __MINGW32__
+    fd = open(*filename, _O_RDWR | _O_BINARY | _O_CREAT, 0444);
+#else
+    snprintf(*filename, len, "/tmp/%sXXXXXX", prefix);
+    fd = mkstemp(*filename);
+    if (fd < 0) {
+        snprintf(*filename, len, "./%sXXXXXX", prefix);
+        fd = mkstemp(*filename);
+    }
+#endif
+    /* -----common section-----*/
+    if (fd < 0) {
+        av_log(NULL, AV_LOG_ERROR, "ff_tempfile: Cannot open temporary file %s\n", *filename);
+        return -1;
+    }
+    return fd; /* success */
 }

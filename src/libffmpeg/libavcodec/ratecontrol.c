@@ -117,13 +117,18 @@ int ff_rate_control_init(MpegEncContext *s)
 
             p= next;
         }
-#ifdef CONFIG_XVID
-        //FIXME maybe move to end
-        if((s->flags&CODEC_FLAG_PASS2) && s->avctx->rc_strategy == FF_RC_STRATEGY_XVID)
-            return ff_xvid_rate_control_init(s);
-#endif
 
         if(init_pass2(s) < 0) return -1;
+
+        //FIXME maybe move to end
+        if((s->flags&CODEC_FLAG_PASS2) && s->avctx->rc_strategy == FF_RC_STRATEGY_XVID) {
+#ifdef CONFIG_XVID
+            return ff_xvid_rate_control_init(s);
+#else
+            av_log(s->avctx, AV_LOG_ERROR, "XviD ratecontrol requires libavcodec compiled with XviD support\n");
+            return -1;
+#endif
+        }
     }
 
     if(!(s->flags&CODEC_FLAG_PASS2)){
@@ -906,7 +911,7 @@ static int init_pass2(MpegEncContext *s)
     av_free(qscale);
     av_free(blured_qscale);
 
-    if(abs(expected_bits/all_available_bits - 1.0) > 0.01 ){
+    if(fabs(expected_bits/all_available_bits - 1.0) > 0.01 ){
         av_log(s->avctx, AV_LOG_ERROR, "Error: 2pass curve failed to converge\n");
         return -1;
     }

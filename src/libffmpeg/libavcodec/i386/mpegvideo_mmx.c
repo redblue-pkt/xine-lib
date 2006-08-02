@@ -23,7 +23,7 @@
 #include "../dsputil.h"
 #include "../mpegvideo.h"
 #include "../avcodec.h"
-#include "mmx.h"
+#include "x86_cpu.h"
 
 extern uint8_t zigzag_direct_noperm[64];
 extern uint16_t inv_zigzag_direct16[64];
@@ -699,7 +699,8 @@ void MPV_common_init_mmx(MpegEncContext *s)
         s->dct_unquantize_h263_inter = dct_unquantize_h263_inter_mmx;
         s->dct_unquantize_mpeg1_intra = dct_unquantize_mpeg1_intra_mmx;
         s->dct_unquantize_mpeg1_inter = dct_unquantize_mpeg1_inter_mmx;
-        s->dct_unquantize_mpeg2_intra = dct_unquantize_mpeg2_intra_mmx;
+        if(!(s->flags & CODEC_FLAG_BITEXACT))
+            s->dct_unquantize_mpeg2_intra = dct_unquantize_mpeg2_intra_mmx;
         s->dct_unquantize_mpeg2_inter = dct_unquantize_mpeg2_inter_mmx;
 
         draw_edges = draw_edges_mmx;

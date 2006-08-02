@@ -343,7 +343,7 @@ static int read_old_huffman_tables(HYuvContext *s){
 
     return 0;
 #else
-    fprintf(stderr, "v1 huffyuv is not supported \n");
+    av_log(s->avctx, AV_LOG_DEBUG, "v1 huffyuv is not supported \n");
     return -1;
 #endif
 }
@@ -541,9 +541,6 @@ static int encode_init(AVCodecContext *avctx)
         }
         if(s->interlaced != ( s->height > 288 ))
             av_log(avctx, AV_LOG_INFO, "using huffyuv 2.2.0 or newer interlacing flag\n");
-    }else if(avctx->strict_std_compliance>FF_COMPLIANCE_EXPERIMENTAL){
-        av_log(avctx, AV_LOG_ERROR, "This codec is under development; files encoded with it may not be decodable with future versions!!! Set vstrict=-2 / -strict -2 to use it anyway.\n");
-        return -1;
     }
 
     ((uint8_t*)avctx->extradata)[0]= s->predictor;
@@ -808,6 +805,9 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, uint8
             return -1;
     }
 
+    if((unsigned)(buf_size-table_size) >= INT_MAX/8)
+        return -1;
+
     init_get_bits(&s->gb, s->bitstream_buffer+table_size, (buf_size-table_size)*8);
 
     fake_ystride= s->interlaced ? p->linesize[0]*2  : p->linesize[0];
@@ -1012,7 +1012,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, uint8
     *picture= *p;
     *data_size = sizeof(AVFrame);
 
-    return (get_bits_count(&s->gb)+31)/32*4;
+    return (get_bits_count(&s->gb)+31)/32*4 + table_size;
 }
 
 static int common_end(HYuvContext *s){

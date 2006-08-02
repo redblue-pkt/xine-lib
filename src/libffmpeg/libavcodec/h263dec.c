@@ -85,6 +85,7 @@ int ff_h263_decode_init(AVCodecContext *avctx)
         s->h263_pred = 1;
         s->msmpeg4_version=5;
         break;
+    case CODEC_ID_VC1:
     case CODEC_ID_WMV3:
         s->h263_msmpeg4 = 1;
         s->h263_pred = 1;
@@ -390,6 +391,7 @@ static int h263_find_frame_end(ParseContext *pc, const uint8_t *buf, int buf_siz
     return END_NOT_FOUND;
 }
 
+#ifdef CONFIG_H263_PARSER
 static int h263_parse(AVCodecParserContext *s,
                            AVCodecContext *avctx,
                            uint8_t **poutbuf, int *poutbuf_size,
@@ -410,6 +412,7 @@ static int h263_parse(AVCodecParserContext *s,
     *poutbuf_size = buf_size;
     return next;
 }
+#endif
 
 int ff_h263_decode_frame(AVCodecContext *avctx,
                              void *data, int *data_size,
@@ -514,7 +517,8 @@ retry:
 
     if(s->xvid_build==0 && s->divx_version==0 && s->lavc_build==0){
         if(s->avctx->stream_codec_tag == ff_get_fourcc("XVID") ||
-           s->avctx->codec_tag == ff_get_fourcc("XVID") || s->avctx->codec_tag == ff_get_fourcc("XVIX"))
+           s->avctx->codec_tag == ff_get_fourcc("XVID") || s->avctx->codec_tag == ff_get_fourcc("XVIX") ||
+           s->avctx->codec_tag == ff_get_fourcc("RMP4"))
             s->xvid_build= -1;
 #if 0
         if(s->avctx->codec_tag == ff_get_fourcc("DIVX") && s->vo_type==0 && s->vol_control_parameters==1
@@ -693,7 +697,7 @@ retry:
         return -1;
 
 #ifdef DEBUG
-    printf("qscale=%d\n", s->qscale);
+    av_log(avctx, AV_LOG_DEBUG, "qscale=%d\n", s->qscale);
 #endif
 
     ff_er_frame_start(s);
@@ -765,24 +769,23 @@ retry:
 
 assert(s->current_picture.pict_type == s->current_picture_ptr->pict_type);
 assert(s->current_picture.pict_type == s->pict_type);
-    if(s->pict_type==B_TYPE || s->low_delay){
-        *pict= *(AVFrame*)&s->current_picture;
+    if (s->pict_type == B_TYPE || s->low_delay) {
+        *pict= *(AVFrame*)s->current_picture_ptr;
+    } else if (s->last_picture_ptr != NULL) {
+        *pict= *(AVFrame*)s->last_picture_ptr;
+    }
+
+    if(s->last_picture_ptr || s->low_delay){
+        *data_size = sizeof(AVFrame);
         ff_print_debug_info(s, pict);
-    } else {
-        *pict= *(AVFrame*)&s->last_picture;
-        if(pict)
-            ff_print_debug_info(s, pict);
     }
 
     /* Return the Picture timestamp as the frame number */
     /* we substract 1 because it is added on utils.c    */
     avctx->frame_number = s->picture_number - 1;
 
-    /* don't output the last pic after seeking */
-    if(s->last_picture_ptr || s->low_delay)
-        *data_size = sizeof(AVFrame);
 #ifdef PRINT_FRAME_TIME
-printf("%Ld\n", rdtsc()-time);
+av_log(avctx, AV_LOG_DEBUG, "%Ld\n", rdtsc()-time);
 #endif
 
     return get_consumed_bytes(s, buf_size);
@@ -886,6 +889,7 @@ AVCodec flv_decoder = {
     CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1
 };
 
+#ifdef CONFIG_H263_PARSER
 AVCodecParser h263_parser = {
     { CODEC_ID_H263 },
     sizeof(ParseContext),
@@ -893,3 +897,4 @@ AVCodecParser h263_parser = {
     h263_parse,
     ff_parse_close,
 };
+#endif

@@ -123,6 +123,7 @@ typedef struct RateControlContext{
 
     void *non_lavc_opaque;        ///< context for non lavc rc code (for example xvid)
     float dry_run_qscale;         ///< for xvid rc
+    int last_picture_number;      ///< for xvid rc
 }RateControlContext;
 
 /**
@@ -429,6 +430,7 @@ typedef struct MpegEncContext {
     int field_select[2][2];
     int last_mv[2][2][2];             ///< last MV, used for MV prediction in MPEG1 & B-frame MPEG4
     uint8_t *fcode_tab;               ///< smallest fcode needed for each MV
+    int16_t direct_scale_mv[2][64];   ///< precomputed to avoid divisions in ff_mpeg4_set_direct_mv
 
     MotionEstContext me;
 
@@ -484,7 +486,7 @@ typedef struct MpegEncContext {
     uint8_t *chroma_dc_vlc_length;
 #define UNI_AC_ENC_INDEX(run,level) ((run)*128 + (level))
 
-    int coded_score[6];
+    int coded_score[8];
 
     /** precomputed matrix (combine qscale and DCT renorm) */
     int (*q_intra_matrix)[64];
@@ -600,6 +602,7 @@ typedef struct MpegEncContext {
     int vo_type;
     int vol_control_parameters;      ///< does the stream contain the low_delay flag, used to workaround buggy encoders
     int intra_dc_threshold;          ///< QP above whch the ac VLC should be used for intra dc
+    int use_intra_dc_vlc;
     PutBitContext tex_pb;            ///< used for data partitioned VOPs
     PutBitContext pb2;               ///< used for data partitioned VOPs
     int mpeg_quant;
@@ -696,7 +699,7 @@ typedef struct MpegEncContext {
     short * pblocks[12];
 
     DCTELEM (*block)[64]; ///< points to one of the following blocks
-    DCTELEM (*blocks)[6][64]; // for HQ mode we need to keep the best block
+    DCTELEM (*blocks)[8][64]; // for HQ mode we need to keep the best block
     int (*decode_mb)(struct MpegEncContext *s, DCTELEM block[6][64]); // used by some codecs to avoid a switch()
 #define SLICE_OK         0
 #define SLICE_ERROR     -1

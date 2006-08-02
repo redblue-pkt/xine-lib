@@ -23,6 +23,7 @@
 #include "../dsputil.h"
 #include "../simple_idct.h"
 #include "../mpegvideo.h"
+#include "x86_cpu.h"
 #include "mmx.h"
 
 //#undef NDEBUG
@@ -185,6 +186,11 @@ static const uint64_t ff_pb_FC attribute_used __attribute__ ((aligned(8))) = 0xF
 
 #undef DEF
 #undef PAVGB
+
+#define SBUTTERFLY(a,b,t,n)\
+    "movq " #a ", " #t "              \n\t" /* abcd */\
+    "punpckl" #n " " #b ", " #a "     \n\t" /* aebf */\
+    "punpckh" #n " " #b ", " #t "     \n\t" /* cgdh */\
 
 /***********************************/
 /* standard MMX */
@@ -1522,11 +1528,6 @@ static void sub_hfyu_median_prediction_mmx2(uint8_t *dst, uint8_t *src1, uint8_t
     "pmaxsw " #z ", " #a "            \n\t"\
     "paddusw " #a ", " #sum "         \n\t"
 
-#define SBUTTERFLY(a,b,t,n)\
-    "movq " #a ", " #t "              \n\t" /* abcd */\
-    "punpckl" #n " " #b ", " #a "     \n\t" /* aebf */\
-    "punpckh" #n " " #b ", " #t "     \n\t" /* cgdh */\
-
 #define TRANSPOSE4(a,b,c,d,t)\
     SBUTTERFLY(a,b,t,wd) /* a=aebf t=cgdh */\
     SBUTTERFLY(c,d,b,wd) /* c=imjn b=kolp */\
@@ -2403,6 +2404,124 @@ static void just_return() { return; }
     c->put_no_rnd_ ## postfix1 = put_no_rnd_ ## postfix2;\
     c->avg_ ## postfix1 = avg_ ## postfix2;
 
+static void gmc_mmx(uint8_t *dst, uint8_t *src, int stride, int h, int ox, int oy,
+                    int dxx, int dxy, int dyx, int dyy, int shift, int r, int width, int height){
+    const int w = 8;
+    const int ix = ox>>(16+shift);
+    const int iy = oy>>(16+shift);
+    const int oxs = ox>>4;
+    const int oys = oy>>4;
+    const int dxxs = dxx>>4;
+    const int dxys = dxy>>4;
+    const int dyxs = dyx>>4;
+    const int dyys = dyy>>4;
+    const uint16_t r4[4] = {r,r,r,r};
+    const uint16_t dxy4[4] = {dxys,dxys,dxys,dxys};
+    const uint16_t dyy4[4] = {dyys,dyys,dyys,dyys};
+    const uint64_t shift2 = 2*shift;
+    uint8_t edge_buf[(h+1)*stride];
+    int x, y;
+
+    const int dxw = (dxx-(1<<(16+shift)))*(w-1);
+    const int dyh = (dyy-(1<<(16+shift)))*(h-1);
+    const int dxh = dxy*(h-1);
+    const int dyw = dyx*(w-1);
+    if( // non-constant fullpel offset (3% of blocks)
+        (ox^(ox+dxw) | ox^(ox+dxh) | ox^(ox+dxw+dxh) |
+         oy^(oy+dyw) | oy^(oy+dyh) | oy^(oy+dyw+dyh)) >> (16+shift)
+        // uses more than 16 bits of subpel mv (only at huge resolution)
+        || (dxx|dxy|dyx|dyy)&15 )
+    {
+        //FIXME could still use mmx for some of the rows
+        ff_gmc_c(dst, src, stride, h, ox, oy, dxx, dxy, dyx, dyy, shift, r, width, height);
+        return;
+    }
+
+    src += ix + iy*stride;
+    if( (unsigned)ix >= width-w ||
+        (unsigned)iy >= height-h )
+    {
+        ff_emulated_edge_mc(edge_buf, src, stride, w+1, h+1, ix, iy, width, height);
+        src = edge_buf;
+    }
+
+    asm volatile(
+        "movd         %0, %%mm6 \n\t"
+        "pxor      %%mm7, %%mm7 \n\t"
+        "punpcklwd %%mm6, %%mm6 \n\t"
+        "punpcklwd %%mm6, %%mm6 \n\t"
+        :: "r"(1<<shift)
+    );
+
+    for(x=0; x<w; x+=4){
+        uint16_t dx4[4] = { oxs - dxys + dxxs*(x+0),
+                            oxs - dxys + dxxs*(x+1),
+                            oxs - dxys + dxxs*(x+2),
+                            oxs - dxys + dxxs*(x+3) };
+        uint16_t dy4[4] = { oys - dyys + dyxs*(x+0),
+                            oys - dyys + dyxs*(x+1),
+                            oys - dyys + dyxs*(x+2),
+                            oys - dyys + dyxs*(x+3) };
+
+        for(y=0; y<h; y++){
+            asm volatile(
+                "movq   %0,  %%mm4 \n\t"
+                "movq   %1,  %%mm5 \n\t"
+                "paddw  %2,  %%mm4 \n\t"
+                "paddw  %3,  %%mm5 \n\t"
+                "movq   %%mm4, %0  \n\t"
+                "movq   %%mm5, %1  \n\t"
+                "psrlw  $12, %%mm4 \n\t"
+                "psrlw  $12, %%mm5 \n\t"
+                : "+m"(*dx4), "+m"(*dy4)
+                : "m"(*dxy4), "m"(*dyy4)
+            );
+
+            asm volatile(
+                "movq   %%mm6, %%mm2 \n\t"
+                "movq   %%mm6, %%mm1 \n\t"
+                "psubw  %%mm4, %%mm2 \n\t"
+                "psubw  %%mm5, %%mm1 \n\t"
+                "movq   %%mm2, %%mm0 \n\t"
+                "movq   %%mm4, %%mm3 \n\t"
+                "pmullw %%mm1, %%mm0 \n\t" // (s-dx)*(s-dy)
+                "pmullw %%mm5, %%mm3 \n\t" // dx*dy
+                "pmullw %%mm5, %%mm2 \n\t" // (s-dx)*dy
+                "pmullw %%mm4, %%mm1 \n\t" // dx*(s-dy)
+
+                "movd   %4,    %%mm5 \n\t"
+                "movd   %3,    %%mm4 \n\t"
+                "punpcklbw %%mm7, %%mm5 \n\t"
+                "punpcklbw %%mm7, %%mm4 \n\t"
+                "pmullw %%mm5, %%mm3 \n\t" // src[1,1] * dx*dy
+                "pmullw %%mm4, %%mm2 \n\t" // src[0,1] * (s-dx)*dy
+
+                "movd   %2,    %%mm5 \n\t"
+                "movd   %1,    %%mm4 \n\t"
+                "punpcklbw %%mm7, %%mm5 \n\t"
+                "punpcklbw %%mm7, %%mm4 \n\t"
+                "pmullw %%mm5, %%mm1 \n\t" // src[1,0] * dx*(s-dy)
+                "pmullw %%mm4, %%mm0 \n\t" // src[0,0] * (s-dx)*(s-dy)
+                "paddw  %5,    %%mm1 \n\t"
+                "paddw  %%mm3, %%mm2 \n\t"
+                "paddw  %%mm1, %%mm0 \n\t"
+                "paddw  %%mm2, %%mm0 \n\t"
+
+                "psrlw    %6,    %%mm0 \n\t"
+                "packuswb %%mm0, %%mm0 \n\t"
+                "movd     %%mm0, %0    \n\t"
+
+                : "=m"(dst[x+y*stride])
+                : "m"(src[0]), "m"(src[1]),
+                  "m"(src[stride]), "m"(src[stride+1]),
+                  "m"(*r4), "m"(shift2)
+            );
+            src += stride;
+        }
+        src += 4-h*stride;
+    }
+}
+
 static int try_8x8basis_mmx(int16_t rem[64], int16_t weight[64], int16_t basis[64], int scale){
     long i=0;
 
@@ -2489,7 +2608,35 @@ static void add_8x8basis_mmx(int16_t rem[64], int16_t basis[64], int scale){
     }
 }
 
+#define PREFETCH(name, op) \
+void name(void *mem, int stride, int h){\
+    const uint8_t *p= mem;\
+    do{\
+        asm volatile(#op" %0" :: "m"(*p));\
+        p+= stride;\
+    }while(--h);\
+}
+PREFETCH(prefetch_mmx2,  prefetcht0)
+PREFETCH(prefetch_3dnow, prefetch)
+#undef PREFETCH
+
 #include "h264dsp_mmx.c"
+
+/* AVS specific */
+void ff_cavsdsp_init_mmx2(DSPContext* c, AVCodecContext *avctx);
+
+void ff_put_cavs_qpel8_mc00_mmx2(uint8_t *dst, uint8_t *src, int stride) {
+    put_pixels8_mmx(dst, src, stride, 8);
+}
+void ff_avg_cavs_qpel8_mc00_mmx2(uint8_t *dst, uint8_t *src, int stride) {
+    avg_pixels8_mmx(dst, src, stride, 8);
+}
+void ff_put_cavs_qpel16_mc00_mmx2(uint8_t *dst, uint8_t *src, int stride) {
+    put_pixels16_mmx(dst, src, stride, 16);
+}
+void ff_avg_cavs_qpel16_mc00_mmx2(uint8_t *dst, uint8_t *src, int stride) {
+    avg_pixels16_mmx(dst, src, stride, 16);
+}
 
 /* external functions, from idct_mmx.c */
 void ff_mmx_idct(DCTELEM *block);
@@ -2564,6 +2711,17 @@ static void ff_idct_xvid_mmx2_add(uint8_t *dest, int line_size, DCTELEM *block)
 }
 #endif
 
+#ifdef CONFIG_SNOW_ENCODER
+extern void ff_snow_horizontal_compose97i_sse2(DWTELEM *b, int width);
+extern void ff_snow_horizontal_compose97i_mmx(DWTELEM *b, int width);
+extern void ff_snow_vertical_compose97i_sse2(DWTELEM *b0, DWTELEM *b1, DWTELEM *b2, DWTELEM *b3, DWTELEM *b4, DWTELEM *b5, int width);
+extern void ff_snow_vertical_compose97i_mmx(DWTELEM *b0, DWTELEM *b1, DWTELEM *b2, DWTELEM *b3, DWTELEM *b4, DWTELEM *b5, int width);
+extern void ff_snow_inner_add_yblock_sse2(uint8_t *obmc, const int obmc_stride, uint8_t * * block, int b_w, int b_h,
+                           int src_x, int src_y, int src_stride, slice_buffer * sb, int add, uint8_t * dst8);
+extern void ff_snow_inner_add_yblock_mmx(uint8_t *obmc, const int obmc_stride, uint8_t * * block, int b_w, int b_h,
+                          int src_x, int src_y, int src_stride, slice_buffer * sb, int add, uint8_t * dst8);
+#endif
+
 void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
 {
     mm_flags = mm_support();
@@ -2622,6 +2780,7 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
                     c->idct    = ff_mmx_idct;
                 }
                 c->idct_permutation_type= FF_LIBMPEG2_IDCT_PERM;
+#if 0
             }else if(idct_algo==FF_IDCT_VP3){
                 if(mm_flags & MM_SSE2){
                     c->idct_put= ff_vp3_idct_put_sse2;
@@ -2635,6 +2794,9 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
                     c->idct    = ff_vp3_idct_mmx;
                     c->idct_permutation_type= FF_PARTTRANS_IDCT_PERM;
                 }
+#endif
+            }else if(idct_algo==FF_IDCT_CAVS){
+                    c->idct_permutation_type= FF_TRANSPOSE_IDCT_PERM;
 #ifdef CONFIG_GPL
             }else if(idct_algo==FF_IDCT_XVIDMMX){
                 if(mm_flags & MM_MMXEXT){
@@ -2702,6 +2864,8 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
         c->avg_no_rnd_pixels_tab[1][2] = avg_no_rnd_pixels8_y2_mmx;
         c->avg_no_rnd_pixels_tab[1][3] = avg_no_rnd_pixels8_xy2_mmx;
 
+        c->gmc= gmc_mmx;
+
         c->add_bytes= add_bytes_mmx;
 #ifdef CONFIG_ENCODERS
         c->diff_bytes= diff_bytes_mmx;
@@ -2732,7 +2896,14 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
         c->put_h264_chroma_pixels_tab[0]= put_h264_chroma_mc8_mmx;
         c->put_h264_chroma_pixels_tab[1]= put_h264_chroma_mc4_mmx;
 
+        c->h264_idct_dc_add=
+        c->h264_idct_add= ff_h264_idct_add_mmx;
+        c->h264_idct8_dc_add=
+        c->h264_idct8_add= ff_h264_idct8_add_mmx;
+
         if (mm_flags & MM_MMXEXT) {
+            c->prefetch = prefetch_mmx2;
+
             c->put_pixels_tab[0][1] = put_pixels16_x2_mmx2;
             c->put_pixels_tab[0][2] = put_pixels16_y2_mmx2;
 
@@ -2753,7 +2924,8 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
             c->vsad[4]= vsad_intra16_mmx2;
 #endif //CONFIG_ENCODERS
 
-            c->h264_idct_add= ff_h264_idct_add_mmx2;
+            c->h264_idct_dc_add= ff_h264_idct_dc_add_mmx2;
+            c->h264_idct8_dc_add= ff_h264_idct8_dc_add_mmx2;
 
             if(!(avctx->flags & CODEC_FLAG_BITEXACT)){
                 c->put_no_rnd_pixels_tab[0][1] = put_no_rnd_pixels16_x2_mmx2;
@@ -2831,6 +3003,8 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
 
             c->avg_h264_chroma_pixels_tab[0]= avg_h264_chroma_mc8_mmx2;
             c->avg_h264_chroma_pixels_tab[1]= avg_h264_chroma_mc4_mmx2;
+            c->avg_h264_chroma_pixels_tab[2]= avg_h264_chroma_mc2_mmx2;
+            c->put_h264_chroma_pixels_tab[2]= put_h264_chroma_mc2_mmx2;
             c->h264_v_loop_filter_luma= h264_v_loop_filter_luma_mmx2;
             c->h264_h_loop_filter_luma= h264_h_loop_filter_luma_mmx2;
             c->h264_v_loop_filter_chroma= h264_v_loop_filter_chroma_mmx2;
@@ -2856,10 +3030,16 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
             c->biweight_h264_pixels_tab[6]= ff_h264_biweight_4x4_mmx2;
             c->biweight_h264_pixels_tab[7]= ff_h264_biweight_4x2_mmx2;
 
+#ifdef CONFIG_CAVS_DECODER
+            ff_cavsdsp_init_mmx2(c, avctx);
+#endif
+
 #ifdef CONFIG_ENCODERS
             c->sub_hfyu_median_prediction= sub_hfyu_median_prediction_mmx2;
 #endif //CONFIG_ENCODERS
         } else if (mm_flags & MM_3DNOW) {
+            c->prefetch = prefetch_3dnow;
+
             c->put_pixels_tab[0][1] = put_pixels16_x2_3dnow;
             c->put_pixels_tab[0][2] = put_pixels16_y2_3dnow;
 
@@ -2944,6 +3124,19 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
             c->avg_h264_chroma_pixels_tab[0]= avg_h264_chroma_mc8_3dnow;
             c->avg_h264_chroma_pixels_tab[1]= avg_h264_chroma_mc4_3dnow;
         }
+
+#ifdef CONFIG_SNOW_ENCODER
+        if(mm_flags & MM_SSE2){
+            c->horizontal_compose97i = ff_snow_horizontal_compose97i_sse2;
+            c->vertical_compose97i = ff_snow_vertical_compose97i_sse2;
+            c->inner_add_yblock = ff_snow_inner_add_yblock_sse2;
+        }
+        else{
+            c->horizontal_compose97i = ff_snow_horizontal_compose97i_mmx;
+            c->vertical_compose97i = ff_snow_vertical_compose97i_mmx;
+            c->inner_add_yblock = ff_snow_inner_add_yblock_mmx;
+        }
+#endif
     }
 
 #ifdef CONFIG_ENCODERS

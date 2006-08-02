@@ -322,7 +322,7 @@ static void gen_vector_table24(TrueMotion1Context *s, const uint8_t *sel_vector_
 static int truemotion1_decode_header(TrueMotion1Context *s)
 {
     int i;
-    struct frame_header header = {0};
+    struct frame_header header;
     uint8_t header_buffer[128];  /* logical maximum size of the header */
     const uint8_t *sel_vector_table;
 

@@ -9,7 +9,7 @@ EXTRA_DIST = motion_est_template.c \
 # we need to compile everything in debug mode, including the encoders,
 # otherwise we get unresolved symbols, because some unsatisfied function calls
 # are not optimized away with debug optimization
-AM_CFLAGS = `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS` -fno-strict-aliasing
+AM_CFLAGS = `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS` -fno-strict-aliasing -DCONFIG_VC1_DECODER
 AM_CPPFLAGS = $(ZLIB_CPPFLAGS) $(LIBFFMPEG_CPPFLAGS) \
 	-I$(top_srcdir)/src/libffmpeg/libavutil
 ASFLAGS =
@@ -23,9 +23,13 @@ libavcodec_la_SOURCES = \
 	adpcm.c \
 	alac.c \
 	asv1.c \
+	avs.c \
 	bitstream.c \
 	cabac.c \
+	cavs.c \
 	cinepak.c \
+	cook.c \
+	cscd.c \
 	cyuv.c \
 	dpcm.c \
 	dsputil.c \
@@ -34,6 +38,7 @@ libavcodec_la_SOURCES = \
 	eval.c \
 	faandct.c \
 	flac.c \
+	flashsv.c \
 	flicvideo.c \
 	fraps.c \
 	fft.c \
@@ -53,12 +58,15 @@ libavcodec_la_SOURCES = \
 	jfdctfst.c \
 	jfdctint.c \
 	jrevdct.c \
+	kmvc.c \
 	lcl.c \
 	loco.c \
+	lzo.c \
 	mdct.c \
 	mace.c \
 	mem.c \
 	mjpeg.c \
+	mmvideo.c \
 	motion_est.c \
 	mpeg12.c \
 	mpegaudiodec.c \
@@ -66,6 +74,7 @@ libavcodec_la_SOURCES = \
 	msmpeg4.c \
 	msrle.c \
 	msvideo1.c \
+	nuv.c \
 	parser.c \
 	pcm.c \
 	qdm2.c \
@@ -79,17 +88,23 @@ libavcodec_la_SOURCES = \
 	resample2.c \
 	roqvideo.c \
 	rpza.c \
+	rtjpeg.c \
 	rv10.c \
 	shorten.c \
 	simple_idct.c \
+	smacker.c \
 	smc.c \
 	snow.c \
 	svq1.c \
 	tscc.c \
 	truemotion1.c \
 	truemotion2.c \
+	truespeech.c \
+	tta.c \
 	ulti.c \
 	utils.c \
+	vc1.c \
+	vc1dsp.c \
 	vcr1.c \
 	vmdav.c \
 	vorbis.c \
@@ -99,7 +114,8 @@ libavcodec_la_SOURCES = \
 	wmadec.c \
 	wnv1.c \
 	xan.c \
-	xl.c
+	xl.c \
+	zmbv.c 
 
 libavcodec_la_LDFLAGS = \
 	$(top_builddir)/src/libffmpeg/libavcodec/armv4l/libavcodec_armv4l.la \
@@ -114,6 +130,8 @@ noinst_HEADERS = \
 	avcodec.h \
 	bitstream.h \
 	cabac.h \
+	cavsdata.h \
+	cookdata.h \
 	dsputil.h \
 	dvdata.h \
 	faandct.h \
@@ -142,7 +160,10 @@ noinst_HEADERS = \
 	svq1_cb.h \
 	svq1_vlc.h \
 	truemotion1data.h \
+	truespeech_data.h \
 	ulti_cb.h \
 	vorbis.h \
+	vc1acdata.h \
+	vc1data.h \
 	vp3data.h \
 	wmadata.h
