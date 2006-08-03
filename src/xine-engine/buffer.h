@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.156 2006/08/02 06:19:12 tmmm Exp $
+ * $Id: buffer.h,v 1.157 2006/08/03 04:30:43 tmmm Exp $
  *
  *
  * contents:
@@ -183,14 +183,13 @@ extern "C" {
 #define BUF_VIDEO_DUCKTM2	0x02590000
 #define BUF_VIDEO_CSCD		0x025A0000
 #define BUF_VIDEO_ALGMM		0x025B0000
-#define BUF_VIDEO_CSCD		0x025C0000
-#define BUF_VIDEO_ZMBV		0x025D0000
-#define BUF_VIDEO_AVS		0x025E0000
-#define BUF_VIDEO_SMACKER	0x025F0000
-#define BUF_VIDEO_NUV		0x02600000
-#define BUF_VIDEO_KMVC		0x02610000
-#define BUF_VIDEO_FLASHSV	0x02620000
-#define BUF_VIDEO_CAVS		0x02630000
+#define BUF_VIDEO_ZMBV		0x025C0000
+#define BUF_VIDEO_AVS		0x025D0000
+#define BUF_VIDEO_SMACKER	0x025E0000
+#define BUF_VIDEO_NUV		0x025F0000
+#define BUF_VIDEO_KMVC		0x02600000
+#define BUF_VIDEO_FLASHSV	0x02610000
+#define BUF_VIDEO_CAVS		0x02620000
 
 /* audio buffer types:  (please keep in sync with buffer_types.c) */
 
