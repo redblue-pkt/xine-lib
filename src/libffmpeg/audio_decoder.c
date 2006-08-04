@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.26 2006/08/02 07:15:27 tmmm Exp $
+ * $Id: audio_decoder.c,v 1.27 2006/08/04 06:18:35 tmmm Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -102,6 +102,7 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_FLAC,       CODEC_ID_FLAC,           "FLAC (ffmpeg)"},
   {BUF_AUDIO_SHORTEN,    CODEC_ID_SHORTEN,        "Shorten (ffmpeg)"},
   {BUF_AUDIO_ALAC,       CODEC_ID_ALAC,           "ALAC (ffmpeg)"},
+  {BUF_AUDIO_QDESIGN2,   CODEC_ID_QDM2,           "QDesign (ffmpeg)"},
   {BUF_AUDIO_COOK,       CODEC_ID_COOK,           "RealAudio Cooker (ffmpeg)"},
   {BUF_AUDIO_TRUESPEECH, CODEC_ID_TRUESPEECH,     "TrueSpeech (ffmpeg)"},
   {BUF_AUDIO_TTA,        CODEC_ID_TTA,            "True Audio Lossless (ffmpeg)"},
