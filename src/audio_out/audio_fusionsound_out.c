@@ -43,6 +43,11 @@
 #include <fusionsound.h>
 #include <fusionsound_version.h>
 
+#define VERSION_CODE(M, m, r)     (((M) * 1000) + ((m) * 100) + (r))
+#define FUSIONSOUND_VERSION_CODE  VERSION_CODE( FUSIONSOUND_MAJOR_VERSION, \
+                                                FUSIONSOUND_MINOR_VERSION, \
+                                                FUSIONSOUND_MICRO_VERSION )
+
 
 #define AO_OUT_FS_IFACE_VERSION 8
 
@@ -114,9 +119,11 @@ static int ao_fusionsound_open(ao_driver_t *ao_driver,
     case 24:
       dsc.sampleformat = FSSF_S24;
       break;
+#if FUSIONSOUND_VERSION_CODE >= VERSION_CODE(0,9,26)
     case 32:
-      dsc.sampleformat = FSSF_S32;
+      dsc.sampleformat = FSSF_FLOAT;
       break;
+#endif
     default:
       xprintf (this->xine, XINE_VERBOSITY_LOG,
                "audio_fusionsound_out: bits %d not supported\n", bits);
@@ -236,8 +243,13 @@ static void ao_fusionsound_close(ao_driver_t *ao_driver){
  */
 
 static uint32_t ao_fusionsound_get_capabilities(ao_driver_t *ao_driver) {
+#if FUSIONSOUND_VERSION_CODE >= VERSION_CODE(0,9,26)
+  return (AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL |
+          AO_CAP_8BITS     | AO_CAP_16BITS      | AO_CAP_24BITS    | AO_CAP_FLOAT32);
+#else
   return (AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL |
           AO_CAP_8BITS     | AO_CAP_16BITS      | AO_CAP_24BITS);
+#endif
 }
 
 static void ao_fusionsound_exit(ao_driver_t *ao_driver) {
@@ -375,8 +387,11 @@ static int ao_fusionsound_control(ao_driver_t *ao_driver, int cmd, ...) {
 
 static ao_driver_t* open_plugin(audio_driver_class_t *ao_class, 
                                 const void           *data ) {
-  fusionsound_class_t  *class = (fusionsound_class_t *) ao_class;
+  fusionsound_class_t  *class  = (fusionsound_class_t *) ao_class;
   fusionsound_driver_t *this;
+  const char           *args[] = { "xine", "--dfb:no-sighandler", "--fs:no-banner" };
+  int                   argn   = sizeof(args) / sizeof(args[0]);
+  char                **argp   = (char **) args;
   DFBResult             ret;
 
   this = (fusionsound_driver_t *) xine_xmalloc (sizeof(fusionsound_driver_t));
@@ -386,16 +401,7 @@ static ao_driver_t* open_plugin(audio_driver_class_t *ao_class,
     return NULL;
   }
 
-  ret = FusionSoundInit (NULL, NULL);
-  if (ret != DFB_OK) {
-    xprintf (class->xine, XINE_VERBOSITY_LOG,
-             "audio_fusionsound_out: FusionSoundInit() failed [%s]\n",
-             FusionSoundErrorString (ret));
-    free (this);
-    return NULL;
-  }
-  
-  DirectFBSetOption ("no-sighandler", NULL);
+  FusionSoundInit (&argn, &argp);
 
   ret = FusionSoundCreate (&this->sound);
   if (ret != DFB_OK) {
