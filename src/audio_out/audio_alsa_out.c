@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.163 2006/07/16 16:18:09 dsalt Exp $
+ * $Id: audio_alsa_out.c,v 1.164 2006/08/08 03:16:23 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -277,7 +277,7 @@ static void
   char     *buf = NULL;
 
   va_start(args, fmt);
-  vasprintf(buf, fmt, args);
+  vasprintf(&buf, fmt, args);
   va_end(args);
   printf("%s: %s() %s.\n", file, function, buf);
   free(buf);
