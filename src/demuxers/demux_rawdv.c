@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_rawdv.c,v 1.28 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_rawdv.c,v 1.29 2006/08/08 03:15:02 miguelfreitas Exp $
  *
  * demultiplexer for raw dv streams
  */
@@ -202,6 +202,12 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
                          PAL_FRAME_SIZE * PAL_FRAME_RATE * 8);
   }
+
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,
+                     bih->biWidth);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT,
+                     bih->biHeight);
+
   bih->biSize = sizeof(xine_bmiheader);
   bih->biPlanes = 1;
   bih->biBitCount = 24;
@@ -312,6 +318,7 @@ static int demux_raw_dv_seek (demux_plugin_t *this_gen,
 
   _x_demux_control_newpts (this->stream, this->pts, BUF_FLAG_SEEK);
   
+  this->status = DEMUX_OK;
   return this->status;
 }
 
@@ -322,7 +329,10 @@ static void demux_raw_dv_dispose (demux_plugin_t *this_gen) {
 }
 
 static int demux_raw_dv_get_stream_length(demux_plugin_t *this_gen) {
-  return 0 ; /*FIXME: implement */
+  demux_raw_dv_t *this = (demux_raw_dv_t *) this_gen;
+
+  return (int)((int64_t) this->duration * this->input->get_length (this->input) /
+		  (this->frame_size * 90));
 }
 
 static uint32_t demux_raw_dv_get_capabilities(demux_plugin_t *this_gen) {
