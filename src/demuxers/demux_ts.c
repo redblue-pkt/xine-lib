@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.122 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_ts.c,v 1.123 2006/08/08 03:58:15 miguelfreitas Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -223,7 +223,7 @@
       ISO_14496_PART10_VIDEO = 0x1b     /* ISO/IEC 14496-10 Video (MPEG-4 part 10/AVC, aka H.264) */
     } streamType;
 
-#define WRAP_THRESHOLD       120000
+#define WRAP_THRESHOLD       270000
 
 #define PTS_AUDIO 0
 #define PTS_VIDEO 1
@@ -397,7 +397,42 @@ static void check_newpts( demux_ts_t *this, int64_t pts, int video )
   }
 
   if( pts )
+  {
+    /* don't detect a discontinuity only for video respectively audio. It's also a discontinuity
+       indication when audio and video pts differ to much e. g. when a pts wrap happens.
+       The original code worked well when the wrap happend like this:
+
+       V7 A7 V8 V9 A9 Dv V0 V1 da A1 V2 V3 A3 V4
+       
+       Legend:
+       Vn = video packet with timestamp n
+       An = audio packet with timestamp n
+       Dv = discontinuity detected on following video packet
+       Da = discontinuity detected on following audio packet
+       dv = discontinuity detected on following video packet but ignored
+       da = discontinuity detected on following audio packet but ignored
+
+       But with a certain delay between audio and video packets (e. g. the way DVB-S broadcasts
+       the packets) the code didn't work:
+
+       V7 V8 A7 V9 Dv V0 _A9_ V1 V2 Da _A1_ V3 V4 A3
+
+       Packet A9 caused audio to jump forward and A1 caused it to jump backward with inserting
+       a delay of almoust 26.5 hours!
+
+       The new code gives the following sequences for the above examples:
+       
+       V7 A7 V8 V9 A9 Dv V0 V1 A1 V2 V3 A3 V4
+
+       V7 V8 A7 V9 Dv V0 Da A9 Dv V1 V2 A1 V3 V4 A3
+
+       After proving this code it should be cleaned up to use just a single variable "last_pts". */
+    
+/*
     this->last_pts[video] = pts;
+*/    
+    this->last_pts[video] = this->last_pts[1-video] = pts;
+  }
 }
 
 
