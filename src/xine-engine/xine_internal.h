@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.172 2006/04/21 22:46:33 dsalt Exp $
+ * $Id: xine_internal.h,v 1.173 2006/08/08 03:25:03 miguelfreitas Exp $
  *
  */
 
@@ -320,6 +320,7 @@ struct xine_stream_s {
   int                        demux_thread_running;
   pthread_mutex_t            demux_lock;
   int                        demux_action_pending;
+  pthread_mutex_t            demux_mutex; /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
 
   extra_info_t              *current_extra_info;
   pthread_mutex_t            current_extra_info_lock;

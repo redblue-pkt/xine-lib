@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.324 2006/07/03 10:55:37 dgp85 Exp $
+ * $Id: xine.c,v 1.325 2006/08/08 03:25:03 miguelfreitas Exp $
  */
 
 /*
@@ -533,6 +533,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   pthread_mutex_init (&stream->info_mutex, NULL);
   pthread_mutex_init (&stream->meta_mutex, NULL);
   pthread_mutex_init (&stream->demux_lock, NULL);
+  pthread_mutex_init (&stream->demux_mutex, NULL);
   pthread_mutex_init (&stream->event_queues_lock, NULL);
   pthread_mutex_init (&stream->counter_lock, NULL);
   pthread_cond_init  (&stream->counter_changed, NULL);
@@ -1270,6 +1271,7 @@ void xine_dispose_internal (xine_stream_t *stream) {
   pthread_mutex_destroy (&stream->event_queues_lock);
   pthread_mutex_destroy (&stream->current_extra_info_lock);
   pthread_cond_destroy  (&stream->counter_changed);
+  pthread_mutex_destroy (&stream->demux_mutex);
   pthread_mutex_destroy (&stream->demux_lock);
   pthread_mutex_destroy (&stream->first_frame_lock);
   pthread_cond_destroy  (&stream->first_frame_reached);

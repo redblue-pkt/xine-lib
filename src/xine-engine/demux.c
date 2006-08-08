@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.62 2006/04/05 22:12:20 valtri Exp $ 
+ * $Id: demux.c,v 1.63 2006/08/08 03:25:03 miguelfreitas Exp $ 
  */
 
 
@@ -85,6 +85,8 @@ void _x_demux_flush_engine (xine_stream_t *stream) {
   stream->video_fifo->clear(stream->video_fifo);
   stream->audio_fifo->clear(stream->audio_fifo);
   
+  pthread_mutex_lock(&stream->demux_mutex);  
+
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_RESET_DECODER;
   stream->video_fifo->put (stream->video_fifo, buf);
@@ -93,6 +95,8 @@ void _x_demux_flush_engine (xine_stream_t *stream) {
   buf->type = BUF_CONTROL_RESET_DECODER;
   stream->audio_fifo->put (stream->audio_fifo, buf);
   
+  pthread_mutex_unlock(&stream->demux_mutex);  
+
   /* on seeking we must wait decoder fifos to process before doing flush. 
    * otherwise we flush too early (before the old data has left decoders)
    */
@@ -124,6 +128,8 @@ void _x_demux_control_newpts( xine_stream_t *stream, int64_t pts, uint32_t flags
 
   buf_element_t *buf;
       
+  pthread_mutex_lock(&stream->demux_mutex);  
+
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_NEWPTS;
   buf->decoder_flags = flags;
@@ -135,6 +141,8 @@ void _x_demux_control_newpts( xine_stream_t *stream, int64_t pts, uint32_t flags
   buf->decoder_flags = flags;
   buf->disc_off = pts;
   stream->audio_fifo->put (stream->audio_fifo, buf);
+
+  pthread_mutex_unlock(&stream->demux_mutex);  
 }
 
 /* sync with decoder fifos, making sure everything gets processed */
@@ -165,11 +173,15 @@ void _x_demux_control_headers_done (xine_stream_t *stream) {
     header_count_audio = 0;
   }
   
+  pthread_mutex_lock(&stream->demux_mutex);  
+
   buf_video->type = BUF_CONTROL_HEADERS_DONE;
   stream->video_fifo->put (stream->video_fifo, buf_video);
 
   buf_audio->type = BUF_CONTROL_HEADERS_DONE;
   stream->audio_fifo->put (stream->audio_fifo, buf_audio);
+
+  pthread_mutex_unlock(&stream->demux_mutex);  
 
   while ((stream->header_count_audio < header_count_audio) || 
          (stream->header_count_video < header_count_video)) {
@@ -198,6 +210,8 @@ void _x_demux_control_start( xine_stream_t *stream ) {
 
   buf_element_t *buf;
 
+  pthread_mutex_lock(&stream->demux_mutex);  
+
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_START;
   stream->video_fifo->put (stream->video_fifo, buf);
@@ -205,12 +219,16 @@ void _x_demux_control_start( xine_stream_t *stream ) {
   buf = stream->audio_fifo->buffer_pool_alloc (stream->audio_fifo);
   buf->type = BUF_CONTROL_START;
   stream->audio_fifo->put (stream->audio_fifo, buf);
+
+  pthread_mutex_unlock(&stream->demux_mutex);  
 }
 
 void _x_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
 
   buf_element_t *buf;
 
+  pthread_mutex_lock(&stream->demux_mutex);  
+
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_END;
   buf->decoder_flags = flags;
@@ -220,11 +238,15 @@ void _x_demux_control_end( xine_stream_t *stream, uint32_t flags ) {
   buf->type = BUF_CONTROL_END;
   buf->decoder_flags = flags;
   stream->audio_fifo->put (stream->audio_fifo, buf);
+
+  pthread_mutex_unlock(&stream->demux_mutex);  
 }
 
 void _x_demux_control_nop( xine_stream_t *stream, uint32_t flags ) {
 
   buf_element_t *buf;
+
+  pthread_mutex_lock(&stream->demux_mutex);  
 
   buf = stream->video_fifo->buffer_pool_alloc (stream->video_fifo);
   buf->type = BUF_CONTROL_NOP;
@@ -235,6 +257,8 @@ void _x_demux_control_nop( xine_stream_t *stream, uint32_t flags ) {
   buf->type = BUF_CONTROL_NOP;
   buf->decoder_flags = flags;
   stream->audio_fifo->put (stream->audio_fifo, buf);
+
+  pthread_mutex_unlock(&stream->demux_mutex);  
 }
 
 static void *demux_loop (void *stream_gen) {
