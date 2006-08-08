@@ -247,8 +247,6 @@ static void * sse_memcpy(void * to, const void * from, size_t len)
     /* since movntq is weakly-ordered, a "sfence"
      * is needed to become ordered again. */
     __asm__ __volatile__ ("sfence":::"memory");
-    /* enables to use FPU */
-    __asm__ __volatile__ ("emms":::"memory");
   }
   /*
    *	Now do the tail of the block
