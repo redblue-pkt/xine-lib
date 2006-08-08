@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.179 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_asf.c,v 1.180 2006/08/08 03:34:15 miguelfreitas Exp $
  *
  * demultiplexer for asf streams
  *
@@ -2295,7 +2295,7 @@ static char *get_mimetypes (demux_class_t *this_gen) {
 
   return "video/x-ms-asf: asf: ASF stream;"
          "video/x-ms-wmv: wmv: Windows Media Video;"
-         "video/x-ms-wma: wma: Windows Media Audio;"
+         "audio/x-ms-wma: wma: Windows Media Audio;"
          "application/vnd.ms-asf: asf: ASF stream;"
          "application/x-mplayer2: asf,asx,asp: mplayer2;"
          "video/x-ms-asf-plugin: asf,asx,asp: mms animation;"
