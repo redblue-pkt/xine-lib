@@ -1,8 +1,5 @@
 xine-lib (1.1.2-3) UNRELEASED; urgency=low
 
-  [Darren Salt]
-  * Added 'eject' to the recommended packages.
-
  -- Reinhard Tartler <siretart@tauware.de>  Thu, 10 Aug 2006 23:47:58 +0100
 
 xine-lib (1.1.2-2) unstable; urgency=low
