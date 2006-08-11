@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.89 2006/07/10 22:08:14 dgp85 Exp $
+ * $Id: input_cdda.c,v 1.90 2006/08/11 21:40:02 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2537,28 +2537,33 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   /* fetch the CD track to play */
   if (!strncasecmp (mrl, "cdda:/", 6)) {
 
-    if ( strlen(mrl) > 8 && strchr(&mrl[8],'/') ) {
-      int i;
-
-      cdda_device = strdup(&mrl[6]);
-
-      i = strlen(cdda_device)-1;
-      while( i && cdda_device[i] != '/' )
-        i--;
-
-      if( i ) {
-        cdda_device[i] = '\0';
-        track = atoi(&cdda_device[i+1]);
-      } else
-        track = -1;        
-
+    const char *p, *slash = mrl + 6;
+    while (*slash == '/')
+      ++slash;
+    p = --slash; /* point at a slash */
+    while (*p >= '0' && *p <= '9')
+      ++p;
+    if (*p) {
+      char *lastslash;
+      cdda_device = strdup (slash);
+      p = lastslash = strrchr (cdda_device, '/'); /* guaranteed to return non-NULL */
+      while (*++p >= '0' && *p <= '9')
+        /**/;
+      if (!*p) {
+        track = atoi (lastslash + 1);
+        *lastslash = 0;
+        if (lastslash == cdda_device) {
+          free (cdda_device);
+          cdda_device = NULL;
+        }
+      } else {
+        track = -1;
+      }
     } else {
-      track = atoi(&mrl[6]);
+      track = atoi (slash + 1);
     }
-    
-    /* CD tracks start at 1, reject illegal tracks */
-    if (track <= 0)
-      return NULL;
+    if (track < 1)
+      track = 1;
   } else
     return NULL;
 
