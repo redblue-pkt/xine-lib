@@ -1561,7 +1561,7 @@ if test x"$enable_vcd" = "xyes"; then
       LIBCDIO_LIBS=`$PKG_CONFIG --libs libcdio`
 
       AC_MSG_CHECKING(for libvcdinfo)
-      if $PKG_CONFIG --atleast-version 0.7.21 libvcdinfo; then
+      if $PKG_CONFIG --atleast-version 0.7.23 libvcdinfo; then
         AC_MSG_RESULT(found)
         LIBVCDINFO_CFLAGS=`$PKG_CONFIG --cflags libvcdinfo`
         LIBVCDINFO_LIBS=`$PKG_CONFIG --libs libvcdinfo`
