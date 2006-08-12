@@ -561,5 +561,8 @@ Claudio Ciccani <klan@users.sf.net>
 
 Maximilian Schwerin <mschwerin@users.sourceforge.net>
   support for Vorbis-style comments in FLAC files
-  
+
+Chris Cannam <chris.cannam@ferventsoftware.com>
+  JACK audio driver
+
 (let us know if we've forgotten anyone)

@@ -51,6 +51,9 @@ if HAVE_FUSIONSOUND
 fusionsound_module = xineplug_ao_out_fusionsound.la
 endif
 
+if HAVE_JACK
+jack_module = xineplug_ao_out_jack.la
+endif
 
 ##
 # IMPORTANT:
@@ -69,7 +72,8 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la xineplug_ao_out_file.la \
 	$(polypaudio_module) \
 	$(pulseaudio_module) \
 	$(directx2_module)	\
-	$(fusionsound_module)
+	$(fusionsound_module) \
+	$(jack_module)
 
 #lib_LTLIBRARIES = \
 #	$(alsa_module) \
@@ -155,3 +159,7 @@ xineplug_ao_out_fusionsound_la_LIBADD = $(FUSIONSOUND_LIBS) $(XINE_LIB)
 xineplug_ao_out_fusionsound_la_CFLAGS = $(VISIBILITY_FLAG) $(FUSIONSOUND_CFLAGS)
 xineplug_ao_out_fusionsound_la_LDFLAGS = -avoid-version -module
 
+xineplug_ao_out_jack_la_SOURCES = audio_jack_out.c
+xineplug_ao_out_jack_la_LIBADD = $(JACK_LIBS) $(XINE_LIB)
+xineplug_ao_out_jack_la_CFLAGS = $(VISIBILITY_FLAG) $(JACK_CFLAGS)
+xineplug_ao_out_jack_la_LDFLAGS = -avoid-version -module

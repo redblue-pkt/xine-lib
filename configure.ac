@@ -1379,6 +1379,40 @@ AM_CONDITIONAL(HAVE_FUSIONSOUND, test x"$no_fusionsound" != "xyes")
 
 
 dnl ---------------------------------------------
+dnl JACK support
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE([jack], 
+    AC_HELP_STRING([--disable-jack], [Disable optional JACK support]), 
+        [
+            case "${enableval}" in
+                yes) jack=yes ;;
+                no) jack=no ;;
+                *) AC_MSG_ERROR(bad value ${enableval} for --disable-jack) ;;
+            esac
+        ],
+        [jack=auto])
+
+if test "x${jack}" != xno ; then
+    PKG_CHECK_MODULES(JACK, [ jack >= 0.100 ],
+        HAVE_JACK=1,
+        [
+            HAVE_JACK=0
+            if test "x$jack" = xyes ; then
+                AC_MSG_ERROR([*** JACK support not found])
+            fi
+        ])
+else
+    HAVE_JACK=0
+fi
+
+AC_SUBST(JACK_CFLAGS)
+AC_SUBST(JACK_LIBS)
+AC_SUBST(HAVE_JACK)
+AM_CONDITIONAL([HAVE_JACK], [test "x$HAVE_JACK" = x1])
+
+
+dnl ---------------------------------------------
 dnl gnome-vfs support
 dnl ---------------------------------------------
 
