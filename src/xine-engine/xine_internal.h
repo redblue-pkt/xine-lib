@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.173 2006/08/08 03:25:03 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.174 2006/08/12 01:43:26 miguelfreitas Exp $
  *
  */
 
@@ -453,6 +453,8 @@ audio_decoder_t *_x_get_audio_decoder  (xine_stream_t *stream, uint8_t stream_ty
 void             _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *decoder);
 spu_decoder_t   *_x_get_spu_decoder    (xine_stream_t *stream, uint8_t stream_type); 
 void             _x_free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decoder);
+/* check for decoder availability - but don't try to initialize it */
+int              _x_decoder_available  (xine_t *xine, uint32_t buftype);
 
 /*
  * load_video_output_plugin

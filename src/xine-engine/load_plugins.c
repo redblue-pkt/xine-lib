@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.223 2006/07/21 03:31:42 dgp85 Exp $
+ * $Id: load_plugins.c,v 1.224 2006/08/12 01:43:26 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1930,6 +1930,27 @@ void _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *ad) {
     dec_node_ref(node);
     pthread_mutex_unlock (&catalog->lock);
   }
+}
+
+int _x_decoder_available (xine_t *xine, uint32_t buftype)
+{
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  int stream_type = (buftype>>16) & 0xFF;
+
+  if ( (buftype & 0xFF000000) == BUF_VIDEO_BASE ) {
+    if( catalog->video_decoder_map[stream_type][0] )
+      return 1;
+  } else 
+  if ( (buftype & 0xFF000000) == BUF_AUDIO_BASE ) {
+    if( catalog->audio_decoder_map[stream_type][0] )
+      return 1;
+  } else 
+  if ( (buftype & 0xFF000000) == BUF_SPU_BASE ) {
+    if( catalog->spu_decoder_map[stream_type][0] )
+      return 1;
+  }
+
+  return 0;
 }
 
 

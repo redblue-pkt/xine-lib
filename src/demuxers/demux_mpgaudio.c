@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.143 2005/10/02 14:15:17 tmattern Exp $
+ * $Id: demux_mpgaudio.c,v 1.144 2006/08/12 01:43:26 miguelfreitas Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -1040,20 +1040,30 @@ static char *get_identifier (demux_class_t *this_gen) {
 }
 
 static char *get_extensions (demux_class_t *this_gen) {
-  return "mp3 mp2 mpa mpega";
+  demux_mpgaudio_class_t *this = (demux_mpgaudio_class_t *) this_gen;
+  
+  if( _x_decoder_available(this->xine, BUF_AUDIO_MPEG) )
+    return "mp3 mp2 mpa mpega";
+  else
+    return "";
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "audio/mpeg2: mp2: MPEG audio;"
-         "audio/x-mpeg2: mp2: MPEG audio;"
-         "audio/mpeg3: mp3: MPEG audio;"
-         "audio/x-mpeg3: mp3: MPEG audio;"
-         "audio/mpeg: mpa,abs,mpega: MPEG audio;"
-         "audio/x-mpeg: mpa,abs,mpega: MPEG audio;"
-         "x-mpegurl: mp3: MPEG audio;"
-         "audio/mpegurl: mp3: MPEG audio;"
-         "audio/mp3: mp3: MPEG audio;"
-         "audio/x-mp3: mp3: MPEG audio;";
+  demux_mpgaudio_class_t *this = (demux_mpgaudio_class_t *) this_gen;
+
+  if( _x_decoder_available(this->xine, BUF_AUDIO_MPEG) )
+    return "audio/mpeg2: mp2: MPEG audio;"
+          "audio/x-mpeg2: mp2: MPEG audio;"
+          "audio/mpeg3: mp3: MPEG audio;"
+          "audio/x-mpeg3: mp3: MPEG audio;"
+          "audio/mpeg: mpa,abs,mpega: MPEG audio;"
+          "audio/x-mpeg: mpa,abs,mpega: MPEG audio;"
+          "x-mpegurl: mp3: MPEG audio;"
+          "audio/mpegurl: mp3: MPEG audio;"
+          "audio/mp3: mp3: MPEG audio;"
+          "audio/x-mp3: mp3: MPEG audio;";
+  else
+    return "";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
