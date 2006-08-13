@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_image.c,v 1.24 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_image.c,v 1.25 2006/08/13 23:51:33 miguelfreitas Exp $
  *
  * image dummy demultiplexer
  */
@@ -119,6 +119,13 @@ static int demux_image_seek (demux_plugin_t *this_gen,
 			    off_t start_pos, int start_time, int playing) {
 
   demux_image_t *this = (demux_image_t *) this_gen;
+
+  /* delay finished event for presentation mode.
+   * -1 => wait forever
+   * 0  => do not wait
+   * xx => wait xx/10 seconds
+   */
+  xine_set_param (this->stream, XINE_PARAM_DELAY_FINISHED_EVENT, -1);
 
   return this->status;
 }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.149 2006/06/22 10:38:37 klan Exp $
+ * $Id: xine.h.in,v 1.150 2006/08/13 23:51:34 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -339,7 +339,8 @@ int  xine_get_param (xine_stream_t *stream, int param);
 #define XINE_PARAM_AUDIO_AMP_MUTE         29 /* 1=>mute, 0=>unmute */
 #define XINE_PARAM_FINE_SPEED             30 /* 1.000.000 => normal speed   */ 
 #define XINE_PARAM_EARLY_FINISHED_EVENT   31 /* send event when demux finish*/
-#define XINE_PARAM_GAPLESS_SWITCH         32 /* next stream only gapless swi*/ 
+#define XINE_PARAM_GAPLESS_SWITCH         32 /* next stream only gapless swi*/
+#define XINE_PARAM_DELAY_FINISHED_EVENT   33 /* 1/10sec,0=>disable,-1=>forev*/
 
 /*
  * speed values for XINE_PARAM_SPEED parameter.

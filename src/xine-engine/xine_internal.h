@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.174 2006/08/12 01:43:26 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.175 2006/08/13 23:51:33 miguelfreitas Exp $
  *
  */
 
@@ -343,6 +343,7 @@ struct xine_stream_s {
                                                * layers as they cannot call xine_stop. */
   int                        early_finish_event; /* do not wait fifos get empty before sending event */
   int                        gapless_switch;     /* next stream switch will be gapless */
+  int                        delay_finish_event; /* delay event in 1/10 sec units. 0=>no delay, -1=>forever */
 #endif
 };
 

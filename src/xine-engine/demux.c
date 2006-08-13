@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.63 2006/08/08 03:25:03 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.64 2006/08/13 23:51:34 miguelfreitas Exp $ 
  */
 
 
@@ -309,6 +309,17 @@ static void *demux_loop (void *stream_gen) {
           status == DEMUX_FINISHED && !stream->emergency_brake){
       pthread_mutex_unlock( &stream->demux_lock );
       xine_usec_sleep(100000);
+      pthread_mutex_lock( &stream->demux_lock );
+      status = stream->demux_plugin->get_status(stream->demux_plugin);
+    }
+
+    /* delay sending finished event - used for image presentations */
+    while(stream->demux_thread_running &&
+          status == DEMUX_FINISHED && stream->delay_finish_event != 0){
+      pthread_mutex_unlock( &stream->demux_lock );
+      xine_usec_sleep(100000);
+      if( stream->delay_finish_event > 0 )
+        stream->delay_finish_event--;
       pthread_mutex_lock( &stream->demux_lock );
       status = stream->demux_plugin->get_status(stream->demux_plugin);
     }

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.325 2006/08/08 03:25:03 miguelfreitas Exp $
+ * $Id: xine.c,v 1.326 2006/08/13 23:51:34 miguelfreitas Exp $
  */
 
 /*
@@ -500,6 +500,7 @@ xine_stream_t *xine_stream_new (xine_t *this,
   stream->spu_channel_user       = -1;
   stream->spu_channel            = -1;
   stream->early_finish_event     = 0;
+  stream->delay_finish_event     = 0;
   stream->gapless_switch         = 0;
 
   stream->video_out              = vo;
@@ -1226,6 +1227,8 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
 
   pthread_mutex_lock (&stream->frontend_lock);
 
+  stream->delay_finish_event = 0;
+  
   ret = play_internal (stream, start_pos, start_time);
   if( stream->slave && (stream->slave_affection & XINE_MASTER_SLAVE_PLAY) )
     xine_play (stream->slave, start_pos, start_time);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.96 2006/06/22 10:38:38 klan Exp $
+ * $Id: xine_interface.c,v 1.97 2006/08/13 23:51:34 miguelfreitas Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -485,6 +485,10 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     stream->early_finish_event = value;
     break;
   
+  case XINE_PARAM_DELAY_FINISHED_EVENT:
+    stream->delay_finish_event = value;
+    break;
+  
   case XINE_PARAM_GAPLESS_SWITCH:
     stream->gapless_switch = value;
     break;
@@ -640,6 +644,10 @@ int xine_get_param (xine_stream_t *stream, int param) {
   
   case XINE_PARAM_EARLY_FINISHED_EVENT:
     ret = stream->early_finish_event;
+    break;
+  
+  case XINE_PARAM_DELAY_FINISHED_EVENT:
+    ret = stream->delay_finish_event;
     break;
   
   case XINE_PARAM_GAPLESS_SWITCH:
