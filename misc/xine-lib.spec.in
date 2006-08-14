@@ -9,11 +9,11 @@
 # Build separat packages:
 # 1 create a sparate package
 # 0 include files in main package
-%if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
+%if %{?BUILD_AA:0}%{!?BUILD_AA:1}
 %define BUILD_AA        0
 %endif
-%if %{?BUILD_ALSA09:0}%{!?BUILD_ALSA09:1}
-%define BUILD_ALSA09    0
+%if %{?BUILD_ALSA:0}%{!?BUILD_ALSA:1}
+%define BUILD_ALSA      <BUILD_ALSA09>
 %endif
 %if %{?BUILD_ARTS:0}%{!?BUILD_ARTS:1}
 %define BUILD_ARTS      0
@@ -63,6 +63,9 @@
 %if %{?BUILD_STK:0}%{!?BUILD_STK:1}
 %define BUILD_STK       0
 %endif
+%if %{?BUILD_JACK:0}%{!?BUILD_JACK:1}
+%define BUILD_JACK      0
+%endif
 
 Name:           %{name}
 Summary:        A portable video/audio library for unix-like systems.
@@ -74,7 +77,7 @@ Release:        %{release}
 License:        GPL
 Group:          Development/Libraries
 URL:            http://xinehq.de
-Source:         http://xinehq.de/files/@PACKAGE@-@VERSION@.tar.gz
+Source:         http://xinehq.de/files/@PACKAGE@-@VERSION@.tar.bz2
 Packager:       Manfred Tremmel <Manfred.Tremmel@iiv.de>
 Obsoletes:      xine
 Obsoletes:      xine-lib
@@ -217,8 +220,8 @@ lisenssin kanssa yhteensopivia. lisätietoja GPL-lisenssistä löytyy osoitteest
 http://www.gnu.org/licenses/gpl.html
 %endif
 
-%if %BUILD_ALSA09
-%package alsa09
+%if %BUILD_ALSA
+%package alsa
 Summary:        libxine sound output plugin for alsa >= 0.9
 Summary(cs):    Zvukový výstupní modul libxine pro ALSA >= 0.9
 Summary(de):    libxine Soundausgabeplguin für Alsa >= 0.9
@@ -226,18 +229,20 @@ Summary(fi):    libxine-Ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >=
 Group:          Development/Libraries
 Obsoletes:      xine-lib-alsa09
 Obsoletes:      libxine0-alsa09
+Obsoletes:      %{libname}-alsa09
+Provides:       %{libname}-alsa09
 Requires:       %{libname} = %{version}-%{release}
 
-%description alsa09
+%description alsa
 libxine sound output plugin for alsa >= 0.9
 
-%description alsa09 -l cs
+%description alsa -l cs
 Zvukový výstupní modul libxine pro ALSA >= 0.9.
 
-%description alsa09 -l de
+%description alsa -l de
 libxine Soundausgabe Plugin für alsa >= 0.9
 
-%description alsa09 -l fi
+%description alsa -l fi
 libxine-ddnilisdke uudelle Linux:n ddniarkkitehtuurille (ALSA >= 0.9)
 %endif
 
@@ -617,6 +622,22 @@ libxine-Purkulisdke, joka mahdollistaa Win32 DLL:n kdytvn.
 %endif
 %endif
 
+%if %BUILD_JACK
+%package jack
+Summary:        libxine sound output plugin for the jack sooundserver
+Summary(de):    libxine Soundausgabeplugin für den jack-Soundserver
+Group:          Development/Libraries
+Obsoletes:      xine-lib-jack
+Obsoletes:      libxine0-jack
+Requires:       %{libname} = %{version}-%{release}
+
+%description jack
+libxine sound output plugin for the jack sooundserver
+
+%description jack -l de
+libxine Soundausgabeplugin für den jack-Soundserver
+%endif
+
 %prep
 %setup -q -n @TAR_NAME@
 
@@ -640,7 +661,7 @@ fi
             --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
             --localstatedir=%{_localstatedir} \
             --sharedstatedir=%{_sharedstatedir} --mandir=%{_mandir} \
-            --infodir=%{_infodir} \
+            --infodir=%{_infodir} --enable-directfb --enable-modplug \
             --with-internal-vcdlibs
 
 # Error in libfaad when compiling with mmx or sse enabled, remove it
@@ -680,10 +701,10 @@ grep -v -E "/include/|dhahelper\.o|libxine*\.(so|la)$|\.m4$" ${RPM_BUILD_DIR}/fi
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
-%if %BUILD_ALSA09
-echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_alsa09
+%if %BUILD_ALSA
+echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_alsa
 mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
-grep "xineplug_ao_out_alsa\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_alsa09
+grep "xineplug_ao_out_alsa\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_alsa
 grep -v "xineplug_ao_out_alsa\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
@@ -821,6 +842,14 @@ grep -E "xineplug_decode_vorbis\.|xineplug_dmx_ogg\.|xineplug_decode_theora\.|xi
 grep -v -E "xineplug_decode_vorbis\.|xineplug_dmx_ogg\.|xineplug_decode_theora\.|xineplug_decode_speex\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
 rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
+%if %BUILD_JACK
+echo "%defattr(-,root,root)" > ${RPM_BUILD_DIR}/filelist_libxine1_jack
+mv ${RPM_BUILD_DIR}/filelist_libxine1 ${RPM_BUILD_DIR}/filelist_libxine1_old
+grep "xineplug_ao_out_jack\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - >> ${RPM_BUILD_DIR}/filelist_libxine1_jack
+grep -v "xineplug_ao_out_jack\." ${RPM_BUILD_DIR}/filelist_libxine1_old | cat - > ${RPM_BUILD_DIR}/filelist_libxine1
+rm ${RPM_BUILD_DIR}/filelist_libxine1_old
+%endif
+
 
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -834,8 +863,8 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %files devel -f ../filelist_libxine1_devel
 %endif
 
-%if %BUILD_ALSA09
-%files alsa09 -f ../filelist_libxine1_alsa09
+%if %BUILD_ALSA
+%files alsa -f ../filelist_libxine1_alsa
 %endif
 
 %if %BUILD_ARTS
@@ -908,7 +937,14 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %files ogg -f ../filelist_libxine1_ogg
 %endif
 
+%if %BUILD_JACK
+%files jack -f ../filelist_libxine1_jack
+%endif
+
 %changelog
+* Mon Aug 14 2006 Manfred Tremmel <Manfred.Tremmel@iiv.de>
+- added jack subpackage for the jack soundserver plugin
+- renamed alsa09 subpackage to alsa
 * Wed Feb 15 2006 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added dirs to filelist
 * Tue Feb 14 2006 Manfred Tremmel <Manfred.Tremmel@iiv.de>
