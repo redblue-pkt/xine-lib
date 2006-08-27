@@ -13,7 +13,7 @@
 %define BUILD_AA        0
 %endif
 %if %{?BUILD_ALSA:0}%{!?BUILD_ALSA:1}
-%define BUILD_ALSA      <BUILD_ALSA09>
+%define BUILD_ALSA      0
 %endif
 %if %{?BUILD_ARTS:0}%{!?BUILD_ARTS:1}
 %define BUILD_ARTS      0
@@ -77,7 +77,7 @@ Release:        %{release}
 License:        GPL
 Group:          Development/Libraries
 URL:            http://xinehq.de
-Source:         http://xinehq.de/files/@PACKAGE@-@VERSION@.tar.bz2
+Source:         http://xinehq.de/files/@PACKAGE@-@VERSION@.tar.gz
 Packager:       Manfred Tremmel <Manfred.Tremmel@iiv.de>
 Obsoletes:      xine
 Obsoletes:      xine-lib
@@ -147,7 +147,7 @@ http://www.gnu.org/licenses/gpl.html
 %if %BUILD_DEVEL
 %package devel
 Summary:        Header files and documentation to develope programs with libxine.
-Summary(cs):    Hlavičkové soubory a dokumentace pro vývoj programů, které používají libxine
+Summary(cs):    Hlavičkové soubory a dokumentace pro vývoj programů používající libxine
 Summary(de):    Headerdateien und Dokumentationen, um Programme mit libxine entwickeln zu können.
 Summary(fi):    Header-tiedostot ja dokumentaatio, joita tarvitset kehittäessäsi ohjelmia libxine:n kanssa.
 Group:	       Development/Libraries
@@ -634,6 +634,9 @@ Requires:       %{libname} = %{version}-%{release}
 %description jack
 libxine sound output plugin for the jack sooundserver
 
+%description jack -l cs
+Zvukový výstupní modul libxine pro zvukový server jack.
+
 %description jack -l de
 libxine Soundausgabeplugin für den jack-Soundserver
 %endif
@@ -942,6 +945,9 @@ rm ${RPM_BUILD_DIR}/filelist_libxine1_old
 %endif
 
 %changelog
+* Sat Aug 26 2006 František Dvořák <valtri@users.sourceforge.net>
+- tiny translation update
+- fixed rpmbuild
 * Mon Aug 14 2006 Manfred Tremmel <Manfred.Tremmel@iiv.de>
 - added jack subpackage for the jack soundserver plugin
 - renamed alsa09 subpackage to alsa
