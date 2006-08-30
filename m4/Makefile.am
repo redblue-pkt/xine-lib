@@ -12,6 +12,7 @@ EXTRA_DIST = glibc2.m4 intdiv0.m4 intmax.m4 inttypes.m4 inttypes_h.m4 inttypes-p
 	aa.m4 \
 	arts.m4 \
 	as.m4 \
+	attributes.m4 \
 	caca.m4 \
 	codeset.m4 \
 	directx.m4 \
