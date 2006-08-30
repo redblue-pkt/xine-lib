@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-06-30 20:23+0200\n"
+"POT-Creation-Date: 2006-08-31 00:09+0200\n"
 "PO-Revision-Date: 2005-12-11 20:47+0100\n"
 "Last-Translator: František Dvořák <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -142,11 +142,11 @@ msgid "audio_oss_out: audio rate : %d requested, %d provided by device\n"
 msgstr ""
 "audio_oss_out: rychlost zvuku : %d požadováno, %d poskytnuto zařízením\n"
 
-#: src/audio_out/audio_oss_out.c:736
+#: src/audio_out/audio_oss_out.c:738
 msgid "OSS audio device name"
 msgstr "jméno zvukového zařízení OSS"
 
-#: src/audio_out/audio_oss_out.c:737
+#: src/audio_out/audio_oss_out.c:739
 msgid ""
 "Specifies the base part of the audio device name, to which the OSS device "
 "number is appended to get the full device name.\n"
@@ -157,11 +157,11 @@ msgstr ""
 "Vyberte \"auto\", jestliže chcete, aby xine automaticky zjistilo správné "
 "nastavení."
 
-#: src/audio_out/audio_oss_out.c:744
+#: src/audio_out/audio_oss_out.c:746
 msgid "OSS audio device number, -1 for none"
 msgstr "číslo zvukového zařízení OSS, -1 pro žádné číslo"
 
-#: src/audio_out/audio_oss_out.c:745
+#: src/audio_out/audio_oss_out.c:747
 msgid ""
 "The full audio device name is created by concatenating the OSS device name "
 "and the audio device number.\n"
@@ -177,21 +177,21 @@ msgstr ""
 "Rozsah této hodnoty je -1 nebo 0-15. Toto nastavení je ignorováno, pokud je "
 "jméno zvukového zařízení nastaveno na \"auto\"."
 
-#: src/audio_out/audio_oss_out.c:754
+#: src/audio_out/audio_oss_out.c:756
 msgid "audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"
 msgstr ""
 "audio_oss_out: audio.device.oss_device_name = auto, zkouší se zařízení\n"
 
-#: src/audio_out/audio_oss_out.c:757
+#: src/audio_out/audio_oss_out.c:759
 msgid "audio_oss_out: Auto probe for audio device failed\n"
 msgstr "audio_oss_out: automatická zkouška zvukového zařízení selhala\n"
 
-#: src/audio_out/audio_oss_out.c:773
+#: src/audio_out/audio_oss_out.c:775
 #, c-format
 msgid "audio_oss_out: using device >%s<\n"
 msgstr "audio_oss_out: použije se zařízení >%s<\n"
 
-#: src/audio_out/audio_oss_out.c:779 src/audio_out/audio_oss_out.c:894
+#: src/audio_out/audio_oss_out.c:781 src/audio_out/audio_oss_out.c:896
 #, c-format
 msgid ""
 "audio_oss_out: opening audio device %s failed:\n"
@@ -200,11 +200,11 @@ msgstr ""
 "audio_oss_out: otevírání zvukového zařízení %s selhalo:\n"
 "%s\n"
 
-#: src/audio_out/audio_oss_out.c:800
+#: src/audio_out/audio_oss_out.c:802
 msgid "a/v sync method to use by OSS"
 msgstr "metoda synchronizace zvuku a videa použitá OSS"
 
-#: src/audio_out/audio_oss_out.c:801
+#: src/audio_out/audio_oss_out.c:803
 msgid ""
 "xine can use different methods to keep audio and video synchronized. Which "
 "setting works best depends on the OSS driver and sound hardware you are "
@@ -264,7 +264,7 @@ msgstr ""
 "váš systém nepodporuje žádné ioctl reálného času a zjistíte, že je po "
 "dlouhém přehrávání špatná synchronizace"
 
-#: src/audio_out/audio_oss_out.c:849
+#: src/audio_out/audio_oss_out.c:851
 msgid ""
 "audio_oss_out: Audio driver realtime sync disabled...\n"
 "audio_oss_out: ...will use system real-time clock for soft-sync instead\n"
@@ -275,11 +275,11 @@ msgstr ""
 "reálného času\n"
 " audio_oss_out: ...mohou zde být problémy se synchronizací zvuku a videa\n"
 
-#: src/audio_out/audio_oss_out.c:856
+#: src/audio_out/audio_oss_out.c:858
 msgid "OSS audio output latency (adjust a/v sync)"
 msgstr "zpoždění zvukového výstupu OSS (upraví synchronizaci zvuku a videa)"
 
-#: src/audio_out/audio_oss_out.c:857 src/audio_out/audio_esd_out.c:537
+#: src/audio_out/audio_oss_out.c:859 src/audio_out/audio_esd_out.c:542
 msgid ""
 "If you experience audio being not in sync with the video, you can enter a "
 "fixed offset here to compensate.\n"
@@ -289,7 +289,7 @@ msgstr ""
 "zadáním pevného posunu.\n"
 "Jednotka hodnoty je jeden tik PTS, což je 1/90000 sekundy."
 
-#: src/audio_out/audio_oss_out.c:870
+#: src/audio_out/audio_oss_out.c:872
 msgid ""
 "audio_oss_out: Audio driver realtime sync disabled...\n"
 "audio_oss_out: ...probing output buffer size: "
@@ -297,7 +297,7 @@ msgstr ""
 "audio_oss_out: synchronizace reálného času zvukového zařízení zakázána...\n"
 " audio_oss_out: ...zkouší se velikost výstupní vyrovnávací paměti: "
 
-#: src/audio_out/audio_oss_out.c:887
+#: src/audio_out/audio_oss_out.c:889
 #, c-format
 msgid ""
 "%d bytes\n"
@@ -306,11 +306,11 @@ msgstr ""
 "%d bytů\n"
 "audio_oss_out: ...mohou zde být problémy se synchronizací zvuku a videa\n"
 
-#: src/audio_out/audio_oss_out.c:919 src/audio_out/audio_alsa_out.c:1466
+#: src/audio_out/audio_oss_out.c:921 src/audio_out/audio_alsa_out.c:1444
 msgid "speaker arrangement"
 msgstr "uspořádání reproduktorů"
 
-#: src/audio_out/audio_oss_out.c:920 src/audio_out/audio_alsa_out.c:1467
+#: src/audio_out/audio_oss_out.c:922 src/audio_out/audio_alsa_out.c:1445
 msgid ""
 "Select how your speakers are arranged, this determines which speakers xine "
 "uses for sound output. The individual values are:\n"
@@ -369,11 +369,11 @@ msgstr ""
 "Na digitální výstup vaší zvukové karty potřebujete připojit digitální "
 "surround dekodér schopný dekódovat formáty, které chcete přehrát."
 
-#: src/audio_out/audio_oss_out.c:1016
+#: src/audio_out/audio_oss_out.c:1018
 msgid "OSS audio mixer number, -1 for none"
 msgstr "číslo zvukového mixeru OSS, -1 pro žádné"
 
-#: src/audio_out/audio_oss_out.c:1017
+#: src/audio_out/audio_oss_out.c:1019
 msgid ""
 "The full mixer device name is created by taking the OSS device name, "
 "replacing \"dsp\" with \"mixer\" and adding the mixer number.\n"
@@ -389,33 +389,33 @@ msgstr ""
 "Rozsah této hodnoty je -1 nebo 0-15. Toto nastavení je ignorováno, pokud je "
 "jméno zvukového zařízení OSS nastaveno na \"auto\"."
 
-#: src/audio_out/audio_oss_out.c:1074
+#: src/audio_out/audio_oss_out.c:1076
 #, c-format
 msgid "audio_oss_out: open() mixer %s failed: %s\n"
 msgstr "audio_oss_out: open() mixer %s selhalo: %s\n"
 
-#: src/audio_out/audio_oss_out.c:1147
+#: src/audio_out/audio_oss_out.c:1149
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr "výstupní zvukový modul xine použije zvuková zařízení/ovladače OSS"
 
-#: src/audio_out/audio_file_out.c:362
+#: src/audio_out/audio_file_out.c:364
 msgid "xine file audio output plugin"
 msgstr "modul zvukového výstupu xine do souboru"
 
-#: src/audio_out/audio_coreaudio_out.c:565
+#: src/audio_out/audio_coreaudio_out.c:567
 msgid "xine output plugin for Coreaudio/Mac OS X"
 msgstr "modul zvukového výstupu xine pro Coreaudio/Mac OS X"
 
-#: src/audio_out/audio_sun_out.c:442 src/audio_out/audio_sun_out.c:917
+#: src/audio_out/audio_sun_out.c:442 src/audio_out/audio_sun_out.c:919
 #, c-format
 msgid "audio_sun_out: opening audio device %s failed: %s\n"
 msgstr "audio_sun_out: otevírání zvukového zařízení %s selhalo: %s\n"
 
-#: src/audio_out/audio_sun_out.c:892
+#: src/audio_out/audio_sun_out.c:894
 msgid "Sun audio device name"
 msgstr "jméno zvukového zařízení Sun"
 
-#: src/audio_out/audio_sun_out.c:893
+#: src/audio_out/audio_sun_out.c:895
 msgid ""
 "Specifies the file name for the Sun audio device to be used.\n"
 "This setting is security critical, because when changed to a different file, "
@@ -428,12 +428,12 @@ msgstr ""
 "obsahem. A tak by jste si měli být jisti, že hodnota, kterou zadáváte, je "
 "skutečně náležité zvukové zařízení Sun."
 
-#: src/audio_out/audio_sun_out.c:935
+#: src/audio_out/audio_sun_out.c:937
 #, fuzzy, c-format
 msgid "audio_sun_out: audio ioctl on device %s failed: %s\n"
 msgstr "audio_sun_out: otevírání zvukového zařízení %s selhalo: %s\n"
 
-#: src/audio_out/audio_sun_out.c:986
+#: src/audio_out/audio_sun_out.c:988
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
 msgstr "výstupní zvukový modul použije zvuková zařízení/ovladače sun"
 
@@ -625,49 +625,49 @@ msgstr ": nelze zlikvidovat pthread mutex: %s\n"
 msgid ": unknown control command %d\n"
 msgstr ": neznámý řídicí příkaz: %d\n"
 
-#: src/audio_out/audio_directx2_out.c:1000
+#: src/audio_out/audio_directx2_out.c:1003
 msgid "second xine audio output plugin using directx"
 msgstr "druhý modul zvukového výstupu xine používající DirectX"
 
-#: src/audio_out/audio_arts_out.c:371
+#: src/audio_out/audio_arts_out.c:373
 msgid "xine audio output plugin using kde artsd"
 msgstr "modul zvukového výstupu xine použije artsd"
 
-#: src/audio_out/audio_polyp_out.c:489
+#: src/audio_out/audio_polyp_out.c:491
 msgid "device used for polypaudio"
 msgstr "zařízení použité pro polyaudio"
 
-#: src/audio_out/audio_polyp_out.c:490
+#: src/audio_out/audio_polyp_out.c:492
 msgid "use 'server[:sink]' for setting the polypaudio sink device."
 msgstr "pro nastavení polyaudio sink zařízení použijte 'server[:sink]'"
 
-#: src/audio_out/audio_polyp_out.c:535
+#: src/audio_out/audio_polyp_out.c:537
 msgid "xine audio output plugin using polypaudio sound server"
 msgstr "modul zvukového výstupu xine používající zvukový server polyaudio"
 
-#: src/audio_out/audio_none_out.c:223
+#: src/audio_out/audio_none_out.c:225
 msgid "xine dummy audio output plugin"
 msgstr "fiktivní modul zvukového výstupu xine"
 
-#: src/audio_out/audio_directx_out.c:827
+#: src/audio_out/audio_directx_out.c:829
 msgid "xine audio output plugin for win32 using directx"
 msgstr "modul zvukového výstupu xine pro win32 používající directx"
 
-#: src/audio_out/audio_alsa_out.c:382
+#: src/audio_out/audio_alsa_out.c:353
 msgid "audio_alsa_out:Already open...WHY!"
 msgstr "audio_alsa_out: Již otevřeno...PROČ!"
 
-#: src/audio_out/audio_alsa_out.c:397
+#: src/audio_out/audio_alsa_out.c:368
 #, c-format
 msgid "audio_alsa_out: snd_pcm_open() of %s failed: %s\n"
 msgstr "audio_alsa_out: snd_pcm_open() na %s selhalo: %s\n"
 
-#: src/audio_out/audio_alsa_out.c:399
+#: src/audio_out/audio_alsa_out.c:370
 msgid "audio_alsa_out: >>> check if another program already uses PCM <<<\n"
 msgstr ""
 "audio_alsa_out: >>> zkontrolujte, jestli už jiný program nepoužívá PCM <<<\n"
 
-#: src/audio_out/audio_alsa_out.c:412
+#: src/audio_out/audio_alsa_out.c:383
 #, c-format
 msgid ""
 "audio_alsa_out: broken configuration for this PCM: no configurations "
@@ -676,11 +676,11 @@ msgstr ""
 "audio_alsa_out: přerušena konfigurace tohoto PCM: žádná konfigurace není k "
 "dispozici: %s\n"
 
-#: src/audio_out/audio_alsa_out.c:1300
+#: src/audio_out/audio_alsa_out.c:1271
 msgid "notify changes to the hardware mixer"
 msgstr "uvědomit o změnách hardwarový mixer"
 
-#: src/audio_out/audio_alsa_out.c:1301
+#: src/audio_out/audio_alsa_out.c:1272
 msgid ""
 "When the hardware mixer changes, your application will receive a "
 "notification so that it can update its graphical representation of the mixer "
@@ -689,16 +689,16 @@ msgstr ""
 "Když se změní hardwarový mixer, vaše aplikace obdrží upozornění, a tak může "
 "za běhu aktualizovat svoji grafickou reprezentaci nastavení mixeru."
 
-#: src/audio_out/audio_alsa_out.c:1362
+#: src/audio_out/audio_alsa_out.c:1335
 #, c-format
 msgid "snd_lib_error_set_handler() failed: %d"
 msgstr "snd_lib_error_set_handler() selhalo: %d"
 
-#: src/audio_out/audio_alsa_out.c:1369
+#: src/audio_out/audio_alsa_out.c:1342
 msgid "sound card can do mmap"
 msgstr "zvuková karta umožňuje provádět mmap"
 
-#: src/audio_out/audio_alsa_out.c:1370
+#: src/audio_out/audio_alsa_out.c:1343
 msgid ""
 "Enable this, if your sound card and alsa driver support memory mapped IO.\n"
 "You can try enabling it and check, if everything works. If it does, this "
@@ -709,11 +709,11 @@ msgstr ""
 "Můžete to zkusit povolit a zkontrolovat, zda vše funguje. Pokud ano, zlepší "
 "toto nastavení výkon."
 
-#: src/audio_out/audio_alsa_out.c:1379
+#: src/audio_out/audio_alsa_out.c:1352
 msgid "device used for mono output"
 msgstr "zařízení použité pro mono výstup"
 
-#: src/audio_out/audio_alsa_out.c:1380
+#: src/audio_out/audio_alsa_out.c:1353
 msgid ""
 "xine will use this alsa device to output mono sound.\n"
 "See the alsa documentation for information on alsa devices."
@@ -721,11 +721,11 @@ msgstr ""
 "xine použije toto zařízení ALSA pro výstup zvuku mono.\n"
 "Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
 
-#: src/audio_out/audio_alsa_out.c:1388
+#: src/audio_out/audio_alsa_out.c:1361
 msgid "device used for stereo output"
 msgstr "zařízení použité pro stereo výstup"
 
-#: src/audio_out/audio_alsa_out.c:1389
+#: src/audio_out/audio_alsa_out.c:1362
 msgid ""
 "xine will use this alsa device to output stereo sound.\n"
 "See the alsa documentation for information on alsa devices."
@@ -733,11 +733,11 @@ msgstr ""
 "xine použije toto zařízení ALSA pro výstup zvuku stereo.\n"
 "Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
 
-#: src/audio_out/audio_alsa_out.c:1397
+#: src/audio_out/audio_alsa_out.c:1370
 msgid "device used for 4-channel output"
 msgstr "zařízení použité pro čtyřkanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:1398
+#: src/audio_out/audio_alsa_out.c:1371
 msgid ""
 "xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
 "See the alsa documentation for information on alsa devices."
@@ -745,11 +745,11 @@ msgstr ""
 "xine použije toto zařízení ALSA pro výstup surround zvuku 4kanálově (4.0).\n"
 "Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
 
-#: src/audio_out/audio_alsa_out.c:1407 src/audio_out/audio_alsa_out.c:1417
+#: src/audio_out/audio_alsa_out.c:1380 src/audio_out/audio_alsa_out.c:1390
 msgid "device used for 5.1-channel output"
 msgstr "zařízení použité pro 5.1-kanálový výstup"
 
-#: src/audio_out/audio_alsa_out.c:1408
+#: src/audio_out/audio_alsa_out.c:1381
 msgid ""
 "xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
 "sound.\n"
@@ -759,7 +759,7 @@ msgstr ""
 "(5.1).\n"
 "Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
 
-#: src/audio_out/audio_alsa_out.c:1418
+#: src/audio_out/audio_alsa_out.c:1391
 msgid ""
 "xine will use this alsa device to output undecoded digital surround sound. "
 "This can be used be external surround decoders.\n"
@@ -769,88 +769,88 @@ msgstr ""
 "Může to být použito vnějšími surround dekodéry.\n"
 "Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
 
-#: src/audio_out/audio_alsa_out.c:1438
+#: src/audio_out/audio_alsa_out.c:1411
 #, c-format
 msgid "snd_pcm_open() failed:%d:%s\n"
 msgstr "snd_cm_open() selhalo:%d:%s\n"
 
-#: src/audio_out/audio_alsa_out.c:1440
+#: src/audio_out/audio_alsa_out.c:1413
 msgid ">>> Check if another program already uses PCM <<<\n"
 msgstr ">>> Zkontrolujte, jestli už jiný program nepoužívá PCM <<<\n"
 
-#: src/audio_out/audio_alsa_out.c:1496
+#: src/audio_out/audio_alsa_out.c:1474
 msgid "audio_alsa_out : supported modes are "
 msgstr "audio_alsa_out : podporované režimy jsou "
 
-#: src/audio_out/audio_alsa_out.c:1499
+#: src/audio_out/audio_alsa_out.c:1477
 msgid "8bit "
 msgstr "8bitový"
 
-#: src/audio_out/audio_alsa_out.c:1504
+#: src/audio_out/audio_alsa_out.c:1482
 msgid "16bit "
 msgstr "16bitový"
 
-#: src/audio_out/audio_alsa_out.c:1508
+#: src/audio_out/audio_alsa_out.c:1486
 msgid "24bit "
 msgstr "24bitový"
 
-#: src/audio_out/audio_alsa_out.c:1512
+#: src/audio_out/audio_alsa_out.c:1490
 msgid "32bit "
 msgstr "32bitový"
 
-#: src/audio_out/audio_alsa_out.c:1516
+#: src/audio_out/audio_alsa_out.c:1494
 msgid "mono "
 msgstr "mono"
 
-#: src/audio_out/audio_alsa_out.c:1520
+#: src/audio_out/audio_alsa_out.c:1498
 msgid "stereo "
 msgstr "stereo"
 
-#: src/audio_out/audio_alsa_out.c:1525
+#: src/audio_out/audio_alsa_out.c:1503
 msgid "4-channel "
 msgstr "4kanálový"
 
-#: src/audio_out/audio_alsa_out.c:1528
+#: src/audio_out/audio_alsa_out.c:1506
 msgid "(4-channel not enabled in xine config) "
 msgstr "(4kanálový není povolen v konfiguraci xine)"
 
-#: src/audio_out/audio_alsa_out.c:1533
+#: src/audio_out/audio_alsa_out.c:1511
 msgid "4.1-channel "
 msgstr "4.1kanálový"
 
-#: src/audio_out/audio_alsa_out.c:1536
+#: src/audio_out/audio_alsa_out.c:1514
 msgid "(4.1-channel not enabled in xine config) "
 msgstr "(4.1kanálový není povolen v konfiguraci xine)"
 
-#: src/audio_out/audio_alsa_out.c:1541
+#: src/audio_out/audio_alsa_out.c:1519
 msgid "5-channel "
 msgstr "5kanálový"
 
-#: src/audio_out/audio_alsa_out.c:1544
+#: src/audio_out/audio_alsa_out.c:1522
 msgid "(5-channel not enabled in xine config) "
 msgstr "(5kanálový není povolen v kondifuraci xine)"
 
-#: src/audio_out/audio_alsa_out.c:1549
+#: src/audio_out/audio_alsa_out.c:1527
 msgid "5.1-channel "
 msgstr "5.1kanálový"
 
-#: src/audio_out/audio_alsa_out.c:1552
+#: src/audio_out/audio_alsa_out.c:1530
 msgid "(5.1-channel not enabled in xine config) "
 msgstr "(5.1kanálový není povolen v konfiguraci xine)"
 
-#: src/audio_out/audio_alsa_out.c:1575
+#: src/audio_out/audio_alsa_out.c:1553
 msgid "a/52 and DTS pass-through\n"
 msgstr "a/52 a DTS pass-through\n"
 
-#: src/audio_out/audio_alsa_out.c:1578
+#: src/audio_out/audio_alsa_out.c:1556
 msgid "(a/52 and DTS pass-through not enabled in xine config)\n"
 msgstr "(a/52 a DTS pass-through nejsou povoleny v konfiguraci xine)\n"
 
-#: src/audio_out/audio_alsa_out.c:1585
+#: src/audio_out/audio_alsa_out.c:1563
 msgid "alsa mixer device"
 msgstr "mixovací zařízení alsa"
 
-#: src/audio_out/audio_alsa_out.c:1586
+#: src/audio_out/audio_alsa_out.c:1564
 msgid ""
 "xine will use this alsa mixer device to change the volume.\n"
 "See the alsa documentation for information on alsa devices."
@@ -858,15 +858,15 @@ msgstr ""
 "ke změně hlasitosti použije xine toto zařízení mixeru ALSA.\n"
 "Informace o zařízeních ALSA nalzeznete v dokumentaci k ALSA."
 
-#: src/audio_out/audio_alsa_out.c:1654
+#: src/audio_out/audio_alsa_out.c:1638
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr "výstupní zvukový modul xine použije zvuková zařízení/ovladače alsa"
 
-#: src/audio_out/audio_irixal_out.c:385
+#: src/audio_out/audio_irixal_out.c:387
 msgid "irixal audio output maximum gap length"
 msgstr "maximální mezera zvukového výstupu irixalu"
 
-#: src/audio_out/audio_irixal_out.c:386
+#: src/audio_out/audio_irixal_out.c:388
 msgid ""
 "You can specify the maximum offset between audio and video xine will "
 "tolerate before trying to resync them.\n"
@@ -877,7 +877,7 @@ msgstr ""
 "před tím, než se je pokusí znovu synchronizovat.\n"
 "Jednotka této hodnoty je jeden tik PTS, což je 1/90000 sekundy."
 
-#: src/audio_out/audio_irixal_out.c:415
+#: src/audio_out/audio_irixal_out.c:417
 msgid "xine audio output plugin using IRIX libaudio"
 msgstr "zvukový výstupní modul xine použije IRIX libaudio"
 
@@ -895,11 +895,11 @@ msgstr "audio_esd_out: připojuje se k serveru ESD...\n"
 msgid "audio_esd_out: can't connect to %s ESD server: %s\n"
 msgstr "audio_esd_out: nelze se připojit k ESD serveru %s: %s\n"
 
-#: src/audio_out/audio_esd_out.c:536
+#: src/audio_out/audio_esd_out.c:541
 msgid "esd audio output latency (adjust a/v sync)"
 msgstr "zpoždění zvukového výstupu esd (upraví synchronizaci zvuku a videa)"
 
-#: src/audio_out/audio_esd_out.c:569
+#: src/audio_out/audio_esd_out.c:574
 msgid "xine audio output plugin using esound"
 msgstr "modul zvukového výstupu xine použije esound"
 
@@ -916,15 +916,15 @@ msgstr "io_helper: čekání selhalo: %s\n"
 msgid "failed to get status of socket"
 msgstr "selhalo získání stavu soketu"
 
-#: src/xine-engine/io_helper.c:365
+#: src/xine-engine/io_helper.c:371
 msgid "io_helper: Permission denied\n"
 msgstr "io_helper: Přístup odepřen\n"
 
-#: src/xine-engine/io_helper.c:369
+#: src/xine-engine/io_helper.c:375
 msgid "io_helper: File not found\n"
 msgstr "io_helper: Soubor nenalezen\n"
 
-#: src/xine-engine/io_helper.c:373
+#: src/xine-engine/io_helper.c:379
 msgid "io_helper: Connection Refused\n"
 msgstr "io_helper: Spojení odmítnuto\n"
 
@@ -982,124 +982,124 @@ msgstr ""
 "videovýstupy jako je XShm, kde není škálování obrazu hardwarově urychlováno, "
 "může toto dramaticky snížit využití CPU."
 
-#: src/xine-engine/xine.c:669 src/xine-engine/xine.c:766
-#: src/xine-engine/xine.c:803 src/xine-engine/xine.c:839
-#: src/xine-engine/xine.c:851 src/xine-engine/xine.c:864
-#: src/xine-engine/xine.c:877 src/xine-engine/xine.c:890
-#: src/xine-engine/xine.c:916 src/xine-engine/xine.c:941
-#: src/xine-engine/xine.c:976
+#: src/xine-engine/xine.c:671 src/xine-engine/xine.c:768
+#: src/xine-engine/xine.c:805 src/xine-engine/xine.c:841
+#: src/xine-engine/xine.c:853 src/xine-engine/xine.c:866
+#: src/xine-engine/xine.c:879 src/xine-engine/xine.c:892
+#: src/xine-engine/xine.c:918 src/xine-engine/xine.c:943
+#: src/xine-engine/xine.c:978
 msgid "xine: error while parsing mrl\n"
 msgstr "xine: chyba během zpracování MRL\n"
 
-#: src/xine-engine/xine.c:703
+#: src/xine-engine/xine.c:705
 #, c-format
 msgid "xine: found input plugin  : %s\n"
 msgstr "xine: nelze nalézt vstupní modul: %s\n"
 
-#: src/xine-engine/xine.c:711
+#: src/xine-engine/xine.c:713
 #, c-format
 msgid "xine: input plugin cannot open MRL [%s]\n"
 msgstr "xine: vstupní modul nemůže otevřít MRL [%s]\n"
 
-#: src/xine-engine/xine.c:729
+#: src/xine-engine/xine.c:731
 #, c-format
 msgid "xine: cannot find input plugin for MRL [%s]\n"
 msgstr "xine: nelze nalézt vstupní modul pro MRL [%s]\n"
 
-#: src/xine-engine/xine.c:755
+#: src/xine-engine/xine.c:757
 #, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: selhalo spuštění demultiplexoru %s\n"
 
-#: src/xine-engine/xine.c:791
+#: src/xine-engine/xine.c:793
 msgid "xine: join rip input plugin\n"
 msgstr "xine: připojen ripovací vstupní modul\n"
 
-#: src/xine-engine/xine.c:796
+#: src/xine-engine/xine.c:798
 msgid "xine: error opening rip input plugin instance\n"
 msgstr "xine: chyba otevírání instance ripovacího vstupního modulu\n"
 
-#: src/xine-engine/xine.c:827
+#: src/xine-engine/xine.c:829
 #, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
 msgstr "xine: selhalo spuštění posledního vyzkoušeného demultiplexoru %s\n"
 
-#: src/xine-engine/xine.c:856
+#: src/xine-engine/xine.c:858
 msgid "ignoring video\n"
 msgstr "ignoruje se video\n"
 
-#: src/xine-engine/xine.c:869
+#: src/xine-engine/xine.c:871
 msgid "ignoring audio\n"
 msgstr "ignoruje se zvuk\n"
 
-#: src/xine-engine/xine.c:882
+#: src/xine-engine/xine.c:884
 msgid "ignoring subpicture\n"
 msgstr "ignorují se titulky\n"
 
-#: src/xine-engine/xine.c:895
+#: src/xine-engine/xine.c:897
 msgid "input cache plugin disabled\n"
 msgstr "vstupní modul cache zakázán\n"
 
-#: src/xine-engine/xine.c:966
+#: src/xine-engine/xine.c:968
 #, c-format
 msgid "subtitle mrl opened '%s'\n"
 msgstr "otevřeno MRL titulků '%s'\n"
 
-#: src/xine-engine/xine.c:970
+#: src/xine-engine/xine.c:972
 msgid "xine: error opening subtitle mrl\n"
 msgstr "xine: chyba otevírání MRL titulků\n"
 
-#: src/xine-engine/xine.c:1002
+#: src/xine-engine/xine.c:1004
 msgid "xine: error while parsing MRL\n"
 msgstr "xine: chyba během zpracování MRL\n"
 
-#: src/xine-engine/xine.c:1009
+#: src/xine-engine/xine.c:1011
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
 msgstr "xine: změna volby '%s' z MRL naní povolena\n"
 
-#: src/xine-engine/xine.c:1029
+#: src/xine-engine/xine.c:1031
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: nelze nalézt demultiplexor pro >%s<\n"
 
-#: src/xine-engine/xine.c:1045
+#: src/xine-engine/xine.c:1047
 #, c-format
 msgid "xine: found demuxer plugin: %s\n"
 msgstr "xine: nalezen demultiplexní modul: %s\n"
 
-#: src/xine-engine/xine.c:1065
+#: src/xine-engine/xine.c:1067
 msgid "xine: demuxer failed to start\n"
 msgstr "xine: selhalo spuštění demultiplexoru\n"
 
-#: src/xine-engine/xine.c:1128
+#: src/xine-engine/xine.c:1130
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: žádný dostupný demultiplexor\n"
 
-#: src/xine-engine/xine.c:1198
+#: src/xine-engine/xine.c:1200
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: selhalo spuštění demultiplexoru\n"
 
-#: src/xine-engine/xine.c:1468
+#: src/xine-engine/xine.c:1473
 #, c-format
 msgid "xine: The specified save_dir \"%s\" might be a security risk.\n"
 msgstr ""
 "xine: Uvedený adresář pro ukládání \"%s\" by mohl znamenat bezpečnostní "
 "riziko.\n"
 
-#: src/xine-engine/xine.c:1473
+#: src/xine-engine/xine.c:1478
 msgid "The specified save_dir might be a security risk."
 msgstr "Uvedený adresář pro ukládání by mohl znamenat bezpečnostní riziko."
 
-#: src/xine-engine/xine.c:1499
+#: src/xine-engine/xine.c:1504
 msgid "xine: locale not supported by C library\n"
 msgstr "xine: locale není podporováno knihovnou C\n"
 
-#: src/xine-engine/xine.c:1508
+#: src/xine-engine/xine.c:1513
 msgid "media format detection strategy"
 msgstr "strategie zjištování formátu dat"
 
-#: src/xine-engine/xine.c:1509
+#: src/xine-engine/xine.c:1514
 msgid ""
 "xine offers various methods to detect the media format of input to play. The "
 "individual values are:\n"
@@ -1130,11 +1130,11 @@ msgstr ""
 "extension\n"
 "Detekovat pouze podle přípony jména souboru.\n"
 
-#: src/xine-engine/xine.c:1527
+#: src/xine-engine/xine.c:1532
 msgid "directory for saving streams"
 msgstr "adresář pro ukládání dat"
 
-#: src/xine-engine/xine.c:1528
+#: src/xine-engine/xine.c:1533
 msgid ""
 "When using the stream save feature, files will be written only into this "
 "directory.\n"
@@ -1150,11 +1150,11 @@ msgstr ""
 "Proto byste si měli být jisti, že je v uvedeném adresáři bezproblémový "
 "jakýkoliv obsah v jakémkoliv souboru."
 
-#: src/xine-engine/xine.c:1539
+#: src/xine-engine/xine.c:1544
 msgid "allow implicit changes to the configuration (e.g. by MRL)"
 msgstr "povolit implicitní změny v konfiguraci (např. pomocí MRL)"
 
-#: src/xine-engine/xine.c:1540
+#: src/xine-engine/xine.c:1545
 msgid ""
 "If enabled, you allow xine to change your configuration without explicit "
 "actions from your side. For example configuration changes demanded by MRLs "
@@ -1171,15 +1171,26 @@ msgstr ""
 "dovolíte libovolně měnit vaši konfiguraci, můžete skončit s úplně rozhozeným "
 "xine."
 
-#: src/xine-engine/xine.c:1894
+#: src/xine-engine/xine.c:1559
+msgid "Timeout for network stream reading (in seconds)"
+msgstr ""
+
+#: src/xine-engine/xine.c:1560
+msgid ""
+"Specifies the timeout when reading from network streams, in seconds.Too low "
+"values might stop streaming when the source is slow or thebandwidth is "
+"occupied, too high values will freeze the player if theconnection is lost."
+msgstr ""
+
+#: src/xine-engine/xine.c:1911
 msgid "messages"
 msgstr "zprávy"
 
-#: src/xine-engine/xine.c:1895
+#: src/xine-engine/xine.c:1912
 msgid "plugin"
 msgstr "modul"
 
-#: src/xine-engine/xine.c:1896
+#: src/xine-engine/xine.c:1913
 msgid "trace"
 msgstr "trasování"
 
@@ -1501,63 +1512,63 @@ msgid ""
 "info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"
 msgstr "info_helper: nepodporovaná konverze %s -> UTF-8, nebude prováděna\n"
 
-#: src/xine-engine/xine_interface.c:911
+#: src/xine-engine/xine_interface.c:919
 msgid "Warning:"
 msgstr ""
 
 # standarní hláška hstrerror
-#: src/xine-engine/xine_interface.c:912
+#: src/xine-engine/xine_interface.c:920
 #, fuzzy
 msgid "Unknown host:"
 msgstr "Neznámý počítač"
 
-#: src/xine-engine/xine_interface.c:913
+#: src/xine-engine/xine_interface.c:921
 #, fuzzy
 msgid "Unknown device:"
 msgstr "Neznámý typ události: "
 
-#: src/xine-engine/xine_interface.c:914
+#: src/xine-engine/xine_interface.c:922
 msgid "Network unreachable"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:915
+#: src/xine-engine/xine_interface.c:923
 #, fuzzy
 msgid "Connection refused:"
 msgstr "io_helper: Spojení odmítnuto\n"
 
-#: src/xine-engine/xine_interface.c:916
+#: src/xine-engine/xine_interface.c:924
 #, fuzzy
 msgid "File not found:"
 msgstr "io_helper: Soubor nenalezen\n"
 
-#: src/xine-engine/xine_interface.c:917
+#: src/xine-engine/xine_interface.c:925
 msgid "Read error from:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:918
+#: src/xine-engine/xine_interface.c:926
 #, fuzzy
 msgid "Error loading library:"
 msgstr "osd: chyba načítaní glyfu\n"
 
-#: src/xine-engine/xine_interface.c:919
+#: src/xine-engine/xine_interface.c:927
 #, fuzzy
 msgid "Encrypted media stream detected"
 msgstr "ogg: detekována zvuková data vorbis\n"
 
-#: src/xine-engine/xine_interface.c:920
+#: src/xine-engine/xine_interface.c:928
 msgid "Security message:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:921
+#: src/xine-engine/xine_interface.c:929
 #, fuzzy
 msgid "Audio device unavailable"
 msgstr "jméno zvukového zařízení Sun"
 
-#: src/xine-engine/xine_interface.c:922
+#: src/xine-engine/xine_interface.c:930
 msgid "Permission error"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:923
+#: src/xine-engine/xine_interface.c:931
 msgid "File is empty:"
 msgstr ""
 
@@ -1846,7 +1857,7 @@ msgstr ""
 "load_plugins: automatické testování zvukového výstupu nenašlo žádný "
 "použitelný zvukový ovladač.\n"
 
-#: src/xine-engine/load_plugins.c:1975
+#: src/xine-engine/load_plugins.c:1996
 #, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
@@ -1855,11 +1866,11 @@ msgstr ""
 "load_plugins: nelze uvolnit knihovnu modulu %s:\n"
 "%s\n"
 
-#: src/xine-utils/memcpy.c:481
+#: src/xine-utils/memcpy.c:479
 msgid "memcopy method used by xine"
 msgstr "metoda memcpy použitá xine"
 
-#: src/xine-utils/memcpy.c:482
+#: src/xine-utils/memcpy.c:480
 msgid ""
 "The copying of large memory blocks is one of the most expensive operations "
 "on todays computers. Therefore xine provides various tuned methods to do "
@@ -1869,7 +1880,7 @@ msgstr ""
 "dnešních počítačích. Proto xine poskytuje různé vyladěné metody, které "
 "provádějí toto kopírování. Obvykle je nejlepší metoda deketována automaticky."
 
-#: src/xine-utils/memcpy.c:509
+#: src/xine-utils/memcpy.c:507
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr "Výkonnostní testování metod memcpy (menší je lepší):\n"
 
@@ -3355,11 +3366,11 @@ msgstr "input_dvd: Chyba získání bloku z DVD (%s)\n"
 msgid "input_dvd: Error opening DVD device\n"
 msgstr "input_dvd: chyba otevírání zařízení DVD\n"
 
-#: src/input/input_dvd.c:1782
+#: src/input/input_dvd.c:1784
 msgid "device used for DVD playback"
 msgstr "zařízení použité pro přehrávání DVD"
 
-#: src/input/input_dvd.c:1783
+#: src/input/input_dvd.c:1785
 msgid ""
 "The path to the device, usually a DVD drive, which you intend to use for "
 "playing DVDs."
@@ -3367,11 +3378,11 @@ msgstr ""
 "Cesta k zařízení, obvykle DVD mechanice, které chcete používat pro "
 "přehrávání DVD."
 
-#: src/input/input_dvd.c:1795
+#: src/input/input_dvd.c:1802
 msgid "raw device set up for DVD access"
 msgstr "cesta k raw zařízení nastavenému pro přístup k DVD"
 
-#: src/input/input_dvd.c:1796
+#: src/input/input_dvd.c:1803
 msgid ""
 "If this points to a raw device connected to your DVD device, xine will use "
 "the raw device for playback. This has the advantage of being slightly faster "
@@ -3389,11 +3400,11 @@ msgstr ""
 "použita pouze jednou.\n"
 "Další informace viz. dokumentace o raw zařízeních (man raw)."
 
-#: src/input/input_dvd.c:1809
+#: src/input/input_dvd.c:1816
 msgid "CSS decryption method"
 msgstr "metoda dešifrování CSS"
 
-#: src/input/input_dvd.c:1810
+#: src/input/input_dvd.c:1817
 msgid ""
 "Selects the decryption method libdvdcss will use to descramble copy "
 "protected DVDs. Try the various methods, if you have problems playing "
@@ -3403,11 +3414,11 @@ msgstr ""
 "chráněních proti kopírování. Pokud máte problémy s přehráváním zakódovaných "
 "DVD, vyzkoušejte různé metody."
 
-#: src/input/input_dvd.c:1818
+#: src/input/input_dvd.c:1825
 msgid "path to the title key cache"
 msgstr "cesta ke cache klíčů titulů"
 
-#: src/input/input_dvd.c:1819
+#: src/input/input_dvd.c:1826
 msgid ""
 "Since cracking the copy protection of scrambled DVDs can be quite time "
 "consuming, libdvdcss will cache the cracked keys in this directory.\n"
@@ -3421,11 +3432,11 @@ msgstr ""
 "tomto adresáři vytvářeny soubory s nekontrolovatelnými jmény. Ujistěte se, "
 "že daný adresář není kromě cachování DVD klíčů používán na nic jiného."
 
-#: src/input/input_dvd.c:1841
+#: src/input/input_dvd.c:1848
 msgid "region the DVD player claims to be in (1 to 8)"
 msgstr "DVD přehrávač tvrdí, že je v oblasti (1 až 8)"
 
-#: src/input/input_dvd.c:1842
+#: src/input/input_dvd.c:1849
 msgid ""
 "This only needs to be changed if your DVD jumps to a screen complaining "
 "about a wrong region code. It has nothing to do with the region code set in "
@@ -3435,11 +3446,11 @@ msgstr ""
 "na špatný kód oblasti. Nemá to nic dělat s kódem oblasti nastaveným v DVD "
 "mechanikách, je to čistě softwarové."
 
-#: src/input/input_dvd.c:1848
+#: src/input/input_dvd.c:1855
 msgid "default language for DVD playback"
 msgstr "výchozí jazyk pro přehrávání DVD"
 
-#: src/input/input_dvd.c:1849
+#: src/input/input_dvd.c:1856
 msgid ""
 "xine tries to use this language as a default for DVD playback. As far as the "
 "DVD supports it, menus and audio tracks will be presented in this language.\n"
@@ -3449,11 +3460,11 @@ msgstr ""
 "bude podporovat, volby a zvukové stopy budou prezentovány v tomto jazyce.\n"
 "Hodnotou musí být dva znaky jazykového kódu ISO639."
 
-#: src/input/input_dvd.c:1855
+#: src/input/input_dvd.c:1862
 msgid "read-ahead caching"
 msgstr "read-ahead cachování"
 
-#: src/input/input_dvd.c:1856
+#: src/input/input_dvd.c:1863
 msgid ""
 "xine can use a read ahead cache for DVD drive access.\n"
 "This may lead to jerky playback on slow drives, but it improves the impact "
@@ -3463,11 +3474,11 @@ msgstr ""
 "To může vést na pomalých mechanikách ke škubavému přehrávání, ale na "
 "rychlejších mechanikách to zlepší výsledek změny vrstvy DVD."
 
-#: src/input/input_dvd.c:1862
+#: src/input/input_dvd.c:1869
 msgid "unit for the skip action"
 msgstr "jednotka pro akci skoku"
 
-#: src/input/input_dvd.c:1863
+#: src/input/input_dvd.c:1870
 msgid ""
 "You can configure the behaviour when issuing a skip command (using the skip "
 "buttons for example). The individual values mean:\n"
@@ -3499,11 +3510,11 @@ msgstr ""
 "skip title\n"
 "přeskočí DVD titul, což je stavební jednotka reprezentující celé DVD"
 
-#: src/input/input_dvd.c:1878
+#: src/input/input_dvd.c:1885
 msgid "unit for seeking"
 msgstr "jednotka pro nastavení pozice"
 
-#: src/input/input_dvd.c:1879
+#: src/input/input_dvd.c:1886
 msgid ""
 "You can configure the domain spanned by the seek slider. The individual "
 "values mean:\n"
@@ -3527,11 +3538,11 @@ msgstr ""
 "nastavování pozice se týká programu DVD, což je navigační jednotka "
 "reprezentující kapitolu současného dějství"
 
-#: src/input/input_dvd.c:1890
+#: src/input/input_dvd.c:1897
 msgid "play mode when title/chapter is given"
 msgstr "režim přehrávání, když je zadán titul nebo kapitola"
 
-#: src/input/input_dvd.c:1891
+#: src/input/input_dvd.c:1898
 msgid ""
 "You can configure the behaviour when playing a dvd from a given title/"
 "chapter (eg. using MRL 'dvd:/1.2'). The individual values mean:\n"
@@ -3776,15 +3787,15 @@ msgstr "input_cdda: úspěšně připojeno k CDDB serveru '%s:%d'.\n"
 msgid "input_cdda: failed to connect to cddb server '%s:%d' (%s).\n"
 msgstr "input_cdda: nelze se připojit k CDDB serveru '%s:%d' (%s).\n"
 
-#: src/input/input_cdda.c:2625
+#: src/input/input_cdda.c:2627
 msgid "CD Digital Audio (aka. CDDA)"
 msgstr "digitální zvukové CD (CDDA)"
 
-#: src/input/input_cdda.c:2678
+#: src/input/input_cdda.c:2680
 msgid "device used for CD audio"
 msgstr "zařízení použité pro zvukové CD"
 
-#: src/input/input_cdda.c:2679
+#: src/input/input_cdda.c:2681
 msgid ""
 "The path to the device, usually a CD or DVD drive, which you intend to use "
 "for playing audio CDs."
@@ -3792,11 +3803,11 @@ msgstr ""
 "Cesta k zeřízení, obvykle CD nebo DVD mechanika, které máte v úmyslu "
 "používat k přehrávání zvukových CD."
 
-#: src/input/input_cdda.c:2685
+#: src/input/input_cdda.c:2687
 msgid "query CDDB"
 msgstr "dotazovat se CDDB"
 
-#: src/input/input_cdda.c:2685
+#: src/input/input_cdda.c:2687
 msgid ""
 "Enables CDDB queries, which will give you convenient title and track names "
 "for your audio CDs.\n"
@@ -3810,11 +3821,11 @@ msgstr ""
 "internetového serveru, který by pak mohl znát profil vašich poslechových "
 "zvyků."
 
-#: src/input/input_cdda.c:2693
+#: src/input/input_cdda.c:2695
 msgid "CDDB server name"
 msgstr "jméno serveru CDDB"
 
-#: src/input/input_cdda.c:2693
+#: src/input/input_cdda.c:2695
 msgid ""
 "The CDDB server used to retrieve the title and track information from.\n"
 "This setting is security critical, because the sever will receive "
@@ -3827,21 +3838,21 @@ msgstr ""
 "posílány informace o vašich poslechovích zvycích a také mohl by odpovídat na "
 "dotazy zákeřnými odpověďmi. Ujistěte se, že serveru můžete důvěřovat."
 
-#: src/input/input_cdda.c:2701
+#: src/input/input_cdda.c:2703
 msgid "CDDB server port"
 msgstr "port serveru CDDB"
 
-#: src/input/input_cdda.c:2701
+#: src/input/input_cdda.c:2703
 msgid "The server port used to retrieve the title and track information from."
 msgstr ""
 "Port serveru, který se použije, aby se z něj získávaly nadpisy a informace o "
 "stopě."
 
-#: src/input/input_cdda.c:2707
+#: src/input/input_cdda.c:2709
 msgid "CDDB cache directory"
 msgstr "adresář se záznamy CDDB"
 
-#: src/input/input_cdda.c:2707
+#: src/input/input_cdda.c:2709
 msgid ""
 "The replies from the CDDB server will be cached in this directory.\n"
 "This setting is security critical, because files with uncontrollable names "
@@ -3853,11 +3864,11 @@ msgstr ""
 "tomto adresáři vytvářeny soubory s nekontrolovatelnými jmény. Ujistěte se, "
 "že daný adresář není používán pro nic jiného než cachování CDDB."
 
-#: src/input/input_cdda.c:2715
+#: src/input/input_cdda.c:2717
 msgid "slow down disc drive to this speed factor"
 msgstr "zpomalit diskovou jednotku na tento rychlostní faktor"
 
-#: src/input/input_cdda.c:2716
+#: src/input/input_cdda.c:2718
 msgid ""
 "Since some CD or DVD drives make some really loud noises because of the fast "
 "disc rotation, xine will try to slow them down. With standard CD or DVD "
@@ -4032,19 +4043,19 @@ msgstr "libmmsh: stav http není 2xx: >%d %s<\n"
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr "libmmsh: Přesměrování umístění není implementováno\n"
 
-#: src/input/mmsh.c:602
+#: src/input/mmsh.c:606
 msgid "Connecting MMS server (over http)..."
 msgstr "Připojuje se k MMS serveru (přes HTTP)..."
 
-#: src/input/mmsh.c:847
+#: src/input/mmsh.c:851
 msgid "invalid url\n"
 msgstr "neplatné URL\n"
 
-#: src/input/mmsh.c:852
+#: src/input/mmsh.c:856
 msgid "unsupported protocol\n"
 msgstr "nepodporovaný protokol\n"
 
-#: src/input/mms.c:654
+#: src/input/mms.c:669
 msgid "Connecting MMS server (over tcp)..."
 msgstr "Připojuje se k MMS serveru (přes TCP)..."
 
@@ -4788,11 +4799,11 @@ msgstr "libareal: nastavení esence dekodéru selhalo, chybový kód: 0x%x\n"
 msgid "libareal: oups, real can do more than 2 channels ?\n"
 msgstr "libareal: jejda, real může mít více než 2 kanály?\n"
 
-#: src/libreal/audio_decoder.c:741 src/libreal/xine_decoder.c:634
+#: src/libreal/audio_decoder.c:745 src/libreal/xine_decoder.c:638
 msgid "path to RealPlayer codecs"
 msgstr "cesta ke kodekům Real Playeru"
 
-#: src/libreal/audio_decoder.c:742 src/libreal/xine_decoder.c:635
+#: src/libreal/audio_decoder.c:746 src/libreal/xine_decoder.c:639
 msgid ""
 "If you have RealPlayer installed, specify the path to its codec directory "
 "here. You can easily find the codec directory by looking for a file named "
@@ -5079,7 +5090,7 @@ msgid ""
 "* mplayer's noise (C) Michael Niedermayer\n"
 msgstr ""
 
-#: src/post/planar/expand.c:230
+#: src/post/planar/expand.c:232
 msgid ""
 "The expand plugin is meant to take frames of arbitrary aspect ratio and "
 "converts them to a different aspect (4:3 by default) by adding black bars on "
@@ -5491,22 +5502,22 @@ msgid "The maximum compression to apply to an image in constant quality mode."
 msgstr ""
 "Maximální komprese, která se použije na obraz v režimu konstantní kvality."
 
-#: src/libffmpeg/audio_decoder.c:112
+#: src/libffmpeg/audio_decoder.c:117
 #, c-format
 msgid "ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr "ffmpeg_audio_dec: zvětšení bufferu na %d, aby se předešlo přetečení.\n"
 
-#: src/libffmpeg/audio_decoder.c:156
+#: src/libffmpeg/audio_decoder.c:161
 #, c-format
 msgid "ffmpeg_audio_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr "ffmpeg_audio_dec: nelze nalézt dekodér ffmpeg pro buffer typu 0x%X\n"
 
-#: src/libffmpeg/audio_decoder.c:248
+#: src/libffmpeg/audio_decoder.c:253
 #, fuzzy
 msgid "ffmpeg_audio_dec: trying to open null codec\n"
 msgstr "ffmpeg_audio_dec: nelze otevřít dekodér\n"
 
-#: src/libffmpeg/audio_decoder.c:257
+#: src/libffmpeg/audio_decoder.c:262
 msgid "ffmpeg_audio_dec: couldn't open decoder\n"
 msgstr "ffmpeg_audio_dec: nelze otevřít dekodér\n"
 
@@ -5523,29 +5534,29 @@ msgstr "ffmpeg_video_dec: nepodporovaný formát, DR1 zakázáno.\n"
 msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
 msgstr "ffmpeg_video_dec: nepodporované rozměry snímku, DR1 zakázáno.\n"
 
-#: src/libffmpeg/video_decoder.c:295
+#: src/libffmpeg/video_decoder.c:306
 #, c-format
 msgid "ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr "ffmpeg_video_dec: nelze nalézt dekodér ffmpeg pro buffer typu 0x%X\n"
 
-#: src/libffmpeg/video_decoder.c:324
+#: src/libffmpeg/video_decoder.c:335
 msgid "ffmpeg_video_dec: couldn't open decoder\n"
 msgstr "ffmpeg_video_dec: nelze otevřít dekodér\n"
 
-#: src/libffmpeg/video_decoder.c:359
+#: src/libffmpeg/video_decoder.c:370
 msgid "ffmpeg_video_dec: direct rendering enabled\n"
 msgstr "ffmpeg_video_dec: přímé renderování povoleno\n"
 
-#: src/libffmpeg/video_decoder.c:778
+#: src/libffmpeg/video_decoder.c:789
 #, c-format
 msgid "ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr "ffmpeg_video_dec: zvětšení bufferu na %d, aby se předešlo přetečení.\n"
 
-#: src/libffmpeg/video_decoder.c:1450
+#: src/libffmpeg/video_decoder.c:1461
 msgid "MPEG-4 postprocessing quality"
 msgstr "kvalita dodatečného zpracování MPEG-4"
 
-#: src/libffmpeg/video_decoder.c:1451
+#: src/libffmpeg/video_decoder.c:1462
 msgid ""
 "You can adjust the amount of post processing applied to MPEG-4 video.\n"
 "Higher values result in better quality, but need more CPU. Lower values may "

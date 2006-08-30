@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-06-30 20:23+0200\n"
+"POT-Creation-Date: 2006-08-31 00:09+0200\n"
 "PO-Revision-Date: 2002-01-22 18:31GMT-3\n"
 "Last-Translator: Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>\n"
 "Language-Team: Portuguese (Brazilian) <pt_BR@li.org>\n"
@@ -125,22 +125,22 @@ msgstr ""
 msgid "audio_oss_out: audio rate : %d requested, %d provided by device\n"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:736
+#: src/audio_out/audio_oss_out.c:738
 msgid "OSS audio device name"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:737
+#: src/audio_out/audio_oss_out.c:739
 msgid ""
 "Specifies the base part of the audio device name, to which the OSS device "
 "number is appended to get the full device name.\n"
 "Select \"auto\" if you want xine to auto detect the corret setting."
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:744
+#: src/audio_out/audio_oss_out.c:746
 msgid "OSS audio device number, -1 for none"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:745
+#: src/audio_out/audio_oss_out.c:747
 msgid ""
 "The full audio device name is created by concatenating the OSS device name "
 "and the audio device number.\n"
@@ -150,31 +150,31 @@ msgid ""
 "audio device name is set to \"auto\"."
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:754
+#: src/audio_out/audio_oss_out.c:756
 msgid "audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:757
+#: src/audio_out/audio_oss_out.c:759
 msgid "audio_oss_out: Auto probe for audio device failed\n"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:773
+#: src/audio_out/audio_oss_out.c:775
 #, c-format
 msgid "audio_oss_out: using device >%s<\n"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:779 src/audio_out/audio_oss_out.c:894
+#: src/audio_out/audio_oss_out.c:781 src/audio_out/audio_oss_out.c:896
 #, fuzzy, c-format
 msgid ""
 "audio_oss_out: opening audio device %s failed:\n"
 "%s\n"
 msgstr "input_cda: opening server '%s:%d' failed: %s\n"
 
-#: src/audio_out/audio_oss_out.c:800
+#: src/audio_out/audio_oss_out.c:802
 msgid "a/v sync method to use by OSS"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:801
+#: src/audio_out/audio_oss_out.c:803
 msgid ""
 "xine can use different methods to keep audio and video synchronized. Which "
 "setting works best depends on the OSS driver and sound hardware you are "
@@ -204,42 +204,42 @@ msgid ""
 "ioctls and you experience sync errors after long playback"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:849
+#: src/audio_out/audio_oss_out.c:851
 msgid ""
 "audio_oss_out: Audio driver realtime sync disabled...\n"
 "audio_oss_out: ...will use system real-time clock for soft-sync instead\n"
 "audio_oss_out: ...there may be audio/video synchronization issues\n"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:856
+#: src/audio_out/audio_oss_out.c:858
 msgid "OSS audio output latency (adjust a/v sync)"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:857 src/audio_out/audio_esd_out.c:537
+#: src/audio_out/audio_oss_out.c:859 src/audio_out/audio_esd_out.c:542
 msgid ""
 "If you experience audio being not in sync with the video, you can enter a "
 "fixed offset here to compensate.\n"
 "The unit of the value is one PTS tick, which is the 90000th part of a second."
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:870
+#: src/audio_out/audio_oss_out.c:872
 msgid ""
 "audio_oss_out: Audio driver realtime sync disabled...\n"
 "audio_oss_out: ...probing output buffer size: "
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:887
+#: src/audio_out/audio_oss_out.c:889
 #, c-format
 msgid ""
 "%d bytes\n"
 "audio_oss_out: ...there may be audio/video synchronization issues\n"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:919 src/audio_out/audio_alsa_out.c:1466
+#: src/audio_out/audio_oss_out.c:921 src/audio_out/audio_alsa_out.c:1444
 msgid "speaker arrangement"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:920 src/audio_out/audio_alsa_out.c:1467
+#: src/audio_out/audio_oss_out.c:922 src/audio_out/audio_alsa_out.c:1445
 msgid ""
 "Select how your speakers are arranged, this determines which speakers xine "
 "uses for sound output. The individual values are:\n"
@@ -271,11 +271,11 @@ msgid ""
 "formats you want to play to your sound card's digital output."
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:1016
+#: src/audio_out/audio_oss_out.c:1018
 msgid "OSS audio mixer number, -1 for none"
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:1017
+#: src/audio_out/audio_oss_out.c:1019
 msgid ""
 "The full mixer device name is created by taking the OSS device name, "
 "replacing \"dsp\" with \"mixer\" and adding the mixer number.\n"
@@ -285,34 +285,34 @@ msgid ""
 "audio device name is set to \"auto\"."
 msgstr ""
 
-#: src/audio_out/audio_oss_out.c:1074
+#: src/audio_out/audio_oss_out.c:1076
 #, fuzzy, c-format
 msgid "audio_oss_out: open() mixer %s failed: %s\n"
 msgstr "input_cda: open(%s) failed: %s.\n"
 
-#: src/audio_out/audio_oss_out.c:1147
+#: src/audio_out/audio_oss_out.c:1149
 msgid "xine audio output plugin using oss-compliant audio devices/drivers"
 msgstr ""
 
-#: src/audio_out/audio_file_out.c:362
+#: src/audio_out/audio_file_out.c:364
 #, fuzzy
 msgid "xine file audio output plugin"
 msgstr "http network stream input plugin"
 
-#: src/audio_out/audio_coreaudio_out.c:565
+#: src/audio_out/audio_coreaudio_out.c:567
 msgid "xine output plugin for Coreaudio/Mac OS X"
 msgstr ""
 
-#: src/audio_out/audio_sun_out.c:442 src/audio_out/audio_sun_out.c:917
+#: src/audio_out/audio_sun_out.c:442 src/audio_out/audio_sun_out.c:919
 #, fuzzy, c-format
 msgid "audio_sun_out: opening audio device %s failed: %s\n"
 msgstr "input_cda: opening server '%s:%d' failed: %s\n"
 
-#: src/audio_out/audio_sun_out.c:892
+#: src/audio_out/audio_sun_out.c:894
 msgid "Sun audio device name"
 msgstr ""
 
-#: src/audio_out/audio_sun_out.c:893
+#: src/audio_out/audio_sun_out.c:895
 msgid ""
 "Specifies the file name for the Sun audio device to be used.\n"
 "This setting is security critical, because when changed to a different file, "
@@ -320,12 +320,12 @@ msgid ""
 "careful that the value you enter really is a proper Sun audio device."
 msgstr ""
 
-#: src/audio_out/audio_sun_out.c:935
+#: src/audio_out/audio_sun_out.c:937
 #, fuzzy, c-format
 msgid "audio_sun_out: audio ioctl on device %s failed: %s\n"
 msgstr "input_cda: opening server '%s:%d' failed: %s\n"
 
-#: src/audio_out/audio_sun_out.c:986
+#: src/audio_out/audio_sun_out.c:988
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
 msgstr ""
 
@@ -518,227 +518,227 @@ msgstr "video_out : não consigo criar thread (%s)\n"
 msgid ": unknown control command %d\n"
 msgstr ""
 
-#: src/audio_out/audio_directx2_out.c:1000
+#: src/audio_out/audio_directx2_out.c:1003
 #, fuzzy
 msgid "second xine audio output plugin using directx"
 msgstr "http network stream input plugin"
 
-#: src/audio_out/audio_arts_out.c:371
+#: src/audio_out/audio_arts_out.c:373
 msgid "xine audio output plugin using kde artsd"
 msgstr ""
 
-#: src/audio_out/audio_polyp_out.c:489
+#: src/audio_out/audio_polyp_out.c:491
 msgid "device used for polypaudio"
 msgstr ""
 
-#: src/audio_out/audio_polyp_out.c:490
+#: src/audio_out/audio_polyp_out.c:492
 msgid "use 'server[:sink]' for setting the polypaudio sink device."
 msgstr ""
 
-#: src/audio_out/audio_polyp_out.c:535
+#: src/audio_out/audio_polyp_out.c:537
 msgid "xine audio output plugin using polypaudio sound server"
 msgstr ""
 
-#: src/audio_out/audio_none_out.c:223
+#: src/audio_out/audio_none_out.c:225
 msgid "xine dummy audio output plugin"
 msgstr ""
 
-#: src/audio_out/audio_directx_out.c:827
+#: src/audio_out/audio_directx_out.c:829
 msgid "xine audio output plugin for win32 using directx"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:382
+#: src/audio_out/audio_alsa_out.c:353
 msgid "audio_alsa_out:Already open...WHY!"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:397
+#: src/audio_out/audio_alsa_out.c:368
 #, c-format
 msgid "audio_alsa_out: snd_pcm_open() of %s failed: %s\n"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:399
+#: src/audio_out/audio_alsa_out.c:370
 msgid "audio_alsa_out: >>> check if another program already uses PCM <<<\n"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:412
+#: src/audio_out/audio_alsa_out.c:383
 #, c-format
 msgid ""
 "audio_alsa_out: broken configuration for this PCM: no configurations "
 "available: %s\n"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1300
+#: src/audio_out/audio_alsa_out.c:1271
 msgid "notify changes to the hardware mixer"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1301
+#: src/audio_out/audio_alsa_out.c:1272
 msgid ""
 "When the hardware mixer changes, your application will receive a "
 "notification so that it can update its graphical representation of the mixer "
 "settings on the fly."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1362
+#: src/audio_out/audio_alsa_out.c:1335
 #, c-format
 msgid "snd_lib_error_set_handler() failed: %d"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1369
+#: src/audio_out/audio_alsa_out.c:1342
 msgid "sound card can do mmap"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1370
+#: src/audio_out/audio_alsa_out.c:1343
 msgid ""
 "Enable this, if your sound card and alsa driver support memory mapped IO.\n"
 "You can try enabling it and check, if everything works. If it does, this "
 "will increase performance."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1379
+#: src/audio_out/audio_alsa_out.c:1352
 msgid "device used for mono output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1380
+#: src/audio_out/audio_alsa_out.c:1353
 msgid ""
 "xine will use this alsa device to output mono sound.\n"
 "See the alsa documentation for information on alsa devices."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1388
+#: src/audio_out/audio_alsa_out.c:1361
 msgid "device used for stereo output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1389
+#: src/audio_out/audio_alsa_out.c:1362
 msgid ""
 "xine will use this alsa device to output stereo sound.\n"
 "See the alsa documentation for information on alsa devices."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1397
+#: src/audio_out/audio_alsa_out.c:1370
 msgid "device used for 4-channel output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1398
+#: src/audio_out/audio_alsa_out.c:1371
 msgid ""
 "xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
 "See the alsa documentation for information on alsa devices."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1407 src/audio_out/audio_alsa_out.c:1417
+#: src/audio_out/audio_alsa_out.c:1380 src/audio_out/audio_alsa_out.c:1390
 msgid "device used for 5.1-channel output"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1408
+#: src/audio_out/audio_alsa_out.c:1381
 msgid ""
 "xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
 "sound.\n"
 "See the alsa documentation for information on alsa devices."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1418
+#: src/audio_out/audio_alsa_out.c:1391
 msgid ""
 "xine will use this alsa device to output undecoded digital surround sound. "
 "This can be used be external surround decoders.\n"
 "See the alsa documentation for information on alsa devices."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1438
+#: src/audio_out/audio_alsa_out.c:1411
 #, fuzzy, c-format
 msgid "snd_pcm_open() failed:%d:%s\n"
 msgstr "input_cda: open(%s) failed: %s.\n"
 
-#: src/audio_out/audio_alsa_out.c:1440
+#: src/audio_out/audio_alsa_out.c:1413
 msgid ">>> Check if another program already uses PCM <<<\n"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1496
+#: src/audio_out/audio_alsa_out.c:1474
 msgid "audio_alsa_out : supported modes are "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1499
+#: src/audio_out/audio_alsa_out.c:1477
 msgid "8bit "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1504
+#: src/audio_out/audio_alsa_out.c:1482
 msgid "16bit "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1508
+#: src/audio_out/audio_alsa_out.c:1486
 msgid "24bit "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1512
+#: src/audio_out/audio_alsa_out.c:1490
 msgid "32bit "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1516
+#: src/audio_out/audio_alsa_out.c:1494
 #, fuzzy
 msgid "mono "
 msgstr "metronom"
 
-#: src/audio_out/audio_alsa_out.c:1520
+#: src/audio_out/audio_alsa_out.c:1498
 msgid "stereo "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1525
+#: src/audio_out/audio_alsa_out.c:1503
 msgid "4-channel "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1528
+#: src/audio_out/audio_alsa_out.c:1506
 msgid "(4-channel not enabled in xine config) "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1533
+#: src/audio_out/audio_alsa_out.c:1511
 msgid "4.1-channel "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1536
+#: src/audio_out/audio_alsa_out.c:1514
 msgid "(4.1-channel not enabled in xine config) "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1541
+#: src/audio_out/audio_alsa_out.c:1519
 msgid "5-channel "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1544
+#: src/audio_out/audio_alsa_out.c:1522
 msgid "(5-channel not enabled in xine config) "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1549
+#: src/audio_out/audio_alsa_out.c:1527
 msgid "5.1-channel "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1552
+#: src/audio_out/audio_alsa_out.c:1530
 msgid "(5.1-channel not enabled in xine config) "
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1575
+#: src/audio_out/audio_alsa_out.c:1553
 msgid "a/52 and DTS pass-through\n"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1578
+#: src/audio_out/audio_alsa_out.c:1556
 msgid "(a/52 and DTS pass-through not enabled in xine config)\n"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1585
+#: src/audio_out/audio_alsa_out.c:1563
 msgid "alsa mixer device"
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1586
+#: src/audio_out/audio_alsa_out.c:1564
 msgid ""
 "xine will use this alsa mixer device to change the volume.\n"
 "See the alsa documentation for information on alsa devices."
 msgstr ""
 
-#: src/audio_out/audio_alsa_out.c:1654
+#: src/audio_out/audio_alsa_out.c:1638
 msgid "xine audio output plugin using alsa-compliant audio devices/drivers"
 msgstr ""
 
-#: src/audio_out/audio_irixal_out.c:385
+#: src/audio_out/audio_irixal_out.c:387
 msgid "irixal audio output maximum gap length"
 msgstr ""
 
-#: src/audio_out/audio_irixal_out.c:386
+#: src/audio_out/audio_irixal_out.c:388
 msgid ""
 "You can specify the maximum offset between audio and video xine will "
 "tolerate before trying to resync them.\n"
@@ -746,7 +746,7 @@ msgid ""
 "second."
 msgstr ""
 
-#: src/audio_out/audio_irixal_out.c:415
+#: src/audio_out/audio_irixal_out.c:417
 msgid "xine audio output plugin using IRIX libaudio"
 msgstr ""
 
@@ -764,11 +764,11 @@ msgstr ""
 msgid "audio_esd_out: can't connect to %s ESD server: %s\n"
 msgstr ""
 
-#: src/audio_out/audio_esd_out.c:536
+#: src/audio_out/audio_esd_out.c:541
 msgid "esd audio output latency (adjust a/v sync)"
 msgstr ""
 
-#: src/audio_out/audio_esd_out.c:569
+#: src/audio_out/audio_esd_out.c:574
 msgid "xine audio output plugin using esound"
 msgstr ""
 
@@ -785,15 +785,15 @@ msgstr "input_cda: fopen(%s) failed: %s\n"
 msgid "failed to get status of socket"
 msgstr ""
 
-#: src/xine-engine/io_helper.c:365
+#: src/xine-engine/io_helper.c:371
 msgid "io_helper: Permission denied\n"
 msgstr ""
 
-#: src/xine-engine/io_helper.c:369
+#: src/xine-engine/io_helper.c:375
 msgid "io_helper: File not found\n"
 msgstr ""
 
-#: src/xine-engine/io_helper.c:373
+#: src/xine-engine/io_helper.c:379
 msgid "io_helper: Connection Refused\n"
 msgstr ""
 
@@ -836,128 +836,128 @@ msgid ""
 "accelerated, this can dramatically reduce CPU usage."
 msgstr ""
 
-#: src/xine-engine/xine.c:669 src/xine-engine/xine.c:766
-#: src/xine-engine/xine.c:803 src/xine-engine/xine.c:839
-#: src/xine-engine/xine.c:851 src/xine-engine/xine.c:864
-#: src/xine-engine/xine.c:877 src/xine-engine/xine.c:890
-#: src/xine-engine/xine.c:916 src/xine-engine/xine.c:941
-#: src/xine-engine/xine.c:976
+#: src/xine-engine/xine.c:671 src/xine-engine/xine.c:768
+#: src/xine-engine/xine.c:805 src/xine-engine/xine.c:841
+#: src/xine-engine/xine.c:853 src/xine-engine/xine.c:866
+#: src/xine-engine/xine.c:879 src/xine-engine/xine.c:892
+#: src/xine-engine/xine.c:918 src/xine-engine/xine.c:943
+#: src/xine-engine/xine.c:978
 msgid "xine: error while parsing mrl\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:703
+#: src/xine-engine/xine.c:705
 #, fuzzy, c-format
 msgid "xine: found input plugin  : %s\n"
 msgstr "xine: não consigo achar um plugin para este MRL\n"
 
-#: src/xine-engine/xine.c:711
+#: src/xine-engine/xine.c:713
 #, fuzzy, c-format
 msgid "xine: input plugin cannot open MRL [%s]\n"
 msgstr "xine: usando plugin de entrada >%s< para este MRL (%s).\n"
 
-#: src/xine-engine/xine.c:729
+#: src/xine-engine/xine.c:731
 #, fuzzy, c-format
 msgid "xine: cannot find input plugin for MRL [%s]\n"
 msgstr "xine: não consigo achar um plugin para este MRL\n"
 
-#: src/xine-engine/xine.c:755
+#: src/xine-engine/xine.c:757
 #, fuzzy, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine_play: demuxer falhou em começar\n"
 
-#: src/xine-engine/xine.c:791
+#: src/xine-engine/xine.c:793
 #, fuzzy
 msgid "xine: join rip input plugin\n"
 msgstr "http network stream input plugin"
 
-#: src/xine-engine/xine.c:796
+#: src/xine-engine/xine.c:798
 #, fuzzy
 msgid "xine: error opening rip input plugin instance\n"
 msgstr "http network stream input plugin"
 
-#: src/xine-engine/xine.c:827
+#: src/xine-engine/xine.c:829
 #, fuzzy, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
 msgstr "xine_play: demuxer falhou em começar\n"
 
-#: src/xine-engine/xine.c:856
+#: src/xine-engine/xine.c:858
 msgid "ignoring video\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:869
+#: src/xine-engine/xine.c:871
 msgid "ignoring audio\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:882
+#: src/xine-engine/xine.c:884
 msgid "ignoring subpicture\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:895
+#: src/xine-engine/xine.c:897
 msgid "input cache plugin disabled\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:966
+#: src/xine-engine/xine.c:968
 #, c-format
 msgid "subtitle mrl opened '%s'\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:970
+#: src/xine-engine/xine.c:972
 #, fuzzy
 msgid "xine: error opening subtitle mrl\n"
 msgstr "input_dvd: não consigo abrir o arquivo >%s<\n"
 
-#: src/xine-engine/xine.c:1002
+#: src/xine-engine/xine.c:1004
 msgid "xine: error while parsing MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1009
+#: src/xine-engine/xine.c:1011
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1029
+#: src/xine-engine/xine.c:1031
 #, fuzzy, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr "xine: não conseguí achar o demuxer para >%s<\n"
 
-#: src/xine-engine/xine.c:1045
+#: src/xine-engine/xine.c:1047
 #, fuzzy, c-format
 msgid "xine: found demuxer plugin: %s\n"
 msgstr "xine: usando o plugin de demuxer >%s< para este MRL.\n"
 
-#: src/xine-engine/xine.c:1065
+#: src/xine-engine/xine.c:1067
 #, fuzzy
 msgid "xine: demuxer failed to start\n"
 msgstr "xine_play: demuxer falhou em começar\n"
 
-#: src/xine-engine/xine.c:1128
+#: src/xine-engine/xine.c:1130
 #, fuzzy
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: demuxer falhou em começar\n"
 
-#: src/xine-engine/xine.c:1198
+#: src/xine-engine/xine.c:1200
 #, fuzzy
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: demuxer falhou em começar\n"
 
-#: src/xine-engine/xine.c:1468
+#: src/xine-engine/xine.c:1473
 #, c-format
 msgid "xine: The specified save_dir \"%s\" might be a security risk.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1473
+#: src/xine-engine/xine.c:1478
 msgid "The specified save_dir might be a security risk."
 msgstr ""
 
-#: src/xine-engine/xine.c:1499
+#: src/xine-engine/xine.c:1504
 msgid "xine: locale not supported by C library\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1508
+#: src/xine-engine/xine.c:1513
 msgid "media format detection strategy"
 msgstr ""
 
-#: src/xine-engine/xine.c:1509
+#: src/xine-engine/xine.c:1514
 msgid ""
 "xine offers various methods to detect the media format of input to play. The "
 "individual values are:\n"
@@ -975,11 +975,11 @@ msgid ""
 "Detect by file name extension only.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1527
+#: src/xine-engine/xine.c:1532
 msgid "directory for saving streams"
 msgstr ""
 
-#: src/xine-engine/xine.c:1528
+#: src/xine-engine/xine.c:1533
 msgid ""
 "When using the stream save feature, files will be written only into this "
 "directory.\n"
@@ -989,11 +989,11 @@ msgid ""
 "content in any file."
 msgstr ""
 
-#: src/xine-engine/xine.c:1539
+#: src/xine-engine/xine.c:1544
 msgid "allow implicit changes to the configuration (e.g. by MRL)"
 msgstr ""
 
-#: src/xine-engine/xine.c:1540
+#: src/xine-engine/xine.c:1545
 msgid ""
 "If enabled, you allow xine to change your configuration without explicit "
 "actions from your side. For example configuration changes demanded by MRLs "
@@ -1003,15 +1003,26 @@ msgid ""
 "configuration, you might end with a totally messed up xine."
 msgstr ""
 
-#: src/xine-engine/xine.c:1894
+#: src/xine-engine/xine.c:1559
+msgid "Timeout for network stream reading (in seconds)"
+msgstr ""
+
+#: src/xine-engine/xine.c:1560
+msgid ""
+"Specifies the timeout when reading from network streams, in seconds.Too low "
+"values might stop streaming when the source is slow or thebandwidth is "
+"occupied, too high values will freeze the player if theconnection is lost."
+msgstr ""
+
+#: src/xine-engine/xine.c:1911
 msgid "messages"
 msgstr "menssagens"
 
-#: src/xine-engine/xine.c:1895
+#: src/xine-engine/xine.c:1912
 msgid "plugin"
 msgstr "plugin"
 
-#: src/xine-engine/xine.c:1896
+#: src/xine-engine/xine.c:1913
 msgid "trace"
 msgstr ""
 
@@ -1309,58 +1320,58 @@ msgid ""
 "info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:911
+#: src/xine-engine/xine_interface.c:919
 msgid "Warning:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:912
+#: src/xine-engine/xine_interface.c:920
 msgid "Unknown host:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:913
+#: src/xine-engine/xine_interface.c:921
 msgid "Unknown device:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:914
+#: src/xine-engine/xine_interface.c:922
 msgid "Network unreachable"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:915
+#: src/xine-engine/xine_interface.c:923
 msgid "Connection refused:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:916
+#: src/xine-engine/xine_interface.c:924
 #, fuzzy
 msgid "File not found:"
 msgstr "input_file: erro de leitura (%s)\n"
 
-#: src/xine-engine/xine_interface.c:917
+#: src/xine-engine/xine_interface.c:925
 msgid "Read error from:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:918
+#: src/xine-engine/xine_interface.c:926
 msgid "Error loading library:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:919
+#: src/xine-engine/xine_interface.c:927
 #, fuzzy
 msgid "Encrypted media stream detected"
 msgstr "metronom: audio stream end\n"
 
-#: src/xine-engine/xine_interface.c:920
+#: src/xine-engine/xine_interface.c:928
 msgid "Security message:"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:921
+#: src/xine-engine/xine_interface.c:929
 #, fuzzy
 msgid "Audio device unavailable"
 msgstr "fifo não disponível (%d)\n"
 
-#: src/xine-engine/xine_interface.c:922
+#: src/xine-engine/xine_interface.c:930
 msgid "Permission error"
 msgstr ""
 
-#: src/xine-engine/xine_interface.c:923
+#: src/xine-engine/xine_interface.c:931
 msgid "File is empty:"
 msgstr ""
 
@@ -1612,7 +1623,7 @@ msgid ""
 "driver.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:1975
+#: src/xine-engine/load_plugins.c:1996
 #, fuzzy, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
@@ -1621,18 +1632,18 @@ msgstr ""
 "load_plugins: não consigo abrir o plugin de demux %s:\n"
 "%s\n"
 
-#: src/xine-utils/memcpy.c:481
+#: src/xine-utils/memcpy.c:479
 msgid "memcopy method used by xine"
 msgstr ""
 
-#: src/xine-utils/memcpy.c:482
+#: src/xine-utils/memcpy.c:480
 msgid ""
 "The copying of large memory blocks is one of the most expensive operations "
 "on todays computers. Therefore xine provides various tuned methods to do "
 "this copying. Usually, the best method is detected automatically."
 msgstr ""
 
-#: src/xine-utils/memcpy.c:509
+#: src/xine-utils/memcpy.c:507
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr ""
 
@@ -2861,21 +2872,21 @@ msgstr ""
 msgid "input_dvd: Error opening DVD device\n"
 msgstr "input_dvd: não consigo abrir o arquivo >%s<\n"
 
-#: src/input/input_dvd.c:1782
+#: src/input/input_dvd.c:1784
 msgid "device used for DVD playback"
 msgstr ""
 
-#: src/input/input_dvd.c:1783
+#: src/input/input_dvd.c:1785
 msgid ""
 "The path to the device, usually a DVD drive, which you intend to use for "
 "playing DVDs."
 msgstr ""
 
-#: src/input/input_dvd.c:1795
+#: src/input/input_dvd.c:1802
 msgid "raw device set up for DVD access"
 msgstr ""
 
-#: src/input/input_dvd.c:1796
+#: src/input/input_dvd.c:1803
 msgid ""
 "If this points to a raw device connected to your DVD device, xine will use "
 "the raw device for playback. This has the advantage of being slightly faster "
@@ -2886,22 +2897,22 @@ msgid ""
 "See the documentation on raw device setup (man raw) for further information."
 msgstr ""
 
-#: src/input/input_dvd.c:1809
+#: src/input/input_dvd.c:1816
 msgid "CSS decryption method"
 msgstr ""
 
-#: src/input/input_dvd.c:1810
+#: src/input/input_dvd.c:1817
 msgid ""
 "Selects the decryption method libdvdcss will use to descramble copy "
 "protected DVDs. Try the various methods, if you have problems playing "
 "scrambled DVDs."
 msgstr ""
 
-#: src/input/input_dvd.c:1818
+#: src/input/input_dvd.c:1825
 msgid "path to the title key cache"
 msgstr ""
 
-#: src/input/input_dvd.c:1819
+#: src/input/input_dvd.c:1826
 msgid ""
 "Since cracking the copy protection of scrambled DVDs can be quite time "
 "consuming, libdvdcss will cache the cracked keys in this directory.\n"
@@ -2910,44 +2921,44 @@ msgid ""
 "used for anything but DVD key caching."
 msgstr ""
 
-#: src/input/input_dvd.c:1841
+#: src/input/input_dvd.c:1848
 msgid "region the DVD player claims to be in (1 to 8)"
 msgstr ""
 
-#: src/input/input_dvd.c:1842
+#: src/input/input_dvd.c:1849
 msgid ""
 "This only needs to be changed if your DVD jumps to a screen complaining "
 "about a wrong region code. It has nothing to do with the region code set in "
 "DVD drives, this is purely software."
 msgstr ""
 
-#: src/input/input_dvd.c:1848
+#: src/input/input_dvd.c:1855
 msgid "default language for DVD playback"
 msgstr ""
 
-#: src/input/input_dvd.c:1849
+#: src/input/input_dvd.c:1856
 msgid ""
 "xine tries to use this language as a default for DVD playback. As far as the "
 "DVD supports it, menus and audio tracks will be presented in this language.\n"
 "The value must be a two character ISO639 language code."
 msgstr ""
 
-#: src/input/input_dvd.c:1855
+#: src/input/input_dvd.c:1862
 msgid "read-ahead caching"
 msgstr ""
 
-#: src/input/input_dvd.c:1856
+#: src/input/input_dvd.c:1863
 msgid ""
 "xine can use a read ahead cache for DVD drive access.\n"
 "This may lead to jerky playback on slow drives, but it improves the impact "
 "of the DVD layer change on faster drives."
 msgstr ""
 
-#: src/input/input_dvd.c:1862
+#: src/input/input_dvd.c:1869
 msgid "unit for the skip action"
 msgstr ""
 
-#: src/input/input_dvd.c:1863
+#: src/input/input_dvd.c:1870
 msgid ""
 "You can configure the behaviour when issuing a skip command (using the skip "
 "buttons for example). The individual values mean:\n"
@@ -2966,11 +2977,11 @@ msgid ""
 "features on the DVD"
 msgstr ""
 
-#: src/input/input_dvd.c:1878
+#: src/input/input_dvd.c:1885
 msgid "unit for seeking"
 msgstr ""
 
-#: src/input/input_dvd.c:1879
+#: src/input/input_dvd.c:1886
 msgid ""
 "You can configure the domain spanned by the seek slider. The individual "
 "values mean:\n"
@@ -2984,11 +2995,11 @@ msgid ""
 "chapter of the current feature"
 msgstr ""
 
-#: src/input/input_dvd.c:1890
+#: src/input/input_dvd.c:1897
 msgid "play mode when title/chapter is given"
 msgstr ""
 
-#: src/input/input_dvd.c:1891
+#: src/input/input_dvd.c:1898
 msgid ""
 "You can configure the behaviour when playing a dvd from a given title/"
 "chapter (eg. using MRL 'dvd:/1.2'). The individual values mean:\n"
@@ -3215,25 +3226,25 @@ msgstr "input_cda: server '%s:%d' successfuly connected.\n"
 msgid "input_cdda: failed to connect to cddb server '%s:%d' (%s).\n"
 msgstr "input_net: incapaz de conectar em '%s'.\n"
 
-#: src/input/input_cdda.c:2625
+#: src/input/input_cdda.c:2627
 msgid "CD Digital Audio (aka. CDDA)"
 msgstr ""
 
-#: src/input/input_cdda.c:2678
+#: src/input/input_cdda.c:2680
 msgid "device used for CD audio"
 msgstr ""
 
-#: src/input/input_cdda.c:2679
+#: src/input/input_cdda.c:2681
 msgid ""
 "The path to the device, usually a CD or DVD drive, which you intend to use "
 "for playing audio CDs."
 msgstr ""
 
-#: src/input/input_cdda.c:2685
+#: src/input/input_cdda.c:2687
 msgid "query CDDB"
 msgstr ""
 
-#: src/input/input_cdda.c:2685
+#: src/input/input_cdda.c:2687
 msgid ""
 "Enables CDDB queries, which will give you convenient title and track names "
 "for your audio CDs.\n"
@@ -3242,11 +3253,11 @@ msgid ""
 "listening habits."
 msgstr ""
 
-#: src/input/input_cdda.c:2693
+#: src/input/input_cdda.c:2695
 msgid "CDDB server name"
 msgstr ""
 
-#: src/input/input_cdda.c:2693
+#: src/input/input_cdda.c:2695
 msgid ""
 "The CDDB server used to retrieve the title and track information from.\n"
 "This setting is security critical, because the sever will receive "
@@ -3254,19 +3265,19 @@ msgid ""
 "malicious replies. Be sure to enter a server you can trust."
 msgstr ""
 
-#: src/input/input_cdda.c:2701
+#: src/input/input_cdda.c:2703
 msgid "CDDB server port"
 msgstr ""
 
-#: src/input/input_cdda.c:2701
+#: src/input/input_cdda.c:2703
 msgid "The server port used to retrieve the title and track information from."
 msgstr ""
 
-#: src/input/input_cdda.c:2707
+#: src/input/input_cdda.c:2709
 msgid "CDDB cache directory"
 msgstr ""
 
-#: src/input/input_cdda.c:2707
+#: src/input/input_cdda.c:2709
 msgid ""
 "The replies from the CDDB server will be cached in this directory.\n"
 "This setting is security critical, because files with uncontrollable names "
@@ -3274,11 +3285,11 @@ msgid ""
 "used for anything but CDDB caching."
 msgstr ""
 
-#: src/input/input_cdda.c:2715
+#: src/input/input_cdda.c:2717
 msgid "slow down disc drive to this speed factor"
 msgstr ""
 
-#: src/input/input_cdda.c:2716
+#: src/input/input_cdda.c:2718
 msgid ""
 "Since some CD or DVD drives make some really loud noises because of the fast "
 "disc rotation, xine will try to slow them down. With standard CD or DVD "
@@ -3454,19 +3465,19 @@ msgstr "input_http: http status not 2xx: >%d %s<\n"
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr "input_http: Location redirection not implemented\n"
 
-#: src/input/mmsh.c:602
+#: src/input/mmsh.c:606
 msgid "Connecting MMS server (over http)..."
 msgstr ""
 
-#: src/input/mmsh.c:847
+#: src/input/mmsh.c:851
 msgid "invalid url\n"
 msgstr ""
 
-#: src/input/mmsh.c:852
+#: src/input/mmsh.c:856
 msgid "unsupported protocol\n"
 msgstr ""
 
-#: src/input/mms.c:654
+#: src/input/mms.c:669
 msgid "Connecting MMS server (over tcp)..."
 msgstr ""
 
@@ -4078,11 +4089,11 @@ msgstr ""
 msgid "libareal: oups, real can do more than 2 channels ?\n"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:741 src/libreal/xine_decoder.c:634
+#: src/libreal/audio_decoder.c:745 src/libreal/xine_decoder.c:638
 msgid "path to RealPlayer codecs"
 msgstr ""
 
-#: src/libreal/audio_decoder.c:742 src/libreal/xine_decoder.c:635
+#: src/libreal/audio_decoder.c:746 src/libreal/xine_decoder.c:639
 msgid ""
 "If you have RealPlayer installed, specify the path to its codec directory "
 "here. You can easily find the codec directory by looking for a file named "
@@ -4251,7 +4262,7 @@ msgid ""
 "* mplayer's noise (C) Michael Niedermayer\n"
 msgstr ""
 
-#: src/post/planar/expand.c:230
+#: src/post/planar/expand.c:232
 msgid ""
 "The expand plugin is meant to take frames of arbitrary aspect ratio and "
 "converts them to a different aspect (4:3 by default) by adding black bars on "
@@ -4585,21 +4596,21 @@ msgstr ""
 msgid "The maximum compression to apply to an image in constant quality mode."
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:112
+#: src/libffmpeg/audio_decoder.c:117
 #, c-format
 msgid "ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:156
+#: src/libffmpeg/audio_decoder.c:161
 #, c-format
 msgid "ffmpeg_audio_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:248
+#: src/libffmpeg/audio_decoder.c:253
 msgid "ffmpeg_audio_dec: trying to open null codec\n"
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:257
+#: src/libffmpeg/audio_decoder.c:262
 msgid "ffmpeg_audio_dec: couldn't open decoder\n"
 msgstr ""
 
@@ -4616,29 +4627,29 @@ msgstr ""
 msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:295
+#: src/libffmpeg/video_decoder.c:306
 #, c-format
 msgid "ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:324
+#: src/libffmpeg/video_decoder.c:335
 msgid "ffmpeg_video_dec: couldn't open decoder\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:359
+#: src/libffmpeg/video_decoder.c:370
 msgid "ffmpeg_video_dec: direct rendering enabled\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:778
+#: src/libffmpeg/video_decoder.c:789
 #, c-format
 msgid "ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:1450
+#: src/libffmpeg/video_decoder.c:1461
 msgid "MPEG-4 postprocessing quality"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:1451
+#: src/libffmpeg/video_decoder.c:1462
 msgid ""
 "You can adjust the amount of post processing applied to MPEG-4 video.\n"
 "Higher values result in better quality, but need more CPU. Lower values may "
