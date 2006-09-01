@@ -38,6 +38,14 @@
 #include "deinterlace.h"
 #include "plugins.h"
 
+static const char linearblendmethod_help[] =
+  "Avoids flicker by blurring consecutive frames of input.  Use this if "
+  "you want to run your monitor at an arbitrary refresh rate and not use "
+  "much CPU, and are willing to sacrifice detail.\n"
+  "\n"
+  "Temporal mode evenly blurs content for least flicker, but with visible "
+  "trails on fast motion. From the linear blend deinterlacer in mplayer.";
+
 static void deinterlace_scanline_linear_blend( uint8_t *output,
                                                deinterlace_scanline_data_t *data,
                                                int width )
@@ -318,14 +326,6 @@ static deinterlace_method_t linearblendmethod_mmxext =
 };
 
 #endif
-
-static const char linearblendmethod_help[] =
-  "Avoids flicker by blurring consecutive frames of input.  Use this if "
-  "you want to run your monitor at an arbitrary refresh rate and not use "
-  "much CPU, and are willing to sacrifice detail.\n"
-  "\n"
-  "Temporal mode evenly blurs content for least flicker, but with visible "
-  "trails on fast motion. From the linear blend deinterlacer in mplayer.";
 
 static deinterlace_method_t linearblendmethod =
 {
