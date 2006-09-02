@@ -11,10 +11,10 @@ xine-lib (1.1.3)
   * Add "m4b" to the list of supported file extensions for the Qt demuxer, to
     allow playing (unprotected) audiobooks in AAC format.
   * Remove --disable-fpic hack, prefer using --without-pic instead.
-  * Add new output plugin: Pulseaudio (based on Polypaudio plugin), that uses
-    0.9 API (Pulseaudio is Polypaudio renamed).
-  * Mark Polypaudio audio plugin as deprecated, as upstream changed APIs at
-    least two times in the mean time.
+  * Add new output plugin: PulseAudio (based on PolypAudio plugin), that uses
+    0.9 API (PulseAudio is PolypAudio renamed).
+  * Remove PolypAudio plugin, latest version supported 0.7 API that is no more
+    supported by upstream, and it's replaced by PulseAudio.
   * Allow 0 for DVD title/chapter (navigation or full title).
   * New experimental JACK audio driver.
 	

@@ -39,10 +39,6 @@ if HAVE_COREAUDIO
 coreaudio_module = xineplug_ao_out_coreaudio.la
 endif
 
-if HAVE_POLYPAUDIO
-polypaudio_module = xineplug_ao_out_polypaudio.la
-endif
-
 if HAVE_PULSEAUDIO
 pulseaudio_module = xineplug_ao_out_pulseaudio.la
 endif

@@ -968,18 +968,6 @@ AC_SUBST(LIBSTK_LIBS)
 AM_CONDITIONAL(HAVE_STK, [test x"$have_stk" = x"yes"])
 
 dnl ---------------------------------------------
-dnl check for polypaudio
-dnl ---------------------------------------------
-
-AC_ARG_WITH([polypaudio],
-  AS_HELP_STRING([--with-polypaudio], [Build Polypaudio support (deprecated)]))
-
-if test "x$with_polypaudio" = "xyes"; then
-   PKG_CHECK_MODULES([POLYPAUDIO], [polyplib >= 0.6], [have_polypaudio="yes"], [have_polypaudio="no"])
-fi
-AM_CONDITIONAL(HAVE_POLYPAUDIO, [test "x$have_polypaudio" = "xyes"])
-
-dnl ---------------------------------------------
 dnl check for pulseaudio
 dnl ---------------------------------------------
 
@@ -2754,9 +2742,6 @@ fi
 if test x"$have_coreaudio" = "xyes"; then
   echo "   - CoreAudio (Mac OS X audio driver)"
 fi  
-if test x"$have_polypaudio" = "xyes"; then
-  echo "   - polypaudio sound server"
-fi
 if test "x$have_pulseaudio" = "xyes"; then
   echo "   - pulseaudio sound server"
 fi
