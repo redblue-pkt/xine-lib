@@ -537,17 +537,15 @@ dnl ---------------------------------------------
 dnl Check for platform which supports syncfb
 dnl ---------------------------------------------
 
-case "$host_or_hostalias" in
-  *linux* )
-    AC_ARG_ENABLE([fb],
-      AC_HELP_STRING([--disable-fb], [do not build syncfb plugins]),
-      have_syncfb=$enableval, have_syncfb="yes")
-    ;;
-  *)
-    have_syncfb="no"
-    ;;
+AC_ARG_ENABLE([syncfb],
+	AC_HELP_STRING([--disable-syncfb], [do not build syncfb plugin]))
+
+case "$host_os" in
+  *linux*) ;;
+  *) enable_syncfb=no ;;
 esac
-AM_CONDITIONAL(HAVE_SYNCFB, test x"$have_syncfb" = "xyes")
+
+AM_CONDITIONAL(HAVE_SYNCFB, test x"$enable_syncfb" != "xno")
 
 
 dnl ----------------------------------------------
@@ -2632,7 +2630,7 @@ echo " * video driver plugins:"
 if test x"$no_x" != "xyes"; then
   echo "   - XShm (X11 shared memory)"
   dnl synfb
-  if test x$ac_have_syncfb = "xyes"; then
+  if test x$enable_syncfb != "xno"; then
     echo "   - SyncFB (for Matrox G200/G400 cards)"
   fi
   dnl Xv
