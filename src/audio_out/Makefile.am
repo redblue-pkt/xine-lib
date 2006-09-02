@@ -65,7 +65,6 @@ lib_LTLIBRARIES = xineplug_ao_out_none.la xineplug_ao_out_file.la \
 	$(esd_module) \
 	$(directx_module) \
 	$(coreaudio_module) \
-	$(polypaudio_module) \
 	$(pulseaudio_module) \
 	$(directx2_module)	\
 	$(fusionsound_module) \
@@ -133,11 +132,6 @@ xineplug_ao_out_coreaudio_la_LDFLAGS = \
 	-Wl,-framework -Wl,AudioUnit -framework AudioUnit \
 	-avoid-version -module
 xineplug_ao_out_coreaudio_la_CFLAGS = -framework CoreAudio -framework AudioUnit $(VISIBILITY_FLAG)
-
-xineplug_ao_out_polypaudio_la_SOURCES = audio_polyp_out.c
-xineplug_ao_out_polypaudio_la_LIBADD = $(POLYPAUDIO_LIBS) $(XINE_LIB)
-xineplug_ao_out_polypaudio_la_CFLAGS = $(VISIBILITY_FLAG) $(POLYPAUDIO_CFLAGS)
-xineplug_ao_out_polypaudio_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_pulseaudio_la_SOURCES = audio_pulse_out.c
 xineplug_ao_out_pulseaudio_la_LIBADD = $(PULSEAUDIO_LIBS) $(XINE_LIB)
