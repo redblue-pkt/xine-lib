@@ -2,7 +2,6 @@
 #define __LINUX_SYNCFB_H
 
 #ifdef __KERNEL__
-#include <linux/config.h>
 #include <linux/version.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -15,10 +14,7 @@
 #include <linux/init.h>
 #include <linux/videodev.h>
 
-#ifdef CONFIG_MTRR
 #include <asm/mtrr.h>
-#endif
-
 #include <asm/uaccess.h>
 #include <asm/system.h>
 #include <asm/io.h>
