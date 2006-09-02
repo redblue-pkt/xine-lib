@@ -542,7 +542,11 @@ AC_ARG_ENABLE([syncfb],
 
 case "$host_os" in
   *linux*) ;;
-  *) enable_syncfb=no ;;
+  *)
+    if test "x$enable_syncfb" = "xyes"; then
+       AC_MSG_ERROR([You cannot build SyncFB support on non-Linux systems.])
+    fi
+    enable_syncfb=no ;;
 esac
 
 AM_CONDITIONAL(HAVE_SYNCFB, test x"$enable_syncfb" != "xno")
