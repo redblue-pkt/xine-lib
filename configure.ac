@@ -1036,7 +1036,7 @@ if test x"$check_vidix" = "xyes" -a x"$ac_cv_prog_AWK" != "xno"; then
         enable_vidix="yes"
         enable_linux="yes"
         ;;
-      i386-*-freebsd*)
+      i?86-*-freebsd* | k?-*-freebsd* | athlon-*-freebsd*)
         enable_vidix="yes"
         enable_dha_kmod="no"
         ;;
