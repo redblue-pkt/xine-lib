@@ -452,7 +452,7 @@ static void directfb_subpicture_paint (directfb_driver_t *this,
           if (!colors[index].a) {
             YCBCR_TO_RGB (color.y, color.cb, color.cr,
                           colors[index].r, colors[index].g, colors[index].b);
-            colors[index].a = alpha * 17;
+            colors[index].a = alpha | (alpha << 4);
           }
             
           lprintf ("color change to %02x%02x%02x%02x.\n",
@@ -1395,7 +1395,7 @@ static void init_subpicture (directfb_driver_t *this) {
       }
     }
   }
-  
+#if 0  
   /* most common type of supicture layer */
   if (!this->spic_layer) {
     IDirectFBScreen   *screen;
@@ -1434,7 +1434,7 @@ static void init_subpicture (directfb_driver_t *this) {
       }
     }
   }
-          
+#endif          
   if (this->spic_layer) {
     ret = this->spic_layer->GetSurface (this->spic_layer, &this->spic_surface);
     if (ret) {
