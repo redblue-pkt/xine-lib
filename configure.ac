@@ -556,14 +556,15 @@ dnl ----------------------------------------------
 dnl Check for usable video-for-linux (v4l) support
 dnl ----------------------------------------------
 AC_ARG_ENABLE([v4l],
-  AC_HELP_STRING([--disable-v4l], [do not build Video4Linux support]),
-  [with_v4l=${enableval}], [with_v4l=yes])
+	AC_HELP_STRING([--disable-v4l], [do not build Video4Linux input plugin]))
 
-if test "x$with_v4l" == "xyes"; then
-  AC_CHECK_HEADER(linux/videodev.h, have_v4l=yes,)
-else
-  have_v4l=no
+if test "x$enable_v4l" != "xno"; then
+  AC_CHECK_HEADERS([linux/videodev.h], [have_v4l=yes], [have_v4l=no])
+  if test "x$enable_v4l" = "xyes" && test "x$have_v4l" = "xno"; then
+     AC_MSG_ERROR([Video4Linux support requested, but prerequisite headers not found.])
+  fi
 fi
+
 AM_CONDITIONAL(HAVE_V4L, [test x"$have_v4l" = "xyes"])
 
 dnl ----------------------------------------------
