@@ -339,8 +339,10 @@ static void directfb_clean_output_area (directfb_driver_t *this) {
 #endif
   }
   else if (!(this->caps & DLCAPS_SCREEN_LOCATION)) {
-    DFBRectangle rect[4];
-    int          i; 
+    DFBRectangle           rect[4];
+    DFBSurfaceCapabilities caps;
+    int                    bufs = 1;
+    int                    i; 
 
     for (i = 0; i < 4; i++) {
       rect[i].x = MAX(this->sc.border[i].x, 0);
@@ -348,9 +350,18 @@ static void directfb_clean_output_area (directfb_driver_t *this) {
       rect[i].w = MAX(this->sc.border[i].w, 0);
       rect[i].h = MAX(this->sc.border[i].h, 0);
     }
-      
+    
+    this->surface->GetCapabilities (this->surface, &caps);
+    if (caps & DSCAPS_DOUBLE)
+      bufs++;
+    if (caps & DSCAPS_TRIPLE)
+      bufs++;
+    
     this->surface->SetColor (this->surface, 0x00, 0x00, 0x00, 0xff);
-    this->surface->FillRectangles (this->surface, &rect[0], 4);
+    for (i = 0; i < bufs; i++) {  
+      this->surface->FillRectangles (this->surface, &rect[0], 4);
+      this->surface->Flip (this->surface, NULL, 0);
+    }
   }
 }
 
