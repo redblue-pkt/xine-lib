@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.144 2006/08/12 01:43:26 miguelfreitas Exp $
+ * $Id: demux_mpgaudio.c,v 1.145 2006/09/03 02:03:21 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -507,7 +507,7 @@ static int parse_frame_payload(demux_mpgaudio_t *this,
   buf->content                = buf->mem;
   buf->type                   = BUF_AUDIO_MPEG;
   buf->decoder_info[0]        = 1;
-  buf->decoder_flags          = decoder_flags;
+  buf->decoder_flags          = decoder_flags|BUF_FLAG_FRAME_END;
 
   this->audio_fifo->put(this->audio_fifo, buf);
   lprintf("send buffer: pts=%lld\n", pts);  
@@ -573,7 +573,7 @@ static int read_frame_header(demux_mpgaudio_t *this, uint8_t *header_buf, int by
 /*
  * Parse next mp3 frame
  */
-static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
+static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags, int send_header) {
   uint8_t  header_buf[4];
   int      bytes = 4;
 
@@ -583,6 +583,27 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags) {
 
       if (parse_frame_header(&this->cur_frame, header_buf)) {
 
+	/* send header buffer */
+	if ( send_header ) {
+	  buf_element_t *buf;
+	  
+	  buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+	  
+	  buf->type = BUF_AUDIO_MPEG;
+	  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+	  
+	  buf->decoder_info[0] = 0;
+	  buf->decoder_info[1] = this->cur_frame.freq;
+	  buf->decoder_info[2] = 0; /* bits_per_sample */
+	  
+	  /* Only for channel_mode == 3 (mono) there is one channel, for any other case, there are 2 */
+	  buf->decoder_info[3] = ( this->cur_frame.channel_mode == 3 ) ? 1 : 2;
+	  
+	  buf->size = 0; /* No extra header data */
+	  
+	  this->audio_fifo->put(this->audio_fifo, buf);
+	}
+	
         return parse_frame_payload(this, header_buf, decoder_flags);
         
       } else if ((BE_32(header_buf)) == ID3V22_TAG) {
@@ -634,7 +655,7 @@ static int demux_mpgaudio_send_chunk (demux_plugin_t *this_gen) {
 
   demux_mpgaudio_t *this = (demux_mpgaudio_t *) this_gen;
 
-  if (!demux_mpgaudio_next (this, 0))
+  if (!demux_mpgaudio_next (this, 0, 0))
     this->status = DEMUX_FINISHED;
 
   return this->status;
@@ -757,7 +778,7 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
      */
     this->check_vbr_header = 1;
     for (i = 0; i < NUM_PREVIEW_BUFFERS; i++) {
-      if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW)) {
+      if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW, i == 0)) {
         break;
       }
     }
@@ -820,6 +841,12 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
                mpeg_ver[this->cur_frame.version_idx], this->cur_frame.layer,
                (this->xing_header)? " VBR" : " CBR" );
       _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, scratch_buf);
+    }
+  } else {
+    for (i = 0; i < NUM_PREVIEW_BUFFERS; i++) {
+      if (!demux_mpgaudio_next (this, BUF_FLAG_PREVIEW, i == 0)) {
+        break;
+      }
     }
   }
 
