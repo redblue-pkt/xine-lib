@@ -573,7 +573,7 @@ dnl ----------------------------------------------
 
 if test x"$no_x" != "xyes"; then
   ac_save_CPPFLAGS="$CPPFLAGS"
-  CPPLAGS="$CPPFLAGS $X_CFLAGS"
+  CPPFLAGS="$CPPFLAGS $X_CFLAGS"
   AC_CHECK_HEADERS([X11/extensions/XShm.h], [],
 		   [AC_MSG_ERROR([XShm extension is required])])
   CPPFLAGS="$ac_save_CPPFLAGS"

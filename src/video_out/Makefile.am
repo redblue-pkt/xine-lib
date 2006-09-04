@@ -136,7 +136,7 @@ xineplug_vo_out_vidix_la_SOURCES = video_out_vidix.c $(X11OSD)
 xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) \
 	$(top_builddir)/src/video_out/vidix/libvidix.la \
 	$(top_builddir)/src/video_out/libdha/libdha.la $(THREAD_LIBS)
-xineplug_vo_out_vidix_la_CFLAGS = $(VISIBILITY_FLAG) $(VIDIX_CFLAGS) -fno-strict-aliasing
+xineplug_vo_out_vidix_la_CFLAGS = $(VISIBILITY_FLAG) $(VIDIX_CFLAGS) $(X_CFLAGS) -fno-strict-aliasing
 xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
@@ -163,7 +163,7 @@ xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_sdl_la_SOURCES = video_out_sdl.c
 xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS) $(XINE_LIB) $(THREAD_LIBS)
-xineplug_vo_out_sdl_la_CFLAGS = $(VISIBILITY_FLAG) $(SDL_CFLAGS)
+xineplug_vo_out_sdl_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) $(SDL_CFLAGS)
 xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_stk_la_SOURCES = video_out_stk.c 
