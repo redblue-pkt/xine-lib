@@ -203,12 +203,15 @@ char *_xine_private_strndup(const char *s, size_t n);
  * (do it only inside ffmpeg)
  */
 #  ifdef HAVE_AV_CONFIG_H
-#    include <windef.h>
+#    include <windows.h>
 #    ifdef near
 #      undef near
 #    endif
 #    ifdef far
 #      undef far
+#    endif
+#    ifdef frm1
+#      undef frm1
 #    endif
      /* it sucks everywhere :-) */
 #    define near win32_sucks_near
