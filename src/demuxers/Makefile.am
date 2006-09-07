@@ -90,7 +90,7 @@ xineplug_dmx_qt_la_LIBADD = $(XINE_LIB) $(ZLIB_LIBS)
 xineplug_dmx_qt_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
 
-xineplug_dmx_asf_la_SOURCES = demux_asf.c
+xineplug_dmx_asf_la_SOURCES = demux_asf.c asfheader.c
 xineplug_dmx_asf_la_LIBADD = $(XINE_LIB)
 xineplug_dmx_asf_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS) -fno-strict-aliasing
 xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asfheader.h,v 1.6 2006/06/20 01:46:41 dgp85 Exp $
+ * $Id: asfheader.h,v 1.7 2006/09/07 07:21:09 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -31,6 +31,9 @@
 
 #ifndef ASFHEADER_H
 #define ASFHEADER_H
+
+#include <inttypes.h>
+#include <iconv.h>
 
 /*
  * define asf GUIDs (list from avifile)
@@ -87,14 +90,24 @@
 #define GUID_ASF_RESERVED_MARKER               33
 
     /* various */
-/*
-#define GUID_ASF_HEAD2                         27
-*/
 #define GUID_ASF_AUDIO_CONCEAL_NONE            34
 #define GUID_ASF_CODEC_COMMENT1_HEADER         35
 #define GUID_ASF_2_0_HEADER                    36
 
-#define GUID_END                               37
+#define GUID_EXTENDED_STREAM_PROPERTIES        37
+#define GUID_ADVANCED_MUTUAL_EXCLUSION         38
+#define GUID_GROUP_MUTUAL_EXCLUSION            39
+#define GUID_STREAM_PRIORITIZATION             40
+#define GUID_BANDWIDTH_SHARING                 41
+#define GUID_LANGUAGE_LIST                     42
+#define GUID_METADATA                          43
+#define GUID_METADATA_LIBRARY                  44
+#define GUID_INDEX_PARAMETERS                  45
+#define GUID_MEDIA_OBJECT_INDEX_PARAMETERS     46
+#define GUID_TIMECODE_INDEX_PARAMETERS         47
+#define GUID_ADVANCED_CONTENT_ENCRYPTION       48
+#define GUID_COMPATIBILITY                     49
+#define GUID_END                               50
 
 
 /* asf stream types */
@@ -129,7 +142,7 @@ static const struct
 } guids[] =
 {
     { "error",
-    { 0x0, 0x0, 0x0, { 0x0 } } },
+    { 0x0,} },
 
 
     /* base ASF objects */
@@ -244,10 +257,6 @@ static const struct
     { 0x4CFEDB20, 0x75F6, 0x11CF, { 0x9C, 0x0F, 0x00, 0xA0, 0xC9, 0x03, 0x49, 0xCB }} },
 
     /* various */
-    /* Already defined (reserved_1)
-    { "head2",
-    { 0xabd3d211, 0xa9ba, 0x11cf, { 0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65 }} },
-    */
     { "audio conceal none",
     { 0x49f1a440, 0x4ece, 0x11d0, { 0xa3, 0xac, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6 }} },
 
@@ -257,6 +266,138 @@ static const struct
     { "asf 2.0 header",
     { 0xd6e229d1, 0x35da, 0x11d1, { 0x90, 0x34, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xbe }} },
 
+
+    /* header extension GUIDs */ 
+    { "extended stream properties",
+    { 0x14E6A5CB, 0xC672, 0x4332, { 0x83, 0x99, 0xA9, 0x69, 0x52, 0x6, 0x5B, 0x5A }} },
+
+    { "advanced mutual exclusion",
+    { 0xA08649CF, 0x4775, 0x4670, { 0x8a, 0x16, 0x6e, 0x35, 0x35, 0x75, 0x66, 0xcd }} },
+
+    { "group mutual exclusion",
+    { 0xD1465A40, 0x5A79, 0x4338, { 0xb7, 0x1b, 0xe3, 0x6b, 0x8f, 0xd6, 0xc2, 0x49 }} },
+
+    { "stream prioritization",
+    { 0xD4FED15B, 0x88D3, 0x454F, { 0x81, 0xf0, 0xed, 0x5c, 0x45, 0x99, 0x9e, 0x24 }} },
+
+    { "bandwidth sharing",
+    { 0xA69609E6, 0x517B, 0x11D2, { 0xb6, 0xaf, 0x00, 0xc0, 0x4f, 0xd9, 0x08, 0xe9 }} },
+
+    { "language list",
+    { 0x7C4346A9, 0xEFE0, 0x4BFC, {0xB2, 0x29, 0x39, 0x3E, 0xDE, 0x41, 0x5C, 0x85}} },
+
+    { "metadata",
+    { 0xC5F8CBEA, 0x5BAF, 0x4877, {0x84, 0x67, 0xAA, 0x8C, 0x44, 0xFA, 0x4C, 0xCA}} },
+
+    { "metadata library",
+    { 0x44231C94, 0x9498, 0x49D1, {0xA1, 0x41, 0x1D, 0x13, 0x4E, 0x45, 0x70, 0x54}} },
+
+    { "index parameters",
+    { 0xD6E229DF, 0x35DA, 0x11D1, {0x90, 0x34, 0x00, 0xA0, 0xC9, 0x03, 0x49, 0xBE}} },
+
+    { "media object index parameters",
+    { 0x6B203BAD, 0x3F11, 0x48E4, {0xAC, 0xA8, 0xD7, 0x61, 0x3D, 0xE2, 0xCF, 0xA7}} },
+
+    { "timecode index parameters",
+    { 0xF55E496D, 0x9797, 0x4B5D, {0x8C, 0x8B, 0x60, 0x4D, 0xF9, 0x9B, 0xFB, 0x24}} },
+
+    { "advanced content encryption",
+    { 0x43058533, 0x6981, 0x49E6, {0x9B, 0x74, 0xAD, 0x12, 0xCB, 0x86, 0xD5, 0x8C}} },
+
+    /* exotic stuff */
+    { "compatibility",
+    { 0x26F18B5D, 0x4584, 0x47EC, {0x9F, 0x5F, 0xE,0x65, 0x1F, 0x4, 0x52, 0xC9}} }
 };
+
+typedef struct asf_header_s asf_header_t;
+typedef struct asf_file_s asf_file_t;
+typedef struct asf_content_s asf_content_t;
+typedef struct asf_stream_s asf_stream_t;
+typedef struct asf_stream_extension_s asf_stream_extension_t;
+
+struct asf_header_s {
+  asf_file_t             *file;
+  asf_content_t          *content;
+  int                     stream_count;
+
+  asf_stream_t           *streams[ASF_MAX_NUM_STREAMS];
+  asf_stream_extension_t *stream_extensions[ASF_MAX_NUM_STREAMS];
+  uint32_t                bitrates[ASF_MAX_NUM_STREAMS];
+};
+
+struct asf_file_s {
+  GUID     file_id;
+  uint64_t file_size;              /* in bytes */
+  uint64_t data_packet_count;
+  uint64_t play_duration;          /* in 100 nanoseconds unit */
+  uint64_t send_duration;          /* in 100 nanoseconds unit */
+  uint64_t preroll;                /* in 100 nanoseconds unit */
+
+  uint32_t packet_size;
+  uint32_t max_bitrate;
+
+  uint8_t  broadcast_flag;
+  uint8_t  seekable_flag;
+};
+
+/* ms unicode strings */
+struct asf_content_s {
+  char     *title;
+  char     *author;
+  char     *copyright;
+  char     *description;
+  char     *rating;
+};
+
+struct asf_stream_s {
+  uint16_t  stream_number;
+  int       stream_type;
+  int       error_correction_type;
+  uint64_t  time_offset;
+
+  uint32_t  private_data_length;
+  uint8_t  *private_data;
+
+  uint32_t  error_correction_data_length;
+  uint8_t  *error_correction_data;
+
+  uint8_t   encrypted_flag;
+};
+
+struct asf_stream_extension_s {
+  uint64_t start_time;
+  uint64_t end_time;
+  uint32_t data_bitrate;
+  uint32_t buffer_size;
+  uint32_t initial_buffer_fullness;
+  uint32_t alternate_data_bitrate;
+  uint32_t alternate_buffer_size;
+  uint32_t alternate_initial_buffer_fullness;
+  uint32_t max_object_size;
+
+  uint8_t  reliable_flag;
+  uint8_t  seekable_flag;
+  uint8_t  no_cleanpoints_flag;
+  uint8_t  resend_live_cleanpoints_flag;
+
+  uint16_t language_id;
+  uint64_t average_time_per_frame;
+
+  uint16_t stream_name_count;
+  uint16_t payload_extension_system_count;
+
+  char   **stream_names;
+};
+
+int asf_find_object_id (GUID *g);
+void asf_get_guid (uint8_t *buffer, GUID *value);
+
+asf_header_t *asf_header_new (uint8_t *buffer, int buffer_len);
+void asf_header_choose_streams (asf_header_t *header, uint32_t bandwidth,
+                                int *video_id, int *audio_id);
+void asf_header_disable_streams (asf_header_t *header,
+                                 int video_id, int audio_id);
+void asf_header_delete (asf_header_t *header);
+
 
 #endif

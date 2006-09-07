@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.60 2006/07/11 09:37:31 mshopf Exp $
+ * $Id: mms.c,v 1.61 2006/09/07 07:21:06 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -131,25 +131,19 @@ struct mms_s {
   int           buf_size;
   int           buf_read;
   
-  uint8_t       asf_header[ASF_HEADER_LEN];
+  asf_header_t *asf_header;
+  uint8_t       asf_header_buffer[ASF_HEADER_LEN];
   uint32_t      asf_header_len;
   uint32_t      asf_header_read;
+
   int           seq_num;
-  int           num_stream_ids;
-  int           stream_ids[ASF_MAX_NUM_STREAMS];
-  int           stream_types[ASF_MAX_NUM_STREAMS];
-  uint32_t      asf_packet_len;
-  uint64_t      file_len;
   char          guid[37];
-  uint32_t      bitrates[ASF_MAX_NUM_STREAMS];
-  uint32_t      bitrates_pos[ASF_MAX_NUM_STREAMS];
   int           bandwidth;
   
-  int           has_audio;
-  int           has_video;
-  int           live_flag;
   off_t         current_pos;
   int           eos;
+
+  uint8_t       live_flag;
 };
 
 
@@ -183,33 +177,6 @@ static void mms_buffer_put_32 (mms_buffer_t *mms_buffer, uint32_t value) {
   mms_buffer->buffer[mms_buffer->pos + 3] = (value  >> 24) & 0xff;
 
   mms_buffer->pos += 4;
-}
-
-static int get_guid (unsigned char *buffer, int offset) {
-  int i;
-  GUID g;
-  
-  g.Data1 = LE_32(buffer + offset);
-  g.Data2 = LE_16(buffer + offset + 4);
-  g.Data3 = LE_16(buffer + offset + 6);
-  for(i = 0; i < 8; i++) {
-    g.Data4[i] = buffer[offset + 8 + i];
-  }
-  
-  for (i = 1; i < GUID_END; i++) {
-    if (!memcmp(&g, &guids[i].guid, sizeof(GUID))) {
-      lprintf ("GUID: %s\n", guids[i].name);
-      return i;
-    }
-  }
-  
-  lprintf ("unknown GUID: 0x%x, 0x%x, 0x%x, "
-	   "{ 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx }\n",
-	   g.Data1, g.Data2, g.Data3,
-	   g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3], 
-	   g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]);
-
-  return GUID_ERROR;
 }
 
 
@@ -524,122 +491,22 @@ static int get_asf_header (mms_t *this) {
   return 1;
 }
 
-static void interp_asf_header (mms_t *this) {
+static int interp_asf_header (mms_t *this) {
 
-  unsigned int i;
- 
-  this->asf_packet_len = 0;
-  this->num_stream_ids = 0;
-  /*
-   * parse header
-   */
-
-  i = 30;
-  while (i < this->asf_header_len) {
-    
-    uint64_t length;
-    int guid;
-
-    guid = get_guid(this->asf_header, i);
-    i += 16;
-        
-    length = LE_64(this->asf_header + i);
-    i += 8;
-
-    switch (guid) {
-    
-      case GUID_ASF_FILE_PROPERTIES:
-
-        this->asf_packet_len = LE_32(this->asf_header + i + 92 - 24);
-        if (this->asf_packet_len > BUF_SIZE) {
-          this->asf_packet_len = 0;
-	  xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
-		   "libmms: asf packet len too large\n");
-	  break;
-        }
-        this->file_len       = LE_64(this->asf_header + i + 40 - 24);
-        lprintf ("file object, file_length = %lld, packet length = %d",
-		 this->file_len, this->asf_packet_len);
-        break;
-
-      case GUID_ASF_STREAM_PROPERTIES:
-        {
-          uint16_t flags;
-          uint16_t stream_id;
-          int      type;
-          int      encrypted;
-
-          guid = get_guid(this->asf_header, i);
-          switch (guid) {
-            case GUID_ASF_AUDIO_MEDIA:
-              type = ASF_STREAM_TYPE_AUDIO;
-              this->has_audio = 1;
-              break;
-    
-            case GUID_ASF_VIDEO_MEDIA:
-            case GUID_ASF_JFIF_MEDIA:
-            case GUID_ASF_DEGRADABLE_JPEG_MEDIA:
-              type = ASF_STREAM_TYPE_VIDEO;
-              this->has_video = 1;
-              break;
-          
-            case GUID_ASF_COMMAND_MEDIA:
-              type = ASF_STREAM_TYPE_CONTROL;
-              break;
-        
-            default:
-              type = ASF_STREAM_TYPE_UNKNOWN;
-          }
-
-          flags = LE_16(this->asf_header + i + 48);
-          stream_id = flags & 0x7F;
-          encrypted = flags >> 15;
-
-          lprintf ("stream object, stream id: %d, type: %d, encrypted: %d\n",
-                   stream_id, type, encrypted);
-          
-          if (this->num_stream_ids < ASF_MAX_NUM_STREAMS && stream_id < ASF_MAX_NUM_STREAMS) {
-            this->stream_types[stream_id] = type;
-            this->stream_ids[this->num_stream_ids] = stream_id;
-            this->num_stream_ids++;
-          } else {
-            lprintf ("too many streams, skipping\n");
-          }
-      
-        }
-        break;
-
-      case GUID_ASF_STREAM_BITRATE_PROPERTIES:
-        {
-          uint16_t streams = LE_16(this->asf_header + i);
-          uint16_t stream_id;
-          int j;
-
-          lprintf ("stream bitrate properties\n");
-          lprintf ("streams %d\n", streams); 
-
-          for(j = 0; j < streams; j++) {
-            stream_id = LE_16(this->asf_header + i + 2 + j * 6);
-            lprintf ("stream id %d\n", stream_id); 
-            this->bitrates[stream_id] = LE_32(this->asf_header + i + 4 + j * 6);
-            this->bitrates_pos[stream_id] = i + 4 + j * 6;
-            lprintf ("stream id %d, bitrate %d\n", stream_id, 
-                     this->bitrates[stream_id]);
-          }
-        }
-        break;
-    
-      default:
-        lprintf ("unknown object\n");
-        break;
-    }
-
-    lprintf ("length    : %lld\n", length);
-
-    if (length > 24) {
-      i += length - 24;
-    }
+  /* delete previous header */
+  if (this->asf_header) {
+    asf_header_delete(this->asf_header);
   }
+
+  /* the header starts with :
+   *   byte  0-15: header guid
+   *   byte 16-23: header length
+   */
+  this->asf_header = asf_header_new(this->asf_header_buffer + 24, this->asf_header_len - 24);
+  if (!this->asf_header)
+    return 0;
+
+  return 1;
 }
 
 static const char *const mmst_proto_s[] = { "mms", "mmst", NULL };
@@ -729,99 +596,35 @@ static int mms_choose_best_streams(mms_t *this) {
   int     i;
   int     video_stream = 0;
   int     audio_stream = 0;
-  unsigned int max_arate = 0;
-  unsigned int min_vrate = 0;
-  unsigned int min_bw_left = 0;
-  int     stream_id;
-  unsigned int bandwitdh_left;
   int     res;
 
-  /* command 0x33 */
   /* choose the best quality for the audio stream */
-  /* i've never seen more than one audio stream */
-  lprintf("num_stream_ids=%d\n", this->num_stream_ids);
-  for (i = 0; i < this->num_stream_ids; i++) {
-    stream_id = this->stream_ids[i];
-    switch (this->stream_types[stream_id]) {
-      case ASF_STREAM_TYPE_AUDIO:
-        if (this->bitrates[stream_id] > max_arate) {
-          audio_stream = stream_id;
-          max_arate = this->bitrates[stream_id];
-        }
-        break;
-      default:
-        break;
-    }
-  }
-  
-  /* choose a video stream adapted to the user bandwidth */
-  bandwitdh_left = (int)( this->bandwidth - max_arate ) < 0 ? 0 : this->bandwidth - max_arate;
-  lprintf("bandwitdh %d, left %d\n", this->bandwidth, bandwitdh_left);
 
-  min_bw_left = bandwitdh_left;
-  for (i = 0; i < this->num_stream_ids; i++) {
-    stream_id = this->stream_ids[i];
-    switch (this->stream_types[stream_id]) {
-      case ASF_STREAM_TYPE_VIDEO:
-        if (((bandwitdh_left - this->bitrates[stream_id]) < min_bw_left) &&
-            (bandwitdh_left >= this->bitrates[stream_id])) {
-          video_stream = stream_id;
-          min_bw_left = bandwitdh_left - this->bitrates[stream_id];
-        }
-        break;
-      default:
-        break;
-    }
-  }  
-
-  /* choose the lower bitrate of */
-  if (!video_stream && this->has_video) {
-    for (i = 0; i < this->num_stream_ids; i++) {
-      stream_id = this->stream_ids[i];
-      switch (this->stream_types[stream_id]) {
-        case ASF_STREAM_TYPE_VIDEO:
-          if ((this->bitrates[stream_id] < min_vrate) ||
-              (!min_vrate)) {
-            video_stream = stream_id;
-            min_vrate = this->bitrates[stream_id];
-          }
-          break;
-        default:
-          break;
-      }
-    }
-  }
+  asf_header_choose_streams (this->asf_header, this->bandwidth, &video_stream, &audio_stream);
     
   lprintf("selected streams: audio %d, video %d\n", audio_stream, video_stream);
   lprintf("disabling other streams\n");
   memset (this->scmd_body, 0, 40);
-  for (i = 1; i < this->num_stream_ids; i++) {
+  for (i = 1; i < this->asf_header->stream_count; i++) {
     this->scmd_body [ (i - 1) * 6 + 2 ] = 0xFF;
     this->scmd_body [ (i - 1) * 6 + 3 ] = 0xFF;
-    this->scmd_body [ (i - 1) * 6 + 4 ] = this->stream_ids[i] ;
-    this->scmd_body [ (i - 1) * 6 + 5 ] = this->stream_ids[i] >> 8;
-    if ((this->stream_ids[i] == audio_stream) ||
-        (this->stream_ids[i] == video_stream)) {
+    this->scmd_body [ (i - 1) * 6 + 4 ] = this->asf_header->streams[i]->stream_number;
+    this->scmd_body [ (i - 1) * 6 + 5 ] = this->asf_header->streams[i]->stream_number >> 8;
+    if ((i == audio_stream) ||
+        (i == video_stream)) {
       this->scmd_body [ (i - 1) * 6 + 6 ] = 0x00;
       this->scmd_body [ (i - 1) * 6 + 7 ] = 0x00;
     } else {
-      lprintf("disabling stream %d\n", this->stream_ids[i]);
+      lprintf("disabling stream %d\n", this->asf_header->streams[i]->stream_number);
       this->scmd_body [ (i - 1) * 6 + 6 ] = 0x02;
       this->scmd_body [ (i - 1) * 6 + 7 ] = 0x00;
-      
-      /* forces the asf demuxer to not choose this stream */
-      if (this->bitrates_pos[this->stream_ids[i]]) {
-        this->asf_header[this->bitrates_pos[this->stream_ids[i]]]     = 0;
-        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 1] = 0;
-        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 2] = 0;
-        this->asf_header[this->bitrates_pos[this->stream_ids[i]] + 3] = 0;
-      }
     }
   }
 
-  if (!send_command (this, 0x33, this->num_stream_ids, 
-                     0xFFFF | this->stream_ids[0] << 16, 
-                     this->num_stream_ids * 6 + 2)) {
+  /* command 0x33 */
+  if (!send_command (this, 0x33, this->asf_header->stream_count, 
+                     0xFFFF | this->asf_header->streams[0]->stream_number << 16, 
+                     this->asf_header->stream_count * 6 + 2)) {
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
             "libmms: mms_choose_best_streams failed\n");
     return 0;
@@ -861,12 +664,8 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
   this->scmd_body       = this->scmd + CMD_HEADER_LEN + CMD_PREFIX_LEN;
   this->asf_header_len  = 0;
   this->asf_header_read = 0;
-  this->num_stream_ids  = 0;
-  this->asf_packet_len  = 0;
   this->buf_size        = 0;
   this->buf_read        = 0;
-  this->has_audio       = 0;
-  this->has_video       = 0;
   this->bandwidth       = bandwidth;
   this->current_pos     = 0;
   this->eos             = 0;
@@ -1022,7 +821,6 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
     goto fail;
   }
 
-  this->num_stream_ids = 0;
 
   if (!get_asf_header (this))
     goto fail;
@@ -1195,7 +993,7 @@ static int get_media_packet (mms_t *this) {
 
         lprintf ("asf media packet detected, packet_len=%d, packet_seq=%d\n",
                  header.packet_len, header.packet_seq);
-        if (header.packet_len > this->asf_packet_len) {
+        if (header.packet_len > this->asf_header->file->packet_size) {
           xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                    "libmms: invalid asf packet len: %d bytes\n", header.packet_len);
           return 0;
@@ -1209,9 +1007,9 @@ static int get_media_packet (mms_t *this) {
         }
 
         /* explicit padding with 0 */
-        lprintf("padding: %d bytes\n", this->asf_packet_len - header.packet_len);
-        memset(this->buf + header.packet_len, 0, this->asf_packet_len - header.packet_len);
-        this->buf_size = this->asf_packet_len;
+        lprintf("padding: %d bytes\n", this->asf_header->file->packet_size - header.packet_len);
+        memset(this->buf + header.packet_len, 0, this->asf_header->file->packet_size - header.packet_len);
+        this->buf_size = this->asf_header->file->packet_size;
       }
       break;
   }
@@ -1228,7 +1026,7 @@ size_t mms_peek_header (mms_t *this, char *data, size_t maxsize) {
 
   len = (this->asf_header_len < maxsize) ? this->asf_header_len : maxsize;
 
-  memcpy(data, this->asf_header, len);
+  memcpy(data, this->asf_header_buffer, len);
   return len;
 }
 
@@ -1248,7 +1046,7 @@ int mms_read (mms_t *this, char *data, int len) {
       else
         n = bytes_left;
 
-      xine_fast_memcpy (&data[total], &this->asf_header[this->asf_header_read], n);
+      xine_fast_memcpy (&data[total], &this->asf_header_buffer[this->asf_header_read], n);
 
       this->asf_header_read += n;
       total += n;
@@ -1300,12 +1098,13 @@ void mms_close (mms_t *this) {
     free(this->password);
   if (this->uri)
     free(this->uri);
-
+  if (this->asf_header)
+    asf_header_delete(this->asf_header);
   free (this);
 }
 
 uint32_t mms_get_length (mms_t *this) {
-  return this->file_len;
+  return this->asf_header->file->file_size;
 }
 
 off_t mms_get_current_pos (mms_t *this) {
