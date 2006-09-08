@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.160 2005/10/30 02:18:35 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.161 2006/09/08 21:11:29 miguelfreitas Exp $
  *
  */
 
@@ -464,12 +464,12 @@ static void *video_decoder_loop (void *stream_gen) {
   return NULL;
 }
 
-void _x_video_decoder_init (xine_stream_t *stream) {
+int _x_video_decoder_init (xine_stream_t *stream) {
   
   if (stream->video_out == NULL) {
     stream->video_fifo = _x_dummy_fifo_buffer_new (5, 8192);
     stream->spu_track_map_entries = 0;
-    return;
+    return 1;
   } else {
      
     pthread_attr_t       pth_attrs;
@@ -494,6 +494,11 @@ void _x_video_decoder_init (xine_stream_t *stream) {
                                                       20, NULL, NULL);
   
     stream->video_fifo = _x_fifo_buffer_new (num_buffers, 8192);
+    if (stream->video_fifo == NULL) {
+      xine_log(stream->xine, XINE_LOG_MSG, "video_decoder: can't allocated video fifo\n");
+      return 0;
+    }
+    
     stream->spu_track_map_entries = 0;
   
     pthread_attr_init(&pth_attrs);
@@ -505,13 +510,16 @@ void _x_video_decoder_init (xine_stream_t *stream) {
     stream->video_thread_created = 1;
     if ((err = pthread_create (&stream->video_thread,
                                &pth_attrs, video_decoder_loop, stream)) != 0) {
-      fprintf (stderr, "video_decoder: can't create new thread (%s)\n",
-               strerror(err));
-      _x_abort();
+      xine_log (stream->xine, XINE_LOG_MSG, "video_decoder: can't create new thread (%s)\n",
+                strerror(err));
+      stream->video_thread_created = 0;
+      pthread_attr_destroy(&pth_attrs);
+      return 0;
     }
     
     pthread_attr_destroy(&pth_attrs);
   }
+  return 1;
 }
 
 void _x_video_decoder_shutdown (xine_stream_t *stream) {

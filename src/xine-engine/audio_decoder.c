@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.137 2006/02/05 16:41:16 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.138 2006/09/08 21:11:29 miguelfreitas Exp $
  *
  *
  * functions that implement audio decoding
@@ -459,7 +459,7 @@ static void *audio_decoder_loop (void *stream_gen) {
   return NULL;
 }
 
-void _x_audio_decoder_init (xine_stream_t *stream) {
+int _x_audio_decoder_init (xine_stream_t *stream) {
 
   pthread_attr_t       pth_attrs;
   struct sched_param   pth_params;
@@ -467,7 +467,7 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
 
   if (stream->audio_out == NULL) {
     stream->audio_fifo = _x_dummy_fifo_buffer_new (5, 8192);
-    return;
+    return 1;
   } else {
     int num_buffers;
     
@@ -510,11 +510,14 @@ void _x_audio_decoder_init (xine_stream_t *stream) {
                                &pth_attrs, audio_decoder_loop, stream)) != 0) {
       xprintf (stream->xine, XINE_VERBOSITY_DEBUG, 
 	       "audio_decoder: can't create new thread (%s)\n", strerror(err));
-      _x_abort();
+      stream->audio_thread_created = 0;
+      pthread_attr_destroy(&pth_attrs);
+      return 0;
     }
   
     pthread_attr_destroy(&pth_attrs);
   }
+  return 1;
 }
 
 void _x_audio_decoder_shutdown (xine_stream_t *stream) {

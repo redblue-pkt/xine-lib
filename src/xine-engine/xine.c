@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.326 2006/08/13 23:51:34 miguelfreitas Exp $
+ * $Id: xine.c,v 1.327 2006/09/08 21:11:29 miguelfreitas Exp $
  */
 
 /*
@@ -576,9 +576,24 @@ xine_stream_t *xine_stream_new (xine_t *this,
    * alloc fifos, init and start decoder threads
    */
 
-  _x_video_decoder_init (stream);
+  if (!_x_video_decoder_init (stream))
+  {
+    free(stream->audio_decoder_extra_info);
+    free(stream->current_extra_info);
+    free(stream);
+    pthread_mutex_unlock(&this->streams_lock);
+    return NULL;
+  }
 
-  _x_audio_decoder_init (stream);
+  if (!_x_audio_decoder_init (stream))
+  {
+    _x_video_decoder_shutdown(stream);
+    free(stream->audio_decoder_extra_info);
+    free(stream->current_extra_info);
+    free(stream);
+    pthread_mutex_unlock(&this->streams_lock);
+    return NULL;
+  }
 
   /*
    * osd
@@ -592,7 +607,17 @@ xine_stream_t *xine_stream_new (xine_t *this,
    * create a reference counter
    */
   stream->refcounter = _x_new_refcounter(stream, (refcounter_destructor)xine_dispose_internal);
-  
+  if (!stream->refcounter)
+  {
+    _x_video_decoder_shutdown(stream);
+    _x_audio_decoder_shutdown(stream);
+    free(stream->audio_decoder_extra_info);
+    free(stream->current_extra_info);
+    free(stream);
+    pthread_mutex_unlock(&this->streams_lock);
+    return NULL;
+  }
+
   /*
    * register stream
    */

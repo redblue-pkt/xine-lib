@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.175 2006/08/13 23:51:33 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.176 2006/09/08 21:11:29 miguelfreitas Exp $
  *
  */
 
@@ -384,10 +384,10 @@ void _x_free_demux_plugin (xine_stream_t *stream, demux_plugin_t *demux);
 
 /* create decoder fifos and threads */
 
-void _x_video_decoder_init          (xine_stream_t *stream);
+int _x_video_decoder_init           (xine_stream_t *stream);
 void _x_video_decoder_shutdown      (xine_stream_t *stream);
 
-void _x_audio_decoder_init          (xine_stream_t *stream);
+int _x_audio_decoder_init           (xine_stream_t *stream);
 void _x_audio_decoder_shutdown      (xine_stream_t *stream);
 
 /* extra_info operations */
