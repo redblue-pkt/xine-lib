@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.202 2006/05/01 12:05:09 valtri Exp $
+ * $Id: audio_out.c,v 1.203 2006/09/08 20:32:47 miguelfreitas Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1054,10 +1054,14 @@ static void *ao_loop (void *this_gen) {
          in_buf->format.rate != this->input.rate ||
          in_buf->format.mode != this->input.mode ) {
          lprintf("audio format has changed\n");
-         ao_change_settings(this,
-                            in_buf->format.bits,
-                            in_buf->format.rate,
-                            in_buf->format.mode);
+         if( !in_buf->stream->emergency_brake && 
+             ao_change_settings(this,
+                                in_buf->format.bits,
+                                in_buf->format.rate,
+                                in_buf->format.mode) == 0 ) {
+             in_buf->stream->emergency_brake = 1;
+             _x_message (in_buf->stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+         }
       }
     }
 
@@ -1450,15 +1454,17 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
       fifo_wait_empty(this->out_fifo);
     }
 
-    pthread_mutex_lock( &this->driver_lock );
-    ret = ao_change_settings(this, bits, rate, mode);
-    pthread_mutex_unlock( &this->driver_lock );
-
-    if( !ret ) {
-      if( !stream->emergency_brake ) {
+    if( !stream->emergency_brake ) {
+      pthread_mutex_lock( &this->driver_lock );
+      ret = ao_change_settings(this, bits, rate, mode);
+      pthread_mutex_unlock( &this->driver_lock );
+      
+      if( !ret ) {
         stream->emergency_brake = 1;
         _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+        return 0;
       }
+    } else {
       return 0;
     }
   }
