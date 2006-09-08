@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_gnome_vfs.c,v 1.31 2006/07/10 22:08:15 dgp85 Exp $
+ * $Id: input_gnome_vfs.c,v 1.32 2006/09/08 06:20:37 tmattern Exp $
  */
 
 
@@ -201,7 +201,7 @@ gnomevfs_plugin_get_length (input_plugin_t *this_gen)
 static uint32_t
 gnomevfs_plugin_get_blocksize (input_plugin_t *this_gen)
 {
-	return 0;
+	return 32 * 1024;
 }
 
 static char*

@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.11 2006/06/20 00:35:07 dgp85 Exp $
+ * $Id: input_cache.c,v 1.12 2006/09/08 06:20:37 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,7 +37,7 @@
 
 #include "xine_internal.h"
 
-#define BUFFER_SIZE 1024
+#define DEFAULT_BUFFER_SIZE 1024
 
 typedef struct {
   input_plugin_t    input_plugin;      /* inherited structure */
@@ -45,8 +45,9 @@ typedef struct {
   input_plugin_t   *main_input_plugin; /* original input plugin */
   xine_stream_t    *stream;
 
-  char              buf[BUFFER_SIZE];
-  int               buf_len;
+  char             *buf;
+  size_t            buf_size;          /* allocated size */
+  int               buf_len;           /* data size */
   int               buf_pos;
 
   /* Statistics */
@@ -120,9 +121,9 @@ static off_t cache_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
     this->buf_pos = 0;
 
     /* read the rest */
-    if (len < BUFFER_SIZE) {
+    if (len < this->buf_size) {
       /* readahead bytes */
-      main_read = this->main_input_plugin->read(this->main_input_plugin, this->buf, BUFFER_SIZE);
+      main_read = this->main_input_plugin->read(this->main_input_plugin, this->buf, this->buf_size);
       this->main_read_call++;
       
       if( main_read >= 0 ) {
@@ -331,6 +332,7 @@ static void cache_plugin_dispose(input_plugin_t *this_gen) {
 	  LOG_MODULE": seek_calls: %d, main input seek calls: %d\n", this->seek_call, this->main_seek_call);
 
   _x_free_input_plugin(this->stream, this->main_input_plugin);
+  free(this->buf);
   free(this);
 }
 
@@ -351,6 +353,9 @@ input_plugin_t *_x_cache_plugin_get_instance (xine_stream_t *stream, int readahe
   lprintf("mrl: %s\n", main_plugin->get_mrl(main_plugin));
 
   this = (cache_input_plugin_t *)xine_xmalloc(sizeof(cache_input_plugin_t));
+  if (!this)
+    return NULL;
+  
   this->main_input_plugin = main_plugin;
   this->stream            = stream;
 
@@ -370,6 +375,18 @@ input_plugin_t *_x_cache_plugin_get_instance (xine_stream_t *stream, int readahe
   this->input_plugin.get_optional_data   = cache_plugin_get_optional_data;
   this->input_plugin.dispose             = cache_plugin_dispose;
   this->input_plugin.input_class         = main_plugin->input_class;
+
+  /* use main input block size */
+  this->buf_size = this->main_input_plugin->get_blocksize(this->main_input_plugin);
+  if (this->buf_size < DEFAULT_BUFFER_SIZE) {
+    this->buf_size = DEFAULT_BUFFER_SIZE;
+  }
+
+  this->buf = (char *)xine_xmalloc(this->buf_size);
+  if (!this->buf) {
+    free (this);
+    return NULL;
+  }
 
   return &this->input_plugin;
 }
