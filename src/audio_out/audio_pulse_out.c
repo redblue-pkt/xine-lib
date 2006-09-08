@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.2 2006/07/16 16:18:09 dsalt Exp $
+ * $Id: audio_pulse_out.c,v 1.3 2006/09/08 19:47:56 miguelfreitas Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -211,7 +211,9 @@ static int ao_pulse_open(ao_driver_t *this_gen,
   a.minreq = a.tlength/10;
 
   pa_cvolume_set(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels, this->swvolume);
-  pa_stream_connect_playback(this->stream, this->sink, &a, PA_STREAM_INTERPOLATE_TIMING, &this->cvolume, NULL);
+  pa_stream_connect_playback(this->stream, this->sink, &a,
+                             PA_STREAM_INTERPOLATE_TIMING|PA_STREAM_AUTO_TIMING_UPDATE, 
+                             &this->cvolume, NULL);
 
   wait_for_completion(this);
 
@@ -299,21 +301,26 @@ static int ao_pulse_write(ao_driver_t *this_gen, int16_t *data,
 static int ao_pulse_delay (ao_driver_t *this_gen)
 {
   pulse_driver_t *this = (pulse_driver_t *) this_gen;
-  pa_usec_t latency;
+  pa_usec_t latency = 0;
   int delay_frames;
 
-#if 0  /* TODO: This part has to be ported to new pulseaudio API */
   pthread_mutex_lock(&this->lock);
-  keep_alive(this);
-  latency = pa_stream_get_interpolated_latency(this->stream, NULL); 
+
+  for (;;) {
+    if (pa_stream_get_latency(this->stream, &latency, NULL) >= 0)
+      break;
+
+    if (pa_context_errno(this->context) != PA_ERR_NODATA) {
+      /* error */
+    }
+    keep_alive(this);
+  }
+
   pthread_mutex_unlock(&this->lock);
-  
+
   /* convert latency (us) to frame units. */
   delay_frames = (int)(latency * this->sample_rate / 1000000);
-#else
-  delay_frames = 0;
-#endif
-      
+
   if( delay_frames > this->frames_written )
     return this->frames_written;
   else
