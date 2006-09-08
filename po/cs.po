@@ -633,18 +633,6 @@ msgstr "druhý modul zvukového výstupu xine používající DirectX"
 msgid "xine audio output plugin using kde artsd"
 msgstr "modul zvukového výstupu xine použije artsd"
 
-#: src/audio_out/audio_polyp_out.c:491
-msgid "device used for polypaudio"
-msgstr "zařízení použité pro polyaudio"
-
-#: src/audio_out/audio_polyp_out.c:492
-msgid "use 'server[:sink]' for setting the polypaudio sink device."
-msgstr "pro nastavení polyaudio sink zařízení použijte 'server[:sink]'"
-
-#: src/audio_out/audio_polyp_out.c:537
-msgid "xine audio output plugin using polypaudio sound server"
-msgstr "modul zvukového výstupu xine používající zvukový server polyaudio"
-
 #: src/audio_out/audio_none_out.c:225
 msgid "xine dummy audio output plugin"
 msgstr "fiktivní modul zvukového výstupu xine"

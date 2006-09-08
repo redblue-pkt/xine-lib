@@ -561,20 +561,6 @@ msgstr "výstupný xine audio plugin pre win32 používa directx"
 msgid "xine audio output plugin using kde artsd"
 msgstr "výstupný xine audio plugin používa kde artsd"
 
-#: src/audio_out/audio_polyp_out.c:491
-#, fuzzy
-msgid "device used for polypaudio"
-msgstr "zariadenie pre cdda mechaniku"
-
-#: src/audio_out/audio_polyp_out.c:492
-msgid "use 'server[:sink]' for setting the polypaudio sink device."
-msgstr ""
-
-#: src/audio_out/audio_polyp_out.c:537
-#, fuzzy
-msgid "xine audio output plugin using polypaudio sound server"
-msgstr "výstupný xine audio plugin používa esound"
-
 #: src/audio_out/audio_none_out.c:225
 msgid "xine dummy audio output plugin"
 msgstr "mĺkvy výstupný xine audio plugin"

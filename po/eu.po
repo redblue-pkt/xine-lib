@@ -627,20 +627,6 @@ msgstr "xine audio irteera plugina win32-arentzat directx erabiliaz"
 msgid "xine audio output plugin using kde artsd"
 msgstr "xine audio irteera plugina kde artsd erabiliaz"
 
-#: src/audio_out/audio_polyp_out.c:491
-#, fuzzy
-msgid "device used for polypaudio"
-msgstr "CD audio-k erabiliko duen gailua"
-
-#: src/audio_out/audio_polyp_out.c:492
-msgid "use 'server[:sink]' for setting the polypaudio sink device."
-msgstr ""
-
-#: src/audio_out/audio_polyp_out.c:537
-#, fuzzy
-msgid "xine audio output plugin using polypaudio sound server"
-msgstr "xine audio irteera plugina esound erabiliz"
-
 #: src/audio_out/audio_none_out.c:225
 msgid "xine dummy audio output plugin"
 msgstr "xine gezurrezko audio irteera plugina"

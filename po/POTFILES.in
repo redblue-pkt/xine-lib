@@ -10,7 +10,6 @@ src/audio_out/audio_coreaudio_out.c
 src/audio_out/audio_sun_out.c
 src/audio_out/audio_directx2_out.c
 src/audio_out/audio_arts_out.c
-src/audio_out/audio_polyp_out.c
 src/audio_out/audio_none_out.c
 src/audio_out/audio_directx_out.c
 src/audio_out/audio_alsa_out.c

@@ -555,14 +555,6 @@ msgid "xine audio output plugin using kde artsd"
 msgstr "wtyczka wyjścia dźwięku używająca kde artsd"
 
 # src/audio_out/audio_alsa_out.c:201 src/audio_out/audio_alsa_out.c:927
-#: src/audio_out/audio_polyp_out.c:491
-#, fuzzy
-msgid "device used for polypaudio"
-msgstr "urządzenie użyte do wyjścia 4-kanałowego"
-
-#: src/audio_out/audio_polyp_out.c:492
-msgid "use 'server[:sink]' for setting the polypaudio sink device."
-msgstr ""
 
 # src/audio_out/audio_esd_out.c:441
 #: src/audio_out/audio_polyp_out.c:537

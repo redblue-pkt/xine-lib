@@ -527,18 +527,6 @@ msgstr "plugin de entrada de stream de red http"
 msgid "xine audio output plugin using kde artsd"
 msgstr ""
 
-#: src/audio_out/audio_polyp_out.c:491
-msgid "device used for polypaudio"
-msgstr ""
-
-#: src/audio_out/audio_polyp_out.c:492
-msgid "use 'server[:sink]' for setting the polypaudio sink device."
-msgstr ""
-
-#: src/audio_out/audio_polyp_out.c:537
-msgid "xine audio output plugin using polypaudio sound server"
-msgstr ""
-
 #: src/audio_out/audio_none_out.c:225
 msgid "xine dummy audio output plugin"
 msgstr ""

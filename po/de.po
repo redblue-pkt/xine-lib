@@ -634,18 +634,6 @@ msgstr "2. xine Soundausgabe benutzt directx"
 msgid "xine audio output plugin using kde artsd"
 msgstr "xine Soundausgabe benutzt kde artsd"
 
-#: src/audio_out/audio_polyp_out.c:491
-msgid "device used for polypaudio"
-msgstr "Gerät für PolyAudio"
-
-#: src/audio_out/audio_polyp_out.c:492
-msgid "use 'server[:sink]' for setting the polypaudio sink device."
-msgstr "Benutze 'Server[:Senke]' zum Setzen der PolyAudio-Senke."
-
-#: src/audio_out/audio_polyp_out.c:537
-msgid "xine audio output plugin using polypaudio sound server"
-msgstr "xine Soundausgabe benutzt PolyAudio-Soundserver"
-
 #: src/audio_out/audio_none_out.c:225
 msgid "xine dummy audio output plugin"
 msgstr "xine Dummy Soundausgabe"

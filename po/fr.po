@@ -530,20 +530,6 @@ msgstr "plugin de sortie audio de xine utilisant esd"
 msgid "xine audio output plugin using kde artsd"
 msgstr "plugin de sortie audio de xine utilisant esd"
 
-#: src/audio_out/audio_polyp_out.c:491
-#, fuzzy
-msgid "device used for polypaudio"
-msgstr "périphérique utilisé pour la sortie 4 canaux"
-
-#: src/audio_out/audio_polyp_out.c:492
-msgid "use 'server[:sink]' for setting the polypaudio sink device."
-msgstr ""
-
-#: src/audio_out/audio_polyp_out.c:537
-#, fuzzy
-msgid "xine audio output plugin using polypaudio sound server"
-msgstr "plugin de sortie audio de xine utilisant esd"
-
 #: src/audio_out/audio_none_out.c:225
 #, fuzzy
 msgid "xine dummy audio output plugin"
