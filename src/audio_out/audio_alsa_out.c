@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.164 2006/08/08 03:16:23 miguelfreitas Exp $
+ * $Id: audio_alsa_out.c,v 1.165 2006/09/08 20:40:34 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -309,6 +309,8 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   int                   err, dir;
   int                 open_mode=1; /* NONBLOCK */
   /* int                   open_mode=0;  BLOCK */
+  struct timeval start_time;
+  struct timeval end_time;
 
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_sw_params_alloca(&swparams);
@@ -361,8 +363,21 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   this->bytes_in_buffer        = 0;
   /*
    * open audio device
+   * When switching to surround, dmix blocks the device some time, so we just keep trying for 0.8sec.
    */
-  err=snd_pcm_open(&this->audio_fd, pcm_device, direction, open_mode);      
+  gettimeofday(&start_time, NULL);
+  do {
+    err = snd_pcm_open(&this->audio_fd, pcm_device, direction, open_mode);      
+    gettimeofday(&end_time, NULL);
+    if( err == -EBUSY ) {
+      if( (double)end_time.tv_sec + 1E-6*end_time.tv_usec 
+          - (double)start_time.tv_sec - 1E-6*start_time.tv_usec > 0.8)
+        break;
+      else
+        usleep(10000);
+    }
+  } while( err == -EBUSY );
+  
   if(err <0 ) {                                                           
     xprintf (this->class->xine, XINE_VERBOSITY_LOG, 
 	     _("audio_alsa_out: snd_pcm_open() of %s failed: %s\n"), pcm_device, snd_strerror(err));               
