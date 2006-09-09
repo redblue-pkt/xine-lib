@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.18 2006/07/17 17:59:56 dsalt Exp $
+ * $Id: scratch.c,v 1.19 2006/09/09 19:35:40 dgp85 Exp $
  *
  * top-level xine functions
  *
@@ -50,6 +50,9 @@ static void __attribute__((__format__(__printf__, 2, 0)))
   time (&t);
   localtime_r (&t, &tm);
 
+  if ( ! this->lines[this->cur] )
+    this->lines[this->cur] = xine_xmalloc(SCRATCH_LINE_LEN_MAX+1);
+
   strftime (this->lines[this->cur], SCRATCH_LINE_LEN_MAX, "%X: ", &tm);
   l = strlen (this->lines[this->cur]);
   vsnprintf (this->lines[this->cur] + l, SCRATCH_LINE_LEN_MAX - l, format, argp);
@@ -79,10 +82,11 @@ static void scratch_dispose (scratch_buffer_t *this) {
   int   i;
   
   mem = (char *) this->lines[0];
-  free(mem);
   
-  for(i = 0; i < this->num_lines; i++ )
+  for(i = 0; i < this->num_lines; i++ ) {
+    free(this->lines[i]);
     this->lines[i] = NULL;
+  }
   
   free (this->lines);
   free (this->ordered);
@@ -99,10 +103,8 @@ scratch_buffer_t *_x_new_scratch_buffer (int num_lines) {
   this->lines   = xine_xmalloc (sizeof (char *) * (num_lines + 1));
   this->ordered = xine_xmalloc (sizeof (char *) * (num_lines + 1));
 
-  mem = (char *) xine_xmalloc((sizeof(char) * SCRATCH_LINE_LEN_MAX) * num_lines);
-
   for (i = 0; i < num_lines; i++)
-    this->lines[i] = (char *) (mem + (i * SCRATCH_LINE_LEN_MAX));
+    this->lines[i] = NULL;
 
   this->ordered[i]     = NULL;
   this->lines[i]       = NULL;

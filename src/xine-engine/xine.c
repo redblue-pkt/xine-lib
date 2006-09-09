@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.328 2006/09/09 17:41:45 dgp85 Exp $
+ * $Id: xine.c,v 1.329 2006/09/09 19:35:40 dgp85 Exp $
  */
 
 /*
@@ -1360,7 +1360,8 @@ void xine_exit (xine_t *this) {
   xprintf (this, XINE_VERBOSITY_DEBUG, "xine_exit: bye!\n");
 
   for (i = 0; i < XINE_LOG_NUM; i++)
-    this->log_buffers[i]->dispose (this->log_buffers[i]);
+    if ( this->log_buffers[i] )
+      this->log_buffers[i]->dispose (this->log_buffers[i]);
 
   _x_dispose_plugins (this);
 
@@ -1421,9 +1422,7 @@ xine_t *xine_new (void) {
   /*
    * log buffers
    */
-
-  for (i = 0; i < XINE_LOG_NUM; i++)
-    this->log_buffers[i] = _x_new_scratch_buffer (150);
+  memset(this->log_buffers, 0, sizeof(this->log_buffers));
 
 
 #ifdef WIN32
@@ -1945,6 +1944,9 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
   va_list argp;
   char    buffer[SCRATCH_LINE_LEN_MAX];
   
+  if ( ! this->log_buffers[buf] )
+    this->log_buffers[buf] = _x_new_scratch_buffer(150);
+
   va_start (argp, format);
   this->log_buffers[buf]->scratch_printf (this->log_buffers[buf], format, argp);
   va_end(argp);
@@ -1960,6 +1962,9 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
 void xine_vlog(xine_t *this, int buf, const char *format, 
                 va_list args)
 {
+  if ( ! this->log_buffers[buf] )
+    this->log_buffers[buf] = _x_new_scratch_buffer(150);
+
   this->log_buffers[buf]->scratch_printf(this->log_buffers[buf], format, args);
 }
 
@@ -1968,7 +1973,10 @@ const char *const *xine_get_log (xine_t *this, int buf) {
   if(buf >= XINE_LOG_NUM)
     return NULL;
 
-  return this->log_buffers[buf]->get_content (this->log_buffers[buf]);
+  if ( this->log_buffers[buf] )
+    return this->log_buffers[buf]->get_content (this->log_buffers[buf]);
+  else
+    return NULL;
 }
 
 void xine_register_log_cb (xine_t *this, xine_log_cb_t cb, void *user_data) {
