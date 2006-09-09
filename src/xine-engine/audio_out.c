@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.203 2006/09/08 20:32:47 miguelfreitas Exp $
+ * $Id: audio_out.c,v 1.204 2006/09/09 17:13:16 dgp85 Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1998,8 +1998,8 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   aos_t           *this;
   int              i, err;
   pthread_attr_t   pth_attrs;
-  static     char *resample_modes[] = {"auto", "off", "on", NULL};
-  static     char *av_sync_methods[] = {"metronom feedback", "resample", NULL};
+  static const char* resample_modes[] = {"auto", "off", "on", NULL};
+  static const char* av_sync_methods[] = {"metronom feedback", "resample", NULL};
 
   this = xine_xmalloc (sizeof (aos_t)) ;
 
