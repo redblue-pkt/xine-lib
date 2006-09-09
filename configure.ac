@@ -1907,7 +1907,7 @@ dnl ---------------------------------------------
 
 AC_SYS_LARGEFILE
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([_vsnprintf _snprintf _stricmp _strnicmp vsscanf sigaction sigset getpwuid_r nanosleep lstat memset readlink strchr strcasecmp strncasecmp])
+AC_CHECK_FUNCS([_vsnprintf _snprintf _stricmp _strnicmp vsscanf sigaction sigset getpwuid_r nanosleep lstat memset readlink strchr strcasecmp strncasecmp mmap])
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
 AC_CHECK_HEADERS(assert.h byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h)

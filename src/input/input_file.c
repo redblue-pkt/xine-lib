@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.110 2006/07/10 22:08:15 dgp85 Exp $
+ * $Id: input_file.c,v 1.111 2006/09/09 22:11:08 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +35,10 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+
+#ifdef HAVE_MMAP
+#include <sys/mman.h>
+#endif
 
 #define LOG_MODULE "input_file"
 #define LOG_VERBOSE
@@ -76,6 +80,12 @@ typedef struct {
   xine_stream_t    *stream;
 
   int               fh;
+#ifdef HAVE_MMAP
+  int               mmap_on;
+  void             *mmap_base;
+  void             *mmap_curr;
+  off_t             mmap_len;
+#endif
   char             *mrl;
 
 } file_input_plugin_t;
@@ -108,43 +118,94 @@ static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
 static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
+#ifdef HAVE_MMAP
+  if ( this->mmap_on ) {
+    off_t l = len;
+    if ( (this->mmap_curr + len) > (this->mmap_base + this->mmap_len) )
+      l = (this->mmap_base + this->mmap_len) - this->mmap_curr;
+    
+    memcpy(buf, this->mmap_curr, l);
+    this->mmap_curr += l;
+    
+    return l;
+  }
+#endif
+
   return read (this->fh, buf, len);
 }
 
 static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
 
-  off_t                 num_bytes, total_bytes;
   file_input_plugin_t  *this = (file_input_plugin_t *) this_gen;
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
 
-  buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
-  total_bytes = 0;
 
-  while (total_bytes < todo) {
-    num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
-    if (num_bytes <= 0) {
-      if (num_bytes < 0) {
-	xine_log (this->stream->xine, XINE_LOG_MSG,
-		  _("input_file: read error (%s)\n"), strerror(errno));
-	_x_message(this->stream, XINE_MSG_READ_ERROR,
+#ifdef HAVE_MMAP
+  if ( this->mmap_on ) {
+    off_t len = todo;
+
+    if ( (this->mmap_curr + len) > (this->mmap_base + this->mmap_len) )
+      len = (this->mmap_base + this->mmap_len) - this->mmap_curr;
+
+    /* We use the still-mmapped file rather than copying it */
+    buf->size = len;
+    buf->content = this->mmap_curr;
+    free(buf->mem); buf->mem = NULL;
+    this->mmap_curr += len;
+  } else
+#endif
+  {
+    off_t num_bytes, total_bytes = 0;
+    
+    buf->content = buf->mem;
+
+    while (total_bytes < todo) {
+      num_bytes = read (this->fh, buf->mem + total_bytes, todo-total_bytes);
+      if (num_bytes <= 0) {
+	if (num_bytes < 0) {
+	  xine_log (this->stream->xine, XINE_LOG_MSG,
+		    _("input_file: read error (%s)\n"), strerror(errno));
+	  _x_message(this->stream, XINE_MSG_READ_ERROR,
                      this->mrl, NULL);
+	}
+	buf->free_buffer (buf);
+	buf = NULL;
+	break;
       }
-      buf->free_buffer (buf);
-      buf = NULL;
-      break;
+      total_bytes += num_bytes;
     }
-    total_bytes += num_bytes;
+    
+    if( buf != NULL )
+      buf->size = total_bytes;
   }
-
-  if( buf != NULL )
-    buf->size = total_bytes;
-
+  
   return buf;
 }
 
 static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+#ifdef HAVE_MMAP /* Simulate f*() library calls */
+  if ( this->mmap_on ) {
+    void *new_point = this->mmap_curr;
+    switch(origin) {
+    case SEEK_SET: new_point = this->mmap_base + offset;
+    case SEEK_CUR: new_point = this->mmap_curr + offset;
+    case SEEK_END: new_point = this->mmap_base + this->mmap_len + offset;
+    default:
+      errno = EINVAL;
+      return (off_t)-1;
+    }
+    if ( new_point < this->mmap_base || new_point > (this->mmap_base + this->mmap_len) ) {
+      errno = EINVAL;
+      return (off_t)-1;
+    }
+
+    this->mmap_curr = new_point;
+    return (this->mmap_curr - this->mmap_base);
+  }
+#endif
 
   return lseek (this->fh, offset, origin);
 }
@@ -154,6 +215,11 @@ static off_t file_plugin_get_current_pos (input_plugin_t *this_gen){
 
   if (this->fh <0)
     return 0;
+
+#ifdef HAVE_MMAP
+  if ( this->mmap_on )
+    return (this->mmap_curr - this->mmap_base);
+#endif
 
   return lseek (this->fh, 0, SEEK_CUR);
 }
@@ -166,6 +232,11 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
   if (this->fh <0)
     return 0;
 
+#ifdef HAVE_MMAP
+  if ( this->mmap_on )
+    return this->mmap_len;
+#endif
+
   if (fstat (this->fh, &buf) == 0) {
     return buf.st_size;
   } else
@@ -174,6 +245,10 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
+#ifdef HAVE_MMAP
+  if ( this->mmap_on )
+    return this->mmap_len;
+#endif
   return 0;
 }
 
@@ -202,6 +277,11 @@ static int file_plugin_get_optional_data (input_plugin_t *this_gen,
 
 static void file_plugin_dispose (input_plugin_t *this_gen ) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+
+#ifdef HAVE_MMAP
+  if ( this->mmap_on )
+    munmap(this->mmap_base, this->mmap_len);
+#endif
 
   if (this->fh != -1)
     close(this->fh);
@@ -293,11 +373,25 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
     }
   }
 
+#ifdef HAVE_MMAP
+  this->mmap_on = 0;
+  this->mmap_base = NULL;
+  this->mmap_curr = NULL;
+  this->mmap_len = 0;
+#endif
+
   /* don't check length of fifo or character device node */
   if (fstat (this->fh, &sbuf) == 0) {
     if (!S_ISREG(sbuf.st_mode))
       return 1;
   }
+
+#ifdef HAVE_MMAP
+  this->mmap_on = 1;
+  this->mmap_base = mmap(NULL, sbuf.st_size, PROT_READ, MAP_SHARED, this->fh, 0);
+  this->mmap_curr = this->mmap_base;
+  this->mmap_len = sbuf.st_size;
+#endif
 
   if (file_plugin_get_length (this_gen) == 0) {
       _x_message(this->stream, XINE_MSG_FILE_EMPTY, this->mrl, NULL);
