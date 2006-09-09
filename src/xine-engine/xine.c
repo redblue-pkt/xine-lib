@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.327 2006/09/08 21:11:29 miguelfreitas Exp $
+ * $Id: xine.c,v 1.328 2006/09/09 17:41:45 dgp85 Exp $
  */
 
 /*
@@ -1955,6 +1955,12 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
     printf("%s", buffer);
     va_end (argp);
   }  
+}
+
+void xine_vlog(xine_t *this, int buf, const char *format, 
+                va_list args)
+{
+  this->log_buffers[buf]->scratch_printf(this->log_buffers[buf], format, args);
 }
 
 const char *const *xine_get_log (xine_t *this, int buf) {

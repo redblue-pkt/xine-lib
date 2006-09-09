@@ -1,5 +1,5 @@
 /* 
-  $Id: xine-extra.c,v 1.4 2006/06/29 19:39:10 dgp85 Exp $
+  $Id: xine-extra.c,v 1.5 2006/09/09 17:41:45 dgp85 Exp $
  
   Copyright (C) 2002 Rocky Bernstein <rocky@panix.com>
   
@@ -35,19 +35,6 @@
 
 static xine_t *my_xine = NULL;
 
-/* This is modified from xine_log() and should really reside inside
-   xine-lib/src/xine-engine/xine.c. It logs a message to "buf" and also
-   prints it to stream.
-*/
-
-static void __attribute__((__format__(__printf__,4, 0)))
-xine_vflog(xine_t *this, FILE *stream, int buf, const char *format, 
-           va_list args)
-{
-  this->log_buffers[buf]->scratch_printf(this->log_buffers[buf], format, args);
-  vfprintf(stream, format, args);
-}
-
 /*!
   This routine is like xine_log, except it takes a va_list instead of
   a variable number of arguments. It might be useful as a function
@@ -59,7 +46,8 @@ xine_vflog(xine_t *this, FILE *stream, int buf, const char *format,
 void 
 xine_vlog_msg(xine_t *this, int buf, const char *format, va_list args)
 {
-  xine_vflog(this, stdout, buf, format, args);
+  xine_vlog(this, buf, format, args);
+  vfprintf(stdout, format, args);
 }
 
 /*! This routine is like xine_log, except it takes a va_list instead
@@ -72,7 +60,8 @@ xine_vlog_msg(xine_t *this, int buf, const char *format, va_list args)
 void 
 xine_vlog_err(xine_t *this, int buf, const char *format, va_list args)
 {
-  xine_vflog(this, stderr, buf, format, args);
+  xine_vlog(this, buf, format, args);
+  vfprintf(stderr, format, args);
 }
 
 /*! Call this before calling any of the xine_log_msg or xine_log_err
