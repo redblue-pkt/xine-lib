@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.151 2006/09/09 17:41:45 dgp85 Exp $
+ * $Id: xine.h.in,v 1.152 2006/09/10 19:33:53 jcdutton Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -792,12 +792,12 @@ const char *const *xine_get_log_names(xine_t *self);
 void   xine_log (xine_t *self, int buf,
 		 const char *format, ...);
 void   xine_vlog(xine_t *this, int buf,
-		  const char *format, va_list args);
+		  const char *format, ...);
 #else
 void   xine_log (xine_t *self, int buf,
 		 const char *format, ...) __attribute__ ((__format__(printf, 3, 4)));
 void   xine_vlog(xine_t *this, int buf,
-		  const char *format, va_list args) __attribute__ ((__format__(printf, 3, 0)));
+		  const char *format, ...) __attribute__ ((__format__(printf, 3, 0)));
 #endif
 
 /* get log messages of specified section */
