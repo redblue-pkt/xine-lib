@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.112 2006/09/10 00:59:37 dgp85 Exp $
+ * $Id: input_file.c,v 1.113 2006/09/10 01:46:45 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -190,9 +190,9 @@ static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origi
   if ( this->mmap_on ) {
     void *new_point = this->mmap_curr;
     switch(origin) {
-    case SEEK_SET: new_point = this->mmap_base + offset;
-    case SEEK_CUR: new_point = this->mmap_curr + offset;
-    case SEEK_END: new_point = this->mmap_base + this->mmap_len + offset;
+    case SEEK_SET: new_point = this->mmap_base + offset; break;
+    case SEEK_CUR: new_point = this->mmap_curr + offset; break;
+    case SEEK_END: new_point = this->mmap_base + this->mmap_len + offset; break;
     default:
       errno = EINVAL;
       return (off_t)-1;
@@ -246,7 +246,7 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
 
 static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-#ifdef HAVE_MMAP
+#if 0 && defined(HAVE_MMAP)
   if ( this->mmap_on )
     return this->mmap_len;
 #endif
@@ -388,10 +388,11 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
   }
 
 #ifdef HAVE_MMAP
-  this->mmap_on = 1;
-  this->mmap_base = mmap(NULL, sbuf.st_size, PROT_READ, MAP_SHARED, this->fh, 0);
-  this->mmap_curr = this->mmap_base;
-  this->mmap_len = sbuf.st_size;
+  if ( (this->mmap_base = mmap(NULL, sbuf.st_size, PROT_READ, MAP_SHARED, this->fh, 0)) != -1 ) {
+    this->mmap_on = 1;
+    this->mmap_curr = this->mmap_base;
+    this->mmap_len = sbuf.st_size;
+  }
 #endif
 
   if (file_plugin_get_length (this_gen) == 0) {
