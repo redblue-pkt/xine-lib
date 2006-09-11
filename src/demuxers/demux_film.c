@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.79 2005/11/28 12:24:57 valtri Exp $
+ * $Id: demux_film.c,v 1.80 2006/09/11 05:55:49 tmmm Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -635,12 +635,12 @@ static int demux_film_send_chunk(demux_plugin_t *this_gen) {
         interleave_index += buf->size / 2;
       } else {
         for (j = 0, k = interleave_index; j < buf->size; j += 2, k += 1) {
-          buf->content[j] = this->interleave_buffer[k];
+          buf->content[j] = this->interleave_buffer[k] += 0x80;
         }
         for (j = 1, 
              k = interleave_index + this->sample_table[i].sample_size / 2; 
              j < buf->size; j += 2, k += 1) {
-          buf->content[j] = this->interleave_buffer[k];
+          buf->content[j] = this->interleave_buffer[k] += 0x80;
         }
         interleave_index += buf->size / 2;
       }
