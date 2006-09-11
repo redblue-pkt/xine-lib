@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.153 2006/09/10 19:50:09 dgp85 Exp $
+ * $Id: xine.h.in,v 1.154 2006/09/11 11:11:02 dgp85 Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -50,6 +50,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/time.h>
 #include <time.h>
+#include <stdarg.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -791,12 +792,12 @@ const char *const *xine_get_log_names(xine_t *self);
 #ifndef __GNUC__
 void   xine_log (xine_t *self, int buf,
 		 const char *format, ...);
-void   xine_vlog(xine_t *this, int buf,
+void   xine_vlog(xine_t *self, int buf,
 		  const char *format, va_list args);
 #else
 void   xine_log (xine_t *self, int buf,
 		 const char *format, ...) __attribute__ ((__format__(printf, 3, 4)));
-void   xine_vlog(xine_t *this, int buf,
+void   xine_vlog(xine_t *self, int buf,
 		  const char *format, va_list args) __attribute__ ((__format__(printf, 3, 0)));
 #endif
 
