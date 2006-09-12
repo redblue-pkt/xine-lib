@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.16 2006/03/03 12:59:31 hadess Exp $ 
+ * $Id: info_helper.c,v 1.17 2006/09/12 21:24:21 valtri Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -193,14 +193,14 @@ static int meta_info_validate_utf8 (const char *value)
 {
   iconv_t cd;
   char *utf8_value;
-  char *inbuf, *outbuf;
+  ICONV_CONST char *inbuf, *outbuf;
   size_t inbytesleft, outbytesleft;
 
   if ((cd = iconv_open("UTF-8", "UTF-8")) == (iconv_t)-1) {
     return 0;
   }
 
-  inbuf = (char *)value;
+  inbuf = (ICONV_CONST char *)value;
   inbytesleft = strlen(value);
   outbytesleft = 4 * inbytesleft; /* estimative (max) */
   outbuf = utf8_value = malloc(outbytesleft+1);
@@ -247,10 +247,11 @@ static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, con
 
       if (cd != (iconv_t)-1) {
         char *utf8_value;
-        char *inbuf, *outbuf;
+        ICONV_CONST char *inbuf;
+        char *outbuf;
         size_t inbytesleft, outbytesleft;
 
-        inbuf = (char *)value;
+        inbuf = (ICONV_CONST char *)value;
         inbytesleft = strlen(value);
         outbytesleft = 4 * inbytesleft; /* estimative (max) */
         outbuf = utf8_value = malloc(outbytesleft+1);

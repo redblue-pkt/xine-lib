@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.61 2006/09/07 07:21:06 tmattern Exp $
+ * $Id: mms.c,v 1.62 2006/09/12 21:24:21 valtri Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -275,7 +275,7 @@ static void string_utf16_close(iconv_t url_conv) {
     }
 }
 
-static void string_utf16(iconv_t url_conv, char *dest, char *src, int len) {
+static void string_utf16(iconv_t url_conv, char *dest, ICONV_CONST char *src, int len) {
     memset(dest, 0, 1000);
 
     if (url_conv == (iconv_t)-1) {
@@ -290,7 +290,8 @@ static void string_utf16(iconv_t url_conv, char *dest, char *src, int len) {
     }
     else {
       size_t len1, len2;
-      char *ip, *op;
+      ICONV_CONST char *ip;
+      char *op;
 
       len1 = len; len2 = 1000;
       ip = src; op = dest;
@@ -299,7 +300,7 @@ static void string_utf16(iconv_t url_conv, char *dest, char *src, int len) {
 }
 
 #else
-static void string_utf16(int unused, char *dest, char *src, int len) {
+static void string_utf16(int unused, char *dest, const char *src, int len) {
   int i;
 
   memset (dest, 0, 1000);

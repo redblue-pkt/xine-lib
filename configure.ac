@@ -157,6 +157,25 @@ dnl ---------------------------------------------
 
 dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn no pl pt pt_BR ru sl sv tr zh"
 AM_ICONV
+AC_ARG_ENABLE([iconvtest],
+	AS_HELP_STRING([--disable-iconvtest], [don't require iconv library]))
+if test x$enable_iconvtest != xno; then
+  if test x"$am_cv_func_iconv" != xyes; then
+    AC_MSG_ERROR([
+****************************************************************
+* iconv library not found. It's necessary for proper           *
+* manipulation with texts so xine requires it as default.      *
+*                                                              *
+* You need to install iconv library or to specify prefix       *
+* by option --with-libiconv-prefix.                            *
+*                                                              *
+* If you don't want iconv support use the option               *
+* --disable-iconvtest.                                          *
+****************************************************************
+  ])
+  fi
+fi
+
 AM_GNU_GETTEXT([external])
 AC_PROG_GMSGFMT_PLURAL
 
@@ -201,18 +220,6 @@ case "$host" in
     THREAD_CPPFLAGS="-I$pthread_prefix/include"
     CPPFLAGS="$CPPFLAGS $THREAD_CPPFLAGS -D_THREAD_SAFE"
     have_pthread=yes
-
-    if test x"$am_cv_func_iconv" != xyes; then
-      AC_MSG_WARN([
-****************************************************************
-* You need to install a recent version of the port 'libiconv'  *
-* (in /usr/ports/converters/libiconv) or to specify prefix     *
-* by option --with-libiconv-prefix.                            *
-* The library in this port is needed to successfully compile   *
-* libsputext plugin.                                           *
-****************************************************************
-      ])
-    fi
     ;;
 
   *-*-hpux11*)

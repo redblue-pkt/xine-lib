@@ -957,7 +957,8 @@ static int osd_search(osd_fontchar_t *array, size_t n, uint16_t code) {
  * get next unicode value 
  */
 static uint16_t osd_iconv_getunicode(xine_t *xine, 
-				     iconv_t *cd, const char *encoding, char **inbuf, size_t *inbytesleft) {
+				     iconv_t *cd, const char *encoding, ICONV_CONST char **inbuf,
+				     size_t *inbytesleft) {
   uint16_t unicode;
   char *outbuf = (char*)&unicode;
   size_t outbytesleft = 2;
@@ -1105,7 +1106,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   while( inbytesleft ) {
 #ifdef HAVE_ICONV
     unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding, 
-                                   (char **)&inbuf, &inbytesleft);
+                                   (ICONV_CONST char **)&inbuf, &inbytesleft);
 #else
     unicode = inbuf[0];
     inbuf++;
@@ -1273,7 +1274,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   while( inbytesleft ) {
 #ifdef HAVE_ICONV
     unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding, 
-                                   (char **)&inbuf, &inbytesleft);
+                                   (ICONV_CONST char **)&inbuf, &inbytesleft);
 #else
     unicode = inbuf[0];
     inbuf++;

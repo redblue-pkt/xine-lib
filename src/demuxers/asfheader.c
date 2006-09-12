@@ -1,3 +1,11 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_ICONV
+#include <iconv.h>
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +18,41 @@
 */
 #include "bswap.h"
 #include "asfheader.h"
+
+#ifndef HAVE_ICONV
+
+/* dummy conversion perserving ASCII only */
+
+#define iconv_open(TO, FROM) 0
+#define iconv(CD, INBUF, INLEFT, OUTBUF, OUTLEFT) iconv_internal(INBUF, INLEFT, OUTBUF, OUTLEFT)
+#define iconv_close(CD)
+#ifdef ICONV_CONST
+#  undef ICONV_CONST
+#endif
+#define ICONV_CONST const
+
+typedef int iconv_t;
+
+size_t iconv_internal(const char **inbuf, size_t *inbytesleft, char **outbuf, size_t *outbytesleft) {
+  size_t i, n;
+  const char *ins;
+  char *outs;
+
+  n = *inbytesleft / 2 > *outbytesleft ? *outbytesleft : *inbytesleft / 2;
+  for (i = n, ins = *inbuf, outs = *outbuf; i > 0; i--) {
+    outs[0] = ((ins[0] & 0x80) || ins[1]) ? '?' : ins[0];
+    ins += 2;
+    outs++;
+  }
+  *inbuf = ins;
+  *outbuf = outs;
+  (*inbytesleft) -= (2 * n);
+  (*outbytesleft) -= n;
+
+  return 0;
+}
+#endif
+
 
 typedef struct asf_header_internal_s asf_header_internal_t;
 struct asf_header_internal_s {
@@ -105,7 +148,7 @@ static char *asf_reader_get_string(asf_reader_t *reader, size_t size, iconv_t cd
   outbuf = scratch;
   outbytesleft = sizeof(scratch);
   reader->pos += size;
-  if (iconv (cd, (char **)&inbuf, &inbytesleft, &outbuf, &outbytesleft) != -1) {
+  if (iconv (cd, (ICONV_CONST char **)&inbuf, &inbytesleft, &outbuf, &outbytesleft) != -1) {
     return strdup(scratch);
   } else {
     lprintf("iconv error\n");
@@ -311,11 +354,12 @@ int asf_header_parse_stream_extended_properties(asf_header_t *header, uint8_t *b
   uint16_t stream_number;
   int i;
   int stream_id;
+  asf_stream_extension_t *asf_stream_extension;
 
   if (buffer_len < 64)
     return 0;
 
-  asf_stream_extension_t *asf_stream_extension = malloc(sizeof(asf_stream_extension_t));
+  asf_stream_extension = malloc(sizeof(asf_stream_extension_t));
   if (!asf_stream_extension)
     return 0;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asfheader.h,v 1.7 2006/09/07 07:21:09 tmattern Exp $
+ * $Id: asfheader.h,v 1.8 2006/09/12 21:24:19 valtri Exp $
  *
  * demultiplexer for asf streams
  *
@@ -33,7 +33,6 @@
 #define ASFHEADER_H
 
 #include <inttypes.h>
-#include <iconv.h>
 
 /*
  * define asf GUIDs (list from avifile)
