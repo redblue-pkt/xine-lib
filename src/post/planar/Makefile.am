@@ -4,16 +4,16 @@ POSTPROC_INT_LIB = $(top_builddir)/src/libffmpeg/libavcodec/libpostproc/libpostp
 
 if HAVE_FFMPEG
 postproc_lib = $(FFMPEG_POSTPROC_LIBS)
-ff_cppflags = $(FFMPEG_CPPFLAGS)
+ff_cflags = $(FFMPEG_POSTPROC_CFLAGS)
 else
-ff_cppflags = -I$(top_srcdir)/src/libffmpeg/libavcodec/libpostproc
+ff_cflags = -I$(top_srcdir)/src/libffmpeg/libavcodec/libpostproc
 postproc_lib = $(POSTPROC_INT_LIB)
 postproc_dep = $(postproc_lib)
 endif
 
 # -fomit-frame-pointer is always needed. it might cause debug to not
 # work, but at least it compiles.
-AM_CPPFLAGS = $(ff_cppflags) -fomit-frame-pointer
+AM_CFLAGS = $(ff_cflags) -fomit-frame-pointer
 
 libdir = $(XINE_PLUGINDIR)/post
 
@@ -25,7 +25,7 @@ xineplug_post_planar_la_DEPENDENCIES = $(postproc_dep)
 xineplug_post_planar_la_LIBADD = $(XINE_LIB) $(postproc_lib) -lm $(THREAD_LIBS)
 xineplug_post_planar_la_LDFLAGS = -avoid-version -module \
 	@IMPURE_TEXT_LDFLAGS@
-xineplug_post_planar_la_CFLAGS = $(VISIBILITY_FLAG)
+xineplug_post_planar_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 
 $(POSTPROC_INT_LIB):
 	cd $(top_builddir)/src/libffmpeg/libavcodec/libpostproc && $(MAKE) libpostprocess.la

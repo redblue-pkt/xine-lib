@@ -1,8 +1,8 @@
 include $(top_srcdir)/misc/Makefile.common
 
 if HAVE_FFMPEG
-ff_cppflags = $(FFMPEG_CPPFLAGS)
-link_ffmpeg = $(FFMPEG_LDFLAGS) $(FFMPEG_LIBS) $(FFMPEG_POSTPROC_LIBS)
+AM_CFLAGS = $(FFMPEG_CFLAGS) $(FFMPEG_POSTPROC_CFLAGS)
+link_ffmpeg = $(FFMPEG_LIBS) $(FFMPEG_POSTPROC_LIBS)
 else
 ff_cppflags = -I$(top_srcdir)/src/libffmpeg/libavutil
 link_ffmpeg = \
@@ -32,12 +32,12 @@ xineplug_decode_ff_la_SOURCES = xine_decoder.c audio_decoder.c video_decoder.c \
                                 mpeg_parser.c
 endif
 
-xineplug_decode_ff_la_CFLAGS = $(VISIBILITY_FLAG)
+xineplug_decode_ff_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_decode_ff_la_LDFLAGS = -avoid-version -module @IMPURE_TEXT_LDFLAGS@
 xineplug_decode_ff_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) -lm $(ZLIB_LIBS) \
 	$(link_ffmpeg) $(THREAD_LIBS)
 
-xineplug_decode_dvaudio_la_CFLAGS = $(VISIBILITY_FLAG)
+xineplug_decode_dvaudio_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_decode_dvaudio_la_LDFLAGS = -avoid-version -module
 xineplug_decode_dvaudio_la_SOURCES = dvaudio_decoder.c
 xineplug_decode_dvaudio_la_LIBADD  = $(XINE_LIB)

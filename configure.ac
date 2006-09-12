@@ -346,10 +346,36 @@ dnl mpeg2lib and ffmpeg stuff
 dnl ---------------------------------------------
 
 AC_SUBST(LIBMPEG2_CFLAGS)
-AC_SUBST(LIBFFMPEG_CPPFLAGS)
+
+AC_ARG_WITH([external-ffmpeg], AC_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]))
+
+if test "x$with_external_ffmpeg" = "xyes"; then
+   PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.11.0])
+   PKG_CHECK_MODULES([FFMPEG_POSTPROC], [libpostproc >= 51.11.0])
+   AC_SUBST([FFMPEG_CFLAGS])
+   AC_SUBST([FFMPEG_LIBS])
+   AC_SUBST([FFMPEG_POSTPROC_CFLAGS])
+   AC_SUBST([FFMPEG_POSTPROC_LIBS])
+   AC_DEFINE([HAVE_FFMPEG], [1], [Define this if you have ffmpeg library])
+   
+   AC_MSG_NOTICE([
+*********************************************************************
+xine is configured with external ffmpeg.
+
+This requires the same version of ffmpeg what is included in xine and
+you should know what you do. If some problems occur, please try to
+use internal ffmpeg.
+*********************************************************************])
+else
+  AC_MSG_RESULT([using included ffmpeg])
+  LIBFFMPEG_CPPFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL"
+  AC_SUBST([LIBFFMPEG_CPPFLAGS])
+
+  AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CPPFLAGS="$LIBFFMPEG_CPPFLAGS -DEMULATE_FAST_INT"])
+fi
+AM_CONDITIONAL(HAVE_FFMPEG, test "x$with_external_ffmpeg" = "xyes")
 
 LIBMPEG2_CFLAGS=""
-LIBFFMPEG_CPPFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL"
 
 AC_CHECK_DECL(lrintf,[
 	AC_DEFINE(HAVE_LRINTF,1,[Define this if the 'lrintf' function is declared in math.h])
@@ -363,8 +389,6 @@ AC_CHECK_DECL(rintf,[
       ],,[
 #include <math.h>
 ])
-
-AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CFLAGS="$LIBFFMPEG_CFLAGS -DEMULATE_FAST_INT"])
 
 AC_ARG_ENABLE([altivec],
 	AS_HELP_STRING([--disable-altivec], [do not use assembly codes for Motorola 74xx CPUs]))
@@ -412,10 +436,6 @@ fi
 AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
 AC_SUBST(MLIB_LIBS)
 AC_SUBST(MLIB_CFLAGS)
-
-AM_PATH_FFMPEG(AC_DEFINE(HAVE_FFMPEG, 1, [Define this if you have ffmpeg library]))
-AM_CONDITIONAL(HAVE_FFMPEG, test x"$external_ffmpeg_found" = "xyes")
-
 
 dnl ---------------------------------------------
 dnl Checks for X11
@@ -2507,7 +2527,7 @@ dnl video decoders
 echo " * video decoder plugins:"
 echo "   - MPEG 1,2         - Amiga Bitplane"
 echo "   - Raw RGB          - Raw YUV"
-if test x"$external_ffmpeg_found" = "xyes"; then
+if test "x$with_external_ffmpeg" = "xyes"; then
   echo "   - ffmpeg (external library):"
 else
   echo "   - ffmpeg (internal library):"
@@ -2550,7 +2570,7 @@ dnl audio decoders
 echo " * audio decoder plugins:"
 echo "   - GSM 06.10"
 echo "   - linear PCM      - Nosefart (NSF)"
-if test x"$external_ffmpeg_found" = "xyes"; then
+if test "x$with_external_ffmpeg" = "xyes"; then
   echo "   - ffmpeg (external library):"
 else
   echo "   - ffmpeg (internal library):"
