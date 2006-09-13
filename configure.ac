@@ -2050,7 +2050,7 @@ case "$host_or_hostalias" in
     if test x$enable_altivec != xno; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you have a Motorola 74xx CPU])
         CFLAGS="$CFLAGS -maltivec"
-        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -maltivec"
+        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -maltivec"
     fi
     ;;
   sparc*-*-linux*)
