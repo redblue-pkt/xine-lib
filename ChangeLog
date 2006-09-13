@@ -22,6 +22,9 @@ xine-lib (1.1.3)
   * Use mmap() to open local files if available.
   * Use pkg-config to look for external FFmpeg.
   * Allow FFmpeg to play MP3s in case MAD is not present.
+  * Reduce the dead time when trying to connect to dead hosts, by falling back
+    to non-blocking sockets on the last address found for an host, and allowing
+    users to provide a connection timeout. [bug #1550844]
 	
 xine-lib (1.1.2)
   * Security fixes:
