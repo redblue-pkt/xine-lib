@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.121 2006/09/13 17:08:19 dgp85 Exp $
+ * $Id: input_http.c,v 1.122 2006/09/13 22:50:43 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -642,7 +642,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   http_input_class_t  *this_class = (http_input_class_t *) this->input_plugin.input_class;
   int                  done, len, linenum;
   int                  httpcode;
-  int                  res, progress;
+  int                  res;
   int                  buflen;
   int                  use_proxy;
   int                  proxyport;
@@ -710,17 +710,27 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   
   if (this->fh == -1)
     return 0;
-  
-  /* connection timeout 20s */
-  progress = 0;
-  do {
-    report_progress(this->stream, progress);
-    res = _x_io_select (this->stream, this->fh, XIO_WRITE_READY, 500);
-    progress += 2;
-  } while ((res == XIO_TIMEOUT) && (progress < 100));
-  if (res != XIO_READY)
-    return 0;
-  
+
+  {  
+    uint32_t         timeout, progress;
+    xine_cfg_entry_t cfgentry;
+    if (xine_config_lookup_entry (this->stream->xine, "media.network.timeout", &cfgentry)) {
+      timeout = cfgentry.num_value * 1000;
+    } else {
+      timeout = 30000; /* 30K msecs = 30 secs */
+    }
+
+    progress = 0;
+    do {
+      report_progress(this->stream, progress);
+      res = _x_io_select (this->stream, this->fh, XIO_WRITE_READY, 500);
+      progress += (500*100000)/timeout;
+    } while ((res == XIO_TIMEOUT) && (progress <= 100000));
+
+    if (res != XIO_READY)
+      return 0;
+  }
+
   if (use_proxy) {
     if (this->port != DEFAULT_HTTP_PORT) {
       snprintf (this->buf, BUFSIZE, "GET http://%s:%d%s HTTP/1.0\015\012",
