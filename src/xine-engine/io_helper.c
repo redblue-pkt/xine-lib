@@ -152,15 +152,31 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
 	  continue;
       }
 
-      /**
-       * Uncommenting nonblocking features due to IPv6 support.
-       * Need to know if the connect failed, in order to try another
-       * address (if available).  Error will be reported if no address
-       * worked.
+      /*
+       * Enable the non-blocking features only when there's no other
+       * address, allowing to use other addresses if available.
+       * there will be an error if no address worked at all
        */
+      if ( ! tmpaddr->ai_next ) {
+#ifndef WIN32
+	if (fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK) == -1) {
+	  _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
+	  return -1;
+	}
+#else
+	unsigned long non_block = 1;
+	int rc;
+
+	rc = ioctlsocket(s, FIONBIO, &non_block);
+
+	if (rc == SOCKET_ERROR) {
+	  _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
+	  return -1;
+	}
+#endif
+      }
 
 #ifndef WIN32
-
     if (connect(s, tmpaddr->ai_addr, 
 		tmpaddr->ai_addrlen)==-1 && errno != EINPROGRESS) {
 	
@@ -178,7 +194,6 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
       tmpaddr = tmpaddr->ai_next;
       continue;
     } else {
-    
       return s;
     }
   
