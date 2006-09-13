@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.331 2006/09/10 19:50:09 dgp85 Exp $
+ * $Id: xine.c,v 1.332 2006/09/13 23:17:29 dgp85 Exp $
  */
 
 /*
@@ -727,6 +727,8 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
      */
 
     if ((stream->input_plugin = _x_find_input_plugin (stream, input_source))) {
+      int res;
+
       xine_log (stream->xine, XINE_LOG_MSG, _("xine: found input plugin  : %s\n"),
 		stream->input_plugin->input_class->get_description(stream->input_plugin->input_class));
       if (stream->input_plugin->input_class->eject_media)
@@ -734,15 +736,23 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
       _x_meta_info_set_utf8(stream, XINE_META_INFO_INPUT_PLUGIN, 
 			    (stream->input_plugin->input_class->get_identifier (stream->input_plugin->input_class)));
 
-      if (!stream->input_plugin->open(stream->input_plugin)) {
+      res = stream->input_plugin->open(stream->input_plugin);
+      switch(res) {
+      case 1: /* Open successfull */
+	free(input_source);
+	break;
+      case -1: /* Open unsuccessfull, but correct plugin */
+	free(input_source);
+	stream->err = XINE_ERROR_INPUT_FAILED;
+	_x_flush_events_queues (stream);
+	return 0;
+      default:
 	xine_log (stream->xine, XINE_LOG_MSG, _("xine: input plugin cannot open MRL [%s]\n"),mrl);
 	stream->input_plugin->dispose(stream->input_plugin);
 	stream->input_plugin = NULL;
 	stream->err = XINE_ERROR_INPUT_FAILED;
-      } else {
-        free(input_source);
-        break;
       }
+      if ( res ) break;
     }
 
     free(input_source);
