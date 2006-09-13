@@ -87,7 +87,11 @@
 
 /* dprintf macros */
 #    ifdef DEBUG
-#        define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
+#        ifdef __GNUC__
+#            define dprintf(fmt,args...) av_log(NULL, AV_LOG_DEBUG, fmt, ##args)
+#        else
+#            define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
+#        endif
 #    else
 #        define dprintf(fmt,...)
 #    endif

@@ -487,3 +487,41 @@
 +#endif
 +
  #endif /* COMMON_H */
+Index: libavutil/integer.c
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libffmpeg/libavutil/integer.c,v
+retrieving revision 1.2
+diff -u -p -r1.2 integer.c
+--- libavutil/integer.c	2 Aug 2006 07:12:57 -0000	1.2
++++ libavutil/integer.c	13 Sep 2006 21:05:42 -0000
+@@ -124,8 +124,8 @@ AVInteger av_mod_i(AVInteger *quot, AVIn
+     AVInteger quot_temp;
+     if(!quot) quot = &quot_temp;
+ 
+-    assert((int16_t)a[AV_INTEGER_SIZE-1] >= 0 && (int16_t)b[AV_INTEGER_SIZE-1] >= 0);
+-    assert(av_log2(b)>=0);
++    assert((int16_t)a.v[AV_INTEGER_SIZE-1] >= 0 && (int16_t)b.v[AV_INTEGER_SIZE-1] >= 0);
++    assert(av_log2_i(b)>=0);
+ 
+     if(i > 0)
+         b= av_shr_i(b, -i);
+Index: libavutil/internal.h
+===================================================================
+RCS file: /cvsroot/xine/xine-lib/src/libffmpeg/libavutil/internal.h,v
+retrieving revision 1.1
+diff -u -p -r1.1 internal.h
+--- libavutil/internal.h	2 Aug 2006 07:39:20 -0000	1.1
++++ libavutil/internal.h	13 Sep 2006 21:05:42 -0000
+@@ -87,7 +87,11 @@
+ 
+ /* dprintf macros */
+ #    ifdef DEBUG
+-#        define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
++#        ifdef __GNUC__
++#            define dprintf(fmt,args...) av_log(NULL, AV_LOG_DEBUG, fmt, ##args)
++#        else
++#            define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
++#        endif
+ #    else
+ #        define dprintf(fmt,...)
+ #    endif
