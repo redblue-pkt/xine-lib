@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.113 2006/09/10 01:46:45 dgp85 Exp $
+ * $Id: input_file.c,v 1.114 2006/09/13 23:22:51 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -364,13 +364,14 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
         _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
 	xine_log (this->stream->xine, XINE_LOG_MSG,
 		  _("input_file: Permission denied: >%s<\n"), this->mrl);
+	return -1;
       } else if (errno == ENOENT) {
         _x_message(this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
 	xine_log (this->stream->xine, XINE_LOG_MSG,
 		  _("input_file: File not found: >%s<\n"), this->mrl);
       }
 
-      return 0;
+      return -1;
     }
   }
 
@@ -400,7 +401,7 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
       close (this->fh);
       xine_log (this->stream->xine, XINE_LOG_MSG,
 		_("input_file: File empty: >%s<\n"), this->mrl);
-      return 0;
+      return -1;
   }
 
   return 1;
