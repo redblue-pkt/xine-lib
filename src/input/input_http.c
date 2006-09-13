@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.120 2006/07/10 22:08:15 dgp85 Exp $
+ * $Id: input_http.c,v 1.121 2006/09/13 17:08:19 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -176,6 +176,16 @@ static int _x_use_proxy(http_input_class_t *this, const char *host) {
     return 1;
   }
   if (!info->h_name) return 1;
+  
+  if ( info->h_addr_list[0] ) {
+    /* \177\0\0\1 is the *octal* representation of 127.0.0.1 */
+    if ( info->h_addrtype == AF_INET && !memcmp(info->h_addr_list[0], "\177\0\0\1", 4) ) {
+      lprintf("host '%s' is localhost\n", host);
+      return 1;
+    }
+    /* TODO: IPv6 check */
+  }
+
   target = info->h_name;
 
   host_len = strlen(target);
