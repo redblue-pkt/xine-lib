@@ -1102,7 +1102,7 @@ dnl Ogg/Vorbis libs.
 dnl ---------------------------------------------
 
 AC_ARG_WITH([vorbis],
-	AS_HELP_STRING([--wihout-vorbis], [Build without Vorbis audio decoder]))
+	AS_HELP_STRING([--without-vorbis], [Build without Vorbis audio decoder]))
 
 if test "x$with_vorbis" != "xno"; then
    PKG_CHECK_MODULES([VORBIS], [ogg vorbis], [have_vorbis=yes], [have_vorbis=yes])
