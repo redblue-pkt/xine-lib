@@ -1150,9 +1150,9 @@ msgstr ""
 
 #: src/xine-engine/xine.c:1594
 msgid ""
-"Specifies the timeout when reading from network streams, in seconds.Too low "
-"values might stop streaming when the source is slow or thebandwidth is "
-"occupied, too high values will freeze the player if theconnection is lost."
+"Specifies the timeout when reading from network streams, in seconds. Too low "
+"values might stop streaming when the source is slow or the bandwidth is "
+"occupied, too high values will freeze the player if the connection is lost."
 msgstr ""
 
 #: src/xine-engine/xine.c:1945

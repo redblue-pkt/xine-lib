@@ -1,5 +1,5 @@
 # German xine-lib.po file.
-# Copyright (C) 2002-2005 Free Software Foundation, Inc.
+# Copyright (C) 2002-2006 Free Software Foundation, Inc.
 # Jens Gutzeit <jens.gutzeit@web.de>, 2002.
 #
 msgid ""
@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2006-09-14 02:48+0200\n"
-"PO-Revision-Date: 2005-12-22 18:17+0200\n"
+"PO-Revision-Date: 2006-09-14 08:38+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -430,9 +430,9 @@ msgstr ""
 "Audiogerät bezeichnet."
 
 #: src/audio_out/audio_sun_out.c:937
-#, fuzzy, c-format
+#, c-format
 msgid "audio_sun_out: audio ioctl on device %s failed: %s\n"
-msgstr "audio_sun_out: Öffnen des Audiogeräts %s schlug fehl: %s\n"
+msgstr "audio_sun_out: Audio ioctl auf Gerät %s schlug fehl: %s\n"
 
 #: src/audio_out/audio_sun_out.c:988
 msgid "xine audio output plugin using sun-compliant audio devices/drivers"
@@ -896,18 +896,16 @@ msgid "xine audio output plugin using esound"
 msgstr "xine Soundausgabe benutzt esound"
 
 #: src/audio_out/audio_pulse_out.c:506
-#, fuzzy
 msgid "device used for pulseaudio"
-msgstr "Gerät für CD-Audio"
+msgstr "Gerät für Pulse-Audio"
 
 #: src/audio_out/audio_pulse_out.c:507
 msgid "use 'server[:sink]' for setting the pulseaudio sink device."
-msgstr ""
+msgstr "Benutze 'Server[:Senke]' um das Zeil des Puse-Audio Gerätes zu setzen."
 
 #: src/audio_out/audio_pulse_out.c:552
-#, fuzzy
 msgid "xine audio output plugin using pulseaudio sound server"
-msgstr "xine Soundausgabe benutzt esound"
+msgstr "xine Soundausgabe benutzt Pulse-Audio Soundserver"
 
 #: src/xine-engine/io_helper.c:252
 msgid "io_helper: waiting abandoned\n"
@@ -1178,14 +1176,18 @@ msgstr ""
 
 #: src/xine-engine/xine.c:1593
 msgid "Timeout for network stream reading (in seconds)"
-msgstr ""
+msgstr "Zeitüberschreitung für Netzwerkdatenströme (in Sekunden)"
 
 #: src/xine-engine/xine.c:1594
 msgid ""
-"Specifies the timeout when reading from network streams, in seconds.Too low "
-"values might stop streaming when the source is slow or thebandwidth is "
-"occupied, too high values will freeze the player if theconnection is lost."
+"Specifies the timeout when reading from network streams, in seconds. Too low "
+"values might stop streaming when the source is slow or the bandwidth is "
+"occupied, too high values will freeze the player if the connection is lost."
 msgstr ""
+"Gibt die maximale Zeitspanne zum Lesen von Netzwerkdatenströmen in Sekunden "
+"an. Zu niedrige Werte können das Streamen behindern, wenn die Quelle zu "
+"langsam ist oder die Bandbreite erschöpft ist. Zu hohe Werte können xine "
+"einfrieren lassen, wenn die Verbindung abbricht."
 
 #: src/xine-engine/xine.c:1945
 msgid "messages"
@@ -1528,62 +1530,55 @@ msgstr ""
 
 #: src/xine-engine/xine_interface.c:919
 msgid "Warning:"
-msgstr ""
+msgstr "Warnung:"
 
 #: src/xine-engine/xine_interface.c:920
-#, fuzzy
 msgid "Unknown host:"
-msgstr "Unbekannter Rechner"
+msgstr "Unbekannter Rechner:"
 
 #: src/xine-engine/xine_interface.c:921
-#, fuzzy
 msgid "Unknown device:"
-msgstr "Unbekannter Ereignistyp"
+msgstr "Unbekanntes Gerät:"
 
 #: src/xine-engine/xine_interface.c:922
 msgid "Network unreachable"
-msgstr ""
+msgstr "Netzwerk unerreichbar"
 
 #: src/xine-engine/xine_interface.c:923
-#, fuzzy
 msgid "Connection refused:"
-msgstr "io_helper: Verbindung verweigert\n"
+msgstr "Verbindung verweigert:"
 
 #: src/xine-engine/xine_interface.c:924
-#, fuzzy
 msgid "File not found:"
-msgstr "io_helper: Datei nicht gefunden\n"
+msgstr "Datei nicht gefunden:"
 
 #: src/xine-engine/xine_interface.c:925
 msgid "Read error from:"
-msgstr ""
+msgstr "Lesefehler von:"
 
 #: src/xine-engine/xine_interface.c:926
-#, fuzzy
 msgid "Error loading library:"
-msgstr "osd: Fehler beim Laden von Bildzeichen\n"
+msgstr "Fehler beim Laden der Bibliothek:"
 
 #: src/xine-engine/xine_interface.c:927
-#, fuzzy
 msgid "Encrypted media stream detected"
-msgstr "ogg: Ende des Vorbis-Audiodatenstroms\n"
+msgstr "VerschRlüsselter Mediendatenstrom erkannt"
 
 #: src/xine-engine/xine_interface.c:928
 msgid "Security message:"
-msgstr ""
+msgstr "Sicherheitsmeldung:"
 
 #: src/xine-engine/xine_interface.c:929
-#, fuzzy
 msgid "Audio device unavailable"
-msgstr "Sun Audio-Gerätename"
+msgstr "Audiogerät nicht verfügbar"
 
 #: src/xine-engine/xine_interface.c:930
 msgid "Permission error"
-msgstr ""
+msgstr "Berechtigungsfehler"
 
 #: src/xine-engine/xine_interface.c:931
 msgid "File is empty:"
-msgstr ""
+msgstr "Datei ist leer:"
 
 #: src/xine-engine/audio_out.c:1088
 msgid ""
@@ -2886,40 +2881,37 @@ msgstr ""
 "Feldpriorität (\"none\"=deaktiviert)."
 
 #: src/video_out/video_out_directfb.c:1462
-#, fuzzy
 msgid "video_out_directfb: using hardware subpicture acceleration.\n"
-msgstr ""
-"video_out_directfb: Benutzt Hardwarebeschleunigung für Bildskalierung.\n"
+msgstr "video_out_directfb: Benutzt Hardwarebeschleunigung für Untertitel.\n"
 
 #: src/video_out/video_out_directfb.c:1476
-#, fuzzy
 msgid "video_out_directfb: layer supports video output.\n"
-msgstr "video_out_vidix: Adapter unterstützt das YUY2 Format\n"
+msgstr "video_out_directfb: Ebene unterstützt Videoausgabe.\n"
 
 #: src/video_out/video_out_directfb.c:1485
-#, fuzzy
 msgid "video_out_directfb: layer doesn't support YV12!\n"
-msgstr "video_out_syncfb: Info. (SyncFB-Modul unterstützt YUY2)\n"
+msgstr "video_out_directfb: Ebene unterstützt kein YV12!\n"
 
 #: src/video_out/video_out_directfb.c:1492
-#, fuzzy
 msgid "video_out_directfb: layer doesn't support YUY2!\n"
-msgstr "video_out_syncfb: Info. (SyncFB-Modul unterstützt YUY2)\n"
+msgstr "video_out_directfb: Ebene unterstützt kein YUT2!\n"
 
 #: src/video_out/video_out_directfb.c:1503
 msgid ""
 "video_out_directfb:need at least DirectFB 0.9.25 to play on this layer!\n"
 msgstr ""
+"video_out_directfb: Benötige mindestens DirectFB 0.9.25 zur Wiedergabe auf "
+"dieser Ebene!\n"
 
 #: src/video_out/video_out_directfb.c:1538
-#, fuzzy, c-format
+#, c-format
 msgid "video_out_directfb: layer doesn't support buffermode %d!\n"
-msgstr "video_out_directfb: Keine benutzbare Ausgabeebene gefunden!\n"
+msgstr "video_out_directfb: Ebene unterstützt keinen Buffermode %d!\n"
 
 #: src/video_out/video_out_directfb.c:1544
 #, c-format
 msgid "video_out_directfb: layer doesn't support options 0x%08x!\n"
-msgstr ""
+msgstr "video_out_directfb: Ebene unterstützt keine Option 0x%08x!\n"
 
 #: src/video_out/video_out_directfb.c:1638
 msgid "video_out_directfb: using hardware accelerated image scaling.\n"
@@ -2935,9 +2927,8 @@ msgstr ""
 "hardwarebeschleunigt.\n"
 
 #: src/video_out/video_out_directfb.c:1733
-#, fuzzy
 msgid "video layer id (auto: -1)"
-msgstr "Videoebenen-Id"
+msgstr "Videoebenen-Id (automatisch: -1)"
 
 #: src/video_out/video_out_directfb.c:1734
 msgid "Select the video output layer by its id."
@@ -2945,18 +2936,17 @@ msgstr "Wählt die Ausgabeebene für videos bei Id."
 
 #: src/video_out/video_out_directfb.c:1755
 #: src/video_out/video_out_directfb.c:1964
-#, fuzzy, c-format
+#, c-format
 msgid "video_out_directfb: using display layer #%d.\n"
-msgstr "video_out_directfb: Keine benutzbare Überlagerungsebene gefunden!\n"
+msgstr "video_out_directfb: Benutze Anzeigenebene #%d.\n"
 
 #: src/video_out/video_out_directfb.c:1839
 msgid "xine video output plugin using DirectFB."
 msgstr "xine Videoausgabe benutzt DirectFB"
 
 #: src/video_out/video_out_directfb.c:1957
-#, fuzzy
 msgid "video_out_directfb: no usable display layer was found!\n"
-msgstr "video_out_directfb: Keine benutzbare Überlagerungsebene gefunden!\n"
+msgstr "video_out_directfb: Keine benutzbare Anzeigenebene gefunden!\n"
 
 #: src/video_out/video_out_directfb.c:2040
 msgid "xine video output plugin using DirectFB under XDirectFB."
@@ -4177,9 +4167,9 @@ msgid "input_http: content length = %<PRIdMAX> bytes\n"
 msgstr "input_http: Inhaltslänge = %<PRIdMAX> bytes\n"
 
 #: src/input/input_http.c:928
-#, fuzzy, c-format
+#, c-format
 msgid "input_http: buffer exhausted after %d bytes."
-msgstr "input_http: Lesefehler %d\n"
+msgstr "input_http: Puffer erschöpft nach %d Bytes."
 
 #: src/input/input_http.c:1002
 msgid "http input plugin"
@@ -5124,6 +5114,21 @@ msgid ""
 "\n"
 "* mplayer's noise (C) Michael Niedermayer\n"
 msgstr ""
+"Fügt zufällige Störungen dem Video hinzu.\n"
+"\n"
+"Parameter:\n"
+"  luma_strength: Stärke der Störung des Helligkeitskanals (0-100, Standard: "
+"8)\n"
+"  chroma_strength: Stärke der Störung des Farbkanals (0-100, Standard: 5)\n"
+"  quality: Qualitätslevel der Störung.  fixed: Konstantes Störungsmuster; "
+"temporal: Störungsmuster ändert sich zwischen Bildern; averaged temporal: "
+"weicheres Störungsmuster, das sich zwischen Bildern ändern.  (Standard: "
+"averaged temporal)\n"
+"  type: Typ der Störung: uniform oder gaussian.  (Standard: gaussian)\n"
+"  pattern: Vermische Störung mit einem (semi-)regelmäßigem Muster. "
+"(Standard: False)\n"
+"\n"
+"* mplayer's noise (C) Michael Niedermayer\n"
 
 #: src/post/planar/expand.c:232
 msgid ""
@@ -5256,6 +5261,14 @@ msgid ""
 "weighted mean over past samples (default); 2: use several samples to smooth "
 "the variations via the standard weighted mean over past samples.\n"
 msgstr ""
+"Normalisiert den Ton durch Maximieren der Lautstärke ohne Verzerren des "
+"Tons.\n"
+"\n"
+"Parameter:\n"
+"  method: 1: Benutzt einen einzigen Abtastpunkt, um die Variationen mit "
+"Hilfe des gewichteten Mittels über vorherige Abtastpunkte zu glätten "
+"(Standard); 2: Benutzt mehrere Abtastpunkte, um die Variationen mit Hilfe "
+"des gewichteten Mittels über vorherige Abtastpunkte zu glätten.\n"
 
 #: src/post/audio/upmix_mono.c:109
 msgid ""
@@ -5556,9 +5569,8 @@ msgstr ""
 "ffmpeg_audio_dec: Konnte keinen ffmpeg-Dekoder für Puffertyp 0x%X finden\n"
 
 #: src/libffmpeg/audio_decoder.c:253
-#, fuzzy
 msgid "ffmpeg_audio_dec: trying to open null codec\n"
-msgstr "ffmpeg_audio_dec: Konnte Dekoder nicht öffnen\n"
+msgstr "ffmpeg_audio_dec: Besuche NULl-Codec zu öffnen\n"
 
 #: src/libffmpeg/audio_decoder.c:262
 msgid "ffmpeg_audio_dec: couldn't open decoder\n"
@@ -5627,9 +5639,8 @@ msgid "libfaad: libfaad NeAACDecInit failed.\n"
 msgstr "libfaad: libfaad NeAACDecInit schlug fehl.\n"
 
 #: lib/hstrerror.c:17
-#, fuzzy
 msgid "No error"
-msgstr "Unbekannter Fehler"
+msgstr "Kein Fehler"
 
 #: lib/hstrerror.c:18
 msgid "Unknown host"
@@ -5648,7 +5659,6 @@ msgid "Host name lookup failure"
 msgstr "Namensauflösung schlug fehl"
 
 #: lib/hstrerror.c:22
-#, fuzzy
 msgid "Unknown error"
 msgstr "Unbekannter Fehler"
 

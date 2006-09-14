@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.332 2006/09/13 23:17:29 dgp85 Exp $
+ * $Id: xine.c,v 1.333 2006/09/14 06:46:31 pmhahn Exp $
  */
 
 /*
@@ -1591,9 +1591,9 @@ void xine_init (xine_t *this) {
   this->config->register_num(this->config,
       "media.network.timeout", 30,
       _("Timeout for network stream reading (in seconds)"),
-      _("Specifies the timeout when reading from network streams, in seconds."
-	"Too low values might stop streaming when the source is slow or the"
-	"bandwidth is occupied, too high values will freeze the player if the"
+      _("Specifies the timeout when reading from network streams, in seconds. "
+	"Too low values might stop streaming when the source is slow or the "
+	"bandwidth is occupied, too high values will freeze the player if the "
 	"connection is lost."),
       0, NULL, this);
 
