@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib-1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-09-14 02:48+0200\n"
+"POT-Creation-Date: 2006-09-14 19:28+0200\n"
 "PO-Revision-Date: 2005-02-17 14:29+0100\n"
 "Last-Translator: Piarres Beobide <pi@beobide.net>\n"
 "Language-Team: lubrezale <librezale@librezale.org>\n"
@@ -4874,7 +4874,7 @@ msgstr ""
 "VOC konpresio mota (0x%02X) ezezaguna; mesedez erreportea eman xine "
 "garatzaileei\n"
 
-#: src/demuxers/demux_ogg.c:801
+#: src/demuxers/demux_ogg.c:794
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 "ogg: vorbis audio pista esan da baina ez da vorbis korronte bururik "

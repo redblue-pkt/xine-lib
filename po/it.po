@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-09-14 02:48+0200\n"
+"POT-Creation-Date: 2006-09-14 19:28+0200\n"
 "PO-Revision-Date: 2006-06-18 23:05+0200\n"
 "Last-Translator: Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>\n"
 "Language-Team: Italian\n"
@@ -5454,7 +5454,7 @@ msgstr ""
 "tipo di compressione VOC sconosciuta (0x%02X); per favore riporta l'errore "
 "ai sviluppatori di xine\n"
 
-#: src/demuxers/demux_ogg.c:801
+#: src/demuxers/demux_ogg.c:794
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 "ogg: indicata traccia audio vorbis ma nessuno stream di intestazione vorbis "

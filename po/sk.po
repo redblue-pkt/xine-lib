@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-09-14 02:48+0200\n"
+"POT-Creation-Date: 2006-09-14 19:28+0200\n"
 "PO-Revision-Date: 2004-09-15 13:53+0100\n"
 "Last-Translator: \n"
 "Language-Team: Slovak <ski18n@lists.isternet.sk>\n"
@@ -4877,7 +4877,7 @@ msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr "neznáma VOC kompresia typu (0x%02X); prosím nahlásiť tvorcom xine\n"
 
-#: src/demuxers/demux_ogg.c:801
+#: src/demuxers/demux_ogg.c:794
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 "stopa ogg: vorbis audio indikovaná, ale hlavička vorbis prúdu nenájdená.\n"

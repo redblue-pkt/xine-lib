@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-09-14 02:48+0200\n"
+"POT-Creation-Date: 2006-09-14 19:28+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -4472,7 +4472,7 @@ msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:801
+#: src/demuxers/demux_ogg.c:794
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 
