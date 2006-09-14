@@ -958,19 +958,22 @@ dnl ---------------------------------------------
 dnl check for SDL
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([sdl],
-  AC_HELP_STRING([--disable-sdl], [do not build SDL support]),
-  [with_sdl=$enableval], [with_sdl=yes])
+AC_ARG_WITH([sdl],
+	AS_HELP_STRING([--without-sdl], [Build without SDL output]))
 
-if test "x$with_sdl" = "xyes"; then
-  AM_PATH_SDL(1.1.5, 
-    AC_DEFINE(HAVE_SDL,1,[Define this if you have SDL library installed]),
-    [])
-else
-  no_sdl=yes
+if test "x$with_sdl" != "xno"; then
+   PKG_CHECK_MODULES([SDL], [sdl], [have_sdl=yes], [have_sdl=no])
+   if test "x$with_sdl" = "xyes" && test "x$have_sdl" = "xno"; then
+      AC_MSG_ERROR([SDL support requested, but SDL not found])
+   elif test "x$have_sdl" = "xyes"; then
+      AC_DEFINE([HAVE_SDL], [1], [Define this if you have SDL installed])
+   fi
 fi
-AM_CONDITIONAL(HAVE_SDL, [test x"$no_sdl" != x"yes"])
 
+AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" = "xyes"])
+
+AC_SUBST([SDL_CFLAGS])
+AC_SUBST([SDL_LIBS])
 
 dnl ---------------------------------------------
 dnl check for Libstk
