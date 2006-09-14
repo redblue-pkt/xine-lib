@@ -17,7 +17,6 @@ EXTRA_DIST = glibc2.m4 intdiv0.m4 intmax.m4 inttypes.m4 inttypes_h.m4 inttypes-p
 	directx.m4 \
 	dl.m4 \
 	dvdnav.m4 \
-	freetype2.m4 \
 	gettext.m4 \
 	glibc21.m4 \
 	iconv.m4 \

@@ -1296,9 +1296,9 @@ AC_SUBST(WAND_LIBS)
 dnl ---------------------------------------------
 dnl freetype2 lib.
 dnl ---------------------------------------------
-
-AM_PATH_FREETYPE2()
-
+PKG_CHECK_MODULES([FT2], [freetype2])
+AC_SUBST([FT2_CFLAGS])
+AC_SUBST([FT2_LIBS])
 
 dnl ---------------------------------------------
 dnl OSS style audio interface
