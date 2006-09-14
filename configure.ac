@@ -959,7 +959,7 @@ dnl check for SDL
 dnl ---------------------------------------------
 
 AC_ARG_WITH([sdl],
-	AS_HELP_STRING([--without-sdl], [Build without SDL output]))
+	AS_HELP_STRING([--without-sdl], [Build without SDL video output]))
 
 if test "x$with_sdl" != "xno"; then
    PKG_CHECK_MODULES([SDL], [sdl], [have_sdl=yes], [have_sdl=no])
@@ -1101,12 +1101,12 @@ dnl ---------------------------------------------
 dnl Ogg/Vorbis libs.
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([vorbis],
-	AS_HELP_STRING([--disable-vorbis], [Don't build Vorbis plugin]))
+AC_ARG_WITH([vorbis],
+	AS_HELP_STRING([--wihout-vorbis], [Build without Vorbis audio decoder]))
 
-if test "x$enable_vorbis" != "xno"; then
+if test "x$with_vorbis" != "xno"; then
    PKG_CHECK_MODULES([VORBIS], [ogg vorbis], [have_vorbis=yes], [have_vorbis=yes])
-   if test "x$enable_vorbis" = "xyes" && test "x$have_vorbis" = "xno"; then
+   if test "x$with_vorbis" = "xyes" && test "x$have_vorbis" = "xno"; then
       AC_MSG_ERROR([Vorbis support requested, but libvorbis not found])
    fi
 fi
@@ -1119,12 +1119,12 @@ dnl ---------------------------------------------
 dnl Ogg/Theora libs.
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([theora],
-	AS_HELP_STRING([--disable-theora], [Don't build Theora plugin]))
+AC_ARG_WITH([theora],
+	AS_HELP_STRING([--without-theora], [Build without Theora video decoder]))
 
-if test "x$enable_theora" != "xno"; then
+if test "x$with_theora" != "xno"; then
    PKG_CHECK_MODULES([THEORA], [ogg theora], [have_theora=yes], [have_theora=yes])
-   if test "x$enable_theora" = "xyes" && test "x$have_theora" = "xno"; then
+   if test "x$with_theora" = "xyes" && test "x$have_theora" = "xno"; then
       AC_MSG_ERROR([Theora support requested, but libtheora not found])
    elif test "x$have_theora" = "xyes"; then
       AC_DEFINE([HAVE_THEORA], [1], [Define this if you have theora])
@@ -1138,12 +1138,12 @@ AC_SUBST([THEORA_LIBS])
 dnl ---------------------------------------------
 dnl Ogg/Speex libs.
 dnl ---------------------------------------------
-AC_ARG_ENABLE([speex],
-	AS_HELP_STRING([--disable-speex], [Don't build Speex plugin]))
+AC_ARG_WITH([speex],
+	AS_HELP_STRING([--without-speex], [Build without Speex audio decoder]))
 
-if test "x$enable_speex" != "xno"; then
+if test "x$with_speex" != "xno"; then
    PKG_CHECK_MODULES([SPEEX], [ogg speex], [have_speex=yes], [have_speex=yes])
-   if test "x$enable_speex" = "xyes" && test "x$have_speex" = "xno"; then
+   if test "x$with_speex" = "xyes" && test "x$have_speex" = "xno"; then
       AC_MSG_ERROR([Speex support requested, but libspeex not found])
    elif test "x$have_speex" = "xyes"; then
       AC_DEFINE([HAVE_SPEEX], [1], [Define this if you have speex])
@@ -1333,7 +1333,7 @@ dnl Alsa support
 dnl ---------------------------------------------
 
 AC_ARG_WITH([alsa],
-   AS_HELP_STRING([--without-alsa], [Disable ALSA output plugin (default: check)]))
+   AS_HELP_STRING([--without-alsa], [Build without ALSA audio output]))
 
 if test "x$with_alsa" != "xno"; then
    PKG_CHECK_MODULES([ALSA], [alsa >= 0.9.0], [have_alsa=yes], [have_alsa=no])
@@ -1353,7 +1353,7 @@ dnl ESD support
 dnl ---------------------------------------------
 
 AC_ARG_WITH([esound],
-	AS_HELP_STRING([--without-esound], [Build without ESounD output]))
+	AS_HELP_STRING([--without-esound], [Build without ESounD audio output]))
 
 if test "x$with_esound" != "xno"; then
    PKG_CHECK_MODULES([ESD], [esound], [have_esound=yes], [have_esound=no])
@@ -1374,9 +1374,9 @@ dnl ---------------------------------------------
 dnl ARTS support
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([arts],
-  AC_HELP_STRING([--disable-arts], [do not build arts support]),
-  [with_arts=$enableval], [with_arts=yes])
+AC_ARG_WITH([arts],
+  AC_HELP_STRING([--without-arts], [Build without ARTS audio output]),
+  [with_arts=$withval], [with_arts=yes])
 
 if test "x$with_arts" = "xyes"; then
   AM_PATH_ARTS(0.9.5,
@@ -1392,9 +1392,9 @@ dnl ---------------------------------------------
 dnl FusionSound support
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([fusionsound],
-  AC_HELP_STRING([--enable-fusionsound], [build with fusionsound support]),
-  [with_fusionsound=$enableval], [with_fusionsound=no])
+AC_ARG_WITH([fusionsound],
+  AC_HELP_STRING([--with-fusionsound], [Build with FunsionSound audio output]),
+  [with_fusionsound=$withval], [with_fusionsound=no])
 
 if test "x$with_fusionsound" = "xyes"; then
   PKG_CHECK_MODULES(FUSIONSOUND, fusionsound >= 0.9.23,
