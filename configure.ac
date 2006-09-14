@@ -1259,31 +1259,20 @@ dnl ---------------------------------------------
 dnl MagickWand API of Imagemagick.
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([imagemagick],
-  AC_HELP_STRING([--disable-imagemagick], [do not build ImageMagick support]),
-  [with_imagemagick=$enableval], [with_imagemagick=yes])
+AC_ARG_WITH([imagemagick],
+	AS_HELP_STRING([--without-imagemagick], [Build without ImageMagick image decoder]))
 
-if test "x$with_imagemagick" = "xyes"; then
-  AC_PATH_TOOL(WAND_CONFIG, Wand-config, no)
-  if test "$WAND_CONFIG" = "no" ; then
-    AC_MSG_RESULT([*** All Imagemagick dependent parts will be disabled, Wand-config not found. ***])
-    have_imagemagick="no"
-  else
-    WAND_CFLAGS=`$WAND_CONFIG --cflags`
-    WAND_CPPFLAGS=`$WAND_CONFIG --cppflags`
-    WAND_LDFLAGS=`$WAND_CONFIG --ldflags`
-    WAND_LIBS=`$WAND_CONFIG --libs`
-    have_imagemagick="yes"
-    AC_DEFINE(HAVE_WAND,1,[Define this if you have Imagemagick])
-  fi
-else
-  have_imagemagick="no"
+if test "x$with_imagemagick" != "xno"; then
+   PKG_CHECK_MODULES([WAND], [Wand], [have_imagemagick=yes], [have_imagemagick=no])
+   if test "x$with_imagemagick" = "xyes" && test "x$have_imagemagick" = "xno"; then
+      AC_MSG_ERROR([ImageMagick support requested, but Wand not found])
+   elif test "x$have_imagemagick" = "xyes"; then
+      AC_DEFINE([HAVE_WAND], [1], [Define this if you have ImageMagick installed])
+   fi
 fi
 
-AM_CONDITIONAL(HAVE_WAND, test x"$have_imagemagick" = "xyes" )
+AM_CONDITIONAL([HAVE_WAND], [test x"$have_imagemagick" = "xyes"])
 AC_SUBST(WAND_CFLAGS)
-AC_SUBST(WAND_CPPFLAGS)
-AC_SUBST(WAND_LDFLAGS)
 AC_SUBST(WAND_LIBS)
 
 dnl ---------------------------------------------
