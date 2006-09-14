@@ -15,6 +15,7 @@ src/audio_out/audio_directx_out.c
 src/audio_out/audio_alsa_out.c
 src/audio_out/audio_irixal_out.c
 src/audio_out/audio_esd_out.c
+src/audio_out/audio_pulse_out.c
 src/xine-engine/io_helper.c
 src/xine-engine/vo_scale.c
 src/xine-engine/xine.c
