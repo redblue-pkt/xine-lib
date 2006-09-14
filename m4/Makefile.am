@@ -28,15 +28,11 @@ EXTRA_DIST = glibc2.m4 intdiv0.m4 intmax.m4 inttypes.m4 inttypes_h.m4 inttypes-p
 	libFLAC.m4 \
 	libfame.m4 \
 	libtool15.m4 \
-	ogg.m4 \
 	opengl.m4 \
 	optimizations.m4 \
 	pkg.m4 \
 	progtest.m4 \
 	sdl.m4 \
-	vorbis.m4 \
-	speex.m4 \
-	theora.m4 \
 	xine.m4 \
 	_xine.m4 \
 	xv.m4
