@@ -1098,57 +1098,58 @@ dnl ---------------------------------------------
 dnl Ogg/Vorbis libs.
 dnl ---------------------------------------------
 
-AM_PATH_OGG(
-           [ AM_PATH_VORBIS([], 
-	                    AC_MSG_RESULT([*** All OGG/VORBIS dependent parts will be disabled ***])) 
-	   ], 
-           AC_MSG_RESULT([*** All of OGG/VORBIS dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_VORBIS, [test x"$no_ogg" != "xyes" -a x"$no_vorbis" != "xyes"])
+AC_ARG_ENABLE([vorbis],
+	AS_HELP_STRING([--disable-vorbis], [Don't build Vorbis plugin]))
 
+if test "x$enable_vorbis" != "xno"; then
+   PKG_CHECK_MODULES([VORBIS], [ogg vorbis], [have_vorbis=yes], [have_vorbis=yes])
+   if test "x$enable_vorbis" = "xyes" && test "x$have_vorbis" = "xno"; then
+      AC_MSG_ERROR([Vorbis support requested, but libvorbis not found])
+   fi
+fi
+AM_CONDITIONAL([HAVE_VORBIS], [test "x$have_vorbis" = "xyes"])
+
+AC_SUBST([VORBIS_CFLAGS])
+AC_SUBST([VORBIS_LIBS])
 
 dnl ---------------------------------------------
 dnl Ogg/Theora libs.
 dnl ---------------------------------------------
 
-AM_PATH_OGG(
-           [ AM_PATH_THEORA(AC_DEFINE(HAVE_THEORA,1,[Define this if you have theora]),
-                           AC_MSG_RESULT([*** All OGG/THEORA dependent parts will be disabled ***]))
-          ],
-           AC_MSG_RESULT([*** All of OGG/Theora dependent parts will be disabled ***]))
-AM_CONDITIONAL(HAVE_THEORA, [test x"$no_ogg" != "xyes" -a x"$no_theora" != "xyes"])
+AC_ARG_ENABLE([theora],
+	AS_HELP_STRING([--disable-theora], [Don't build Theora plugin]))
 
+if test "x$enable_theora" != "xno"; then
+   PKG_CHECK_MODULES([THEORA], [ogg theora], [have_theora=yes], [have_theora=yes])
+   if test "x$enable_theora" = "xyes" && test "x$have_theora" = "xno"; then
+      AC_MSG_ERROR([Theora support requested, but libtheora not found])
+   elif test "x$have_theora" = "xyes"; then
+      AC_DEFINE([HAVE_THEORA], [1], [Define this if you have theora])
+   fi
+fi
+AM_CONDITIONAL([HAVE_THEORA], [test "x$have_theora" = "xyes"])
+
+AC_SUBST([THEORA_CFLAGS])
+AC_SUBST([THEORA_LIBS])
 
 dnl ---------------------------------------------
 dnl Ogg/Speex libs.
 dnl ---------------------------------------------
 AC_ARG_ENABLE([speex],
-  AC_HELP_STRING([--disable-speex], [do not build speex support]),
-  [with_speex=$enableval], [with_speex=yes])
+	AS_HELP_STRING([--disable-speex], [Don't build Speex plugin]))
 
-no_speex=yes
-
-if test "x$with_speex" = "xyes"; then
-  PKG_CHECK_MODULES(SPEEX, speex, [
-    no_speex=no
-
-    AC_DEFINE(HAVE_SPEEX,1,[Define this if you have speex])
-
-    dnl Test whether Speex headers are eg. <speex.h> or <speex/speex.h>
-    dnl Speex headers were moved in mid-2004; 1.0.x has backwards compatible headers, 1.1.x does not
-    AC_CHECK_HEADER([speex/speex.h], [
-       AC_DEFINE(HAVE_SPEEX_SUBDIR, [1], [Define to 1 if speex headers are eg. <speex/speex.h>])
-    ])
-  ], no_speex="yes")
+if test "x$enable_speex" != "xno"; then
+   PKG_CHECK_MODULES([SPEEX], [ogg speex], [have_speex=yes], [have_speex=yes])
+   if test "x$enable_speex" = "xyes" && test "x$have_speex" = "xno"; then
+      AC_MSG_ERROR([Speex support requested, but libspeex not found])
+   elif test "x$have_speex" = "xyes"; then
+      AC_DEFINE([HAVE_SPEEX], [1], [Define this if you have speex])
+   fi
 fi
+AM_CONDITIONAL([HAVE_SPEEX], [test "x$have_speex" = "xyes"])
 
-if test "x$no_speex" = "xyes" ; then
-  AC_MSG_RESULT([*** All OGG/SPEEX dependent parts will be disabled ***])
-fi
-
-AC_SUBST(SPEEX_CFLAGS)
-AC_SUBST(SPEEX_LIBS)
-AM_CONDITIONAL(HAVE_SPEEX, [test x"$no_ogg" != "xyes" -a x"$no_speex" != "xyes"])
-
+AC_SUBST([SPEEX_CFLAGS])
+AC_SUBST([SPEEX_LIBS])
 
 dnl ---------------------------------------------
 dnl check for libFLAC
@@ -2513,7 +2514,7 @@ echo "   - vmd           - flv"
 if test x"$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
-if test x"$no_vorbis" != "xyes"; then
+if test "x$have_vorbis" = "xyes"; then
   echo "   - ogg"
 fi
 if test x"$have_libmng" = "xyes"; then
@@ -2569,7 +2570,7 @@ fi
 if test x"no_gdkpixbuf" != "xyes"; then
   echo "   - gdk-pixbuf"
 fi
-if test x"$no_theora" != "xyes"; then
+if test "x$have_theora" = "xyes"; then
   echo "   - theora"
 fi
 echo ""
@@ -2592,10 +2593,10 @@ echo "     - Mace 3:13     - Mace 6:1"
 if test x"no_libFLAC" != "xyes"; then
   echo "     - FLAC"
 fi
-if test x"$no_vorbis" != "xyes"; then
+if test "x$have_vorbis" = "xyes"; then
   echo "   - vorbis"
 fi
-if test x"$no_speex" != "xyes"; then
+if test "x$have_speex" = "xyes"; then
   echo "   - speex"
 fi
 if test x"$enable_w32dll" = "xyes"; then
