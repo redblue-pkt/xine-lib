@@ -1101,7 +1101,7 @@ AC_ARG_WITH([vorbis],
 	AS_HELP_STRING([--without-vorbis], [Build without Vorbis audio decoder]))
 
 if test "x$with_vorbis" != "xno"; then
-   PKG_CHECK_MODULES([VORBIS], [ogg vorbis], [have_vorbis=yes], [have_vorbis=yes])
+   PKG_CHECK_MODULES([VORBIS], [ogg vorbis], [have_vorbis=yes], [have_vorbis=no])
    if test "x$with_vorbis" = "xyes" && test "x$have_vorbis" = "xno"; then
       AC_MSG_ERROR([Vorbis support requested, but libvorbis not found])
    fi
@@ -1119,7 +1119,7 @@ AC_ARG_WITH([theora],
 	AS_HELP_STRING([--without-theora], [Build without Theora video decoder]))
 
 if test "x$with_theora" != "xno"; then
-   PKG_CHECK_MODULES([THEORA], [ogg theora], [have_theora=yes], [have_theora=yes])
+   PKG_CHECK_MODULES([THEORA], [ogg theora], [have_theora=yes], [have_theora=no])
    if test "x$with_theora" = "xyes" && test "x$have_theora" = "xno"; then
       AC_MSG_ERROR([Theora support requested, but libtheora not found])
    elif test "x$have_theora" = "xyes"; then
@@ -1138,7 +1138,7 @@ AC_ARG_WITH([speex],
 	AS_HELP_STRING([--without-speex], [Build without Speex audio decoder]))
 
 if test "x$with_speex" != "xno"; then
-   PKG_CHECK_MODULES([SPEEX], [ogg speex], [have_speex=yes], [have_speex=yes])
+   PKG_CHECK_MODULES([SPEEX], [ogg speex], [have_speex=yes], [have_speex=no])
    if test "x$with_speex" = "xyes" && test "x$have_speex" = "xno"; then
       AC_MSG_ERROR([Speex support requested, but libspeex not found])
    elif test "x$have_speex" = "xyes"; then
