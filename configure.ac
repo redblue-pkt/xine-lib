@@ -137,6 +137,9 @@ dnl ---------------------------------------------
 dnl Libtool
 dnl ---------------------------------------------
 
+m4_undefine([AC_PROG_F77])
+m4_defun([AC_PROG_F77],[])
+
 AC_LIBTOOL_DLOPEN
 AC_DISABLE_STATIC
 AC_LIBTOOL_WIN32_DLL
