@@ -491,19 +491,12 @@ dnl ---------------------------------------------
 dnl IPv6
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(ipv6,
-	AC_HELP_STRING([--enable-ipv6], [enable use of IPv6]),
-		enable_ipv6=$enableval,
-		enable_ipv6=no)
+AC_ARG_ENABLE([ipv6],
+	AS_HELP_STRING([--enable-ipv6], [enable use of IPv6]))
 
-echo -n "IPv6 is "
-if test x$enable_ipv6 = xyes; then
-    CFLAGS="-DENABLE_IPV6 $CFLAGS"
-    echo "enabled"
-else
-    echo "disabled"
+if test "x$enable_ipv6" = "xyes"; then
+   AC_DEFINE([ENABLE_IPV6], [1], [Enable this when IPv6 is requested])
 fi
-
 
 dnl ---------------------------------------------
 dnl zlib
