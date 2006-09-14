@@ -844,16 +844,17 @@ dnl ---------------------------------------------
 dnl Checks for Color AsCii Art library
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([caca],
-  AC_HELP_STRING([--disable-caca], [do not build CACA support]),
-  [with_caca=$enableval], [with_caca=yes])
+AC_ARG_WITH([caca],
+  AS_HELP_STRING([--without-caca], [Do not build CACA support]))
 
-if test "x$with_caca" = "xyes"; then
-  AM_PATH_CACA(0.3,, AC_MSG_RESULT([*** All CACA-dependent parts will be disabled ***]))
-else
-  no_caca=yes
+if test "x$with_caca" != "xno"; then
+   PKG_CHECK_MODULES([CACA], [caca cucul], [have_caca="yes"], [have_caca="no"])
+   if test "x$with_caca" = "xyes" && test "x$have_caca" = "xno"; then
+      AC_MSG_ERROR([CACA support requested, but libcaca 0.99 not found])
+   fi
 fi
-AM_CONDITIONAL(HAVE_CACA, test x$no_caca != "xyes")
+
+AM_CONDITIONAL([HAVE_CACA], [test "x$have_caca" = "xyes"])
 
 dnl ---------------------------------------------
 dnl Check solaris framebuffer device support
@@ -2690,7 +2691,7 @@ fi
 if test x$no_aalib != "xyes"; then
   echo "   - aa (Ascii ART)"
 fi
-if test x$no_caca != "xyes"; then
+if test "x$have_caca" = "xyes"; then
   echo "   - caca (Color AsCii Art)"
 fi
 if test x$have_fb = "xyes"; then
