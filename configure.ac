@@ -1349,18 +1349,22 @@ dnl ---------------------------------------------
 dnl ESD support
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([esd],
-  AC_HELP_STRING([--disable-esd], [do not build esd support]),
-  [with_esd=$enableval], [with_esd=yes])
+AC_ARG_WITH([esound],
+	AS_HELP_STRING([--without-esound], [Build without ESounD output]))
 
-if test "x$with_esd" = "xyes"; then
-  AM_PATH_ESD(0.2.8,
-        AC_DEFINE(HAVE_ESD,1,[Define this if you have ESD (libesd) installed]),
-        AC_MSG_RESULT(*** All of ESD dependent parts will be disabled ***))
-else
-  no_esd=yes
+if test "x$with_esound" != "xno"; then
+   PKG_CHECK_MODULES([ESD], [esound], [have_esound=yes], [have_esound=no])
+   if test "x$with_esound" = "xyes" && test "x$have_esound" = "xno"; then
+      AC_MSG_ERROR([ESounD support requested, but libesd not found])
+   elif test "x$have_esound" = "xyes"; then
+      AC_DEFINE([HAVE_ESD], [1], [Define this if you have ESounD installed])
+   fi
 fi
-AM_CONDITIONAL(HAVE_ESD, test x"$no_esd" != "xyes")
+
+AM_CONDITIONAL([HAVE_ESD], [test "x$have_esound" = "xyes"])
+
+AC_SUBST([ESD_CFLAGS])
+AC_SUBST([ESD_LIBS])
 
 
 dnl ---------------------------------------------
@@ -2753,7 +2757,7 @@ fi
 if test "x$have_alsa" = "xyes"; then
   echo "   - alsa"
 fi
-if test x"$no_esd" != "xyes"; then
+if test "x$have_esound" = "xyes"; then
   echo "   - esd (Enlightened Sound Daemon)"
 fi
 if test x"$no_arts" != "xyes"; then
