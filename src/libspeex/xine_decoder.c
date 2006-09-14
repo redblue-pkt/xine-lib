@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.20 2006/07/10 22:08:30 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.21 2006/09/14 02:07:01 dgp85 Exp $
  *
  * (ogg/)speex audio decoder plugin (libspeex wrapper) for xine
  */
@@ -42,17 +42,10 @@
 
 #include <ogg/ogg.h>
 
-#ifndef HAVE_SPEEX_SUBDIR
-#include <speex.h>
-#include <speex_header.h>
-#include <speex_callbacks.h>
-#include <speex_stereo.h>
-#else
 #include <speex/speex.h>
 #include <speex/speex_header.h>
 #include <speex/speex_callbacks.h>
 #include <speex/speex_stereo.h>
-#endif
 
 #define MAX_FRAME_SIZE 2000
 

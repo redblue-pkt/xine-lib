@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.167 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_ogg.c,v 1.168 2006/09/14 02:04:48 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -43,17 +43,10 @@
 #include <vorbis/codec.h>
 
 #ifdef HAVE_SPEEX
-#ifdef HAVE_SPEEX_SUBDIR
 #include <speex/speex.h>
 #include <speex/speex_header.h>
 #include <speex/speex_stereo.h>
 #include <speex/speex_callbacks.h>
-#else
-#include <speex.h>
-#include <speex_header.h>
-#include <speex_stereo.h>
-#include <speex_callbacks.h>
-#endif
 #endif
 
 #ifdef HAVE_THEORA
