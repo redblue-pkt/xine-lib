@@ -2705,7 +2705,7 @@ fi
 if test x$have_fb = "xyes"; then
   echo "   - fb (Linux framebuffer device)"
 fi
-if test x"$no_sdl" != x"yes"; then
+if test "x$have_sdl" = "xyes"; then
   echo "   - sdl (Simple DirectMedia Layer)"
 fi
 if test x"$have_stk" = "xyes"; then
