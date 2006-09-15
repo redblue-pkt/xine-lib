@@ -1281,7 +1281,17 @@ AC_SUBST(WAND_LIBS)
 dnl ---------------------------------------------
 dnl freetype2 lib.
 dnl ---------------------------------------------
-PKG_CHECK_MODULES([FT2], [freetype2])
+AC_ARG_WITH([freetype],
+	AS_HELP_STRING([--without-freetype], [Do not build with FreeType2 library]))
+
+if test "x$with_freetype" != "xno"; then
+   PKG_CHECK_MODULES([FT2], [freetype2], [have_freetype=yes], [have_freetype=no])
+   if test "x$with_freetype" = "xyes" && test "x$have_freetype" = "xno"; then
+      AC_MSG_ERROR([FreeType2 support requested but FreeType2 library not found])
+   elif test "x$have_freetype" = "yes"; then
+      AC_DEFINE([HAVE_FT2], [1], [Define this if you have freetype2 library])
+   fi
+fi
 AC_SUBST([FT2_CFLAGS])
 AC_SUBST([FT2_LIBS])
 
