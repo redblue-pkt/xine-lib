@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.181 2006/09/07 07:21:09 tmattern Exp $
+ * $Id: demux_asf.c,v 1.182 2006/09/15 21:52:19 tmattern Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1831,16 +1831,26 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
 
     /* no video stream */
     if (this->video_stream == -1) {
-      lprintf ("demux_asf_seek: no video stream\n");
-      state = 2;
+      if (this->audio_stream == -1) {
+        lprintf ("demux_asf_seek: no video stream, no audio stream\n");
+        return this->status;
+      } else {
+        lprintf ("demux_asf_seek: no video stream\n");
+        state = 2;
+      }
     }
 
     /* force the demuxer to not send data to decoders */
-    this->streams[this->video_stream].skip = 1;
-    this->streams[this->audio_stream].skip = 1;
-    this->streams[this->video_stream].resync = 0;
-    this->streams[this->audio_stream].resync = 0;
-    
+
+    if (this->video_stream >= 0) {
+      this->streams[this->video_stream].skip = 1;
+      this->streams[this->video_stream].resync = 0;
+    }
+    if (this->audio_stream >= 0) {
+      this->streams[this->audio_stream].skip = 1;
+      this->streams[this->audio_stream].resync = 0;
+    }
+
     start_pos -= (start_pos - this->first_packet_pos) % this->packet_size;
     while ((start_pos >= this->first_packet_pos) && (state != 5)) {
       int header_size;
@@ -1922,18 +1932,26 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     }
     lprintf ("demux_asf_seek: keyframe_found=%d, keyframe_ts=%lld\n",
              this->keyframe_found, this->keyframe_ts);
-    this->streams[this->video_stream].resync = 1;
-    this->streams[this->video_stream].skip   = 1;
-    this->streams[this->audio_stream].resync = 1;
-    this->streams[this->audio_stream].skip   = 1;
+    if (this->video_stream >= 0) {
+      this->streams[this->video_stream].resync = 1;
+      this->streams[this->video_stream].skip   = 1;
+    }
+    if (this->audio_stream >= 0) {
+      this->streams[this->audio_stream].resync = 1;
+      this->streams[this->audio_stream].skip   = 1;
+    }
   } else {
     /* "streaming" mode */
     this->keyframe_ts = 0;
     this->keyframe_found = 0; /* means next keyframe */
-    this->streams[this->video_stream].resync = 1;
-    this->streams[this->video_stream].skip   = 1;
-    this->streams[this->audio_stream].resync = 0;
-    this->streams[this->audio_stream].skip   = 0;
+    if (this->video_stream >= 0) {
+      this->streams[this->video_stream].resync = 1;
+      this->streams[this->video_stream].skip   = 1;
+    }
+    if (this->audio_stream >= 0) {
+      this->streams[this->audio_stream].resync = 0;
+      this->streams[this->audio_stream].skip   = 0;
+    }
   }
   return this->status;
   
