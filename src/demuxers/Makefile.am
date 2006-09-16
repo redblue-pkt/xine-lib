@@ -1,6 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
-AM_CFLAGS = $(THEORA_CFLAGS) $(OGG_CFLAGS) $(SPEEX_CFLAGS) $(LIBMODPLUG_CFLAGS)
+AM_CFLAGS = $(VORBIS_CFLAGS) $(THEORA_CFLAGS) $(SPEEX_CFLAGS) \
+	$(LIBMODPLUG_CFLAGS) $(VISIBILITY_FLAG)
 AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
 
 libdir = $(XINE_PLUGINDIR)
@@ -52,77 +53,63 @@ lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) $(image_module) \
 
 xineplug_dmx_ogg_la_SOURCES = demux_ogg.c
 xineplug_dmx_ogg_la_LIBADD =  $(VORBIS_LIBS) $(SPEEX_LIBS) $(THEORA_LIBS) $(OGG_LIBS) $(XINE_LIB)
-xineplug_dmx_ogg_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_ogg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_avi_la_SOURCES = demux_avi.c
 xineplug_dmx_avi_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_avi_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_avi_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_block_la_SOURCES = demux_mpeg_block.c
 xineplug_dmx_mpeg_block_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_mpeg_block_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_mpeg_block_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_la_SOURCES = demux_mpeg.c
 xineplug_dmx_mpeg_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_mpeg_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_mpeg_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_elem_la_SOURCES = demux_elem.c
 xineplug_dmx_mpeg_elem_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_mpeg_elem_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_mpeg_elem_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_pes_la_SOURCES = demux_mpeg_pes.c
 xineplug_dmx_mpeg_pes_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_mpeg_pes_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_mpeg_pes_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mpeg_ts_la_SOURCES = demux_ts.c
 xineplug_dmx_mpeg_ts_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_mpeg_ts_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_mpeg_ts_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_qt_la_SOURCES = demux_qt.c
 xineplug_dmx_qt_la_LIBADD = $(XINE_LIB) $(ZLIB_LIBS)
-xineplug_dmx_qt_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_qt_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_asf_la_SOURCES = demux_asf.c asfheader.c
 xineplug_dmx_asf_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_asf_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS) -fno-strict-aliasing
+xineplug_dmx_asf_la_CFLAGS = -fno-strict-aliasing
 xineplug_dmx_asf_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_fli_la_SOURCES = demux_fli.c
 xineplug_dmx_fli_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_fli_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_fli_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_yuv4mpeg2_la_SOURCES = demux_yuv4mpeg2.c
 xineplug_dmx_yuv4mpeg2_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_yuv4mpeg2_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_yuv4mpeg2_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_real_la_SOURCES = demux_real.c
 xineplug_dmx_real_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_real_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_real_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_rawdv_la_SOURCES = demux_rawdv.c
 xineplug_dmx_rawdv_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_rawdv_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_rawdv_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_mng_la_SOURCES = demux_mng.c
 xineplug_dmx_mng_la_LIBADD = $(XINE_LIB) $(ZLIB_LIBS) $(MNG_LIBS)
-xineplug_dmx_mng_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_mng_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_pva_la_SOURCES = demux_pva.c
 xineplug_dmx_pva_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_pva_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_pva_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_games_la_SOURCES = group_games.c demux_eawve.c \
@@ -131,7 +118,6 @@ xineplug_dmx_games_la_SOURCES = group_games.c demux_eawve.c \
 				demux_film.c demux_smjpeg.c demux_4xm.c \
 				demux_vmd.c
 xineplug_dmx_games_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_games_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_games_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_audio_la_SOURCES = group_audio.c demux_aud.c demux_aiff.c \
@@ -141,42 +127,35 @@ xineplug_dmx_audio_la_SOURCES = group_audio.c demux_aud.c demux_aiff.c \
 				demux_aac.c demux_mod.c demux_flac.c \
 				demux_mpc.c demux_dts.c demux_shn.c
 xineplug_dmx_audio_la_LIBADD = $(XINE_LIB) $(LIBMODPLUG_LIBS)
-xineplug_dmx_audio_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_audio_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_yuv_frames_la_SOURCES = demux_yuv_frames.c
 xineplug_dmx_yuv_frames_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_yuv_fames_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_yuv_frames_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_slave_la_SOURCES = demux_slave.c
 xineplug_dmx_slave_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_slave_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_slave_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_image_la_SOURCES = demux_image.c
 xineplug_dmx_image_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_images_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_image_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_nsv_la_SOURCES = demux_nsv.c
 xineplug_dmx_nsv_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_nsv_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_nsv_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_matroska_la_SOURCES = demux_matroska.c ebml.c
 xineplug_dmx_matroska_la_LIBADD = $(XINE_LIB) $(ZLIB_LIBS)
-xineplug_dmx_matroska_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS) -fno-strict-aliasing
+xineplug_dmx_matroska_la_CFLAGS =  -fno-strict-aliasing
 xineplug_dmx_matroska_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_iff_la_SOURCES = demux_iff.c
 xineplug_dmx_iff_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_iff_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_iff_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_flv_la_SOURCES = demux_flv.c
 xineplug_dmx_flv_la_LIBADD = $(XINE_LIB)
-xineplug_dmx_flv_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_dmx_flv_la_LDFLAGS = -avoid-version -module
 
 include_HEADERS = demux.h
