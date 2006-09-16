@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.115 2006/09/16 14:35:44 tmattern Exp $
+ * $Id: input_file.c,v 1.116 2006/09/16 14:38:18 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -153,7 +153,7 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
     buf->content = this->mmap_curr;
 
     /* FIXME: it's completely illegal to free buffer->mem here
-     * - buffer->mem has been allocated by malloc
+     * - buffer->mem has not been allocated by malloc
      * - demuxers expect buffer->mem != NULL 
      */
     /* free(buf->mem); buf->mem = NULL; */
