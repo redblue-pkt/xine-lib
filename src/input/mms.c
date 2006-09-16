@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.62 2006/09/12 21:24:21 valtri Exp $
+ * $Id: mms.c,v 1.63 2006/09/16 08:13:51 tmattern Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -475,7 +475,7 @@ static int get_asf_header (mms_t *this) {
 	    return 0;
 	}
         len = _x_io_tcp_read (this->stream, this->s,
-                              (char*)(this->asf_header + this->asf_header_len), header.packet_len);
+                              (char*)(this->asf_header_buffer + this->asf_header_len), header.packet_len);
         if (len != header.packet_len) {
           xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
                   "libmms: get_header failed\n");
