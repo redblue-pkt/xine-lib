@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.114 2006/09/13 23:22:51 dgp85 Exp $
+ * $Id: input_file.c,v 1.115 2006/09/16 14:35:44 tmattern Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -151,7 +151,13 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
     /* We use the still-mmapped file rather than copying it */
     buf->size = len;
     buf->content = this->mmap_curr;
-    free(buf->mem); buf->mem = NULL;
+
+    /* FIXME: it's completely illegal to free buffer->mem here
+     * - buffer->mem has been allocated by malloc
+     * - demuxers expect buffer->mem != NULL 
+     */
+    /* free(buf->mem); buf->mem = NULL; */
+
     this->mmap_curr += len;
   } else
 #endif
