@@ -21,9 +21,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef _MSC_VER
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 
+#ifdef _MSC_VER
 #include <stdio.h>
 #include <stdlib.h>
 #endif

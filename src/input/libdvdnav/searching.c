@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: searching.c,v 1.19 2005/10/14 21:02:16 miguelfreitas Exp $
+ * $Id: searching.c,v 1.20 2006/09/17 13:01:08 valtri Exp $
  *
  */
 
@@ -105,7 +105,6 @@ dvdnav_status_t dvdnav_time_search(dvdnav_t *this,
   int32_t found;
   cell_playback_t *cell;
   dvd_state_t *state;
-  dvdnav_status_t result;
 
   if(this->position_current.still != 0) {
     printerr("Cannot seek in a still frame.");

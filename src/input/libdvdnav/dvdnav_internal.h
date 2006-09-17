@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.15 2004/09/20 19:30:04 valtri Exp $
+ * $Id: dvdnav_internal.h,v 1.16 2006/09/17 13:01:08 valtri Exp $
  *
  */
 
@@ -34,6 +34,34 @@
 #include <limits.h>
 #include <string.h>
 
+#ifndef HAVE_GETTIMEOFDAY
+#  ifdef WIN32
+#    include <winsock.h>
+struct timezone;
+#  else
+#    include <sys/time.h>
+#  endif
+/* replacement gettimeofday implementation */
+#include <sys/timeb.h>
+static inline int dvdnav_private_gettimeofday( struct timeval *tv, void *tz )
+{
+  struct timeb t;
+  ftime( &t );
+  tv->tv_sec = t.time;
+  tv->tv_usec = t.millitm * 1000;
+  return 0;
+}
+#define gettimeofday(TV, TZ) dvdnav_private_gettimeofday((TV), (TZ))
+#define HAVE_GETTIMEOFDAY 1
+#endif
+
+#ifndef HAVE_SNPRINTF
+#  ifdef HAVE__SNPRINTF
+#    define snprintf _snprintf
+#    define HAVE_SNPRINTF 1
+#  endif
+#endif
+
 #ifdef WIN32
 
 /* pthread_mutex_* wrapper for win32 */
@@ -45,17 +73,6 @@ typedef CRITICAL_SECTION pthread_mutex_t;
 #define pthread_mutex_unlock(a)  LeaveCriticalSection(a)
 #define pthread_mutex_destroy(a)
 
-/* replacement gettimeofday implementation */
-#include <sys/timeb.h>
-static inline int _private_gettimeofday( struct timeval *tv, void *tz )
-{
-  struct timeb t;
-  ftime( &t );
-  tv->tv_sec = t.time;
-  tv->tv_usec = t.millitm * 1000;
-  return 0;
-}
-#define gettimeofday(TV, TZ) _private_gettimeofday((TV), (TZ))
 #include <io.h> /* read() */
 #define lseek64 _lseeki64
 

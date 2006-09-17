@@ -32,8 +32,13 @@
 #include <limits.h>
 #include <dirent.h>
 
-/* misc win32 helpers */
-#ifdef WIN32
+#ifndef HAVE_GETTIMEOFDAY
+#  ifdef WIN32
+#    include <winsock.h>
+struct timezone;
+#  else
+#    include <sys/time.h>
+#  endif
 /* replacement gettimeofday implementation */
 #include <sys/timeb.h>
 static inline int _private_gettimeofday( struct timeval *tv, void *tz )
@@ -45,6 +50,10 @@ static inline int _private_gettimeofday( struct timeval *tv, void *tz )
   return 0;
 }
 #define gettimeofday(TV, TZ) _private_gettimeofday((TV), (TZ))
+#endif
+
+/* misc win32 helpers */
+#ifdef WIN32
 #include <io.h> /* read() */
 #define lseek64 _lseeki64
 #endif

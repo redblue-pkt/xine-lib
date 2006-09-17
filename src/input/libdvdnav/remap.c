@@ -15,21 +15,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: remap.c,v 1.4 2003/08/25 21:51:40 f1rmb Exp $
+ * $Id: remap.c,v 1.5 2006/09/17 13:01:08 valtri Exp $
  */
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#ifndef _MSC_VER 
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
+
+#ifdef HAVE_SYS_FCNTL_H
 #include <sys/fcntl.h>
 #else
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 255
 #endif
-#endif /* _MSC_VER */
+#endif /* HAVE fcntl.h */
 
 #include <assert.h>
 #include "remap.h"
