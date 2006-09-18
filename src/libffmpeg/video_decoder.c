@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.62 2006/09/18 18:51:08 tmattern Exp $
+ * $Id: video_decoder.c,v 1.63 2006/09/18 18:56:56 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -154,6 +154,7 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
       this->is_direct_rendering_disabled = 1;
     }
 
+    /* FIXME: why should i have to do that ? */
     av_frame->data[0]= NULL;
     av_frame->data[1]= NULL;
     av_frame->data[2]= NULL;
@@ -170,6 +171,10 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
                 _("ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"));
         this->is_direct_rendering_disabled = 1;
       }
+      /* FIXME: why should i have to do that ? */
+      av_frame->data[0]= NULL;
+      av_frame->data[1]= NULL;
+      av_frame->data[2]= NULL;
       return avcodec_default_get_buffer(context, av_frame);
     }
   }
