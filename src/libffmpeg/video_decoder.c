@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.61 2006/08/02 07:15:27 tmmm Exp $
+ * $Id: video_decoder.c,v 1.62 2006/09/18 18:51:08 tmattern Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -113,6 +113,8 @@ struct ff_video_decoder_s {
   int               yuv_init;
 
   int               cs_convert_init;
+  int               is_direct_rendering_disabled;
+
   AVPaletteControl  palette_control;
 };
 
@@ -146,11 +148,15 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
   avcodec_align_dimensions(context, &width, &height);
 
   if( this->context->pix_fmt != PIX_FMT_YUV420P ) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-            _("ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"));
+    if (!this->is_direct_rendering_disabled) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              _("ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"));
+      this->is_direct_rendering_disabled = 1;
+    }
 
-    this->context->get_buffer = avcodec_default_get_buffer;
-    this->context->release_buffer = avcodec_default_release_buffer;
+    av_frame->data[0]= NULL;
+    av_frame->data[1]= NULL;
+    av_frame->data[2]= NULL;
     return avcodec_default_get_buffer(context, av_frame);
   }
   
@@ -159,11 +165,11 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
       this->crop_right = width - this->bih.biWidth;
       this->crop_bottom = height - this->bih.biHeight;
     } else {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-              _("ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"));
-
-      this->context->get_buffer = avcodec_default_get_buffer;
-      this->context->release_buffer = avcodec_default_release_buffer;
+      if (!this->is_direct_rendering_disabled) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+                _("ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"));
+        this->is_direct_rendering_disabled = 1;
+      }
       return avcodec_default_get_buffer(context, av_frame);
     }
   }
@@ -196,18 +202,20 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
 }
 
 static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
-  vo_frame_t *img = (vo_frame_t *)av_frame->opaque;
+
+  if (av_frame->type == FF_BUFFER_TYPE_USER) {
+    vo_frame_t *img = (vo_frame_t *)av_frame->opaque;
     
-  assert(av_frame->type == FF_BUFFER_TYPE_USER);
-  assert(av_frame->opaque);  
-  
+    assert(av_frame->opaque);  
+    img->free(img);
+  } else {
+    avcodec_default_release_buffer(context, av_frame);
+  }
+
+  av_frame->opaque = NULL;
   av_frame->data[0]= NULL;
   av_frame->data[1]= NULL;
   av_frame->data[2]= NULL;
-
-  img->free(img);
-
-  av_frame->opaque = NULL;
 }
 #endif
 
