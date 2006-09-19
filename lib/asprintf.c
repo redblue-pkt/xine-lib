@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-int _xine_private_vasprintf (char **buffer, const char *format, va_list ap)
+int xine_private_vasprintf (char **buffer, const char *format, va_list ap)
 {
   char *buf = NULL;
   int size = 128;
@@ -53,7 +53,7 @@ int _xine_private_vasprintf (char **buffer, const char *format, va_list ap)
   }
 }
 
-int _xine_private_asprintf (char **buffer, const char *format, ...)
+int xine_private_asprintf (char **buffer, const char *format, ...)
 {
   int ret;
   va_list ap;

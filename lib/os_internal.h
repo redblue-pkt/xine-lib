@@ -119,7 +119,7 @@ void xine_private_unsetenv(const char *name);
 #else
   #define asprintf(STRINGPP, FORMAT, ...) xine_private_asprintf((STRINGPP), FORMAT, __VA_ARGS__)
 #endif
-#define vasprintf(STRINGPP, FORMAT, VA_ARG) _xine_private_vasprintf((STRINGPP), (FORMAT), (VA_ARG))
+#define vasprintf(STRINGPP, FORMAT, VA_ARG) xine_private_vasprintf((STRINGPP), (FORMAT), (VA_ARG))
 int xine_private_asprintf(char **string, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 int xine_private_vasprintf(char **string, const char *format, va_list ap) __attribute__ ((format (printf, 2, 0)));
 #endif

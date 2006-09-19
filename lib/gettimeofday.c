@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #endif
 
-int _xine_private_gettimeofday(struct timeval *tv) {
+int xine_private_gettimeofday(struct timeval *tv) {
   struct timeb tp;
 
   ftime(&tp);

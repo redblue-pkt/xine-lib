@@ -12,7 +12,7 @@
 /**
  * get error descriptions in DNS lookups
  */
-const char *_xine_private_hstrerror(int err) {
+const char *xine_private_hstrerror(int err) {
   switch (err) {
     case 0: return _("No error");
     case HOST_NOT_FOUND: return _("Unknown host");

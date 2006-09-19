@@ -37,7 +37,7 @@ struct DIR
 
 #endif
 
-DIR *_xine_private_opendir(const char *name)
+DIR *xine_private_opendir(const char *name)
 {
     DIR *dir = 0;
 
@@ -78,7 +78,7 @@ DIR *_xine_private_opendir(const char *name)
     return dir;
 }
 
-int _xine_private_closedir(DIR *dir)
+int xine_private_closedir(DIR *dir)
 {
     int result = -1;
 
@@ -101,7 +101,7 @@ int _xine_private_closedir(DIR *dir)
     return result;
 }
 
-struct dirent *_xine_private_readdir(DIR *dir)
+struct dirent *xine_private_readdir(DIR *dir)
 {
     struct dirent *result = 0;
 
@@ -122,7 +122,7 @@ struct dirent *_xine_private_readdir(DIR *dir)
     return result;
 }
 
-void _xine_private_rewinddir(DIR *dir)
+void xine_private_rewinddir(DIR *dir)
 {
     if(dir && dir->handle != -1)
     {

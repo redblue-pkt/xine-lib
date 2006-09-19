@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 /* This function will leak a small amount of memory */
-int _xine_private_setenv(const char *name, const char *val) {
+int xine_private_setenv(const char *name, const char *val) {
   int len;
   char *env;
 

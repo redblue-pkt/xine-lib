@@ -1,5 +1,5 @@
 /*
- * written for xine project, 2004
+ * written for xine project, 2004-2006
  *
  * public domain replacement function for strtok_r()
  *
@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <string.h>
 
-char *_xine_private_strtok_r(char *s, const char *delim, char **ptrptr) {
+char *xine_private_strtok_r(char *s, const char *delim, char **ptrptr) {
   char *next;
   size_t toklen, cutlen;
 

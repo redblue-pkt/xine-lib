@@ -9,7 +9,7 @@
 #define FILESYSTEM_PREFIX_LEN(filename) 0
 #define ISSLASH(C) ((C) == '/')
 
-char *_xine_private_basename(char *name) {
+char *xine_private_basename(char *name) {
   char const *base = name + FILESYSTEM_PREFIX_LEN (name);
   char const *p;
 

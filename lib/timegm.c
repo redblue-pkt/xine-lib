@@ -3,7 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-time_t _xine_private_timegm(struct tm *tm) {
+time_t xine_private_timegm(struct tm *tm) {
   time_t ret;
   char *tz;
 

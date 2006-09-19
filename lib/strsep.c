@@ -1,7 +1,7 @@
 #include "config.h"
 #include <string.h>
 
-char *_xine_private_strsep(char **stringp, const char *delim) {
+char *xine_private_strsep(char **stringp, const char *delim) {
   char *begin, *end;
 
   begin = *stringp;

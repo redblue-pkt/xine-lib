@@ -6,7 +6,7 @@
 
 #include <string.h>
 
-char *_xine_private_strndup(const char *s, size_t n) {
+char *xine_private_strndup(const char *s, size_t n) {
   char *ret;
   
   ret = malloc (n + 1);
