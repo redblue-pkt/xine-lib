@@ -58,7 +58,7 @@ int xine_private_asprintf (char **buffer, const char *format, ...)
   int ret;
   va_list ap;
   va_start (ap, format);
-  ret = _xine_private_vasprintf (buffer, format, ap);
+  ret = xine_private_vasprintf (buffer, format, ap);
   va_end (ap);
   return ret;
 }
