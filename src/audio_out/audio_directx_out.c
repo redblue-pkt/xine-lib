@@ -20,7 +20,7 @@
  * audio_directx_out.c, direct sound audio output plugin for xine
  * by Matthew Grooms <elon@altavista.com>
  *
- * $Id: audio_directx_out.c,v 1.16 2006/07/16 16:18:09 dsalt Exp $
+ * $Id: audio_directx_out.c,v 1.17 2006/09/21 15:01:08 valtri Exp $
  */
 
 /*
@@ -844,7 +844,7 @@ static void *init_class (xine_t *xine, void *data) {
    * from this point on, nothing should go wrong anymore
    */
   audiox = (audiox_class_t *) xine_xmalloc (sizeof (audiox_class_t));
-  if (!ao_directx)
+  if (!audiox)
     return NULL;
   
   audiox->driver_class.open_plugin     = open_plugin;

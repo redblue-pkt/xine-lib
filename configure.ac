@@ -1824,7 +1824,8 @@ int has_timeout=sizeof(test.timeout);],
   fi
 fi
 
-AC_DEFINE([LIBCDIO_CONFIG_H], 1, [This defined to get of rid system libcdio build configuration])
+AC_DEFINE([LIBCDIO_CONFIG_H], 1, [Get of rid system libcdio build configuration])
+AC_DEFINE([EXTERNAL_LIBCDIO_CONFIG_H], 1, [Get of rid system libcdio build configuration])
 AC_SUBST(LIBCDIO_CFLAGS)
 AC_SUBST(LIBCDIO_LIBS)
 AC_SUBST(LIBISO9660_LIBS)
