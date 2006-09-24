@@ -28,6 +28,7 @@ xine-lib (1.1.3)
   * Return the correct error message to frontends when a file is inaccessible or
     the network connection is broken. [bug #1550763]
   * Support libcaca 0.99, thanks to cjacker huang.
+  * Fix crash on video-only WMV streams. [bug #1564598]
 	
 xine-lib (1.1.2)
   * Security fixes:
