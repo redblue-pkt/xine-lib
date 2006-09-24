@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.182 2006/09/15 21:52:19 tmattern Exp $
+ * $Id: demux_asf.c,v 1.183 2006/09/24 16:29:10 dgp85 Exp $
  *
  * demultiplexer for asf streams
  *
@@ -584,8 +584,8 @@ static int demux_asf_send_headers_common (demux_asf_t *this) {
 
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	    "demux_asf: video stream_id: %d, audio stream_id: %d\n",
-	    this->asf_header->streams[this->video_stream]->stream_number,
-	    this->asf_header->streams[this->audio_stream]->stream_number);
+	    this->audio_stream != -1 ? this->asf_header->streams[this->video_stream]->stream_number : -1,
+	    this->video_stream != -1 ? this->asf_header->streams[this->audio_stream]->stream_number : -1);
 
     if (this->audio_stream != -1) {
       _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
@@ -1049,8 +1049,8 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
   for (i = 0; i < this->asf_header->stream_count; i++) {
   lprintf ("stream_number = %d\n", this->asf_header->streams[i]->stream_number);
     if ((this->asf_header->streams[i]->stream_number == stream_id) &&
-        ((stream_id == this->asf_header->streams[this->audio_stream]->stream_number) ||
-	 (stream_id == this->asf_header->streams[this->video_stream]->stream_number))) {
+        (( this->audio_stream != -1 && stream_id == this->asf_header->streams[this->audio_stream]->stream_number ) ||
+	 ( this->video_stream != -1 && stream_id == this->asf_header->streams[this->video_stream]->stream_number ))) {
       *stream = &this->streams[i];
       break;
     }
@@ -1098,7 +1098,7 @@ static int asf_parse_packet_payload_common(demux_asf_t *this,
         buf->type = BUF_CONTROL_RESET_DECODER;
         (*stream)->fifo->put((*stream)->fifo, buf);
       }
-      if (stream_id == this->asf_header->streams[this->video_stream]->stream_number) {
+      if (this->video_stream != -1 && stream_id == this->asf_header->streams[this->video_stream]->stream_number) {
         lprintf ("bad seq: waiting for keyframe\n");
 
         (*stream)->resync    =  1;
@@ -1903,7 +1903,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
             check_newpts (this, ts * 90, 1, 0);
           }
         } else if (state == 1) {
-          if ((stream_id == this->asf_header->streams[this->audio_stream]->stream_number) && ts &&
+          if ((this->audio_stream != -1 && stream_id == this->asf_header->streams[this->audio_stream]->stream_number) && ts &&
               (ts <= this->keyframe_ts)) {
             lprintf ("demux_asf_seek: audio packet found at %lld, ts = %lld\n", start_pos, ts);
 
@@ -1911,7 +1911,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
             break;
           }
         } else if (state == 2) {
-          if ((stream_id ==  this->asf_header->streams[this->audio_stream]->stream_number) && !frag_offset) {
+          if ((this->audio_stream != -1 && stream_id == this->asf_header->streams[this->audio_stream]->stream_number) && !frag_offset) {
             this->keyframe_found = 1;
             this->keyframe_ts = ts;
             state = 5; /* end */
