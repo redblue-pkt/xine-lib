@@ -20,7 +20,7 @@
  * NSF Audio "Decoder" using the Nosefart NSF engine by Matt Conte
  *   http://www.baisoku.org/
  *
- * $Id: nsf.c,v 1.12 2006/07/10 22:08:43 dgp85 Exp $
+ * $Id: nsf.c,v 1.13 2006/09/25 23:56:31 dgp85 Exp $
  */
 
 #include <stdio.h>
@@ -116,6 +116,7 @@ static void nsf_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "nsf: could not initialize NSF\n");
         /* make the decoder return on every subsequent buffer */
         this->nsf_index = 0;
+	return;
       }
       this->nsf->current_song = this->song_number;
       nsf_playtrack(this->nsf, this->nsf->current_song, this->sample_rate,
