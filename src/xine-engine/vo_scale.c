@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.37 2005/07/18 17:59:37 jstembridge Exp $
+ * $Id: vo_scale.c,v 1.38 2006/09/25 22:27:48 dgp85 Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -246,17 +246,20 @@ int _x_vo_scale_redraw_needed (vo_scale_t *this) {
   int gui_x, gui_y, gui_width, gui_height, gui_win_x, gui_win_y;
   double gui_pixel_aspect;
   int ret = 0;
-  
-  if( this->frame_output_cb ) {
-    this->frame_output_cb (this->user_data,
-			   this->delivered_width - (this->crop_left + this->crop_right), 
-			   this->delivered_height - (this->crop_top + this->crop_bottom), 
-			   this->video_pixel_aspect,
-			   &gui_x, &gui_y, &gui_width, &gui_height,
-			   &gui_pixel_aspect, &gui_win_x, &gui_win_y );
-  } else {
-    printf ("vo_scale: error! frame_output_cb must be set!\n");
+
+  assert(this->frame_output_cb);
+  if ( ! this->frame_output_cb ) {
+    /* TODO: Make this use xine_log, if xine instance is available. */
+    fprintf(stderr, _("vo_scale: error! frame_output_cb must be set!\n"));
+    return 0;
   }
+  
+  this->frame_output_cb (this->user_data,
+			 this->delivered_width - (this->crop_left + this->crop_right), 
+			 this->delivered_height - (this->crop_top + this->crop_bottom), 
+			 this->video_pixel_aspect,
+			 &gui_x, &gui_y, &gui_width, &gui_height,
+			 &gui_pixel_aspect, &gui_win_x, &gui_win_y );
 
   if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
       || (gui_width != this->gui_width) || (gui_height != this->gui_height)
