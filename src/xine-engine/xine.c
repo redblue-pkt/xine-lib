@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.333 2006/09/14 06:46:31 pmhahn Exp $
+ * $Id: xine.c,v 1.334 2006/09/25 23:11:19 dgp85 Exp $
  */
 
 /*
@@ -827,6 +827,8 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 
 	  xine_log(stream->xine, XINE_LOG_MSG, _("xine: join rip input plugin\n"));
 	  input_saver = _x_rip_plugin_get_instance (stream, filename);
+	  free(filename);
+	  
 	  if( input_saver ) {
 	    stream->input_plugin = input_saver;
 	  } else {
