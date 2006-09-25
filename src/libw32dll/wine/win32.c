@@ -3128,7 +3128,7 @@ static int WINAPI expGetEnvironmentVariableA(const char* name, char* field, int 
 {
     /* char *p; */
     //    printf("%s %x %x\n", name, field, size);
-    if(field)field[0]=0;
+    if(field) field[0] = '\0';
     /*
      p = getenv(name);
      if (p) strncpy(field,p,size);
