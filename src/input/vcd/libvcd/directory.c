@@ -1,5 +1,5 @@
 /*
-    $Id: directory.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
+    $Id: directory.c,v 1.4 2006/09/26 19:26:57 dgp85 Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -35,7 +35,7 @@
 #include "directory.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: directory.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
+static const char _rcsid[] = "$Id: directory.c,v 1.4 2006/09/26 19:26:57 dgp85 Exp $";
 
 /* CD-ROM XA */
 
@@ -343,6 +343,7 @@ _vcd_directory_mkfile (VcdDirectory *dir, const char pathname[],
   if (lookup_child (pdir, splitpath[level-1])) 
     {
       vcd_error ("mkfile: `%s' already exists", pathname);
+      _vcd_strfreev(splitpath);
       return -1;
     }
   
