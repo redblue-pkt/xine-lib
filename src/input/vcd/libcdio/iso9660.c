@@ -1,5 +1,5 @@
 /*
-    $Id: iso9660.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $
+    $Id: iso9660.c,v 1.4 2006/09/26 18:13:11 dgp85 Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
@@ -37,7 +37,7 @@
 #include <stdio.h>
 #endif
 
-static const char _rcsid[] = "$Id: iso9660.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $";
+static const char _rcsid[] = "$Id: iso9660.c,v 1.4 2006/09/26 18:13:11 dgp85 Exp $";
 
 /* some parameters... */
 #define SYSTEM_ID         "CD-RTOS CD-BRIDGE"
@@ -50,7 +50,7 @@ static const char _rcsid[] = "$Id: iso9660.c,v 1.3 2005/01/01 02:43:57 rockyb Ex
 static char *
 strip_trail (const char str[], size_t n)
 {
-  static char buf[1024];
+  static char buf[1025];
   int j;
 
   cdio_assert (n < 1024);
