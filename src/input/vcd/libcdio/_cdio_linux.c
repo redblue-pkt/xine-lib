@@ -1,5 +1,5 @@
 /*
-    $Id: _cdio_linux.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $
+    $Id: _cdio_linux.c,v 1.4 2006/09/26 22:18:44 dgp85 Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
@@ -27,7 +27,7 @@
 # include "config.h"
 #endif
 
-static const char _rcsid[] = "$Id: _cdio_linux.c,v 1.3 2005/01/01 02:43:57 rockyb Exp $";
+static const char _rcsid[] = "$Id: _cdio_linux.c,v 1.4 2006/09/26 22:18:44 dgp85 Exp $";
 
 #include <string.h>
 
@@ -1151,7 +1151,10 @@ cdio_open_am_linux (const char *psz_orig_source, const char *access_mode)
 
   if (NULL == psz_orig_source) {
     psz_source=cdio_get_default_device_linux();
-    if (NULL == psz_source) return NULL;
+    if (NULL == psz_source) {
+      free(_data);
+      return NULL;
+    }
     set_arg_linux(_data, "source", psz_source);
     free(psz_source);
   } else {
@@ -1162,6 +1165,7 @@ cdio_open_am_linux (const char *psz_orig_source, const char *access_mode)
 #if 0
       cdio_info ("source %s is not a device", psz_orig_source);
 #endif
+      free(_data);
       return NULL;
     }
   }
