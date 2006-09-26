@@ -1,5 +1,5 @@
 /*
-    $Id: info.c,v 1.6 2006/09/26 18:52:41 dgp85 Exp $
+    $Id: info.c,v 1.7 2006/09/26 22:29:39 dgp85 Exp $
 
     Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
@@ -59,7 +59,7 @@
 #include <stddef.h>
 #include <errno.h>
 
-static const char _rcsid[] = "$Id: info.c,v 1.6 2006/09/26 18:52:41 dgp85 Exp $";
+static const char _rcsid[] = "$Id: info.c,v 1.7 2006/09/26 22:29:39 dgp85 Exp $";
 
 #define BUF_COUNT 16
 #define BUF_SIZE 80
@@ -1770,7 +1770,7 @@ vcdinfo_visit_lot (vcdinfo_obj_t *obj, bool extended)
 const char *
 vcdinfo_strip_trail (const char str[], size_t n)
 {
-  static char buf[1024];
+  static char buf[1025];
   int j;
 
   vcd_assert (n < 1024);
