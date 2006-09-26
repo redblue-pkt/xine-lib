@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.47 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_matroska.c,v 1.48 2006/09/26 00:07:05 dgp85 Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -2669,8 +2669,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   return &this->demux_plugin;
 
 error:
-  if (ebml)
-    dispose_ebml_parser(ebml);
+  dispose_ebml_parser(ebml);
   free(this);
   return NULL;
 }
