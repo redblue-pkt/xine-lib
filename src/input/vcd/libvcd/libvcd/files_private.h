@@ -1,5 +1,5 @@
 /*
-    $Id: files_private.h,v 1.2 2004/04/11 12:20:32 miguelfreitas Exp $
+    $Id: files_private.h,v 1.3 2006/09/26 21:16:59 dgp85 Exp $
 
     Copyright (C) 2000 Herbert Valerio Riedel <hvr@gnu.org>
               (C) 2000 Jens B. Jorgensen <jbj1@ultraemail.net>
@@ -397,7 +397,7 @@ typedef struct {
 #define TRACKS_SVD_VERSION  0x01
 
 typedef struct {
-  char file_id[8];  /* == "TRACKSVD" */
+  char file_id[sizeof(TRACKS_SVD_FILE_ID)-1];  /* == "TRACKSVD" */
   uint8_t version;  /* == 0x01 */
   uint8_t reserved; /* Reserved, must be zero */
   uint8_t tracks; /* number of MPEG tracks */
@@ -418,7 +418,7 @@ typedef struct {
 /* VCD30 tracks svd */
 
 typedef struct {
-  char file_id[8]; /* == "TRACKSVD" */
+  char file_id[sizeof(TRACKS_SVD_FILE_ID)-1]; /* == "TRACKSVD" */
   uint8_t version; /* == 0x01 */
   uint8_t reserved; /* Reserved, must be zero */
   uint8_t tracks; /* number of MPEG tracks */
@@ -442,7 +442,7 @@ typedef struct {
 #define SEARCH_TIME_INTERVAL  0x01
 
 typedef struct {
-  char file_id[8]; /* = "SEARCHSV" */
+  char file_id[sizeof(SEARCH_FILE_ID)-1]; /* = "SEARCHSV" */
   uint8_t version; /* = 0x01 */
   uint8_t reserved; /* Reserved, must be zero */
   uint16_t scan_points; /* the number of scan points */
@@ -461,7 +461,7 @@ typedef struct {
 #define SPICONTX_VERSION      0x01
 
 typedef struct {
-  char file_id[8]; /* = "SPICONSV" */
+  char file_id[sizeof(SPICONTX_FILE_ID)-1]; /* = "SPICONSV" */
   uint8_t version; /* = 0x01 */
   uint8_t reserved; /* Reserved, must be zero */
   struct {
@@ -480,7 +480,7 @@ typedef struct {
 #define SCANDATA_VERSION_SVCD 0x01
 
 typedef struct {
-  char file_id[8]; /* = "SCAN_VCD" */
+  char file_id[sizeof(SCANDATA_FILE_ID)-1]; /* = "SCAN_VCD" */
   uint8_t version; /* = 0x02 */
   uint8_t reserved; /* Reserved, must be zero */
   uint16_t scan_points; /* the number of scan points */
@@ -498,7 +498,7 @@ typedef struct {
    tracks. */
 
 typedef struct {
-  char file_id[8]; /* = "SCAN_VCD" */
+  char file_id[sizeof(SCANDATA_FILE_ID)-1]; /* = "SCAN_VCD" */
   uint8_t version; /* = 0x01 */
   uint8_t reserved; /* Reserved, must be zero */
   uint16_t scandata_count; /* number of 3-byte entries in
