@@ -1961,13 +1961,10 @@ void _x_blend_xx44 (uint8_t *dst_img, vo_overlay_t *img_overl,
                 alphablend_t *extra_data,
 		xx44_palette_t *palette,int ia44) 
 {
-  int  src_width  = img_overl->width;
-  int  src_height = img_overl->height;
-  rle_elem_t *rle        = img_overl->rle;
-  rle_elem_t *rle_limit  = rle + img_overl->num_rle;
+  int src_width, src_height;
+  rle_elem_t *rle, *rle_limit;
   int mask;
-  int x_off = img_overl->x + extra_data->offset_x;
-  int y_off = img_overl->y + extra_data->offset_y;
+  int x_off, y_off;
   int x, y;
   uint8_t norm_pixel,hili_pixel;  
   uint8_t *dst_y;
@@ -1978,6 +1975,13 @@ void _x_blend_xx44 (uint8_t *dst_img, vo_overlay_t *img_overl,
 
   if (!img_overl)
     return;
+
+  src_width  = img_overl->width;
+  src_height = img_overl->height;
+  rle        = img_overl->rle;
+  rle_limit  = rle + img_overl->num_rle;
+  x_off = img_overl->x + extra_data->offset_x;
+  y_off = img_overl->y + extra_data->offset_y;
 
   dst_y = dst_img + dst_pitch*y_off + x_off;
 
