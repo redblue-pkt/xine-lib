@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: syntax.c,v 1.9 2005/10/29 23:57:07 tmmm Exp $
+** $Id: syntax.c,v 1.10 2006/09/26 17:48:24 dgp85 Exp $
 **/
 
 /*
@@ -323,7 +323,7 @@ static void decode_sce_lfe(NeAACDecHandle hDecoder,
     uint8_t channels = hDecoder->fr_channels;
     uint8_t tag = 0;
 
-    if (channels+1 > MAX_CHANNELS)
+    if (channels+1 >= MAX_CHANNELS)
     {
         hInfo->error = 12;
         return;
