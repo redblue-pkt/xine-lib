@@ -11,7 +11,7 @@ pppc_files = ppcasm_string.S
 endif
 endif
 
-AM_CFLAGS = $(X_CFLAGS)
+AM_CFLAGS = $(X_CFLAGS) $(VISIBILITY_FLAG)
 AM_CPPFLAGS=-DXINE_LIBRARY_COMPILE
 
 libxineutils_la_SOURCES = $(pppc_files) \

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.102 2006/06/23 18:24:22 dsalt Exp $
+ * $Id: xineutils.h,v 1.103 2006/09/26 05:48:16 dgp85 Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -86,11 +86,11 @@ extern "C" {
   } xine_mutex_t;
 
   int xine_mutex_init    (xine_mutex_t *mutex, const pthread_mutexattr_t *mutexattr,
-			  const char *id);
+			  const char *id) XINE_PROTECTED;
 
-  int xine_mutex_lock    (xine_mutex_t *mutex, const char *who);
-  int xine_mutex_unlock  (xine_mutex_t *mutex, const char *who);
-  int xine_mutex_destroy (xine_mutex_t *mutex);
+  int xine_mutex_lock    (xine_mutex_t *mutex, const char *who) XINE_PROTECTED;
+  int xine_mutex_unlock  (xine_mutex_t *mutex, const char *who) XINE_PROTECTED;
+  int xine_mutex_destroy (xine_mutex_t *mutex) XINE_PROTECTED;
 
 
 
@@ -128,7 +128,7 @@ extern "C" {
 #define MM_SSE                  MM_ACCEL_X86_SSE
 #define MM_SSE2                 MM_ACCEL_X86_SSE2
 
-uint32_t xine_mm_accel (void);
+uint32_t xine_mm_accel (void) XINE_PROTECTED;
 
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
 
@@ -604,7 +604,7 @@ extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
 
 #ifdef HAVE_XINE_INTERNAL_H
 /* Benchmark available memcpy methods */
-void xine_probe_fast_memcpy(xine_t *xine);
+void xine_probe_fast_memcpy(xine_t *xine) XINE_PROTECTED;
 #endif
 
 
@@ -614,20 +614,20 @@ void xine_probe_fast_memcpy(xine_t *xine);
 /*
  * profiling (unworkable in non DEBUG isn't defined)
  */
-void xine_profiler_init (void);
-int xine_profiler_allocate_slot (const char *label);
-void xine_profiler_start_count (int id);
-void xine_profiler_stop_count (int id);
-void xine_profiler_print_results (void);
+void xine_profiler_init (void) XINE_PROTECTED;
+int xine_profiler_allocate_slot (const char *label) XINE_PROTECTED;
+void xine_profiler_start_count (int id) XINE_PROTECTED;
+void xine_profiler_stop_count (int id) XINE_PROTECTED;
+void xine_profiler_print_results (void) XINE_PROTECTED;
 
 /*
  * Allocate and clean memory size_t 'size', then return the pointer
  * to the allocated memory.
  */
 #if !defined(__GNUC__) || __GNUC__ < 3
-void *xine_xmalloc(size_t size);
+void *xine_xmalloc(size_t size) XINE_PROTECTED;
 #else
-void *xine_xmalloc(size_t size) __attribute__ ((__malloc__));
+void *xine_xmalloc(size_t size) __attribute__ ((__malloc__)) XINE_PROTECTED;
 #endif
 
 /*
@@ -635,32 +635,32 @@ void *xine_xmalloc(size_t size) __attribute__ ((__malloc__));
  * **base is used to return pointer to un-aligned memory, use
  * this to free the mem chunk
  */
-void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base);
+void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) XINE_PROTECTED;
 
 /*
  * Get user home directory.
  */
-const char *xine_get_homedir(void);
+const char *xine_get_homedir(void) XINE_PROTECTED;
 
 #if defined(WIN32) || defined(__CYGWIN__)
 /*
  * Get other xine directories.
  */
-const char *xine_get_plugindir(void);
-const char *xine_get_fontdir(void);
-const char *xine_get_localedir(void);
+const char *xine_get_plugindir(void) XINE_PROTECTED;
+const char *xine_get_fontdir(void) XINE_PROTECTED;
+const char *xine_get_localedir(void) XINE_PROTECTED;
 #endif
 
 /*
  * Clean a string (remove spaces and '=' at the begin,
  * and '\n', '\r' and spaces at the end.
  */
-char *xine_chomp (char *str);
+char *xine_chomp (char *str) XINE_PROTECTED;
 
 /*
  * A thread-safe usecond sleep
  */
-void xine_usec_sleep(unsigned usec);
+void xine_usec_sleep(unsigned usec) XINE_PROTECTED;
 
 
   /*
@@ -668,7 +668,7 @@ void xine_usec_sleep(unsigned usec);
    */
 
 
-void xine_strdupa(char *dest, char *src);
+void xine_strdupa(char *dest, char *src) XINE_PROTECTED;
 #define xine_strdupa(d, s) do {                                             \
                                 (d) = NULL;                                 \
                                 if((s) != NULL) {                           \
@@ -700,34 +700,34 @@ typedef struct yuv_planes_s {
 
 } yuv_planes_t;
 
-void init_yuv_conversion(void);
-void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height);
-void free_yuv_planes(yuv_planes_t *yuv_planes);
+void init_yuv_conversion(void) XINE_PROTECTED;
+void init_yuv_planes(yuv_planes_t *yuv_planes, int width, int height) XINE_PROTECTED;
+void free_yuv_planes(yuv_planes_t *yuv_planes) XINE_PROTECTED;
 
 extern void (*yuv444_to_yuy2)
-  (const yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch);
+  (const yuv_planes_t *yuv_planes, unsigned char *yuy2_map, int pitch) XINE_PROTECTED;
 extern void (*yuv9_to_yv12)
   (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
    const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
    const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
-   int width, int height);
+   int width, int height) XINE_PROTECTED;
 extern void (*yuv411_to_yv12)
   (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dest, int y_dest_pitch,
    const unsigned char *u_src, int u_src_pitch, unsigned char *u_dest, int u_dest_pitch,
    const unsigned char *v_src, int v_src_pitch, unsigned char *v_dest, int v_dest_pitch,
-   int width, int height);
+   int width, int height) XINE_PROTECTED;
 extern void (*yv12_to_yuy2)
   (const unsigned char *y_src, int y_src_pitch,
    const unsigned char *u_src, int u_src_pitch,
    const unsigned char *v_src, int v_src_pitch,
    unsigned char *yuy2_map, int yuy2_pitch,
-   int width, int height, int progressive);
+   int width, int height, int progressive) XINE_PROTECTED;
 extern void (*yuy2_to_yv12)
   (const unsigned char *yuy2_map, int yuy2_pitch,
    unsigned char *y_dst, int y_dst_pitch,
    unsigned char *u_dst, int u_dst_pitch,
    unsigned char *v_dst, int v_dst_pitch,
-   int width, int height);
+   int width, int height) XINE_PROTECTED;
 
 #define SCALEFACTOR 65536
 #define CENTERSAMPLE 128
@@ -762,31 +762,31 @@ extern void (*yuy2_to_yv12)
   g = (packed_pixel & 0x07E0) >> 3; \
   b = (packed_pixel & 0x001F) << 3;
 
-extern int y_r_table[256];
-extern int y_g_table[256];
-extern int y_b_table[256];
+extern int y_r_table[256] XINE_PROTECTED;
+extern int y_g_table[256] XINE_PROTECTED;
+extern int y_b_table[256] XINE_PROTECTED;
 
-extern int u_r_table[256];
-extern int u_g_table[256];
-extern int u_b_table[256];
+extern int u_r_table[256] XINE_PROTECTED;
+extern int u_g_table[256] XINE_PROTECTED;
+extern int u_b_table[256] XINE_PROTECTED;
 
-extern int v_r_table[256];
-extern int v_g_table[256];
-extern int v_b_table[256];
+extern int v_r_table[256] XINE_PROTECTED;
+extern int v_g_table[256] XINE_PROTECTED;
+extern int v_b_table[256] XINE_PROTECTED;
 
 /* frame copying functions */
 extern void yv12_to_yv12
   (const unsigned char *y_src, int y_src_pitch, unsigned char *y_dst, int y_dst_pitch,
    const unsigned char *u_src, int u_src_pitch, unsigned char *u_dst, int u_dst_pitch,
    const unsigned char *v_src, int v_src_pitch, unsigned char *v_dst, int v_dst_pitch,
-   int width, int height);
+   int width, int height) XINE_PROTECTED;
 extern void yuy2_to_yuy2
   (const unsigned char *src, int src_pitch,
    unsigned char *dst, int dst_pitch,
-   int width, int height);
+   int width, int height) XINE_PROTECTED;
 
 /* print a hexdump of the given data */
-void xine_hexdump (const char *buf, int length);
+void xine_hexdump (const char *buf, int length) XINE_PROTECTED;
 
 /*
  * Optimization macros for conditions
@@ -959,18 +959,18 @@ void xine_xprintf(xine_t *xine, int verbose, const char *fmt, ...);
 /**
  * get encoding of current locale
  */
-char *xine_get_system_encoding(void);
+char *xine_get_system_encoding(void) XINE_PROTECTED;
 
 /*
  * guess default encoding for the subtitles
  */
-const char *xine_guess_spu_encoding(void);
+const char *xine_guess_spu_encoding(void) XINE_PROTECTED;
 
 /*
  * use the best clock reference (API compatible with gettimeofday)
  * note: it will be a monotonic clock, if available.
  */
-int xine_monotonic_clock(struct timeval *tv, struct timezone *tz);      
+int xine_monotonic_clock(struct timeval *tv, struct timezone *tz) XINE_PROTECTED;
 
 /* don't harm following code */
 #ifdef extern
