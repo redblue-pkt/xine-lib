@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: cfft.c,v 1.11 2005/10/29 23:57:06 tmmm Exp $
+** $Id: cfft.c,v 1.12 2006/09/26 18:00:31 dgp85 Exp $
 **/
 
 /*
@@ -992,11 +992,13 @@ cfft_info *cffti(uint16_t n)
 
 void cfftu(cfft_info *cfft)
 {
-    if (cfft->work) faad_free(cfft->work);
+  if ( ! cfft ) return;
+
+  faad_free(cfft->work);
 #ifndef FIXED_POINT
-    if (cfft->tab) faad_free(cfft->tab);
+  faad_free(cfft->tab);
 #endif
 
-    if (cfft) faad_free(cfft);
+  faad_free(cfft);
 }
 
