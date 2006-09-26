@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: dvdnav_internal.h,v 1.17 2006/09/26 20:17:43 dgp85 Exp $
+ * $Id: dvdnav_internal.h,v 1.18 2006/09/26 20:31:40 dgp85 Exp $
  *
  */
 
@@ -205,28 +205,35 @@ struct dvdnav_s {
 /* printerr*() are often called when this is NULL. Avoid segfaults by replacing these with
  * more common prints
  */
-#if 0
 #ifdef __GNUC__
-#define printerrf(format, args...) snprintf(this->err_str, MAX_ERR_LEN, format, ## args);
+#define printerrf(format, args...)					\
+  do {									\
+    if ( ! this ) fprintf(stderr, "Missing 'this' pointer while erroring:" format "\n", ## args); \
+    else snprintf(this->err_str, MAX_ERR_LEN, format, ## args);		\
+  } while(0);
 #else
 #ifdef _MSC_VER
 #define printerrf(str) snprintf(this->err_str, MAX_ERR_LEN, str);
 #else
-#define printerrf(...) snprintf(this->err_str, MAX_ERR_LEN, __VA_ARGS__);
+#define printerrf(...)						 \
+  do {								 \
+    if ( ! this ) {						 \
+      fprintf(stderr, "Missing 'this' pointer while erroring:"); \
+      fprintf(stderr, __VA_ARGS__);				 \
+      fprintf(stderr, "\n");					 \
+    } else {							 \
+      snprintf(this->err_str, MAX_ERR_LEN, __VA_ARGS__);	 \
+    }								 \
+  } while(0);
 #endif /* WIN32 */
 #endif
-#define printerr(str) strncpy(this->err_str, str, MAX_ERR_LEN);
-#endif
-
-#ifdef __GNUC__
-#define printerrf(format, args...) fprintf(stderr, format, ## args);
-#else
-#ifdef _MSC_VER
-#define printerrf(str) fprintf(stderr, str);
-#else
-#define printerrf(...) fprintf(stderr, __VA_ARGS__);
-#endif /* WIN32 */
-#endif
-#define printerr(str) fprintf(stderr, "%s", str);
+#define printerr(str)							\
+  do {									\
+    if ( ! this ) {							\
+      fprintf(stderr, "Missing 'this' pointer while erroring: %s\n", str); \
+    } else {								\
+      strncpy(this->err_str, str, MAX_ERR_LEN);				\
+    }									\
+  } while(0);
 
 #endif /* DVDNAV_INTERNAL_H_INCLUDED */
