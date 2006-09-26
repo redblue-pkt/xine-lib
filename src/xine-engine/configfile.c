@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.80 2006/06/20 00:35:07 dgp85 Exp $
+ * $Id: configfile.c,v 1.81 2006/09/26 21:51:11 dgp85 Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -1201,9 +1201,12 @@ config_values_t *_x_config_init (void) {
 int _x_config_change_opt(config_values_t *config, const char *opt) {
   cfg_entry_t *entry;
   int          handled = 0;
+  char        *key, *value;
 
-  lprintf ("change_opt '%s'\n", opt);
-  
+  /* If the configuration is missing, return now rather than trying
+   * to dereference it and then check it. */
+  if ( ! config || ! opt ) return -1;
+
   if ((entry = config->lookup_entry(config, "misc.implicit_config")) &&
       entry->type == XINE_CONFIG_TYPE_BOOL) {
     if (!entry->num_value)
@@ -1213,52 +1216,50 @@ int _x_config_change_opt(config_values_t *config, const char *opt) {
     /* someone messed with the config entry */
     return -1;
 
-  if(config && opt) {
-    char *key, *value;
+  key = strdup(opt);
+  if ( !key || *key == '\0' ) return 0;
 
-    key = strdup(opt);
-    value = strrchr(key, ':');
-
-    if(key && strlen(key) && value && strlen(value)) {
-
-      *value++ = '\0';
-
-      entry = config->lookup_entry(config, key);
-
-      if(entry->exp_level >= XINE_CONFIG_SECURITY) {
-        printf(_("configfile: entry '%s' mustn't be modified from MRL\n"), key);
-        free(key);
-        return -1;
-      }
-      
-      if(entry) {
-
-	switch(entry->type) {
-
-	case XINE_CONFIG_TYPE_STRING:
-	  config->update_string(config, key, value);
-	  handled = 1;
-	  break;
-
-	case XINE_CONFIG_TYPE_RANGE:
-	case XINE_CONFIG_TYPE_ENUM:
-	case XINE_CONFIG_TYPE_NUM:
-	case XINE_CONFIG_TYPE_BOOL:
-	  config->update_num(config, key, (atoi(value)));
-	  handled = 1;
-	  break;
-
-	case XINE_CONFIG_TYPE_UNKNOWN:
-	  entry->unknown_value = strdup(value);
-	  handled = 1;
-	  break;
-
-	}
-      }
-    }
+  value = strrchr(key, ':');
+  if ( !value || *value == '\0' ) {
     free(key);
+    return 0;
   }
 
+  *value++ = '\0';
+
+  entry = config->lookup_entry(config, key);
+  if ( ! entry ) {
+    free(key);
+    return -1;
+  }
+
+  if(entry->exp_level >= XINE_CONFIG_SECURITY) {
+    printf(_("configfile: entry '%s' mustn't be modified from MRL\n"), key);
+    free(key);
+    return -1;
+  }
+  
+  switch(entry->type) {
+  case XINE_CONFIG_TYPE_STRING:
+    config->update_string(config, key, value);
+    handled = 1;
+    break;
+    
+  case XINE_CONFIG_TYPE_RANGE:
+  case XINE_CONFIG_TYPE_ENUM:
+  case XINE_CONFIG_TYPE_NUM:
+  case XINE_CONFIG_TYPE_BOOL:
+    config->update_num(config, key, (atoi(value)));
+    handled = 1;
+    break;
+    
+  case XINE_CONFIG_TYPE_UNKNOWN:
+    entry->unknown_value = strdup(value);
+    handled = 1;
+    break;
+  }
+  
+  free(key);
   return handled;
 }
 
