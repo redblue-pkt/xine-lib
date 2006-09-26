@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.h,v 1.113 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_out.h,v 1.114 2006/09/26 05:19:49 dgp85 Exp $
  *
  *
  * xine version of video_out.h 
@@ -445,7 +445,7 @@ struct video_overlay_manager_s {
  * build a video_out_port from
  * a given video driver
  */
-xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabonly) ;
+xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabonly) XINE_PROTECTED;
 
 #ifdef __cplusplus
 }

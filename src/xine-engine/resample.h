@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.h,v 1.5 2003/12/09 00:02:37 f1rmb Exp $
+ * $Id: resample.h,v 1.6 2006/09/26 05:19:49 dgp85 Exp $
  *
  * utilitiy functions for audio drivers
  *
@@ -28,30 +28,30 @@
 #define HAVE_RESAMPLE_H
 
 void _x_audio_out_resample_stereo(int16_t* input_samples, uint32_t in_samples, 
-				  int16_t* output_samples, uint32_t out_samples);
+				  int16_t* output_samples, uint32_t out_samples) XINE_PROTECTED;
 
 void _x_audio_out_resample_mono(int16_t* input_samples, uint32_t in_samples, 
-				int16_t* output_samples, uint32_t out_samples);
+				int16_t* output_samples, uint32_t out_samples) XINE_PROTECTED;
 
 void _x_audio_out_resample_4channel(int16_t* input_samples, uint32_t in_samples, 
-				    int16_t* output_samples, uint32_t out_samples);
+				    int16_t* output_samples, uint32_t out_samples) XINE_PROTECTED;
 
 void _x_audio_out_resample_5channel(int16_t* input_samples, uint32_t in_samples, 
-				    int16_t* output_samples, uint32_t out_samples);
+				    int16_t* output_samples, uint32_t out_samples) XINE_PROTECTED;
 
 void _x_audio_out_resample_6channel(int16_t* input_samples, uint32_t in_samples, 
-				    int16_t* output_samples, uint32_t out_samples);
+				    int16_t* output_samples, uint32_t out_samples) XINE_PROTECTED;
 
 void _x_audio_out_resample_8to16(int8_t* input_samples, 
-				 int16_t* output_samples, uint32_t samples);
+				 int16_t* output_samples, uint32_t samples) XINE_PROTECTED;
 
 void _x_audio_out_resample_16to8(int16_t* input_samples, 
-				 int8_t*  output_samples, uint32_t samples);
+				 int8_t*  output_samples, uint32_t samples) XINE_PROTECTED;
 
 void _x_audio_out_resample_monotostereo(int16_t* input_samples, 
-					int16_t* output_samples, uint32_t frames);
+					int16_t* output_samples, uint32_t frames) XINE_PROTECTED;
 
 void _x_audio_out_resample_stereotomono(int16_t* input_samples, 
-					int16_t* output_samples, uint32_t frames);
+					int16_t* output_samples, uint32_t frames) XINE_PROTECTED;
                             
 #endif

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.22 2004/12/20 21:22:21 mroi Exp $
+ * $Id: post.h,v 1.23 2006/09/26 05:19:49 dgp85 Exp $
  *
  * post plugin definitions
  *
@@ -122,7 +122,7 @@ struct post_plugin_s {
 };
 
 /* helper function to initialize a post_plugin_t */
-void _x_post_init(post_plugin_t *post, int num_audio_inputs, int num_video_inputs);
+void _x_post_init(post_plugin_t *post, int num_audio_inputs, int num_video_inputs) XINE_PROTECTED;
 
 struct post_in_s {
 
@@ -237,13 +237,13 @@ struct post_video_port_s {
  * port functions will be replaced with own implementations;
  * for convenience, this can also create a related post_in_t and post_out_t */
 post_video_port_t *_x_post_intercept_video_port(post_plugin_t *post, xine_video_port_t *port,
-						post_in_t **input, post_out_t **output);
+						post_in_t **input, post_out_t **output) XINE_PROTECTED;
 
 /* use this to decorate and to undecorate a frame so that its functions
  * can be replaced with own implementations, decoration is usually done in
  * get_frame(), undecoration in frame->free() */
-vo_frame_t *_x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port);
-vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port);
+vo_frame_t *_x_post_intercept_video_frame(vo_frame_t *frame, post_video_port_t *port) XINE_PROTECTED;
+vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *port) XINE_PROTECTED;
 
 /* when you want to pass a frame call on to the original issuer of the frame,
  * you need to propagate potential changes up and down the pipe, so the usual
@@ -253,8 +253,8 @@ vo_frame_t *_x_post_restore_video_frame(vo_frame_t *frame, post_video_port_t *po
  *   frame->next->function(frame->next);
  *   _x_post_frame_copy_up(frame, frame->next);
  */
-void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to);
-void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from);
+void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to) XINE_PROTECTED;
+void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from) XINE_PROTECTED;
 
 /* when you shortcut a frames usual draw() travel so that it will never reach
  * the draw() function of the original issuer, you still have to do some
@@ -263,7 +263,7 @@ void _x_post_frame_u_turn(vo_frame_t *frame, xine_stream_t *stream);
 
 /* use this to create a new, trivially decorated overlay manager in which
  * port functions can be replaced with own implementations */
-void _x_post_intercept_overlay_manager(video_overlay_manager_t *manager, post_video_port_t *port);
+void _x_post_intercept_overlay_manager(video_overlay_manager_t *manager, post_video_port_t *port) XINE_PROTECTED;
 
 /* pointer retrieval functions */
 static inline post_video_port_t *_x_post_video_frame_to_port(vo_frame_t *frame) {
@@ -318,7 +318,7 @@ struct post_audio_port_s {
 /* use this to create a new decorated audio port in which
  * port functions will be replaced with own implementations */
 post_audio_port_t *_x_post_intercept_audio_port(post_plugin_t *post, xine_audio_port_t *port,
-						post_in_t **input, post_out_t **output);
+						post_in_t **input, post_out_t **output) XINE_PROTECTED;
 
 
 /* this will allow pending rewire operations, calling this at the beginning
@@ -341,7 +341,7 @@ static inline void _x_post_unlock(post_plugin_t *post) {
 
 /* the standard disposal operation; returns 1 if the plugin is really
  * disposed and you should free everything you malloc()ed yourself */
-int _x_post_dispose(post_plugin_t *post);
+int _x_post_dispose(post_plugin_t *post) XINE_PROTECTED;
 
 
 /* macros to handle usage counter */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.19 2006/09/09 19:35:40 dgp85 Exp $
+ * $Id: scratch.c,v 1.20 2006/09/26 05:19:49 dgp85 Exp $
  *
  * top-level xine functions
  *
@@ -37,8 +37,8 @@
 #define LOG
 */
 
-#include "scratch.h"
 #include "xineutils.h"
+#include "scratch.h"
 
 static void __attribute__((__format__(__printf__, 2, 0)))
   scratch_printf (scratch_buffer_t *this, const char *format, va_list argp)

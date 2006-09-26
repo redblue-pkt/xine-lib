@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pool.h,v 1.1 2006/01/27 07:53:28 tmattern Exp $
+ * $Id: pool.h,v 1.2 2006/09/26 05:19:49 dgp85 Exp $
  *
  * Object Pool
  */
@@ -38,13 +38,13 @@ xine_pool_t *xine_pool_new(size_t object_size,
                            void (create_object)(void *object),
                            void (prepare_object)(void *object),
                            void (return_object)(void *object),
-                           void (delete_object)(void *object));
+                           void (delete_object)(void *object)) XINE_PROTECTED;
 
 /* Deletes a pool */
-void xine_pool_delete(xine_pool_t *pool);
+void xine_pool_delete(xine_pool_t *pool) XINE_PROTECTED;
 
 /* Get an object from the pool */
-void *xine_pool_get(xine_pool_t *pool);
+void *xine_pool_get(xine_pool_t *pool) XINE_PROTECTED;
 
 /* Returns an object to the pool */
-void xine_pool_put(xine_pool_t *pool, void *object);
+void xine_pool_put(xine_pool_t *pool, void *object) XINE_PROTECTED;

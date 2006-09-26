@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: refcounter.h,v 1.1 2004/10/14 23:25:24 tmattern Exp $
+ * $Id: refcounter.h,v 1.2 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 #ifndef HAVE_REFCOUNTER_H
@@ -38,12 +38,12 @@ typedef struct {
 
 typedef void (*refcounter_destructor)(void*);
 
-refcounter_t* _x_new_refcounter(void *object, refcounter_destructor destructor);
+refcounter_t* _x_new_refcounter(void *object, refcounter_destructor destructor) XINE_PROTECTED;
 
-int _x_refcounter_inc(refcounter_t *refcounter);
+int _x_refcounter_inc(refcounter_t *refcounter) XINE_PROTECTED;
 
-int _x_refcounter_dec(refcounter_t *refcounter);
+int _x_refcounter_dec(refcounter_t *refcounter) XINE_PROTECTED;
 
-void _x_refcounter_dispose(refcounter_t *refcounter);
+void _x_refcounter_dispose(refcounter_t *refcounter) XINE_PROTECTED;
 
 #endif /* HAVE_REFCOUNTER_H */

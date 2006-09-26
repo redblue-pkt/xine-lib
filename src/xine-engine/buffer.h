@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.157 2006/08/03 04:30:43 tmmm Exp $
+ * $Id: buffer.h,v 1.158 2006/09/26 05:19:48 dgp85 Exp $
  *
  *
  * contents:
@@ -603,24 +603,24 @@ struct fifo_buffer_s
  * allocate num_buffers of buf_size bytes each
  */
 
-fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size);
-fifo_buffer_t *_x_dummy_fifo_buffer_new (int num_buffers, uint32_t buf_size);
+fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) XINE_PROTECTED;
+fifo_buffer_t *_x_dummy_fifo_buffer_new (int num_buffers, uint32_t buf_size) XINE_PROTECTED;
 
 
 /* return BUF_VIDEO_xxx given the fourcc
  * fourcc_int must be read in machine endianness
  * example: fourcc_int = *(uint32_t *)fourcc_char;
  */
-uint32_t _x_fourcc_to_buf_video( uint32_t fourcc_int );
+uint32_t _x_fourcc_to_buf_video( uint32_t fourcc_int ) XINE_PROTECTED;
 
 /* return codec name given BUF_VIDEO_xxx */
-char * _x_buf_video_name( uint32_t buf_type );
+char * _x_buf_video_name( uint32_t buf_type ) XINE_PROTECTED;
 
 /* return BUF_VIDEO_xxx given the formattag */
-uint32_t _x_formattag_to_buf_audio( uint32_t formattag );
+uint32_t _x_formattag_to_buf_audio( uint32_t formattag ) XINE_PROTECTED;
 
 /* return codec name given BUF_VIDEO_xxx */
-char * _x_buf_audio_name( uint32_t buf_type );
+char * _x_buf_audio_name( uint32_t buf_type ) XINE_PROTECTED;
 
 
 #ifndef ATTRIBUTE_PACKED
@@ -663,10 +663,10 @@ typedef struct __attribute__((__packed__)) {
 #endif
 
 /* convert xine_bmiheader struct from little endian */
-void _x_bmiheader_le2me( xine_bmiheader *bih );
+void _x_bmiheader_le2me( xine_bmiheader *bih ) XINE_PROTECTED;
 
 /* convert xine_waveformatex struct from little endian */
-void _x_waveformatex_le2me( xine_waveformatex *wavex );
+void _x_waveformatex_le2me( xine_waveformatex *wavex ) XINE_PROTECTED;
 
 #ifdef __cplusplus
 }

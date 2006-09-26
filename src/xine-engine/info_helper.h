@@ -38,7 +38,7 @@
  *   value         the value to assign
  *
  */
-void _x_stream_info_set(xine_stream_t *stream, int info, int value);
+void _x_stream_info_set(xine_stream_t *stream, int info, int value) XINE_PROTECTED;
 
 /*
  * reset a stream info (internal ones only)
@@ -48,7 +48,7 @@ void _x_stream_info_set(xine_stream_t *stream, int info, int value);
  *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
  *
  */
-void _x_stream_info_reset(xine_stream_t *stream, int info);
+void _x_stream_info_reset(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /*
  * reset a stream info (public ones only)
@@ -58,7 +58,7 @@ void _x_stream_info_reset(xine_stream_t *stream, int info);
  *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
  *
  */
-void _x_stream_info_public_reset(xine_stream_t *stream, int info);
+void _x_stream_info_public_reset(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /*
  * retrieve stream info (internal ones only)
@@ -68,7 +68,7 @@ void _x_stream_info_public_reset(xine_stream_t *stream, int info);
  *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
  *
  */
-uint32_t _x_stream_info_get(xine_stream_t *stream, int info);
+uint32_t _x_stream_info_get(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /*
  * retrieve stream info (public ones only)
@@ -78,7 +78,7 @@ uint32_t _x_stream_info_get(xine_stream_t *stream, int info);
  *   info          meta info id (see xine.h, XINE_STREAM_INFO_*)
  *
  */
-uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info);
+uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /*
  * set a stream meta info
@@ -89,7 +89,7 @@ uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info);
  *  *str           null-terminated string (using current locale)
  *
  */
-void _x_meta_info_set(xine_stream_t *stream, int info, const char *str);
+void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) XINE_PROTECTED;
 
 /*
  * set a stream meta info
@@ -100,7 +100,7 @@ void _x_meta_info_set(xine_stream_t *stream, int info, const char *str);
  *  *str           null-terminated string (using utf8)
  *
  */
-void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str);
+void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str) XINE_PROTECTED;
 
 /*
  * set a stream meta info
@@ -112,7 +112,7 @@ void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str);
  *  *enc           charset encoding of the string
  *
  */
-void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, const char *enc);
+void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, const char *enc) XINE_PROTECTED;
 
 /*
  * set a stream meta multiple info
@@ -127,7 +127,7 @@ void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...)
 #ifdef __GNUC__
 __attribute__((sentinel))
 #endif
-;
+ XINE_PROTECTED;
 
 /*
  * set a stream meta info
@@ -139,7 +139,7 @@ __attribute__((sentinel))
  *   len           length of the metainfo
  *
  */
-void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int len);
+void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int len) XINE_PROTECTED;
 
 /*
  * reset a stream meta info (internal ones only)
@@ -149,7 +149,7 @@ void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int le
  *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *
  */
-void _x_meta_info_reset(xine_stream_t *stream, int info);
+void _x_meta_info_reset(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /*
  * reset a stream meta info (public ones only)
@@ -159,7 +159,7 @@ void _x_meta_info_reset(xine_stream_t *stream, int info);
  *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *
  */
-void _x_meta_info_public_reset(xine_stream_t *stream, int info);
+void _x_meta_info_public_reset(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /*
  * retrieve stream meta info (internal ones only)
@@ -169,7 +169,7 @@ void _x_meta_info_public_reset(xine_stream_t *stream, int info);
  *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *
  */
-const char *_x_meta_info_get(xine_stream_t *stream, int info);
+const char *_x_meta_info_get(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /*
  * retrieve stream meta info (public ones only)
@@ -179,6 +179,6 @@ const char *_x_meta_info_get(xine_stream_t *stream, int info);
  *   info          meta info id (see xine.h, XINE_META_INFO_*)
  *
  */
-const char *_x_meta_info_get_public(xine_stream_t *stream, int info);
+const char *_x_meta_info_get_public(xine_stream_t *stream, int info) XINE_PROTECTED;
 
 #endif /* INFO_HELPER_H */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: list.c,v 1.11 2006/04/05 22:12:20 valtri Exp $
+ * $Id: list.c,v 1.12 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 
@@ -26,6 +26,7 @@
 #endif
 
 #include <stdlib.h>
+#include "attributes.h"
 #include "list.h"
 
 #define MIN_CHUNK_SIZE    32

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sorted_array.h,v 1.2 2006/06/23 18:24:22 dsalt Exp $
+ * $Id: sorted_array.h,v 1.3 2006/09/26 05:19:49 dgp85 Exp $
  *
  * Sorted array which grows automatically when you add elements.
  * A binary search is used to find the position of a new element.
@@ -66,32 +66,32 @@ typedef struct xine_sarray_s xine_sarray_t;
 typedef int (*xine_sarray_comparator_t)(void*, void*);
 
 /* Constructor */
-xine_sarray_t *xine_sarray_new(size_t initial_size, xine_sarray_comparator_t comparator);
+xine_sarray_t *xine_sarray_new(size_t initial_size, xine_sarray_comparator_t comparator) XINE_PROTECTED;
 
 /* Destructor */
-void xine_sarray_delete(xine_sarray_t *sarray);
+void xine_sarray_delete(xine_sarray_t *sarray) XINE_PROTECTED;
 
 /* Returns the number of element stored in the array */
-size_t xine_sarray_size(const xine_sarray_t *sarray);
+size_t xine_sarray_size(const xine_sarray_t *sarray) XINE_PROTECTED;
 
 /* Removes all elements from an array */
-void xine_sarray_clear(xine_sarray_t *sarray);
+void xine_sarray_clear(xine_sarray_t *sarray) XINE_PROTECTED;
 
 /* Adds the element into the array
    Returns the insertion position */
-int xine_sarray_add(xine_sarray_t *sarray, void *value);
+int xine_sarray_add(xine_sarray_t *sarray, void *value) XINE_PROTECTED;
 
 /* Removes one element from an array at the position specified */
-void xine_sarray_remove(xine_sarray_t *sarray, unsigned int position);
+void xine_sarray_remove(xine_sarray_t *sarray, unsigned int position) XINE_PROTECTED;
 
 /* Get the element at the position specified */
-void *xine_sarray_get(xine_sarray_t *sarray, unsigned int position);
+void *xine_sarray_get(xine_sarray_t *sarray, unsigned int position) XINE_PROTECTED;
 
 /* Returns the index of the search key, if it is contained in the list.
    Otherwise, (-(insertion point) - 1) or ~(insertion point).
    The insertion point is defined as the point at which the key would be
    inserted into the array. */
-int xine_sarray_binary_search(xine_sarray_t *sarray, void *key);
+int xine_sarray_binary_search(xine_sarray_t *sarray, void *key) XINE_PROTECTED;
 
 #endif
 

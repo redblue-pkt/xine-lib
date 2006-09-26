@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.h,v 1.20 2005/09/24 19:08:26 miguelfreitas Exp $
+ * $Id: video_overlay.h,v 1.21 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 
@@ -101,6 +101,6 @@ typedef struct video_overlay_event_s {
   video_overlay_object_t   object; /* The image data. */
 } video_overlay_event_t;
 
-video_overlay_manager_t *_x_video_overlay_new_manager(xine_t *);
+video_overlay_manager_t *_x_video_overlay_new_manager(xine_t *) XINE_PROTECTED;
 
 #endif

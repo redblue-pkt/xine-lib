@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: resample.c,v 1.9 2006/06/20 00:35:08 dgp85 Exp $
+ * $Id: resample.c,v 1.10 2006/09/26 05:19:49 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,7 @@
 #endif
 
 #include <inttypes.h>
+#include "attributes.h"
 #include "resample.h"
 
 /* contributed by paul flinders */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_plugin.h,v 1.20 2006/06/15 14:14:09 dgp85 Exp $
+ * $Id: xine_plugin.h,v 1.21 2006/09/26 05:19:49 dgp85 Exp $
  *
  * generic plugin definitions
  *
@@ -103,6 +103,6 @@ typedef struct {
  *   };
  *
  */
-void xine_register_plugins(xine_t *self, plugin_info_t *info);
+void xine_register_plugins(xine_t *self, plugin_info_t *info) XINE_PROTECTED;
 
 #endif

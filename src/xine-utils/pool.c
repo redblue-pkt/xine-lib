@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: pool.c,v 1.1 2006/01/27 07:53:28 tmattern Exp $
+ * $Id: pool.c,v 1.2 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -25,6 +25,7 @@
 #endif
 
 #include <assert.h>
+#include "attributes.h"
 #include "pool.h"
 #include "array.h"
 

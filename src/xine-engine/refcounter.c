@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: refcounter.c,v 1.1 2004/10/14 23:25:24 tmattern Exp $
+ * $Id: refcounter.c,v 1.2 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 #define LOG_MODULE "refcounter"
@@ -26,8 +26,8 @@
 #define LOG
 */
  
-#include "refcounter.h"
 #include "xine_internal.h"
+#include "refcounter.h"
 
 refcounter_t* _x_new_refcounter(void *object, void (*destructor)(void *))
 {

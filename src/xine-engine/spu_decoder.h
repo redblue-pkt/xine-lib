@@ -139,6 +139,6 @@ struct spu_decoder_s {
  *   int success = process_spu(spu);
  * } while (!success && thread_vacant);
  */
-int _x_spu_decoder_sleep(xine_stream_t *, int64_t next_spu_vpts);
+int _x_spu_decoder_sleep(xine_stream_t *, int64_t next_spu_vpts) XINE_PROTECTED;
 
 #endif /* HAVE_SPUDEC_H */

@@ -36,8 +36,8 @@ typedef struct {
   int offset_x, offset_y;
 } alphablend_t;
 
-void _x_alphablend_init(alphablend_t *extra_data, xine_t *xine);
-void _x_alphablend_free(alphablend_t *extra_data);
+void _x_alphablend_init(alphablend_t *extra_data, xine_t *xine) XINE_PROTECTED;
+void _x_alphablend_free(alphablend_t *extra_data) XINE_PROTECTED;
 
 /* _MSC_VER port changes */
 #undef ATTRIBUTE_PACKED
@@ -84,25 +84,25 @@ typedef struct {
 void _x_blend_rgb16 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height,
-                  alphablend_t *extra_data);
+                  alphablend_t *extra_data) XINE_PROTECTED;
 
 void _x_blend_rgb24 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height,
-                  alphablend_t *extra_data);
+                  alphablend_t *extra_data) XINE_PROTECTED;
 
 void _x_blend_rgb32 (uint8_t * img, vo_overlay_t * img_overl,
 		  int img_width, int img_height,
 		  int dst_width, int dst_height,
-                  alphablend_t *extra_data);
+                  alphablend_t *extra_data) XINE_PROTECTED;
 
 void _x_blend_yuv (uint8_t *dst_base[3], vo_overlay_t * img_overl,
                 int dst_width, int dst_height, int dst_pitches[3],
-                alphablend_t *extra_data);
+                alphablend_t *extra_data) XINE_PROTECTED;
 
 void _x_blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
                  int dst_width, int dst_height, int dst_pitch,
-                 alphablend_t *extra_data);
+                 alphablend_t *extra_data) XINE_PROTECTED;
 
 /*
  * This function isn't too smart about blending. We want to avoid creating new
@@ -114,15 +114,15 @@ void _x_blend_yuy2 (uint8_t * dst_img, vo_overlay_t * img_overl,
 void _x_blend_xx44 (uint8_t *dst_img, vo_overlay_t *img_overl,
 		int dst_width, int dst_height, int dst_pitch, 
                 alphablend_t *extra_data,
-		xx44_palette_t *palette,int ia44);
+		xx44_palette_t *palette,int ia44) XINE_PROTECTED;
 
 /*
  * Functions to handle the xine-specific palette.
  */
 
-void _x_clear_xx44_palette(xx44_palette_t *p);
-void _x_init_xx44_palette(xx44_palette_t *p, unsigned num_entries);
-void _x_dispose_xx44_palette(xx44_palette_t *p);
+void _x_clear_xx44_palette(xx44_palette_t *p) XINE_PROTECTED;
+void _x_init_xx44_palette(xx44_palette_t *p, unsigned num_entries) XINE_PROTECTED;
+void _x_dispose_xx44_palette(xx44_palette_t *p) XINE_PROTECTED;
 
 /*
  * Convert the xine-specific palette to something useful.
@@ -130,7 +130,7 @@ void _x_dispose_xx44_palette(xx44_palette_t *p);
 
 void _x_xx44_to_xvmc_palette(const xx44_palette_t *p,unsigned char *xvmc_palette,
 			  unsigned first_xx44_entry, unsigned num_xx44_entries,
-			  unsigned num_xvmc_components, char *xvmc_components);
+			  unsigned num_xvmc_components, char *xvmc_components) XINE_PROTECTED;
 
 
 #endif

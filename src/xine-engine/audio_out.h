@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.h,v 1.76 2006/03/07 08:03:29 tmattern Exp $
+ * $Id: audio_out.h,v 1.77 2006/09/26 05:19:48 dgp85 Exp $
  */
 #ifndef HAVE_AUDIO_OUT_H
 #define HAVE_AUDIO_OUT_H
@@ -261,7 +261,7 @@ struct audio_driver_class_s {
  * this initiates the audio_out sync routines
  * found in ./src/xine-engine/audio_out.c
  */
-xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_only) ;
+xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_only) XINE_PROTECTED;
 
 /*
  * audio output modes + capabilities
@@ -292,11 +292,11 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver, int grab_o
 /*
  * converts the audio output mode into the number of channels
  */
-int _x_ao_mode2channels( int mode );
+int _x_ao_mode2channels( int mode ) XINE_PROTECTED;
 /*
  * converts the number of channels into the audio output mode
  */
-int _x_ao_channels2mode( int channels );
+int _x_ao_channels2mode( int channels ) XINE_PROTECTED;
 
 #define AO_CAP_MIXER_VOL        0x00000100 /* driver supports mixer control */
 #define AO_CAP_PCM_VOL          0x00000200 /* driver supports pcm control   */

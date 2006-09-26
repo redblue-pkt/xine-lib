@@ -17,7 +17,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- *  $Id: xmlparser.h,v 1.4 2006/02/14 02:25:01 dsalt Exp $
+ *  $Id: xmlparser.h,v 1.5 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 #ifndef XML_PARSER_H
@@ -48,17 +48,17 @@ typedef struct xml_node_s {
 	struct xml_node_s *next;
 } xml_node_t;
 
-void xml_parser_init(const char * buf, int size, int mode);
+void xml_parser_init(const char * buf, int size, int mode) XINE_PROTECTED;
 
-int xml_parser_build_tree(xml_node_t **root_node);
+int xml_parser_build_tree(xml_node_t **root_node) XINE_PROTECTED;
 
-void xml_parser_free_tree(xml_node_t *root_node);
+void xml_parser_free_tree(xml_node_t *root_node) XINE_PROTECTED;
 
-char *xml_parser_get_property (const xml_node_t *node, const char *name);
+char *xml_parser_get_property (const xml_node_t *node, const char *name) XINE_PROTECTED;
 int   xml_parser_get_property_int (const xml_node_t *node, const char *name, 
-				   int def_value);
+				   int def_value) XINE_PROTECTED;
 int xml_parser_get_property_bool (const xml_node_t *node, const char *name, 
-				  int def_value);
+				  int def_value) XINE_PROTECTED;
 
 /* for output:
  * returns an escaped string (free() it when done)
@@ -70,12 +70,12 @@ typedef enum {
   XML_ESCAPE_SINGLE_QUOTE,
   XML_ESCAPE_DOUBLE_QUOTE
 } xml_escape_quote_t;
-char *xml_escape_string (const char *s, xml_escape_quote_t quote_type);
+char *xml_escape_string (const char *s, xml_escape_quote_t quote_type) XINE_PROTECTED;
 
 /* for debugging purposes: dump read-in xml tree in a nicely
  * indented fashion
  */
 
-void xml_parser_dump_tree (const xml_node_t *node) ;
+void xml_parser_dump_tree (const xml_node_t *node) XINE_PROTECTED;
 
 #endif

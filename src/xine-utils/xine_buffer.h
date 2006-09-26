@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_buffer.h,v 1.6 2006/06/23 18:24:22 dsalt Exp $
+ * $Id: xine_buffer.h,v 1.7 2006/09/26 05:19:49 dgp85 Exp $
  *
  *
  * generic dynamic buffer functions. The goals
@@ -64,40 +64,40 @@
  * chunk_size bytes. This will prevent permanent
  * reallocation on slow growing buffers.
  */
-void *xine_buffer_init(int chunk_size);
+void *xine_buffer_init(int chunk_size) XINE_PROTECTED;
 
 /*
  * frees a buffer, the macro ensures, that a freed
  * buffer pointer is set to NULL
  */
 #define xine_buffer_free(buf) buf=_xine_buffer_free(buf)
-void *_xine_buffer_free(void *buf);
+void *_xine_buffer_free(void *buf) XINE_PROTECTED;
 
 /*
  * duplicates a buffer
  */
-void *xine_buffer_dup(const void *buf);
+void *xine_buffer_dup(const void *buf) XINE_PROTECTED;
 
 /*
  * will copy len bytes of data into buf at position index.
  */
 #define xine_buffer_copyin(buf,i,data,len) \
   buf=_xine_buffer_copyin(buf,i,data,len)
-void *_xine_buffer_copyin(void *buf, int index, const void *data, int len);
+void *_xine_buffer_copyin(void *buf, int index, const void *data, int len) XINE_PROTECTED;
 
 /*
  * will copy len bytes out of buf+index into data.
  * no checks are made in data. It is treated as an ordinary
  * user-malloced data chunk.
  */
-void xine_buffer_copyout(const void *buf, int index, void *data, int len);
+void xine_buffer_copyout(const void *buf, int index, void *data, int len) XINE_PROTECTED;
 
 /*
  * set len bytes in buf+index to b.
  */
 #define xine_buffer_set(buf,i,b,len) \
   buf=_xine_buffer_set(buf,i,b,len)
-void *_xine_buffer_set(void *buf, int index, uint8_t b, int len);
+void *_xine_buffer_set(void *buf, int index, uint8_t b, int len) XINE_PROTECTED;
 
 /*
  * concatenates given buf (which should contain a null terminated string)
@@ -105,26 +105,26 @@ void *_xine_buffer_set(void *buf, int index, uint8_t b, int len);
  */
 #define xine_buffer_strcat(buf,data) \
   buf=_xine_buffer_strcat(buf,data)
-void *_xine_buffer_strcat(void *buf, const char *data);
+void *_xine_buffer_strcat(void *buf, const char *data) XINE_PROTECTED;
 
 /*
  * copies given string to buf+index
  */
 #define xine_buffer_strcpy(buf,index,data) \
   buf=_xine_buffer_strcpy(buf,index,data)
-void *_xine_buffer_strcpy(void *buf, int index, const char *data);
+void *_xine_buffer_strcpy(void *buf, int index, const char *data) XINE_PROTECTED;
 
 /*
  * returns a pointer to the first occurence of ch.
  * note, that the returned pointer cannot be used
  * in any other xine_buffer_* functions.
  */
-char *xine_buffer_strchr(const void *buf, int ch);
+char *xine_buffer_strchr(const void *buf, int ch) XINE_PROTECTED;
 
 /*
  * get allocated memory size
  */
-int xine_buffer_get_size(const void *buf);
+int xine_buffer_get_size(const void *buf) XINE_PROTECTED;
 
 /*
  * ensures a specified buffer size if the user want to
@@ -133,6 +133,6 @@ int xine_buffer_get_size(const void *buf);
  */
 #define xine_buffer_ensure_size(buf,data) \
   buf=_xine_buffer_ensure_size(buf,data)
-void *_xine_buffer_ensure_size(void *buf, int size);
+void *_xine_buffer_ensure_size(void *buf, int size) XINE_PROTECTED;
 
 #endif

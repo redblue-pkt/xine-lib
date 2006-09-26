@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * OSD stuff (text and graphic primitives)
- * $Id: osd.h,v 1.26 2005/09/25 00:44:04 miguelfreitas Exp $
+ * $Id: osd.h,v 1.27 2006/09/26 05:19:49 dgp85 Exp $
  */
 
 #ifndef HAVE_OSD_H
@@ -266,7 +266,7 @@ osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream );
 #ifdef __OSD_C__
  
 /* This text descriptions are used for config screen */
-static char *textpalettes_str[NUMBER_OF_TEXT_PALETTES+1] = {
+static const char *textpalettes_str[NUMBER_OF_TEXT_PALETTES+1] = {
   "white-black-transparent",
   "white-none-transparent",
   "white-none-translucid",
@@ -294,7 +294,7 @@ static char *textpalettes_str[NUMBER_OF_TEXT_PALETTES+1] = {
     This can surelly be improved a lot. [Miguel]
 */
 
-static clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
+static const clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
 /* white, black border, transparent */
   {
     CLUT_Y_CR_CB_INIT(0x00, 0x00, 0x00), /*0*/
@@ -353,7 +353,7 @@ static clut_t textpalettes_color[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
   },
 };
 
-static uint8_t textpalettes_trans[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
+static const uint8_t textpalettes_trans[NUMBER_OF_TEXT_PALETTES][TEXT_PALETTE_SIZE] = {
   {0, 0, 3, 6, 8, 10, 12, 14, 15, 15, 15 },
   {0, 0, 0, 0, 0, 0, 2, 6, 9, 12, 15 },
   {0, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15 },

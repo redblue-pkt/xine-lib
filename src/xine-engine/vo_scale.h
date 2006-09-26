@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.h,v 1.13 2004/09/22 20:29:18 miguelfreitas Exp $
+ * $Id: vo_scale.h,v 1.14 2006/09/26 05:19:49 dgp85 Exp $
  * 
  * vo_scale.h
  *
@@ -162,21 +162,21 @@ typedef struct vo_scale_s vo_scale_t;
  * taking into account aspect ratio and zoom factor
  */
 
-void _x_vo_scale_compute_ideal_size (vo_scale_t *self);
+void _x_vo_scale_compute_ideal_size (vo_scale_t *self) XINE_PROTECTED;
 
 
 /*
  * make ideal width/height "fit" into the gui
  */
 
-void _x_vo_scale_compute_output_size (vo_scale_t *self);
+void _x_vo_scale_compute_output_size (vo_scale_t *self) XINE_PROTECTED;
 
 /*
  * return true if a redraw is needed due resizing, zooming,
  * aspect ratio changing, etc.
  */
 
-int _x_vo_scale_redraw_needed (vo_scale_t *self);
+int _x_vo_scale_redraw_needed (vo_scale_t *self) XINE_PROTECTED;
 
 /*
  *
@@ -184,20 +184,20 @@ int _x_vo_scale_redraw_needed (vo_scale_t *self);
  
 void _x_vo_scale_translate_gui2video(vo_scale_t *self,
 				     int x, int y,
-				     int *vid_x, int *vid_y);
+				     int *vid_x, int *vid_y) XINE_PROTECTED;
 
 /*
  * Returns description of a given ratio code
  */
 
-char *_x_vo_scale_aspect_ratio_name(int a);
+char *_x_vo_scale_aspect_ratio_name(int a) XINE_PROTECTED;
 
 /* 
  * initialize rescaling struct
  */
  
 void _x_vo_scale_init(vo_scale_t *self, int support_zoom, 
-		      int scaling_disabled, config_values_t *config );
+		      int scaling_disabled, config_values_t *config ) XINE_PROTECTED;
 
 #ifdef __cplusplus
 }

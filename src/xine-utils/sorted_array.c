@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sorted_array.c,v 1.2 2006/06/23 18:24:22 dsalt Exp $
+ * $Id: sorted_array.c,v 1.3 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 #ifdef HAVE_CONFIG_H
@@ -26,6 +26,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "attributes.h"
 #include "sorted_array.h"
 
 /* Array internal struct */

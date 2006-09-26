@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.156 2006/09/11 17:11:38 valtri Exp $
+ * $Id: xine.h.in,v 1.157 2006/09/26 05:19:47 dgp85 Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -59,10 +59,10 @@ extern "C" {
 
 #ifdef XINE_COMPILE
 #include <inttypes.h>
+#include "attributes.h"
 #else
 #include <xine/os_types.h>
 #endif
-
 
 /* This enables some experimental features. These are not part of the
  * official libxine API, so use them only, if you absolutely need them.
@@ -104,12 +104,12 @@ typedef xine_video_port_t xine_vo_driver_t;
  */
 
 /* dynamic info from actually linked libxine */
-const char *xine_get_version_string (void);
-void xine_get_version (int *major, int *minor, int *sub);
+const char *xine_get_version_string (void) XINE_PROTECTED;
+void xine_get_version (int *major, int *minor, int *sub) XINE_PROTECTED;
 
 /* compare given version to libxine version,
    return 1 if compatible, 0 otherwise */
-int  xine_check_version (int major, int minor, int sub) ;
+int  xine_check_version (int major, int minor, int sub) XINE_PROTECTED;
 
 /* static info - which libxine release this header came from */
 #define XINE_MAJOR_VERSION @XINE_MAJOR@
@@ -133,12 +133,12 @@ int  xine_check_version (int major, int minor, int sub) ;
  * call xine_exit() - do not try to free() the xine pointer
  * yourself and do not try to access any internal data structures
  */
-xine_t *xine_new (void);
+xine_t *xine_new (void) XINE_PROTECTED;
 
 /*
  * post_init the xine engine
  */
-void xine_init (xine_t *self);
+void xine_init (xine_t *self) XINE_PROTECTED;
 
 /*
  * helper functions to find and init audio/video drivers
@@ -156,12 +156,12 @@ void xine_init (xine_t *self);
  * and free resources allocated by them
  */
 xine_audio_port_t *xine_open_audio_driver (xine_t *self, const char *id,
-					   void *data);
+					   void *data) XINE_PROTECTED;
 xine_video_port_t *xine_open_video_driver (xine_t *self, const char *id,
-					   int visual, void *data);
+					   int visual, void *data) XINE_PROTECTED;
 
-void xine_close_audio_driver (xine_t *self, xine_audio_port_t  *driver);
-void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver);
+void xine_close_audio_driver (xine_t *self, xine_audio_port_t  *driver) XINE_PROTECTED;
+void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver) XINE_PROTECTED;
 
 /* valid visual types */
 #define XINE_VISUAL_TYPE_NONE              0
@@ -179,7 +179,7 @@ void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver);
  * free all resources, close all plugins, close engine.
  * self pointer is no longer valid after this call.
  */
-void xine_exit (xine_t *self);
+void xine_exit (xine_t *self) XINE_PROTECTED;
 
 
 /*********************************************************************
@@ -198,7 +198,7 @@ void xine_exit (xine_t *self);
  * without further notice.
  */
 xine_stream_t *xine_stream_new (xine_t *self,
-				xine_audio_port_t *ao, xine_video_port_t *vo);
+				xine_audio_port_t *ao, xine_video_port_t *vo) XINE_PROTECTED;
 
 /*
  * Make one stream the slave of another.
@@ -219,7 +219,7 @@ xine_stream_t *xine_stream_new (xine_t *self,
  * returns 1 on success, 0 on failure
  */
 int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
-                             int affection);
+                             int affection) XINE_PROTECTED;
 
 /* affection is some of the following ORed together: */
 /* playing the master plays the slave */
@@ -237,7 +237,7 @@ int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
  *
  * returns 1 if OK, 0 on error (use xine_get_error for details)
  */
-int xine_open (xine_stream_t *stream, const char *mrl);
+int xine_open (xine_stream_t *stream, const char *mrl) XINE_PROTECTED;
 
 /*
  * play a stream from a given position
@@ -249,7 +249,7 @@ int xine_open (xine_stream_t *stream, const char *mrl);
  *
  * returns 1 if OK, 0 on error (use xine_get_error for details)
  */
-int  xine_play (xine_stream_t *stream, int start_pos, int start_time);
+int  xine_play (xine_stream_t *stream, int start_pos, int start_time) XINE_PROTECTED;
 
 /*
  * set xine to a trick mode for fast forward, backwards playback,
@@ -258,7 +258,7 @@ int  xine_play (xine_stream_t *stream, int start_pos, int start_time);
  *
  * returns 1 if OK, 0 on error (use xine_get_error for details)
  */
-int  xine_trick_mode (xine_stream_t *stream, int mode, int value);
+int  xine_trick_mode (xine_stream_t *stream, int mode, int value) XINE_PROTECTED;
 
 /* trick modes */
 #define XINE_TRICK_MODE_OFF                0
@@ -271,31 +271,31 @@ int  xine_trick_mode (xine_stream_t *stream, int mode, int value);
  * stop stream playback
  * xine_stream_t stays valid for new xine_open or xine_play
  */
-void xine_stop (xine_stream_t *stream);
+void xine_stop (xine_stream_t *stream) XINE_PROTECTED;
 
 /*
  * stop stream playback, free all stream-related resources
  * xine_stream_t stays valid for new xine_open
  */
-void xine_close (xine_stream_t *stream);
+void xine_close (xine_stream_t *stream) XINE_PROTECTED;
 
 /*
  * ask current/recent input plugin to eject media - may or may not work,
  * depending on input plugin capabilities
  */
-int  xine_eject (xine_stream_t *stream);
+int  xine_eject (xine_stream_t *stream) XINE_PROTECTED;
 
 /*
  * stop playback, dispose all stream-related resources
  * xine_stream_t no longer valid when after this
  */
-void xine_dispose (xine_stream_t *stream);
+void xine_dispose (xine_stream_t *stream) XINE_PROTECTED;
 
 /*
  * set/get engine parameters.
  */
-void xine_engine_set_param(xine_t *self, int param, int value);
-int xine_engine_get_param(xine_t *self, int param);
+void xine_engine_set_param(xine_t *self, int param, int value) XINE_PROTECTED;
+int xine_engine_get_param(xine_t *self, int param) XINE_PROTECTED;
   
 #define XINE_ENGINE_PARAM_VERBOSITY        1
 
@@ -303,8 +303,8 @@ int xine_engine_get_param(xine_t *self, int param);
  * set/get xine stream parameters
  * e.g. playback speed, constants see below
  */
-void xine_set_param (xine_stream_t *stream, int param, int value);
-int  xine_get_param (xine_stream_t *stream, int param);
+void xine_set_param (xine_stream_t *stream, int param, int value) XINE_PROTECTED;
+int  xine_get_param (xine_stream_t *stream, int param) XINE_PROTECTED;
 
 /*
  * xine stream parameters
@@ -423,7 +423,7 @@ int  xine_get_param (xine_stream_t *stream, int param);
 int  xine_get_current_frame (xine_stream_t *stream,
 			     int *width, int *height,
 			     int *ratio_code, int *format,
-			     uint8_t *img);
+			     uint8_t *img) XINE_PROTECTED;
 
 /* xine image formats */
 #define XINE_IMGFMT_YV12 (('2'<<24)|('1'<<16)|('V'<<8)|'Y')
@@ -435,7 +435,7 @@ int  xine_get_current_frame (xine_stream_t *stream,
  * note: this is mostly internal data.
  * one can use vpts with xine_osd_show() and xine_osd_hide().
  */
-int64_t xine_get_current_vpts(xine_stream_t *stream);
+int64_t xine_get_current_vpts(xine_stream_t *stream) XINE_PROTECTED;
 
 
 /*********************************************************************
@@ -457,7 +457,7 @@ int64_t xine_get_current_vpts(xine_stream_t *stream);
  *
  */
 
-xine_video_port_t *xine_new_framegrab_video_port (xine_t *self);
+xine_video_port_t *xine_new_framegrab_video_port (xine_t *self) XINE_PROTECTED;
 
 typedef struct {
 
@@ -477,11 +477,11 @@ typedef struct {
 } xine_video_frame_t;
 
 int xine_get_next_video_frame (xine_video_port_t *port,
-			       xine_video_frame_t *frame);
+			       xine_video_frame_t *frame) XINE_PROTECTED;
 
-void xine_free_video_frame (xine_video_port_t *port, xine_video_frame_t *frame);
+void xine_free_video_frame (xine_video_port_t *port, xine_video_frame_t *frame) XINE_PROTECTED;
 
-xine_audio_port_t *xine_new_framegrab_audio_port (xine_t *self);
+xine_audio_port_t *xine_new_framegrab_audio_port (xine_t *self) XINE_PROTECTED;
 
 typedef struct {
 
@@ -499,9 +499,9 @@ typedef struct {
 } xine_audio_frame_t;
 
 int xine_get_next_audio_frame (xine_audio_port_t *port,
-			       xine_audio_frame_t *frame);
+			       xine_audio_frame_t *frame) XINE_PROTECTED;
 
-void xine_free_audio_frame (xine_audio_port_t *port, xine_audio_frame_t *frame);
+void xine_free_audio_frame (xine_audio_port_t *port, xine_audio_frame_t *frame) XINE_PROTECTED;
 
   /*
    * maybe future aproach:
@@ -513,7 +513,7 @@ int xine_get_video_frame (xine_stream_t *stream,
 			  int *ratio_code, 
 			  int *duration, /* msec */
 			  int *format,
-			  uint8_t *img);
+			  uint8_t *img) XINE_PROTECTED;
 
 /* TODO: xine_get_audio_frame */
 
@@ -568,13 +568,13 @@ struct xine_post_s {
 xine_post_t *xine_post_init(xine_t *xine, const char *name,
 			    int inputs,
 			    xine_audio_port_t **audio_target,
-			    xine_video_port_t **video_target);
+			    xine_video_port_t **video_target) XINE_PROTECTED;
 
 /* get a list of all available post plugins */
-const char *const *xine_list_post_plugins(xine_t *xine);
+const char *const *xine_list_post_plugins(xine_t *xine) XINE_PROTECTED;
 
 /* get a list of all post plugins of one type */
-const char *const *xine_list_post_plugins_typed(xine_t *xine, int type);
+const char *const *xine_list_post_plugins_typed(xine_t *xine, int type) XINE_PROTECTED;
 
 /*
  * post plugin input/output
@@ -628,22 +628,22 @@ struct xine_post_out_s {
 };
 
 /* get a list of all inputs of a post plugin */
-const char *const *xine_post_list_inputs(xine_post_t *self);
+const char *const *xine_post_list_inputs(xine_post_t *self) XINE_PROTECTED;
 
 /* get a list of all outputs of a post plugin */
-const char *const *xine_post_list_outputs(xine_post_t *self);
+const char *const *xine_post_list_outputs(xine_post_t *self) XINE_PROTECTED;
 
 /* retrieve one specific input of a post plugin */
-xine_post_in_t *xine_post_input(xine_post_t *self, const char *name);
+xine_post_in_t *xine_post_input(xine_post_t *self, const char *name) XINE_PROTECTED;
 
 /* retrieve one specific output of a post plugin */
-xine_post_out_t *xine_post_output(xine_post_t *self, const char *name);
+xine_post_out_t *xine_post_output(xine_post_t *self, const char *name) XINE_PROTECTED;
 
 /*
  * wire an input to an output
  * returns 1 on success, 0 on failure
  */
-int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target);
+int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target) XINE_PROTECTED;
 
 /*
  * wire a video port to a video output
@@ -654,7 +654,7 @@ int xine_post_wire(xine_post_out_t *source, xine_post_in_t *target);
  *
  * returns 1 on success, 0 on failure
  */
-int xine_post_wire_video_port(xine_post_out_t *source, xine_video_port_t *vo);
+int xine_post_wire_video_port(xine_post_out_t *source, xine_video_port_t *vo) XINE_PROTECTED;
 
 /*
  * wire an audio port to an audio output
@@ -665,20 +665,20 @@ int xine_post_wire_video_port(xine_post_out_t *source, xine_video_port_t *vo);
  *
  * returns 1 on success, 0 on failure
  */
-int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *ao);
+int xine_post_wire_audio_port(xine_post_out_t *source, xine_audio_port_t *ao) XINE_PROTECTED;
 
 /*
  * Extracts an output for a stream. Use this to rewire the outputs of streams.
  */
-xine_post_out_t * xine_get_video_source(xine_stream_t *stream);
-xine_post_out_t * xine_get_audio_source(xine_stream_t *stream);
+xine_post_out_t * xine_get_video_source(xine_stream_t *stream) XINE_PROTECTED;
+xine_post_out_t * xine_get_audio_source(xine_stream_t *stream) XINE_PROTECTED;
 
 /*
  * disposes the post plugin
  * please make sure that no other post plugin and no stream is
  * connected to any of this plugin's inputs
  */
-void xine_post_dispose(xine_t *xine, xine_post_t *self);
+void xine_post_dispose(xine_t *xine, xine_post_t *self) XINE_PROTECTED;
 
 
 /* post plugin types */
@@ -783,41 +783,41 @@ typedef struct {
  *
  * frontends can display xine log output using these functions
  */
-int    xine_get_log_section_count(xine_t *self);
+int    xine_get_log_section_count(xine_t *self) XINE_PROTECTED;
 
 /* return a NULL terminated array of log sections names */
-const char *const *xine_get_log_names(xine_t *self);
+const char *const *xine_get_log_names(xine_t *self) XINE_PROTECTED;
 
 /* print some log information to <buf> section */
 #ifndef __GNUC__
 void   xine_log (xine_t *self, int buf,
-		 const char *format, ...);
+		 const char *format, ...) XINE_PROTECTED;
 void   xine_vlog(xine_t *self, int buf,
-		  const char *format, va_list args);
+		  const char *format, va_list args) XINE_PROTECTED;
 #else
 void   xine_log (xine_t *self, int buf,
-		 const char *format, ...) __attribute__ ((__format__(printf, 3, 4)));
+		 const char *format, ...) __attribute__ ((__format__(printf, 3, 4))) XINE_PROTECTED;
 void   xine_vlog(xine_t *self, int buf,
-		  const char *format, va_list args) __attribute__ ((__format__(printf, 3, 0)));
+		  const char *format, va_list args) __attribute__ ((__format__(printf, 3, 0))) XINE_PROTECTED;
 #endif
 
 /* get log messages of specified section */
-const char *const *xine_get_log (xine_t *self, int buf);
+const char *const *xine_get_log (xine_t *self, int buf) XINE_PROTECTED;
 
 /* log callback will be called whenever something is logged */
 typedef void (*xine_log_cb_t) (void *user_data, int section);
 void   xine_register_log_cb (xine_t *self, xine_log_cb_t cb,
-			     void *user_data);
+			     void *user_data) XINE_PROTECTED;
 
 /*
  * error handling / engine status
  */
 
 /* return last error  */
-int  xine_get_error (xine_stream_t *stream);
+int  xine_get_error (xine_stream_t *stream) XINE_PROTECTED;
 
 /* get current xine engine status (constants see below) */
-int  xine_get_status (xine_stream_t *stream);
+int  xine_get_status (xine_stream_t *stream) XINE_PROTECTED;
 
 /*
  * engine status codes
@@ -844,9 +844,9 @@ int  xine_get_status (xine_stream_t *stream);
  * returns 1 on success, 0 on failure
  */
 int xine_get_audio_lang (xine_stream_t *stream, int channel,
-			 char *lang);
+			 char *lang) XINE_PROTECTED;
 int xine_get_spu_lang   (xine_stream_t *stream, int channel,
-			 char *lang);
+			 char *lang) XINE_PROTECTED;
 /*_x_ increasing this number means an incompatible ABI breakage! */
 #define XINE_LANG_MAX                     32
 
@@ -863,7 +863,8 @@ int xine_get_spu_lang   (xine_stream_t *stream, int channel,
 int  xine_get_pos_length (xine_stream_t *stream,
 			  int *pos_stream,  /* 0..65535     */
 			  int *pos_time,    /* milliseconds */
-			  int *length_time);/* milliseconds */
+			  int *length_time) /* milliseconds */
+  XINE_PROTECTED;
 
 /*
  * get information about the stream such as
@@ -872,8 +873,8 @@ int  xine_get_pos_length (xine_stream_t *stream,
  *
  * constants see below
  */
-uint32_t    xine_get_stream_info (xine_stream_t *stream, int info);
-const char *xine_get_meta_info   (xine_stream_t *stream, int info);
+uint32_t    xine_get_stream_info (xine_stream_t *stream, int info) XINE_PROTECTED;
+const char *xine_get_meta_info   (xine_stream_t *stream, int info) XINE_PROTECTED;
 
 /* xine_get_stream_info */
 #define XINE_STREAM_INFO_BITRATE           0
@@ -988,7 +989,7 @@ typedef struct {
 #define XINE_MRL_TYPE_file_hidden    (1 << 16)
 
 /* get a list of browsable input plugin ids */
-const char *const *xine_get_browsable_input_plugin_ids (xine_t *self) ;
+const char *const *xine_get_browsable_input_plugin_ids (xine_t *self)  XINE_PROTECTED;
 
 /*
  * ask input plugin named <plugin_id> to return
@@ -1001,70 +1002,70 @@ const char *const *xine_get_browsable_input_plugin_ids (xine_t *self) ;
 xine_mrl_t **xine_get_browse_mrls (xine_t *self,
 				   const char *plugin_id,
 				   const char *start_mrl,
-				   int *num_mrls);
+				   int *num_mrls) XINE_PROTECTED;
 
 /* get a list of plugins that support the autoplay feature */
-const char *const *xine_get_autoplay_input_plugin_ids (xine_t *self);
+const char *const *xine_get_autoplay_input_plugin_ids (xine_t *self) XINE_PROTECTED;
 
 /* get autoplay MRL list from input plugin named <plugin_id> */
 char **xine_get_autoplay_mrls (xine_t *self,
 			       const char *plugin_id,
-			       int *num_mrls);
+			       int *num_mrls) XINE_PROTECTED;
 
 /* get a list of file extensions for file types supported by xine
  * the list is separated by spaces
  *
  * the pointer returned can be free()ed when no longer used */
-char *xine_get_file_extensions (xine_t *self);
+char *xine_get_file_extensions (xine_t *self) XINE_PROTECTED;
 
 /* get a list of mime types supported by xine
  *
  * the pointer returned can be free()ed when no longer used */
-char *xine_get_mime_types (xine_t *self);
+char *xine_get_mime_types (xine_t *self) XINE_PROTECTED;
 
 /* get the demuxer identifier that handles a given mime type
  *
  * the pointer returned can be free()ed when no longer used
  * returns NULL if no demuxer is available to handle this. */
-char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type);
+char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) XINE_PROTECTED;
 
 /* get a description string for a plugin */
 const char *xine_get_input_plugin_description (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 const char *xine_get_demux_plugin_description (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 const char *xine_get_spu_plugin_description   (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 const char *xine_get_audio_plugin_description (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 const char *xine_get_video_plugin_description (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 const char *xine_get_audio_driver_plugin_description (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 const char *xine_get_video_driver_plugin_description (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 const char *xine_get_post_plugin_description  (xine_t *self,
-					       const char *plugin_id);
+					       const char *plugin_id) XINE_PROTECTED;
 
 /* get lists of available audio and video output plugins */
-const char *const *xine_list_audio_output_plugins (xine_t *self) ;
-const char *const *xine_list_video_output_plugins (xine_t *self) ;
+const char *const *xine_list_audio_output_plugins (xine_t *self) XINE_PROTECTED;
+const char *const *xine_list_video_output_plugins (xine_t *self) XINE_PROTECTED;
 
 /* get list of available demultiplexor plugins */
-const char *const *xine_list_demuxer_plugins(xine_t *self);
+const char *const *xine_list_demuxer_plugins(xine_t *self) XINE_PROTECTED;
 
 /* get list of available input plugins */
-const char *const *xine_list_input_plugins(xine_t *self);
+const char *const *xine_list_input_plugins(xine_t *self) XINE_PROTECTED;
 
 /* get list of available subpicture plugins */
-const char *const *xine_list_spu_plugins(xine_t *self);
+const char *const *xine_list_spu_plugins(xine_t *self) XINE_PROTECTED;
 
 /* get list of available audio and video decoder plugins */
-const char *const *xine_list_audio_decoder_plugins(xine_t *self);
-const char *const *xine_list_video_decoder_plugins(xine_t *self);
+const char *const *xine_list_audio_decoder_plugins(xine_t *self) XINE_PROTECTED;
+const char *const *xine_list_video_decoder_plugins(xine_t *self) XINE_PROTECTED;
 
 /* unload unused plugins */
-void xine_plugins_garbage_collector(xine_t *self);
+void xine_plugins_garbage_collector(xine_t *self) XINE_PROTECTED;
 
 
 /*********************************************************************
@@ -1074,12 +1075,12 @@ void xine_plugins_garbage_collector(xine_t *self);
 #ifndef XINE_DISABLE_DEPRECATED_FEATURES
 /* talk to video output driver - old method */
 int    xine_gui_send_vo_data (xine_stream_t *self,
-			      int type, void *data);
+			      int type, void *data) XINE_PROTECTED;
 #endif
 
 /* new (preferred) method to talk to video driver. */
 int    xine_port_send_gui_data (xine_video_port_t *vo,
-			        int type, void *data);
+			        int type, void *data) XINE_PROTECTED;
 
 typedef struct {
 
@@ -1268,7 +1269,7 @@ struct xine_health_check_s {
 };
 
 typedef struct xine_health_check_s xine_health_check_t;
-xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num);
+xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num) XINE_PROTECTED;
 
 
 /*********************************************************************
@@ -1348,7 +1349,7 @@ const char *xine_config_register_string (xine_t *self,
 					 const char *help,
 					 int   exp_level,
 					 xine_config_cb_t changed_cb,
-					 void *cb_data);
+					 void *cb_data) XINE_PROTECTED;
 
 int   xine_config_register_range  (xine_t *self,
 				   const char *key,
@@ -1358,7 +1359,7 @@ int   xine_config_register_range  (xine_t *self,
 				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   void *cb_data);
+				   void *cb_data) XINE_PROTECTED;
 
 int   xine_config_register_enum   (xine_t *self,
 				   const char *key,
@@ -1368,7 +1369,7 @@ int   xine_config_register_enum   (xine_t *self,
 				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   void *cb_data);
+				   void *cb_data) XINE_PROTECTED;
 
 int   xine_config_register_num    (xine_t *self,
 				   const char *key,
@@ -1377,7 +1378,7 @@ int   xine_config_register_num    (xine_t *self,
 				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   void *cb_data);
+				   void *cb_data) XINE_PROTECTED;
 
 int   xine_config_register_bool   (xine_t *self,
 				   const char *key,
@@ -1386,7 +1387,7 @@ int   xine_config_register_bool   (xine_t *self,
 				   const char *help,
 				   int   exp_level,
 				   xine_config_cb_t changed_cb,
-				   void *cb_data);
+				   void *cb_data) XINE_PROTECTED;
 
 /*
  * the following functions will copy data from the internal xine_config
@@ -1396,14 +1397,14 @@ int   xine_config_register_bool   (xine_t *self,
  */
 
 /* get first config item */
-int  xine_config_get_first_entry (xine_t *self, xine_cfg_entry_t *entry);
+int  xine_config_get_first_entry (xine_t *self, xine_cfg_entry_t *entry) XINE_PROTECTED;
 
 /* get next config item (iterate through the items) */
-int  xine_config_get_next_entry (xine_t *self, xine_cfg_entry_t *entry);
+int  xine_config_get_next_entry (xine_t *self, xine_cfg_entry_t *entry) XINE_PROTECTED;
 
 /* search for a config entry by key */
 int  xine_config_lookup_entry (xine_t *self, const char *key,
-			       xine_cfg_entry_t *entry);
+			       xine_cfg_entry_t *entry) XINE_PROTECTED;
 
 /*
  * update a config entry (which was returned from lookup_entry() )
@@ -1412,14 +1413,14 @@ int  xine_config_lookup_entry (xine_t *self, const char *key,
  * config database.
  */
 void xine_config_update_entry (xine_t *self,
-			       const xine_cfg_entry_t *entry);
+			       const xine_cfg_entry_t *entry) XINE_PROTECTED;
 
 /*
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
-void xine_config_load  (xine_t *self, const char *cfg_filename);
-void xine_config_save  (xine_t *self, const char *cfg_filename);
-void xine_config_reset (xine_t *self);
+void xine_config_load  (xine_t *self, const char *cfg_filename) XINE_PROTECTED;
+void xine_config_save  (xine_t *self, const char *cfg_filename) XINE_PROTECTED;
+void xine_config_reset (xine_t *self) XINE_PROTECTED;
 
 
 /*********************************************************************
@@ -1822,8 +1823,8 @@ typedef struct xine_event_queue_s xine_event_queue_t;
  *
  * use xine_event_dispose_queue to unregister and free the queue
  */
-xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream);
-void xine_event_dispose_queue (xine_event_queue_t *queue);
+xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) XINE_PROTECTED;
+void xine_event_dispose_queue (xine_event_queue_t *queue) XINE_PROTECTED;
 
 /*
  * receive events (poll)
@@ -1831,9 +1832,9 @@ void xine_event_dispose_queue (xine_event_queue_t *queue);
  * use xine_event_free on the events received from these calls
  * when they're no longer needed
  */
-xine_event_t *xine_event_get  (xine_event_queue_t *queue);
-xine_event_t *xine_event_wait (xine_event_queue_t *queue);
-void          xine_event_free (xine_event_t *event);
+xine_event_t *xine_event_get  (xine_event_queue_t *queue) XINE_PROTECTED;
+xine_event_t *xine_event_wait (xine_event_queue_t *queue) XINE_PROTECTED;
+void          xine_event_free (xine_event_t *event) XINE_PROTECTED;
 
 /*
  * receive events (callback)
@@ -1847,7 +1848,7 @@ typedef void (*xine_event_listener_cb_t) (void *user_data,
 					  const xine_event_t *event);
 void xine_event_create_listener_thread (xine_event_queue_t *queue,
 					xine_event_listener_cb_t callback,
-					void *user_data);
+					void *user_data) XINE_PROTECTED;
 
 /*
  * send an event to all queues
@@ -1855,7 +1856,7 @@ void xine_event_create_listener_thread (xine_event_queue_t *queue,
  * the event will be copied so you can free or reuse
  * *event as soon as xine_event_send returns.
  */
-void xine_event_send (xine_stream_t *stream, const xine_event_t *event);
+void xine_event_send (xine_stream_t *stream, const xine_event_t *event) XINE_PROTECTED;
 
 
 /*********************************************************************
@@ -1890,42 +1891,42 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event);
 typedef struct xine_osd_s xine_osd_t;
 
 xine_osd_t *xine_osd_new           (xine_stream_t *self, int x, int y,
-				    int width, int height);
-uint32_t    xine_osd_get_capabilities (xine_osd_t *self);
-void        xine_osd_draw_point    (xine_osd_t *self, int x, int y, int color);
+				    int width, int height) XINE_PROTECTED;
+uint32_t    xine_osd_get_capabilities (xine_osd_t *self) XINE_PROTECTED;
+void        xine_osd_draw_point    (xine_osd_t *self, int x, int y, int color) XINE_PROTECTED;
 
 void        xine_osd_draw_line     (xine_osd_t *self, int x1, int y1,
-				    int x2, int y2, int color);
+				    int x2, int y2, int color) XINE_PROTECTED;
 void        xine_osd_draw_rect     (xine_osd_t *self, int x1, int y1,
 				    int x2, int y2,
-				    int color, int filled );
+				    int color, int filled ) XINE_PROTECTED;
 /* x1 and y1 specifies the upper left corner of the text to be rendered */
 void        xine_osd_draw_text     (xine_osd_t *self, int x1, int y1,
-				    const char *text, int color_base);
+				    const char *text, int color_base) XINE_PROTECTED;
 void        xine_osd_draw_bitmap   (xine_osd_t *self, uint8_t *bitmap,
 				    int x1, int y1, int width, int height,
-				    uint8_t *palette_map);
+				    uint8_t *palette_map) XINE_PROTECTED;
 /* for freetype2 fonts the height is the maximum height for the whole font and not
  * only for the specified text */
 void        xine_osd_get_text_size (xine_osd_t *self, const char *text,
-				    int *width, int *height);
+				    int *width, int *height) XINE_PROTECTED;
 /* with freetype2 support compiled in, you can also specify a font file
    as 'fontname' here */
 int         xine_osd_set_font      (xine_osd_t *self, const char *fontname,
-				    int size);
+				    int size) XINE_PROTECTED;
 /* 
  * specifying encoding of texts
  *   ""   ... means current locale encoding (default)
  *   NULL ... means latin1
  */
-void        xine_osd_set_encoding(xine_osd_t *self, const char *encoding);
+void        xine_osd_set_encoding(xine_osd_t *self, const char *encoding) XINE_PROTECTED;
 /* set position were overlay will be blended */
-void        xine_osd_set_position  (xine_osd_t *self, int x, int y);
-void        xine_osd_show          (xine_osd_t *self, int64_t vpts);
-void        xine_osd_show_unscaled (xine_osd_t *self, int64_t vpts);
-void        xine_osd_hide          (xine_osd_t *self, int64_t vpts);
+void        xine_osd_set_position  (xine_osd_t *self, int x, int y) XINE_PROTECTED;
+void        xine_osd_show          (xine_osd_t *self, int64_t vpts) XINE_PROTECTED;
+void        xine_osd_show_unscaled (xine_osd_t *self, int64_t vpts) XINE_PROTECTED;
+void        xine_osd_hide          (xine_osd_t *self, int64_t vpts) XINE_PROTECTED;
 /* empty drawing area */
-void        xine_osd_clear         (xine_osd_t *self);
+void        xine_osd_clear         (xine_osd_t *self) XINE_PROTECTED;
 /*
  * set on existing text palette
  * (-1 to set used specified palette)
@@ -1943,19 +1944,19 @@ void        xine_osd_clear         (xine_osd_t *self);
  */
 void        xine_osd_set_text_palette (xine_osd_t *self,
 				       int palette_number,
-				       int color_base );
+				       int color_base ) XINE_PROTECTED;
 /* get palette (color and transparency) */
 void        xine_osd_get_palette   (xine_osd_t *self, uint32_t *color,
-				    uint8_t *trans);
+				    uint8_t *trans) XINE_PROTECTED;
 void        xine_osd_set_palette   (xine_osd_t *self,
 				    const uint32_t *const color,
-				    const uint8_t *const trans );
+				    const uint8_t *const trans ) XINE_PROTECTED;
 /*
  * close osd rendering engine
  * loaded fonts are unloaded
  * osd objects are closed
  */
-void        xine_osd_free          (xine_osd_t *self);
+void        xine_osd_free          (xine_osd_t *self) XINE_PROTECTED;
 
 
 #ifndef XINE_DISABLE_DEPRECATED_FEATURES
@@ -1973,13 +1974,13 @@ typedef enum {
 } xine_tvsystem;
 
 /* connect to nvtvd server and save current TV and X settings */
-int xine_tvmode_init (xine_t *self);
+int xine_tvmode_init (xine_t *self) XINE_PROTECTED;
 
 /* Turn tvmode on/off (1/0)*/
-int xine_tvmode_use(xine_t *self, int use_tvmode);
+int xine_tvmode_use(xine_t *self, int use_tvmode) XINE_PROTECTED;
 
 /* Set which tv system to use: XINE_TVSYSTEM_PAL or XINE_TVSYSTEM_NTSC */
-void xine_tvmode_set_tvsystem(xine_t *self, xine_tvsystem system);
+void xine_tvmode_set_tvsystem(xine_t *self, xine_tvsystem system) XINE_PROTECTED;
 
 /* try to change TV state if enabled
  *   type select 'regular' (0) or 'TV' (1) state
@@ -1988,16 +1989,16 @@ void xine_tvmode_set_tvsystem(xine_t *self, xine_tvsystem system);
  *   fps frame rate the mode should match best or 0 if unknown
  * returns: finally selected state
  */
-int xine_tvmode_switch (xine_t *self, int type, int width, int height, double fps);
+int xine_tvmode_switch (xine_t *self, int type, int width, int height, double fps) XINE_PROTECTED;
 
 /* adapt (maximum) output size to visible area if necessary and return pixel
  * aspect and real frame rate if available
  */
 void xine_tvmode_size (xine_t *self, int *width, int *height,
-		       double *pixelratio, double *fps);
+		       double *pixelratio, double *fps) XINE_PROTECTED;
 
 /* restore old TV and X settings and close nvtvd connection */
-void xine_tvmode_exit (xine_t *self);
+void xine_tvmode_exit (xine_t *self) XINE_PROTECTED;
 
 #endif
 

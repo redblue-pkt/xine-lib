@@ -42,5 +42,16 @@
 #endif /* __attribute __*/
 #endif
 
+#ifdef XINE_COMPILE
+# include "config.h"
+#endif
+
+/* Export protected only for libxine functions */
+#if defined(XINE_LIBRARY_COMPILE) && defined(SUPPORT_ATTRIBUTE_VISIBILITY)
+# define XINE_PROTECTED __attribute__((visibility("protected")))
+#else
+# define XINE_PROTECTED
+#endif
+
 #endif /* ATTRIBUTE_H_ */
 

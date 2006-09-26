@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.176 2006/09/08 21:11:29 miguelfreitas Exp $
+ * $Id: xine_internal.h,v 1.177 2006/09/26 05:19:49 dgp85 Exp $
  *
  */
 
@@ -356,7 +356,7 @@ struct xine_stream_s {
  * private function prototypes:
  */
 
-void _x_handle_stream_end      (xine_stream_t *stream, int non_user);
+void _x_handle_stream_end      (xine_stream_t *stream, int non_user) XINE_PROTECTED;
 
 /* report message to UI. usually these are async errors */
 
@@ -368,34 +368,34 @@ __attribute__((sentinel))
 
 /* flush the message queues */
 
-void _x_flush_events_queues (xine_stream_t *stream);
+void _x_flush_events_queues (xine_stream_t *stream) XINE_PROTECTED;
 
 
 /* find and instantiate input and demux plugins */
 
-input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl);
-demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *input);
-demux_plugin_t *_x_find_demux_plugin_by_name (xine_stream_t *stream, const char *name, input_plugin_t *input);
-demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input);
-input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *filename);
-input_plugin_t *_x_cache_plugin_get_instance (xine_stream_t *stream, int readahead_size);
-void _x_free_input_plugin (xine_stream_t *stream, input_plugin_t *input);
-void _x_free_demux_plugin (xine_stream_t *stream, demux_plugin_t *demux);
+input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) XINE_PROTECTED;
+demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *input) XINE_PROTECTED;
+demux_plugin_t *_x_find_demux_plugin_by_name (xine_stream_t *stream, const char *name, input_plugin_t *input) XINE_PROTECTED;
+demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input) XINE_PROTECTED;
+input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *filename) XINE_PROTECTED;
+input_plugin_t *_x_cache_plugin_get_instance (xine_stream_t *stream, int readahead_size) XINE_PROTECTED;
+void _x_free_input_plugin (xine_stream_t *stream, input_plugin_t *input) XINE_PROTECTED;
+void _x_free_demux_plugin (xine_stream_t *stream, demux_plugin_t *demux) XINE_PROTECTED;
 
 /* create decoder fifos and threads */
 
-int _x_video_decoder_init           (xine_stream_t *stream);
-void _x_video_decoder_shutdown      (xine_stream_t *stream);
+int _x_video_decoder_init           (xine_stream_t *stream) XINE_PROTECTED;
+void _x_video_decoder_shutdown      (xine_stream_t *stream) XINE_PROTECTED;
 
-int _x_audio_decoder_init           (xine_stream_t *stream);
-void _x_audio_decoder_shutdown      (xine_stream_t *stream);
+int _x_audio_decoder_init           (xine_stream_t *stream) XINE_PROTECTED;
+void _x_audio_decoder_shutdown      (xine_stream_t *stream) XINE_PROTECTED;
 
 /* extra_info operations */
-void _x_extra_info_reset( extra_info_t *extra_info );
+void _x_extra_info_reset( extra_info_t *extra_info ) XINE_PROTECTED;
 
-void _x_extra_info_merge( extra_info_t *dst, extra_info_t *src );
+void _x_extra_info_merge( extra_info_t *dst, extra_info_t *src ) XINE_PROTECTED;
 
-void _x_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int size);
+void _x_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int size) XINE_PROTECTED;
                         
                         
 /* demuxer helper functions from demux.c */
@@ -409,36 +409,36 @@ void _x_get_current_info (xine_stream_t *stream, extra_info_t *extra_info, int s
  *          indication must be sent. relative discontinuities are likely
  *          to cause "jumps" on metronom.
  */
-void _x_demux_flush_engine         (xine_stream_t *stream);
+void _x_demux_flush_engine         (xine_stream_t *stream) XINE_PROTECTED;
 
-void _x_demux_control_nop          (xine_stream_t *stream, uint32_t flags);
-void _x_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32_t flags);
-void _x_demux_control_headers_done (xine_stream_t *stream);
-void _x_demux_control_start        (xine_stream_t *stream);
-void _x_demux_control_end          (xine_stream_t *stream, uint32_t flags);
-int _x_demux_start_thread          (xine_stream_t *stream);
-int _x_demux_stop_thread           (xine_stream_t *stream);
-int _x_demux_read_header           (input_plugin_t *input, unsigned char *buffer, off_t size);
-int _x_demux_check_extension       (char *mrl, char *extensions);
+void _x_demux_control_nop          (xine_stream_t *stream, uint32_t flags) XINE_PROTECTED;
+void _x_demux_control_newpts       (xine_stream_t *stream, int64_t pts, uint32_t flags) XINE_PROTECTED;
+void _x_demux_control_headers_done (xine_stream_t *stream) XINE_PROTECTED;
+void _x_demux_control_start        (xine_stream_t *stream) XINE_PROTECTED;
+void _x_demux_control_end          (xine_stream_t *stream, uint32_t flags) XINE_PROTECTED;
+int _x_demux_start_thread          (xine_stream_t *stream) XINE_PROTECTED;
+int _x_demux_stop_thread           (xine_stream_t *stream) XINE_PROTECTED;
+int _x_demux_read_header           (input_plugin_t *input, unsigned char *buffer, off_t size) XINE_PROTECTED;
+int _x_demux_check_extension       (char *mrl, char *extensions) XINE_PROTECTED;
 
-off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo);
+off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) XINE_PROTECTED;
 
-int _x_action_pending (xine_stream_t *stream);
+int _x_action_pending (xine_stream_t *stream) XINE_PROTECTED;
 
 void _x_demux_send_data(fifo_buffer_t *fifo, uint8_t *data, int size,
                         int64_t pts, uint32_t type, uint32_t decoder_flags,
                         int input_normpos, int input_time, int total_time,
-                        uint32_t frame_number);
+                        uint32_t frame_number) XINE_PROTECTED;
 
 int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input, 
                             int size, int64_t pts, uint32_t type, 
                             uint32_t decoder_flags, off_t input_normpos, 
                             int input_time, int total_time,
-                            uint32_t frame_number);
+                            uint32_t frame_number) XINE_PROTECTED;
 
 void _x_demux_send_mrl_reference (xine_stream_t *stream, int alternative,
 				  const char *mrl, const char *title,
-				  int start_time, int duration);
+				  int start_time, int duration) XINE_PROTECTED;
 
 
 /* 
@@ -448,14 +448,14 @@ void _x_demux_send_mrl_reference (xine_stream_t *stream, int alternative,
 
 /* on-demand loading of audio/video/spu decoder plugins */
 
-video_decoder_t *_x_get_video_decoder  (xine_stream_t *stream, uint8_t stream_type); 
-void             _x_free_video_decoder (xine_stream_t *stream, video_decoder_t *decoder);
-audio_decoder_t *_x_get_audio_decoder  (xine_stream_t *stream, uint8_t stream_type); 
-void             _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *decoder);
-spu_decoder_t   *_x_get_spu_decoder    (xine_stream_t *stream, uint8_t stream_type); 
-void             _x_free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decoder);
+video_decoder_t *_x_get_video_decoder  (xine_stream_t *stream, uint8_t stream_type) XINE_PROTECTED;
+void             _x_free_video_decoder (xine_stream_t *stream, video_decoder_t *decoder) XINE_PROTECTED;
+audio_decoder_t *_x_get_audio_decoder  (xine_stream_t *stream, uint8_t stream_type) XINE_PROTECTED;
+void             _x_free_audio_decoder (xine_stream_t *stream, audio_decoder_t *decoder) XINE_PROTECTED;
+spu_decoder_t   *_x_get_spu_decoder    (xine_stream_t *stream, uint8_t stream_type) XINE_PROTECTED;
+void             _x_free_spu_decoder   (xine_stream_t *stream, spu_decoder_t *decoder) XINE_PROTECTED;
 /* check for decoder availability - but don't try to initialize it */
-int              _x_decoder_available  (xine_t *xine, uint32_t buftype);
+int              _x_decoder_available  (xine_t *xine, uint32_t buftype) XINE_PROTECTED;
 
 /*
  * load_video_output_plugin
@@ -464,7 +464,7 @@ int              _x_decoder_available  (xine_t *xine, uint32_t buftype);
  */
 
 vo_driver_t *_x_load_video_output_plugin(xine_t *this,
-					 char *id, int visual_type, void *visual);
+					 char *id, int visual_type, void *visual) XINE_PROTECTED;
 
 /*
  * audio output plugin dynamic loading stuff
@@ -476,22 +476,22 @@ vo_driver_t *_x_load_video_output_plugin(xine_t *this,
  * load a specific audio output plugin
  */
 
-ao_driver_t *_x_load_audio_output_plugin (xine_t *self, char *id);
+ao_driver_t *_x_load_audio_output_plugin (xine_t *self, char *id) XINE_PROTECTED;
 
 
-void _x_set_speed (xine_stream_t *stream, int speed) ;
+void _x_set_speed (xine_stream_t *stream, int speed) XINE_PROTECTED;
 
-int _x_get_speed (xine_stream_t *stream) ;
+int _x_get_speed (xine_stream_t *stream) XINE_PROTECTED;
 
-void _x_set_fine_speed (xine_stream_t *stream, int speed) ;
+void _x_set_fine_speed (xine_stream_t *stream, int speed) XINE_PROTECTED;
 
-int _x_get_fine_speed (xine_stream_t *stream) ;
+int _x_get_fine_speed (xine_stream_t *stream) XINE_PROTECTED;
 
-void _x_select_spu_channel (xine_stream_t *stream, int channel) ;
+void _x_select_spu_channel (xine_stream_t *stream, int channel) XINE_PROTECTED;
 
-int _x_get_audio_channel (xine_stream_t *stream) ;
+int _x_get_audio_channel (xine_stream_t *stream) XINE_PROTECTED;
 
-int _x_get_spu_channel (xine_stream_t *stream) ;
+int _x_get_spu_channel (xine_stream_t *stream) XINE_PROTECTED;
 
 /*
  * internal events

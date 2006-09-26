@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: array.h,v 1.1 2006/01/16 08:04:44 tmattern Exp $
+ * $Id: array.h,v 1.2 2006/09/26 05:19:49 dgp85 Exp $
  *
  * Array that can grow automatically when you add elements.
  * Inserting an element in the middle of the array implies memory moves.
@@ -29,31 +29,31 @@
 typedef struct xine_array_s xine_array_t;
 
 /* Constructor */
-xine_array_t *xine_array_new(size_t initial_size);
+xine_array_t *xine_array_new(size_t initial_size) XINE_PROTECTED;
 
 /* Destructor */
-void xine_array_delete(xine_array_t *array);
+void xine_array_delete(xine_array_t *array) XINE_PROTECTED;
 
 /* Returns the number of element stored in the array */
-size_t xine_array_size(xine_array_t *array);
+size_t xine_array_size(xine_array_t *array) XINE_PROTECTED;
 
 /* Removes all elements from an array */
-void xine_array_clear(xine_array_t *array);
+void xine_array_clear(xine_array_t *array) XINE_PROTECTED;
 
 /* Adds the element at the end of the array */
-void xine_array_add(xine_array_t *array, void *value);
+void xine_array_add(xine_array_t *array, void *value) XINE_PROTECTED;
 
 /* Inserts an element into an array at the position specified */
-void xine_array_insert(xine_array_t *array, unsigned int position, void *value);
+void xine_array_insert(xine_array_t *array, unsigned int position, void *value) XINE_PROTECTED;
 
 /* Removes one element from an array at the position specified */
-void xine_array_remove(xine_array_t *array, unsigned int position);
+void xine_array_remove(xine_array_t *array, unsigned int position) XINE_PROTECTED;
 
 /* Get the element at the position specified */
-void *xine_array_get(xine_array_t *array, unsigned int position);
+void *xine_array_get(xine_array_t *array, unsigned int position) XINE_PROTECTED;
 
 /* Set the element at the position specified */
-void xine_array_set(xine_array_t *array, unsigned int position, void *value);
+void xine_array_set(xine_array_t *array, unsigned int position, void *value) XINE_PROTECTED;
 
 #endif
 
