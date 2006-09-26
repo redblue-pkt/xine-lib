@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: events.c,v 1.30 2006/01/27 19:49:23 tmattern Exp $
+ * $Id: events.c,v 1.31 2006/09/26 22:03:44 dgp85 Exp $
  *
  * Event handling functions
  *
@@ -142,14 +142,17 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   pthread_mutex_lock (&stream->event_queues_lock);
 
   ite = xine_list_front (stream->event_queues);
-  q = xine_list_get_value (stream->event_queues, ite);
 
-  while (ite && (q != queue)) {
-    ite = xine_list_next (stream->event_queues, ite);
-    q = xine_list_get_value (stream->event_queues, ite);
+  if ( ite ) {
+    do {
+      q = xine_list_get_value (stream->event_queues, ite);
+      
+      if ( q == queue )
+	break;
+    } while( (ite = xine_list_next (stream->event_queues, ite)) );
   }
 
-  if (!q) {
+  if (q != queue) {
     xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "events: tried to dispose queue which is not in list\n");
 
     pthread_mutex_unlock (&stream->event_queues_lock);
