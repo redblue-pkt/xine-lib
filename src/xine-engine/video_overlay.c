@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_overlay.c,v 1.40 2006/04/05 22:12:20 valtri Exp $
+ * $Id: video_overlay.c,v 1.41 2006/09/26 00:28:14 dgp85 Exp $
  *
  */
 
@@ -349,6 +349,8 @@ static int video_overlay_event( video_overlay_t *this, int64_t vpts ) {
     printf ("video_overlay: video_overlay_event: handle = %d\n", handle);
 #endif
     _x_assert(handle >= 0);
+    if ( handle < 0 ) break;
+
     switch( this->events[this_event].event->event_type ) {
       case OVERLAY_EVENT_SHOW:
 #ifdef LOG_DEBUG
