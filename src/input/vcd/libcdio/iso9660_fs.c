@@ -1,5 +1,5 @@
 /*
-    $Id: iso9660_fs.c,v 1.4 2006/06/10 00:21:51 dgp85 Exp $
+    $Id: iso9660_fs.c,v 1.5 2006/09/26 22:23:51 dgp85 Exp $
 
     Copyright (C) 2001 Herbert Valerio Riedel <hvr@gnu.org>
     Copyright (C) 2003, 2004 Rocky Bernstein <rocky@panix.com>
@@ -51,7 +51,7 @@
 
 #include <stdio.h>
 
-static const char _rcsid[] = "$Id: iso9660_fs.c,v 1.4 2006/06/10 00:21:51 dgp85 Exp $";
+static const char _rcsid[] = "$Id: iso9660_fs.c,v 1.5 2006/09/26 22:23:51 dgp85 Exp $";
 
 /* Implementation of iso9660_t type */
 struct _iso9660 {
@@ -1053,11 +1053,13 @@ iso9660_ifs_stat_translate (iso9660_t *p_iso, const char pathname[])
 CdioList * 
 iso9660_fs_readdir (CdIo *p_cdio, const char pathname[], bool b_mode2)
 {
+  generic_img_private_t *p_env;
   iso9660_stat_t *p_stat;
-  generic_img_private_t *p_env = (generic_img_private_t *) p_cdio->env;
 
   if (!p_cdio)   return NULL;
-  if (!pathname) return NULL;
+  if (!psz_path) return NULL;
+
+  p_env = (generic_img_private_t *) p_cdio->env;
 
   p_stat = iso9660_fs_stat (p_cdio, pathname);
   if (!p_stat) return NULL;
