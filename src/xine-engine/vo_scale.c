@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: vo_scale.c,v 1.38 2006/09/25 22:27:48 dgp85 Exp $
+ * $Id: vo_scale.c,v 1.39 2006/09/26 08:00:02 dgp85 Exp $
  * 
  * Contains common code to calculate video scaling parameters.
  * In short, it will map frame dimensions to screen/window size.
@@ -247,12 +247,9 @@ int _x_vo_scale_redraw_needed (vo_scale_t *this) {
   double gui_pixel_aspect;
   int ret = 0;
 
-  assert(this->frame_output_cb);
-  if ( ! this->frame_output_cb ) {
-    /* TODO: Make this use xine_log, if xine instance is available. */
-    fprintf(stderr, _("vo_scale: error! frame_output_cb must be set!\n"));
+  _x_assert(this->frame_output_cb);
+  if ( ! this->frame_output_cb )
     return 0;
-  }
   
   this->frame_output_cb (this->user_data,
 			 this->delivered_width - (this->crop_left + this->crop_right), 
