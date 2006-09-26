@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xineutils.h,v 1.103 2006/09/26 05:48:16 dgp85 Exp $
+ * $Id: xineutils.h,v 1.104 2006/09/26 07:48:57 dgp85 Exp $
  *
  */
 #ifndef XINEUTILS_H
@@ -600,7 +600,7 @@ typedef	union {
 
 		     /* Optimized/fast memcpy */
 
-extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len);
+extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len) XINE_PROTECTED;
 
 #ifdef HAVE_XINE_INTERNAL_H
 /* Benchmark available memcpy methods */
