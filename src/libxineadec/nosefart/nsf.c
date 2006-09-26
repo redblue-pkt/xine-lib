@@ -20,7 +20,7 @@
 ** nsf.c
 **
 ** NSF loading/saving related functions
-** $Id: nsf.c,v 1.3 2003/08/25 21:51:43 f1rmb Exp $
+** $Id: nsf.c,v 1.4 2006/09/26 00:52:17 dgp85 Exp $
 */
 
 #include <stdio.h>
@@ -426,8 +426,11 @@ nsf_t *nsf_load(char *filename, void *source, int length)
    }
 
    temp_nsf = malloc(sizeof(nsf_t));
-   if (NULL == temp_nsf)
-      return NULL;
+   if (NULL == temp_nsf) {
+     fclose(fp);
+     free(new_fn);
+     return NULL;
+   }
 
    /* Read in the header */
    if (NULL == source)
@@ -579,6 +582,11 @@ void nsf_setfilter(nsf_t *nsf, int filter_type)
 
 /*
 ** $Log: nsf.c,v $
+** Revision 1.4  2006/09/26 00:52:17  dgp85
+** Free the filename string and close the file pointer when returning.
+**
+** Found by Coverity Scan.
+**
 ** Revision 1.3  2003/08/25 21:51:43  f1rmb
 ** Reduce GCC verbosity (various prototype declaration fixes). ffmpeg, wine and fft*post are untouched (fft: for now).
 **
