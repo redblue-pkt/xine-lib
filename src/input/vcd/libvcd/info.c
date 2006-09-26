@@ -1,5 +1,5 @@
 /*
-    $Id: info.c,v 1.5 2006/01/01 21:28:32 valtri Exp $
+    $Id: info.c,v 1.6 2006/09/26 18:52:41 dgp85 Exp $
 
     Copyright (C) 2002, 2003, 2004 Rocky Bernstein <rocky@panix.com>
 
@@ -59,7 +59,7 @@
 #include <stddef.h>
 #include <errno.h>
 
-static const char _rcsid[] = "$Id: info.c,v 1.5 2006/01/01 21:28:32 valtri Exp $";
+static const char _rcsid[] = "$Id: info.c,v 1.6 2006/09/26 18:52:41 dgp85 Exp $";
 
 #define BUF_COUNT 16
 #define BUF_SIZE 80
@@ -302,7 +302,7 @@ vcdinfo_video_type2str(const vcdinfo_obj_t *obj, segnum_t seg_num)
       "reserved (0x4)",
       "PAL still",
       "PAL still (lo+hires)",
-      "PAL motion"
+      "PAL motion",
       "INVALID ENTRY"
     };
   
