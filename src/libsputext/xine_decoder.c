@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.95 2006/07/10 22:08:30 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.96 2006/09/26 02:36:55 dgp85 Exp $
  *
  */
 
@@ -339,13 +339,16 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   int line, y;
   int font_size;
 
+  _x_assert(this->renderer != NULL);
+  if ( ! this->renderer )
+    return;
+
   update_font_size(this, 0);
   
   if( strcmp(this->font, this->class->font) ) {
     strncpy(this->font, this->class->font, FONTNAME_SIZE);
     this->font[FONTNAME_SIZE - 1] = '\0';
-    if( this->renderer )
-      this->renderer->set_font (this->osd, this->class->font, this->font_size);
+    this->renderer->set_font (this->osd, this->class->font, this->font_size);
   }
 
   font_size = this->font_size;
