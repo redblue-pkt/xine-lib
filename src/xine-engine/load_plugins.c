@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.224 2006/08/12 01:43:26 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.225 2006/09/26 21:32:08 dgp85 Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -198,6 +198,13 @@ static void map_decoder_list (xine_t *this,
 	if (!decoder_map[streamtype][pos] ||
 	    priority > get_decoder_priority(this, decoder_map[streamtype][pos]))
 	  break;
+
+      if ( pos == PLUGINS_PER_TYPE ) {
+	xine_log (this, XINE_LOG_PLUGIN,
+		  _("map_decoder_list: no space for decoder, skipped.\n"));
+	type++;
+	continue;
+      }
 
       /* shift the decoder list for this type by one to make room for new decoder */
       for (i = PLUGINS_PER_TYPE - 1; i > pos; i--)
