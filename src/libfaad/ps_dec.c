@@ -22,7 +22,7 @@
 ** Commercial non-GPL licensing of this software is possible.
 ** For more info contact Ahead Software through Mpeg4AAClicense@nero.com.
 **
-** $Id: ps_dec.c,v 1.2 2006/06/17 20:43:57 dgp85 Exp $
+** $Id: ps_dec.c,v 1.3 2006/09/26 17:55:59 dgp85 Exp $
 **/
 
 #include "common.h"
@@ -230,24 +230,16 @@ static void hybrid_free(hyb_info *hyb)
 {
     uint8_t i;
 
-    if (hyb->work)
-        faad_free(hyb->work);
+    faad_free(hyb->work);
 
     for (i = 0; i < 5; i++)
-    {
-        if (hyb->buffer[i])
-            faad_free(hyb->buffer[i]);
-    }
-    if (hyb->buffer)
-        faad_free(hyb->buffer);
+      faad_free(hyb->buffer[i]);
+    faad_free(hyb->buffer);
 
     for (i = 0; i < hyb->frame_len; i++)
-    {
-        if (hyb->temp[i])
-            faad_free(hyb->temp[i]);
-    }
-    if (hyb->temp)
-        faad_free(hyb->temp);
+      faad_free(hyb->temp[i]);
+    
+    faad_free(hyb->temp);
 }
 
 /* real filter, size 2 */
