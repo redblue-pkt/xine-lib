@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.157 2006/09/26 05:19:47 dgp85 Exp $
+ * $Id: xine.h.in,v 1.158 2006/09/27 14:38:59 valtri Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -62,6 +62,7 @@ extern "C" {
 #include "attributes.h"
 #else
 #include <xine/os_types.h>
+#include <xine/attributes.h>
 #endif
 
 /* This enables some experimental features. These are not part of the
