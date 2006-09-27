@@ -1,5 +1,5 @@
 /*
-    $Id: image_nrg.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $
+    $Id: image_nrg.c,v 1.4 2006/09/27 05:41:40 dgp85 Exp $
 
     Copyright (C) 2001, 2003, 2004 Herbert Valerio Riedel <hvr@gnu.org>
 
@@ -44,7 +44,7 @@
 #include "stream_stdio.h"
 #include "util.h"
 
-static const char _rcsid[] = "$Id: image_nrg.c,v 1.3 2005/01/01 02:43:59 rockyb Exp $";
+static const char _rcsid[] = "$Id: image_nrg.c,v 1.4 2006/09/27 05:41:40 dgp85 Exp $";
 
 /* structures used */
 
@@ -203,6 +203,7 @@ _map (_img_nrg_snk_t *_obj, uint32_t lsn)
     }
   
   vcd_assert (node != NULL);
+  vcd_assert (_last != NULL);
 
   switch (_last->type)
     {
