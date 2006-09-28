@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_shn.c,v 1.1 2005/05/29 19:21:24 jstembridge Exp $
+ * $Id: demux_shn.c,v 1.2 2006/09/28 22:27:52 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -113,6 +113,9 @@ static void demux_shn_send_headers(demux_plugin_t *this_gen) {
   this->audio_fifo  = this->stream->audio_fifo;
 
   this->status = DEMUX_OK;
+
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   /* send start buffers */
   _x_demux_control_start(this->stream);
