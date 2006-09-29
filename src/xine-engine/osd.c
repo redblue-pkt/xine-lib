@@ -1171,7 +1171,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       }
       previous = i;
 
-      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)) {
+      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph\n"));
         continue;
       }
