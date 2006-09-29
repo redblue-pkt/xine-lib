@@ -30,6 +30,8 @@ xine-lib (1.1.3)
   * Support libcaca 0.99, thanks to cjacker huang.
   * Fix crash on video-only WMV streams. [bug #1564598]
   * Report audio stream on Shorten files (required for Amarok to play them).
+  * Optionally use fontconfig to look up fonts to use for OSD. [bug #1551042]
+  * Prefer FreeType2 rendered fonts to bitmap fonts.
 	
 xine-lib (1.1.2)
   * Security fixes:
