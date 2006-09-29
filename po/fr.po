@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-09-14 19:28+0200\n"
+"POT-Creation-Date: 2006-09-29 01:51+0200\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -850,11 +850,11 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/xine.c:696 src/xine-engine/xine.c:803
-#: src/xine-engine/xine.c:840 src/xine-engine/xine.c:876
-#: src/xine-engine/xine.c:888 src/xine-engine/xine.c:901
-#: src/xine-engine/xine.c:914 src/xine-engine/xine.c:927
-#: src/xine-engine/xine.c:953 src/xine-engine/xine.c:978
-#: src/xine-engine/xine.c:1013
+#: src/xine-engine/xine.c:842 src/xine-engine/xine.c:878
+#: src/xine-engine/xine.c:890 src/xine-engine/xine.c:903
+#: src/xine-engine/xine.c:916 src/xine-engine/xine.c:929
+#: src/xine-engine/xine.c:955 src/xine-engine/xine.c:980
+#: src/xine-engine/xine.c:1015
 msgid "xine: error while parsing mrl\n"
 msgstr ""
 
@@ -882,91 +882,91 @@ msgstr ""
 msgid "xine: join rip input plugin\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:833
+#: src/xine-engine/xine.c:835
 #, fuzzy
 msgid "xine: error opening rip input plugin instance\n"
 msgstr "input_dvd: erreur de lecture dans le plugin input_dvd\n"
 
-#: src/xine-engine/xine.c:864
+#: src/xine-engine/xine.c:866
 #, c-format
 msgid "xine: last_probed demuxer %s failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:893
+#: src/xine-engine/xine.c:895
 msgid "ignoring video\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:906
+#: src/xine-engine/xine.c:908
 msgid "ignoring audio\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:919
+#: src/xine-engine/xine.c:921
 msgid "ignoring subpicture\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:932
+#: src/xine-engine/xine.c:934
 msgid "input cache plugin disabled\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1003
+#: src/xine-engine/xine.c:1005
 #, c-format
 msgid "subtitle mrl opened '%s'\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1007
+#: src/xine-engine/xine.c:1009
 #, fuzzy
 msgid "xine: error opening subtitle mrl\n"
 msgstr "input_dvd: ne peux pas ouvrir le fichier >%s<\n"
 
-#: src/xine-engine/xine.c:1039
+#: src/xine-engine/xine.c:1041
 msgid "xine: error while parsing MRL\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1046
+#: src/xine-engine/xine.c:1048
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1066
+#: src/xine-engine/xine.c:1068
 #, c-format
 msgid "xine: couldn't find demux for >%s<\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1082
+#: src/xine-engine/xine.c:1084
 #, c-format
 msgid "xine: found demuxer plugin: %s\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1102
+#: src/xine-engine/xine.c:1104
 msgid "xine: demuxer failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1165
+#: src/xine-engine/xine.c:1167
 msgid "xine_play: no demux available\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1235
+#: src/xine-engine/xine.c:1237
 msgid "xine_play: demux failed to start\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1507
+#: src/xine-engine/xine.c:1509
 #, c-format
 msgid "xine: The specified save_dir \"%s\" might be a security risk.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1512
+#: src/xine-engine/xine.c:1514
 msgid "The specified save_dir might be a security risk."
 msgstr ""
 
-#: src/xine-engine/xine.c:1538
+#: src/xine-engine/xine.c:1540
 msgid "xine: locale not supported by C library\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1547
+#: src/xine-engine/xine.c:1549
 msgid "media format detection strategy"
 msgstr ""
 
-#: src/xine-engine/xine.c:1548
+#: src/xine-engine/xine.c:1550
 msgid ""
 "xine offers various methods to detect the media format of input to play. The "
 "individual values are:\n"
@@ -984,11 +984,11 @@ msgid ""
 "Detect by file name extension only.\n"
 msgstr ""
 
-#: src/xine-engine/xine.c:1566
+#: src/xine-engine/xine.c:1568
 msgid "directory for saving streams"
 msgstr ""
 
-#: src/xine-engine/xine.c:1567
+#: src/xine-engine/xine.c:1569
 msgid ""
 "When using the stream save feature, files will be written only into this "
 "directory.\n"
@@ -998,11 +998,11 @@ msgid ""
 "content in any file."
 msgstr ""
 
-#: src/xine-engine/xine.c:1578
+#: src/xine-engine/xine.c:1580
 msgid "allow implicit changes to the configuration (e.g. by MRL)"
 msgstr ""
 
-#: src/xine-engine/xine.c:1579
+#: src/xine-engine/xine.c:1581
 msgid ""
 "If enabled, you allow xine to change your configuration without explicit "
 "actions from your side. For example configuration changes demanded by MRLs "
@@ -1012,26 +1012,26 @@ msgid ""
 "configuration, you might end with a totally messed up xine."
 msgstr ""
 
-#: src/xine-engine/xine.c:1593
+#: src/xine-engine/xine.c:1595
 msgid "Timeout for network stream reading (in seconds)"
 msgstr ""
 
-#: src/xine-engine/xine.c:1594
+#: src/xine-engine/xine.c:1596
 msgid ""
 "Specifies the timeout when reading from network streams, in seconds. Too low "
 "values might stop streaming when the source is slow or the bandwidth is "
 "occupied, too high values will freeze the player if the connection is lost."
 msgstr ""
 
-#: src/xine-engine/xine.c:1945
+#: src/xine-engine/xine.c:1947
 msgid "messages"
 msgstr "messages"
 
-#: src/xine-engine/xine.c:1946
+#: src/xine-engine/xine.c:1948
 msgid "plugin"
 msgstr ""
 
-#: src/xine-engine/xine.c:1947
+#: src/xine-engine/xine.c:1949
 msgid "trace"
 msgstr ""
 
@@ -1126,11 +1126,11 @@ msgid ""
 "increased latency and memory consumption."
 msgstr ""
 
-#: src/xine-engine/alphablend.c:2119
+#: src/xine-engine/alphablend.c:2123
 msgid "disable exact alpha blending of overlays"
 msgstr ""
 
-#: src/xine-engine/alphablend.c:2120
+#: src/xine-engine/alphablend.c:2124
 msgid ""
 "If you experience a performance impact when an On Screen Display or other "
 "overlays like DVD subtitles are active, then you might want to enable this "
@@ -1252,7 +1252,7 @@ msgstr ""
 msgid "configfile: WARNING: you should check the backup file %s\n"
 msgstr ""
 
-#: src/xine-engine/configfile.c:1229
+#: src/xine-engine/configfile.c:1237
 #, c-format
 msgid "configfile: entry '%s' mustn't be modified from MRL\n"
 msgstr ""
@@ -1381,32 +1381,32 @@ msgstr ""
 msgid "File is empty:"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1088
+#: src/xine-engine/audio_out.c:1072
 msgid ""
 "audio_out: delay calculation impossible with an unavailable audio device\n"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1230
+#: src/xine-engine/audio_out.c:1214
 msgid "write to sound card failed. Was a USB device unplugged ?\n"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1383
+#: src/xine-engine/audio_out.c:1367
 msgid "8 bits not supported by driver, converting to 16 bits.\n"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1391
+#: src/xine-engine/audio_out.c:1375
 msgid "mono not supported by driver, converting to stereo.\n"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:1397
+#: src/xine-engine/audio_out.c:1381
 msgid "stereo not supported by driver, converting to mono.\n"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2042
+#: src/xine-engine/audio_out.c:2026
 msgid "method to sync audio and video"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2043
+#: src/xine-engine/audio_out.c:2027
 msgid ""
 "When playing audio and video, there are at least two clocks involved: The "
 "system clock, to which video frames are synchronized and the clock in your "
@@ -1429,11 +1429,11 @@ msgid ""
 "form."
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2071
+#: src/xine-engine/audio_out.c:2055
 msgid "enable resampling"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2072
+#: src/xine-engine/audio_out.c:2056
 msgid ""
 "When the sample rate of the decoded audio does not match the capabilities of "
 "your sound hardware, an adaptation called \"resampling\" is required. Here "
@@ -1441,33 +1441,33 @@ msgid ""
 "automatically when necessary."
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2079
+#: src/xine-engine/audio_out.c:2063
 msgid "always resample to this rate (0 to disable)"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2080
+#: src/xine-engine/audio_out.c:2064
 msgid ""
 "Some audio drivers do not correctly announce the capabilities of the audio "
 "hardware. By setting a value other than zero here, you can force the audio "
 "stream to be resampled to the given rate."
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2089
+#: src/xine-engine/audio_out.c:2073
 msgid "offset for digital passthrough"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2090
+#: src/xine-engine/audio_out.c:2074
 msgid ""
 "If you use an external surround decoder and audio is ahead or behind video, "
 "you can enter a fixed offset here to compensate.\n"
 "The unit of the value is one PTS tick, which is the 90000th part of a second."
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2099
+#: src/xine-engine/audio_out.c:2083
 msgid "play audio even on slow/fast speeds"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2100
+#: src/xine-engine/audio_out.c:2084
 msgid ""
 "If you enable this option, the audio will be heard even when playback speed "
 "is different than 1X. Of course, it will sound distorted (lower/higher "
@@ -1475,145 +1475,149 @@ msgid ""
 "audio post plugin instead."
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2171
+#: src/xine-engine/audio_out.c:2155
 msgid "startup audio volume"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2172
+#: src/xine-engine/audio_out.c:2156
 msgid "The overall audio volume set at xine startup."
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2175
+#: src/xine-engine/audio_out.c:2159
 msgid "restore volume level at startup"
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2176
+#: src/xine-engine/audio_out.c:2160
 msgid "If disabled, xine will not modify any mixer settings at startup."
 msgstr ""
 
-#: src/xine-engine/audio_out.c:2206
+#: src/xine-engine/audio_out.c:2190
 msgid "audio_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:312
+#: src/xine-engine/load_plugins.c:204
+msgid "map_decoder_list: no space for decoder, skipped.\n"
+msgstr ""
+
+#: src/xine-engine/load_plugins.c:319
 #, c-format
 msgid ""
 "load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:369
+#: src/xine-engine/load_plugins.c:376
 #, c-format
 msgid "priority for %s decoder"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:380
+#: src/xine-engine/load_plugins.c:387
 msgid ""
 "The priority provides a ranking in case some media can be handled by more "
 "than one decoder.\n"
 "A priority of 0 enables the decoder's default priority."
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:408
+#: src/xine-engine/load_plugins.c:415
 #, c-format
 msgid ""
 "load_plugins: demuxer plugin %s does not provide a priority, xine-lib will "
 "use the default priority.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:425
+#: src/xine-engine/load_plugins.c:432
 #, c-format
 msgid ""
 "load_plugins: input plugin %s does not provide a priority, xine-lib will use "
 "the default priority.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:481
+#: src/xine-engine/load_plugins.c:488
 #, c-format
 msgid "load_plugins: plugin %s found\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:484
+#: src/xine-engine/load_plugins.c:491
 #, fuzzy
 msgid "load_plugins: static plugin found\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:491
+#: src/xine-engine/load_plugins.c:498
 #, c-format
 msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:494
+#: src/xine-engine/load_plugins.c:501
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:511
+#: src/xine-engine/load_plugins.c:518
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:515
+#: src/xine-engine/load_plugins.c:522
 #, fuzzy, c-format
 msgid "load_plugins: unknown statically linked plugin type %d\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:575
+#: src/xine-engine/load_plugins.c:582
 #, fuzzy, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:616
+#: src/xine-engine/load_plugins.c:623
 #, fuzzy, c-format
 msgid ""
 "load_plugins: cannot open plugin lib %s:\n"
 "%s\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:631
+#: src/xine-engine/load_plugins.c:638
 #, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:649
+#: src/xine-engine/load_plugins.c:656
 #, fuzzy, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:674
+#: src/xine-engine/load_plugins.c:681
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
 "%s\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:703
+#: src/xine-engine/load_plugins.c:710
 #, c-format
 msgid "load_plugins: Yikes! %s doesn't contain plugin info.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:1269
+#: src/xine-engine/load_plugins.c:1276
 #, fuzzy, c-format
 msgid "load_plugins: unknown content detection strategy %d\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:1379
+#: src/xine-engine/load_plugins.c:1386
 #, fuzzy, c-format
 msgid "load_plugins: using demuxer '%s'\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:1690
+#: src/xine-engine/load_plugins.c:1697
 #, fuzzy, c-format
 msgid "load_plugins: failed to load audio output plugin <%s>\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
-#: src/xine-engine/load_plugins.c:1693
+#: src/xine-engine/load_plugins.c:1700
 msgid ""
 "load_plugins: audio output auto-probing didn't find any usable audio "
 "driver.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:1996
+#: src/xine-engine/load_plugins.c:2003
 #, fuzzy, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
@@ -2818,7 +2822,7 @@ msgstr ""
 msgid "gnome-vfs input plugin as shipped with xine"
 msgstr "plugin d'entrée réseau fournis avec xine"
 
-#: src/input/input_gnome_vfs.c:292 src/input/input_file.c:403
+#: src/input/input_gnome_vfs.c:292 src/input/input_file.c:409
 #, fuzzy, c-format
 msgid "input_file: File empty: >%s<\n"
 msgstr "input_file: erreur de lecture (%s)\n"
@@ -3012,38 +3016,38 @@ msgid ""
 "play just the specified title/chapter and then stop"
 msgstr ""
 
-#: src/input/input_file.c:168
+#: src/input/input_file.c:174
 #, c-format
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: erreur de lecture (%s)\n"
 
-#: src/input/input_file.c:366
+#: src/input/input_file.c:372
 #, fuzzy, c-format
 msgid "input_file: Permission denied: >%s<\n"
 msgstr "input_cda: fopen(%s) à échoué: %s\n"
 
-#: src/input/input_file.c:371
+#: src/input/input_file.c:377
 #, fuzzy, c-format
 msgid "input_file: File not found: >%s<\n"
 msgstr "input_file: erreur de lecture (%s)\n"
 
-#: src/input/input_file.c:624
+#: src/input/input_file.c:630
 msgid "file input plugin"
 msgstr ""
 
-#: src/input/input_file.c:993
+#: src/input/input_file.c:999
 msgid "file browsing start location"
 msgstr ""
 
-#: src/input/input_file.c:994
+#: src/input/input_file.c:1000
 msgid "The browser to select the file to play will start at this location."
 msgstr ""
 
-#: src/input/input_file.c:1001
+#: src/input/input_file.c:1007
 msgid "list hidden files"
 msgstr ""
 
-#: src/input/input_file.c:1002
+#: src/input/input_file.c:1008
 msgid ""
 "If enabled, the browser to select the file to play will also show hidden "
 "files."
@@ -3656,39 +3660,39 @@ msgid ""
 "in the subtitle being shown until the next one takes over."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:910
+#: src/libsputext/xine_decoder.c:913
 msgid "subtitle size"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:911
+#: src/libsputext/xine_decoder.c:914
 msgid ""
 "You can adjust the subtitle size here. The setting will be evaluated "
 "relative to the window size."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:917
+#: src/libsputext/xine_decoder.c:920
 msgid "subtitle vertical offset"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:918
+#: src/libsputext/xine_decoder.c:921
 msgid ""
 "You can adjust the vertical position of the subtitle. The setting will be "
 "evaluated relative to the window size."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:924
+#: src/libsputext/xine_decoder.c:927
 msgid "font for subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:925
+#: src/libsputext/xine_decoder.c:928
 msgid "A font from the xine font directory to be used for the subtitle text."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:932
+#: src/libsputext/xine_decoder.c:935
 msgid "encoding of the subtitles"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:933
+#: src/libsputext/xine_decoder.c:936
 msgid ""
 "The encoding of the subtitle text in the stream. This setting is used to "
 "render non-ASCII characters correctly. If non-ASCII characters are not "
@@ -3696,11 +3700,11 @@ msgid ""
 "used."
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:941
+#: src/libsputext/xine_decoder.c:944
 msgid "use unscaled OSD if possible"
 msgstr ""
 
-#: src/libsputext/xine_decoder.c:942
+#: src/libsputext/xine_decoder.c:945
 msgid ""
 "The unscaled OSD will be rendered independently of the video frame and will "
 "always be sharp, even if the video is magnified. This will look better, but "
@@ -4612,37 +4616,37 @@ msgstr ""
 msgid "dvaudio: increasing buffer to %d to avoid overflow.\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:150
+#: src/libffmpeg/video_decoder.c:153
 msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:163
+#: src/libffmpeg/video_decoder.c:171
 msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:306
+#: src/libffmpeg/video_decoder.c:319
 #, c-format
 msgid "ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:335
+#: src/libffmpeg/video_decoder.c:348
 msgid "ffmpeg_video_dec: couldn't open decoder\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:370
+#: src/libffmpeg/video_decoder.c:383
 msgid "ffmpeg_video_dec: direct rendering enabled\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:789
+#: src/libffmpeg/video_decoder.c:802
 #, c-format
 msgid "ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:1461
+#: src/libffmpeg/video_decoder.c:1474
 msgid "MPEG-4 postprocessing quality"
 msgstr ""
 
-#: src/libffmpeg/video_decoder.c:1462
+#: src/libffmpeg/video_decoder.c:1475
 msgid ""
 "You can adjust the amount of post processing applied to MPEG-4 video.\n"
 "Higher values result in better quality, but need more CPU. Lower values may "
