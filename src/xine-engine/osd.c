@@ -57,6 +57,9 @@
 #ifdef HAVE_FT2
 #include <ft2build.h>
 #include FT_FREETYPE_H
+# ifdef HAVE_FONTCONFIG
+#  include <fontconfig/fontconfig.h>
+# endif
 #endif
 
 #define FONT_VERSION  2
@@ -119,7 +122,6 @@ struct osd_font_s {
 
 #ifdef HAVE_FT2
 struct osd_ft2context_s {
-  int        useme;
   FT_Library library;
   FT_Face    face;
   int        size;
@@ -817,97 +819,137 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
   return ret;
 }
 
+#ifdef HAVE_FT2
+static int osd_set_font_freetype2( osd_object_t *osd, const char *fontname, int size ) {
+  if (!osd->ft2) {
+    osd->ft2 = xine_xmalloc(sizeof(osd_ft2context_t));
+    if(FT_Init_FreeType( &osd->ft2->library )) {
+      xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+	      _("osd: cannot initialize ft2 library\n"));
+      free(osd->ft2);
+      osd->ft2 = NULL;
+      return 0;
+    }
+  }
+   
+#ifdef HAVE_FONTCONFIG
+  do {
+    FcPattern *pat = NULL, *match = NULL;
+    FcFontSet *fs = FcFontSetCreate();
+    FcResult result;
+
+    pat = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, fontname, FC_SIZE, FcTypeDouble, (double)size, NULL);
+    FcConfigSubstitute(NULL, pat, FcMatchPattern);
+    FcDefaultSubstitute(pat);
+
+    match = FcFontMatch(NULL, pat, &result);
+    FcPatternDestroy(pat);
+    
+    if ( ! match ) {
+      FcFontSetDestroy(fs);
+      xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+	      _("osd: error matching font %s with FontConfig"), fontname);
+      break;
+    }
+    FcFontSetAdd(fs, match);
+
+    if ( fs->nfont != 0 ) {
+      FcChar8 *filename = NULL;
+      FcPatternGetString(fs->fonts[0], FC_FILE, 0, &filename);
+      if ( ! FT_New_Face(osd->ft2->library, (const char*)filename, 0, &osd->ft2->face) ) {
+	FcFontSetDestroy(fs);
+	goto end;
+      }
+
+      xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+	      _("osd: error loading font %s with FontConfig"), fontname);
+    } else {
+      xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+	      _("osd: error looking up font %s with FontConfig"), fontname);
+    }
+  } while(0);
+#endif
+  {
+    char pathname[1024];
+    /* try load font from current directory */
+    if ( !FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face) )
+      goto end;
+    
+    /* try load font from home directory */
+    snprintf(pathname, 1024, "%s/.xine/fonts/%s", xine_get_homedir(), fontname);
+    if ( !FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face) )
+      goto end;
+
+    /* try load font from xine font directory */
+    snprintf(pathname, 1024, "%s/%s", XINE_FONTDIR, fontname);
+    if ( !FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face) )
+      goto end;
+
+    xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG, 
+	    _("osd: error loading font %s with ft2\n"), fontname);
+  }
+
+  free(osd->ft2);
+  osd->ft2 = NULL;
+  return 0;
+
+ end:
+  if (FT_Set_Pixel_Sizes(osd->ft2->face, 0, size)) {
+    xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+	    _("osd: error setting font size (no scalable font?)\n"));
+    free(osd->ft2);
+    osd->ft2 = NULL;
+    return 0;
+  }
+
+  osd->ft2->size = size;
+  return 1;
+}
+#endif
 
 /*
   set the font of osd object
 */
 
 static int osd_set_font( osd_object_t *osd, const char *fontname, int size) { 
-
-  osd_renderer_t *this = osd->renderer;
-  osd_font_t *font;
-  int best = 0;
-  int ret = 0;
-#ifdef HAVE_FT2
-  char pathname[1024];
-  int error_flag = 0;
-#endif
+  int ret = 1;
 
   lprintf("osd=%p font '%s'\n", osd, fontname);
  
-  pthread_mutex_lock (&this->osd_mutex);
+  pthread_mutex_lock (&osd->renderer->osd_mutex);
 
-  osd->font = NULL;
-
-  font = this->fonts;
-  while( font ) {
-
-    if( !strcasecmp(font->name, fontname) && (size>=font->size) 
-	&& (best<font->size)) {
-      ret = 1;
-      osd->font = font;
-      best = font->size;
-      lprintf ("best: font->name=%s, size=%d\n", font->name, font->size);
-
-    }
-    font = font->next;
-  }
-
-  if( ret ) {
-    /* load font if needed */
-    if( !osd->font->loaded )
-      ret = osd_renderer_load_font(this, osd->font->filename);
-    if(!ret)
-      osd->font = NULL;
-  }
-      
 #ifdef HAVE_FT2
-
-  if (osd->ft2) {
-    osd->ft2->useme = 0;
-  }
-
-  if (!ret) { /* trying to load a font file with ft2 */
-    if (!osd->ft2) {
-      osd->ft2 = xine_xmalloc(sizeof(osd_ft2context_t));
-      if(FT_Init_FreeType( &osd->ft2->library )) {
-        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		_("osd: cannot initialize ft2 library\n"));
-	free(osd->ft2);
-	osd->ft2 = NULL;
-      }
-    }
-    if (osd->ft2) {
-      /* try load font from current directory */
-      if (FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face)) {
-        /* try load font from home directory */
-        snprintf(pathname, 1024, "%s/.xine/fonts/%s", xine_get_homedir(), fontname);
-        if (FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face)) {
-          /* try load font from xine font directory */
-          snprintf(pathname, 1024, "%s/%s", XINE_FONTDIR, fontname);
-          if (FT_New_Face(osd->ft2->library, pathname, 0, &osd->ft2->face)) {
-            error_flag = 1;
-	    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
-		    _("osd: error loading font %s with ft2\n"), fontname);
-	  }
-        }
-      }
-      if (!error_flag) {
-	if (FT_Set_Pixel_Sizes(osd->ft2->face, 0, size)) {
-	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		  _("osd: error setting font size (no scalable font?)\n"));
-	} else {
-	  ret = 1;
-	  osd->ft2->useme = 1;
-	  osd->ft2->size = size;
-	}
-      }
-    }	
-  }
-
+  if ( ! osd_set_font_freetype2(osd, fontname, size) )
 #endif
+    { /* If the FreeType2 loading failed */
+      osd_font_t *font;
+      int best = 0;
+      osd->font = NULL;
+      ret = 0;
 
-  pthread_mutex_unlock (&this->osd_mutex);
+      font = osd->renderer->fonts;
+      while( font ) {
+
+	if( !strcasecmp(font->name, fontname) && (size>=font->size) 
+	    && (best<font->size)) {
+	  ret = 1;
+	  osd->font = font;
+	  best = font->size;
+	  lprintf ("best: font->name=%s, size=%d\n", font->name, font->size);
+	}
+	font = font->next;
+      }
+
+      if( ret ) {
+	/* load font if needed */
+	if( !osd->font->loaded )
+	  ret = osd_renderer_load_font(osd->renderer, osd->font->filename);
+	if(!ret)
+	  osd->font = NULL;
+      }      
+    }
+
+  pthread_mutex_unlock (&osd->renderer->osd_mutex);
   return ret;
 }
 
@@ -1068,7 +1110,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
 #ifdef HAVE_FT2
   FT_UInt previous = 0;
-  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
+  FT_Bool use_kerning = osd->ft2 && FT_HAS_KERNING(osd->ft2->face);
   int first = 1;
 #endif
 
@@ -1087,7 +1129,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
     if ((font = osd->font)) proceed = 1;
 #ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->useme) proceed = 1;
+    if (osd->ft2) proceed = 1;
 #endif
     
     if (proceed == 0) {
@@ -1115,7 +1157,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
 
 #ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->useme) {
+    if (osd->ft2) {
 
       FT_GlyphSlot slot = osd->ft2->face->glyph;
 
@@ -1217,7 +1259,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       }
     
 #ifdef HAVE_FT2
-    } /* !(osd->ft2 && osd->ft2->useme) */
+    } /* !(osd->ft2) */
 #endif
 
   }
@@ -1241,7 +1283,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
 #ifdef HAVE_FT2
   /* not all free type fonts provide kerning */
-  FT_Bool use_kerning = osd->ft2 && osd->ft2->useme && FT_HAS_KERNING(osd->ft2->face);
+  FT_Bool use_kerning = osd->ft2 && FT_HAS_KERNING(osd->ft2->face);
   FT_UInt previous = 0;
   int first_glyph = 1;
 #endif
@@ -1255,7 +1297,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
     if ((font = osd->font)) proceed = 1;
 #ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->useme) proceed = 1;
+    if (osd->ft2) proceed = 1;
 #endif
     
     if (proceed == 0) {
@@ -1282,7 +1324,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 #endif
 
 #ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->useme) {
+    if (osd->ft2) {
       FT_GlyphSlot  slot = osd->ft2->face->glyph;
 
       i = FT_Get_Char_Index( osd->ft2->face, unicode);
@@ -1322,12 +1364,12 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
         *width += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
       }
 #ifdef HAVE_FT2
-    } /* !(osd->ft2 && osd->ft2->useme) */
+    } /* !(osd->ft2) */
 #endif
   }
 
 #ifdef HAVE_FT2
-  if (osd->ft2 && osd->ft2->useme) {
+  if (osd->ft2) {
     /* if we have a true type font we need to do some corrections for the last
      * letter. As this one is still in the gylph slot we can still work with
      * it. For the last letter be must not use advance and width but the real
