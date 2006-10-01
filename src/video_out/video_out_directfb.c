@@ -148,6 +148,17 @@ typedef struct {
 
 #define DEFAULT_COLORKEY  0x202040
 
+#define DIRECTFB_OPTIONS  "bg-color=00000000,"\
+                          "no-vt-switch,"\
+                          "no-vt-switching,"\
+                          "no-sighandler,"\
+                          "no-deinit-check,"\
+                          "disable-module=linux_input,"\
+                          "disable-module=keyboard"
+                         
+#define XDIRECTFB_OPTIONS "no-sighandler,"\
+                          "no-deinit-check"
+
 
 #ifndef MAX
 # define MAX( a, b ) (((a) > (b)) ? (a) : (b))
@@ -342,7 +353,7 @@ static void directfb_clean_output_area (directfb_driver_t *this) {
     DFBRectangle           rect[4];
     DFBSurfaceCapabilities caps;
     int                    bufs = 1;
-    int                    i; 
+    int                    i;
 
     for (i = 0; i < 4; i++) {
       rect[i].x = MAX(this->sc.border[i].x, 0);
@@ -356,7 +367,7 @@ static void directfb_clean_output_area (directfb_driver_t *this) {
       bufs++;
     if (caps & DSCAPS_TRIPLE)
       bufs++;
-    
+
     this->surface->SetColor (this->surface, 0x00, 0x00, 0x00, 0xff);
     for (i = 0; i < bufs; i++) {  
       this->surface->FillRectangles (this->surface, &rect[0], 4);
@@ -657,8 +668,12 @@ static void directfb_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen
     
     this->layer->TestConfiguration (this->layer, &this->config, &failed);
     this->config.flags &= ~failed;
-    this->layer->SetConfiguration (this->layer, &this->config);
-    this->layer->GetConfiguration (this->layer, &this->config);
+    if (this->config.flags) {
+      this->layer->SetConfiguration (this->layer, &this->config);
+      this->layer->GetConfiguration (this->layer, &this->config);
+      this->surface->Release (this->surface);
+      this->layer->GetSurface (this->layer, &this->surface);
+    }
 
     lprintf ("failed=0x%08x.\n", failed);
   }
@@ -1182,6 +1197,8 @@ static void directfb_dispose (vo_driver_t *this_gen) {
 static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
   directfb_driver_t *this = (directfb_driver_t *) data;
   
+  lprintf ("update_config_cb(%s).\n", entry->key);
+  
   if (strcmp (entry->key, "video.device.directfb_buffermode") == 0) {
     DFBDisplayLayerConfig config = { .flags = DLCONF_BUFFERMODE };
     
@@ -1197,8 +1214,8 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
         break;
     }
     
-    if (config.buffermode != this->config.buffermode) {      
-      if (this->layer->SetConfiguration (this->layer, &config) != DFB_OK) {
+    if (config.buffermode != this->config.buffermode) {
+      if (this->layer->SetConfiguration (this->layer, &config ) != DFB_OK) {
         xprintf (this->xine, XINE_VERBOSITY_LOG,
                  "video_out_directfb: failed to set buffermode to %d!\n", 
                  entry->num_value);
@@ -1216,7 +1233,7 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
     else
       config.options = this->config.options & ~DLOP_DST_COLORKEY;
     
-    if (config.options != this->config.options) {  
+    if (config.options != this->config.options) {
       if (this->layer->SetConfiguration (this->layer, &config) != DFB_OK) {
           xprintf (this->xine, XINE_VERBOSITY_LOG,
                    "video_out_directfb: failed to set colorkeying to %d!\n", 
@@ -1232,7 +1249,7 @@ static void update_config_cb (void *data, xine_cfg_entry_t *entry) {
     this->colorkey = entry->num_value;
     this->layer->SetDstColorKey (this->layer, (this->colorkey & 0xff0000) >> 16,
                                               (this->colorkey & 0x00ff00) >>  8,
-                                              (this->colorkey & 0x0000ff) >>  0);
+                                              (this->colorkey & 0x0000ff) >>  0); 
 #ifdef HAVE_X11
     if (this->xoverlay) {
       x11osd_colorkey (this->xoverlay, 
@@ -1691,6 +1708,9 @@ static void directfb_frame_output_cb (void *user_data, int video_width, int vide
 static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void *visual_gen) {
   directfb_class_t  *class  = (directfb_class_t *) class_gen;
   directfb_driver_t *this;
+  char              *args[] = { "xine", "--dfb:" DIRECTFB_OPTIONS };
+  int                argn   = 2;
+  char             **argp   = (char **) args;
   fb_visual_t       *visual = (fb_visual_t *) visual_gen;
   config_values_t   *config = class->xine->config;
   DFBDisplayLayerID  id;
@@ -1704,20 +1724,12 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
   this->xine        = class->xine;
   
   /* initialize DirectFB */ 
-  ret = DirectFBInit (NULL, NULL);
+  ret = DirectFBInit (&argn, &argp);
   if (ret != DFB_OK) {
     DirectFBError ("DirectFBInit()", ret);
     free (this);
     return NULL;
   }
-  
-  DirectFBSetOption ("bg-color", "00000000" );
-  DirectFBSetOption ("no-vt-switch", NULL);
-  DirectFBSetOption ("no-vt-switching", NULL);
-  DirectFBSetOption ("no-sighandler", NULL );
-  DirectFBSetOption ("no-deinit-check", NULL );
-  DirectFBSetOption ("disable-module", "linux_input");
-  DirectFBSetOption ("disable-module", "keyboard");
   
   /* create the main interface or retrieve an already existing one */
   ret = DirectFBCreate (&this->dfb);
@@ -1880,6 +1892,9 @@ static const vo_info_t vo_info_directfb_fb = {
 static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void *visual_gen) {
   directfb_class_t  *class  = (directfb_class_t *) class_gen;
   directfb_driver_t *this;
+  char              *args[] = { "xine", "--dfb:" XDIRECTFB_OPTIONS };
+  int                argn   = 2;
+  char             **argp   = (char **) args;
   x11_visual_t      *visual = (x11_visual_t *) visual_gen;
   XWindowAttributes  attrs;
   IDirectFBScreen   *screen;
@@ -1894,15 +1909,12 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
   this->xine        = class->xine;
   
   /* initialize DirectFB */ 
-  ret = DirectFBInit (NULL, NULL);
+  ret = DirectFBInit (&argn, &argp);
   if (ret != DFB_OK) {
     DirectFBError ("DirectFBInit()", ret);
     free (this);
     return NULL;
   }
-  
-  DirectFBSetOption ("no-sighandler", NULL );
-  DirectFBSetOption ("no-deinit-check", NULL );
   
   /* create the main interface or retrieve an already existing one */
   ret = DirectFBCreate (&this->dfb);
