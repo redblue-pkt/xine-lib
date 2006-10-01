@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.116 2006/09/16 14:38:18 tmattern Exp $
+ * $Id: input_file.c,v 1.117 2006/10/01 20:14:43 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -114,12 +114,41 @@ static uint32_t file_plugin_get_capabilities (input_plugin_t *this_gen) {
 #endif /* _MSC_VER */
 }
 
+#ifdef HAVE_MMAP
+/**
+ * @brief Check if the file can be read through mmap().
+ * @param this The instance of the input plugin to check
+ *             with
+ * @return 1 if the file can still be mmapped, 0 if the file
+ *         changed size
+ */
+static int check_mmap_file(file_input_plugin_t *this) {
+  struct stat          sbuf;
+
+  if ( ! this->mmap_on ) return 0;
+
+  if ( fstat (this->fh, &sbuf) != 0 ) {
+    return 0;
+  }
+
+  /* If the file grew, we're most likely dealing with a timeshifting recording
+   * so switch to normal access. */
+  if ( this->mmap_len != sbuf.st_size ) {
+    this->mmap_on = 0;
+
+    lseek(this->fh, this->mmap_curr - this->mmap_base, SEEK_SET);
+    return 0;
+  }
+
+  return 1;
+}
+#endif
 
 static off_t file_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
 #ifdef HAVE_MMAP
-  if ( this->mmap_on ) {
+  if ( check_mmap_file(this) ) {
     off_t l = len;
     if ( (this->mmap_curr + len) > (this->mmap_base + this->mmap_len) )
       l = (this->mmap_base + this->mmap_len) - this->mmap_curr;
@@ -142,7 +171,7 @@ static buf_element_t *file_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   buf->type = BUF_DEMUX_BLOCK;
 
 #ifdef HAVE_MMAP
-  if ( this->mmap_on ) {
+  if ( check_mmap_file(this) ) {
     off_t len = todo;
 
     if ( (this->mmap_curr + len) > (this->mmap_base + this->mmap_len) )
@@ -193,7 +222,7 @@ static off_t file_plugin_seek (input_plugin_t *this_gen, off_t offset, int origi
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
 #ifdef HAVE_MMAP /* Simulate f*() library calls */
-  if ( this->mmap_on ) {
+  if ( check_mmap_file(this) ) {
     void *new_point = this->mmap_curr;
     switch(origin) {
     case SEEK_SET: new_point = this->mmap_base + offset; break;
@@ -223,7 +252,7 @@ static off_t file_plugin_get_current_pos (input_plugin_t *this_gen){
     return 0;
 
 #ifdef HAVE_MMAP
-  if ( this->mmap_on )
+  if ( check_mmap_file(this) )
     return (this->mmap_curr - this->mmap_base);
 #endif
 
@@ -239,7 +268,7 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
     return 0;
 
 #ifdef HAVE_MMAP
-  if ( this->mmap_on )
+  if ( check_mmap_file(this) )
     return this->mmap_len;
 #endif
 
@@ -253,7 +282,7 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
 static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 #if 0 && defined(HAVE_MMAP)
-  if ( this->mmap_on )
+  if ( check_mmap_file(this) )
     return this->mmap_len;
 #endif
   return 0;
@@ -286,7 +315,11 @@ static void file_plugin_dispose (input_plugin_t *this_gen ) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
 #ifdef HAVE_MMAP
-  if ( this->mmap_on )
+  /* Check for mmap_base rather than mmap_on because the file might have
+   * started as a mmap() and now might be changed to descriptor-based
+   * access
+   */
+  if ( this->mmap_base )
     munmap(this->mmap_base, this->mmap_len);
 #endif
 
@@ -395,7 +428,7 @@ static int file_plugin_open (input_plugin_t *this_gen ) {
   }
 
 #ifdef HAVE_MMAP
-  if ( (this->mmap_base = mmap(NULL, sbuf.st_size, PROT_READ, MAP_SHARED, this->fh, 0)) != -1 ) {
+  if ( (this->mmap_base = mmap(NULL, sbuf.st_size, PROT_READ, MAP_SHARED, this->fh, 0)) != (void*)-1 ) {
     this->mmap_on = 1;
     this->mmap_curr = this->mmap_base;
     this->mmap_len = sbuf.st_size;
