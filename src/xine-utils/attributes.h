@@ -53,5 +53,10 @@
 # define XINE_PROTECTED
 #endif
 
-#endif /* ATTRIBUTE_H_ */
+#ifdef SUPPORT_ATTRIBUTE_SENTINEL
+# define XINE_SENTINEL __attribute__((sentinel))
+#else
+# define XINE_SENTINEL
+#endif
 
+#endif /* ATTRIBUTE_H_ */

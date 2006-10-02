@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.common
 
 SUBDIRS = cdio MSWindows image
 
-INCLUDES = $(LIBCDIO_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/lib
+INCLUDES = $(LIBCDIO_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_builddir)/lib
 
 libcdio_SRCS = \
 	_cdio_bsdi.c \

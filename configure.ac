@@ -1662,7 +1662,6 @@ if test x"$enable_vcd" = "xyes"; then
   dnl check twice, fallback is internal copy
   if test x"$internal_vcdnav" = "xyes"; then
     AC_DEFINE_UNQUOTED(HOST_ARCH, "$host_os/$host_cpu", [host os/cpu identifier])
-    AC_CHECK_FUNCS(snprintf vsnprintf, , [AC_MSG_ERROR(required function not found)])
 
     AC_DEFINE(_DEVELOPMENT_, [], enable warnings about being development release)
     AC_DEFINE(_GNU_SOURCE, [], enable GNU libc extension)
@@ -1969,7 +1968,17 @@ dnl ---------------------------------------------
 
 AC_SYS_LARGEFILE
 AC_CHECK_LIB(posix4, sched_get_priority_min)
-AC_CHECK_FUNCS([_vsnprintf _snprintf _stricmp _strnicmp vsscanf sigaction sigset getpwuid_r nanosleep lstat memset readlink strchr strcasecmp strncasecmp])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset readlink strchr va_copy])
+AC_CHECK_FUNCS([_snprintf snprintf], [some_snprintf="yes"])
+AC_CHECK_FUNCS([_vsnprintf vsnprintf], [some_vsnprintf="yes"])
+AC_CHECK_FUNCS([_stricmp strcasecmp], [some_strcasecmp="yes"])
+AC_CHECK_FUNCS([_strnicmp strncasecmp], [some_strncasecmp="yes"])
+if test "x$some_snprintf" != "xyes" -o \
+        "x$some_vsnprintf" != "xyes" -o \
+        "x$some_strcasecmp" != "xyes" -o \
+        "x$some_strncasecmp" != "xyes"; then
+  AC_MSG_ERROR([required function not found])
+fi
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
 AC_CHECK_HEADERS(assert.h byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h)
@@ -2027,6 +2036,8 @@ CC_FLAG_VISIBILITY([
 	])
 
 AC_SUBST([VISIBILITY_FLAG])
+
+CC_ATTRIBUTE_SENTINEL
 
 dnl Common cflags for all platforms
 CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"

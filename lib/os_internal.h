@@ -153,16 +153,13 @@ char *xine_private_strndup(const char *s, size_t n);
 #ifndef M_PI
 #  define M_PI 3.14159265358979323846
 #endif
-#ifndef HAVE_LRINTF
-#define HAVE_LRINTF
-#define lrint(X) (long)((X) + ((X) >= 0 ? 0.5 : -0.5))
-#endif
-#ifndef HAVE_RINTF
-#define HAVE_RINTF
-#define rint(X) (int)((X) + ((X) >= 0 ? 0.5 : -0.5))
-#endif
 
 #ifdef WIN32
+/* this hack applied only on attic version of MinGW platform */
+#  if !defined(va_copy) && !defined(HAVE_VA_COPY)
+#    define va_copy(DEST, SRC) ((DEST) = (SRC))
+#  endif
+
 #  include <io.h>
 #  ifdef _MSC_VER
 #    include <direct.h>

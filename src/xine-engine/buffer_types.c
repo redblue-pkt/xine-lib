@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer_types.c,v 1.105 2006/08/02 06:19:12 tmmm Exp $
+ * $Id: buffer_types.c,v 1.106 2006/10/02 15:56:06 valtri Exp $
  *
  *
  * contents:
@@ -1099,6 +1099,13 @@ static audio_db_t audio_db[] = {
   },
   BUF_AUDIO_ALAC,
   "Apple Lossless Audio Codec"
+},
+{
+  {
+    0x22,
+  },
+  BUF_AUDIO_TRUESPEECH,
+  "Truespeech"
 },
 {
   {

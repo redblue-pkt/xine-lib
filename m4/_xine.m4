@@ -265,6 +265,19 @@ EOF
 #  define PRIx64 PRI64_PREFIX "x"
 #endif
 
+#ifndef PRIX8
+#  define PRIX8 "X"
+#endif
+#ifndef PRIX16
+#  define PRIX16 "X"
+#endif
+#ifndef PRIX32
+#  define PRIX32 "X"
+#endif
+#ifndef PRIX64
+#  define PRIX64 PRI64_PREFIX "X"
+#endif
+
 #ifndef PRIdFAST8
 #  define PRIdFAST8 "d"
 #endif

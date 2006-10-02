@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.178 2006/09/26 05:48:16 dgp85 Exp $
+ * $Id: xine_internal.h,v 1.179 2006/10/02 15:56:06 valtri Exp $
  *
  */
 
@@ -360,11 +360,7 @@ void _x_handle_stream_end      (xine_stream_t *stream, int non_user) XINE_PROTEC
 
 /* report message to UI. usually these are async errors */
 
-int _x_message(xine_stream_t *stream, int type, ...)
-#ifdef __GNUC__
-__attribute__((sentinel))
-#endif
-XINE_PROTECTED;
+int _x_message(xine_stream_t *stream, int type, ...) XINE_SENTINEL XINE_PROTECTED;
 
 /* flush the message queues */
 
