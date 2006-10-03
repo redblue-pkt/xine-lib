@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.183 2006/09/24 16:29:10 dgp85 Exp $
+ * $Id: demux_asf.c,v 1.184 2006/10/03 07:30:51 valtri Exp $
  *
  * demultiplexer for asf streams
  *
@@ -273,6 +273,7 @@ static int get_guid (demux_asf_t *this) {
   return get_guid_id(this, &g);
 }
 
+#if 0
 static void get_str16_nolen(demux_asf_t *this, int len,
 			    char *buf, int buf_size) {
 
@@ -288,11 +289,10 @@ static void get_str16_nolen(demux_asf_t *this, int len,
   }
   *q = '\0';
 }
+#endif
 
 static void asf_send_audio_header (demux_asf_t *this, int stream) {
-
   buf_element_t *buf;
-  asf_demux_stream_t *demux_stream = &this->streams[stream];
   asf_stream_t *asf_stream = this->asf_header->streams[stream];
   xine_waveformatex  *wavex = (xine_waveformatex *)asf_stream->private_data;
 
@@ -584,8 +584,8 @@ static int demux_asf_send_headers_common (demux_asf_t *this) {
 
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	    "demux_asf: video stream_id: %d, audio stream_id: %d\n",
-	    this->audio_stream != -1 ? this->asf_header->streams[this->video_stream]->stream_number : -1,
-	    this->video_stream != -1 ? this->asf_header->streams[this->audio_stream]->stream_number : -1);
+	    this->video_stream != -1 ? this->asf_header->streams[this->video_stream]->stream_number : -1,
+	    this->audio_stream != -1 ? this->asf_header->streams[this->audio_stream]->stream_number : -1);
 
     if (this->audio_stream != -1) {
       _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
