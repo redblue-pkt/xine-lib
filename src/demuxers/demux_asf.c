@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.184 2006/10/03 07:30:51 valtri Exp $
+ * $Id: demux_asf.c,v 1.185 2006/10/07 09:59:49 klan Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1708,21 +1708,23 @@ static int demux_asf_send_chunk (demux_plugin_t *this_gen) {
 static void demux_asf_dispose (demux_plugin_t *this_gen) {
 
   demux_asf_t *this = (demux_asf_t *) this_gen;
-  int i;
 
-  for (i=0; i<this->asf_header->stream_count; i++) {
-    asf_demux_stream_t *asf_stream;
+  if (this->asf_header) {
+    int i;
+    
+    for (i=0; i<this->asf_header->stream_count; i++) {
+      asf_demux_stream_t *asf_stream;
 
-    asf_stream = &this->streams[i];
-    if( asf_stream->buffer ) {
-      free( asf_stream->buffer );
-      asf_stream->buffer = NULL;
+      asf_stream = &this->streams[i];
+      if (asf_stream->buffer) {
+        free (asf_stream->buffer);
+        asf_stream->buffer = NULL;
+      }
     }
+
+    asf_header_delete (this->asf_header);
   }
-
-  if (this->asf_header)
-    asf_header_delete(this->asf_header);
-
+  
   free (this);
 }
 
