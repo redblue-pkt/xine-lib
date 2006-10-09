@@ -77,8 +77,8 @@ typedef struct fusionsound_driver_s {
 } fusionsound_driver_t;
 
 typedef struct {
-  audio_driver_class_t   ao_class;
-  xine_t                *xine;
+  audio_driver_class_t  ao_class;
+  xine_t               *xine;
 } fusionsound_class_t;
 
 
@@ -89,9 +89,7 @@ static int ao_fusionsound_open(ao_driver_t *ao_driver,
   FSStreamDescription   dsc;
   DFBResult             ret;
 
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-           "audio_fusionsound_out: ao_open bits=%d rate=%d, mode=%d\n", 
-           bits, rate, mode);
+  lprintf ("ao_open( bits=%d, rate=%d, mode=%d )\n", bits, rate, mode);
   
   dsc.flags = FSSDF_BUFFERSIZE   | FSBDF_CHANNELS | 
               FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
@@ -211,6 +209,15 @@ static int ao_fusionsound_write(ao_driver_t *ao_driver,
                                 int16_t *data, uint32_t num_frames) {
   fusionsound_driver_t *this = (fusionsound_driver_t *) ao_driver;
   DFBResult             ret;
+  
+  if (this->paused) {
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+             "audio_fusionsound_out: "
+             "ao_fusionsound_write() called in pause mode!\n");
+    return 0;
+  }
+
+  lprintf ("ao_write( data=%p, num_frames=%d )\n", data, num_frames);
 
   ret = this->stream->Write (this->stream, (void *)data, num_frames);
   if (ret != DFB_OK) {
@@ -302,50 +309,38 @@ static int ao_fusionsound_set_property(ao_driver_t *ao_driver,
   switch (property) {
     case AO_PROP_MIXER_VOL:
       this->vol = (float)value / 100.0;
-      this->playback->SetVolume (this->playback, 
-                                 (this->vol_mute ? 0 : this->vol) *
-                                 (this->amp_mute ? 0 : this->amp));
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
               "audio_fusionsound_out: volume set to %.2f\n", this->vol);
       break;
       
     case AO_PROP_MUTE_VOL:
-      value = value ? 1 : 0;
-      if (this->vol_mute != value) {
-        this->vol_mute = value;
-        this->playback->SetVolume (this->playback, 
-                                   (this->vol_mute ? 0 : this->vol) *
-                                   (this->amp_mute ? 0 : this->amp));
-        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-                 "audio_fusionsound_out: volume mute set to %d\n", 
-                 this->vol_mute);
-      }
+      this->vol_mute = value ? 1 : 0;
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "audio_fusionsound_out: volume mute set to %d\n", 
+               this->vol_mute);
       break;
 
     case AO_PROP_AMP:
       this->amp = (float)value / 100.0;
-      this->playback->SetVolume (this->playback, 
-                                 (this->vol_mute ? 0 : this->vol) *
-                                 (this->amp_mute ? 0 : this->amp));
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
               "audio_fusionsound_out: amplifier set to %.2f\n", this->amp);
       break;
       
     case AO_PROP_AMP_MUTE:
-      value = value ? 1 : 0;
-      if (this->amp_mute != value) {
-        this->amp_mute = value;
-        this->playback->SetVolume (this->playback, 
-                                   (this->vol_mute ? 0 : this->vol) *
-                                   (this->amp_mute ? 0 : this->amp));
-        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-                 "audio_fusionsound_out: amplifier mute set to %d\n", 
-                 this->amp_mute);
-      }
+      this->amp_mute = value ? 1 : 0;
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "audio_fusionsound_out: amplifier mute set to %d\n", 
+               this->amp_mute);
       break;
 
     default:
       return 0;
+  }
+  
+  if (this->playback) {
+    this->playback->SetVolume (this->playback, 
+                              (this->vol_mute ? 0 : this->vol) *
+                              (this->amp_mute ? 0 : this->amp));
   }
 
   return value;
@@ -353,35 +348,33 @@ static int ao_fusionsound_set_property(ao_driver_t *ao_driver,
 
 static int ao_fusionsound_control(ao_driver_t *ao_driver, int cmd, ...) {
   fusionsound_driver_t *this = (fusionsound_driver_t *) ao_driver;
-  DFBResult             ret  = DFB_UNSUPPORTED;
 
   switch (cmd) {
     case AO_CTRL_PLAY_PAUSE:
-      if (this->playback) {
-        lprintf ("Pause()\n");
-        ret = this->playback->Stop (this->playback);
-        this->paused = 1;
-      }
-      break;
+      lprintf ("Pause()\n");
+      if (this->playback)
+        this->playback->Stop (this->playback);
+      this->paused = 1;
+      return 1;
     
     case AO_CTRL_PLAY_RESUME:
-      if (this->playback) {
-        lprintf ("Resume()\n");
-        ret = this->playback->Continue (this->playback);
-        this->paused = 0;
-      }
-      break;
+      lprintf ("Resume()\n");
+      if (this->playback)        
+        this->playback->Continue (this->playback);
+      this->paused = 0;
+      return 1;
 
     case AO_CTRL_FLUSH_BUFFERS:
       lprintf ("Flush()\n");
-      ret = this->stream->Flush (this->stream);
-      break;
+      if (this->stream)
+        this->stream->Flush (this->stream);
+      return 1;
 
     default:
       break;
   }
 
-  return (ret == DFB_OK);
+  return 0;
 }
 
 
