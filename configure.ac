@@ -198,7 +198,7 @@ AC_TYPE_SIZE_T
 AC_CHECK_SIZEOF(long)
 dnl AC_CHECK_TYPES([ptrdiff_t])
 dnl For systems without inttypes.h would be needed extend generated replacement.
-AC_CHECK_GENERATE_INTTYPES([lib])
+AC_CHECK_GENERATE_INTTYPES([include])
 AM_CONDITIONAL(GENERATED_INTTYPES_H, test x"$ac_cv_header_inttypes_h" != x"yes")
 AC_CHECK_TYPE(ssize_t, :, AC_DEFINE(ssize_t, __int64, [define ssize_t to __int64 if it's missing in default includes]))
 
@@ -2235,7 +2235,7 @@ if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
   XINE_REL_FONTDIR="`echo "$XINE_REL_FONTDIR" | sed -e 's/\\//\\\\\\\\/g'`"
   XINE_REL_LOCALEDIR="`echo "$XINE_REL_LOCALEDIR" | sed -e 's/\\//\\\\\\\\/g'`"
   dnl prefix in xine-config
-  XINE_CONFIG_PREFIX="\`dirname \$0\`/.."
+  XINE_CONFIG_PREFIX="\$(cd \$(dirname \$0)/..; pwd)"
   dnl installation directories (in xine-config)
   XINE_PLUGINPATH="$XINE_CONFIG_PREFIX/$XINE_REL_PLUGINDIR"
   XINE_FONTPATH="$XINE_CONFIG_PREFIX/$XINE_REL_FONTDIR"

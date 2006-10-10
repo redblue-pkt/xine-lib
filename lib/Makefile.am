@@ -1,10 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-if GENERATED_INTTYPES_H
-inttypes_h = inttypes.h
-endif
-
-EXTRA_DIST = Makefile.common $(inttypes_h)
+EXTRA_DIST = Makefile.common
 
 noinst_LTLIBRARIES = libxineposix.la
 noinst_HEADERS = os_internal.h

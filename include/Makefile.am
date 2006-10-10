@@ -1,8 +1,12 @@
 EXTRA_DIST = xine.h.in
 
-include_HEADERS  = xine.h
+if GENERATED_INTTYPES_H
+inttypes_h = inttypes.h
+endif
 
-CONFIG_CLEAN_FILES = xine.h
+include_HEADERS  = xine.h $(inttypes_h)
+
+CONFIG_CLEAN_FILES = xine.h $(inttypes_h)
 
 debug:
 	@$(MAKE) CFLAGS="$(DEBUG_CFLAGS)"
