@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.27 2006/08/04 06:18:35 tmmm Exp $
+ * $Id: audio_decoder.c,v 1.28 2006/10/11 12:53:12 dgp85 Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -68,6 +68,7 @@ typedef struct ff_audio_decoder_s {
 
   AVCodecContext    *context;
   AVCodec           *codec;
+  AVCodecParserContext *parser;
   
   char              *decode_buffer;
   int               decoder_ok;
@@ -165,6 +166,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       }
   
       this->context = avcodec_alloc_context();
+      this->parser = NULL;
       
       if(buf->decoder_flags & BUF_FLAG_STDHEADER) {
         this->audio_sample_rate = buf->decoder_info[1];
@@ -233,7 +235,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       this->size = 0;
   
       this->decode_buffer = xine_xmalloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
-  
+
+      this->parser = av_parser_init(this->context->codec_id);
       return;
     }
   } else if ((buf->decoder_flags & BUF_FLAG_SPECIAL) &&
@@ -288,11 +291,25 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
       offset = 0;
       while (this->size>0) {
-        bytes_consumed = avcodec_decode_audio (this->context, 
-                                               (int16_t *)this->decode_buffer,
-                                               &decode_buffer_size, 
-                                               &this->buf[offset],
-                                               this->size);
+	uint8_t *parsed_data = NULL;
+	int parsed_size = 0;
+
+	if ( ! this->parser )
+	  this->parser = av_parser_init(this->context->codec_id);
+
+	bytes_consumed = av_parser_parse(this->parser,
+					 this->context,
+					 &parsed_data,
+					 &parsed_size,
+					 &this->buf[offset],
+					 this->size,
+					 0, 0);
+	avcodec_decode_audio(this->context,
+			     (int16_t *)this->decode_buffer,
+			     &decode_buffer_size,
+			     parsed_data,
+			     parsed_size);
+	free(parsed_data);
 
         if (bytes_consumed<0) {
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
@@ -354,6 +371,10 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
   if( this->context && this->decoder_ok ) {
     pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
+    if ( this->parser ) {
+      av_parser_close (this->parser);
+      this->parser = NULL;
+    }
     avcodec_open (this->context, this->codec);
     pthread_mutex_unlock (&ffmpeg_lock);
   }
@@ -369,6 +390,10 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
   if( this->context && this->decoder_ok ) {
     pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
+    if ( this->parser ) {
+      av_parser_close (this->parser);
+      this->parser = NULL;
+    }
     pthread_mutex_unlock (&ffmpeg_lock);
   }
 
@@ -379,11 +404,10 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
   free(this->buf);
   free(this->decode_buffer);
 
-  if(this->context && this->context->extradata)
+  if(this->context)
     free(this->context->extradata);
 
-  if(this->context)
-    free(this->context);
+  free(this->context);
 
   free (this_gen);
 }

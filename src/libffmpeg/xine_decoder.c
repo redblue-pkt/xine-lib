@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.170 2006/08/02 07:15:27 tmmm Exp $
+ * $Id: xine_decoder.c,v 1.171 2006/10/11 12:53:12 dgp85 Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -38,6 +38,7 @@
 pthread_once_t once_control = PTHREAD_ONCE_INIT;
 pthread_mutex_t ffmpeg_lock;
 
+#ifndef HAVE_FFMPEG
 void avcodec_register_all(void)
 {
     static int inited = 0;
@@ -146,6 +147,7 @@ void avcodec_register_all(void)
     register_avcodec(&truespeech_decoder);
     register_avcodec(&tta_decoder);
 }
+#endif
 
 void init_once_routine(void) {
   pthread_mutex_init(&ffmpeg_lock, NULL);
