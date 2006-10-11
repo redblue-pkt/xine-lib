@@ -4,7 +4,7 @@ if GENERATED_INTTYPES_H
 inttypes_h = inttypes.h
 endif
 
-include_HEADERS  = xine.h $(inttypes_h)
+include_HEADERS = xine.h
 
 CONFIG_CLEAN_FILES = xine.h $(inttypes_h)
 
@@ -24,3 +24,6 @@ maintainer-clean-generic:
 
 install-data-local: install-includeHEADERS
 	sed -e '/^\/\*_x_/d' xine.h > $(DESTDIR)$(includedir)/xine.h
+if GENERATED_INTTYPES_H
+	$(INSTALL) inttypes.h $(DESTDIR)$(includedir)
+endif
