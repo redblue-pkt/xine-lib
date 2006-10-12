@@ -2495,6 +2495,23 @@ AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh .
 AC_OUTPUT
 
 dnl ---------------------------------------------
+dnl Work around a suspected bug in libtool:
+dnl
+dnl Remove excessive trailing slash from search dir names in the libtool script.
+dnl It occurs in dir names obtained by 'gcc -print-search-dirs' in the created
+dnl configure script and causes a test on dir names in libtool to fail,
+dnl leading to confusing (but harmless) 'warning: <lib> seems to be moved'.
+dnl
+dnl This should be fixed in the libtool package itself as all other dir names
+dnl there have no trailing slash.
+dnl ---------------------------------------------
+
+dnl Note: Brackets [] must be doubled as they are treated as m4 macro quotes.
+cat libtool | sed -e '/sys_lib_search_path_spec=/s/\/\([[ "]]\)/\1/g' > libtool.tmp
+mv -f libtool.tmp libtool
+chmod +x libtool
+
+dnl ---------------------------------------------
 dnl Some infos:
 dnl ---------------------------------------------
 
