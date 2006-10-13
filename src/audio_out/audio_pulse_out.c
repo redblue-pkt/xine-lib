@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.3 2006/09/08 19:47:56 miguelfreitas Exp $
+ * $Id: audio_pulse_out.c,v 1.4 2006/10/13 23:24:54 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -53,6 +53,9 @@
 #include "bswap.h"
 
 #define GAP_TOLERANCE        AO_MAX_GAP
+
+/* CHECKME: should this be conditional on autotools? */
+extern const char *__progname;
 
 typedef struct pulse_driver_s {
 
@@ -189,7 +192,7 @@ static int ao_pulse_open(ao_driver_t *this_gen,
   this->mainloop = pa_mainloop_new();
   assert(this->mainloop);
 
-  this->context = pa_context_new(pa_mainloop_get_api(this->mainloop), "xine");
+  this->context = pa_context_new(pa_mainloop_get_api(this->mainloop), __progname);
   assert(this->context);
 
   pa_context_connect(this->context, this->host, 1, NULL);
