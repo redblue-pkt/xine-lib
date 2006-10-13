@@ -1282,11 +1282,11 @@ dnl ---------------------------------------------
 dnl freetype2 lib.
 dnl ---------------------------------------------
 AC_ARG_WITH([freetype],
-	AS_HELP_STRING([--without-freetype], [Do not build with FreeType2 library]))
+	AS_HELP_STRING([--with-freetype], [Build with FreeType2 library]))
 
-if test "x$with_freetype" != "xno"; then
+if test "x$with_freetype" != "xyes"; then
    PKG_CHECK_MODULES([FT2], [freetype2], [have_freetype=yes], [have_freetype=no])
-   if test "x$with_freetype" = "xyes" && test "x$have_freetype" = "xno"; then
+   if test "x$have_freetype" = "xno"; then
       AC_MSG_ERROR([FreeType2 support requested but FreeType2 library not found])
    elif test "x$have_freetype" = "xyes"; then
       AC_DEFINE([HAVE_FT2], [1], [Define this if you have freetype2 library])
@@ -1299,13 +1299,15 @@ dnl ---------------------------------------------
 dnl fontconfig
 dnl ---------------------------------------------
 AC_ARG_WITH([fontconfig],
-	AS_HELP_STRING([--without-fontconfig], [Do not build with fontconfig library]))
+	AS_HELP_STRING([--with-fontconfig], [Build with fontconfig library]))
 
-if test "x$with_fontconfig" = "xyes" && test "x$have_fontconfig" = "xno"; then
-   AC_MSG_ERROR([fontconfig support requested, but FreeType2 not found.])
-elif test "x$with_fontconfig" != "xno" && test "x$have_fontconfig" != "xno"; then
+if test "x$with_fontconfig" = "xyes"; then
+   if test "x$have_freetype" != "xyes"; then
+      AC_MSG_ERROR([fontconfig support requested, but FreeType2 not enabled.])
+   fi
+
    PKG_CHECK_MODULES([FONTCONFIG], [fontconfig], [have_fontconfig=yes], [have_fontconfig=no])
-   if test "x$with_fontconfig" = "xyes" && test "x$have_fontconfig" = "xno"; then
+   if test "x$have_fontconfig" = "xno"; then
       AC_MSG_ERROR([fontconfig support requested but fontconfig library not found])
    elif test "x$have_fontconfig" = "xyes"; then
       AC_DEFINE([HAVE_FONTCONFIG], [1], [Define this if you have fontconfig library])
