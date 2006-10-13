@@ -1284,7 +1284,7 @@ dnl ---------------------------------------------
 AC_ARG_WITH([freetype],
 	AS_HELP_STRING([--with-freetype], [Build with FreeType2 library]))
 
-if test "x$with_freetype" != "xyes"; then
+if test "x$with_freetype" = "xyes"; then
    PKG_CHECK_MODULES([FT2], [freetype2], [have_freetype=yes], [have_freetype=no])
    if test "x$have_freetype" = "xno"; then
       AC_MSG_ERROR([FreeType2 support requested but FreeType2 library not found])
