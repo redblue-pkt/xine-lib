@@ -101,10 +101,16 @@ the file you have to patch is /sys/dev/ata/atapi-cd.c:
       else
         ccb[0] = ATAPI_WRITE_BIG;
 
+
+v4l on freebsd
+--------------
+
+For building v4l plugins you will need install v4l_compat package.
+
 ------------------------------------------------------------------------
 
 
 
 --- 
 version of this file:
- $Id: README.freebsd,v 1.6 2003/01/05 13:11:53 guenter Exp $
+ $Id: README.freebsd,v 1.7 2006/10/16 22:09:32 valtri Exp $

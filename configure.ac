@@ -583,6 +583,7 @@ AC_ARG_ENABLE([v4l],
 
 if test "x$enable_v4l" != "xno"; then
   AC_CHECK_HEADERS([linux/videodev.h], [have_v4l=yes], [have_v4l=no])
+  AC_CHECK_HEADERS([asm/types.h])
   if test "x$enable_v4l" = "xyes" && test "x$have_v4l" = "xno"; then
      AC_MSG_ERROR([Video4Linux support requested, but prerequisite headers not found.])
   fi

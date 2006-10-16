@@ -14,7 +14,23 @@
  *		et al.
  */
 #include <sys/time.h>  /* need struct timeval */
-#include <asm/types.h>
+#ifdef HAVE_ASM_TYPES_H
+#  include <asm/types.h>
+#else
+#  include <inttypes.h>
+#  ifndef __u8
+#    define __u8 uint8_t
+#  endif
+#  ifndef __u32
+#    define __u32 uint32_t
+#  endif
+#  ifndef __u64
+#    define __u64 uint64_t
+#  endif
+#  ifndef __s32
+#    define __s32 int32_t
+#  endif
+#endif
 
 #ifdef __ICC
   /* __u64 will be undefined for icc, so we handle it here */
