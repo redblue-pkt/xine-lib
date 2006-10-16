@@ -20,7 +20,7 @@
  * stream metainfo helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: info_helper.c,v 1.18 2006/09/26 21:54:40 dgp85 Exp $ 
+ * $Id: info_helper.c,v 1.19 2006/10/16 22:18:24 valtri Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -193,7 +193,8 @@ static int meta_info_validate_utf8 (const char *value)
 {
   iconv_t cd;
   char *utf8_value;
-  ICONV_CONST char *inbuf, *outbuf;
+  ICONV_CONST char *inbuf;
+  char *outbuf;
   size_t inbytesleft, outbytesleft;
 
   if ((cd = iconv_open("UTF-8", "UTF-8")) == (iconv_t)-1) {

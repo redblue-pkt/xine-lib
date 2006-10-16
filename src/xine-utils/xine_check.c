@@ -81,7 +81,6 @@ set_hc_result(xine_health_check_t* hc, int state, const char *format, ...)
 
   va_list   args;
   char     *buf = NULL;
-  int       n, size;
 
   if (!hc) {
     printf ("xine_check: GASP, hc is NULL\n");
@@ -94,7 +93,7 @@ set_hc_result(xine_health_check_t* hc, int state, const char *format, ...)
   }
 
   va_start(args, format);
-  asprintf (&buf, format, args);
+  vasprintf (&buf, format, args);
   va_end(args);
 
   if (!buf)

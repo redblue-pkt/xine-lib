@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.334 2006/09/25 23:11:19 dgp85 Exp $
+ * $Id: xine.c,v 1.335 2006/10/16 22:18:24 valtri Exp $
  */
 
 /*
@@ -644,7 +644,7 @@ static void mrl_unescape(char *mrl) {
 
   for (i = 0; i < len; i++) {
     if ((mrl[i]=='%') && (i<(len-2))) {
-      int c;
+      unsigned int c;
       
       if (sscanf(&mrl[i + 1], "%02x", &c) == 1) {
 	mrl[i]= (char)c;
@@ -1400,7 +1400,6 @@ void xine_exit (xine_t *this) {
 
 xine_t *xine_new (void) {
   xine_t      *this;
-  int          i;
 
 #ifdef WIN32
     WSADATA Data;

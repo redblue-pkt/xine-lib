@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2005 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.205 2006/09/26 01:13:18 dgp85 Exp $
+ * $Id: audio_out.c,v 1.206 2006/10/16 22:18:24 valtri Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -422,10 +422,14 @@ static void fifo_wait_empty (audio_fifo_t *fifo) {
 
 
 static void write_pause_burst(aos_t *this, uint32_t num_frames) { 
+  uint16_t sbuf[4096];
+
+  sbuf[0] = 0xf872;
+  sbuf[1] = 0x4e1f;
   /* Audio ES Channel empty, wait for DD Decoder or pause */
-  static const unsigned short sbuf[4096] =
-    { 0xf872, 0x4e1f, 0x0003, 0x0020, 0x0, };
-  
+  sbuf[2] = 0x0003;
+  sbuf[3] = 0x0020;
+  memset(&sbuf[4], 0, sizeof(sbuf) - 4 * sizeof(uint16_t));
   while (num_frames > 1536) {
     pthread_mutex_lock( &this->driver_lock );
     if(this->driver_open)
@@ -433,7 +437,6 @@ static void write_pause_burst(aos_t *this, uint32_t num_frames) {
     pthread_mutex_unlock( &this->driver_lock );
     num_frames -= 1536;
   }
-
 }
 
 

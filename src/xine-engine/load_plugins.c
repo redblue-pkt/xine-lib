@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.225 2006/09/26 21:32:08 dgp85 Exp $
+ * $Id: load_plugins.c,v 1.226 2006/10/16 22:18:24 valtri Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -181,7 +181,7 @@ static void map_decoder_list (xine_t *this,
   for (list_id = 0; list_id < list_size; list_id++) {
 
     plugin_node_t *node = xine_sarray_get(decoder_list, list_id);
-    uint32_t *type = ((decoder_info_t *)node->info->special_info)->supported_types;
+    const uint32_t *type = ((decoder_info_t *)node->info->special_info)->supported_types;
     int priority = get_decoder_priority(this, node);
 
     lprintf ("mapping decoder %s\n", node->info->id);
@@ -955,34 +955,34 @@ static void load_plugin_list(FILE *fp, xine_sarray_t *plugins) {
           switch (node->info->type & PLUGIN_TYPE_MASK){
           
             case PLUGIN_VIDEO_OUT:
-              vo_info = node->info->special_info =
+              node->info->special_info = vo_info =
                         xine_xmalloc(sizeof(vo_info_t));
               break;
           
             case PLUGIN_AUDIO_OUT:
-              ao_info = node->info->special_info = 
-                        xine_xmalloc(sizeof(ao_info_t));
+              node->info->special_info = ao_info =
+		             xine_xmalloc(sizeof(ao_info_t));
               break;
           
             case PLUGIN_DEMUX:
-              demuxer_info = node->info->special_info = 
+              node->info->special_info = demuxer_info =
 		             xine_xmalloc(sizeof(demuxer_info_t));
               break;
 
             case PLUGIN_INPUT:
-              input_info = node->info->special_info =
+              node->info->special_info = input_info =
 		           xine_xmalloc(sizeof(input_info_t));
               break;
 
             case PLUGIN_AUDIO_DECODER:
             case PLUGIN_VIDEO_DECODER:
             case PLUGIN_SPU_DECODER:
-              decoder_info = node->info->special_info =
+              node->info->special_info = decoder_info =
                              xine_xmalloc(sizeof(decoder_info_t));
               break;
 	    
 	    case PLUGIN_POST:
-	      post_info = node->info->special_info =
+	      node->info->special_info = post_info =
 			  xine_xmalloc(sizeof(post_info_t));
 	      break;
           }        
@@ -1527,7 +1527,7 @@ vo_driver_t *_x_load_video_output_plugin(xine_t *this,
 
     node = xine_sarray_get (catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1], list_id);
 
-    vo_info = node->info->special_info;
+    vo_info = (vo_info_t *)node->info->special_info;
     if (vo_info->visual_type == visual_type) {
       if (id) {
 	if (!strcasecmp (node->info->id, id)) {
@@ -1591,7 +1591,7 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
 
     node = xine_sarray_get (catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1], list_id);
 
-    vo_info = node->info->special_info;
+    vo_info = (vo_info_t *)node->info->special_info;
     if (!strcasecmp (node->info->id, id)) {
       driver = _load_video_driver (this, node, NULL);
       break;
@@ -1674,7 +1674,7 @@ xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
 
     node = xine_sarray_get (this->plugin_catalog->plugin_lists[PLUGIN_AUDIO_OUT - 1], list_id);
 
-    ao_info = node->info->special_info;
+    ao_info = (ao_info_t *)node->info->special_info;
 
     if (id) {
       if (!strcasecmp(node->info->id, id)) {
@@ -2546,7 +2546,7 @@ static void dispose_plugin_list (xine_sarray_t *list) {
 	free (decoder_info->supported_types);
 	
       default:
-	free (node->info->special_info);
+	free ((void *)node->info->special_info);
 	break;
       }
       

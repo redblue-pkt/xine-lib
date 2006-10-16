@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.216 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_mpeg_block.c,v 1.217 2006/10/16 22:18:24 valtri Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -72,7 +72,8 @@ typedef struct demux_mpeg_block_s {
 
   char                  cur_mrl[256];
 
-  uint8_t              *scratch, *scratch_base;
+  uint8_t              *scratch;
+  void                 *scratch_base;
 
   int64_t               nav_last_end_pts;
   int64_t               nav_last_start_pts;

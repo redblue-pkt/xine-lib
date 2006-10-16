@@ -59,10 +59,10 @@ void _x_alphablend_free(alphablend_t *extra_data) XINE_PROTECTED;
 #endif
 
 typedef struct {         /* CLUT == Color LookUp Table */
-  uint8_t cb    : 8;
-  uint8_t cr    : 8;
-  uint8_t y     : 8;
-  uint8_t foo   : 8;
+  uint8_t cb;
+  uint8_t cr;
+  uint8_t y;
+  uint8_t foo;
 } ATTRIBUTE_PACKED clut_t;
 
 

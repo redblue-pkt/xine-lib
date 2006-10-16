@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: image.c,v 1.20 2006/07/10 22:08:43 dgp85 Exp $
+ * $Id: image.c,v 1.21 2006/10/16 22:18:24 valtri Exp $
  *
  * a image video decoder
  */
@@ -37,13 +37,20 @@
 #define LOG
 */
 
+#include <wand/magick_wand.h>
+#ifdef PACKAGE_NAME
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+#endif
+
 #include "xine_internal.h"
 #include "video_out.h"
 #include "buffer.h"
 #include "xineutils.h"
 #include "bswap.h"
-
-#include <wand/magick_wand.h>
 
 typedef struct {
   video_decoder_class_t   decoder_class;

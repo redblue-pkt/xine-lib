@@ -407,9 +407,9 @@ static struct {
 };
 
 #if (defined(ARCH_X86) || defined(ARCH_X86_64)) && defined(HAVE_SYS_TIMES_H)
-static unsigned long long int rdtsc(int config_flags)
+static int64_t rdtsc(int config_flags)
 {
-  unsigned long long int x;
+  int64_t x;
 
   /* that should prevent us from trying cpuid with old cpus */
   if( config_flags & MM_MMX ) {

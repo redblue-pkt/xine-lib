@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.20 2006/09/26 05:19:49 dgp85 Exp $
+ * $Id: scratch.c,v 1.21 2006/10/16 22:18:24 valtri Exp $
  *
  * top-level xine functions
  *
@@ -96,7 +96,6 @@ static void scratch_dispose (scratch_buffer_t *this) {
 scratch_buffer_t *_x_new_scratch_buffer (int num_lines) {
   scratch_buffer_t *this;
   int               i;
-  char             *mem;
 
   this = xine_xmalloc (sizeof (scratch_buffer_t));
 
