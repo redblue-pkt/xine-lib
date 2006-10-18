@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.21 2006/10/16 22:18:24 valtri Exp $
+ * $Id: scratch.c,v 1.22 2006/10/18 18:46:17 hadess Exp $
  *
  * top-level xine functions
  *
@@ -52,6 +52,8 @@ static void __attribute__((__format__(__printf__, 2, 0)))
 
   if ( ! this->lines[this->cur] )
     this->lines[this->cur] = xine_xmalloc(SCRATCH_LINE_LEN_MAX+1);
+  if ( ! this->lines[this->cur] )
+    return;
 
   strftime (this->lines[this->cur], SCRATCH_LINE_LEN_MAX, "%X: ", &tm);
   l = strlen (this->lines[this->cur]);
