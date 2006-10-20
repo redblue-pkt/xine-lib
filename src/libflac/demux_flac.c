@@ -36,7 +36,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <FLAC/seekable_stream_decoder.h>
+#include <FLAC/stream_decoder.h>
+
+#if !defined FLAC_API_VERSION_CURRENT || FLAC_API_VERSION_CURRENT < 8
+#define LEGACY_FLAC
+#else
+#undef LEGACY_FLAC
+#endif
 
 #define LOG_MODULE "demux_flac"
 #define LOG_VERBOSE
@@ -49,6 +55,10 @@
 #include "../demuxers/demux.h"
 
 #include "demux_flac.h"
+
+#ifndef LEGACY_FLAC
+# define FLAC__SeekableStreamDecoder FLAC__StreamDecoder
+#endif
 
 /* FLAC Demuxer plugin */
 typedef struct demux_flac_s {
@@ -89,7 +99,12 @@ typedef struct demux_flac_class_s {
 } demux_flac_class_t;
 
 /* FLAC Callbacks */
-static FLAC__SeekableStreamDecoderReadStatus
+static
+#ifdef LEGACY_FLAC
+FLAC__SeekableStreamDecoderReadStatus
+#else
+FLAC__StreamDecoderReadStatus
+#endif
 flac_read_callback (const FLAC__SeekableStreamDecoder *decoder,
                     FLAC__byte buffer[],
                     unsigned *bytes,
@@ -116,18 +131,31 @@ flac_read_callback (const FLAC__SeekableStreamDecoder *decoder,
       lprintf("Marking EOF\n");
       
       this->status = DEMUX_FINISHED;
+#ifdef LEGACY_FLAC
       return FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_ERROR;
+#else
+      return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
+#endif
     }
     else
     {
       *bytes = offset;
       lprintf("Read was perfect\n");
     
+#ifdef LEGACY_FLAC
       return FLAC__SEEKABLE_STREAM_DECODER_READ_STATUS_OK;
+#else
+      return FLAC__STREAM_DECODER_READ_STATUS_CONTINUE;
+#endif
     }
 }
 
-static FLAC__SeekableStreamDecoderSeekStatus
+static
+#ifdef LEGACY_FLAC
+FLAC__SeekableStreamDecoderSeekStatus
+#else
+FLAC__StreamDecoderSeekStatus
+#endif
 flac_seek_callback (const FLAC__SeekableStreamDecoder *decoder,
                     FLAC__uint64 absolute_byte_offset,
                     void *client_data)
@@ -140,12 +168,25 @@ flac_seek_callback (const FLAC__SeekableStreamDecoder *decoder,
     offset = input->seek (input, absolute_byte_offset, SEEK_SET);
 
     if (offset == -1)
+#ifdef LEGACY_FLAC
         return FLAC__SEEKABLE_STREAM_DECODER_SEEK_STATUS_ERROR;
-    else
+#else
+        return FLAC__STREAM_DECODER_SEEK_STATUS_ERROR;
+#endif
+	else
+#ifdef LEGACY_FLAC
         return FLAC__SEEKABLE_STREAM_DECODER_SEEK_STATUS_OK;
+#else
+        return FLAC__STREAM_DECODER_SEEK_STATUS_OK;
+#endif
 }
 
-static FLAC__SeekableStreamDecoderTellStatus
+static
+#ifdef LEGACY_FLAC
+FLAC__SeekableStreamDecoderTellStatus
+#else
+FLAC__StreamDecoderTellStatus
+#endif
 flac_tell_callback (const FLAC__SeekableStreamDecoder *decoder,
                     FLAC__uint64 *absolute_byte_offset,
                     void *client_data)
@@ -159,10 +200,19 @@ flac_tell_callback (const FLAC__SeekableStreamDecoder *decoder,
 
     *absolute_byte_offset = offset;
 
+#ifdef LEGACY_FLAC
     return FLAC__SEEKABLE_STREAM_DECODER_TELL_STATUS_OK;
+#else
+    return FLAC__STREAM_DECODER_TELL_STATUS_OK;
+#endif
 }
 
-static FLAC__SeekableStreamDecoderLengthStatus
+static
+#ifdef LEGACY_FLAC
+FLAC__SeekableStreamDecoderLengthStatus
+#else
+FLAC__StreamDecoderLengthStatus
+#endif
 flac_length_callback (const FLAC__SeekableStreamDecoder *decoder,
                      FLAC__uint64 *stream_length,
                      void *client_data)
@@ -175,7 +225,11 @@ flac_length_callback (const FLAC__SeekableStreamDecoder *decoder,
     offset = input->get_length (input);
 
     /* FIXME, can flac handle -1 as offset ? */
+#ifdef LEGACY_FLAC
     return FLAC__SEEKABLE_STREAM_DECODER_LENGTH_STATUS_OK;
+#else
+    return FLAC__STREAM_DECODER_LENGTH_STATUS_OK;
+#endif
 }
 
 static FLAC__bool 
@@ -561,7 +615,11 @@ open_plugin (demux_class_t *class_gen,
   
 
     /* Get a new FLAC decoder and hook up callbacks */
+#ifdef LEGACY_FLAC
     this->flac_decoder = FLAC__seekable_stream_decoder_new();
+#else
+    this->flac_decoder = FLAC__stream_decoder_new();
+#endif
     lprintf("this->flac_decoder: %p\n", this->flac_decoder);
 
     FLAC__seekable_stream_decoder_set_md5_checking  (this->flac_decoder, false);
