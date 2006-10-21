@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2006 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -39,6 +39,7 @@
 #include <FLAC/stream_decoder.h>
 
 #if !defined FLAC_API_VERSION_CURRENT || FLAC_API_VERSION_CURRENT < 8
+#include <FLAC/seekable_stream_decoder.h>
 #define LEGACY_FLAC
 #else
 #undef LEGACY_FLAC
