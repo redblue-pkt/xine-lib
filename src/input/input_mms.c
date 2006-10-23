@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.63 2006/07/10 22:08:15 dgp85 Exp $
+ * $Id: input_mms.c,v 1.64 2006/10/23 21:18:18 hadess Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -429,6 +429,8 @@ static void mms_class_dispose (input_class_t *this_gen) {
 
   this->xine->config->unregister_callback(this->xine->config,
 		  			  "media.network.bandwidth");
+  this->xine->config->unregister_callback(this->xine->config,
+					  "media.network.mms_protocol");
   free (this);
 }
 
