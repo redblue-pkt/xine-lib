@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.62 2006/07/10 22:08:44 dgp85 Exp $
+ * $Id: xine_goom.c,v 1.63 2006/10/23 21:13:44 hadess Exp $
  *
  * GOOM post plugin.
  *
@@ -318,6 +318,17 @@ static char *goom_get_description(post_class_t *class_gen)
 
 static void goom_class_dispose(post_class_t *class_gen)
 {
+  post_class_goom_t  *this = (post_class_goom_t*) class_gen;
+
+  this->xine->config->unregister_callback(this->xine->config,
+		  			  "effects.goom.fps");
+  this->xine->config->unregister_callback(this->xine->config,
+		  			  "effects.goom.width");
+  this->xine->config->unregister_callback(this->xine->config,
+		  			  "effects.goom.height");
+  this->xine->config->unregister_callback(this->xine->config,
+		  			  "effects.goom.csc_method");
+
   free(class_gen);
 }
 
