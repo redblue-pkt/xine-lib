@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.159 2006/10/28 17:02:51 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.160 2006/10/28 18:51:08 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1172,7 +1172,7 @@ typedef struct {
    * needs access to the x11 display connection
    *
    * note: to enable this you MUST use XINE_VISUAL_TYPE_X11_2
-   * note: if display_lock or display_unlock is NULL, the fallback is used
+   * note: if display_lock is NULL, the fallback is used
    * note: fallback for this function is XLockDisplay(display)
    */
    void (*lock_display) (void *user_data);
@@ -1184,7 +1184,7 @@ typedef struct {
    * doesn't need access to the x11 display connection anymore
    *
    * note: to enable this you MUST use XINE_VISUAL_TYPE_X11_2
-   * note: if display_lock or display_unlock is NULL, the fallback is used
+   * note: if display_unlock is NULL, the fallback is used
    * note: fallback for this function is XUnlockDisplay(display)
    */
    void (*unlock_display) (void *user_data);

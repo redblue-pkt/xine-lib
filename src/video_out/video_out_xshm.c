@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xshm.c,v 1.147 2006/10/28 17:02:51 miguelfreitas Exp $
+ * $Id: video_out_xshm.c,v 1.148 2006/10/28 18:51:08 miguelfreitas Exp $
  * 
  * video_out_xshm.c, X11 shared memory extension interface for xine
  *
@@ -1242,8 +1242,10 @@ static vo_driver_t *xshm_open_plugin_2 (video_driver_class_t *class_gen, const v
 
   case PseudoColor:
   case GrayScale:
+    LOCK_DISPLAY(this);
     if (this->depth <= 8 && ImlibPaletteLUTGet(this))
       mode = MODE_PALETTE;
+    UNLOCK_DISPLAY(this);
     break;
   }
 
