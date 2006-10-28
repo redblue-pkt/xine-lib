@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.158 2006/09/27 14:38:59 valtri Exp $
+ * $Id: xine.h.in,v 1.159 2006/10/28 17:02:51 miguelfreitas Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -167,6 +167,7 @@ void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver) XINE_PRO
 /* valid visual types */
 #define XINE_VISUAL_TYPE_NONE              0
 #define XINE_VISUAL_TYPE_X11               1
+#define XINE_VISUAL_TYPE_X11_2            10
 #define XINE_VISUAL_TYPE_AA                2
 #define XINE_VISUAL_TYPE_FB                3
 #define XINE_VISUAL_TYPE_GTK               4
@@ -1163,6 +1164,30 @@ typedef struct {
 			   int *dest_width, int *dest_height,
 			   double *dest_pixel_aspect,
 			   int *win_x, int *win_y);
+
+  /*
+   * lock display callback
+   *
+   * this callback is called when the video driver
+   * needs access to the x11 display connection
+   *
+   * note: to enable this you MUST use XINE_VISUAL_TYPE_X11_2
+   * note: if display_lock or display_unlock is NULL, the fallback is used
+   * note: fallback for this function is XLockDisplay(display)
+   */
+   void (*lock_display) (void *user_data);
+
+  /*
+   * unlock display callback
+   *
+   * this callback is called when the video driver
+   * doesn't need access to the x11 display connection anymore
+   *
+   * note: to enable this you MUST use XINE_VISUAL_TYPE_X11_2
+   * note: if display_lock or display_unlock is NULL, the fallback is used
+   * note: fallback for this function is XUnlockDisplay(display)
+   */
+   void (*unlock_display) (void *user_data);
 
 } x11_visual_t;
 

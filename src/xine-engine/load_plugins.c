@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.226 2006/10/16 22:18:24 valtri Exp $
+ * $Id: load_plugins.c,v 1.227 2006/10/28 17:02:51 miguelfreitas Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -110,13 +110,21 @@ static int plugin_iface_versions[] = {
 static void _build_list_typed_plugins(plugin_catalog_t **catalog, xine_sarray_t *type) {
   plugin_node_t    *node;
   int               list_id, list_size;
+  int               i, j;
 
   list_size = xine_sarray_size (type);
-  for (list_id = 0; list_id < list_size; list_id++) {
+  for (list_id = 0, i = 0; list_id < list_size; list_id++) {
     node = xine_sarray_get(type, list_id);
-    (*catalog)->ids[list_id] = node->info->id;
+    
+    /* add only unique ids to the list */
+    for ( j = 0; j < i; j++ ) {
+      if( !strcmp((*catalog)->ids[j], node->info->id) )
+        break;
+    }
+    if ( j == i )
+      (*catalog)->ids[i++] = node->info->id;
   }
-  (*catalog)->ids[list_id] = NULL;
+  (*catalog)->ids[i] = NULL;
 }
 
 static void inc_file_ref(plugin_file_t *file) {
