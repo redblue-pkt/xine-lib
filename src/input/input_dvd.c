@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.210 2006/07/17 17:15:34 dsalt Exp $
+ * $Id: input_dvd.c,v 1.211 2006/10/29 19:39:39 hadess Exp $
  *
  */
 
@@ -999,7 +999,8 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
       break;
     case XINE_EVENT_INPUT_MENU3:
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU3 key hit.\n");
-      dvdnav_menu_call(this->dvdnav, DVD_MENU_Root);
+      if (dvdnav_menu_call(this->dvdnav, DVD_MENU_Root) == DVDNAV_STATUS_ERR)
+        dvdnav_menu_call(this->dvdnav, DVD_MENU_Title);
       break;
     case XINE_EVENT_INPUT_MENU4:
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: MENU4 key hit.\n");
