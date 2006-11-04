@@ -928,17 +928,6 @@ AM_CONDITIONAL(HAVE_COREAUDIO, [test x"$have_coreaudio" = "xyes"])
 
 
 dnl ---------------------------------------------
-dnl Find pkg-config
-dnl ---------------------------------------------
-
-AC_PATH_TOOL(PKG_CONFIG, pkg-config, no)
-if test x$PKG_CONFIG = xno ; then
-  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
-  echo "*** All of DIRECTFB dependent parts will be disabled"
-else
-
-
-dnl ---------------------------------------------
 dnl Check for DirectFB
 dnl ---------------------------------------------
 AC_ARG_ENABLE(directfb,
@@ -946,18 +935,8 @@ AC_ARG_ENABLE(directfb,
 		enable_directfb=$enableval,
 		enable_directfb=no)
 
-  DIRECTFB_REQUIRED_VERSION=0.9.22
 if test x$enable_directfb = "xyes"; then
-  AC_MSG_CHECKING(for DirectFB)
-  if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then
-        AC_MSG_RESULT(found)
-        DIRECTFB_CFLAGS=`$PKG_CONFIG --cflags directfb`
-        DIRECTFB_LIBS=`$PKG_CONFIG --libs directfb`
-        have_directfb="yes"
-  else
-    AC_MSG_RESULT([*** All of DIRECTFB dependent parts will be disabled ***])
-  fi
-fi
+  PKG_CHECK_MODULES([DIRECTFB], [directfb >= 0.9.22], [have_directfb="yes"], [have_directfb="no"])
 fi
 
 AC_SUBST(DIRECTFB_CFLAGS)
