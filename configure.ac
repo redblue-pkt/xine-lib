@@ -630,7 +630,10 @@ else
 fi
 
 if test x"$no_x" != "xyes"; then
-  AC_FIND_LIBXV
+   PKG_CHECK_MODULES([XV], [xv], [
+     ac_have_xv="yes"
+     AC_DEFINE([HAVE_XV], [1], [Define this if you have libXv installed])
+   ], [AC_FIND_LIBXV])
 fi
 AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
 
@@ -813,15 +816,19 @@ dnl Checks for Xinerama extension
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([xinerama],
-  AC_HELP_STRING([--disable-xinerama], [do not build Xinerama support]),
-  [with_xinerama=$enableval], [with_xinerama=yes])
+  AC_HELP_STRING([--disable-xinerama], [do not build Xinerama support]))
 
-if test "x$with_xinerama" = "xyes"; then
-  AC_CHECK_LIB(Xinerama, XineramaQueryExtension, 
-             [X_LIBS="$X_LIBS -lXinerama"
-              AC_DEFINE(HAVE_XINERAMA,1,[Define this if you have libXinerama installed])
-              ac_have_xinerama="yes"],,
-             [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
+if test "x$enable_xinerama" != "xno"; then
+   PKG_CHECK_MODULES([XINERAMA], [xinerama], [ac_have_xinerama=yes], [
+      AC_CHECK_LIB(Xinerama, XineramaQueryExtension, 
+                  [XINERAMA_LIBS="-lXinerama"
+                   ac_have_xinerama="yes"],,
+                  [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
+   ])
+   if test "x$ac_have_xinerama" = "xyes"; then
+      AC_DEFINE(HAVE_XINERAMA,1,[Define this if you have libXinerama installed])
+      X_LIBS="${X_LIBS} ${XINERAMA_LIBS}"
+   fi
 else
   ac_have_xinerama=no
 fi
