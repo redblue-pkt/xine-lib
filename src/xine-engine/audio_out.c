@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.206 2006/10/16 22:18:24 valtri Exp $
+ * $Id: audio_out.c,v 1.207 2006/11/04 23:30:14 dsalt Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -625,7 +625,7 @@ static void audio_filter_amp (aos_t *this, void *buf, int num_frames) {
 static void audio_filter_equalize (aos_t *this,
 				   int16_t *data, int num_frames) {
   int       index, band, channel;
-  int       halflength, length;
+  int       length;
   int       out[EQ_CHANNELS], scaledpcm[EQ_CHANNELS];
   int64_t l;
   int       num_channels;
@@ -634,10 +634,9 @@ static void audio_filter_equalize (aos_t *this,
   if (!num_channels)
     return;
 
-  halflength = num_frames * 2;
-  length = num_frames * 4;
+  length = num_frames * num_channels;
 
-  for (index = 0; index < halflength; index+=2) {
+  for (index = 0; index < length; index += num_channels) {
 
     for (channel = 0; channel < num_channels; channel++) {
 
