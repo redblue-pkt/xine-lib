@@ -91,6 +91,12 @@ dnl
 AM_INIT_AUTOMAKE("xine-lib", $SPEC_VERSION)
 dnl AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR-$XINE_PRE)
 
+dnl ---------------------------------------------
+dnl Requirements for macros whose first invocations are conditional
+dnl ---------------------------------------------
+
+PKG_PROG_PKG_CONFIG
+
 
 dnl ---------------------------------------------
 dnl Made possible to build for another arch.
