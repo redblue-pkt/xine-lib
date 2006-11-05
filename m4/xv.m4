@@ -6,11 +6,11 @@ AC_DEFUN([AC_PATH_LIBXV_IMPL],
   AC_MSG_CHECKING([for $1])
   if test -f "$xv_path/$1"; then
     AC_MSG_RESULT([found $1 in $xv_path])
-    XV_LIB="$1"
+    XV_LIBS="$1"
   else
     if test -f "/usr/lib/$1"; then
       AC_MSG_RESULT([found $1 in /usr/lib])
-      XV_LIB="$1"
+      XV_LIBS="$1"
     else
       AC_MSG_RESULT([$1 not found in $xv_path])
     fi
@@ -29,19 +29,19 @@ AC_DEFUN([AC_TEST_LIBXV],
         [Define this if you have libXv installed])
 
      ac_have_xv="yes"
-     case x$XV_LIB in
+     case x$XV_LIBS in
       x*.a)
         AC_DEFINE(HAVE_XV_STATIC,
                 1,
                 [Define this if you have libXv.a])
         ac_have_xv_static="yes"
-        XV_LIB="$xv_path/$XV_LIB"
+        XV_LIBS="$xv_path/$XV_LIBS"
         ;;
       x*.so)
-        XV_LIB=`echo $XV_LIB | sed 's/^lib/-l/; s/\.so$//'`
+        XV_LIBS=`echo $XV_LIBS | sed 's/^lib/-l/; s/\.so$//'`
         ;;
       *)
-        AC_MSG_ERROR([sorry, I don't know about $XV_LIB])
+        AC_MSG_ERROR([sorry, I don't know about $XV_LIBS])
         ;;
      esac
     ],
@@ -52,10 +52,10 @@ AC_DEFUN([AC_TEST_LIBXV],
   dnl xine_check use Xv functions API.
   dnl -----------------------------------------------
   if test x$ac_have_xv = "xyes"; then
-    EXTRA_X_LIBS="-L$xv_path $XV_LIB -lXext"
+    EXTRA_X_LIBS="-L$xv_path $XV_LIBS -lXext"
     EXTRA_X_CFLAGS=""
   fi
-  AC_SUBST(XV_LIB)
+  AC_SUBST(XV_LIBS)
   AC_SUBST(EXTRA_X_LIBS)
   AC_SUBST(EXTRA_X_CFLAGS)
 ])
@@ -84,7 +84,7 @@ AC_DEFUN([AC_FIND_LIBXV],
   fi
   
   # Try the other lib if prefered failed
-  if test x$XV_LIB = x; then
+  if test x$XV_LIBS = x; then
     if ! test "x$xv_prefer_shared" = "xyes"; then  
       AC_PATH_LIBXV_IMPL([libXv.so])
     else
@@ -92,7 +92,7 @@ AC_DEFUN([AC_FIND_LIBXV],
     fi
   fi
 
-  if ! test x$XV_LIB = x; then
+  if ! test x$XV_LIBS = x; then
     AC_TEST_LIBXV
   fi
 ])
