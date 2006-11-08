@@ -1,109 +1,30 @@
+/*
+ * Copyright (C) 2000-2006 the xine project
+ *
+ * This file is part of xine, a free video player.
+ *
+ * xine is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * xine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+ */
+
 #ifndef __BSWAP_H__
 #define __BSWAP_H__
 
-/* It's need for ffmpeg. Else where will be defined ARCH_X86?*/
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
+#include "ffmpeg_bswap.h"
 
-#include "xineutils.h"
-
-#ifdef HAVE_BYTESWAP_H
-#include <byteswap.h>
-#else
-#include <inttypes.h>
-
-
-#ifdef ARCH_X86
-inline static unsigned short ByteSwap16(unsigned short x)
-{
-  __asm("xchgb %b0,%h0"	:
-        "=q" (x)	:
-        "0" (x));
-    return x;
-}
-#define bswap_16(x) ByteSwap16(x)
-
-inline static unsigned int ByteSwap32(unsigned int x)
-{
-#if __CPU__ > 386
- __asm("bswap	%0":
-      "=r" (x)     :
-#else
- __asm("xchgb	%b0,%h0\n"
-      "	rorl	$16,%0\n"
-      "	xchgb	%b0,%h0":
-      "=q" (x)		:
-#endif
-      "0" (x));
-  return x;
-}
-#define bswap_32(x) ByteSwap32(x)
-
-inline static unsigned long long int ByteSwap64(unsigned long long int x)
-{
-  register union { __extension__ unsigned long long int __ll;
-          unsigned long int __l[2]; } __x;
-  asm("xchgl	%0,%1":
-      "=r"(__x.__l[0]),"=r"(__x.__l[1]):
-      "0"(bswap_32((unsigned long)x)),"1"(bswap_32((unsigned long)(x>>32))));
-  return __x.__ll;
-}
-#define bswap_64(x) ByteSwap64(x)
-
-#else
-
-#define bswap_16(x) (((x) & 0x00ff) << 8 | ((x) & 0xff00) >> 8)
-
-#define bswap_32(x) \
-     ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
-      (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
-
-#ifdef __GNUC__
-/* code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc. */
-#define bswap_64(x) \
-     (__extension__						\
-      ({ union { __extension__ unsigned long long int __ll;	\
-                 unsigned long int __l[2]; } __w, __r;		\
-         __w.__ll = (x);					\
-         __r.__l[0] = bswap_32 (__w.__l[1]);			\
-         __r.__l[1] = bswap_32 (__w.__l[0]);			\
-         __r.__ll; }))
-#else
-#define bswap_64(x) \
-     ((((x) & 0xff00000000000000LL) >> 56) | \
-      (((x) & 0x00ff000000000000LL) >> 40) | \
-      (((x) & 0x0000ff0000000000LL) >> 24) | \
-      (((x) & 0x000000ff00000000LL) >>  8) | \
-      (((x) & 0x00000000ff000000LL) <<  8) | \
-      (((x) & 0x0000000000ff0000LL) << 24) | \
-      (((x) & 0x000000000000ff00LL) << 40) | \
-      (((x) & 0x00000000000000ffLL) << 56)) 
-#endif  /* !__GNUC__ */
-
-#endif	/* !ARCH_X86 */
-
-#endif	/* !HAVE_BYTESWAP_H */
-
-/* be2me ... BigEndian to MachineEndian */
-/* le2me ... LittleEndian to MachineEndian */
-
-#ifdef WORDS_BIGENDIAN
-#define be2me_16(x) (x)
-#define be2me_32(x) (x)
-#define be2me_64(x) (x)
-#define le2me_16(x) bswap_16(x)
-#define le2me_32(x) bswap_32(x)
-#define le2me_64(x) bswap_64(x)
-#else
-#define be2me_16(x) bswap_16(x)
-#define be2me_32(x) bswap_32(x)
-#define be2me_64(x) bswap_64(x)
-#define le2me_16(x) (x)
-#define le2me_32(x) (x)
-#define le2me_64(x) (x)
-#endif
-
+/* These are the Aligned variants */
 #define ABE_16(x) (be2me_16(*(uint16_t*)(x)))
 #define ABE_32(x) (be2me_32(*(uint32_t*)(x)))
 #define ABE_64(x) (be2me_64(*(uint64_t*)(x)))
@@ -111,19 +32,11 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
 #define ALE_32(x) (le2me_32(*(uint32_t*)(x)))
 #define ALE_64(x) (le2me_64(*(uint64_t*)(x)))
 
-#ifdef ARCH_X86
-
-#define BE_16(x) ABE_16(x)
-#define BE_32(x) ABE_32(x)
-#define BE_64(x) ABE_64(x)
-#define LE_16(x) ALE_16(x)
-#define LE_32(x) ALE_32(x)
-#define LE_64(x) ALE_64(x)
-
-#else
-
 #define BE_16(x) (((uint16_t)(((uint8_t*)(x))[0]) << 8) | \
                   ((uint16_t)((uint8_t*)(x))[1]))
+#define BE_24(x) (((uint32_t)(((uint8_t*)(x))[0]) << 16) | \
+                  ((uint32_t)(((uint8_t*)(x))[1]) << 8) | \
+                  ((uint32_t)(((uint8_t*)(x))[2])))
 #define BE_32(x) (((uint32_t)(((uint8_t*)(x))[0]) << 24) | \
                   ((uint32_t)(((uint8_t*)(x))[1]) << 16) | \
                   ((uint32_t)(((uint8_t*)(x))[2]) << 8) | \
@@ -136,8 +49,12 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
                   ((uint64_t)(((uint8_t*)(x))[5]) << 16) | \
                   ((uint64_t)(((uint8_t*)(x))[6]) << 8) | \
                   ((uint64_t)((uint8_t*)(x))[7]))
+
 #define LE_16(x) (((uint16_t)(((uint8_t*)(x))[1]) << 8) | \
                   ((uint16_t)((uint8_t*)(x))[0]))
+#define LE_24(x) (((uint32_t)(((uint8_t*)(x))[2]) << 16) | \
+                  ((uint32_t)(((uint8_t*)(x))[1]) << 8) | \
+                  ((uint32_t)(((uint8_t*)(x))[0])))
 #define LE_32(x) (((uint32_t)(((uint8_t*)(x))[3]) << 24) | \
                   ((uint32_t)(((uint8_t*)(x))[2]) << 16) | \
                   ((uint32_t)(((uint8_t*)(x))[1]) << 8) | \
@@ -150,8 +67,6 @@ inline static unsigned long long int ByteSwap64(unsigned long long int x)
                   ((uint64_t)(((uint8_t*)(x))[2]) << 16) | \
                   ((uint64_t)(((uint8_t*)(x))[1]) << 8) | \
                   ((uint64_t)((uint8_t*)(x))[0]))
-
-#endif /* !ARCH_X86 */
 
 #ifdef WORDS_BIGENDIAN
 #define ME_16(x) BE_16(x)
