@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.11 2006/11/09 15:13:19 dgp85 Exp $
+ * $Id: demux_flac.c,v 1.12 2006/11/09 23:51:29 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -97,11 +97,43 @@ static int open_flac_file(demux_flac_t *flac) {
   if ((preamble[0] != 'f') ||
       (preamble[1] != 'L') ||
       (preamble[2] != 'a') ||
-      (preamble[3] != 'C'))
-    return 0;
+      (preamble[3] != 'C')) {
 
-  /* file is qualified; skip over the signature bytes in the stream */
-  flac->input->seek(flac->input, 4, SEEK_SET);
+    uint32_t id3size;
+
+    /* Unfortunately some FLAC files have an ID3 flag prefixed on them
+     * before the actual FLAC headers... these are barely legal, but
+     * users use them and want them working, so check and skip the ID3
+     * tag if present.
+     */
+    if ( preamble[0] != 'I' || preamble[1] != 'D' || preamble[2] != '3' )
+      return 0;
+
+    /* First 3 bytes are the ID3 signature as above, then comes two bytes
+     * encoding the major and minor version of ID3 used, that we can ignore
+     * as long as we don't try to read the metadata; after those there's a
+     * single byte with flags that depends on the ID3 version used; and now
+     * after all that stuff, there's the size of the rest of the tag, which
+     * is encoded as four bytes.. but only 7 out of 8 bits of every byte is
+     * used... don't ask.
+     */
+    flac->input->seek(flac->input, 6, SEEK_SET);
+    if ( flac->input->read(flac->input, preamble, 4) != 4 )
+      return 0;
+
+    id3size = (preamble[0] << 7*3) + (preamble[1] << 7*2) + (preamble[2] << 7) + preamble[3];
+    
+    flac->input->seek(flac->input, id3size, SEEK_CUR);
+
+    if ( flac->input->read(flac->input, preamble, 4) != 4 )
+      return 0;
+    
+    if ( preamble[0] != 'f' || preamble[1] != 'L' || preamble[2] != 'a' || preamble[3] != 'C' )
+      return 0;
+      
+  } else 
+    /* file is qualified; skip over the signature bytes in the stream */
+    flac->input->seek(flac->input, 4, SEEK_SET);
 
   /* loop through the metadata blocks; use a do-while construct since there
    * will always be 1 metadata block */
