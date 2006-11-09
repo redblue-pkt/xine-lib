@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.168 2006/09/14 02:04:48 dgp85 Exp $
+ * $Id: demux_ogg.c,v 1.169 2006/11/09 15:13:19 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -55,6 +55,7 @@
 
 #define LOG_MODULE "demux_ogg"
 #define LOG_VERBOSE
+
 /*
 #define LOG
 */
@@ -68,6 +69,7 @@
 #include "xineutils.h"
 #include "demux.h"
 #include "bswap.h"
+#include "flacutils.h"
 
 #define CHUNKSIZE                8500
 #define PACKET_TYPE_HEADER       0x01
@@ -592,6 +594,7 @@ static void send_ogg_buf (demux_ogg_t *this,
     }
 
     if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_SPEEX ||
+        (this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_FLAC ||
         (this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
       data = op->packet;
       size = op->bytes;
@@ -615,10 +618,9 @@ static void send_ogg_buf (demux_ogg_t *this,
              pts);
 
     _x_demux_send_data(this->audio_fifo, data, size,
-                       pts, this->si[stream_num]->buf_types, decoder_flags,
-                       normpos,
-                       pts / 90, this->time_length, 0);
-
+		       pts, this->si[stream_num]->buf_types, decoder_flags,
+		       normpos,
+		       pts / 90, this->time_length, 0);
 
 #ifdef HAVE_THEORA
   } else if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_VIDEO_THEORA) {
@@ -1179,6 +1181,69 @@ static void decode_theora_header (demux_ogg_t *this, const int stream_num, ogg_p
 #endif
 }
 
+static void decode_flac_header (demux_ogg_t *this, const int stream_num, ogg_packet *op) {
+  xine_flac_metadata_header header;
+  xine_flac_streaminfo_block streaminfo;
+  buf_element_t *buf;
+  xine_waveformatex wave;
+
+  /* Packet type */
+  _x_assert(op->packet[0] == 0x7F);
+
+  /* OggFLAC signature */
+  _x_assert(op->packet[1] == 'F'); _x_assert(op->packet[2] == 'L');
+  _x_assert(op->packet[3] == 'A'); _x_assert(op->packet[4] == 'C');
+
+  /* Version: supported only 1.0 */
+  _x_assert(op->packet[5] == 1); _x_assert(op->packet[6] == 0);
+
+  /* Header count */
+  this->si[stream_num]->headers = 0/*BE_16(&op->packet[7]) +1*/;
+
+  /* fLaC signature */
+  _x_assert(op->packet[9] == 'f'); _x_assert(op->packet[10] == 'L');
+  _x_assert(op->packet[11] == 'a'); _x_assert(op->packet[12] == 'C');
+
+  _x_parse_flac_metadata_header(&op->packet[13], &header);
+
+  switch ( header.blocktype ) {
+  case FLAC_BLOCKTYPE_STREAMINFO:
+    _x_assert(header.length == FLAC_STREAMINFO_SIZE);
+    _x_parse_flac_streaminfo_block(&op->packet[17], &streaminfo);
+    break;
+  }
+
+  this->si[stream_num]->buf_types = BUF_AUDIO_FLAC
+    +this->num_audio_streams++;
+
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, streaminfo.samplerate);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, streaminfo.channels);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS, streaminfo.bits_per_sample);
+
+  this->si[stream_num]->factor = 90000;
+
+  buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+
+  buf->type = BUF_AUDIO_FLAC;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+
+  buf->decoder_info[0] = 0;
+  buf->decoder_info[1] = streaminfo.samplerate;
+  buf->decoder_info[2] = streaminfo.bits_per_sample;
+  buf->decoder_info[3] = streaminfo.channels;
+  buf->size = sizeof(xine_waveformatex) + FLAC_STREAMINFO_SIZE;
+  memcpy(buf->content+sizeof(xine_waveformatex), &op->packet[17], FLAC_STREAMINFO_SIZE);
+  xine_hexdump(&op->packet[17], FLAC_STREAMINFO_SIZE);
+  wave.cbSize = FLAC_STREAMINFO_SIZE;
+  memcpy(buf->content, &wave, sizeof(xine_waveformatex));
+
+  this->audio_fifo->put(this->audio_fifo, buf);
+
+  /* Skip the Ogg framing info */
+  op->bytes -= 9;
+  op->packet += 9;
+}
+
 static void decode_annodex_header (demux_ogg_t *this, const int stream_num, ogg_packet *op) {
   lprintf ("Annodex stream detected\n");
   this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
@@ -1325,6 +1390,8 @@ static void send_header (demux_ogg_t *this) {
           decode_text_header(this, stream_num, &op);
         } else if (!strncmp (&op.packet[1], "theora", 6)) {
           decode_theora_header(this, stream_num, &op);
+	} else if (!strncmp (&op.packet[1], "FLAC", 4)) {
+	  decode_flac_header(this, stream_num, &op);
         } else if (!strncmp (&op.packet[0], "Annodex", 7)) {
           decode_annodex_header(this, stream_num, &op);
         } else if (!strncmp (&op.packet[0], "AnxData", 7)) {
@@ -1439,7 +1506,7 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
     /* printf("demux_ogg:   got a packet\n"); */
 
     if ((*op.packet & PACKET_TYPE_HEADER) &&
-        (this->si[stream_num]->buf_types!=BUF_VIDEO_THEORA) && (this->si[stream_num]->buf_types!=BUF_AUDIO_SPEEX)) {
+        (this->si[stream_num]->buf_types!=BUF_VIDEO_THEORA) && (this->si[stream_num]->buf_types!=BUF_AUDIO_SPEEX) && (this->si[stream_num]->buf_types!=BUF_AUDIO_FLAC)) {
       if (op.granulepos != -1) {
         this->si[stream_num]->header_granulepos = op.granulepos;
         lprintf ("header with granulepos, remembering granulepos\n");

@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.10 2006/06/02 22:33:37 dsalt Exp $
+ * $Id: demux_flac.c,v 1.11 2006/11/09 15:13:19 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,16 +49,7 @@
 #include "bswap.h"
 #include "group_audio.h"
 
-typedef struct {
-  off_t offset;
-  int64_t sample_number;
-  int64_t pts;
-  int size;
-} flac_seekpoint_t;
-
-#define FLAC_SIGNATURE_SIZE 4
-#define FLAC_STREAMINFO_SIZE 34
-#define FLAC_SEEKPOINT_SIZE 18
+#include "flacutils.h"
 
 typedef struct {
   demux_plugin_t       demux_plugin;
