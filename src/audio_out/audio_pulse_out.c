@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.4 2006/10/13 23:24:54 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.5 2006/11/10 12:10:54 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -483,7 +483,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   /*
    * set capabilities
    */
-  this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_MIXER_VOL |
+  this->capabilities = AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO | AO_CAP_MODE_4CHANNEL |
+                       AO_CAP_MODE_4_1CHANNEL | AO_CAP_MODE_5CHANNEL |
+                       AO_CAP_MODE_5_1CHANNEL | AO_CAP_MIXER_VOL |
                        AO_CAP_PCM_VOL | AO_CAP_MUTE_VOL | AO_CAP_8BITS |
                        AO_CAP_16BITS | AO_CAP_FLOAT32;
 
