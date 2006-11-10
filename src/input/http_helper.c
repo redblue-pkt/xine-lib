@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.7 2006/06/20 01:46:41 dgp85 Exp $ 
+ * $Id: http_helper.c,v 1.8 2006/11/10 23:47:48 dgp85 Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -159,7 +159,35 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
       *uri[0] = '/';
       strcpy(*uri + 1, start);
     } else {
-      *uri = strdup(start);
+      static const char toescape[] = " %#";
+      char *it = start;
+      unsigned int escapechars = 0;
+
+      while( it && *it ) {
+	if ( strchr(toescape, *it) != NULL )
+	  escapechars++;
+	it++;
+      }
+      
+      if ( escapechars == 0 )
+	*uri = strdup(start);
+      else {
+	const size_t len = strlen(start);
+	size_t i;
+
+	*uri = malloc(len + 1 + escapechars*2);
+	it = *uri;
+
+	for(i = 0; i < len; i++, it++) {
+	  if ( strchr(toescape, start[i]) != NULL ) {
+	    it[0] = '%';
+	    it[1] = ( (start[i] >> 4) > 9 ) ? 'A' + ((start[i] >> 4)-10) : '0' + (start[i] >> 4);
+	    it[2] = ( (start[i] & 0x0f) > 9 ) ? 'A' + ((start[i] & 0x0f)-10) : '0' + (start[i] & 0x0f);
+	    it += 2;
+	  } else
+	    *it = start[i];
+	}
+      }
     }
   } else {
     *uri = strdup("/");
