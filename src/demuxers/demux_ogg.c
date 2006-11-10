@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.170 2006/11/10 01:00:35 dgp85 Exp $
+ * $Id: demux_ogg.c,v 1.171 2006/11/10 14:53:23 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -143,6 +143,7 @@ typedef struct demux_ogg_s {
 
   int                   num_audio_streams;
   int                   num_video_streams;
+  int                   unhandled_video_streams;
   int                   num_spu_streams;
 
   off_t                 avg_bitrate;
@@ -1178,6 +1179,7 @@ static void decode_theora_header (demux_ogg_t *this, const int stream_num, ogg_p
 #else
   this->si[stream_num]->buf_types = BUF_VIDEO_THEORA;
   this->num_video_streams++;
+  this->unhandled_video_streams++;
   _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
 #endif
 }
@@ -1604,6 +1606,7 @@ static int demux_ogg_send_chunk (demux_plugin_t *this_gen) {
       this->num_streams       = 0;
       this->num_audio_streams = 0;
       this->num_video_streams = 0;
+      this->unhandled_video_streams = 0;
       this->num_spu_streams   = 0;
       this->avg_bitrate       = 1;
       
@@ -1697,6 +1700,8 @@ static void demux_ogg_send_headers (demux_plugin_t *this_gen) {
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO,
                        this->num_video_streams > 0);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED,
+		     this->num_video_streams > this->unhandled_video_streams);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO,
                        this->num_audio_streams > 0);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_MAX_SPU_CHANNEL,
