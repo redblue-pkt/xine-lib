@@ -16,6 +16,8 @@
 /*
 #define LOG
 */
+
+#include "xineutils.h"
 #include "bswap.h"
 #include "asfheader.h"
 
