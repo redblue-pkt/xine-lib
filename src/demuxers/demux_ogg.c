@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.169 2006/11/09 15:13:19 dgp85 Exp $
+ * $Id: demux_ogg.c,v 1.170 2006/11/10 01:00:35 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1177,6 +1177,7 @@ static void decode_theora_header (demux_ogg_t *this, const int stream_num, ogg_p
   }
 #else
   this->si[stream_num]->buf_types = BUF_VIDEO_THEORA;
+  this->num_video_streams++;
   _x_meta_info_set(this->stream, XINE_META_INFO_VIDEOCODEC, "theora");
 #endif
 }
@@ -1290,16 +1291,16 @@ static void decode_anxdata_header (demux_ogg_t *this, const int stream_num, ogg_
     this->si[stream_num]->buf_types = BUF_AUDIO_VORBIS;
     this->num_audio_streams++;
   } else if (!strncmp(content_type, "audio/x-speex", content_type_length)) {
+    this->num_audio_streams++;
 #ifdef HAVE_SPEEX
     this->si[stream_num]->buf_types = BUF_AUDIO_SPEEX;
-    this->num_audio_streams++;
 #else
     this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 #endif
   } else if (!strncmp(content_type, "video/x-theora", content_type_length)) {
+    this->num_video_streams++;
 #ifdef HAVE_THEORA
     this->si[stream_num]->buf_types = BUF_VIDEO_THEORA;
-    this->num_video_streams++;
 #else
     this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
 #endif
