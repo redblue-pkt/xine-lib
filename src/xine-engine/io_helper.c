@@ -333,6 +333,8 @@ static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, char *buf, off
   xine_cfg_entry_t cfgentry;
   unsigned int timeout;
 
+  _x_assert(buf != NULL);
+
   if ((cmd == XIO_TCP_READ) || (cmd == XIO_FILE_READ)) {
     state = XIO_READ_READY;
   } else {
