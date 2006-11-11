@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.39 2006/09/07 07:21:06 tmattern Exp $
+ * $Id: mmsh.c,v 1.40 2006/11/11 00:05:22 dgp85 Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -393,7 +393,7 @@ static int get_header (mmsh_t *this) {
                    "libmmsh: the asf header exceed %d bytes\n", ASF_HEADER_SIZE);
           return 0;
         } else {
-          len = _x_io_tcp_read(this->stream, this->s, (char*)(this->asf_header + this->asf_header_len),
+          len = _x_io_tcp_read(this->stream, this->s, (char*)(this->asf_header_buffer + this->asf_header_len),
                              this->chunk_length);
           this->asf_header_len += len;
           if (len != this->chunk_length) {
