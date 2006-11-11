@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.211 2006/07/10 22:17:49 dgp85 Exp $
+ * $Id: demux_qt.c,v 1.212 2006/11/11 12:23:44 molivier Exp $
  *
  */
 
@@ -1925,14 +1925,14 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
   }
 
   /* prowl through the moov atom looking for very specific targets */
-  for (i = ATOM_PREAMBLE_SIZE; i < moov_atom_size - 4; i++) {
+  for (i = ATOM_PREAMBLE_SIZE + 4; i < moov_atom_size - 4; i += BE_32(&moov_atom[i - 4])) {
     current_atom = BE_32(&moov_atom[i]);
 
     if (current_atom == MVHD_ATOM) {
       parse_mvhd_atom(info, &moov_atom[i - 4]);
       if (info->last_error != QT_OK)
         return;
-      i += BE_32(&moov_atom[i - 4]) - 4;
+
     } else if (current_atom == TRAK_ATOM) {
 
       /* create a new trak structure */
@@ -1946,14 +1946,12 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
         info->trak_count--;
         return;
       }
-      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == META_ATOM) {
 
       parse_meta_atom(info, &moov_atom[i - 4]);
       if (info->last_error != QT_OK)
         return;
-      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == NAM_ATOM) {
 
@@ -1961,7 +1959,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->name = realloc (info->name, string_size);
       strncpy(info->name, &moov_atom[i + 8], string_size - 1);
       info->name[string_size - 1] = 0;
-      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == CPY_ATOM) {
 
@@ -1969,7 +1966,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->copyright = realloc (info->copyright, string_size);
       strncpy(info->copyright, &moov_atom[i + 8], string_size - 1);
       info->copyright[string_size - 1] = 0;
-      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == DES_ATOM) {
 
@@ -1977,7 +1973,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->description = realloc (info->description, string_size);
       strncpy(info->description, &moov_atom[i + 8], string_size - 1);
       info->description[string_size - 1] = 0;
-      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == CMT_ATOM) {
 
@@ -1985,7 +1980,6 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
       info->comment = realloc (info->comment, string_size);
       strncpy(info->comment, &moov_atom[i + 8], string_size - 1);
       info->comment[string_size - 1] = 0;
-      i += BE_32(&moov_atom[i - 4]) - 4;
 
     } else if (current_atom == RMDA_ATOM) {
 
@@ -1996,7 +1990,9 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
 
       parse_reference_atom(&info->references[info->reference_count - 1],
         &moov_atom[i - 4], info->base_mrl);
-      i += BE_32(&moov_atom[i - 4]) - 4;
+
+    } else {
+      debug_atom_load("  qt: unknown atom into the moov atom (0x%08X)\n", current_atom);
     }
   }
   debug_atom_load("  qt: finished parsing moov atom\n");
