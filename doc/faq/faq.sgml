@@ -2110,8 +2110,8 @@
     <para>
      Newer versions of arts have an auto-suspend mode - this can lead to
      some nondeterministic behaviour of xine if it is set up to use
-     the audio device directly. Using arts is recommended in that case,
-     however you will loose the ability to do four/five channel audio output.
+     the audio device directly. Using arts is recommended in that case;
+     however, you will lose the ability to do four/five channel audio output.
     </para>
    </sect2>
 
@@ -2119,9 +2119,9 @@
     <title>"video_out: throwing away image with pts xxx because it's too old"</title>
     <para>
      This is a performance related problem.
-     If you have a fast computer and this message shows from time to
-     time playing dvd/cdrom, it's very likely that your drive is not
-     DMA enabled. 
+     If you have a fast computer and this message is shown from time to
+     time when playing a DVD or CD, it's very likely that DMA is not enabled
+     for your drive.
     </para>
    </sect2>
 
