@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: matroska.h,v 1.9 2005/10/03 18:06:56 tmattern Exp $
+ * $Id: matroska.h,v 1.10 2006/11/14 07:09:46 molivier Exp $
  *
  */
 #ifndef MATROSKA_H
@@ -274,7 +274,7 @@ struct matroska_track_s {
 #define MATROSKA_CODEC_ID_A_DTS          "A_DTS"
 #define MATROSKA_CODEC_ID_A_VORBIS       "A_VORBIS"
 #define MATROSKA_CODEC_ID_A_ACM          "A_MS/ACM"
-#define MATROSKA_CODEC_ID_A_AAC          "A_AAC/"
+#define MATROSKA_CODEC_ID_A_AAC          "A_AAC"
 #define MATROSKA_CODEC_ID_A_REAL_14_4    "A_REAL/14_4"
 #define MATROSKA_CODEC_ID_A_REAL_28_8    "A_REAL/28_8"
 #define MATROSKA_CODEC_ID_A_REAL_COOK    "A_REAL/COOK"
