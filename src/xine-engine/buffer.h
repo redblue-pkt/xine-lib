@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: buffer.h,v 1.158 2006/09/26 05:19:48 dgp85 Exp $
+ * $Id: buffer.h,v 1.159 2006/11/14 14:11:59 dgp85 Exp $
  *
  *
  * contents:
@@ -616,10 +616,10 @@ uint32_t _x_fourcc_to_buf_video( uint32_t fourcc_int ) XINE_PROTECTED;
 /* return codec name given BUF_VIDEO_xxx */
 char * _x_buf_video_name( uint32_t buf_type ) XINE_PROTECTED;
 
-/* return BUF_VIDEO_xxx given the formattag */
+/* return BUF_AUDIO_xxx given the formattag */
 uint32_t _x_formattag_to_buf_audio( uint32_t formattag ) XINE_PROTECTED;
 
-/* return codec name given BUF_VIDEO_xxx */
+/* return codec name given BUF_AUDIO_xxx */
 char * _x_buf_audio_name( uint32_t buf_type ) XINE_PROTECTED;
 
 
