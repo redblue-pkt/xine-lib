@@ -22,6 +22,9 @@
 #define __BSWAP_H__
 
 #include "config.h"
+
+#define always_inline inline 
+
 #include "ffmpeg_bswap.h"
 
 /* These are the Aligned variants */
