@@ -21,7 +21,7 @@
  * For more information on the FILM file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_film.c,v 1.80 2006/09/11 05:55:49 tmmm Exp $
+ * $Id: demux_film.c,v 1.81 2006/11/19 16:07:50 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -311,7 +311,7 @@ static int open_film_file(demux_film_t *film) {
         if (film->sample_table[j].pts > largest_pts)
           largest_pts = film->sample_table[j].pts;
 
-        llprintf(DEBUG_FILM_LOAD, "sample %4d @ %8" PRIxMAX ", %8X bytes, %s, pts %lld, duration %" PRId64 "%s\n",
+        llprintf(DEBUG_FILM_LOAD, "sample %4d @ %8" PRIxMAX ", %8X bytes, %s, pts %" PRId64 ", duration %" PRId64 "%s\n",
           j,
           (intmax_t)film->sample_table[j].sample_offset,
           film->sample_table[j].sample_size,
