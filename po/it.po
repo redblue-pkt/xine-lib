@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-09-29 01:51+0200\n"
+"POT-Creation-Date: 2006-11-12 17:03+0100\n"
 "PO-Revision-Date: 2006-06-18 23:05+0200\n"
 "Last-Translator: Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>\n"
 "Language-Team: Italian\n"
@@ -909,16 +909,16 @@ msgstr "latenza di output per l'audio esd (aggiusta a/v sync)"
 msgid "xine audio output plugin using esound"
 msgstr "pluging output audio di xine che usa esound"
 
-#: src/audio_out/audio_pulse_out.c:506
+#: src/audio_out/audio_pulse_out.c:511
 #, fuzzy
 msgid "device used for pulseaudio"
 msgstr "dispositivo utilizzato per CD audio"
 
-#: src/audio_out/audio_pulse_out.c:507
+#: src/audio_out/audio_pulse_out.c:512
 msgid "use 'server[:sink]' for setting the pulseaudio sink device."
 msgstr ""
 
-#: src/audio_out/audio_pulse_out.c:552
+#: src/audio_out/audio_pulse_out.c:557
 #, fuzzy
 msgid "xine audio output plugin using pulseaudio sound server"
 msgstr "pluging output audio di xine che usa esound"
@@ -936,15 +936,15 @@ msgstr "io_helper: attesa fallita: %s\n"
 msgid "failed to get status of socket"
 msgstr "impossibile recuperare lo stato del socket"
 
-#: src/xine-engine/io_helper.c:386
+#: src/xine-engine/io_helper.c:388
 msgid "io_helper: Permission denied\n"
 msgstr "io_helper: Permesso negato\n"
 
-#: src/xine-engine/io_helper.c:390
+#: src/xine-engine/io_helper.c:392
 msgid "io_helper: File not found\n"
 msgstr "io_helper: File non trovato\n"
 
-#: src/xine-engine/io_helper.c:394
+#: src/xine-engine/io_helper.c:396
 msgid "io_helper: Connection Refused\n"
 msgstr "io_helper: Connessionr rifiutata\n"
 
@@ -1102,28 +1102,28 @@ msgstr "xine_play: nessun demux disponibile\n"
 msgid "xine_play: demux failed to start\n"
 msgstr "xine: avvio del demuxer fallito.\n"
 
-#: src/xine-engine/xine.c:1509
+#: src/xine-engine/xine.c:1508
 #, c-format
 msgid "xine: The specified save_dir \"%s\" might be a security risk.\n"
 msgstr ""
 "xine: La directory di salvataggio specificata \"%s\" potrebbe essere un "
 "rischio per la sicurezza.\n"
 
-#: src/xine-engine/xine.c:1514
+#: src/xine-engine/xine.c:1513
 msgid "The specified save_dir might be a security risk."
 msgstr ""
 "La directory di salvataggio specificata potrebbe essere un rischio per la "
 "sicurezza."
 
-#: src/xine-engine/xine.c:1540
+#: src/xine-engine/xine.c:1539
 msgid "xine: locale not supported by C library\n"
 msgstr "xine: locale non supportarto dalla liberaria C\n"
 
-#: src/xine-engine/xine.c:1549
+#: src/xine-engine/xine.c:1548
 msgid "media format detection strategy"
 msgstr "Strategia di riconoscimento del formato di contenuto"
 
-#: src/xine-engine/xine.c:1550
+#: src/xine-engine/xine.c:1549
 msgid ""
 "xine offers various methods to detect the media format of input to play. The "
 "individual values are:\n"
@@ -1157,11 +1157,11 @@ msgstr ""
 "extension\n"
 "Riconosce solo tramite estensione del file.\n"
 
-#: src/xine-engine/xine.c:1568
+#: src/xine-engine/xine.c:1567
 msgid "directory for saving streams"
 msgstr "Cartella di salvataggio degli stream"
 
-#: src/xine-engine/xine.c:1569
+#: src/xine-engine/xine.c:1568
 msgid ""
 "When using the stream save feature, files will be written only into this "
 "directory.\n"
@@ -1177,12 +1177,12 @@ msgstr ""
 "arbitrario. Per questo si deve essere attenti che la directory che si "
 "specifica sia robusta per qualsiasi contenuto di ogni file."
 
-#: src/xine-engine/xine.c:1580
+#: src/xine-engine/xine.c:1579
 msgid "allow implicit changes to the configuration (e.g. by MRL)"
 msgstr ""
 "permetti modifiche implicite alla configurazione (per esmepio tramite MRL)"
 
-#: src/xine-engine/xine.c:1581
+#: src/xine-engine/xine.c:1580
 msgid ""
 "If enabled, you allow xine to change your configuration without explicit "
 "actions from your side. For example configuration changes demanded by MRLs "
@@ -1199,26 +1199,26 @@ msgstr ""
 "arbitrariamente la propria configurazione si può finire con uno xine "
 "completamente caotico."
 
-#: src/xine-engine/xine.c:1595
+#: src/xine-engine/xine.c:1594
 msgid "Timeout for network stream reading (in seconds)"
 msgstr ""
 
-#: src/xine-engine/xine.c:1596
+#: src/xine-engine/xine.c:1595
 msgid ""
 "Specifies the timeout when reading from network streams, in seconds. Too low "
 "values might stop streaming when the source is slow or the bandwidth is "
 "occupied, too high values will freeze the player if the connection is lost."
 msgstr ""
 
-#: src/xine-engine/xine.c:1947
+#: src/xine-engine/xine.c:1946
 msgid "messages"
 msgstr "messaggi"
 
-#: src/xine-engine/xine.c:1948
+#: src/xine-engine/xine.c:1947
 msgid "plugin"
 msgstr "plugin"
 
-#: src/xine-engine/xine.c:1949
+#: src/xine-engine/xine.c:1948
 msgid "trace"
 msgstr "traccia"
 
@@ -1345,37 +1345,52 @@ msgstr ": la funzione open() non dovrebbe mai essere chiamata.\n"
 msgid ": input plugin not defined!\n"
 msgstr ": plugin di ingresso non definito!\n"
 
-#: src/xine-engine/osd.c:737
+#: src/xine-engine/osd.c:739
 #, c-format
 msgid "font '%s-%d' already loaded, weird.\n"
 msgstr "il carattere '%s-%d' è già caricato, strano.\n"
 
-#: src/xine-engine/osd.c:749
+#: src/xine-engine/osd.c:751
 #, c-format
 msgid "font '%s' loading failed (%d < %d)\n"
 msgstr "caricamento del carattere '%s' fallito (%d < %d)\n"
 
-#: src/xine-engine/osd.c:759
+#: src/xine-engine/osd.c:761
 #, c-format
 msgid "wrong version for font '%s'. expected %d found %d.\n"
 msgstr "versione del font '%s' errata. Richiesto %d trovato %d.\n"
 
-#: src/xine-engine/osd.c:875
+#: src/xine-engine/osd.c:828
 msgid "osd: cannot initialize ft2 library\n"
 msgstr "osd: impossibile inizializzare la libreria ft2\n"
 
-#: src/xine-engine/osd.c:891
+#: src/xine-engine/osd.c:851
+#, fuzzy, c-format
+msgid "osd: error matching font %s with FontConfig"
+msgstr "osd: errore nel caricamento del carattere %s con ft2\n"
+
+#: src/xine-engine/osd.c:865
+#, fuzzy, c-format
+msgid "osd: error loading font %s with FontConfig"
+msgstr "osd: errore nel caricamento del carattere %s con ft2\n"
+
+#: src/xine-engine/osd.c:868
+#, fuzzy, c-format
+msgid "osd: error looking up font %s with FontConfig"
+msgstr "osd: errore nel caricamento del carattere %s con ft2\n"
+
+#: src/xine-engine/osd.c:889
 #, c-format
 msgid "osd: error loading font %s with ft2\n"
 msgstr "osd: errore nel caricamento del carattere %s con ft2\n"
 
-#: src/xine-engine/osd.c:898
+#: src/xine-engine/osd.c:899
 msgid "osd: error setting font size (no scalable font?)\n"
 msgstr ""
 "osd: errore impostando la dimensione del carattere (nessun carattere "
 "scalabile?)\n"
 
-#: src/xine-engine/osd.c:973
+#: src/xine-engine/osd.c:1015
 #, c-format
 msgid ""
 "osd: unknown sequence starting with byte 0x%02X in encoding \"%s\", "
@@ -1384,43 +1399,43 @@ msgstr ""
 "osd: sequenza sconosciuta cominciante con byte 0x%02X nella codifica \"%s\", "
 "ignorata.\n"
 
-#: src/xine-engine/osd.c:1029
+#: src/xine-engine/osd.c:1071
 msgid "osd: can't find out current locale character set\n"
 msgstr "osd: impossibile individuare il set di caratteri locale corrente.\n"
 
-#: src/xine-engine/osd.c:1039
+#: src/xine-engine/osd.c:1081
 #, c-format
 msgid "osd: unsupported conversion %s -> %s, no conversion performed\n"
 msgstr ""
 "osd: conversione %s -> %s non supportata, nessuna conversione eseguita\n"
 
-#: src/xine-engine/osd.c:1094 src/xine-engine/osd.c:1262
+#: src/xine-engine/osd.c:1136 src/xine-engine/osd.c:1304
 msgid "osd: font isn't defined\n"
 msgstr "osd: carattere non definito.\n"
 
-#: src/xine-engine/osd.c:1133
+#: src/xine-engine/osd.c:1175
 msgid "osd: error loading glyph\n"
 msgstr "osd: errore nel caricamento del glifo.\n"
 
-#: src/xine-engine/osd.c:1139
+#: src/xine-engine/osd.c:1181
 msgid "osd: error in rendering glyph\n"
 msgstr "osd: errore nella visualizzazione del glifo.\n"
 
-#: src/xine-engine/osd.c:1299
+#: src/xine-engine/osd.c:1341
 #, c-format
 msgid "osd: error loading glyph %i\n"
 msgstr "osd: errore nel caricamento del glifo %i.\n"
 
-#: src/xine-engine/osd.c:1306
+#: src/xine-engine/osd.c:1348
 msgid "osd: error in rendering\n"
 msgstr "osd: errore nella visualizzazione.\n"
 
-#: src/xine-engine/osd.c:1554
+#: src/xine-engine/osd.c:1596
 msgid "palette (foreground-border-background) to use for subtitles and OSD"
 msgstr ""
 "palette (primo piano-bordo-sfondo) da utilizzare per i sottotitoli e OSD"
 
-#: src/xine-engine/osd.c:1555
+#: src/xine-engine/osd.c:1597
 msgid ""
 "The palette for on-screen-display and some subtitle formats that do not "
 "specify any colouring themselves. The palettes are listed in the form: "
@@ -1538,12 +1553,12 @@ msgstr ""
 "interna. Valori alti significano una riproduzione più liscia per ingressi "
 "inaffidabili, ma aumenta la latenza e il consumo di memoria."
 
-#: src/xine-engine/info_helper.c:229
+#: src/xine-engine/info_helper.c:230
 msgid "info_helper: can't find out current locale character set\n"
 msgstr ""
 "info_helper: impossibile individuare il set di caratteri locale corrente.\n"
 
-#: src/xine-engine/info_helper.c:243
+#: src/xine-engine/info_helper.c:244
 #, c-format
 msgid ""
 "info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"
@@ -1551,87 +1566,87 @@ msgstr ""
 "info_helper: conversione %s -> UTF-8 non supportata, nessuna conversione "
 "eseguita\n"
 
-#: src/xine-engine/xine_interface.c:919
+#: src/xine-engine/xine_interface.c:918
 msgid "Warning:"
 msgstr "Attenzione:"
 
-#: src/xine-engine/xine_interface.c:920
+#: src/xine-engine/xine_interface.c:919
 msgid "Unknown host:"
 msgstr "Host sconosciuto:"
 
-#: src/xine-engine/xine_interface.c:921
+#: src/xine-engine/xine_interface.c:920
 msgid "Unknown device:"
 msgstr "Dispositivo sconosciuto:"
 
-#: src/xine-engine/xine_interface.c:922
+#: src/xine-engine/xine_interface.c:921
 msgid "Network unreachable"
 msgstr "Rete irraggiungibile"
 
-#: src/xine-engine/xine_interface.c:923
+#: src/xine-engine/xine_interface.c:922
 msgid "Connection refused:"
 msgstr "Connessione rifiutata:"
 
-#: src/xine-engine/xine_interface.c:924
+#: src/xine-engine/xine_interface.c:923
 msgid "File not found:"
 msgstr "File non trovato:"
 
-#: src/xine-engine/xine_interface.c:925
+#: src/xine-engine/xine_interface.c:924
 msgid "Read error from:"
 msgstr "Errore leggendo da:"
 
-#: src/xine-engine/xine_interface.c:926
+#: src/xine-engine/xine_interface.c:925
 msgid "Error loading library:"
 msgstr "Errore nel caricamento della libreria:"
 
-#: src/xine-engine/xine_interface.c:927
+#: src/xine-engine/xine_interface.c:926
 msgid "Encrypted media stream detected"
 msgstr "Individuato flusso multimediale cifrato"
 
-#: src/xine-engine/xine_interface.c:928
+#: src/xine-engine/xine_interface.c:927
 msgid "Security message:"
 msgstr "Messaggio di sicurezza:"
 
-#: src/xine-engine/xine_interface.c:929
+#: src/xine-engine/xine_interface.c:928
 msgid "Audio device unavailable"
 msgstr "Dispositivo audio non disponibile"
 
-#: src/xine-engine/xine_interface.c:930
+#: src/xine-engine/xine_interface.c:929
 msgid "Permission error"
 msgstr "Errore di permessi"
 
-#: src/xine-engine/xine_interface.c:931
+#: src/xine-engine/xine_interface.c:930
 msgid "File is empty:"
 msgstr "Il file è vuoto:"
 
-#: src/xine-engine/audio_out.c:1072
+#: src/xine-engine/audio_out.c:1074
 msgid ""
 "audio_out: delay calculation impossible with an unavailable audio device\n"
 msgstr ""
 "audio_out: calcolo del ritardo impossibile con un dispositivo audio non "
 "disponibile.\n"
 
-#: src/xine-engine/audio_out.c:1214
+#: src/xine-engine/audio_out.c:1216
 msgid "write to sound card failed. Was a USB device unplugged ?\n"
 msgstr ""
 "scrittura sulla scheda audio fallita. È stato rimosso un dispositivo USB?\n"
 
-#: src/xine-engine/audio_out.c:1367
+#: src/xine-engine/audio_out.c:1369
 msgid "8 bits not supported by driver, converting to 16 bits.\n"
 msgstr "8 bit non supportati dal driver, conversione a 16 bit.\n"
 
-#: src/xine-engine/audio_out.c:1375
+#: src/xine-engine/audio_out.c:1377
 msgid "mono not supported by driver, converting to stereo.\n"
 msgstr "mono non supportato dal driver, conversione a stereo.\n"
 
-#: src/xine-engine/audio_out.c:1381
+#: src/xine-engine/audio_out.c:1383
 msgid "stereo not supported by driver, converting to mono.\n"
 msgstr "stereo non supportato dal driver, conversione a mono.\n"
 
-#: src/xine-engine/audio_out.c:2026
+#: src/xine-engine/audio_out.c:2028
 msgid "method to sync audio and video"
 msgstr "metodo di sincronia audio/video"
 
-#: src/xine-engine/audio_out.c:2027
+#: src/xine-engine/audio_out.c:2029
 msgid ""
 "When playing audio and video, there are at least two clocks involved: The "
 "system clock, to which video frames are synchronized and the clock in your "
@@ -1675,11 +1690,11 @@ msgstr ""
 "dove i dati audio sono passati ad un decodificatore esterno in forma "
 "digitale."
 
-#: src/xine-engine/audio_out.c:2055
+#: src/xine-engine/audio_out.c:2057
 msgid "enable resampling"
 msgstr "abilita ricampionamento"
 
-#: src/xine-engine/audio_out.c:2056
+#: src/xine-engine/audio_out.c:2058
 msgid ""
 "When the sample rate of the decoded audio does not match the capabilities of "
 "your sound hardware, an adaptation called \"resampling\" is required. Here "
@@ -1692,11 +1707,11 @@ msgstr ""
 "disabilitare o utilizzare automaticamente quando necessario il "
 "ricampionamento."
 
-#: src/xine-engine/audio_out.c:2063
+#: src/xine-engine/audio_out.c:2065
 msgid "always resample to this rate (0 to disable)"
 msgstr "ricampiona sempre a questa frequenza (0 per disabilitare)"
 
-#: src/xine-engine/audio_out.c:2064
+#: src/xine-engine/audio_out.c:2066
 msgid ""
 "Some audio drivers do not correctly announce the capabilities of the audio "
 "hardware. By setting a value other than zero here, you can force the audio "
@@ -1706,11 +1721,11 @@ msgstr ""
 "sonoro. Impostando un valore diverso da zero qui si può forzare il "
 "ricampionamento del flusso audio alla frequenza data."
 
-#: src/xine-engine/audio_out.c:2073
+#: src/xine-engine/audio_out.c:2075
 msgid "offset for digital passthrough"
 msgstr "offset per il passaggio diretto digitale"
 
-#: src/xine-engine/audio_out.c:2074
+#: src/xine-engine/audio_out.c:2076
 msgid ""
 "If you use an external surround decoder and audio is ahead or behind video, "
 "you can enter a fixed offset here to compensate.\n"
@@ -1721,11 +1736,11 @@ msgstr ""
 "compensare.\n"
 "L'unità di misura è un \"PTS tick\" ovvero 1/90000 secondi."
 
-#: src/xine-engine/audio_out.c:2083
+#: src/xine-engine/audio_out.c:2085
 msgid "play audio even on slow/fast speeds"
 msgstr "riproduci audio anche a velocità basse/elevate"
 
-#: src/xine-engine/audio_out.c:2084
+#: src/xine-engine/audio_out.c:2086
 msgid ""
 "If you enable this option, the audio will be heard even when playback speed "
 "is different than 1X. Of course, it will sound distorted (lower/higher "
@@ -1737,35 +1752,35 @@ msgstr ""
 "basso o più alto). Se si vuole sperimentare preservando il tono, è possibile "
 "provare il plugin di post-elaborazione audio 'stretch'."
 
-#: src/xine-engine/audio_out.c:2155
+#: src/xine-engine/audio_out.c:2157
 msgid "startup audio volume"
 msgstr "volume audio di partenza"
 
-#: src/xine-engine/audio_out.c:2156
+#: src/xine-engine/audio_out.c:2158
 msgid "The overall audio volume set at xine startup."
 msgstr "Il volume audio generale da impostare all'avvio di xine.partenza"
 
-#: src/xine-engine/audio_out.c:2159
+#: src/xine-engine/audio_out.c:2161
 msgid "restore volume level at startup"
 msgstr "ripristina il volume all'avvio"
 
-#: src/xine-engine/audio_out.c:2160
+#: src/xine-engine/audio_out.c:2162
 msgid "If disabled, xine will not modify any mixer settings at startup."
 msgstr ""
 "Se disabilitato, xine non modificherà alcuna impostazione del mixer "
 "all'avvio."
 
-#: src/xine-engine/audio_out.c:2190
+#: src/xine-engine/audio_out.c:2192
 msgid "audio_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "audio_out: spiacente, non sarebbe dovuto succedere. Per favore riavvia "
 "xine.\n"
 
-#: src/xine-engine/load_plugins.c:204
+#: src/xine-engine/load_plugins.c:212
 msgid "map_decoder_list: no space for decoder, skipped.\n"
 msgstr ""
 
-#: src/xine-engine/load_plugins.c:319
+#: src/xine-engine/load_plugins.c:327
 #, c-format
 msgid ""
 "load_plugins: ignoring plugin %s, wrong iface version %d (should be %d)\n"
@@ -1773,12 +1788,12 @@ msgstr ""
 "load_plugins: plugin %s ignorato, versione di interfaccia %d errata "
 "(dovrebbe essere %d)\n"
 
-#: src/xine-engine/load_plugins.c:376
+#: src/xine-engine/load_plugins.c:384
 #, c-format
 msgid "priority for %s decoder"
 msgstr "priorità per il decoder %s"
 
-#: src/xine-engine/load_plugins.c:387
+#: src/xine-engine/load_plugins.c:395
 msgid ""
 "The priority provides a ranking in case some media can be handled by more "
 "than one decoder.\n"
@@ -1788,7 +1803,7 @@ msgstr ""
 "contenuto possa essere gestito da più di un decoder.\n"
 "Una priorità pari a 0 abilita la priorità predefinita del decoder."
 
-#: src/xine-engine/load_plugins.c:415
+#: src/xine-engine/load_plugins.c:423
 #, c-format
 msgid ""
 "load_plugins: demuxer plugin %s does not provide a priority, xine-lib will "
@@ -1797,7 +1812,7 @@ msgstr ""
 "load_plugins: il plugin demuxer %s non fornisce una priorità, xine-lib "
 "utilizzerà la priorità predefinita.\n"
 
-#: src/xine-engine/load_plugins.c:432
+#: src/xine-engine/load_plugins.c:440
 #, c-format
 msgid ""
 "load_plugins: input plugin %s does not provide a priority, xine-lib will use "
@@ -1806,44 +1821,44 @@ msgstr ""
 "load_plugins: il plugin di ingresso %s non fornisce una priorità, xine-lib "
 "utilizzerà la priorità predefinita.\n"
 
-#: src/xine-engine/load_plugins.c:488
+#: src/xine-engine/load_plugins.c:496
 #, c-format
 msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: trovato plugin %s\n"
 
-#: src/xine-engine/load_plugins.c:491
+#: src/xine-engine/load_plugins.c:499
 msgid "load_plugins: static plugin found\n"
 msgstr "load_plugins: trovato plugin statico %s\n"
 
-#: src/xine-engine/load_plugins.c:498
+#: src/xine-engine/load_plugins.c:506
 #, c-format
 msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr ""
 "load_plugins: raggiunto il limite di plugin, non è stato possibile caricare %"
 "s.\n"
 
-#: src/xine-engine/load_plugins.c:501
+#: src/xine-engine/load_plugins.c:509
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
 msgstr ""
 "load_plugins: raggiunto il limite di plugin, non è stato possibile caricare "
 "il plugin statico.\n"
 
-#: src/xine-engine/load_plugins.c:518
+#: src/xine-engine/load_plugins.c:526
 #, c-format
 msgid "load_plugins: unknown plugin type %d in %s\n"
 msgstr "load_plugins: tipo del plugin sconosciuto %d in %s\n"
 
-#: src/xine-engine/load_plugins.c:522
+#: src/xine-engine/load_plugins.c:530
 #, c-format
 msgid "load_plugins: unknown statically linked plugin type %d\n"
 msgstr "load_plugins: tipo del plugin statico sconosciuto %d\n"
 
-#: src/xine-engine/load_plugins.c:582
+#: src/xine-engine/load_plugins.c:590
 #, c-format
 msgid "load_plugins: unable to stat %s\n"
 msgstr "load_plugins: impossibile individuare %s\n"
 
-#: src/xine-engine/load_plugins.c:623
+#: src/xine-engine/load_plugins.c:631
 #, c-format
 msgid ""
 "load_plugins: cannot open plugin lib %s:\n"
@@ -1852,7 +1867,7 @@ msgstr ""
 "load_plugins: impossibile aprire la libreria plugin %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:638
+#: src/xine-engine/load_plugins.c:646
 #, c-format
 msgid ""
 "load_plugins: can't get plugin info from %s:\n"
@@ -1861,12 +1876,12 @@ msgstr ""
 "load_plugins: non ottengo informazioni del plugin da %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:656
+#: src/xine-engine/load_plugins.c:664
 #, c-format
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
 msgstr "load_plugins: directory %s illeggibile ignorata.\n"
 
-#: src/xine-engine/load_plugins.c:681
+#: src/xine-engine/load_plugins.c:689
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -1875,27 +1890,27 @@ msgstr ""
 "load_plugins: impossibile aprire la libreria plugin %s (stadio 2):\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:710
+#: src/xine-engine/load_plugins.c:718
 #, c-format
 msgid "load_plugins: Yikes! %s doesn't contain plugin info.\n"
 msgstr "load_plugins: Argh! %s non contiene informazioni plugin.\n"
 
-#: src/xine-engine/load_plugins.c:1276
+#: src/xine-engine/load_plugins.c:1284
 #, c-format
 msgid "load_plugins: unknown content detection strategy %d\n"
 msgstr "load_plugins: strategia di riconoscimento contenuto sconosciuta %d\n"
 
-#: src/xine-engine/load_plugins.c:1386
+#: src/xine-engine/load_plugins.c:1394
 #, c-format
 msgid "load_plugins: using demuxer '%s'\n"
 msgstr "load_plugins: utilizzo del demuxer '%s'\n"
 
-#: src/xine-engine/load_plugins.c:1697
+#: src/xine-engine/load_plugins.c:1705
 #, c-format
 msgid "load_plugins: failed to load audio output plugin <%s>\n"
 msgstr "load_plugins: caricamento del plugin output audio fallito <%s>\n"
 
-#: src/xine-engine/load_plugins.c:1700
+#: src/xine-engine/load_plugins.c:1708
 msgid ""
 "load_plugins: audio output auto-probing didn't find any usable audio "
 "driver.\n"
@@ -1903,7 +1918,7 @@ msgstr ""
 "load_plugins: il riconoscimento automatico dell'output audio non ha trovato "
 "alcun driver audio utilizzabile.\n"
 
-#: src/xine-engine/load_plugins.c:2003
+#: src/xine-engine/load_plugins.c:2011
 #, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
@@ -2022,13 +2037,13 @@ msgid "xine video output plugin using the Libstk Surface Set-top Toolkit"
 msgstr "plugin di output video di xine che usa Libstk Surface Set-top Toolkit"
 
 #: src/video_out/video_out_xvmc.c:1446 src/video_out/video_out_pgx64.c:1464
-#: src/video_out/video_out_xxmc.c:2430 src/video_out/video_out_xv.c:1419
+#: src/video_out/video_out_xxmc.c:2430 src/video_out/video_out_xv.c:1436
 msgid "video overlay colour key"
 msgstr "chiave cromatica per l'overlay video"
 
 #: src/video_out/video_out_xvmc.c:1447 src/video_out/video_out_xxmc.c:2431
 #: src/video_out/video_out_vidix.c:1159 src/video_out/video_out_vidix.c:1166
-#: src/video_out/video_out_vidix.c:1173 src/video_out/video_out_xv.c:1420
+#: src/video_out/video_out_vidix.c:1173 src/video_out/video_out_xv.c:1437
 msgid ""
 "The colour key is used to tell the graphics card where to overlay the video "
 "image. Try different values, if you experience windows becoming transparent."
@@ -2038,23 +2053,23 @@ msgstr ""
 "finestre diventare trasparenti."
 
 #: src/video_out/video_out_xvmc.c:1455 src/video_out/video_out_xxmc.c:2439
-#: src/video_out/video_out_xv.c:1428
+#: src/video_out/video_out_xv.c:1445
 msgid "autopaint colour key"
 msgstr "colora automaticamente la chive cromatica"
 
 #: src/video_out/video_out_xvmc.c:1456 src/video_out/video_out_xxmc.c:2440
-#: src/video_out/video_out_xv.c:1429
+#: src/video_out/video_out_xv.c:1446
 msgid "Make Xv autopaint its colorkey."
 msgstr "Fa sì che Xv colori automaticamente la propria chiave cromatica."
 
 #: src/video_out/video_out_xvmc.c:1461 src/video_out/video_out_xxmc.c:2463
-#: src/video_out/video_out_vidix.c:1015 src/video_out/video_out_xv.c:1452
+#: src/video_out/video_out_vidix.c:1015 src/video_out/video_out_xv.c:1469
 #: src/video_out/video_out_opengl.c:1918
 msgid "enable double buffering"
 msgstr "abilita doppio buffering"
 
 #: src/video_out/video_out_xvmc.c:1462 src/video_out/video_out_xxmc.c:2464
-#: src/video_out/video_out_vidix.c:1016 src/video_out/video_out_xv.c:1453
+#: src/video_out/video_out_vidix.c:1016 src/video_out/video_out_xv.c:1470
 msgid ""
 "Double buffering will synchronize the update of the video image to the "
 "repainting of the entire screen (\"vertical retrace\"). This eliminates "
@@ -2064,11 +2079,11 @@ msgstr ""
 "ridisegnod ell'intero schermo (ritracciamento verticale). Questo eliminerà "
 "gli sfarfallii e gli artifatti, ma utilizzerà più memoria video."
 
-#: src/video_out/video_out_xvmc.c:1524 src/video_out/video_out_xv.c:1520
+#: src/video_out/video_out_xvmc.c:1524 src/video_out/video_out_xv.c:1537
 msgid "deinterlace method (deprecated)"
 msgstr "metodo di deinterlacciamento (deprecato)"
 
-#: src/video_out/video_out_xvmc.c:1525 src/video_out/video_out_xv.c:1521
+#: src/video_out/video_out_xvmc.c:1525 src/video_out/video_out_xv.c:1538
 msgid ""
 "This config setting is deprecated. You should use the new deinterlacing post "
 "processing settings instead.\n"
@@ -2335,11 +2350,11 @@ msgstr ""
 "video_out_xxmc: utilizzando la porta Xv %ld dal dispositivo %s per la "
 "conversione di colori e il ridimensionamento hardware.\n"
 
-#: src/video_out/video_out_xxmc.c:2447 src/video_out/video_out_xv.c:1436
+#: src/video_out/video_out_xxmc.c:2447 src/video_out/video_out_xv.c:1453
 msgid "bilinear scaling mode"
 msgstr "modalità di ridimensionamento bilineare"
 
-#: src/video_out/video_out_xxmc.c:2448 src/video_out/video_out_xv.c:1437
+#: src/video_out/video_out_xxmc.c:2448 src/video_out/video_out_xv.c:1454
 msgid ""
 "Selects the bilinear scaling mode for Permedia cards. The individual values "
 "are:\n"
@@ -2373,11 +2388,11 @@ msgstr "video_out_xxmc: questo dispositivo supporta il formato yv12\n"
 msgid "video_out_xxmc: this adaptor supports the yuy2 format.\n"
 msgstr "video_out_xxmc: questo dispositivo supporta il formato yuv2.\n"
 
-#: src/video_out/video_out_xxmc.c:2532 src/video_out/video_out_xv.c:1513
+#: src/video_out/video_out_xxmc.c:2532 src/video_out/video_out_xv.c:1530
 msgid "pitch alignment workaround"
 msgstr "pitch alignment workaround"
 
-#: src/video_out/video_out_xxmc.c:2533 src/video_out/video_out_xv.c:1514
+#: src/video_out/video_out_xxmc.c:2533 src/video_out/video_out_xv.c:1531
 msgid "Some buggy video drivers need a workaround to function properly."
 msgstr ""
 "Alcuni driver video difettosi richiedono un workaround per funzionare "
@@ -2435,7 +2450,7 @@ msgstr ""
 "Quando l'interlacciamento è abilitato per i frame accelerati hardware, "
 "alterna i campi superiore e inferiori al doppio del frame rate.\n"
 
-#: src/video_out/video_out_xxmc.c:2613 src/video_out/video_out_xv.c:1577
+#: src/video_out/video_out_xxmc.c:2613 src/video_out/video_out_xv.c:1611
 msgid "xine video output plugin using the MIT X video extension"
 msgstr "plugin di output video di xine che usa l'estensione video MIT X"
 
@@ -2556,7 +2571,7 @@ msgstr "plugin di uscita video di xine utilizzante SDL"
 msgid "xine video output plugin which displays nothing"
 msgstr "plugin di uscita video per xine che non visualizza nulla"
 
-#: src/video_out/video_out_xv.c:280
+#: src/video_out/video_out_xv.c:291
 msgid ""
 "video_out_xv: XvShmCreateImage failed\n"
 "video_out_xv: => not using MIT Shared Memory extension.\n"
@@ -2564,7 +2579,7 @@ msgstr ""
 "video_out_xv: XvShmCreateImage fallita.\n"
 "video_out_xv: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xv.c:290
+#: src/video_out/video_out_xv.c:301
 msgid ""
 "video_out_xv: XvShmCreateImage returned a zero size\n"
 "video_out_xv: => not using MIT Shared Memory extension.\n"
@@ -2572,7 +2587,7 @@ msgstr ""
 "video_out_xv: XvShmCreateImage ha restituito una dimensione pari a zero.\n"
 "video_out_xv: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xv.c:298
+#: src/video_out/video_out_xv.c:309
 #, c-format
 msgid ""
 "video_out_xv: shared memory error in shmget: %s\n"
@@ -2581,7 +2596,7 @@ msgstr ""
 "video_out_xv: errore nella memoria condivisa in shmget: %s\n"
 "video_out_xv: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xv.c:330
+#: src/video_out/video_out_xv.c:341
 msgid ""
 "video_out_xv: x11 error during shared memory XImage creation\n"
 "video_out_xv: => not using MIT Shared Memory extension.\n"
@@ -2590,11 +2605,11 @@ msgstr ""
 "condivisa.\n"
 "video_out_xv: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xv.c:1265
+#: src/video_out/video_out_xv.c:1282
 msgid "video_out_xv: Xv extension not present.\n"
 msgstr "video_out_xv: estensione Xv non presente.\n"
 
-#: src/video_out/video_out_xv.c:1302
+#: src/video_out/video_out_xv.c:1319
 msgid ""
 "video_out_xv: Xv extension is present but I couldn't find a usable yuv12 "
 "port.\n"
@@ -2604,7 +2619,7 @@ msgstr ""
 "porta yuv12 utilizzabile.               sembrerebbe che l'hardware grafico "
 "non supporti Xv.\n"
 
-#: src/video_out/video_out_xv.c:1311
+#: src/video_out/video_out_xv.c:1328
 #, c-format
 msgid ""
 "video_out_xv: using Xv port %ld from adaptor %s for hardware colorspace "
@@ -2613,11 +2628,11 @@ msgstr ""
 "video_out_xv: utilizzando la porta Xv %ld dal dispositivo %s per la "
 "conversione di colori e il ridimensionamento hardware.\n"
 
-#: src/video_out/video_out_xv.c:1486
+#: src/video_out/video_out_xv.c:1503
 msgid "video_out_xv: this adaptor supports the yv12 format.\n"
 msgstr "video_out_xv: questo dispositivo supporta il formato yv12\n"
 
-#: src/video_out/video_out_xv.c:1491
+#: src/video_out/video_out_xv.c:1508
 msgid "video_out_xv: this adaptor supports the yuy2 format.\n"
 msgstr "video_out_xv: questo dispositivo supporta il formato yuv2.\n"
 
@@ -2728,7 +2743,7 @@ msgstr ""
 msgid "x11osd: unscaled overlay created (%s mode).\n"
 msgstr "x11osd: overlay non ridimensionato creato (modalità %s).\n"
 
-#: src/video_out/video_out_xshm.c:189
+#: src/video_out/video_out_xshm.c:200
 msgid ""
 "video_out_xshm: shared memory error when allocating image\n"
 "video_out_xshm: => not using MIT Shared Memory extension.\n"
@@ -2736,7 +2751,7 @@ msgstr ""
 "video_out_xshm: errore nella memoria condivisa riservando l'immagine:\n"
 "video_out_xshm: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xshm.c:205
+#: src/video_out/video_out_xshm.c:216
 #, c-format
 msgid ""
 "video_out_xshm: %s: allocating image\n"
@@ -2745,7 +2760,7 @@ msgstr ""
 "video_out_xshm: %s: riservando l'immagine\n"
 "video_out_xshm: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xshm.c:215
+#: src/video_out/video_out_xshm.c:226
 msgid ""
 "video_out_xshm: shared memory error (address error) when allocating image \n"
 "video_out_xshm: => not using MIT Shared Memory extension.\n"
@@ -2754,7 +2769,7 @@ msgstr ""
 "riservando l'immagine \n"
 "video_out_xshm: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xshm.c:232
+#: src/video_out/video_out_xshm.c:243
 msgid ""
 "video_out_xshm: x11 error during shared memory XImage creation\n"
 "video_out_xshm: => not using MIT Shared Memory extension.\n"
@@ -2763,7 +2778,7 @@ msgstr ""
 "condiviso\n"
 "video_out_xshm: => l'estensione MIT Shared Memory non sarà utilizzata.\n"
 
-#: src/video_out/video_out_xshm.c:1140
+#: src/video_out/video_out_xshm.c:1157
 #, c-format
 msgid ""
 "\n"
@@ -2778,16 +2793,16 @@ msgstr ""
 "è raccomandata una profondità di 16bpp.\n"
 "\n"
 
-#: src/video_out/video_out_xshm.c:1153
+#: src/video_out/video_out_xshm.c:1170
 msgid "video_out_xshm: MIT shared memory extension not present on display.\n"
 msgstr ""
 "video_out_xshm: l'estensione MIT Shared Meory non è presente sul display.\n"
 
-#: src/video_out/video_out_xshm.c:1235
+#: src/video_out/video_out_xshm.c:1254
 msgid "video_out_xshm: your video mode was not recognized, sorry :-(\n"
 msgstr "video_out_xshm: modalità video non riconosciuta.\n"
 
-#: src/video_out/video_out_xshm.c:1269
+#: src/video_out/video_out_xshm.c:1305
 msgid "xine video output plugin using the MIT X shared memory extension"
 msgstr ""
 "plugin di output video per xine utilizzante l'estensione MIT X Shared Memory"
@@ -2854,11 +2869,11 @@ msgid "xine video output plugin using the Color AsCii Art library"
 msgstr ""
 "plugin di uscita video per xine utilizzante la libreria Color AsCii Art"
 
-#: src/video_out/video_out_directfb.c:1294
+#: src/video_out/video_out_directfb.c:1311
 msgid "video layer buffering mode"
 msgstr "modalità di buffer per lo strato video"
 
-#: src/video_out/video_out_directfb.c:1295
+#: src/video_out/video_out_directfb.c:1312
 msgid ""
 "Select the buffering mode of the output layer. Double or triple buffering "
 "give a smoother playback, but consume more video memory."
@@ -2866,11 +2881,11 @@ msgstr ""
 "Seleziona la modalità di buffer per los trato di uscita. Buffer doppio o "
 "triplo fornisce una riproduzione più scorrevole ma consuma più memoria video."
 
-#: src/video_out/video_out_directfb.c:1302
+#: src/video_out/video_out_directfb.c:1319
 msgid "wait for vertical retrace"
 msgstr "attendi il ritracciamento verticale"
 
-#: src/video_out/video_out_directfb.c:1303
+#: src/video_out/video_out_directfb.c:1320
 msgid ""
 "Enable synchronizing the update of the video image to the repainting of the "
 "entire screen (\"vertical retrace\")."
@@ -2878,11 +2893,11 @@ msgstr ""
 "Abilita la sicnronizzazione dell'update dell'immagine video al ridisegno "
 "dello schermo intero (ritracciamento verticale)."
 
-#: src/video_out/video_out_directfb.c:1310
+#: src/video_out/video_out_directfb.c:1327
 msgid "enable video color key"
 msgstr "abilita la chiave cromatica video"
 
-#: src/video_out/video_out_directfb.c:1311
+#: src/video_out/video_out_directfb.c:1328
 msgid ""
 "Enable using a color key to tell the graphics card where to overlay the "
 "video image."
@@ -2890,11 +2905,11 @@ msgstr ""
 "Abilita l'uso di una chiave cromatica per dire alla scheda grafica dove "
 "sovrapporre l'immagine video."
 
-#: src/video_out/video_out_directfb.c:1317
+#: src/video_out/video_out_directfb.c:1334
 msgid "video color key"
 msgstr "chiave cromatica video"
 
-#: src/video_out/video_out_directfb.c:1318
+#: src/video_out/video_out_directfb.c:1335
 msgid ""
 "The color key is used to tell the graphics card where to overlay the video "
 "image. Try different values, if you experience windows becoming transparent."
@@ -2903,21 +2918,21 @@ msgstr ""
 "sovrapporre l'immagine video. Si provino valori diversi se si riscontrano "
 "finestre trasparenti."
 
-#: src/video_out/video_out_directfb.c:1327
+#: src/video_out/video_out_directfb.c:1344
 msgid "flicker filtering"
 msgstr "filtro sfarfallio"
 
-#: src/video_out/video_out_directfb.c:1328
+#: src/video_out/video_out_directfb.c:1345
 msgid "Enable Flicker Filetring for a smooth output on an interlaced display."
 msgstr ""
 "Abilita il filtro sfarfallio per un'uscita liscia su un display "
 "interlacciato."
 
-#: src/video_out/video_out_directfb.c:1335
+#: src/video_out/video_out_directfb.c:1352
 msgid "field parity"
 msgstr "parità di campo"
 
-#: src/video_out/video_out_directfb.c:1336
+#: src/video_out/video_out_directfb.c:1353
 msgid ""
 "For an interlaced display, enable controlling the field parity (\"none"
 "\"=disabled)."
@@ -2925,48 +2940,48 @@ msgstr ""
 "Per un display interlacciato abilita il controllo della parità di campo "
 "(\"none\" = disabilitato)."
 
-#: src/video_out/video_out_directfb.c:1462
+#: src/video_out/video_out_directfb.c:1479
 #, fuzzy
 msgid "video_out_directfb: using hardware subpicture acceleration.\n"
 msgstr ""
 "video_out_directfb: utilizzando il ridimensionamento accelerato hardware.\n"
 
-#: src/video_out/video_out_directfb.c:1476
+#: src/video_out/video_out_directfb.c:1493
 #, fuzzy
 msgid "video_out_directfb: layer supports video output.\n"
 msgstr "video_out_vidix: il dispositivo supporta il formato yuv2\n"
 
-#: src/video_out/video_out_directfb.c:1485
+#: src/video_out/video_out_directfb.c:1502
 #, fuzzy
 msgid "video_out_directfb: layer doesn't support YV12!\n"
 msgstr "video_out_syncfb: informazione. (il modulo SyncFB supporta YUY2)\n"
 
-#: src/video_out/video_out_directfb.c:1492
+#: src/video_out/video_out_directfb.c:1509
 #, fuzzy
 msgid "video_out_directfb: layer doesn't support YUY2!\n"
 msgstr "video_out_syncfb: informazione. (il modulo SyncFB supporta YUY2)\n"
 
-#: src/video_out/video_out_directfb.c:1503
+#: src/video_out/video_out_directfb.c:1520
 msgid ""
 "video_out_directfb:need at least DirectFB 0.9.25 to play on this layer!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1538
+#: src/video_out/video_out_directfb.c:1555
 #, fuzzy, c-format
 msgid "video_out_directfb: layer doesn't support buffermode %d!\n"
 msgstr "video_out_directfb: nessuno strato di uscita utilizzabile trovato.\n"
 
-#: src/video_out/video_out_directfb.c:1544
+#: src/video_out/video_out_directfb.c:1561
 #, c-format
 msgid "video_out_directfb: layer doesn't support options 0x%08x!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1638
+#: src/video_out/video_out_directfb.c:1655
 msgid "video_out_directfb: using hardware accelerated image scaling.\n"
 msgstr ""
 "video_out_directfb: utilizzando il ridimensionamento accelerato hardware.\n"
 
-#: src/video_out/video_out_directfb.c:1650
+#: src/video_out/video_out_directfb.c:1667
 msgid ""
 "video_out_directfb: image scaling with deinterlacing is hardware "
 "accelerated.\n"
@@ -2974,33 +2989,33 @@ msgstr ""
 "video_out_directfb: il ridimensionamento dell'immagine con "
 "deinterlacciamento è accelerato hardware.\n"
 
-#: src/video_out/video_out_directfb.c:1733
+#: src/video_out/video_out_directfb.c:1745
 #, fuzzy
 msgid "video layer id (auto: -1)"
 msgstr "id dello strato video"
 
-#: src/video_out/video_out_directfb.c:1734
+#: src/video_out/video_out_directfb.c:1746
 msgid "Select the video output layer by its id."
 msgstr "Selezionate lo strato di uscita video tramite id."
 
-#: src/video_out/video_out_directfb.c:1755
-#: src/video_out/video_out_directfb.c:1964
+#: src/video_out/video_out_directfb.c:1767
+#: src/video_out/video_out_directfb.c:1976
 #, fuzzy, c-format
 msgid "video_out_directfb: using display layer #%d.\n"
 msgstr ""
 "video_out_directfb: nessuno strato di sovrimpressione utilizzabile trovato.\n"
 
-#: src/video_out/video_out_directfb.c:1839
+#: src/video_out/video_out_directfb.c:1851
 msgid "xine video output plugin using DirectFB."
 msgstr "plugin di output video per xine utilizzante DirectFB"
 
-#: src/video_out/video_out_directfb.c:1957
+#: src/video_out/video_out_directfb.c:1969
 #, fuzzy
 msgid "video_out_directfb: no usable display layer was found!\n"
 msgstr ""
 "video_out_directfb: nessuno strato di sovrimpressione utilizzabile trovato.\n"
 
-#: src/video_out/video_out_directfb.c:2040
+#: src/video_out/video_out_directfb.c:2052
 msgid "xine video output plugin using DirectFB under XDirectFB."
 msgstr "plugin di output video per xine utilizzante DirectFB sotto XDirectFB"
 
@@ -3386,7 +3401,7 @@ msgstr "Il percorso al dispositivo della propria scheda WinTV."
 msgid "gnome-vfs input plugin as shipped with xine"
 msgstr "plugin di input gnome-vfs incluso con xine"
 
-#: src/input/input_gnome_vfs.c:292 src/input/input_file.c:409
+#: src/input/input_gnome_vfs.c:292 src/input/input_file.c:442
 #, c-format
 msgid "input_file: File empty: >%s<\n"
 msgstr "input_file: File vuoto: >%s<\n"
@@ -3435,15 +3450,15 @@ msgstr "input_dvd: values of \\beta will give rise to dom!\n"
 msgid "input_dvd: Error getting next block from DVD (%s)\n"
 msgstr "input_dvd: Errore nella lettura del prossimo blocco dal DVD (%s)\n"
 
-#: src/input/input_dvd.c:1501
+#: src/input/input_dvd.c:1502
 msgid "input_dvd: Error opening DVD device\n"
 msgstr "input_dvd: Errore di apertura del dispositivo DVD\n"
 
-#: src/input/input_dvd.c:1784
+#: src/input/input_dvd.c:1785
 msgid "device used for DVD playback"
 msgstr "dispositivo utilizzato per la riproduzione DVD"
 
-#: src/input/input_dvd.c:1785
+#: src/input/input_dvd.c:1786
 msgid ""
 "The path to the device, usually a DVD drive, which you intend to use for "
 "playing DVDs."
@@ -3451,11 +3466,11 @@ msgstr ""
 "Il percorso al dispositivo, solitamente un lettore DVD, che si intende usare "
 "per riprodurre DVD."
 
-#: src/input/input_dvd.c:1802
+#: src/input/input_dvd.c:1803
 msgid "raw device set up for DVD access"
 msgstr "dispositivo diretto impostato per l'accesso DVD"
 
-#: src/input/input_dvd.c:1803
+#: src/input/input_dvd.c:1804
 msgid ""
 "If this points to a raw device connected to your DVD device, xine will use "
 "the raw device for playback. This has the advantage of being slightly faster "
@@ -3475,11 +3490,11 @@ msgstr ""
 "Si veda la documentazione sull'impostazione dei dispositivi diretti (man "
 "raw) per maggiori informazioni."
 
-#: src/input/input_dvd.c:1816
+#: src/input/input_dvd.c:1817
 msgid "CSS decryption method"
 msgstr "Metodo di decifratura CSS"
 
-#: src/input/input_dvd.c:1817
+#: src/input/input_dvd.c:1818
 msgid ""
 "Selects the decryption method libdvdcss will use to descramble copy "
 "protected DVDs. Try the various methods, if you have problems playing "
@@ -3489,11 +3504,11 @@ msgstr ""
 "DVD protetti da copia. Si provino i vari metodi se si hanno problemi nella "
 "riproduzione di DVD cifrati."
 
-#: src/input/input_dvd.c:1825
+#: src/input/input_dvd.c:1826
 msgid "path to the title key cache"
 msgstr "percorso alla cache delle chiavi dei titoli"
 
-#: src/input/input_dvd.c:1826
+#: src/input/input_dvd.c:1827
 msgid ""
 "Since cracking the copy protection of scrambled DVDs can be quite time "
 "consuming, libdvdcss will cache the cracked keys in this directory.\n"
@@ -3508,11 +3523,11 @@ msgstr ""
 "dedicata non utilizzata per altri scopi oltre alla memorizzazioni delle "
 "chiavi DVD."
 
-#: src/input/input_dvd.c:1848
+#: src/input/input_dvd.c:1849
 msgid "region the DVD player claims to be in (1 to 8)"
 msgstr "regione a cui il lettore DVD dirà di appartenere (da 1 a 8)"
 
-#: src/input/input_dvd.c:1849
+#: src/input/input_dvd.c:1850
 msgid ""
 "This only needs to be changed if your DVD jumps to a screen complaining "
 "about a wrong region code. It has nothing to do with the region code set in "
@@ -3523,11 +3538,11 @@ msgstr ""
 "nulla a che vedere con il codice regionale settato nei lettori DVD, è "
 "interamente software."
 
-#: src/input/input_dvd.c:1855
+#: src/input/input_dvd.c:1856
 msgid "default language for DVD playback"
 msgstr "lingua predefinita per la riproduzione DVD"
 
-#: src/input/input_dvd.c:1856
+#: src/input/input_dvd.c:1857
 msgid ""
 "xine tries to use this language as a default for DVD playback. As far as the "
 "DVD supports it, menus and audio tracks will be presented in this language.\n"
@@ -3538,11 +3553,11 @@ msgstr ""
 "questa lingua.\n"
 "Questo valore deve essere un codice di lingua di due caratteri ISO639."
 
-#: src/input/input_dvd.c:1862
+#: src/input/input_dvd.c:1863
 msgid "read-ahead caching"
 msgstr "read-ahead caching"
 
-#: src/input/input_dvd.c:1863
+#: src/input/input_dvd.c:1864
 msgid ""
 "xine can use a read ahead cache for DVD drive access.\n"
 "This may lead to jerky playback on slow drives, but it improves the impact "
@@ -3552,11 +3567,11 @@ msgstr ""
 "Questo può portare a cattiva riproduzione su lettori lenti, ma migliora "
 "l'impatto con il cambio di strato nel DVD sui lettori più veloci."
 
-#: src/input/input_dvd.c:1869
+#: src/input/input_dvd.c:1870
 msgid "unit for the skip action"
 msgstr "unità per l'azione di salto"
 
-#: src/input/input_dvd.c:1870
+#: src/input/input_dvd.c:1871
 msgid ""
 "You can configure the behaviour when issuing a skip command (using the skip "
 "buttons for example). The individual values mean:\n"
@@ -3590,11 +3605,11 @@ msgstr ""
 "salterà un titolo DVD, un'unità strutturale che rappresenta intere "
 "funzionalità sul DVD."
 
-#: src/input/input_dvd.c:1885
+#: src/input/input_dvd.c:1886
 msgid "unit for seeking"
 msgstr "unità per la ricerca"
 
-#: src/input/input_dvd.c:1886
+#: src/input/input_dvd.c:1887
 msgid ""
 "You can configure the domain spanned by the seek slider. The individual "
 "values mean:\n"
@@ -3619,11 +3634,11 @@ msgstr ""
 "la ricerca sarà effettuata su un programma DVD, che è un'unità di "
 "navigazione che rappresenta un capitolo della corrente funzionalità."
 
-#: src/input/input_dvd.c:1897
+#: src/input/input_dvd.c:1898
 msgid "play mode when title/chapter is given"
 msgstr "modalità di riproduzione quando si fornisce un titolo/capitolo"
 
-#: src/input/input_dvd.c:1898
+#: src/input/input_dvd.c:1899
 msgid ""
 "You can configure the behaviour when playing a dvd from a given title/"
 "chapter (eg. using MRL 'dvd:/1.2'). The individual values mean:\n"
@@ -3644,40 +3659,40 @@ msgstr ""
 "one chapter\n"
 "riproduce soltanto lo specifico titolo/capitolo e quindi si ferma."
 
-#: src/input/input_file.c:174
+#: src/input/input_file.c:203
 #, c-format
 msgid "input_file: read error (%s)\n"
 msgstr "input_file: errore di lettura (%s)\n"
 
-#: src/input/input_file.c:372
+#: src/input/input_file.c:405
 #, c-format
 msgid "input_file: Permission denied: >%s<\n"
 msgstr "input_file: Permesso negato: >%s<\n"
 
-#: src/input/input_file.c:377
+#: src/input/input_file.c:410
 #, c-format
 msgid "input_file: File not found: >%s<\n"
 msgstr "input_file: File non trovato: >%s<\n"
 
-#: src/input/input_file.c:630
+#: src/input/input_file.c:663
 msgid "file input plugin"
 msgstr "plugin di input del file"
 
-#: src/input/input_file.c:999
+#: src/input/input_file.c:1032
 msgid "file browsing start location"
 msgstr "Posizione di partenza del navigatore di file"
 
-#: src/input/input_file.c:1000
+#: src/input/input_file.c:1033
 msgid "The browser to select the file to play will start at this location."
 msgstr ""
 "Il navigatore per selezionare i file da riprodurre partirà da questa "
 "posizione."
 
-#: src/input/input_file.c:1007
+#: src/input/input_file.c:1040
 msgid "list hidden files"
 msgstr "elenca i file nascosti"
 
-#: src/input/input_file.c:1008
+#: src/input/input_file.c:1041
 msgid ""
 "If enabled, the browser to select the file to play will also show hidden "
 "files."
@@ -4177,11 +4192,11 @@ msgstr "Plugin di ingresso CIFS/SMB basato su libsmbclient"
 msgid "mms streaming input plugin"
 msgstr "plugin di ingresso per stream MMS"
 
-#: src/input/input_mms.c:454
+#: src/input/input_mms.c:456
 msgid "network bandwidth"
 msgstr "larghezza di banda"
 
-#: src/input/input_mms.c:455
+#: src/input/input_mms.c:457
 msgid ""
 "Specify the bandwidth of your internet connection here. This will be used "
 "when streaming servers offer different versions with different bandwidth "
@@ -4191,11 +4206,11 @@ msgstr ""
 "Questa sarà utilizzata quando i server di streaming offrano versioni diverse "
 "con diversi requisiti di banda dello stesso flusso."
 
-#: src/input/input_mms.c:464
+#: src/input/input_mms.c:466
 msgid "MMS protocol"
 msgstr "Protocollo MMS"
 
-#: src/input/input_mms.c:465
+#: src/input/input_mms.c:467
 msgid ""
 "Select the protocol to encapsulate MMS.\n"
 "TCP is better but you may need HTTP behind a firewall."
@@ -5458,13 +5473,13 @@ msgstr ""
 "tipo di compressione VOC sconosciuta (0x%02X); per favore riporta l'errore "
 "ai sviluppatori di xine\n"
 
-#: src/demuxers/demux_ogg.c:794
+#: src/demuxers/demux_ogg.c:797
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 "ogg: indicata traccia audio vorbis ma nessuno stream di intestazione vorbis "
 "trovato.\n"
 
-#: src/demuxers/demux_mpeg_block.c:296
+#: src/demuxers/demux_mpeg_block.c:297
 #, c-format
 msgid ""
 "xine-lib:demux_mpeg_block: Unrecognised stream_id 0x%02x. Please report this "
@@ -5473,20 +5488,20 @@ msgstr ""
 "xine-lib:demux_mpeg_block: stream_id 0x%02x sconosciuto. Segnala la cosa "
 "agli sviluppatori di xine.\n"
 
-#: src/demuxers/demux_mpeg_block.c:307
+#: src/demuxers/demux_mpeg_block.c:308
 msgid ""
 "demux_mpeg_block: error! freeing. Please report this to xine developers.\n"
 msgstr ""
 "demux_mpeg_block: errore di deallocazione. Segnala la cosa agli sviluppatori "
 "di xine.\n"
 
-#: src/demuxers/demux_mpeg_block.c:639
+#: src/demuxers/demux_mpeg_block.c:640
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_block: attenzione: l'intestazione PES ha riservato 10 bit non "
 "trovati\n"
 
-#: src/demuxers/demux_mpeg_block.c:649
+#: src/demuxers/demux_mpeg_block.c:650
 #, c-format
 msgid ""
 "demux_mpeg_block: warning: PES header indicates that this stream may be "
@@ -5495,7 +5510,7 @@ msgstr ""
 "demux_mpeg_block: attenzione: l'intestazione PES indica che questo stream "
 "può essere cifrato (modalità di cifratura %d)\n"
 
-#: src/demuxers/demux_mpeg_pes.c:382
+#: src/demuxers/demux_mpeg_pes.c:383
 #, c-format
 msgid ""
 "xine-lib:demux_mpeg_pes: Unrecognised stream_id 0x%02x. Please report this "
@@ -5504,20 +5519,20 @@ msgstr ""
 "xine-lib:demux_mpeg_pes: stream_id 0x%02x sconosciuto. Segnala la cosa agli "
 "sviluppatori di.\n"
 
-#: src/demuxers/demux_mpeg_pes.c:391
+#: src/demuxers/demux_mpeg_pes.c:392
 #, c-format
 msgid "demux_mpeg_pes: warning: PACK stream id=0x%x decode failed.\n"
 msgstr ""
 "demux_mpeg_pes: attenzione: lo stream PACK con id=0x%x non è riuscito nella "
 "decodifica.\n"
 
-#: src/demuxers/demux_mpeg_pes.c:770
+#: src/demuxers/demux_mpeg_pes.c:771
 msgid "demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_pes: attenzione: l'intestazione PES ha riservato 10 bit non "
 "trovati\n"
 
-#: src/demuxers/demux_mpeg_pes.c:780
+#: src/demuxers/demux_mpeg_pes.c:781
 #, c-format
 msgid ""
 "demux_mpeg_pes: warning: PES header indicates that this stream may be "
@@ -5526,7 +5541,7 @@ msgstr ""
 "demux_mpeg_block: attenzione: l'intestazione PES indica che questo stream "
 "può essere cifrato (modalità di cifratura %d)\n"
 
-#: src/demuxers/demux_mpeg_pes.c:1054
+#: src/demuxers/demux_mpeg_pes.c:1055
 #, c-format
 msgid ""
 "demux_mpeg_pes:Unrecognised private stream 1 0x%02x. Please report this to "
