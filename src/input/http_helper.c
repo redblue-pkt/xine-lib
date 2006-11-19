@@ -19,7 +19,7 @@
  *
  * URL helper functions
  *
- * $Id: http_helper.c,v 1.8 2006/11/10 23:47:48 dgp85 Exp $ 
+ * $Id: http_helper.c,v 1.9 2006/11/19 15:38:47 dgp85 Exp $ 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -159,7 +159,7 @@ int _x_parse_url (char *url, char **proto, char** host, int *port,
       *uri[0] = '/';
       strcpy(*uri + 1, start);
     } else {
-      static const char toescape[] = " %#";
+      static const char toescape[] = " #";
       char *it = start;
       unsigned int escapechars = 0;
 
