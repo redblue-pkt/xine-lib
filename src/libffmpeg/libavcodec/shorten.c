@@ -333,7 +333,8 @@ static int shorten_decode_frame(AVCodecContext *avctx,
         }
         s->nwrap = FFMAX(NWRAP, maxnlpc);
 
-        allocate_buffers(s);
+        if (allocate_buffers(s))
+           return -1;
 
         init_offset(s);
 
