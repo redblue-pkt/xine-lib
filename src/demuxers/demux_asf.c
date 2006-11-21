@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.185 2006/10/07 09:59:49 klan Exp $
+ * $Id: demux_asf.c,v 1.186 2006/11/21 18:26:01 klan Exp $
  *
  * demultiplexer for asf streams
  *
@@ -401,6 +401,9 @@ static int asf_read_header (demux_asf_t *this) {
 
   this->packet_size = this->asf_header->file->packet_size;
   this->packet_count = this->asf_header->file->data_packet_count;
+  
+  this->length = (this->asf_header->file->send_duration - 
+                  this->asf_header->file->preroll) / 10000;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->asf_header->file->max_bitrate);
 
