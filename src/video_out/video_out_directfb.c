@@ -126,7 +126,12 @@ typedef struct directfb_driver_s {
   GC                           gc;
   int                          depth;
   x11osd                      *xoverlay;
+  
+  void                        *user_data;
+  void                       (*lock_display) (void *user_data);
+  void                       (*unlock_display) (void *user_data);
 #endif
+
   int                          ovl_changed;
   
   /* screen size */
@@ -142,13 +147,15 @@ typedef struct directfb_driver_s {
 
 typedef struct {
   video_driver_class_t         driver_class;
+  int                          visual_type;
   xine_t                      *xine;
 } directfb_class_t;
 
 
 #define DEFAULT_COLORKEY  0x202040
 
-#define DIRECTFB_OPTIONS  "bg-color=00000000,"\
+#define DIRECTFB_OPTIONS  "no-banner,"\
+                          "bg-color=00000000,"\
                           "no-vt-switch,"\
                           "no-vt-switching,"\
                           "no-sighandler,"\
@@ -156,7 +163,8 @@ typedef struct {
                           "disable-module=linux_input,"\
                           "disable-module=keyboard"
                          
-#define XDIRECTFB_OPTIONS "no-sighandler,"\
+#define XDIRECTFB_OPTIONS "no-banner,"\
+                          "no-sighandler,"\
                           "no-deinit-check"
 
 
@@ -164,18 +172,36 @@ typedef struct {
 # define MAX( a, b ) (((a) > (b)) ? (a) : (b))
 #endif
 
-#define YCBCR_TO_RGB( y, cb, cr, r, g, b ) do {\
-  int _y, _cb, _cr, _r, _g, _b;\
-  _y  = ((y) - 16) * 76309;\
-  _cb = (cb) - 128;\
-  _cr = (cr) - 128;\
-  _r = (_y                + _cr * 104597 + 0x8000) >> 16;\
-  _g = (_y - _cb *  25675 - _cr *  53279 + 0x8000) >> 16;\
-  _b = (_y + _cb * 132201                + 0x8000) >> 16;\
-  (r) = (_r < 0) ? 0 : ((_r > 255) ? 255 : _r);\
-  (g) = (_g < 0) ? 0 : ((_g > 255) ? 255 : _g);\
-  (b) = (_b < 0) ? 0 : ((_b > 255) ? 255 : _b);\
-} while (0)
+#define YCBCR_TO_RGB( y, cb, cr, r, g, b ) \
+  do { \
+    int _y, _cb, _cr, _r, _g, _b; \
+    _y  = ((y) - 16) * 76309; \
+    _cb = (cb) - 128; \
+    _cr = (cr) - 128; \
+    _r = (_y                + _cr * 104597 + 0x8000) >> 16; \
+    _g = (_y - _cb *  25675 - _cr *  53279 + 0x8000) >> 16; \
+    _b = (_y + _cb * 132201                + 0x8000) >> 16; \
+    (r) = (_r < 0) ? 0 : ((_r > 255) ? 255 : _r); \
+    (g) = (_g < 0) ? 0 : ((_g > 255) ? 255 : _g); \
+    (b) = (_b < 0) ? 0 : ((_b > 255) ? 255 : _b); \
+  } while (0)
+
+#define LOCK_DISPLAY() \
+  do { \
+    if (this->lock_display) \
+      this->lock_display (this->user_data); \
+    else \
+      XLockDisplay (this->display); \
+  } while (0)
+  
+#define UNLOCK_DISPLAY() \
+  do { \
+    if (this->unlock_display) \
+      this->unlock_display (this->user_data); \
+    else \
+      XUnlockDisplay (this->display); \
+  } while (0)
+    
 
 /*** driver functions ***/
 
@@ -315,12 +341,13 @@ static uint32_t directfb_colorkey_to_pixel (directfb_driver_t *this) {
 #endif
 
 static void directfb_clean_output_area (directfb_driver_t *this) {
-  if (this->visual_type == XINE_VISUAL_TYPE_X11) {
+  if (this->visual_type == XINE_VISUAL_TYPE_X11 ||
+      this->visual_type == XINE_VISUAL_TYPE_X11_2) {
 #ifdef HAVE_X11
     if (this->config.options & DLOP_DST_COLORKEY) {
       int i;
       
-      XLockDisplay (this->display);    
+      LOCK_DISPLAY();
       
       XSetForeground (this->display, this->gc, BlackPixel(this->display, this->screen));
     
@@ -345,7 +372,7 @@ static void directfb_clean_output_area (directfb_driver_t *this) {
     
       XFlush (this->display);
 
-      XUnlockDisplay (this->display);
+      UNLOCK_DISPLAY();
     }
 #endif
   }
@@ -385,9 +412,9 @@ static void directfb_overlay_begin (vo_driver_t *this_gen,
   if (this->ovl_changed) {
 #ifdef HAVE_X11
     if (this->xoverlay) {
-      XLockDisplay (this->display);
+      LOCK_DISPLAY();
       x11osd_clear (this->xoverlay); 
-      XUnlockDisplay (this->display);
+      UNLOCK_DISPLAY();
     }
 #endif
     if (this->spic_surface) {
@@ -529,9 +556,9 @@ static void directfb_overlay_blend (vo_driver_t *this_gen,
       return;
 #ifdef HAVE_X11
     if (this->xoverlay) {
-      XLockDisplay (this->display);
+      LOCK_DISPLAY();
       x11osd_blend (this->xoverlay, overlay); 
-      XUnlockDisplay (this->display);
+      UNLOCK_DISPLAY();
     }
 #endif
     if (this->spic_surface) {
@@ -561,9 +588,9 @@ static void directfb_overlay_end (vo_driver_t *this_gen, vo_frame_t *frame_gen) 
   if (this->ovl_changed) {
 #ifdef HAVE_X11
     if (this->xoverlay) {
-      XLockDisplay (this->display);
+      LOCK_DISPLAY();
       x11osd_expose (this->xoverlay);
-      XUnlockDisplay (this->display);
+      UNLOCK_DISPLAY();
     }
 #endif
     if (this->spic_surface) {
@@ -1094,16 +1121,17 @@ static int directfb_gui_data_exchange (vo_driver_t *this_gen,
     case XINE_GUI_SEND_DRAWABLE_CHANGED:
       lprintf ("drawable changed.\n");
 #ifdef HAVE_X11
-      if (this->visual_type == XINE_VISUAL_TYPE_X11) {
+      if (this->visual_type == XINE_VISUAL_TYPE_X11 ||
+          this->visual_type == XINE_VISUAL_TYPE_X11_2) {
         this->drawable = (Drawable) data;
-        XLockDisplay (this->display);
+        LOCK_DISPLAY();
         XFreeGC (this->display, this->gc);
         this->gc = XCreateGC (this->display, this->drawable, 0, NULL);
         if (this->xoverlay) {
           x11osd_drawable_changed (this->xoverlay, this->drawable);
           this->ovl_changed = 1;
         }          
-        XUnlockDisplay (this->display);
+        UNLOCK_DISPLAY();
         this->sc.force_redraw = 1;
       }
 #endif 
@@ -1113,11 +1141,12 @@ static int directfb_gui_data_exchange (vo_driver_t *this_gen,
     case XINE_GUI_SEND_EXPOSE_EVENT:
       lprintf ("expose event.\n");
 #ifdef HAVE_X11
-      if (this->visual_type == XINE_VISUAL_TYPE_X11) {
+      if (this->visual_type == XINE_VISUAL_TYPE_X11 ||
+          this->visual_type == XINE_VISUAL_TYPE_X11_2) {
         if (this->xoverlay) {
-          XLockDisplay (this->display);
-	        x11osd_expose (this->xoverlay);
-	        XUnlockDisplay (this->display);
+          LOCK_DISPLAY();
+          x11osd_expose (this->xoverlay);
+          UNLOCK_DISPLAY();
 	       }
       }
 #endif
@@ -1154,12 +1183,13 @@ static void directfb_dispose (vo_driver_t *this_gen) {
     this->cur_frame->vo_frame.dispose (&this->cur_frame->vo_frame);
         
 #ifdef HAVE_X11
-  if (this->visual_type == XINE_VISUAL_TYPE_X11) {
-    XLockDisplay (this->display);
+  if (this->visual_type == XINE_VISUAL_TYPE_X11 ||
+      this->visual_type == XINE_VISUAL_TYPE_X11_2) {
+    LOCK_DISPLAY();
     if (this->xoverlay)
       x11osd_destroy (this->xoverlay);
     XFreeGC (this->display, this->gc);
-    XUnlockDisplay (this->display);
+    UNLOCK_DISPLAY();
   }
 #endif
 
@@ -1905,7 +1935,7 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
   if (!this)
     return NULL;
   
-  this->visual_type = XINE_VISUAL_TYPE_X11;
+  this->visual_type = class->visual_type;
   this->xine        = class->xine;
   
   /* initialize DirectFB */ 
@@ -2012,6 +2042,12 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
   this->sc.frame_output_cb = visual->frame_output_cb;
   this->sc.user_data       = visual->user_data;
   
+  if (this->visual_type == XINE_VISUAL_TYPE_X11_2) {
+    this->user_data      = visual->user_data;
+    this->lock_display   = visual->lock_display;
+    this->unlock_display = visual->unlock_display;
+  }    
+  
   if (this->colorkeying) {
     this->xoverlay = x11osd_create (this->xine, this->display, this->screen,
                                     this->drawable, X11OSD_COLORKEY);
@@ -2062,7 +2098,7 @@ static void *init_class_x11 (xine_t *xine, void *visual_gen) {
   directfb_class_t *this;
   x11_visual_t     *visual = (x11_visual_t *) visual_gen;
   const char       *error;
-  
+
   /* check DirectFB version */
   error = DirectFBCheckVersion( DIRECTFB_MAJOR_VERSION,
                                 DIRECTFB_MINOR_VERSION,
@@ -2089,14 +2125,30 @@ static void *init_class_x11 (xine_t *xine, void *visual_gen) {
   this->driver_class.get_description = get_description_x11;
   this->driver_class.dispose         = dispose_class_x11;
 
-  this->xine = xine;
+  this->visual_type = XINE_VISUAL_TYPE_X11;
+  this->xine        = xine;
 
+  return this;
+}
+
+static void *init_class_x11_2 (xine_t *xine, void *visual_gen) {
+  directfb_class_t *this;
+
+  this = init_class_x11( xine, visual_gen );
+  if (this)
+    this->visual_type = XINE_VISUAL_TYPE_X11_2;
+    
   return this;
 }
 
 static const vo_info_t vo_info_directfb_x11 = {
   8,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
+};
+
+static const vo_info_t vo_info_directfb_x11_2 = {
+  8,                      /* priority    */
+  XINE_VISUAL_TYPE_X11_2  /* visual type */
 };
 #endif /* HAVE_X11 */
 
@@ -2109,6 +2161,8 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
 #ifdef HAVE_X11
   { PLUGIN_VIDEO_OUT, VIDEO_OUT_DRIVER_IFACE_VERSION, "XDirectFB",
     XINE_VERSION_CODE, &vo_info_directfb_x11, init_class_x11 },
+  { PLUGIN_VIDEO_OUT, VIDEO_OUT_DRIVER_IFACE_VERSION, "XDirectFB",
+    XINE_VERSION_CODE, &vo_info_directfb_x11_2, init_class_x11_2 },
 #endif
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
