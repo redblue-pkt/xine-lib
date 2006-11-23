@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.227 2006/10/28 17:02:51 miguelfreitas Exp $
+ * $Id: load_plugins.c,v 1.228 2006/11/23 21:05:31 klan Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -670,6 +670,30 @@ static void collect_plugins(xine_t *this, char *path){
  * generic 2nd stage plugin loader
  */
 
+static inline int _plugin_info_equal(const plugin_info_t *a, 
+                                     const plugin_info_t *b) {
+  if (a->type != b->type || 
+      a->API != b->API ||
+      strcasecmp(a->id, b->id) ||
+      a->version != b->version)
+    return 0;
+   
+  switch (a->type & PLUGIN_TYPE_MASK) {
+    case PLUGIN_VIDEO_OUT:
+      /* FIXME: Could special_info be NULL? */
+      if (a->special_info && b->special_info) {
+        return (((vo_info_t*)a->special_info)->visual_type ==
+                ((vo_info_t*)b->special_info)->visual_type);
+      }
+      break;
+      
+    default:
+      break;
+  }
+  
+  return 1;
+}
+
 static int _load_plugin_class(xine_t *this,
 			      plugin_node_t *node,
 			      void *data) {
@@ -698,10 +722,7 @@ static int _load_plugin_class(xine_t *this,
     if ((info = dlsym(node->file->lib_handle, "xine_plugin_info"))) {
       /* TODO: use sigsegv handler */
       while (info->type != PLUGIN_NONE){
-	if (info->type == target->type
-	    && info->API == target->API
-	    && !strcasecmp(info->id, target->id)
-	    && info->version == target->version){
+	if (_plugin_info_equal(info, target)){
 	  if ((node->plugin_class = info->init(this, data))) {
 	    inc_file_ref(node->file);
 	    return 1;
