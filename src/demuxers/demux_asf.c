@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.186 2006/11/21 18:26:01 klan Exp $
+ * $Id: demux_asf.c,v 1.187 2006/11/26 17:03:12 klan Exp $
  *
  * demultiplexer for asf streams
  *
@@ -120,7 +120,7 @@ typedef struct demux_asf_s {
   int                video_stream;
   int                audio_stream;
 
-  uint64_t           length;
+  int64_t            length;
   uint32_t           rate;
 
   /* packet filling */
@@ -402,8 +402,15 @@ static int asf_read_header (demux_asf_t *this) {
   this->packet_size = this->asf_header->file->packet_size;
   this->packet_count = this->asf_header->file->data_packet_count;
   
+  /* compute stream duration */
   this->length = (this->asf_header->file->send_duration - 
                   this->asf_header->file->preroll) / 10000;
+  if (this->length < 0)
+    this->length = 0;
+    
+  /* compute average byterate (needed for seeking) */
+  if (this->length)
+    this->rate = (int64_t) this->input->get_length(this->input) * 1000 / this->length;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->asf_header->file->max_bitrate);
 
@@ -1787,7 +1794,7 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   start_pos = (off_t) ( (double) start_pos / 65535 *
               this->input->get_length (this->input) );
 
-  lprintf ("demux_asf_seek: start_pos = %lld, start_time=%d\n",
+  lprintf ("demux_asf_seek: start_pos=%lld, start_time=%d\n",
 	   start_pos, start_time);
 
   this->status = DEMUX_OK;
