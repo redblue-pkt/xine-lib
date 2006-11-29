@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.c,v 1.8 2004/08/27 18:34:16 miguelfreitas Exp $
+ * $Id: asmrp.c,v 1.9 2006/11/29 19:43:01 dgp85 Exp $
  *
  * a parser for real's asm rules
  *
@@ -604,7 +604,7 @@ static int asmrp_rule (asmrp_t *p) {
   return ret;
 }
 
-static int asmrp_eval (asmrp_t *p, int *matches) {
+static int asmrp_eval (asmrp_t *p, int *matches, int matchsize) {
 
   int rule_num, num_matches;
 
@@ -613,7 +613,7 @@ static int asmrp_eval (asmrp_t *p, int *matches) {
   asmrp_get_sym (p);
 
   rule_num = 0; num_matches = 0;
-  while (p->sym != ASMRP_SYM_EOF) {
+  while (p->sym != ASMRP_SYM_EOF && num_matches < matchsize - 1) {
 
     if (asmrp_rule (p)) {
       lprintf ("rule #%d is true\n", rule_num);
@@ -629,7 +629,7 @@ static int asmrp_eval (asmrp_t *p, int *matches) {
   return num_matches;
 }
 
-int asmrp_match (const char *rules, int bandwidth, int *matches) {
+int asmrp_match (const char *rules, int bandwidth, int *matches, int matchsize) {
 
   asmrp_t *p;
   int      num_matches;
@@ -641,7 +641,7 @@ int asmrp_match (const char *rules, int bandwidth, int *matches) {
   asmrp_set_id (p, "Bandwidth", bandwidth);
   asmrp_set_id (p, "OldPNMPlayer", 0);
 
-  num_matches = asmrp_eval (p, matches);
+  num_matches = asmrp_eval (p, matches, matchsize);
 
   asmrp_dispose (p);
 

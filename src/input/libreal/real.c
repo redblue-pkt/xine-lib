@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.23 2006/06/20 01:07:58 dgp85 Exp $
+ * $Id: real.c,v 1.24 2006/11/29 19:43:01 dgp85 Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -476,7 +476,7 @@ rmff_header_t *real_parse_sdp(char *data, char **stream_rules, uint32_t bandwidt
 
     lprintf("calling asmrp_match with:\n%s\n%u\n", desc->stream[i]->asm_rule_book, bandwidth);
 
-    n=asmrp_match(desc->stream[i]->asm_rule_book, bandwidth, rulematches);
+    n=asmrp_match(desc->stream[i]->asm_rule_book, bandwidth, rulematches, sizeof(rulematches)/sizeof(rulematches[0]));
     for (j=0; j<n; j++) {
       lprintf("asmrp rule match: %u for stream %u\n", rulematches[j], desc->stream[i]->stream_id);
       sprintf(b,"stream=%u;rule=%u,", desc->stream[i]->stream_id, rulematches[j]);

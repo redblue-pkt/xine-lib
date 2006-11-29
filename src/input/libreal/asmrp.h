@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: asmrp.h,v 1.2 2003/12/09 00:02:30 f1rmb Exp $
+ * $Id: asmrp.h,v 1.3 2006/11/29 19:43:01 dgp85 Exp $
  *
  * a parser for real's asm rules
  *
@@ -37,6 +37,6 @@
 #ifndef HAVE_ASMRP_H
 #define HAVE_ASMRP_H
 
-int asmrp_match (const char *rules, int bandwidth, int *matches) ;
+int asmrp_match (const char *rules, int bandwidth, int *matches, int matchesizxe) ;
 
 #endif
