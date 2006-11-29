@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.187 2006/11/26 17:03:12 klan Exp $
+ * $Id: demux_asf.c,v 1.188 2006/11/29 21:26:52 dgp85 Exp $
  *
  * demultiplexer for asf streams
  *
@@ -69,8 +69,6 @@
 #define ASF_MODE_HTTP_REF          2
 #define ASF_MODE_ASF_REF           3
 #define ASF_MODE_ENCRYPTED_CONTENT 4
-
-#define ASF_HEADER_SIZE          8192  /* max header size */
 
 typedef struct {
   int                 seq;
@@ -154,8 +152,6 @@ typedef struct demux_asf_s {
   /* for fewer error messages */
   GUID               last_unknown_guid;
 
-  uint8_t            asf_header_buffer[ASF_HEADER_SIZE];
-  uint32_t           asf_header_len;
   asf_header_t      *asf_header;
 
 } demux_asf_t ;
@@ -378,10 +374,13 @@ static void asf_send_video_header (demux_asf_t *this, int stream) {
 
 static int asf_read_header (demux_asf_t *this) {
   int i;
+  uint64_t asf_header_len;
+  char *asf_header_buffer = NULL;
 
-  this->asf_header_len = get_le64(this);
+  asf_header_len = get_le64(this);
+  asf_header_buffer = alloca(asf_header_len);
 
-  if (this->input->read (this->input, this->asf_header_buffer, this->asf_header_len) != this->asf_header_len)
+  if (this->input->read (this->input, asf_header_buffer, asf_header_len) != asf_header_len)
     return 0;
 
   /* delete previous header */
@@ -393,7 +392,7 @@ static int asf_read_header (demux_asf_t *this) {
    *   byte  0-15: header guid
    *   byte 16-23: header length
    */
-  this->asf_header = asf_header_new(this->asf_header_buffer, this->asf_header_len);
+  this->asf_header = asf_header_new(asf_header_buffer, asf_header_len);
   if (!this->asf_header)
     return 0;
 
