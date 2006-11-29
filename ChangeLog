@@ -1,6 +1,8 @@
 xine-lib (1.1.3)
   * Security fixes:
     - Heap overflow in libmms (related to CVE-2006-2200)
+    - Buffer overrun in Real Media input plugin. [bug #1603458]
+      Thanks to Roland Kay for reporting and JW for the patch.
   * Update build system to support x86 Darwin setups, and merge patches to
     support Darwin OS better.
   * Replace custom ALSA check with pkg-config check, and make sure 0.9.0 is
