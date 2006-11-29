@@ -121,9 +121,14 @@
      The password is empty, just press Enter.
     </para>
     <para>
-     Then, to check out individual modules (e.g. <filename>xine-lib</filename>, 
-     <filename>gnome-xine</filename> or <filename>xine-ui</filename>):
+     Then, to check out individual modules (e.g. <filename>xine-lib</filename> or <filename>xine-ui</filename>):
      <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@xine.cvs.sourceforge.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
+    </para>
+    <para>
+     gxine's primary repository is at <ulink url="http://zap.tartarus.org/~ds/hg/gxine/">http://zap.tartarus.org/~ds/hg/gxine/</ulink>.
+     Its CVS module is updated from this from time to time.
+     To check out the source:
+     <screen>&nbsp;&nbsp;&nbsp;<command>hg clone http://zap.tartarus.org/~ds/hg/gxine/ gxine</command></screen>
     </para>
    </sect2>
 
@@ -185,7 +190,7 @@
      they will not be built). For example, libogg and libvorbis (plus their include files)
      are needed for ogg/vorbis support. Most notably, if you want to see any video
      on your X11 desktop (and that's what you're here for, isn't it?), you need the
-     XFree developer packages as well.
+     X developer packages as well.
     </para>
     <para>
      Don't worry about this too much right now, xine's <command>configure</command>
@@ -285,10 +290,13 @@
    </sect2>
 
    <sect2 id="debbuild">
-    <title>Making your own .deb packages (xine-lib, xine-ui; gxine CVS)</title>
+    <title>Making your own .deb packages (xine-lib, xine-ui, gxine)</title>
+    <para>
+     You'll need a CVS or HG snapshot tarball or source checked out from the repository.
+    </para>
     <para>
      First, make sure that the "devscripts" package is installed. You'll
-     then need the following commands:
+     then need the following commands (the first one isn't needed unless you're using a snapshot tarball):
      <screen>
 &nbsp;&nbsp;&nbsp;<command>tar xzf &lt;PACKAGE-VER.tar.gz&gt;</command>
 &nbsp;&nbsp;&nbsp;<command>cd &lt;PACKAGE-VER&gt;</command>
@@ -296,8 +304,7 @@
 &nbsp;&nbsp;&nbsp;<command>debuild binary</command>
      </screen>
      (If <command>debuild</command> complains about unmet dependencies, then
-     - as root - install them using
-     <command>aptitude install &lt;PACKAGES&gt;</command> then re-run
+     install them using <command>aptitude install &lt;PACKAGES&gt;</command> (as root) then re-run
      <command>debuild binary</command>.
     </para>
     <para>
@@ -306,6 +313,10 @@
 &nbsp;&nbsp;&nbsp;<command>cd ..</command>
 &nbsp;&nbsp;&nbsp;<command>ls *.deb</command>
 &nbsp;&nbsp;&nbsp;<command>su - -c 'cd '"`pwd`"' && dpkg -i &lt;DEB_PACKAGES&gt;'</command>
+     </screen>
+     Ubuntu users will probably want to use this instead of that <command>su</command>:
+     <screen>
+&nbsp;&nbsp;&nbsp;<command>sudo dpkg -i &lt;DEB_PACKAGES&gt;</command>
      </screen>
     </para>
     <para>
@@ -942,7 +953,7 @@
       <listitem>
        <para>
         Try to use the Xv driver, it greatly improves performance and quality
-        because your graphics card does image scaling and colorspace conversion. The
+        because your graphics card does image scaling and colourspace conversion. The
         <link linkend="video">video section</link> contains important information
         about several Xv drivers. 
        </para>
@@ -1002,7 +1013,7 @@
         You'll find details about that in the linux dvd howto.
        </para>
        <para>
-        If you're using XFree 4.x, enabling MTRR support in your kernel should
+        If you're using X.org or XFree 4.x, enabling MTRR support in your kernel should
         be enough (use a recent kernel!).
        </para>
        <para>
@@ -1013,7 +1024,7 @@
       </listitem>
       <listitem>
        <para>
-        Have your X-server (usually XFree86) running with higher priority.
+        Have your X-server (usually X.org or XFree86) running with higher priority.
         Most recent linux distributions (like RedHat 8.0 or Mandrake 9.0) should
         do that for you, improving not only xine but desktop responsiveness
         in general. 
@@ -1527,10 +1538,10 @@
      remember the last used video output plugin, so the setting will stay at XShm.
      You could simply continue using this, but XShm is a lot slower than Xv, so
      read on and see if you can get it working. Usually you should look for
-     updated versions of the XFree driver module that belongs to your graphics card.
+     updated versions of the X driver module that belongs to your graphics card.
     </para>
     <para>
-     Other possibilites are limitations in either your XFree driver module or your
+     Other possibilites are limitations in either your X driver module or your
      graphics hardware. If your card could somehow be running out of ressources (graphics
      RAM perhaps) and displays an incorrect Xv overlay because of that, try reducing
      the display resolution and/or colour depth.
@@ -1553,13 +1564,13 @@
      on your system.
     </para>
     <para>
-     First you need to install/use XFree 4.x. Once you got that you have to
-     make sure the XFree drivers you're using are supporting Xv on your
+     First you need to install/use X.org or XFree 4.x. Once you got that you have to
+     make sure the X drivers you're using are supporting Xv on your
      hardware. Here are some hints for individual gfx chips:
      <itemizedlist>
       <listitem>
        <para> 
-        3Dfx: if all you get is a solid black window, upgrade at least to XFree 4.1.0
+        3Dfx: if all you get is a solid black window, upgrade to X.org or XFree 4.1.0 or later.
        </para>
       </listitem>
       <listitem>
@@ -1643,10 +1654,10 @@
    <sect2 id="colorkey">
     <title>Some parts of my X Desktop get transparent when xine plays the video!</title>
     <para>
-     Looks like some colors on your GUI match the colorkey Xv uses. You can
-     change the colorkey value to avoid this. There should be a line like:
+     Looks like some colours on your GUI match the colour key which Xv uses. You can
+     change the colour key value to avoid this. There should be a line like:
      <programlisting>&nbsp;&nbsp;&nbsp;video.XV_COLORKEY:2110</programlisting>
-     in your <filename>~/.xine/config</filename> file where you can change the color that's used
+     in your <filename>~/.xine/config</filename> file where you can change the colour that's used
      by xine for the video overlay.
     </para>
    </sect2>
@@ -1666,9 +1677,8 @@
      being used.
     </para>
     <para>
-     For XFree86 the screen size should be set with the file
-     <filename>/etc/X11/XF86Config</filename>, under the section
-     <parameter>"Monitor"</parameter> as in the example below:
+     For X.org, the screen size should be set in the <parameter>"Monitor"</parameter>
+     section in the file <filename>/etc/X11/xorg.conf</filename>, as in the example below:
      <programlisting>
 &nbsp;&nbsp;&nbsp;Section "Monitor"
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Identifier   "Monitor0"
@@ -1678,6 +1688,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HorizSync    30.0 - 70.0
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VertRefresh  50.0 - 180.0
 &nbsp;&nbsp;&nbsp;EndSection</programlisting>
+     For XFree86, the filename is normally <filename>/etc/X11/XF86Config</filename>.
     </para>
     <para>
      Where <parameter>DisplaySize</parameter> specifies, 
@@ -1719,7 +1730,7 @@
    </sect2>
 
    <sect2 id="contrastbrightnesssaturation">
-    <title>My xine is runing in black and white! / I only get a gray video output!</title>
+    <title>My xine is runing in black and white! / I only get a grey video output!</title>
     <para>
      This frequently happens with new Xv drivers or when switching to a
      different video card. Background is that different Xv drivers often
@@ -1739,9 +1750,9 @@
    <sect2 id="videodriver">
     <title>Which is the best video driver to use?</title>
     <para>
-     xine support several video drivers for outputing the image. These will
+     xine supports several video drivers for outputing the image. These will
      differ on how the frames are copied to the video card memory, whether
-     colorspace conversion and scaling is done in software or hardware, among
+     colourspace conversion and scaling is done in software or hardware, among
      other things. They may also differ on ease of use and stability.
     </para>
     <para>
@@ -1824,7 +1835,7 @@
    </sect2>
 
    <sect2 id="overlaycolorleak">
-    <title>Why colors of overlays/subtitles seem to be "leaking"?</title>
+    <title>Why colours of overlays/subtitles seem to be "leaking"?</title>
     <para>
      xine blends most overlays, specially the ones from DVD discs,
      directly over the image (scaled OSD). Unfortunately most codecs
@@ -1989,9 +2000,9 @@
    <title>Error Messages: What they mean and what you can do</title>
 
    <sect2 id="xfreecrash">
-    <title>Starting xine crashes XFree, I am logged out of my desktop!</title>
+    <title>Starting xine crashes X, I am logged out of my desktop!</title>
     <para>
-     xine itself is unable to crash XFree, so when your X server just shuts down or
+     xine itself is unable to crash X, so when your X server just shuts down or
      restarts with the login screen, there is something wrong with your X setup.
      Most common are problems with the Xv extension. Try running xine with the XShm
      video output plugin:
@@ -2002,7 +2013,7 @@
      remember the last used video output plugin, so the setting will stay at XShm.
      You could simply continue using this, but XShm is a lot slower than Xv, so
      consult the <link linkend="xvextension">section on Xv</link> and see if you can
-     get it working. Usually you should look for updated versions of the XFree driver
+     get it working. Usually you should look for updated versions of the X driver
      module that belongs to your graphics card.
     </para>
    </sect2>
@@ -2187,7 +2198,7 @@
         hardware scaling/colour space conversion.
        </para>
        <para>
-        Maybe at the time you read this, there's an XFree upgrade which fixes
+        Maybe at the time you read this, there's an X upgrade which fixes
         this for the Savage driver. If that works for you, please notify the xine crew at
         <email>xine-user@lists.sourceforge.net</email>, so they can update this FAQ!
        </para>
