@@ -5,7 +5,7 @@
 
 
    VERSION
-    => $Id: README.syncfb,v 1.3 2003/01/05 13:11:53 guenter Exp $
+    => $Id: README.syncfb,v 1.4 2006/11/30 08:45:51 matt2000 Exp $
   
 
 * WHAT IS THIS PLUGIN ABOUT and WHY SHOULD I EVEN CONSIDER TO USE IT? :)
@@ -282,9 +282,3 @@
   If you don't find your answers there or if you found a bug, please leave
   a message on the xine user mailinglist (see the general README).
 
-  You can also reach the maintainers directly by mail (or you may consider
-  sending a message in bottle so we have some more time  to  find  a  good
-  excuse for the bug you may have found *grin*):
-  
-    Matthias Dahl <matthew2k@web.de>
-  Joachim Koening <joachim.koenig@gmx.net>

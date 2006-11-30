@@ -793,8 +793,8 @@
     <para>
      Possibly the most convenient way to get the Quicktime DLLs is to download
      them from the MPlayer website
-     <ulink url="http://www.mplayerhq.hu/homepage/dload.html">
-      http://www.mplayerhq.hu/homepage/dload.html
+     <ulink url="http://www.mplayerhq.hu/design7/dload.html">
+      http://www.mplayerhq.hu/design7/dload.html
      </ulink>.
      The package is called "essential". Unpack it and move everything you find
      inside to <filename>/usr/lib/codecs</filename> (actually you can place them
@@ -818,8 +818,8 @@
     <para>
      Possibly the most convenient way to get the Real codecs is to download
      them from the MPlayer website
-     <ulink url="http://www.mplayerhq.hu/homepage/dload.html">
-      http://www.mplayerhq.hu/homepage/dload.html
+     <ulink url="http://www.mplayerhq.hu/design7/dload.html">
+      http://www.mplayerhq.hu/design7/dload.html
      </ulink>.
      The package is called "essential". Unpack it and move everything you
      find inside to <filename>/usr/lib/codecs</filename> and set the
@@ -857,8 +857,8 @@
     <para>
      Possibly the most convenient way to get the Windows DLLs is to download
      them from the MPlayer website
-     <ulink url="http://www.mplayerhq.hu/homepage/dload.html">
-      http://www.mplayerhq.hu/homepage/dload.html
+     <ulink url="http://www.mplayerhq.hu/design7/dload.html">
+      http://www.mplayerhq.hu/design7/dload.html
      </ulink>.
      The package is called "essential". Unpack it and move everything you find
      inside to <filename>/usr/lib/codecs</filename> (actually you can place them
