@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.123 2006/09/13 23:28:22 dgp85 Exp $
+ * $Id: input_http.c,v 1.124 2006/11/30 10:54:18 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -709,7 +709,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   this->curpos = 0;
   
   if (this->fh == -1)
-    return -1;
+    return -2;
 
   {  
     uint32_t         timeout, progress;
@@ -729,7 +729,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
     if (res != XIO_READY) {
       _x_message(this->stream, XINE_MSG_NETWORK_UNREACHABLE, this->mrl, NULL);
-      return -1;
+      return -3;
     }
   }
 
@@ -777,7 +777,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   if (_x_io_tcp_write (this->stream, this->fh, this->buf, buflen) != buflen) {
     _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
     xprintf(this_class->xine, XINE_VERBOSITY_DEBUG, "input_http: couldn't send request\n");
-    return -1;
+    return -4;
   }
 
   lprintf ("request sent: >%s<\n", this->buf);
@@ -787,13 +787,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   this->contentlength = 0;
 
   while (!done) {
-
-    /* 
-       printf ("input_http: read...\n");
-    */
+    /* fprintf (stderr, "input_http: read...\n"); */
 
     if (_x_io_tcp_read (this->stream, this->fh, &this->buf[len], 1) <= 0) {
-      return -1;
+      return -5;
     }
 
     if (this->buf[len] == '\012') {
@@ -822,7 +819,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	    _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
 	    xine_log (this->stream->xine, XINE_LOG_MSG, 
 		      _("input_http: invalid http answer\n"));
-	    return -1;
+	    return -6;
 	  }
 	}
 
@@ -835,20 +832,20 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
 		                        httpcode, httpstatus);
-	  return -1;
+	  return -7;
 	} else if (httpcode == 403) {
           _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
 	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
 		    httpcode, httpstatus);
-	  return -1;
+	  return -8;
 	} else if (httpcode < 200 || httpcode >= 300) {
 	  _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ",
 	               httpstatus, NULL);
       	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
 		    httpcode, httpstatus);
-	  return -1;
+	  return -9;
 	}
       } else {
 	if (this->contentlength == 0) {
@@ -926,7 +923,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
        _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
        xine_log (this->stream->xine, XINE_LOG_MSG,
          _("input_http: buffer exhausted after %d bytes."), BUFSIZE);
-       return -1;
+       return -10;
     }
   }
 
@@ -938,7 +935,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   this->preview_size = MAX_PREVIEW_SIZE;
   if (this->is_nsv) {
     if (!resync_nsv(this))
-      return -1;
+      return -11;
     
     /* the first 3 chars are "NSV" */
     this->preview_size = http_plugin_read_int (this, this->preview + 3, MAX_PREVIEW_SIZE - 3);
@@ -947,7 +944,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   }
   if (this->preview_size < 0) {
     xine_log (this->stream->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
-    return -1;
+    return -12;
   }
   
   lprintf("preview_size=%lld\n", this->preview_size);
