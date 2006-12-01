@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-11-12 17:03+0100\n"
+"POT-Creation-Date: 2006-11-29 23:07+0100\n"
 "PO-Revision-Date: 2004-09-15 13:53+0100\n"
 "Last-Translator: \n"
 "Language-Team: Slovak <ski18n@lists.isternet.sk>\n"
@@ -1659,7 +1659,7 @@ msgstr ""
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
 msgstr "load_plugins: preskakujem nečitateľný adresár modulov: %s\n"
 
-#: src/xine-engine/load_plugins.c:689
+#: src/xine-engine/load_plugins.c:713
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -1668,27 +1668,27 @@ msgstr ""
 "load_plugins: nemožno (fáza 2) otvoriť knižnicu modulov %s:\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:718
+#: src/xine-engine/load_plugins.c:739
 #, c-format
 msgid "load_plugins: Yikes! %s doesn't contain plugin info.\n"
 msgstr "load_plugins: Čo! %s neobsahuje informácie modulu.\n"
 
-#: src/xine-engine/load_plugins.c:1284
+#: src/xine-engine/load_plugins.c:1305
 #, c-format
 msgid "load_plugins: unknown content detection strategy %d\n"
 msgstr "load_plugins: neznáma stratégia %d zisťovánia obsahu\n"
 
-#: src/xine-engine/load_plugins.c:1394
+#: src/xine-engine/load_plugins.c:1415
 #, c-format
 msgid "load_plugins: using demuxer '%s'\n"
 msgstr "load_plugins: nájdený demultiplexor '%s'\n"
 
-#: src/xine-engine/load_plugins.c:1705
+#: src/xine-engine/load_plugins.c:1726
 #, c-format
 msgid "load_plugins: failed to load audio output plugin <%s>\n"
 msgstr "load_plugins: zlyhalo načítanie výstupného audio modulu <%s>\n"
 
-#: src/xine-engine/load_plugins.c:1708
+#: src/xine-engine/load_plugins.c:1729
 msgid ""
 "load_plugins: audio output auto-probing didn't find any usable audio "
 "driver.\n"
@@ -1696,7 +1696,7 @@ msgstr ""
 "load_plugins: auto-detekcia audio výstupu nenašla žiadne použiteľné audio "
 "ovládače.\n"
 
-#: src/xine-engine/load_plugins.c:2011
+#: src/xine-engine/load_plugins.c:2032
 #, fuzzy, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
@@ -2527,134 +2527,134 @@ msgstr ""
 msgid "xine video output plugin using the Color AsCii Art library"
 msgstr "výstupný video modul použitím Color AsCii Art knižnice"
 
-#: src/video_out/video_out_directfb.c:1311
+#: src/video_out/video_out_directfb.c:1341
 msgid "video layer buffering mode"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1312
+#: src/video_out/video_out_directfb.c:1342
 msgid ""
 "Select the buffering mode of the output layer. Double or triple buffering "
 "give a smoother playback, but consume more video memory."
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1319
+#: src/video_out/video_out_directfb.c:1349
 msgid "wait for vertical retrace"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1320
+#: src/video_out/video_out_directfb.c:1350
 msgid ""
 "Enable synchronizing the update of the video image to the repainting of the "
 "entire screen (\"vertical retrace\")."
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1327
+#: src/video_out/video_out_directfb.c:1357
 #, fuzzy
 msgid "enable video color key"
 msgstr "Dx3: hodnota kľúčovej farby prekrývánia"
 
-#: src/video_out/video_out_directfb.c:1328
+#: src/video_out/video_out_directfb.c:1358
 msgid ""
 "Enable using a color key to tell the graphics card where to overlay the "
 "video image."
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1334
+#: src/video_out/video_out_directfb.c:1364
 #, fuzzy
 msgid "video color key"
 msgstr "Dx3: hodnota kľúčovej farby prekrývánia"
 
-#: src/video_out/video_out_directfb.c:1335
+#: src/video_out/video_out_directfb.c:1365
 msgid ""
 "The color key is used to tell the graphics card where to overlay the video "
 "image. Try different values, if you experience windows becoming transparent."
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1344
+#: src/video_out/video_out_directfb.c:1374
 msgid "flicker filtering"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1345
+#: src/video_out/video_out_directfb.c:1375
 msgid "Enable Flicker Filetring for a smooth output on an interlaced display."
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1352
+#: src/video_out/video_out_directfb.c:1382
 msgid "field parity"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1353
+#: src/video_out/video_out_directfb.c:1383
 msgid ""
 "For an interlaced display, enable controlling the field parity (\"none"
 "\"=disabled)."
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1479
+#: src/video_out/video_out_directfb.c:1509
 msgid "video_out_directfb: using hardware subpicture acceleration.\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1493
+#: src/video_out/video_out_directfb.c:1523
 #, fuzzy
 msgid "video_out_directfb: layer supports video output.\n"
 msgstr "video_out_vidix: karta podporuje yuy2 formát\n"
 
-#: src/video_out/video_out_directfb.c:1502
+#: src/video_out/video_out_directfb.c:1532
 #, fuzzy
 msgid "video_out_directfb: layer doesn't support YV12!\n"
 msgstr "video_out_syncfb: info. (SyncFB modul podporuje YUY2)\n"
 
-#: src/video_out/video_out_directfb.c:1509
+#: src/video_out/video_out_directfb.c:1539
 #, fuzzy
 msgid "video_out_directfb: layer doesn't support YUY2!\n"
 msgstr "video_out_syncfb: info. (SyncFB modul podporuje YUY2)\n"
 
-#: src/video_out/video_out_directfb.c:1520
+#: src/video_out/video_out_directfb.c:1550
 msgid ""
 "video_out_directfb:need at least DirectFB 0.9.25 to play on this layer!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1555
+#: src/video_out/video_out_directfb.c:1585
 #, c-format
 msgid "video_out_directfb: layer doesn't support buffermode %d!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1561
+#: src/video_out/video_out_directfb.c:1591
 #, c-format
 msgid "video_out_directfb: layer doesn't support options 0x%08x!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1655
+#: src/video_out/video_out_directfb.c:1685
 msgid "video_out_directfb: using hardware accelerated image scaling.\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1667
+#: src/video_out/video_out_directfb.c:1697
 msgid ""
 "video_out_directfb: image scaling with deinterlacing is hardware "
 "accelerated.\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1745
+#: src/video_out/video_out_directfb.c:1775
 msgid "video layer id (auto: -1)"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1746
+#: src/video_out/video_out_directfb.c:1776
 msgid "Select the video output layer by its id."
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1767
-#: src/video_out/video_out_directfb.c:1976
+#: src/video_out/video_out_directfb.c:1797
+#: src/video_out/video_out_directfb.c:2006
 #, fuzzy, c-format
 msgid "video_out_directfb: using display layer #%d.\n"
 msgstr "video_out_vidix: používam ovládač: %s od %s\n"
 
-#: src/video_out/video_out_directfb.c:1851
+#: src/video_out/video_out_directfb.c:1881
 #, fuzzy
 msgid "xine video output plugin using DirectFB."
 msgstr "výstupný modul xine s použitím DirectFB knižnice."
 
-#: src/video_out/video_out_directfb.c:1969
+#: src/video_out/video_out_directfb.c:1999
 msgid "video_out_directfb: no usable display layer was found!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:2052
+#: src/video_out/video_out_directfb.c:2088
 #, fuzzy
 msgid "xine video output plugin using DirectFB under XDirectFB."
 msgstr "výstupný modul xine s použitím DirectFB knižnice."
@@ -4856,16 +4856,16 @@ msgstr "neplatná veľkosť FILM bloku\n"
 msgid "unrecognized FILM chunk\n"
 msgstr "nerozoznaný FILM blok\n"
 
-#: src/demuxers/demux_asf.c:414
+#: src/demuxers/demux_asf.c:423
 #, c-format
 msgid "demux_asf: warning: The stream id=%d is encrypted.\n"
 msgstr "demux_asf: varovanie: Prúd id=%d je kryptovaný.\n"
 
-#: src/demuxers/demux_asf.c:416
+#: src/demuxers/demux_asf.c:425
 msgid "Media stream scrambled/encrypted"
 msgstr "Media stream scrambled/encrypted"
 
-#: src/demuxers/demux_asf.c:1624
+#: src/demuxers/demux_asf.c:1633
 #, c-format
 msgid "demux_asf: Wrong ASX version: %s\n"
 msgstr "demux_asf: Zlá verzia ASX: %s\n"

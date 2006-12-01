@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-11-12 17:03+0100\n"
+"POT-Creation-Date: 2006-11-29 23:07+0100\n"
 "PO-Revision-Date: 2006-06-18 23:05+0200\n"
 "Last-Translator: Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>\n"
 "Language-Team: Italian\n"
@@ -1881,7 +1881,7 @@ msgstr ""
 msgid "load_plugins: skipping unreadable plugin directory %s.\n"
 msgstr "load_plugins: directory %s illeggibile ignorata.\n"
 
-#: src/xine-engine/load_plugins.c:689
+#: src/xine-engine/load_plugins.c:713
 #, c-format
 msgid ""
 "load_plugins: cannot (stage 2) open plugin lib %s:\n"
@@ -1890,27 +1890,27 @@ msgstr ""
 "load_plugins: impossibile aprire la libreria plugin %s (stadio 2):\n"
 "%s\n"
 
-#: src/xine-engine/load_plugins.c:718
+#: src/xine-engine/load_plugins.c:739
 #, c-format
 msgid "load_plugins: Yikes! %s doesn't contain plugin info.\n"
 msgstr "load_plugins: Argh! %s non contiene informazioni plugin.\n"
 
-#: src/xine-engine/load_plugins.c:1284
+#: src/xine-engine/load_plugins.c:1305
 #, c-format
 msgid "load_plugins: unknown content detection strategy %d\n"
 msgstr "load_plugins: strategia di riconoscimento contenuto sconosciuta %d\n"
 
-#: src/xine-engine/load_plugins.c:1394
+#: src/xine-engine/load_plugins.c:1415
 #, c-format
 msgid "load_plugins: using demuxer '%s'\n"
 msgstr "load_plugins: utilizzo del demuxer '%s'\n"
 
-#: src/xine-engine/load_plugins.c:1705
+#: src/xine-engine/load_plugins.c:1726
 #, c-format
 msgid "load_plugins: failed to load audio output plugin <%s>\n"
 msgstr "load_plugins: caricamento del plugin output audio fallito <%s>\n"
 
-#: src/xine-engine/load_plugins.c:1708
+#: src/xine-engine/load_plugins.c:1729
 msgid ""
 "load_plugins: audio output auto-probing didn't find any usable audio "
 "driver.\n"
@@ -1918,7 +1918,7 @@ msgstr ""
 "load_plugins: il riconoscimento automatico dell'output audio non ha trovato "
 "alcun driver audio utilizzabile.\n"
 
-#: src/xine-engine/load_plugins.c:2011
+#: src/xine-engine/load_plugins.c:2032
 #, c-format
 msgid ""
 "load_plugins: cannot unload plugin lib %s:\n"
@@ -2869,11 +2869,11 @@ msgid "xine video output plugin using the Color AsCii Art library"
 msgstr ""
 "plugin di uscita video per xine utilizzante la libreria Color AsCii Art"
 
-#: src/video_out/video_out_directfb.c:1311
+#: src/video_out/video_out_directfb.c:1341
 msgid "video layer buffering mode"
 msgstr "modalità di buffer per lo strato video"
 
-#: src/video_out/video_out_directfb.c:1312
+#: src/video_out/video_out_directfb.c:1342
 msgid ""
 "Select the buffering mode of the output layer. Double or triple buffering "
 "give a smoother playback, but consume more video memory."
@@ -2881,11 +2881,11 @@ msgstr ""
 "Seleziona la modalità di buffer per los trato di uscita. Buffer doppio o "
 "triplo fornisce una riproduzione più scorrevole ma consuma più memoria video."
 
-#: src/video_out/video_out_directfb.c:1319
+#: src/video_out/video_out_directfb.c:1349
 msgid "wait for vertical retrace"
 msgstr "attendi il ritracciamento verticale"
 
-#: src/video_out/video_out_directfb.c:1320
+#: src/video_out/video_out_directfb.c:1350
 msgid ""
 "Enable synchronizing the update of the video image to the repainting of the "
 "entire screen (\"vertical retrace\")."
@@ -2893,11 +2893,11 @@ msgstr ""
 "Abilita la sicnronizzazione dell'update dell'immagine video al ridisegno "
 "dello schermo intero (ritracciamento verticale)."
 
-#: src/video_out/video_out_directfb.c:1327
+#: src/video_out/video_out_directfb.c:1357
 msgid "enable video color key"
 msgstr "abilita la chiave cromatica video"
 
-#: src/video_out/video_out_directfb.c:1328
+#: src/video_out/video_out_directfb.c:1358
 msgid ""
 "Enable using a color key to tell the graphics card where to overlay the "
 "video image."
@@ -2905,11 +2905,11 @@ msgstr ""
 "Abilita l'uso di una chiave cromatica per dire alla scheda grafica dove "
 "sovrapporre l'immagine video."
 
-#: src/video_out/video_out_directfb.c:1334
+#: src/video_out/video_out_directfb.c:1364
 msgid "video color key"
 msgstr "chiave cromatica video"
 
-#: src/video_out/video_out_directfb.c:1335
+#: src/video_out/video_out_directfb.c:1365
 msgid ""
 "The color key is used to tell the graphics card where to overlay the video "
 "image. Try different values, if you experience windows becoming transparent."
@@ -2918,21 +2918,21 @@ msgstr ""
 "sovrapporre l'immagine video. Si provino valori diversi se si riscontrano "
 "finestre trasparenti."
 
-#: src/video_out/video_out_directfb.c:1344
+#: src/video_out/video_out_directfb.c:1374
 msgid "flicker filtering"
 msgstr "filtro sfarfallio"
 
-#: src/video_out/video_out_directfb.c:1345
+#: src/video_out/video_out_directfb.c:1375
 msgid "Enable Flicker Filetring for a smooth output on an interlaced display."
 msgstr ""
 "Abilita il filtro sfarfallio per un'uscita liscia su un display "
 "interlacciato."
 
-#: src/video_out/video_out_directfb.c:1352
+#: src/video_out/video_out_directfb.c:1382
 msgid "field parity"
 msgstr "parità di campo"
 
-#: src/video_out/video_out_directfb.c:1353
+#: src/video_out/video_out_directfb.c:1383
 msgid ""
 "For an interlaced display, enable controlling the field parity (\"none"
 "\"=disabled)."
@@ -2940,48 +2940,48 @@ msgstr ""
 "Per un display interlacciato abilita il controllo della parità di campo "
 "(\"none\" = disabilitato)."
 
-#: src/video_out/video_out_directfb.c:1479
+#: src/video_out/video_out_directfb.c:1509
 #, fuzzy
 msgid "video_out_directfb: using hardware subpicture acceleration.\n"
 msgstr ""
 "video_out_directfb: utilizzando il ridimensionamento accelerato hardware.\n"
 
-#: src/video_out/video_out_directfb.c:1493
+#: src/video_out/video_out_directfb.c:1523
 #, fuzzy
 msgid "video_out_directfb: layer supports video output.\n"
 msgstr "video_out_vidix: il dispositivo supporta il formato yuv2\n"
 
-#: src/video_out/video_out_directfb.c:1502
+#: src/video_out/video_out_directfb.c:1532
 #, fuzzy
 msgid "video_out_directfb: layer doesn't support YV12!\n"
 msgstr "video_out_syncfb: informazione. (il modulo SyncFB supporta YUY2)\n"
 
-#: src/video_out/video_out_directfb.c:1509
+#: src/video_out/video_out_directfb.c:1539
 #, fuzzy
 msgid "video_out_directfb: layer doesn't support YUY2!\n"
 msgstr "video_out_syncfb: informazione. (il modulo SyncFB supporta YUY2)\n"
 
-#: src/video_out/video_out_directfb.c:1520
+#: src/video_out/video_out_directfb.c:1550
 msgid ""
 "video_out_directfb:need at least DirectFB 0.9.25 to play on this layer!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1555
+#: src/video_out/video_out_directfb.c:1585
 #, fuzzy, c-format
 msgid "video_out_directfb: layer doesn't support buffermode %d!\n"
 msgstr "video_out_directfb: nessuno strato di uscita utilizzabile trovato.\n"
 
-#: src/video_out/video_out_directfb.c:1561
+#: src/video_out/video_out_directfb.c:1591
 #, c-format
 msgid "video_out_directfb: layer doesn't support options 0x%08x!\n"
 msgstr ""
 
-#: src/video_out/video_out_directfb.c:1655
+#: src/video_out/video_out_directfb.c:1685
 msgid "video_out_directfb: using hardware accelerated image scaling.\n"
 msgstr ""
 "video_out_directfb: utilizzando il ridimensionamento accelerato hardware.\n"
 
-#: src/video_out/video_out_directfb.c:1667
+#: src/video_out/video_out_directfb.c:1697
 msgid ""
 "video_out_directfb: image scaling with deinterlacing is hardware "
 "accelerated.\n"
@@ -2989,33 +2989,33 @@ msgstr ""
 "video_out_directfb: il ridimensionamento dell'immagine con "
 "deinterlacciamento è accelerato hardware.\n"
 
-#: src/video_out/video_out_directfb.c:1745
+#: src/video_out/video_out_directfb.c:1775
 #, fuzzy
 msgid "video layer id (auto: -1)"
 msgstr "id dello strato video"
 
-#: src/video_out/video_out_directfb.c:1746
+#: src/video_out/video_out_directfb.c:1776
 msgid "Select the video output layer by its id."
 msgstr "Selezionate lo strato di uscita video tramite id."
 
-#: src/video_out/video_out_directfb.c:1767
-#: src/video_out/video_out_directfb.c:1976
+#: src/video_out/video_out_directfb.c:1797
+#: src/video_out/video_out_directfb.c:2006
 #, fuzzy, c-format
 msgid "video_out_directfb: using display layer #%d.\n"
 msgstr ""
 "video_out_directfb: nessuno strato di sovrimpressione utilizzabile trovato.\n"
 
-#: src/video_out/video_out_directfb.c:1851
+#: src/video_out/video_out_directfb.c:1881
 msgid "xine video output plugin using DirectFB."
 msgstr "plugin di output video per xine utilizzante DirectFB"
 
-#: src/video_out/video_out_directfb.c:1969
+#: src/video_out/video_out_directfb.c:1999
 #, fuzzy
 msgid "video_out_directfb: no usable display layer was found!\n"
 msgstr ""
 "video_out_directfb: nessuno strato di sovrimpressione utilizzabile trovato.\n"
 
-#: src/video_out/video_out_directfb.c:2052
+#: src/video_out/video_out_directfb.c:2088
 msgid "xine video output plugin using DirectFB under XDirectFB."
 msgstr "plugin di output video per xine utilizzante DirectFB sotto XDirectFB"
 
@@ -5429,16 +5429,16 @@ msgstr "dimensione di parte di FILM non valida\n"
 msgid "unrecognized FILM chunk\n"
 msgstr "parte di FILM non roconosciuta\n"
 
-#: src/demuxers/demux_asf.c:414
+#: src/demuxers/demux_asf.c:423
 #, c-format
 msgid "demux_asf: warning: The stream id=%d is encrypted.\n"
 msgstr "demux_asf: attenzione: L'id dello stream =%d è cifrato.\n"
 
-#: src/demuxers/demux_asf.c:416
+#: src/demuxers/demux_asf.c:425
 msgid "Media stream scrambled/encrypted"
 msgstr "Stream multimediale confuso/cifrato"
 
-#: src/demuxers/demux_asf.c:1624
+#: src/demuxers/demux_asf.c:1633
 #, c-format
 msgid "demux_asf: Wrong ASX version: %s\n"
 msgstr "demux_asf: versione ASX errata: %s\n"
