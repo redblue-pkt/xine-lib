@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.63 2006/09/18 18:56:56 tmattern Exp $
+ * $Id: video_decoder.c,v 1.64 2006/12/02 21:06:18 miguelfreitas Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1541,7 +1541,6 @@ static uint32_t supported_video_types[] = {
   BUF_VIDEO_XL,
   BUF_VIDEO_RT21,
   BUF_VIDEO_FPS1,
-  BUF_VIDEO_WMV9,
   BUF_VIDEO_CSCD,
   BUF_VIDEO_ALGMM,
   BUF_VIDEO_ZMBV,
