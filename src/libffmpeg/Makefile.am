@@ -4,12 +4,22 @@ if HAVE_FFMPEG
 AM_CFLAGS = $(FFMPEG_CFLAGS) $(FFMPEG_POSTPROC_CFLAGS)
 link_ffmpeg = $(FFMPEG_LIBS) $(FFMPEG_POSTPROC_LIBS)
 else
-ff_cppflags = -I$(top_srcdir)/src/libffmpeg/libavutil
+ff_cppflags = -I$(top_srcdir)/contrib/ffmpeg/libavutil \
+	-I$(top_srcdir)/contrib/ffmpeg/libavcodec \
+	-I$(top_srcdir)/contrib/ffmpeg/libpostproc
 link_ffmpeg = \
-  $(top_builddir)/src/libffmpeg/libavcodec/libavcodec.la \
-  $(top_builddir)/src/libffmpeg/libavutil/libavutil.la \
-  $(top_builddir)/src/libffmpeg/libavcodec/libpostproc/libpostprocess.la
-SUBDIRS = libavcodec libavutil
+  $(top_builddir)/contrib/ffmpeg/libavcodec/libavcodec.a \
+  $(top_builddir)/contrib/ffmpeg/libavutil/libavutil.a \
+  $(top_builddir)/contrib/ffmpeg/libpostproc/libpostproc.a
+
+$(top_builddir)/contrib/ffmpeg/libavcodec/libavcodec.a:
+	$(MAKE) -C $(top_builddir)/contrib/ffmpeg/ -f makefile.xine libavcodec/libavcodec.a
+
+$(top_builddir)/contrib/ffmpeg/libavutil/libavutil.a:
+	$(MAKE) -C $(top_builddir)/contrib/ffmpeg/ -f makefile.xine libavutil/libavutil.a
+
+$(top_builddir)/contrib/ffmpeg/libpostproc/libpostproc.a:
+	$(MAKE) -C $(top_builddir)/contrib/ffmpeg/ -f makefile.xine libpostproc/libpostproc.a
 endif
 
 # this must always be included, even if the current machine has no DXR3...
