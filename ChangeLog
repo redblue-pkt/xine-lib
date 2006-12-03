@@ -1,3 +1,6 @@
+xine-lib (1.1.4)
+  (write here)
+
 xine-lib (1.1.3)
   * Security fixes:
     - Heap overflow in libmms (related to CVE-2006-2200)
