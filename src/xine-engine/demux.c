@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.64 2006/08/13 23:51:34 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.65 2006/12/03 19:23:16 miguelfreitas Exp $ 
  */
 
 
@@ -336,7 +336,7 @@ static void *demux_loop (void *stream_gen) {
     finished_count_video = stream->finished_count_video + 1;
   pthread_mutex_unlock (&stream->counter_lock);
 
-  /* demux_thread_running is zero if demux loop has being stopped by user */
+  /* demux_thread_running is zero if demux loop has been stopped by user */
   non_user = stream->demux_thread_running;
   stream->demux_thread_running = 0;
   
