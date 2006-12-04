@@ -1,3 +1,23 @@
+/*
+ * copyright (c) 2006 Michael Niedermayer <michaelni@gmx.at>
+ *
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * FFmpeg is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with FFmpeg; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 /**
  * @file internal.h
  * common internal api header.
@@ -10,31 +30,16 @@
 #    define PIC
 #endif
 
-#    ifndef ENODATA
-#        define ENODATA  61
-#    endif
+#ifndef ENODATA
+#    define ENODATA  61
+#endif
 
 #include "bswap.h"
 
 #include <stddef.h>
 #ifndef offsetof
-# define offsetof(T,F) ((unsigned int)((char *)&((T *)0)->F))
+#    define offsetof(T,F) ((unsigned int)((char *)&((T *)0)->F))
 #endif
-
-#define AVOPTION_CODEC_BOOL(name, help, field) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_BOOL }
-#define AVOPTION_CODEC_DOUBLE(name, help, field, minv, maxv, defval) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_DOUBLE, minv, maxv, defval }
-#define AVOPTION_CODEC_FLAG(name, help, field, flag, defval) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_FLAG, flag, 0, defval }
-#define AVOPTION_CODEC_INT(name, help, field, minv, maxv, defval) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_INT, minv, maxv, defval }
-#define AVOPTION_CODEC_STRING(name, help, field, str, val) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_STRING, .defval = val, .defstr = str }
-#define AVOPTION_CODEC_RCOVERRIDE(name, help, field) \
-    { name, help, offsetof(AVCodecContext, field), FF_OPT_TYPE_RCOVERRIDE, .defval = 0, .defstr = NULL }
-#define AVOPTION_SUB(ptr) { .name = NULL, .help = (const char*)ptr }
-#define AVOPTION_END() AVOPTION_SUB(NULL)
 
 #ifdef __MINGW32__
 #    ifdef _DEBUG
@@ -46,44 +51,45 @@
 
 #    ifdef CONFIG_WINCE
 #        define perror(a)
+#        define abort()
 #    endif
 
 /* __MINGW32__ end */
 #elif defined (CONFIG_OS2)
 /* OS/2 EMX */
 
-#include <float.h>
+#    include <float.h>
 
 #endif /* !__MINGW32__ && CONFIG_OS2 */
 
-#    ifdef USE_FASTMEMCPY
-#        include "fastmemcpy.h"
-#    endif
+#ifdef USE_FASTMEMCPY
+#    include "libvo/fastmemcpy.h"
+#endif
 
 // Use rip-relative addressing if compiling PIC code on x86-64.
-#    if defined(__MINGW32__) || defined(__CYGWIN__) || \
-        defined(__OS2__) || (defined (__OpenBSD__) && !defined(__ELF__))
-#        if defined(ARCH_X86_64) && defined(PIC)
-#            define MANGLE(a) "_" #a"(%%rip)"
-#        else
-#            define MANGLE(a) "_" #a
-#        endif
+#if defined(__MINGW32__) || defined(__CYGWIN__) || \
+    defined(__OS2__) || (defined (__OpenBSD__) && !defined(__ELF__))
+#    if defined(ARCH_X86_64) && defined(PIC)
+#        define MANGLE(a) "_" #a"(%%rip)"
 #    else
-#        if defined(ARCH_X86_64) && defined(PIC)
-#            define MANGLE(a) #a"(%%rip)"
-#        elif defined(CONFIG_DARWIN)
-#            define MANGLE(a) "_" #a
-#        else
-#            define MANGLE(a) #a
-#        endif
+#        define MANGLE(a) "_" #a
 #    endif
+#else
+#    if defined(ARCH_X86_64) && defined(PIC)
+#        define MANGLE(a) #a"(%%rip)"
+#    elif defined(CONFIG_DARWIN)
+#        define MANGLE(a) "_" #a
+#    else
+#        define MANGLE(a) #a
+#    endif
+#endif
 
 /* debug stuff */
 
-#    if !defined(DEBUG) && !defined(NDEBUG)
-#        define NDEBUG
-#    endif
-#    include <assert.h>
+#if !defined(DEBUG) && !defined(NDEBUG)
+#    define NDEBUG
+#endif
+#include <assert.h>
 
 /* dprintf macros */
 #    ifdef DEBUG
@@ -96,32 +102,40 @@
 #        define dprintf(fmt,...)
 #    endif
 
-#    ifdef CONFIG_WINCE
-#            define abort()
-#    endif
+#define av_abort()      do { av_log(NULL, AV_LOG_ERROR, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
 
-#    define av_abort()      do { av_log(NULL, AV_LOG_ERROR, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
+/* math */
 
-extern const uint32_t inverse[256];
+extern const uint32_t ff_inverse[256];
 
-#if defined(ARCH_X86) || defined(ARCH_X86_64)
+#if defined(ARCH_X86)
 #    define FASTDIV(a,b) \
     ({\
         int ret,dmy;\
         asm volatile(\
             "mull %3"\
             :"=d"(ret),"=a"(dmy)\
-            :"1"(a),"g"(inverse[b])\
+            :"1"(a),"g"(ff_inverse[b])\
+            );\
+        ret;\
+    })
+#elif defined(ARCH_ARMV4L)
+#    define FASTDIV(a,b) \
+    ({\
+        int ret,dmy;\
+        asm volatile(\
+            "umull %1, %0, %2, %3"\
+            :"=&r"(ret),"=&r"(dmy)\
+            :"r"(a),"r"(ff_inverse[b])\
             );\
         ret;\
     })
 #elif defined(CONFIG_FASTDIV)
-#    define FASTDIV(a,b)   ((uint32_t)((((uint64_t)a)*inverse[b])>>32))
+#    define FASTDIV(a,b)   ((uint32_t)((((uint64_t)a)*ff_inverse[b])>>32))
 #else
 #    define FASTDIV(a,b)   ((a)/(b))
 #endif
 
-/* math */
 extern FF_IMPORT_ATTR const uint8_t ff_sqrt_tab[128];
 
 static inline int ff_sqrt(int a)
@@ -142,7 +156,7 @@ static inline int ff_sqrt(int a)
     return ret;
 }
 
-#if defined(ARCH_X86) || defined(ARCH_X86_64)
+#if defined(ARCH_X86)
 #define MASK_ABS(mask, level)\
             asm volatile(\
                 "cdq                    \n\t"\
@@ -156,7 +170,7 @@ static inline int ff_sqrt(int a)
             level= (level^mask)-mask;
 #endif
 
-#if __CPU__ >= 686 && !defined(RUNTIME_CPUDETECT)
+#ifdef HAVE_CMOV
 #define COPY3_IF_LT(x,y,a,b,c,d)\
 asm volatile (\
     "cmpl %0, %3        \n\t"\
@@ -205,7 +219,7 @@ if((y)<(x)){\
 static always_inline long int lrintf(float x)
 {
 #ifdef __MINGW32__
-#  ifdef ARCH_X86
+#  ifdef ARCH_X86_32
     int32_t i;
     asm volatile(
         "fistpl %0\n\t"
@@ -215,7 +229,7 @@ static always_inline long int lrintf(float x)
 #  else
     /* XXX: incorrect, but make it compile */
     return (int)(x + (x < 0 ? -0.5 : 0.5));
-#  endif /* ARCH_X86 */
+#  endif /* ARCH_X86_32 */
 #else
     return (int)(rint(x));
 #endif /* __MINGW32__ */

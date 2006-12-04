@@ -64,7 +64,6 @@ libavcodec_la_SOURCES = \
 	lzo.c \
 	mdct.c \
 	mace.c \
-	mem.c \
 	mjpeg.c \
 	mmvideo.c \
 	motion_est.c \
@@ -75,6 +74,7 @@ libavcodec_la_SOURCES = \
 	msrle.c \
 	msvideo1.c \
 	nuv.c \
+	opt.c \
 	parser.c \
 	pcm.c \
 	qdm2.c \
@@ -107,6 +107,7 @@ libavcodec_la_SOURCES = \
 	vcr1.c \
 	vmdav.c \
 	vorbis.c \
+	vorbis_data.c \
 	vp3.c \
 	vp3dsp.c \
 	vqavideo.c \
@@ -128,11 +129,13 @@ libavcodec_la_LDFLAGS = \
 noinst_HEADERS = \
 	avcodec.h \
 	bitstream.h \
+	bytestream.h \
 	cabac.h \
 	cavsdata.h \
 	cookdata.h \
 	dsputil.h \
 	dvdata.h \
+	eval.h \
 	faandct.h \
 	fastmemcpy.h \
 	golomb.h \
@@ -143,6 +146,7 @@ noinst_HEADERS = \
 	h263data.h \
 	h264data.h \
 	lzo.h \
+	mathops.h \
 	mpeg4data.h \
 	mpeg12data.h \
 	mpegaudio.h \
@@ -151,10 +155,12 @@ noinst_HEADERS = \
 	mpegvideo.h \
 	msmpeg4data.h \
 	opt.h \
+	parser.h \
 	qdm2data.h \
 	ra144.h \
 	ra288.h \
 	rangecoder.h \
+	ratecontrol.h \
 	rtjpeg.h \
 	simple_idct.h \
 	snow.h \

@@ -22,6 +22,8 @@ libavcodec_mmx_src = \
 	cputest.c \
 	dsputil_mmx.c \
 	fdct_mmx.c \
+	fft_3dn.c \
+	fft_3dn2.c \
 	fft_sse.c \
 	idct_mmx.c \
 	idct_mmx_xvid.c \

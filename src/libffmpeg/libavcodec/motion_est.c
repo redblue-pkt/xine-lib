@@ -4,18 +4,20 @@
  * Copyright (c) 2002-2004 Michael Niedermayer
  *
  *
- * This library is free software; you can redistribute it and/or
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  * new Motion Estimation (X1/EPZS) by Michael Niedermayer <michaelni@gmx.at>
@@ -297,14 +299,14 @@ static int pix_dev(uint8_t * pix, int line_size, int mean)
     s = 0;
     for (i = 0; i < 16; i++) {
         for (j = 0; j < 16; j += 8) {
-            s += ABS(pix[0]-mean);
-            s += ABS(pix[1]-mean);
-            s += ABS(pix[2]-mean);
-            s += ABS(pix[3]-mean);
-            s += ABS(pix[4]-mean);
-            s += ABS(pix[5]-mean);
-            s += ABS(pix[6]-mean);
-            s += ABS(pix[7]-mean);
+            s += FFABS(pix[0]-mean);
+            s += FFABS(pix[1]-mean);
+            s += FFABS(pix[2]-mean);
+            s += FFABS(pix[3]-mean);
+            s += FFABS(pix[4]-mean);
+            s += FFABS(pix[5]-mean);
+            s += FFABS(pix[6]-mean);
+            s += FFABS(pix[7]-mean);
             pix += 8;
         }
         pix += line_size - 16;
@@ -1179,13 +1181,11 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
         vard= check_input_motion(s, mb_x, mb_y, 1);
 
         if((vard+128)>>8 < c->avctx->me_threshold){
+            int p_score= FFMIN(vard, varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*100);
+            int i_score= varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*20;
             pic->mc_mb_var[s->mb_stride * mb_y + mb_x] = (vard+128)>>8;
             c->mc_mb_var_sum_temp += (vard+128)>>8;
-            if (vard <= 64<<8 || vard < varc) { //FIXME
-                c->scene_change_score+= ff_sqrt(vard) - ff_sqrt(varc);
-            }else{
-                c->scene_change_score+= s->qscale * s->avctx->scenechange_factor;
-            }
+            c->scene_change_score+= ff_sqrt(p_score) - ff_sqrt(i_score);
             return;
         }
         if((vard+128)>>8 < c->avctx->mb_threshold)
@@ -1272,10 +1272,9 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
            varc, s->avg_mb_var, sum, vard, mx - xx, my - yy);
 #endif
     if(mb_type){
-        if (vard <= 64<<8 || vard < varc)
-            c->scene_change_score+= ff_sqrt(vard) - ff_sqrt(varc);
-        else
-            c->scene_change_score+= s->qscale * s->avctx->scenechange_factor;
+        int p_score= FFMIN(vard, varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*100);
+        int i_score= varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*20;
+        c->scene_change_score+= ff_sqrt(p_score) - ff_sqrt(i_score);
 
         if(mb_type == CANDIDATE_MB_TYPE_INTER){
             c->sub_motion_search(s, &mx, &my, dmin, 0, 0, 0, 16);
@@ -1293,14 +1292,14 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
             interlaced_search(s, 0, s->p_field_mv_table, s->p_field_select_table, mx, my, 1);
         }
     }else if(c->avctx->mb_decision > FF_MB_DECISION_SIMPLE){
-        if (vard <= 64<<8 || vard < varc)
-            c->scene_change_score+= ff_sqrt(vard) - ff_sqrt(varc);
-        else
-            c->scene_change_score+= s->qscale * s->avctx->scenechange_factor;
+        int p_score= FFMIN(vard, varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*100);
+        int i_score= varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*20;
+        c->scene_change_score+= ff_sqrt(p_score) - ff_sqrt(i_score);
 
         if (vard*2 + 200*256 > varc)
             mb_type|= CANDIDATE_MB_TYPE_INTRA;
-        if (varc*2 + 200*256 > vard){
+        if (varc*2 + 200*256 > vard || s->qscale > 24){
+//        if (varc*2 + 200*256 + 50*(s->lambda2>>FF_LAMBDA_SHIFT) > vard){
             mb_type|= CANDIDATE_MB_TYPE_INTER;
             c->sub_motion_search(s, &mx, &my, dmin, 0, 0, 0, 16);
             if(s->flags&CODEC_FLAG_MV0)
@@ -1399,10 +1398,10 @@ void ff_estimate_p_frame_motion(MpegEncContext * s,
         }else
             s->current_picture.mb_type[mb_y*s->mb_stride + mb_x]= 0;
 
-        if (vard <= 64<<8 || vard < varc) { //FIXME
-            c->scene_change_score+= ff_sqrt(vard) - ff_sqrt(varc);
-        }else{
-            c->scene_change_score+= s->qscale * s->avctx->scenechange_factor;
+        {
+            int p_score= FFMIN(vard, varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*100);
+            int i_score= varc-500+(s->lambda2>>FF_LAMBDA_SHIFT)*20;
+            c->scene_change_score+= ff_sqrt(p_score) - ff_sqrt(i_score);
         }
     }
 
@@ -1673,7 +1672,7 @@ static inline int bidir_refine(MpegEncContext * s, int mb_x, int mb_y)
     }
 #define CHECK_BIDIR2(a,b,c,d)\
 CHECK_BIDIR(a,b,c,d)\
-CHECK_BIDIR(-a,-b,-c,-d)
+CHECK_BIDIR(-(a),-(b),-(c),-(d))
 
 #define CHECK_BIDIRR(a,b,c,d)\
 CHECK_BIDIR2(a,b,c,d)\
@@ -1790,7 +1789,7 @@ static inline int direct_search(MpegEncContext * s, int mb_x, int mb_y)
     P_LEFT[1]        = clip(mv_table[mot_xy - 1][1], ymin<<shift, ymax<<shift);
 
     /* special case for first line */
-    if (!s->first_slice_line) { //FIXME maybe allow this over thread boundary as its cliped
+    if (!s->first_slice_line) { //FIXME maybe allow this over thread boundary as its clipped
         P_TOP[0]      = clip(mv_table[mot_xy - mot_stride             ][0], xmin<<shift, xmax<<shift);
         P_TOP[1]      = clip(mv_table[mot_xy - mot_stride             ][1], ymin<<shift, ymax<<shift);
         P_TOPRIGHT[0] = clip(mv_table[mot_xy - mot_stride + 1         ][0], xmin<<shift, xmax<<shift);

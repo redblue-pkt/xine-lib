@@ -1,3 +1,25 @@
+/*
+ * VC-1 and WMV3 decoder
+ * copyright (c) 2006 Konstantin Shishkov
+ * (c) 2005 anonymous, Alex Beregszaszi, Michael Niedermayer
+ *
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * FFmpeg is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with FFmpeg; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 /**
  * @file vc1data.h
  * VC-1 tables.
@@ -6,6 +28,7 @@
 #ifndef VC1DATA_H
 #define VC1DATA_H
 
+#if 0 //original bfraction from vc9data.h, not conforming to standard
 /* Denominator used for vc1_bfraction_lut */
 #define B_FRACTION_DEN  840
 
@@ -19,7 +42,23 @@ const int16_t vc1_bfraction_lut[23] = {
   525 /*5/8*/, 735 /*7/8*/,
   -1 /*inv.*/, 0 /*BI fm*/
 };
-const uint8_t vc1_bfraction_bits[23] = {
+#else
+/* Denominator used for vc1_bfraction_lut */
+#define B_FRACTION_DEN  256
+
+/* pre-computed scales for all bfractions and base=256 */
+static const int16_t vc1_bfraction_lut[23] = {
+  128 /*1/2*/,  85 /*1/3*/, 170 /*2/3*/,  64 /*1/4*/,
+  192 /*3/4*/,  51 /*1/5*/, 102 /*2/5*/,
+  153 /*3/5*/, 204 /*4/5*/,  43 /*1/6*/, 215 /*5/6*/,
+   37 /*1/7*/,  74 /*2/7*/, 111 /*3/7*/, 148 /*4/7*/,
+  185 /*5/7*/, 222 /*6/7*/,  32 /*1/8*/,  96 /*3/8*/,
+  160 /*5/8*/, 224 /*7/8*/,
+  -1 /*inv.*/, 0 /*BI fm*/
+};
+#endif
+
+static const uint8_t vc1_bfraction_bits[23] = {
     3, 3, 3, 3,
     3, 3, 3,
     7, 7, 7, 7,
@@ -28,7 +67,7 @@ const uint8_t vc1_bfraction_bits[23] = {
     7, 7,
     7, 7
 };
-const uint8_t vc1_bfraction_codes[23] = {
+static const uint8_t vc1_bfraction_codes[23] = {
      0,   1,   2,   3,
      4,   5,   6,
    112, 113, 114, 115,

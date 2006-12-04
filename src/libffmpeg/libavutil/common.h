@@ -1,3 +1,23 @@
+/*
+ * copyright (c) 2006 Michael Niedermayer <michaelni@gmx.at>
+ *
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * FFmpeg is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with FFmpeg; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 /**
  * @file common.h
  * common internal and external api header.
@@ -56,18 +76,15 @@
 #endif
 #endif
 
-#ifndef EMULATE_INTTYPES
-#   include <inttypes.h>
+#ifndef attribute_deprecated
+#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
+#    define attribute_deprecated __attribute__((deprecated))
 #else
-    typedef signed char  int8_t;
-    typedef signed short int16_t;
-    typedef signed int   int32_t;
-    typedef unsigned char  uint8_t;
-    typedef unsigned short uint16_t;
-    typedef unsigned int   uint32_t;
-    typedef signed long long   int64_t;
-    typedef unsigned long long uint64_t;
-#endif /* EMULATE_INTTYPES */
+#    define attribute_deprecated
+#endif
+#endif
+
+#   include <inttypes.h>
 
 #ifndef PRId64
 #define PRId64 "lld"
@@ -79,6 +96,10 @@
 
 #ifndef PRIx64
 #define PRIx64 "llx"
+#endif
+
+#ifndef PRIX64
+#define PRIX64 "llX"
 #endif
 
 #ifndef PRId32
@@ -125,16 +146,6 @@
 #define UINT64_MAX uint64_t_C(0xFFFFFFFFFFFFFFFF)
 #endif
 
-#ifdef EMULATE_FAST_INT
-typedef signed char int_fast8_t;
-typedef signed int  int_fast16_t;
-typedef signed int  int_fast32_t;
-typedef unsigned char uint_fast8_t;
-typedef unsigned int  uint_fast16_t;
-typedef unsigned int  uint_fast32_t;
-typedef uint64_t      uint_fast64_t;
-#endif
-
 #ifndef INT_BIT
 #    if INT_MAX != 2147483647
 #        define INT_BIT 64
@@ -164,10 +175,13 @@ typedef uint64_t      uint_fast64_t;
 #define RSHIFT(a,b) ((a) > 0 ? ((a) + ((1<<(b))>>1))>>(b) : ((a) + ((1<<(b))>>1)-1)>>(b))
 /* assume b>0 */
 #define ROUNDED_DIV(a,b) (((a)>0 ? (a) + ((b)>>1) : (a) - ((b)>>1))/(b))
-#define ABS(a) ((a) >= 0 ? (a) : (-(a)))
+#define FFABS(a) ((a) >= 0 ? (a) : (-(a)))
+#define FFSIGN(a) ((a) > 0 ? 1 : -1)
 
 #define FFMAX(a,b) ((a) > (b) ? (a) : (b))
 #define FFMIN(a,b) ((a) > (b) ? (b) : (a))
+
+#define FFSWAP(type,a,b) do{type SWAP_tmp= b; b= a; a= SWAP_tmp;}while(0)
 
 /* misc math functions */
 extern FF_IMPORT_ATTR const uint8_t ff_log2_tab[256];
@@ -207,7 +221,21 @@ static inline int av_log2_16bit(unsigned int v)
 /* median of 3 */
 static inline int mid_pred(int a, int b, int c)
 {
-#if 0
+#if HAVE_CMOV
+    int i=b;
+    asm volatile(
+        "cmp    %2, %1 \n\t"
+        "cmovg  %1, %0 \n\t"
+        "cmovg  %2, %1 \n\t"
+        "cmp    %3, %1 \n\t"
+        "cmovl  %3, %1 \n\t"
+        "cmp    %1, %0 \n\t"
+        "cmovg  %1, %0 \n\t"
+        :"+&r"(i), "+&r"(a)
+        :"r"(b), "r"(c)
+    );
+    return i;
+#elif 0
     int t= (a-b)&((a-b)>>31);
     a-=t;
     b+=t;
@@ -236,7 +264,7 @@ static inline int mid_pred(int a, int b, int c)
  * @param a value to clip
  * @param amin minimum value of the clip range
  * @param amax maximum value of the clip range
- * @return cliped value
+ * @return clipped value
  */
 static inline int clip(int a, int amin, int amax)
 {
@@ -248,7 +276,7 @@ static inline int clip(int a, int amin, int amax)
 /**
  * clip a signed integer value into the 0-255 range
  * @param a value to clip
- * @return cliped value
+ * @return clipped value
  */
 static inline uint8_t clip_uint8(int a)
 {
@@ -273,7 +301,19 @@ static inline int ff_get_fourcc(const char *s){
 #define MKTAG(a,b,c,d) (a | (b << 8) | (c << 16) | (d << 24))
 #define MKBETAG(a,b,c,d) (d | (c << 8) | (b << 16) | (a << 24))
 
-
+/*!
+ * \def GET_UTF8(val, GET_BYTE, ERROR)
+ * converts a utf-8 character (up to 4 bytes long) to its 32-bit ucs-4 encoded form
+ * \param val is the output and should be of type uint32_t. It holds the converted
+ * ucs-4 character and should be a left value.
+ * \param GET_BYTE gets utf-8 encoded bytes from any proper source. It can be
+ * a function or a statement whose return value or evaluated value is of type
+ * uint8_t. It will be executed up to 4 times for values in the valid utf-8 range,
+ * and up to 7 times in the general case.
+ * \param ERROR action that should be taken when an invalid utf-8 byte is returned
+ * from GET_BYTE. It should be a statement that jumps out of the macro,
+ * like exit(), goto, return, break, or continue.
+ */
 #define GET_UTF8(val, GET_BYTE, ERROR)\
     val= GET_BYTE;\
     {\
@@ -289,7 +329,43 @@ static inline int ff_get_fourcc(const char *s){
         }\
     }
 
-#if defined(ARCH_X86) || defined(ARCH_X86_64) || defined(ARCH_POWERPC)
+/*!
+ * \def PUT_UTF8(val, tmp, PUT_BYTE)
+ * converts a 32-bit unicode character to its utf-8 encoded form (up to 4 bytes long).
+ * \param val is an input only argument and should be of type uint32_t. It holds
+ * a ucs4 encoded unicode character that is to be converted to utf-8. If
+ * val is given as a function it's executed only once.
+ * \param tmp is a temporary variable and should be of type uint8_t. It
+ * represents an intermediate value during conversion that is to be
+ * outputted by PUT_BYTE.
+ * \param PUT_BYTE writes the converted utf-8 bytes to any proper destination.
+ * It could be a function or a statement, and uses tmp as the input byte.
+ * For example, PUT_BYTE could be "*output++ = tmp;" PUT_BYTE will be
+ * executed up to 4 times for values in the valid utf-8 range and up to
+ * 7 times in the general case, depending on the length of the converted
+ * unicode character.
+ */
+#define PUT_UTF8(val, tmp, PUT_BYTE)\
+    {\
+        int bytes, shift;\
+        uint32_t in = val;\
+        if (in < 0x80) {\
+            tmp = in;\
+            PUT_BYTE\
+        } else {\
+            bytes = (av_log2(in) + 4) / 5;\
+            shift = (bytes - 1) * 6;\
+            tmp = (256 - (256 >> bytes)) | (in >> shift);\
+            PUT_BYTE\
+            while (shift >= 6) {\
+                shift -= 6;\
+                tmp = 0x80 | ((in >> shift) & 0x3f);\
+                PUT_BYTE\
+            }\
+        }\
+    }
+
+#if defined(ARCH_X86) || defined(ARCH_POWERPC)
 #if defined(ARCH_X86_64)
 static inline uint64_t read_time(void)
 {
@@ -344,7 +420,7 @@ tend= read_time();\
       tcount++;\
   }else\
       tskip_count++;\
-  if(256*256*256*64%(tcount+tskip_count)==0){\
+  if(((tcount+tskip_count)&(tcount+tskip_count-1))==0){\
       av_log(NULL, AV_LOG_DEBUG, "%"PRIu64" dezicycles in %s, %d runs, %d skips\n", tsum*10/tcount, id, tcount, tskip_count);\
   }\
 }
@@ -354,9 +430,21 @@ tend= read_time();\
 #endif
 
 /* memory */
+
+#ifdef __GNUC__
+  #define DECLARE_ALIGNED(n,t,v)       t v __attribute__ ((aligned (n)))
+#else
+  #define DECLARE_ALIGNED(n,t,v)      __declspec(align(n)) t v
+#endif
+
+/* memory */
 void *av_malloc(unsigned int size);
 void *av_realloc(void *ptr, unsigned int size);
 void av_free(void *ptr);
+
+void *av_mallocz(unsigned int size);
+char *av_strdup(const char *s);
+void av_freep(void *ptr);
 
 /* xine: inline causes trouble for debug compiling */
 #ifdef DISABLE_INLINE
@@ -368,6 +456,13 @@ void av_free(void *ptr);
 # endif
 # define inline
 # define always_inline
+#endif
+
+/* xine: define ASMALIGN here since it's cleaner that generating it in the configure */
+#if HAVE_ASMALIGN_POT
+# define ASMALIGN(ZEROBITS) ".align " #ZEROBITS "\n\t"
+#else
+# define ASMALIGN(ZEROBITS) ".align 1<<" #ZEROBITS "\n\t"
 #endif
 
 #endif /* COMMON_H */

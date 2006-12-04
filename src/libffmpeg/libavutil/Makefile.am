@@ -14,6 +14,7 @@ libavutil_la_SOURCES = \
 	log.c \
 	mathematics.c \
 	md5.c \
+	mem.c \
 	rational.c
 
 libavutil_la_LDFLAGS = -avoid-version -module

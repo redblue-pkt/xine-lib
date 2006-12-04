@@ -384,7 +384,7 @@ use internal ffmpeg.
 *********************************************************************])
 else
   AC_MSG_RESULT([using included ffmpeg])
-  LIBFFMPEG_CPPFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL"
+  LIBFFMPEG_CPPFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL -DCONFIG_MP3_DECODER -DCONFIG_MP2_DECODER -DCONFIG_DVVIDEO_DECODER"
   AC_SUBST([LIBFFMPEG_CPPFLAGS])
 
   AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CPPFLAGS="$LIBFFMPEG_CPPFLAGS -DEMULATE_FAST_INT"])
@@ -1963,6 +1963,15 @@ if test x"$have_ip_mreqn" = "xyes"; then
   AC_DEFINE(HAVE_IP_MREQN,1,[Define this if you have ip_mreqn in netinet/in.h])
 fi
 
+dnl ---------------------------------------------
+dnl ASM ALIGN is power of two ?
+dnl ---------------------------------------------
+asmalign_pot="unknown"
+if test $asmalign_pot = "unknown"; then
+    AC_TRY_COMPILE([], [ asm (".align 3"); ],[
+    AC_DEFINE([HAVE_ASMALIGN_POT], 1, "asmalign power of two")],[
+    AC_DEFINE([HAVE_ASMALIGN_POT], 0, "asmalign power of two")])
+fi
 
 dnl ---------------------------------------------
 dnl Some extra checks.

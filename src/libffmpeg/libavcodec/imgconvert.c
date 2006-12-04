@@ -2,18 +2,20 @@
  * Misc image convertion routines
  * Copyright (c) 2001, 2002, 2003 Fabrice Bellard.
  *
- * This library is free software; you can redistribute it and/or
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
@@ -32,7 +34,7 @@
 #include "dsputil.h"
 
 #ifdef USE_FASTMEMCPY
-#include "fastmemcpy.h"
+#include "libvo/fastmemcpy.h"
 #endif
 
 #ifdef HAVE_MMX
@@ -183,7 +185,7 @@ static const PixFmtInfo pix_fmt_info[PIX_FMT_NB] = {
     },
     [PIX_FMT_RGB555] = {
         .name = "rgb555",
-        .nb_channels = 4, .is_alpha = 1,
+        .nb_channels = 3,
         .color_type = FF_COLOR_RGB,
         .pixel_type = FF_PIXEL_PACKED,
         .depth = 5,
@@ -191,6 +193,20 @@ static const PixFmtInfo pix_fmt_info[PIX_FMT_NB] = {
     },
 
     /* gray / mono formats */
+    [PIX_FMT_GRAY16BE] = {
+        .name = "gray16be",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_GRAY,
+        .pixel_type = FF_PIXEL_PLANAR,
+        .depth = 16,
+    },
+    [PIX_FMT_GRAY16LE] = {
+        .name = "gray16le",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_GRAY,
+        .pixel_type = FF_PIXEL_PLANAR,
+        .depth = 16,
+    },
     [PIX_FMT_GRAY8] = {
         .name = "gray",
         .nb_channels = 1,
@@ -234,6 +250,111 @@ static const PixFmtInfo pix_fmt_info[PIX_FMT_NB] = {
         .pixel_type = FF_PIXEL_PACKED,
         .depth = 8,
         .x_chroma_shift = 2, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_BGR32] = {
+        .name = "bgr32",
+        .nb_channels = 4, .is_alpha = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 8,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_BGR565] = {
+        .name = "bgr565",
+        .nb_channels = 3,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 5,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_BGR555] = {
+        .name = "bgr555",
+        .nb_channels = 3,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 5,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_RGB8] = {
+        .name = "rgb8",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 8,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_RGB4] = {
+        .name = "rgb4",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 4,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_RGB4_BYTE] = {
+        .name = "rgb4_byte",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 8,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_BGR8] = {
+        .name = "bgr8",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 8,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_BGR4] = {
+        .name = "bgr4",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 4,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_BGR4_BYTE] = {
+        .name = "bgr4_byte",
+        .nb_channels = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 8,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_NV12] = {
+        .name = "nv12",
+        .nb_channels = 2,
+        .color_type = FF_COLOR_YUV,
+        .pixel_type = FF_PIXEL_PLANAR,
+        .depth = 8,
+        .x_chroma_shift = 1, .y_chroma_shift = 1,
+    },
+    [PIX_FMT_NV21] = {
+        .name = "nv12",
+        .nb_channels = 2,
+        .color_type = FF_COLOR_YUV,
+        .pixel_type = FF_PIXEL_PLANAR,
+        .depth = 8,
+        .x_chroma_shift = 1, .y_chroma_shift = 1,
+    },
+
+    [PIX_FMT_BGR32_1] = {
+        .name = "bgr32_1",
+        .nb_channels = 4, .is_alpha = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 8,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
+    },
+    [PIX_FMT_RGB32_1] = {
+        .name = "rgb32_1",
+        .nb_channels = 4, .is_alpha = 1,
+        .color_type = FF_COLOR_RGB,
+        .pixel_type = FF_PIXEL_PACKED,
+        .depth = 8,
+        .x_chroma_shift = 0, .y_chroma_shift = 0,
     },
 };
 
@@ -292,6 +413,18 @@ int avpicture_fill(AVPicture *picture, uint8_t *ptr,
         picture->linesize[1] = w2;
         picture->linesize[2] = w2;
         return size + 2 * size2;
+    case PIX_FMT_NV12:
+    case PIX_FMT_NV21:
+        w2 = (width + (1 << pinfo->x_chroma_shift) - 1) >> pinfo->x_chroma_shift;
+        h2 = (height + (1 << pinfo->y_chroma_shift) - 1) >> pinfo->y_chroma_shift;
+        size2 = w2 * h2 * 2;
+        picture->data[0] = ptr;
+        picture->data[1] = picture->data[0] + size;
+        picture->data[2] = NULL;
+        picture->linesize[0] = width;
+        picture->linesize[1] = w2;
+        picture->linesize[2] = 0;
+        return size + 2 * size2;
     case PIX_FMT_RGB24:
     case PIX_FMT_BGR24:
         picture->data[0] = ptr;
@@ -300,11 +433,18 @@ int avpicture_fill(AVPicture *picture, uint8_t *ptr,
         picture->linesize[0] = width * 3;
         return size * 3;
     case PIX_FMT_RGBA32:
+    case PIX_FMT_BGR32:
+    case PIX_FMT_RGB32_1:
+    case PIX_FMT_BGR32_1:
         picture->data[0] = ptr;
         picture->data[1] = NULL;
         picture->data[2] = NULL;
         picture->linesize[0] = width * 4;
         return size * 4;
+    case PIX_FMT_GRAY16BE:
+    case PIX_FMT_GRAY16LE:
+    case PIX_FMT_BGR555:
+    case PIX_FMT_BGR565:
     case PIX_FMT_RGB555:
     case PIX_FMT_RGB565:
     case PIX_FMT_YUV422:
@@ -325,12 +465,23 @@ int avpicture_fill(AVPicture *picture, uint8_t *ptr,
         picture->data[2] = NULL;
         picture->linesize[0] = width + width/2;
         return size + size/2;
+    case PIX_FMT_RGB8:
+    case PIX_FMT_BGR8:
+    case PIX_FMT_RGB4_BYTE:
+    case PIX_FMT_BGR4_BYTE:
     case PIX_FMT_GRAY8:
         picture->data[0] = ptr;
         picture->data[1] = NULL;
         picture->data[2] = NULL;
         picture->linesize[0] = width;
         return size;
+    case PIX_FMT_RGB4:
+    case PIX_FMT_BGR4:
+        picture->data[0] = ptr;
+        picture->data[1] = NULL;
+        picture->data[2] = NULL;
+        picture->linesize[0] = width / 2;
+        return size / 2;
     case PIX_FMT_MONOWHITE:
     case PIX_FMT_MONOBLACK:
         picture->data[0] = ptr;
@@ -370,6 +521,8 @@ int avpicture_layout(const AVPicture* src, int pix_fmt, int width, int height,
     if (pf->pixel_type == FF_PIXEL_PACKED || pf->pixel_type == FF_PIXEL_PALETTE) {
         if (pix_fmt == PIX_FMT_YUV422 ||
             pix_fmt == PIX_FMT_UYVY422 ||
+            pix_fmt == PIX_FMT_BGR565 ||
+            pix_fmt == PIX_FMT_BGR555 ||
             pix_fmt == PIX_FMT_RGB565 ||
             pix_fmt == PIX_FMT_RGB555)
             w = width * 2;
@@ -484,6 +637,8 @@ static int avg_bits_per_pixel(int pix_fmt)
         case PIX_FMT_UYVY422:
         case PIX_FMT_RGB565:
         case PIX_FMT_RGB555:
+        case PIX_FMT_BGR565:
+        case PIX_FMT_BGR555:
             bits = 16;
             break;
         case PIX_FMT_UYVY411:
@@ -602,6 +757,8 @@ void img_copy(AVPicture *dst, const AVPicture *src,
         case PIX_FMT_UYVY422:
         case PIX_FMT_RGB565:
         case PIX_FMT_RGB555:
+        case PIX_FMT_BGR565:
+        case PIX_FMT_BGR555:
             bits = 16;
             break;
         case PIX_FMT_UYVY411:
@@ -1084,7 +1241,7 @@ static uint8_t c_jpeg_to_ccir[256];
 static void img_convert_init(void)
 {
     int i;
-    uint8_t *cm = cropTbl + MAX_NEG_CROP;
+    uint8_t *cm = ff_cropTbl + MAX_NEG_CROP;
 
     for(i = 0;i < 256; i++) {
         y_ccir_to_jpeg[i] = Y_CCIR_TO_JPEG(i);
@@ -1472,19 +1629,10 @@ static inline unsigned int bitcopy_n(unsigned int a, int n)
     b = bitcopy_n(v << 3, 3);\
 }
 
-#define RGBA_IN(r, g, b, a, s)\
-{\
-    unsigned int v = ((const uint16_t *)(s))[0];\
-    r = bitcopy_n(v >> (10 - 3), 3);\
-    g = bitcopy_n(v >> (5 - 3), 3);\
-    b = bitcopy_n(v << 3, 3);\
-    a = (-(v >> 15)) & 0xff;\
-}
 
-#define RGBA_OUT(d, r, g, b, a)\
+#define RGB_OUT(d, r, g, b)\
 {\
-    ((uint16_t *)(d))[0] = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3) | \
-                           ((a << 8) & 0x8000);\
+    ((uint16_t *)(d))[0] = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);\
 }
 
 #define BPP 2
@@ -1701,6 +1849,75 @@ static void gray_to_monoblack(AVPicture *dst, const AVPicture *src,
     gray_to_mono(dst, src, width, height, 0x00);
 }
 
+static void gray_to_gray16(AVPicture *dst, const AVPicture *src,
+                              int width, int height)
+{
+    int x, y, src_wrap, dst_wrap;
+    uint8_t *s, *d;
+    s = src->data[0];
+    src_wrap = src->linesize[0] - width;
+    d = dst->data[0];
+    dst_wrap = dst->linesize[0] - width * 2;
+    for(y=0; y<height; y++){
+        for(x=0; x<width; x++){
+            *d++ = *s;
+            *d++ = *s++;
+        }
+        s += src_wrap;
+        d += dst_wrap;
+    }
+}
+
+static void gray16_to_gray(AVPicture *dst, const AVPicture *src,
+                              int width, int height)
+{
+    int x, y, src_wrap, dst_wrap;
+    uint8_t *s, *d;
+    s = src->data[0];
+    src_wrap = src->linesize[0] - width * 2;
+    d = dst->data[0];
+    dst_wrap = dst->linesize[0] - width;
+    for(y=0; y<height; y++){
+        for(x=0; x<width; x++){
+            *d++ = *s;
+            s += 2;
+        }
+        s += src_wrap;
+        d += dst_wrap;
+    }
+}
+
+static void gray16be_to_gray(AVPicture *dst, const AVPicture *src,
+                              int width, int height)
+{
+    gray16_to_gray(dst, src, width, height);
+}
+
+static void gray16le_to_gray(AVPicture *dst, const AVPicture *src,
+                              int width, int height)
+{
+    gray16_to_gray(dst, src + 1, width, height);
+}
+
+static void gray16_to_gray16(AVPicture *dst, const AVPicture *src,
+                              int width, int height)
+{
+    int x, y, src_wrap, dst_wrap;
+    uint16_t *s, *d;
+    s = src->data[0];
+    src_wrap = (src->linesize[0] - width * 2)/2;
+    d = dst->data[0];
+    dst_wrap = (dst->linesize[0] - width * 2)/2;
+    for(y=0; y<height; y++){
+        for(x=0; x<width; x++){
+            *d++ = bswap_16(*s++);
+        }
+        s += src_wrap;
+        d += dst_wrap;
+    }
+}
+
+
 typedef struct ConvertEntry {
     void (*convert)(AVPicture *dst,
                     const AVPicture *src, int width, int height);
@@ -1834,6 +2051,12 @@ static const ConvertEntry convert_table[PIX_FMT_NB][PIX_FMT_NB] = {
         [PIX_FMT_RGB24] = {
             .convert = rgba32_to_rgb24
         },
+        [PIX_FMT_BGR24] = {
+            .convert = rgba32_to_bgr24
+        },
+        [PIX_FMT_RGB565] = {
+            .convert = rgba32_to_rgb565
+        },
         [PIX_FMT_RGB555] = {
             .convert = rgba32_to_rgb555
         },
@@ -1848,6 +2071,9 @@ static const ConvertEntry convert_table[PIX_FMT_NB][PIX_FMT_NB] = {
         },
     },
     [PIX_FMT_BGR24] = {
+        [PIX_FMT_RGBA32] = {
+            .convert = bgr24_to_rgba32
+        },
         [PIX_FMT_RGB24] = {
             .convert = bgr24_to_rgb24
         },
@@ -1873,6 +2099,9 @@ static const ConvertEntry convert_table[PIX_FMT_NB][PIX_FMT_NB] = {
         },
     },
     [PIX_FMT_RGB565] = {
+        [PIX_FMT_RGBA32] = {
+            .convert = rgb565_to_rgba32
+        },
         [PIX_FMT_RGB24] = {
             .convert = rgb565_to_rgb24
         },
@@ -1881,6 +2110,22 @@ static const ConvertEntry convert_table[PIX_FMT_NB][PIX_FMT_NB] = {
         },
         [PIX_FMT_GRAY8] = {
             .convert = rgb565_to_gray
+        },
+    },
+    [PIX_FMT_GRAY16BE] = {
+        [PIX_FMT_GRAY8] = {
+            .convert = gray16be_to_gray
+        },
+        [PIX_FMT_GRAY16LE] = {
+            .convert = gray16_to_gray16
+        },
+    },
+    [PIX_FMT_GRAY16LE] = {
+        [PIX_FMT_GRAY8] = {
+            .convert = gray16le_to_gray
+        },
+        [PIX_FMT_GRAY16BE] = {
+            .convert = gray16_to_gray16
         },
     },
     [PIX_FMT_GRAY8] = {
@@ -1904,6 +2149,12 @@ static const ConvertEntry convert_table[PIX_FMT_NB][PIX_FMT_NB] = {
         },
         [PIX_FMT_MONOBLACK] = {
             .convert = gray_to_monoblack
+        },
+        [PIX_FMT_GRAY16LE] = {
+            .convert = gray_to_gray16
+        },
+        [PIX_FMT_GRAY16BE] = {
+            .convert = gray_to_gray16
         },
     },
     [PIX_FMT_MONOWHITE] = {
@@ -2048,6 +2299,7 @@ int img_pad(AVPicture *dst, const AVPicture *src, int height, int width, int pix
     return 0;
 }
 
+#ifndef CONFIG_SWSCALER
 /* XXX: always use linesize. Return -1 if not supported */
 int img_convert(AVPicture *dst, int dst_pix_fmt,
                 const AVPicture *src, int src_pix_fmt,
@@ -2289,6 +2541,7 @@ int img_convert(AVPicture *dst, int dst_pix_fmt,
     avpicture_free(tmp);
     return ret;
 }
+#endif
 
 /* NOTE: we scan all the pixels to have an exact information */
 static int get_alpha_info_pal8(const AVPicture *src, int width, int height)
@@ -2333,9 +2586,6 @@ int img_get_alpha_info(const AVPicture *src,
     switch(pix_fmt) {
     case PIX_FMT_RGBA32:
         ret = get_alpha_info_rgba32(src, width, height);
-        break;
-    case PIX_FMT_RGB555:
-        ret = get_alpha_info_rgb555(src, width, height);
         break;
     case PIX_FMT_PAL8:
         ret = get_alpha_info_pal8(src, width, height);
@@ -2403,7 +2653,7 @@ static void deinterlace_line(uint8_t *dst,
                              int size)
 {
 #ifndef HAVE_MMX
-    uint8_t *cm = cropTbl + MAX_NEG_CROP;
+    uint8_t *cm = ff_cropTbl + MAX_NEG_CROP;
     int sum;
 
     for(;size > 0;size--) {
@@ -2446,7 +2696,7 @@ static void deinterlace_line_inplace(uint8_t *lum_m4, uint8_t *lum_m3, uint8_t *
                              int size)
 {
 #ifndef HAVE_MMX
-    uint8_t *cm = cropTbl + MAX_NEG_CROP;
+    uint8_t *cm = ff_cropTbl + MAX_NEG_CROP;
     int sum;
 
     for(;size > 0;size--) {

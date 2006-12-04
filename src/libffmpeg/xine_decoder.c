@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.171 2006/10/11 12:53:12 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.172 2006/12/04 22:25:13 miguelfreitas Exp $
  *
  * xine decoder plugin using ffmpeg
  *
@@ -108,8 +108,8 @@ void avcodec_register_all(void)
     register_avcodec(&vmdvideo_decoder);
     register_avcodec(&vmdaudio_decoder);
     register_avcodec(&truemotion1_decoder);
-    register_avcodec(&mszh_decoder);
-    register_avcodec(&zlib_decoder);
+    //register_avcodec(&mszh_decoder);
+    //register_avcodec(&zlib_decoder);
     register_avcodec(&xan_dpcm_decoder);
     register_avcodec(&asv1_decoder);
     register_avcodec(&asv2_decoder);
@@ -142,7 +142,7 @@ void avcodec_register_all(void)
     register_avcodec(&nuv_decoder);
     register_avcodec(&kmvc_decoder);
     register_avcodec(&flashsv_decoder);
-    register_avcodec(&cavs_decoder);
+    //register_avcodec(&cavs_decoder);
     register_avcodec(&cook_decoder);
     register_avcodec(&truespeech_decoder);
     register_avcodec(&tta_decoder);

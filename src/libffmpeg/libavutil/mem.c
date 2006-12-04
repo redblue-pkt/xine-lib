@@ -1,28 +1,30 @@
 /*
- * default memory allocator for libavcodec
+ * default memory allocator for libavutil
  * Copyright (c) 2002 Fabrice Bellard.
  *
- * This library is free software; you can redistribute it and/or
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /**
  * @file mem.c
- * default memory allocator for libavcodec.
+ * default memory allocator for libavutil.
  */
 
-#include "avcodec.h"
+#include "common.h"
 
 /* here we can use OS dependant allocation functions */
 #undef malloc
@@ -45,16 +47,18 @@
 void *av_malloc(unsigned int size)
 {
     void *ptr;
-#ifdef MEMALIGN_HACK
+#ifdef CONFIG_MEMALIGN_HACK
     long diff;
 #endif
 
-    /* lets disallow possible ambiguous cases */
-    if(size > INT_MAX)
+    /* let's disallow possible ambiguous cases */
+    if(size > (INT_MAX-16) )
         return NULL;
 
-#ifdef MEMALIGN_HACK
-    ptr = malloc(size+16+1);
+#ifdef CONFIG_MEMALIGN_HACK
+    ptr = malloc(size+16);
+    if(!ptr)
+        return ptr;
     diff= ((-(long)ptr - 1)&15) + 1;
     ptr += diff;
     ((char*)ptr)[-1]= diff;
@@ -99,16 +103,16 @@ void *av_malloc(unsigned int size)
  */
 void *av_realloc(void *ptr, unsigned int size)
 {
-#ifdef MEMALIGN_HACK
+#ifdef CONFIG_MEMALIGN_HACK
     int diff;
 #endif
 
-    /* lets disallow possible ambiguous cases */
-    if(size > INT_MAX)
+    /* let's disallow possible ambiguous cases */
+    if(size > (INT_MAX-16) )
         return NULL;
 
-#ifdef MEMALIGN_HACK
-    //FIXME this isnt aligned correctly though it probably isnt needed
+#ifdef CONFIG_MEMALIGN_HACK
+    //FIXME this isn't aligned correctly, though it probably isn't needed
     if(!ptr) return av_malloc(size);
     diff= ((char*)ptr)[-1];
     return realloc(ptr - diff, size + diff) + diff;
@@ -120,16 +124,48 @@ void *av_realloc(void *ptr, unsigned int size)
 /**
  * Free memory which has been allocated with av_malloc(z)() or av_realloc().
  * NOTE: ptr = NULL is explicetly allowed
- * Note2: it is recommanded that you use av_freep() instead
+ * Note2: it is recommended that you use av_freep() instead
  */
 void av_free(void *ptr)
 {
     /* XXX: this test should not be needed on most libcs */
     if (ptr)
-#ifdef MEMALIGN_HACK
+#ifdef CONFIG_MEMALIGN_HACK
         free(ptr - ((char*)ptr)[-1]);
 #else
         free(ptr);
 #endif
+}
+
+/**
+ * Frees memory and sets the pointer to NULL.
+ * @param arg pointer to the pointer which should be freed
+ */
+void av_freep(void *arg)
+{
+    void **ptr= (void**)arg;
+    av_free(*ptr);
+    *ptr = NULL;
+}
+
+void *av_mallocz(unsigned int size)
+{
+    void *ptr;
+
+    ptr = av_malloc(size);
+    if (ptr)
+        memset(ptr, 0, size);
+    return ptr;
+}
+
+char *av_strdup(const char *s)
+{
+    char *ptr;
+    int len;
+    len = strlen(s) + 1;
+    ptr = av_malloc(len);
+    if (ptr)
+        memcpy(ptr, s, len);
+    return ptr;
 }
 

@@ -3,18 +3,20 @@
  * Copyright (c) 2001 Fabrice Bellard.
  * Copyright (c) 2002-2004 Michael Niedermayer
  *
- * This library is free software; you can redistribute it and/or
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This library is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  * mostly by Michael Niedermayer <michaelni@gmx.at>
@@ -34,7 +36,7 @@ static inline void sad8_1_mmx(uint8_t *blk1, uint8_t *blk2, int stride, int h)
 {
     long len= -(stride*h);
     asm volatile(
-        ".balign 16                     \n\t"
+        ASMALIGN(4)
         "1:                             \n\t"
         "movq (%1, %%"REG_a"), %%mm0    \n\t"
         "movq (%2, %%"REG_a"), %%mm2    \n\t"
@@ -70,7 +72,7 @@ static inline void sad8_1_mmx2(uint8_t *blk1, uint8_t *blk2, int stride, int h)
 {
     long len= -(stride*h);
     asm volatile(
-        ".balign 16                     \n\t"
+        ASMALIGN(4)
         "1:                             \n\t"
         "movq (%1, %%"REG_a"), %%mm0    \n\t"
         "movq (%2, %%"REG_a"), %%mm2    \n\t"
@@ -92,7 +94,7 @@ static inline void sad8_2_mmx2(uint8_t *blk1a, uint8_t *blk1b, uint8_t *blk2, in
 {
     long len= -(stride*h);
     asm volatile(
-        ".balign 16                     \n\t"
+        ASMALIGN(4)
         "1:                             \n\t"
         "movq (%1, %%"REG_a"), %%mm0    \n\t"
         "movq (%2, %%"REG_a"), %%mm2    \n\t"
@@ -118,7 +120,7 @@ static inline void sad8_4_mmx2(uint8_t *blk1, uint8_t *blk2, int stride, int h)
 { //FIXME reuse src
     long len= -(stride*h);
     asm volatile(
-        ".balign 16                     \n\t"
+        ASMALIGN(4)
         "movq "MANGLE(bone)", %%mm5     \n\t"
         "1:                             \n\t"
         "movq (%1, %%"REG_a"), %%mm0    \n\t"
@@ -155,7 +157,7 @@ static inline void sad8_2_mmx(uint8_t *blk1a, uint8_t *blk1b, uint8_t *blk2, int
 {
     long len= -(stride*h);
     asm volatile(
-        ".balign 16                     \n\t"
+        ASMALIGN(4)
         "1:                             \n\t"
         "movq (%1, %%"REG_a"), %%mm0    \n\t"
         "movq (%2, %%"REG_a"), %%mm1    \n\t"
@@ -193,7 +195,7 @@ static inline void sad8_4_mmx(uint8_t *blk1, uint8_t *blk2, int stride, int h)
 {
     long len= -(stride*h);
     asm volatile(
-        ".balign 16                     \n\t"
+        ASMALIGN(4)
         "1:                             \n\t"
         "movq (%1, %%"REG_a"), %%mm0    \n\t"
         "movq (%2, %%"REG_a"), %%mm1    \n\t"
