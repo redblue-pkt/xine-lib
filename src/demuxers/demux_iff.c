@@ -36,7 +36,7 @@
  * * ANIM (Animations)
  *   - Animation works fine, without seeking.
  *
- * $Id: demux_iff.c,v 1.17 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_iff.c,v 1.18 2006/12/08 16:19:17 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -827,7 +827,8 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
               }
             } else {
               for (j = 0, k = (interleave_index / 2); j < (buf->size / 2); j += this->audio_channels) {
-                zw_16                   = BE_16(&pointer16_from[k++]);
+                zw_16                   = BE_16(&pointer16_from[k]);
+                k++;
                 zw_rescale              = zw_16;
                 zw_rescale             *= this->audio_volume_left;
                 zw_rescale             /= max_volume;
@@ -856,7 +857,8 @@ static int demux_iff_send_chunk(demux_plugin_t *this_gen) {
               }
             } else {
               for (j = 1; j < (buf->size / 2); j += this->audio_channels) {
-                zw_16                   = BE_16(&pointer16_from[k++]);
+                zw_16                   = BE_16(&pointer16_from[k]);
+                k++;
                 zw_rescale              = zw_16;
                 zw_rescale             *= this->audio_volume_left;
                 zw_rescale             /= max_volume;
