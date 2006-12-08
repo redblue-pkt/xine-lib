@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.49 2006/07/10 22:08:30 dgp85 Exp $
+ * $Id: demux_sputext.c,v 1.50 2006/12/08 16:26:10 mshopf Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -915,7 +915,8 @@ static subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *cur
 			return NULL;
 		    trail_space(directive);
 		    strncat(line2, directive,
-			    (LINE_LEN > 511) ? LINE_LEN : 511);
+			    ((LINE_LEN > 511) ? LINE_LEN-1 : 511)
+			    - strlen(line2));
 		    break;
 		}
 	    default:

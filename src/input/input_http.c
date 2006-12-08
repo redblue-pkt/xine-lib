@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.124 2006/11/30 10:54:18 dgp85 Exp $
+ * $Id: input_http.c,v 1.125 2006/12/08 16:26:10 mshopf Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -335,12 +335,9 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
           /* prepares the event */
           radio = _x_meta_info_get(this->stream, XINE_META_INFO_ALBUM);
           if (radio) {
-            int len = strlen(radio);
-            strncpy(data.str, radio, sizeof(data.str));
-            strncat(data.str, " - ", sizeof(data.str) - len);
-            strncat(data.str, songtitle, sizeof(data.str) - len - 3);
+	    snprintf (data.str, sizeof(data.str), "%s - %s", radio, songtitle);
           } else {
-            strncpy(data.str, songtitle, sizeof(data.str));
+            strncpy(data.str, songtitle, sizeof(data.str)-1);
           }
           data.str[sizeof(data.str) - 1] = '\0';
           data.str_len = strlen(data.str) + 1;
@@ -766,13 +763,11 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   }
   
   snprintf(this->buf + buflen, BUFSIZE - buflen,
-           "User-Agent: xine/%s\015\012", VERSION);
-  buflen = strlen(this->buf);
-  strncat (this->buf, "Accept: */*\015\012", BUFSIZE - buflen);
-  buflen = strlen(this->buf);
-  strncat (this->buf, "Icy-MetaData: 1\015\012", BUFSIZE - buflen);
-  buflen = strlen(this->buf);
-  strncat (this->buf, "\015\012", BUFSIZE - buflen);
+           "User-Agent: xine/%s\015\012"
+           "Accept: */*\015\012"
+           "Icy-MetaData: 1\015\012"
+           "\015\012",
+           VERSION);
   buflen = strlen(this->buf);
   if (_x_io_tcp_write (this->stream, this->fh, this->buf, buflen) != buflen) {
     _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);

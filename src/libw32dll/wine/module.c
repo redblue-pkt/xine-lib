@@ -389,9 +389,7 @@ HMODULE WINAPI LoadLibraryExA(LPCSTR libname, HANDLE hfile, DWORD flags)
 	        strncpy(path, libname, sizeof(path) - 1);
             } else {
 	        /* check default user path */
-	        strncpy(path, win32_def_path, sizeof(path) - 2);
-	        strcat(path, "/");
-	        strncat(path, libname, sizeof(path) - strlen(libname));
+                snprintf(path, sizeof(path), "%s/%s", win32_def_path, libname);
 	    }
 	    wm = MODULE_LoadLibraryExA( path, hfile, flags );
 
