@@ -3,9 +3,10 @@ Section: libs
 Priority: optional
 Maintainer: Siggi Langauf <siggi@debian.org>
 Uploaders: Philipp Matthias Hahn <pmhahn@debian.org>, Reinhard Tartler <siretart@tauware.de>
-Build-Depends: debhelper (>= 4.0.4), binutils (>= 2.12.90.0.9), libaa1-dev | aalib1-dev (>= 1.4p5-2), libcaca-dev, libxinerama-dev | xlibs-static-dev (<< 6.8.0), libxv-dev | xlibs-static-dev (<< 6.8.0), libesd0-dev, zlib1g-dev | libz-dev, libartsc0-dev (>>1.1.0), liblircclient-dev, libogg-dev, libvorbis-dev, libtheora-dev, libasound2-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libflac-dev (>>1.1.0), libmodplug-dev, libgnomevfs2-dev, libsmbclient-dev, libspeex-dev, libmng-dev, libpng12-dev | libpng-dev, libfreetype6-dev, libsdl1.2-dev (>=1.1.5), libvcdinfo-dev, libmad0-dev, libxvmc-dev | xlibs-dev (<< 6.8.0), w3m, automake1.9, autoconf, libtool, libcdio-dev (>= 0.76-1)
-Build-Conflicts: libdvdnav-dev
+Build-Depends: debhelper (>= 4.0.4), binutils (>= 2.12.90.0.9), libaa1-dev | aalib1-dev (>= 1.4p5-2), libcaca-dev (>= 0.99.beta4-1), libxinerama-dev | xlibs-static-dev (<< 6.8.0), libxv-dev | xlibs-static-dev (<< 6.8.0), libesd0-dev, zlib1g-dev | libz-dev, libartsc0-dev (>>1.1.0), liblircclient-dev, libogg-dev, libvorbis-dev, libtheora-dev, libasound2-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libflac-dev (>>1.1.0), libmodplug-dev, libgnomevfs2-dev, libsmbclient-dev, libspeex-dev, libmng-dev, libpng12-dev | libpng-dev, libfreetype6-dev, libsdl1.2-dev (>=1.1.5), libmad0-dev, libxvmc-dev | xlibs-dev (<< 6.8.0), w3m, automake1.9, autoconf, libtool, libcdio-dev (>= 0.76-1), sgmltools-lite, libavformat-dev, libpostproc-dev, libavcodec-dev
+Build-Conflicts: libdvdnav-dev, libvcdinfo-dev
 Standards-Version: 3.7.2
+XS-X-Vcs-Bzr: http://siretart.tauware.de/xine.repo/xine-lib.debian.1.1.2/
 
 Package: libxine-dev
 Architecture: any
@@ -32,8 +33,6 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Recommends: ${shlibs:Recommends}
 Suggests: ${shlibs:Suggests}, libartsc0
-Conflicts: sinek(<<0.7), xine-ui (<< 0.9.10), xine
-Replaces: xine-dvdnav, xine
 Description: the xine video/media player library, binary files
  This is the xine media player library (libxine). 
  .
@@ -49,6 +48,7 @@ Description: the xine video/media player library, binary files
  you can just start watching your VCDs ;-)
 
 Package: libxine1-dbg
+Priority: extra
 Architecture: any
 Depends: libxine1 (= ${Source-Version})
 Description: the xine video/media player library, debug data
