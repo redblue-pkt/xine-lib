@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.50 2006/07/10 22:08:29 dgp85 Exp $
+  $Id: xineplug_inp_vcd.c,v 1.51 2006/12/13 19:21:10 dsalt Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -322,6 +322,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   unsigned int n, i=0;
   unsigned int i_entries;
   vcdinfo_obj_t *p_vcdinfo;
+  int was_open;
 
   if (NULL == class) {
     LOG_MSG("%s", _("was passed a null class parameter"));
@@ -331,7 +332,7 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   vcdplayer = &(my_vcd.player);
 
   /* If VCD already open, we gotta close and stop it. */
-  if (vcdplayer->b_opened) {
+  if ((was_open = vcdplayer->b_opened)) {
     vcd_close(class);
   }
 
@@ -374,6 +375,8 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
   if (NULL == class->mrls) {
     LOG_ERR("Can't calloc %d MRL entries", class->num_mrls);
     class->num_mrls = 0;
+    if (!was_open)
+      vcdio_close(vcdplayer);
     return false;
   }
 
@@ -445,6 +448,8 @@ vcd_build_mrl_list(vcd_input_class_t *class, char *vcd_device)
             class->mrl_track_offset, class->mrl_entry_offset, 
             class->mrl_play_offset,  class->mrl_segment_offset);
   
+  if (!was_open)
+    vcdio_close(vcdplayer);
   return true;
 }
 
