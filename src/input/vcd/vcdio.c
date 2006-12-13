@@ -1,5 +1,5 @@
 /*
-  $Id: vcdio.c,v 1.7 2005/06/14 17:27:12 rockyb Exp $
+  $Id: vcdio.c,v 1.8 2006/12/13 19:14:19 dsalt Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -103,9 +103,21 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
     }
   }
 
-  if ( vcdinfo_open(&p_vcdplayer->vcd, &intended_vcd_device, DRIVER_UNKNOWN, 
-                    NULL) != VCDINFO_OPEN_VCD) {
-    return false;
+  switch ( vcdinfo_open(&p_vcdplayer->vcd, &intended_vcd_device,
+                        DRIVER_UNKNOWN, NULL))
+  {
+    case VCDINFO_OPEN_ERROR:
+      /* Failed to open the device => return failure */
+      return false;
+
+    case VCDINFO_OPEN_VCD:
+      /* Opened the device, and it's a VCD => proceed */
+      break;
+
+    default:
+      /* Opened the device, but it's not a VCD => close it & return failure */
+      vcdinfo_close(p_vcdplayer->vcd);
+      return false;
   }
 
   p_vcdinfo = p_vcdplayer->vcd;
