@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_internal.h,v 1.179 2006/10/02 15:56:06 valtri Exp $
+ * $Id: xine_internal.h,v 1.180 2006/12/13 18:30:30 dsalt Exp $
  *
  */
 
@@ -118,6 +118,7 @@ struct xine_s {
 
 #ifdef XINE_ENGINE_INTERNAL
   xine_ticket_t             *port_ticket;
+  pthread_mutex_t            log_lock;
 #endif
 };
 

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.335 2006/10/16 22:18:24 valtri Exp $
+ * $Id: xine.c,v 1.336 2006/12/13 18:30:30 dsalt Exp $
  */
 
 /*
@@ -1604,9 +1604,10 @@ void xine_init (xine_t *this) {
   this->streams = xine_list_new();
 
   /*
-   * streams lock
+   * locks
    */
   pthread_mutex_init (&this->streams_lock, NULL);
+  pthread_mutex_init (&this->log_lock, NULL);
   
   /*
    * start metronom clock
@@ -1951,12 +1952,21 @@ const char *const *xine_get_log_names (xine_t *this) {
   return log_sections;
 }
 
+static inline void check_log_alloc (xine_t *this, int buf)
+{
+  pthread_mutex_lock (&this->log_lock);
+
+  if ( ! this->log_buffers[buf] )
+    this->log_buffers[buf] = _x_new_scratch_buffer(150);
+
+  pthread_mutex_unlock (&this->log_lock);
+}
+
 void xine_log (xine_t *this, int buf, const char *format, ...) {
   va_list argp;
   char    buffer[SCRATCH_LINE_LEN_MAX];
   
-  if ( ! this->log_buffers[buf] )
-    this->log_buffers[buf] = _x_new_scratch_buffer(150);
+  check_log_alloc (this, buf);
 
   va_start (argp, format);
   this->log_buffers[buf]->scratch_printf (this->log_buffers[buf], format, argp);
@@ -1973,8 +1983,7 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
 void xine_vlog(xine_t *this, int buf, const char *format, 
                 va_list args)
 {
-  if ( ! this->log_buffers[buf] )
-    this->log_buffers[buf] = _x_new_scratch_buffer(150);
+  check_log_alloc (this, buf);
 
   this->log_buffers[buf]->scratch_printf(this->log_buffers[buf], format, args);
 }
