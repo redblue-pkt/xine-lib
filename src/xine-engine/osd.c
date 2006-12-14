@@ -102,6 +102,12 @@
 #  define KERNING_DEFAULT ft_kerning_default
 #endif
 
+#ifdef ENABLE_ANTIALIASING
+#  define FT_LOAD_FLAGS   FT_LOAD_DEFAULT
+#else
+#  define FT_LOAD_FLAGS  (FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)
+#endif
+
 typedef struct osd_fontchar_s {
   uint16_t code;
   uint16_t width;
@@ -1171,7 +1177,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       }
       previous = i;
 
-      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT)) {
+      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_FLAGS)) {
         xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph\n"));
         continue;
       }

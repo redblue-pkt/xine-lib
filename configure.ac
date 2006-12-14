@@ -1955,6 +1955,17 @@ if test "x$enable_mmap" = "xyes"; then
 fi
 
 dnl ---------------------------------------------
+dnl antialising support
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE([antialiasing],
+     AS_HELP_STRING([--enable-antialiasing], [enable font antialiasing]))
+
+if test "x$enable_antialiasing" = "xyes"; then
+   AC_DEFINE(ENABLE_ANTIALIASING,1,[Define this to 1 to enable font antialising.])    
+fi
+
+dnl ---------------------------------------------
 dnl ip_mreqn
 dnl ---------------------------------------------
 
