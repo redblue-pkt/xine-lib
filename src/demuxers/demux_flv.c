@@ -24,7 +24,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.12 2006/12/15 11:31:28 klan Exp $
+ * $Id: demux_flv.c,v 1.13 2006/12/15 14:33:20 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -63,10 +63,14 @@ typedef struct {
   unsigned char        flags;
   off_t                start;  /* in bytes */
   off_t                size;   /* in bytes */
-  unsigned int         length; /* in ms */
   
   unsigned char        got_video;
   unsigned char        got_audio;
+  
+  unsigned int         length; /* in ms */
+  int                  width;
+  int                  height;
+  double               framerate;
   
   unsigned int         cur_pts;
   
@@ -205,10 +209,15 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
           this->length = val * 1000.0;
         }
         else if (!strcmp(key, "width")) {
-          _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, val);
+          this->width = val;
+          _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
         }
         else if (!strcmp(key, "height")) {
-          _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, val);
+          this->height = val;
+          _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
+        }
+        else if (!strcmp(key, "framerate")) {
+          this->framerate = val;
         }
       }
       tmp += 8;
@@ -294,6 +303,7 @@ static int read_flv_packet(demux_flv_t *this) {
   unsigned char  tag_type;
   unsigned int   remaining_bytes;
   unsigned int   buf_type = 0;
+  unsigned int   buf_flags = 0;
   int64_t        pts;
  
   while (1) {
@@ -351,6 +361,7 @@ static int read_flv_packet(demux_flv_t *this) {
           buf->size = 0; /* no extra data */
           buf->type = buf_type;
           fifo->put(fifo, buf);
+          
           this->got_audio = 1;
         }
         break;
@@ -377,16 +388,27 @@ static int read_flv_packet(demux_flv_t *this) {
             break;
         }
         
+        if ((buffer[0] >> 4) == 0x01)
+          buf_flags = BUF_FLAG_KEYFRAME;
+        
         fifo = this->video_fifo;        
         if (!this->got_video) {
+          xine_bmiheader *bih;
           /* send init info to video decoder; send the bitmapinfo header to the decoder
-           * primarily as a formality since there is no real data inside */
+           * primarily as a formality since there is no real data inside */          
           buf = fifo->buffer_pool_alloc(fifo);
-          buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
-          buf->decoder_info[0] = 7470;  /* initial duration */
-          buf->size = 0; /* no extra data */
+          buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER |
+                               BUF_FLAG_FRAMERATE | BUF_FLAG_FRAME_END;
+          buf->decoder_info[0] = 90000.0 / (this->framerate ? : 12.0);
+          bih = (xine_bmiheader *) buf->content;
+          memset(bih, 0, sizeof(xine_bmiheader));
+          bih->biSize = sizeof(xine_bmiheader);
+          bih->biWidth = this->width;
+          bih->biHeight = this->height;
+          buf->size = sizeof(xine_bmiheader);
           buf->type = buf_type;
           fifo->put(fifo, buf);
+          
           this->got_video = 1;
         }
         break;
@@ -420,6 +442,7 @@ static int read_flv_packet(demux_flv_t *this) {
         buf->size = remaining_bytes;
       remaining_bytes -= buf->size;
 
+      buf->decoder_flags = buf_flags;
       if (!remaining_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
