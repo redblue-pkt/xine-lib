@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.29 2006/10/13 21:41:30 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.30 2006/12/15 11:31:29 klan Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -107,6 +107,7 @@ static const ff_codec_t ff_audio_lookup[] = {
   {BUF_AUDIO_TRUESPEECH, CODEC_ID_TRUESPEECH,     "TrueSpeech (ffmpeg)"},
   {BUF_AUDIO_TTA,        CODEC_ID_TTA,            "True Audio Lossless (ffmpeg)"},
   {BUF_AUDIO_SMACKER,    CODEC_ID_SMACKAUDIO,     "Smacker (ffmpeg)"},
+  {BUF_AUDIO_FLVADPCM,   CODEC_ID_ADPCM_SWF,			"Flash ADPCM (ffmpeg)"},
 };
 
 
@@ -472,6 +473,7 @@ static uint32_t supported_audio_types[] = {
   BUF_AUDIO_TRUESPEECH,
   BUF_AUDIO_TTA,
   BUF_AUDIO_SMACKER,
+  BUF_AUDIO_FLVADPCM,
   0
 };
 

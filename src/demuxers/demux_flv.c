@@ -24,7 +24,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.11 2006/12/15 09:39:40 klan Exp $
+ * $Id: demux_flv.c,v 1.12 2006/12/15 11:31:28 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -273,6 +273,7 @@ static void parse_flv_script(demux_flv_t *this, int size) {
   
   if (this->input->read(this->input, buf, size ) != size) {
     this->status = DEMUX_FINISHED;
+    free(buf);
     return;
   }
 
@@ -322,6 +323,9 @@ static int read_flv_packet(demux_flv_t *this) {
         switch (buffer[0] >> 4) {
           case FLV_SOUND_FORMAT_PCM_BE:
             buf_type = BUF_AUDIO_LPCM_BE;
+            break;
+          case FLV_SOUND_FORMAT_ADPCM:
+            buf_type = BUF_AUDIO_FLVADPCM;
             break;
           case FLV_SOUND_FORMAT_MP3:
             buf_type = BUF_AUDIO_MPEG;
