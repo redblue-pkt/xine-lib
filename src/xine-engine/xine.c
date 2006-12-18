@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.336 2006/12/13 18:30:30 dsalt Exp $
+ * $Id: xine.c,v 1.337 2006/12/18 21:22:45 klan Exp $
  */
 
 /*
@@ -768,6 +768,9 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
     _x_flush_events_queues (stream);
     return 0;
   }
+
+  if (stream->input_plugin->get_capabilities(stream->input_plugin) & INPUT_CAP_NOCACHE)
+     no_cache = 1;
 
   if (*stream_setup) {
 
