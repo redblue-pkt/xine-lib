@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.109 2006/07/10 22:08:13 dgp85 Exp $
+ * $Id: demux_real.c,v 1.110 2006/12/18 21:31:47 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1409,12 +1409,15 @@ static int demux_real_seek (demux_plugin_t *this_gen,
   real_index_entry_t *index, *other_index = NULL;
   int                 i = 0, entries;
   
-  start_pos = (off_t) ( (double) start_pos / 65535 *
-              this->input->get_length (this->input) );
+  lprintf("seek start_pos=%d, start_time=%d, playing=%d\n",
+          (int)start_pos, start_time, playing);
 
   if((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) &&
      ((this->audio_stream && this->audio_stream->index) ||
       (this->video_stream && this->video_stream->index))) {
+      
+    start_pos = (off_t) ( (double) start_pos / 65535 *
+                this->input->get_length (this->input) );
 
     /* video index has priority over audio index */
     if(this->video_stream && this->video_stream->index) {
@@ -1452,6 +1455,13 @@ static int demux_real_seek (demux_plugin_t *this_gen,
       this->buf_flag_seek = 1;
       _x_demux_flush_engine(this->stream);
     }
+  }
+  else if (this->input->seek_time != NULL) {
+    /* RTSP supports only time based seek */
+    if (start_pos && !start_time)
+      start_time = (int64_t) this->duration * start_pos / 65535;
+      
+    this->input->seek_time(this->input, start_time, SEEK_SET);
   }
 
   this->send_newpts     = 1;

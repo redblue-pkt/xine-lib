@@ -134,6 +134,18 @@ static off_t rtsp_plugin_seek (input_plugin_t *this_gen, off_t offset, int origi
   return this->curpos;
 }
 
+static off_t rtsp_plugin_seek_time (input_plugin_t *this_gen, int time_offset, int origin) {
+
+  rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
+
+  lprintf ("seek_time %d msec, origin %d\n", time_offset, origin);
+  
+  if (origin == SEEK_SET)
+    rtsp_session_set_start_time (this->rtsp, time_offset);
+    
+  return this->curpos;
+}
+
 static off_t rtsp_plugin_get_length (input_plugin_t *this_gen) {
 
   /*
@@ -145,7 +157,7 @@ static off_t rtsp_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t rtsp_plugin_get_capabilities (input_plugin_t *this_gen) {
-  return INPUT_CAP_PREVIEW | INPUT_CAP_RIP_FORBIDDEN;
+  return INPUT_CAP_PREVIEW | INPUT_CAP_RIP_FORBIDDEN | INPUT_CAP_NOCACHE;
 }
 
 static uint32_t rtsp_plugin_get_blocksize (input_plugin_t *this_gen) {
@@ -212,7 +224,7 @@ static int rtsp_plugin_open (input_plugin_t *this_gen) {
 
   lprintf ("trying to open '%s'\n", this->mrl);
 
-  rtsp = rtsp_session_start(this->stream,this->mrl);
+  rtsp = rtsp_session_start(this->stream, this->mrl);
 
   if (!rtsp) {
     lprintf ("returning null.\n");
@@ -226,22 +238,19 @@ static int rtsp_plugin_open (input_plugin_t *this_gen) {
 }
 
 static input_plugin_t *rtsp_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, 
-				    const char *data) {
+				    const char *mrl) {
 
   /* rtsp_input_class_t  *cls = (rtsp_input_class_t *) cls_gen; */
   rtsp_input_plugin_t *this;
-  char                *mrl = strdup(data);
 
-  if (strncasecmp (mrl, "rtsp://", 6)) {
-    free (mrl);
+  if (strncasecmp (mrl, "rtsp://", 6))
     return NULL;
-  }
 
   this = (rtsp_input_plugin_t *) xine_xmalloc (sizeof (rtsp_input_plugin_t));
 
   this->stream  = stream;
   this->rtsp    = NULL;
-  this->mrl     = mrl;
+  this->mrl     = strdup (mrl);
   /* since we handle only real streams yet, we can savely add
    * an .rm extention to force handling by demux_real.
    */
@@ -255,6 +264,7 @@ static input_plugin_t *rtsp_class_get_instance (input_class_t *cls_gen, xine_str
   this->input_plugin.read              = rtsp_plugin_read;
   this->input_plugin.read_block        = rtsp_plugin_read_block;
   this->input_plugin.seek              = rtsp_plugin_seek;
+  this->input_plugin.seek_time         = rtsp_plugin_seek_time;
   this->input_plugin.get_current_pos   = rtsp_plugin_get_current_pos;
   this->input_plugin.get_length        = rtsp_plugin_get_length;
   this->input_plugin.get_blocksize     = rtsp_plugin_get_blocksize;

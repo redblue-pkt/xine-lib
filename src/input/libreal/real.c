@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.24 2006/11/29 19:43:01 dgp85 Exp $
+ * $Id: real.c,v 1.25 2006/12/18 21:31:47 klan Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -714,10 +714,6 @@ rmff_header_t  *real_setup_and_get_header(rtsp_t *rtsp_session, uint32_t bandwid
   /* set stream parameter (bandwidth) with our subscribe string */
   rtsp_schedule_field(rtsp_session, subscribe);
   rtsp_request_setparameter(rtsp_session,NULL);
-
-  /* and finally send a play request */
-  rtsp_schedule_field(rtsp_session, "Range: npt=0-");
-  rtsp_request_play(rtsp_session,NULL);
 
   xine_buffer_free(subscribe);
   xine_buffer_free(buf);

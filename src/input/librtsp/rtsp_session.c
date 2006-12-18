@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.16 2004/04/24 16:55:42 miguelfreitas Exp $
+ * $Id: rtsp_session.c,v 1.17 2006/12/18 21:31:47 klan Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -53,7 +53,7 @@ struct rtsp_session_s {
   rtsp_t       *s;
 
   /* receive buffer */
-  uint8_t       *recv;
+  uint8_t      *recv;
   int           recv_size;
   int           recv_read;
 
@@ -62,11 +62,13 @@ struct rtsp_session_s {
   int           header_len;
   int           header_read;
 
+  int           playing;
+  int           start_time;
 };
 
 rtsp_session_t *rtsp_session_start(xine_stream_t *stream, char *mrl) {
 
-  rtsp_session_t *rtsp_session = malloc(sizeof(rtsp_session_t));
+  rtsp_session_t *rtsp_session = xine_xmalloc(sizeof(rtsp_session_t));
   char *server;
   char *mrl_line=strdup(mrl);
   rmff_header_t *h;
@@ -144,6 +146,23 @@ connect:
   return rtsp_session;
 }
 
+void rtsp_session_set_start_time (rtsp_session_t *this, int start_time) {
+  
+  if (start_time >= 0)
+    this->start_time = start_time;
+}
+
+static void rtsp_session_play (rtsp_session_t *this) {
+  
+  char buf[256];
+ 
+  snprintf (buf, sizeof(buf), "Range: npt=%d.%03d-", 
+            this->start_time/1000, this->start_time%1000);
+  
+  rtsp_schedule_field (this->s, buf);
+  rtsp_request_play (this->s,NULL);
+}
+
 int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
   
   int to_copy=len;
@@ -153,6 +172,11 @@ int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
 
   if (len < 0) return 0;
   while (to_copy > fill) {
+    
+    if (!this->playing) {
+      rtsp_session_play (this);
+      this->playing = 1;
+    }
     
     memcpy(dest, source, fill);
     to_copy -= fill;
