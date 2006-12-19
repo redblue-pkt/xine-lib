@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.188 2006/11/29 21:26:52 dgp85 Exp $
+ * $Id: demux_asf.c,v 1.189 2006/12/19 11:15:14 klan Exp $
  *
  * demultiplexer for asf streams
  *
@@ -408,7 +408,9 @@ static int asf_read_header (demux_asf_t *this) {
     this->length = 0;
     
   /* compute average byterate (needed for seeking) */
-  if (this->length)
+  if (this->asf_header->file->max_bitrate)
+    this->rate = this->asf_header->file->max_bitrate >> 3;
+  else if (this->length)
     this->rate = (int64_t) this->input->get_length(this->input) * 1000 / this->length;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->asf_header->file->max_bitrate);
