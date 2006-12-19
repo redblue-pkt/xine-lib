@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.160 2006/10/28 18:51:08 miguelfreitas Exp $
+ * $Id: xine.h.in,v 1.161 2006/12/19 21:12:44 dsalt Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1313,6 +1313,12 @@ xine_health_check_t* xine_health_check(xine_health_check_t*, int check_num) XINE
 #define XINE_CONFIG_TYPE_NUM     4
 #define XINE_CONFIG_TYPE_BOOL    5
 
+/* For the string type (1.1.4 and later). These are stored in num_value. */ 
+#define XINE_CONFIG_STRING_IS_STRING		0
+#define XINE_CONFIG_STRING_IS_FILENAME		1
+#define XINE_CONFIG_STRING_IS_DEVICE_NAME	2
+#define XINE_CONFIG_STRING_IS_DIRECTORY_NAME	3
+
 typedef struct xine_cfg_entry_s xine_cfg_entry_t;
 
 typedef void (*xine_config_cb_t) (void *user_data,
@@ -1334,7 +1340,10 @@ struct xine_cfg_entry_s {
   void            *dummy;
 #endif
 
-  /* common to range, enum, num, bool: */
+  /* common to range, enum, num, bool;
+   * num_value is also used by string to indicate what's required:
+   * plain string, file name, device name, directory name
+   */
   int              num_value;
   int              num_default;
 
@@ -1376,6 +1385,16 @@ const char *xine_config_register_string (xine_t *self,
 					 int   exp_level,
 					 xine_config_cb_t changed_cb,
 					 void *cb_data) XINE_PROTECTED;
+
+const char *xine_config_register_filename (xine_t *self,
+					   const char *key,
+					   const char *def_value,
+					   int req_type, /* XINE_CONFIG_STRING_IS_* */
+					   const char *description,
+					   const char *help,
+					   int   exp_level,
+					   xine_config_cb_t changed_cb,
+					   void *cb_data) XINE_PROTECTED;
 
 int   xine_config_register_range  (xine_t *self,
 				   const char *key,
