@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.211 2006/10/29 19:39:39 hadess Exp $
+ * $Id: input_dvd.c,v 1.212 2006/12/19 19:10:51 dsalt Exp $
  *
  */
 
@@ -1779,9 +1779,9 @@ static void *init_class (xine_t *xine, void *data) {
 
   this->ip                             = NULL;
 
-  this->dvd_device = config->register_string(config,
+  this->dvd_device = config->register_filename(config,
 					     "media.dvd.device",
-					     DVD_PATH,
+					     DVD_PATH, XINE_CONFIG_STRING_IS_DEVICE_NAME,
 					     _("device used for DVD playback"),
 					     _("The path to the device, usually a "
 					       "DVD drive, which you intend to use for playing DVDs."),
@@ -1799,8 +1799,9 @@ static void *init_class (xine_t *xine, void *data) {
     char *css_cache_default, *css_cache;
     int mode;
     
-    raw_device = config->register_string(config, "media.dvd.raw_device",
-					 RDVD_PATH, _("raw device set up for DVD access"),
+    raw_device = config->register_filename(config, "media.dvd.raw_device",
+					 RDVD_PATH, XINE_CONFIG_STRING_IS_DEVICE_NAME,
+					 _("raw device set up for DVD access"),
 					 _("If this points to a raw device connected to your "
 					   "DVD device, xine will use the raw device for playback. "
 					   "This has the advantage of being slightly faster and "
@@ -1822,7 +1823,7 @@ static void *init_class (xine_t *xine, void *data) {
     
     css_cache_default = (char *)malloc(strlen(xine_get_homedir()) + 10);
     sprintf(css_cache_default, "%s/.dvdcss/", xine_get_homedir());
-    css_cache = config->register_string(config, "media.dvd.css_cache_path", css_cache_default,
+    css_cache = config->register_filename(config, "media.dvd.css_cache_path", css_cache_default, XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
 					_("path to the title key cache"),
 					_("Since cracking the copy protection of scrambled DVDs can "
 					  "be quite time consuming, libdvdcss will cache the cracked "

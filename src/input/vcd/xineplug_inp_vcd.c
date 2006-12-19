@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.51 2006/12/13 19:21:10 dsalt Exp $
+  $Id: xineplug_inp_vcd.c,v 1.52 2006/12/19 19:10:51 dsalt Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1829,9 +1829,9 @@ _("The VCD play unit to use when none is specified in an MRL, e.g. "
     
     
     class->vcd_device = 
-      strdup (config->register_string(config, 
+      strdup (config->register_filename(config, 
                               "media.vcd.device",
-                              "",
+                              "", XINE_CONFIG_STRING_IS_DEVICE_NAME,
           _("CD-ROM drive used for VCD when none given"),
 _("What to use if no drive specified. If the setting is empty, xine will scan for CD drives."), 
                               20,

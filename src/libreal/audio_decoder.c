@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.49 2006/07/10 22:08:30 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.50 2006/12/19 19:10:51 dsalt Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -740,8 +740,9 @@ static void *init_class (xine_t *xine, void *data) {
   if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
     default_real_codec_path = "/usr/lib/win32";
   
-  real_codec_path = config->register_string (config, "decoder.external.real_codecs_path", 
+  real_codec_path = config->register_filename (config, "decoder.external.real_codecs_path", 
 					     default_real_codec_path,
+					     XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
 					     _("path to RealPlayer codecs"),
 					     _("If you have RealPlayer installed, specify the path "
 					       "to its codec directory here. You can easily find "

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.338 2006/12/19 14:10:35 klan Exp $
+ * $Id: xine.c,v 1.339 2006/12/19 19:10:52 dsalt Exp $
  */
 
 /*
@@ -1579,9 +1579,9 @@ void xine_init (xine_t *this) {
   /*
    * save directory
    */
-  this->save_path  = this->config->register_string (
+  this->save_path  = this->config->register_filename (
       this->config, 
-      "media.capture.save_dir", "",
+      "media.capture.save_dir", "", XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
       _("directory for saving streams"),
       _("When using the stream save feature, files will be written only into this directory.\n"
 	"This setting is security critical, because when changed to a different directory, xine "

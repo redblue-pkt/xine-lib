@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.90 2006/08/11 21:40:02 dsalt Exp $
+ * $Id: input_cdda.c,v 1.91 2006/12/19 19:10:51 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2675,8 +2675,8 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->mrls_allocated_entries = 0;
   this->ip = NULL;
   
-  this->cdda_device = config->register_string(config, "media.audio_cd.device", 
-					      DEFAULT_CDDA_DEVICE,
+  this->cdda_device = config->register_filename(config, "media.audio_cd.device", 
+					      DEFAULT_CDDA_DEVICE, XINE_CONFIG_STRING_IS_DEVICE_NAME,
 					      _("device used for CD audio"),
 					      _("The path to the device, usually a "
 						"CD or DVD drive, which you intend to use "
@@ -2704,8 +2704,8 @@ static void *init_plugin (xine_t *xine, void *data) {
 		       "title and track information from."), XINE_CONFIG_SECURITY,
 		       port_changed_cb, (void *) this);
   
-  config->register_string(config, "media.audio_cd.cddb_cachedir", 
-			  (_cdda_cddb_get_default_location()),
+  config->register_filename(config, "media.audio_cd.cddb_cachedir", 
+			  (_cdda_cddb_get_default_location()), XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
 			  _("CDDB cache directory"), _("The replies from the CDDB server will be "
 			  "cached in this directory.\nThis setting is security critical, because files "
 			  "with uncontrollable names will be created in this directory. Be sure to use "

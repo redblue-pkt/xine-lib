@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.62 2006/07/10 22:08:15 dgp85 Exp $
+ * $Id: input_pvr.c,v 1.63 2006/12/19 19:10:51 dsalt Exp $
  */
 
 /**************************************************************************
@@ -1548,9 +1548,9 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->xine   = xine;
   this->config = xine->config;
 
-  this->devname = this->config->register_string(this->config,
+  this->devname = this->config->register_filename(this->config,
 				    "media.wintv_pvr.device",
-				    PVR_DEVICE,
+				    PVR_DEVICE, XINE_CONFIG_STRING_IS_DEVICE_NAME,
 				    _("device used for WinTV-PVR 250/350 (pvr plugin)"),
 				    _("The path to the device of your WinTV card."),
 				    10, NULL,

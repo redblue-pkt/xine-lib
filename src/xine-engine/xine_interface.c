@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.99 2006/10/16 06:29:38 dgp85 Exp $
+ * $Id: xine_interface.c,v 1.100 2006/12/19 19:10:52 dsalt Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -100,7 +100,23 @@ const char* xine_config_register_string (xine_t *self,
 					cb_data);
 
 }
+
+const char* xine_config_register_filename (xine_t *self,
+					   const char *key,
+					   const char *def_value,
+					   int req_type,
+					   const char *description,
+					   const char *help,
+					   int   exp_level,
+					   xine_config_cb_t changed_cb,
+					   void *cb_data) {
   
+  return self->config->register_filename (self->config,
+					  key, def_value, req_type,
+					  description, help, exp_level,
+					  changed_cb, cb_data);
+}
+
 int xine_config_register_range (xine_t *self,
 				const char *key,
 				int def_value,

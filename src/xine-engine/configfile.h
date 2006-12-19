@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.38 2006/09/26 05:19:48 dgp85 Exp $
+ * $Id: configfile.h,v 1.39 2006/12/19 19:10:52 dsalt Exp $
  *
  * config file management
  *
@@ -107,6 +107,16 @@ struct config_values_s {
 			    int exp_level,
 			    xine_config_cb_t changed_cb,
 			    void *cb_data);
+
+  char* (*register_filename) (config_values_t *self,
+			      const char *key,
+			      const char *def_value,
+			      int req_type,
+			      const char *description,
+			      const char *help,
+			      int exp_level,
+			      xine_config_cb_t changed_cb,
+			      void *cb_data);
 
   int (*register_range) (config_values_t *self,
 			 const char *key,

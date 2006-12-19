@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.117 2006/10/01 20:14:43 dgp85 Exp $
+ * $Id: input_file.c,v 1.118 2006/12/19 19:10:51 dsalt Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1027,8 +1027,8 @@ static void *init_plugin (xine_t *xine, void *data) {
     if(getcwd(current_dir, sizeof(current_dir)) == NULL)
       strcpy(current_dir, ".");
 
-    this->origin_path = config->register_string(config, "media.files.origin_path",
-						current_dir, 
+    this->origin_path = config->register_filename(config, "media.files.origin_path",
+						current_dir, XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
 						_("file browsing start location"),
 						_("The browser to select the file to play will "
 						  "start at this location."),
