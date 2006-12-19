@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.337 2006/12/18 21:22:45 klan Exp $
+ * $Id: xine.c,v 1.338 2006/12/19 14:10:35 klan Exp $
  */
 
 /*
@@ -77,6 +77,10 @@
 #   include <winsock.h>
 #endif /* WIN32 */
 
+
+static void mutex_cleanup (void *mutex) {
+  pthread_mutex_unlock ((pthread_mutex_t *) mutex);
+}
 
 void _x_handle_stream_end (xine_stream_t *stream, int non_user) {
 
@@ -294,6 +298,7 @@ static void stop_internal (xine_stream_t *stream) {
 void xine_stop (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->frontend_lock);
+  pthread_cleanup_push (mutex_cleanup, (void *) &stream->frontend_lock);
 
   /* make sure that other threads cannot change the speed, especially pauseing the stream */
   pthread_mutex_lock(&stream->speed_change_lock);
@@ -320,6 +325,7 @@ void xine_stop (xine_stream_t *stream) {
   stream->xine->port_ticket->release(stream->xine->port_ticket, 1);
   stream->ignore_speed_change = 0;
   
+  pthread_cleanup_pop (0);
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
@@ -395,6 +401,7 @@ static void close_internal (xine_stream_t *stream) {
 void xine_close (xine_stream_t *stream) {
 
   pthread_mutex_lock (&stream->frontend_lock);
+  pthread_cleanup_push (mutex_cleanup, (void *) &stream->frontend_lock);
 
   close_internal (stream);
 
@@ -408,6 +415,7 @@ void xine_close (xine_stream_t *stream) {
   if (stream->status != XINE_STATUS_QUIT)
     stream->status = XINE_STATUS_IDLE;
 
+  pthread_cleanup_pop (0);
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
@@ -1134,11 +1142,13 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
   int ret;
 
   pthread_mutex_lock (&stream->frontend_lock);
+  pthread_cleanup_push (mutex_cleanup, (void *) &stream->frontend_lock);
 
   lprintf ("open MRL:%s\n", mrl);
 
   ret = open_internal (stream, mrl);
 
+  pthread_cleanup_pop (0);
   pthread_mutex_unlock (&stream->frontend_lock);
 
   return ret;
@@ -1266,6 +1276,7 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
   int ret;
 
   pthread_mutex_lock (&stream->frontend_lock);
+  pthread_cleanup_push (mutex_cleanup, (void *) &stream->frontend_lock);
 
   stream->delay_finish_event = 0;
   
@@ -1275,6 +1286,7 @@ int xine_play (xine_stream_t *stream, int start_pos, int start_time) {
   
   stream->gapless_switch = 0;
 
+  pthread_cleanup_pop (0);
   pthread_mutex_unlock (&stream->frontend_lock);
   
   return ret;
@@ -1288,6 +1300,7 @@ int xine_eject (xine_stream_t *stream) {
     return 0;
   
   pthread_mutex_lock (&stream->frontend_lock);
+  pthread_cleanup_push (mutex_cleanup, (void *) &stream->frontend_lock);
 
   status = 0;
   /* only eject, if we are stopped OR a different input plugin is playing */
@@ -1298,7 +1311,9 @@ int xine_eject (xine_stream_t *stream) {
     status = stream->eject_class->eject_media (stream->eject_class);
   }
 
+  pthread_cleanup_pop (0);
   pthread_mutex_unlock (&stream->frontend_lock);
+  
   return status;
 }
 
