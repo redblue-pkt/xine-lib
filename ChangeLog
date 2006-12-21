@@ -4,6 +4,9 @@ xine-lib (1.1.4)
     is available to front ends (via .num_value) so that they can present
     file/dir-open dialogue boxes if they so choose.
     Subtitle font selection is split up due to this.
+  * Applied the patch to fix text relocation, provided by PaX Team for Gentoo
+    and previously applied by other distributions as well. Fixes the non-PIC
+    code being generated.
 
 xine-lib (1.1.3)
   * Security fixes:
