@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.161 2006/12/19 21:12:44 dsalt Exp $
+ * $Id: xine.h.in,v 1.162 2006/12/21 00:09:18 dsalt Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1580,6 +1580,7 @@ void xine_config_reset (xine_t *self) XINE_PROTECTED;
 #define XINE_EVENT_VDR_MUTE             331
 #define XINE_EVENT_VDR_AUDIO            332
 #define XINE_EVENT_VDR_INFO             333
+#define XINE_EVENT_VDR_CHANNELPREVIOUS  334
 /* some space for further keys */
 #define XINE_EVENT_VDR_SETVIDEOWINDOW   350
 #define XINE_EVENT_VDR_FRAMESIZECHANGED 351
