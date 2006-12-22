@@ -31,7 +31,7 @@
  *   
  *   Based on FFmpeg's libav/rm.c.
  *
- * $Id: demux_real.c,v 1.110 2006/12/18 21:31:47 klan Exp $
+ * $Id: demux_real.c,v 1.111 2006/12/22 16:45:44 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -1456,7 +1456,7 @@ static int demux_real_seek (demux_plugin_t *this_gen,
       _x_demux_flush_engine(this->stream);
     }
   }
-  else if (this->input->seek_time != NULL) {
+  else if (!playing && this->input->seek_time != NULL) {
     /* RTSP supports only time based seek */
     if (start_pos && !start_time)
       start_time = (int64_t) this->duration * start_pos / 65535;
