@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.17 2006/12/18 21:31:47 klan Exp $
+ * $Id: rtsp_session.c,v 1.18 2006/12/22 16:42:20 klan Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -60,19 +60,42 @@ struct rtsp_session_s {
   /* header buffer */
   uint8_t       header[HEADER_SIZE];
   int           header_len;
-  int           header_read;
+  int           header_left;
 
   int           playing;
   int           start_time;
 };
 
+/* network bandwidth */
+const uint32_t rtsp_bandwidths[]={14400,19200,28800,33600,34430,57600,
+                                  115200,262200,393216,524300,1544000,10485800};
+
+const char *rtsp_bandwidth_strs[]={"14.4 Kbps (Modem)", "19.2 Kbps (Modem)",
+                                   "28.8 Kbps (Modem)", "33.6 Kbps (Modem)",
+                                   "34.4 Kbps (Modem)", "57.6 Kbps (Modem)",
+                                   "115.2 Kbps (ISDN)", "262.2 Kbps (Cable/DSL)",
+                                   "393.2 Kbps (Cable/DSL)","524.3 Kbps (Cable/DSL)",
+                                   "1.5 Mbps (T1)", "10.5 Mbps (LAN)", NULL};
+
+
 rtsp_session_t *rtsp_session_start(xine_stream_t *stream, char *mrl) {
 
   rtsp_session_t *rtsp_session = xine_xmalloc(sizeof(rtsp_session_t));
+  xine_t *xine = stream->xine;
   char *server;
   char *mrl_line=strdup(mrl);
   rmff_header_t *h;
-  uint32_t bandwidth=10485800;
+  int bandwidth_id;
+  uint32_t bandwidth;
+  
+  bandwidth_id = xine->config->register_enum(xine->config, "media.network.bandwidth", 10,
+			      (char **)rtsp_bandwidth_strs,
+			      _("network bandwidth"),
+			      _("Specify the bandwidth of your internet connection here. "
+			        "This will be used when streaming servers offer different versions "
+              "with different bandwidth requirements of the same stream."),
+			      0, NULL, NULL);
+  bandwidth = rtsp_bandwidths[bandwidth_id];
 
   rtsp_session->recv = xine_buffer_init(BUF_SIZE);
       
@@ -125,7 +148,8 @@ connect:
       }
     }
 	
-    rtsp_session->header_len=rmff_dump_header(h,rtsp_session->header,1024);
+	  rtsp_session->header_left = 
+    rtsp_session->header_len  = rmff_dump_header(h,rtsp_session->header,HEADER_SIZE);
 
     xine_buffer_copyin(rtsp_session->recv, 0, rtsp_session->header, rtsp_session->header_len);
     rtsp_session->recv_size = rtsp_session->header_len;
@@ -170,7 +194,16 @@ int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
   char *source=this->recv + this->recv_read;
   int fill=this->recv_size - this->recv_read;
 
-  if (len < 0) return 0;
+  if (len < 0)
+    return 0;
+    
+  if (this->header_left) {
+    if (to_copy > this->header_left)
+      to_copy = this->header_left;
+    
+    this->header_left -= to_copy;
+  }
+  
   while (to_copy > fill) {
     
     if (!this->playing) {
