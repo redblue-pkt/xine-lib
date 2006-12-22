@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: rtsp_session.c,v 1.18 2006/12/22 16:42:20 klan Exp $
+ * $Id: rtsp_session.c,v 1.19 2006/12/22 18:08:10 klan Exp $
  *
  * high level interface to rtsp servers.
  */
@@ -189,7 +189,7 @@ static void rtsp_session_play (rtsp_session_t *this) {
 
 int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
   
-  int to_copy=len;
+  int to_copy;
   char *dest=data;
   char *source=this->recv + this->recv_read;
   int fill=this->recv_size - this->recv_read;
@@ -198,12 +198,13 @@ int rtsp_session_read (rtsp_session_t *this, char *data, int len) {
     return 0;
     
   if (this->header_left) {
-    if (to_copy > this->header_left)
-      to_copy = this->header_left;
+    if (len > this->header_left)
+      len = this->header_left;
     
-    this->header_left -= to_copy;
+    this->header_left -= len;
   }
   
+  to_copy = len;
   while (to_copy > fill) {
     
     if (!this->playing) {
