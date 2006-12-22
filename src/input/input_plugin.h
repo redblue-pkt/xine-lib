@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.61 2006/12/18 21:22:45 klan Exp $
+ * $Id: input_plugin.h,v 1.62 2006/12/22 16:38:15 klan Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -296,14 +296,6 @@ struct input_plugin_s {
  */
 
 #define INPUT_CAP_RIP_FORBIDDEN        0x00000100
-
-/*
- * INPUT_CAP_NOCACHE:
- *    means that buffered input must not be used.
- *    (i.e. disable input_cache internal plugin)
- */
- 
-#define INPUT_CAP_NOCACHE              0x00000200
 
 
 #define INPUT_IS_SEEKABLE(input) (((input)->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0)
