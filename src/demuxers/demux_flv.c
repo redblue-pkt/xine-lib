@@ -24,7 +24,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.13 2006/12/15 14:33:20 klan Exp $
+ * $Id: demux_flv.c,v 1.14 2006/12/23 14:43:16 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -666,7 +666,7 @@ static char *get_extensions (demux_class_t *this_gen) {
 }
 
 static char *get_mimetypes (demux_class_t *this_gen) {
-  return "video/x-flv";
+  return "video/x-flv: flv: Flash video;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
