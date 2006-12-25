@@ -15,6 +15,8 @@ xine-lib (1.1.4)
     exhaustion of memory; patch by Matthias Drochner. [bug #1620339]
   * Fix invalid memory access in Real Media ASM parser; reported by Roland
     Kay. [bug #1603503]
+  * Fix program termination due to invalid Real Media SDP; reported by Roland
+    Kay. [bug #1602663]
 
 xine-lib (1.1.3)
   * Security fixes:
