@@ -94,7 +94,7 @@ xineplug_ao_out_oss_la_CFLAGS = $(VISIBILITY_FLAG)
 xineplug_ao_out_oss_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_alsa_la_SOURCES = audio_alsa_out.c
-xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS) $(XINE_LIB)
+xineplug_ao_out_alsa_la_LIBADD = $(ALSA_LIBS) $(XINE_LIB) $(THREAD_LIBS)
 xineplug_ao_out_alsa_la_CFLAGS = $(VISIBILITY_FLAG) $(ALSA_CFLAGS)
 xineplug_ao_out_alsa_la_LDFLAGS = -avoid-version -module
 
