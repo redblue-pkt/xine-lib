@@ -9,6 +9,8 @@ xine-lib (1.1.4)
     code being generated.
   * Fix race condition in audio_out by using a recursive mutex; patch by
     Reinhard Nissl. [bug #1551911]
+  * Allow building with Sun CC by fixing the lprintf variadic macro; patch by
+    Taso N. Devetzis. [bug #1614406]
 
 xine-lib (1.1.3)
   * Security fixes:
