@@ -1154,17 +1154,15 @@ dnl ---------------------------------------------
 dnl check for libFLAC
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([flac],
-  AC_HELP_STRING([--disable-flac], [do not build flac support]),
-  [with_flac=$enableval], [with_flac=yes])
+AC_ARG_WITH([libflac],
+  AC_HELP_STRING([--with-libflac], [build libFLAC-based decoder and demuxer]))
 
-if test "x$with_flac" = "xyes"; then
-  AM_PATH_LIBFLAC([],
-    AC_MSG_RESULT([*** All FLAC dependent parts will be disabled ***]))
-else
-  no_libFLAC=yes
+have_libflac="no"
+if test "x$with_libflac" = "xyes"; then
+  AM_PATH_LIBFLAC([have_libflac="yes"])
 fi
-AM_CONDITIONAL(HAVE_FLAC, [test x"$no_libFLAC" != "xyes"])
+
+AM_CONDITIONAL([HAVE_LIBFLAC], [test "x$have_libflac" = "xyes"])
 
 dnl ---------------------------------------------
 dnl External version of a52dec
@@ -2602,7 +2600,7 @@ echo "   - interplay mve - psx str"
 echo "   - ws aud        - pva"
 echo "   - vox           - nsf"
 echo "   - nsv           - 4xm"
-echo "                   - aac"
+echo "   - FLAC          - aac"
 echo "   - iff           - matroska"
 echo "   - vmd           - flv"
 if test x"$enable_asf" = "xyes"; then
@@ -2616,6 +2614,9 @@ if test x"$have_libmng" = "xyes"; then
 fi
 if test x"$enable_modplug" != x"no"; then
   echo "   - mod"
+fi
+if test "x$have_libflac" = "xyes"; then
+  echo "   - FLAC (with libFLAC)"
 fi
 if test x"$enable_a52dec" = "xyes"; then
   if test x"$have_a52" = "xyes"; then
@@ -2684,8 +2685,9 @@ echo "     - 14k4          - 28k8"
 echo "     - MS ADPCM      - IMA ADPCM"
 echo "     - XA ADPCM      - Game DPCM/ADPCM"
 echo "     - Mace 3:13     - Mace 6:1"
-if test x"no_libFLAC" != "xyes"; then
-  echo "     - FLAC"
+echo "     - FLAC"
+if test "x$have_libflac" = "xyes"; then
+  echo "   - FLAC (with libFLAC)"
 fi
 if test "x$have_vorbis" = "xyes"; then
   echo "   - vorbis"
