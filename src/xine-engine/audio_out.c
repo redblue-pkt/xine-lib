@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.207 2006/11/04 23:30:14 dsalt Exp $
+ * $Id: audio_out.c,v 1.208 2006/12/25 15:07:52 dgp85 Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1055,9 +1055,7 @@ static void *ao_loop (void *this_gen) {
       delay = this->driver->delay(this->driver);
       while (delay < 0 && this->audio_loop_running) {
         /* Get the audio card into RUNNING state. */
-        pthread_mutex_unlock( &this->driver_lock ); 
         ao_fill_gap (this, 10000); /* FIXME, this PTS of 1000 should == period size */
-        pthread_mutex_lock( &this->driver_lock ); 
         delay = this->driver->delay(this->driver);
       }
       pthread_mutex_unlock( &this->driver_lock );
@@ -1200,7 +1198,7 @@ static void *ao_loop (void *this_gen) {
 
       if (this->driver_open) {
         pthread_mutex_lock( &this->driver_lock );
-        result = this->driver->write (this->driver, out_buf->mem, out_buf->num_frames );
+        result = this->driver_open ? this->driver->write (this->driver, out_buf->mem, out_buf->num_frames ) : 0;
         pthread_mutex_unlock( &this->driver_lock );
       } else {
         result = 0;
@@ -1984,6 +1982,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   aos_t           *this;
   int              i, err;
   pthread_attr_t   pth_attrs;
+  pthread_mutexattr_t attr;
   static const char* resample_modes[] = {"auto", "off", "on", NULL};
   static const char* av_sync_methods[] = {"metronom feedback", "resample", NULL};
 
@@ -1994,8 +1993,14 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->clock                 = xine->clock;
   this->streams               = xine_list_new();
     
+  /* warning: driver_lock is a recursive mutex. it must NOT be
+   * used with neither pthread_cond_wait() or pthread_cond_timedwait()
+   */
+  pthread_mutexattr_init( &attr );
+  pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
   pthread_mutex_init( &this->streams_lock, NULL );
-  pthread_mutex_init( &this->driver_lock, NULL );
+  pthread_mutex_init( &this->driver_lock, &attr );
   pthread_mutex_init( &this->driver_action_lock, NULL );
 
   this->ao.open                   = ao_open;
