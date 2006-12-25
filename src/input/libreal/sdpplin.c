@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: sdpplin.c,v 1.7 2006/12/25 16:12:17 dgp85 Exp $
+ * $Id: sdpplin.c,v 1.8 2006/12/25 16:21:56 dgp85 Exp $
  *
  * sdp/sdpplin parser.
  *
@@ -242,11 +242,17 @@ sdpplin_t *sdpplin_parse(char *data) {
   int              handled;
   int              len;
 
+  desc->stream = NULL;
+
   while (data && *data) {
 
     handled=0;
     
     if (filter(data, "m=", &buf)) {
+      if ( ! desc->stream ) {
+	fprintf(stderr, "sdpplin.c: stream identifier found before stream count, skipping.");
+	continue;
+      }
       stream=sdpplin_parse_stream(&data);
       lprintf("got data for stream id %u\n", stream->stream_id);
       desc->stream[stream->stream_id]=stream;
