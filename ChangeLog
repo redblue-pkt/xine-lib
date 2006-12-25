@@ -28,6 +28,8 @@ xine-lib (1.1.4)
     module files, using the magic numbers from GNU file. This allows to open
     module files based on content rather than on their extension only.
     [bug #1445746]
+  * Make the libFLAC-based decoder and demuxer for FLAC files work with recent
+    FLAC release 1.1.3.
 
 xine-lib (1.1.3)
   * Security fixes:
