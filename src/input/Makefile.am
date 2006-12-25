@@ -77,7 +77,7 @@ xineplug_inp_file_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_file_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_dvd_la_SOURCES = input_dvd.c media_helper.c
-xineplug_inp_dvd_la_LIBADD = $(XINE_LIB) $(link_dvdnav) $(THREAD_LIBS)
+xineplug_inp_dvd_la_LIBADD = $(XINE_LIB) $(link_dvdnav) $(THREAD_LIBS) $(DYNAMIC_LD_LIBS)
 xineplug_inp_dvd_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
