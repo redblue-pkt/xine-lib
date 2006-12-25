@@ -19,6 +19,9 @@ xine-lib (1.1.4)
     Kay. [bug #1602663]
   * Fix invalid memory access in Real Media SDP with tailored stream; reported
     by Roland Kay. [bug #1602631]
+  * Don't check for libpostproc version and assume that if libavcodec is found
+    correctly, libpostproc is of the same version, too. Reported by Ville
+    Skyttä. [bug #1617344]
 
 xine-lib (1.1.3)
   * Security fixes:

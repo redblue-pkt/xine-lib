@@ -367,7 +367,7 @@ AC_ARG_WITH([external-ffmpeg], AC_HELP_STRING([--with-external-ffmpeg], [use ext
 
 if test "x$with_external_ffmpeg" = "xyes"; then
    PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.11.0])
-   PKG_CHECK_MODULES([FFMPEG_POSTPROC], [libpostproc >= 51.11.0])
+   PKG_CHECK_MODULES([FFMPEG_POSTPROC], [libpostproc])
    AC_SUBST([FFMPEG_CFLAGS])
    AC_SUBST([FFMPEG_LIBS])
    AC_SUBST([FFMPEG_POSTPROC_CFLAGS])
