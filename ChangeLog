@@ -30,6 +30,8 @@ xine-lib (1.1.4)
     [bug #1445746]
   * Make the libFLAC-based decoder and demuxer for FLAC files work with recent
     FLAC release 1.1.3.
+  * On platforms where it's possible, use "-Wl,-z,defs" option so that the linker
+    reports undefined symbols at buildtime, rather than aborting at runtime.
 
 xine-lib (1.1.3)
   * Security fixes:

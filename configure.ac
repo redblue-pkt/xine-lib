@@ -2409,6 +2409,16 @@ AC_TRY_CFLAGS("-Wstrict-aliasing", wsa="-Wstrict-aliasing")
 AC_TRY_CFLAGS("-Wstrict-aliasing=2", wsa="-Wstrict-aliasing=2")
 CFLAGS="$CFLAGS $wsa"
 
+case $host_or_hostalias in
+     dnl FreeBSD (et al.) does not complete linking for shared objects when pthreads
+     dnl are requested, as different implementations are present; to avoid problems
+     dnl use -Wl,-z,defs only for those platform not behaving this way.
+     *-freebsd*) ;;
+     *)
+	AC_TRY_LDFLAGS([-Wl,-z,defs], [LDFLAGS="$LDFLAGS -Wl,-z,defs"])
+	;;
+esac
+
 dnl Common cflags for all platforms
 CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
 DEBUG_CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
