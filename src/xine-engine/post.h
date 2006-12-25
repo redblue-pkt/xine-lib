@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.23 2006/09/26 05:19:49 dgp85 Exp $
+ * $Id: post.h,v 1.24 2006/12/25 18:43:38 dgp85 Exp $
  *
  * post plugin definitions
  *
@@ -259,7 +259,7 @@ void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from) XINE_PROTECTED;
 /* when you shortcut a frames usual draw() travel so that it will never reach
  * the draw() function of the original issuer, you still have to do some
  * housekeeping on the frame, before returning control up the pipe */
-void _x_post_frame_u_turn(vo_frame_t *frame, xine_stream_t *stream);
+void _x_post_frame_u_turn(vo_frame_t *frame, xine_stream_t *stream) XINE_PROTECTED;
 
 /* use this to create a new, trivially decorated overlay manager in which
  * port functions can be replaced with own implementations */
