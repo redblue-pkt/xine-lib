@@ -24,6 +24,10 @@ xine-lib (1.1.4)
     Skyttä. [bug #1617344]
   * Fix Shorten demuxer: the whole "ajkg" signature has to be found, not only
     one character of it. [bug #1601134]
+  * Implement at least a partial content-based detection of ModPlug-decoded
+    module files, using the magic numbers from GNU file. This allows to open
+    module files based on content rather than on their extension only.
+    [bug #1445746]
 
 xine-lib (1.1.3)
   * Security fixes:
