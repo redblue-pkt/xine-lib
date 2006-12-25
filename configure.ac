@@ -2061,10 +2061,6 @@ AC_SUBST([VISIBILITY_FLAG])
 
 CC_ATTRIBUTE_SENTINEL
 
-dnl Common cflags for all platforms
-CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
-DEBUG_CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
-
 AC_OPTIMIZATIONS
 
 enable_ffmmx="no"
@@ -2412,6 +2408,10 @@ CFLAGS="$CFLAGS $wformat"
 AC_TRY_CFLAGS("-Wstrict-aliasing", wsa="-Wstrict-aliasing")
 AC_TRY_CFLAGS("-Wstrict-aliasing=2", wsa="-Wstrict-aliasing=2")
 CFLAGS="$CFLAGS $wsa"
+
+dnl Common cflags for all platforms
+CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
+DEBUG_CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
 
 dnl ---------------------------------------------
 dnl Output configuration files
