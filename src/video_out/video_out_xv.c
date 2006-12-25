@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.220 2006/10/28 18:51:08 miguelfreitas Exp $
+ * $Id: video_out_xv.c,v 1.221 2006/12/25 15:19:51 dgp85 Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -187,7 +187,7 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
 
   if (frame->image) {
 
-    if (this->use_shm) {
+    if (frame->shminfo.shmaddr) {
       LOCK_DISPLAY(this);
       XShmDetach (this->display, &frame->shminfo);
       XFree (frame->image);
@@ -382,6 +382,7 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 
     image = XvCreateImage (this->display, this->xv_port,
 			   xv_format, data, width, height);
+    shminfo->shmaddr = 0;
   }
   return image;
 }
@@ -391,7 +392,7 @@ static void dispose_ximage (xv_driver_t *this,
 			    XShmSegmentInfo *shminfo,
 			    XvImage *myimage) {
 
-  if (this->use_shm) {
+  if (shminfo->shmaddr) {
 
     XShmDetach (this->display, shminfo);
     XFree (myimage);
