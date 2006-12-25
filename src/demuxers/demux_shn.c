@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_shn.c,v 1.2 2006/09/28 22:27:52 dgp85 Exp $
+ * $Id: demux_shn.c,v 1.3 2006/12/25 16:54:56 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,8 +67,8 @@ static int open_shn_file(demux_shn_t *this) {
   if (_x_demux_read_header(this->input, peak, 4) != 4)
       return 0;
 
-  if ((peak[0] != 'a') && (peak[1] != 'j') &&
-      (peak[2] != 'k') && (peak[3] != 'g')) {
+  if ((peak[0] != 'a') || (peak[1] != 'j') ||
+      (peak[2] != 'k') || (peak[3] != 'g')) {
     return 0;
   }
 

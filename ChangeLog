@@ -22,6 +22,8 @@ xine-lib (1.1.4)
   * Don't check for libpostproc version and assume that if libavcodec is found
     correctly, libpostproc is of the same version, too. Reported by Ville
     Skyttä. [bug #1617344]
+  * Fix Shorten demuxer: the whole "ajkg" signature has to be found, not only
+    one character of it. [bug #1601134]
 
 xine-lib (1.1.3)
   * Security fixes:
