@@ -24,7 +24,7 @@
  *   APE tag reading
  *   Seeking??
  *
- * $Id: demux_mpc.c,v 1.3 2005/03/06 11:41:00 jstembridge Exp $
+ * $Id: demux_mpc.c,v 1.4 2006/12/26 17:40:37 dgp85 Exp $
  */
  
 #ifdef HAVE_CONFIG_H
@@ -119,11 +119,11 @@ static int open_mpc_file(demux_mpc_t *this) {
     }
   }
   
-  /* Validate signature - We only support SV7 at the moment */
+  /* Validate signature - We only support SV 7.x at the moment */
   if ((this->header[0] != 'M') ||
       (this->header[1] != 'P') ||
       (this->header[2] != '+') ||
-      (this->header[3] != 0x07))
+      ((this->header[3]&0x0f) != 0x07))
     return 0;
     
   /* Get frame count */
