@@ -19,10 +19,10 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.1 2006/12/26 03:22:28 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.2 2006/12/26 14:28:48 dgp85 Exp $
  */
 
-#define LOG_MODULE "wv_demuxer"
+#define LOG_MODULE "demux_wavpack"
 #define LOG_VERBOSE
 
 #include "xine_internal.h"
