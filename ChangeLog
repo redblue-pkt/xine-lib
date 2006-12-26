@@ -36,6 +36,9 @@ xine-lib (1.1.4)
     support is always built-in through the audio demuxer plugin and the FFmpeg
     decoder plugin, the option only controls the extra FLAC plugin that uses
     libFLAC both for demuxing and decoding.
+  * Implement a WavPack files demuxer, using WavPack library (only for demuxing
+    as the decoding is left entirely to FFmpeg); it's still in its infancy, but
+    it should be possible to remove WavPack dependency entirely in the future.
 
 xine-lib (1.1.3)
   * Security fixes:

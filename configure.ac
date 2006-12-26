@@ -1914,6 +1914,18 @@ AC_SUBST(LIBMODPLUG_CFLAGS)
 AC_SUBST(LIBMODPLUG_LIBS)
 dnl AM_CONDITIONAL(HAVE_MODPLUG, [test x"$have_modplug" = x"yes"])
 
+dnl ---------------------------------------------
+dnl Wavpack library
+dnl ---------------------------------------------
+AC_ARG_WITH([wavpack],
+   AS_HELP_STRING([--with-wavpack], [Enable Wavpack decoder (requires libwavpack)]) )
+
+if test "x$with_wavpack" = "xyes"; then
+   PKG_CHECK_MODULES([WAVPACK], [wavpack], [have_wavpack=yes])
+fi
+
+AM_CONDITIONAL([HAVE_WAVPACK], [test "x$have_wavpack" = "xyes"])
+
 
 dnl ---------------------------------------------
 dnl Win32 DLL codecs
@@ -2618,6 +2630,9 @@ fi
 if test "x$have_libflac" = "xyes"; then
   echo "   - FLAC (with libFLAC)"
 fi
+if test "x$have_wavpack" = "xyes"; then
+  echo "   - wavpack"
+fi
 if test x"$enable_a52dec" = "xyes"; then
   if test x"$have_a52" = "xyes"; then
     echo "   - ac3 (external library)"
@@ -2707,6 +2722,9 @@ if test x"$enable_libmad" = "xyes"; then
   else
     echo "   - MAD (MPG 1/2/3) (internal library)"
   fi
+fi
+if test "x$have_wavpack" = "xyes"; then
+  echo "   - wavpack"
 fi
 if test x"$enable_libdts" = "xyes"; then
   if test x"$have_dts" = "xyes"; then
