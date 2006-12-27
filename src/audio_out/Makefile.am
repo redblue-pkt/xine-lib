@@ -104,6 +104,7 @@ xineplug_ao_out_esd_la_CFLAGS = $(VISIBILITY_FLAG) $(ESD_CFLAGS)
 xineplug_ao_out_esd_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_sun_la_SOURCES = audio_sun_out.c
+xineplug_ao_out_sun_la_LIBADD = $(XINE_LIB)
 xineplug_ao_out_sun_la_CFLAGS = $(VISIBILITY_FLAG)
 xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
 
@@ -113,7 +114,7 @@ xineplug_ao_out_sun_la_LDFLAGS = -avoid-version -module
 #xineplug_ao_out_irixal_la_LDFLAGS = -avoid-version -module
 
 xineplug_ao_out_arts_la_SOURCES = audio_arts_out.c
-xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS)
+xineplug_ao_out_arts_la_LIBADD = $(ARTS_LIBS) $(XINE_LIB)
 xineplug_ao_out_arts_la_CFLAGS = $(VISIBILITY_FLAG) $(ARTS_CFLAGS)
 xineplug_ao_out_arts_la_LDFLAGS = -avoid-version -module
 
