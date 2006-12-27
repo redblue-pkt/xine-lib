@@ -1902,7 +1902,7 @@ dnl ---------------------------------------------
 dnl libmodplug support 
 dnl ---------------------------------------------
 AC_ARG_ENABLE([modplug],
-  AS_HELP_STRING([--enable-modplug], [Enable modplub support]) )
+  AS_HELP_STRING([--enable-modplug], [Enable modplug support]) )
 
 if test "x$enable_modplug" != "xno"; then
   PKG_CHECK_MODULES([LIBMODPLUG], [libmodplug >= 0.7],
