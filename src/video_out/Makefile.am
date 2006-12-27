@@ -113,7 +113,7 @@ xineplug_vo_out_xxmc_la_LDFLAGS = -avoid-version -module
 xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	video_out_opengl.c myglext.h $(X11OSD)
 xineplug_vo_out_opengl_la_LIBADD = $(MLIB_LIBS) $(OPENGL_LIBS) $(GLUT_LIBS) \
-	$(GLU_LIBS) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
+	$(GLU_LIBS) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS) $(DYNAMIC_LD_LIBS)
 xineplug_vo_out_opengl_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) $(MLIB_CFLAGS) -fno-strict-aliasing
 xineplug_vo_out_opengl_la_LDFLAGS = -avoid-version -module
 
