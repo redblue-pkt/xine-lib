@@ -162,7 +162,7 @@ xineplug_vo_out_directfb_la_CFLAGS = $(VISIBILITY_FLAG) $(DIRECTFB_CFLAGS) -fno-
 xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_sdl_la_SOURCES = video_out_sdl.c
-xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS) $(XINE_LIB) $(THREAD_LIBS)
+xineplug_vo_out_sdl_la_LIBADD = $(SDL_LIBS) $(X_LIBS) $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_sdl_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) $(SDL_CFLAGS)
 xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
 
