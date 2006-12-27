@@ -458,7 +458,7 @@ dnl Checks for X11
 dnl ---------------------------------------------
 
 if test "x$with_x" != "xno"; then
-   PKG_CHECK_MODULES([X11], [x11], , [
+   PKG_CHECK_MODULES([X], [x11], , [
      AC_PATH_XTRA
    
      dnl ----------------------------------------------
