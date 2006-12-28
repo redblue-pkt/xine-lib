@@ -140,13 +140,13 @@ xineplug_vo_out_vidix_la_CFLAGS = $(VISIBILITY_FLAG) $(VIDIX_CFLAGS) $(X_CFLAGS)
 xineplug_vo_out_vidix_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_aa_la_SOURCES =  video_out_aa.c
-xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS) $(THREAD_LIBS)
+xineplug_vo_out_aa_la_LIBADD = $(AALIB_LIBS) $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_aa_la_CFLAGS = $(VISIBILITY_FLAG) $(AALIB_CFLAGS)
 xineplug_vo_out_aa_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_caca_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	video_out_caca.c
-xineplug_vo_out_caca_la_LIBADD = $(CACA_LIBS) $(THREAD_LIBS)
+xineplug_vo_out_caca_la_LIBADD = $(CACA_LIBS) $(XINE_LIB) $(THREAD_LIBS)
 xineplug_vo_out_caca_la_CFLAGS = $(VISIBILITY_FLAG) $(CACA_CFLAGS)
 xineplug_vo_out_caca_la_LDFLAGS = -avoid-version -module
 
