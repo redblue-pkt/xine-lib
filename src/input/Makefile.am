@@ -147,7 +147,7 @@ xineplug_inp_smb_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_smb_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_pvr_la_SOURCES = input_pvr.c
-xineplug_inp_pvr_la_LIBADD = $(XINE_LIB)
+xineplug_inp_pvr_la_LIBADD = $(XINE_LIB) $(THREADS_LIBS)
 xineplug_inp_pvr_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_pvr_la_LDFLAGS = -avoid-version -module
 
