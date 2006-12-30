@@ -38,6 +38,13 @@
 #include "mpegvideo.h"
 #include "bytestream.h"
 
+/* if xine's MPEG encoder is enabled, enable the encoding features in
+ * this particular module */
+#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
+#define CONFIG_ENCODERS
+#endif
+
+
 /* use two quantizer tables (one for luminance and one for chrominance) */
 /* not yet working */
 #undef TWOMATRIXES

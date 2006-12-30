@@ -64,6 +64,25 @@ Index: libavcodec/motion_est.c
  }
 +
 +#endif /* CONFIG_ENCODERS */
+Index: libavcodec/mjpeg.c
+===================================================================
+diff -u -r1.38 mjpeg.c
+--- libavcodec/mjpeg.c	4 Dec 2006 22:25:19 -0000	1.38
++++ libavcodec/mjpeg.c	30 Dec 2006 22:21:34 -0000
+@@ -38,6 +38,13 @@
+ #include "mpegvideo.h"
+ #include "bytestream.h"
+ 
++/* if xine's MPEG encoder is enabled, enable the encoding features in
++ * this particular module */
++#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
++#define CONFIG_ENCODERS
++#endif
++
++
+ /* use two quantizer tables (one for luminance and one for chrominance) */
+ /* not yet working */
+ #undef TWOMATRIXES
 Index: libavcodec/mpeg12.c
 ===================================================================
 --- libavcodec/mpeg12.c	(revision 7221)
