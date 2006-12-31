@@ -366,7 +366,7 @@ AC_SUBST(LIBMPEG2_CFLAGS)
 AC_ARG_WITH([external-ffmpeg], AC_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]))
 
 if test "x$with_external_ffmpeg" = "xyes"; then
-   PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.11.0])
+   PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.20.0])
    PKG_CHECK_MODULES([FFMPEG_POSTPROC], [libpostproc])
    AC_SUBST([FFMPEG_CFLAGS])
    AC_SUBST([FFMPEG_LIBS])
