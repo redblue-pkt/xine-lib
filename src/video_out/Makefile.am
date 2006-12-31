@@ -123,17 +123,17 @@ xineplug_vo_out_syncfb_la_CFLAGS = $(VISIBILITY_FLAG)
 xineplug_vo_out_syncfb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_pgx64_la_SOURCES = video_out_pgx64.c
-xineplug_vo_out_pgx64_la_LIBADD = $(X_LIBS) $(SUNDGA_LIBS) $(THREAD_LIBS)
+xineplug_vo_out_pgx64_la_LIBADD = $(XINE_LIB) $(X_LIBS) $(SUNDGA_LIBS) $(THREAD_LIBS)
 xineplug_vo_out_pgx64_la_CFLAGS = $(VISIBILITY_FLAG)
 xineplug_vo_out_pgx64_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_pgx32_la_SOURCES = video_out_pgx32.c
-xineplug_vo_out_pgx32_la_LIBADD = $(X_LIBS) $(SUNDGA_LIBS) $(THREAD_LIBS)
+xineplug_vo_out_pgx32_la_LIBADD = $(XINE_LIB) $(X_LIBS) $(SUNDGA_LIBS) $(THREAD_LIBS)
 xineplug_vo_out_pgx32_la_CFLAGS = $(VISIBILITY_FLAG)
 xineplug_vo_out_pgx32_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_vidix_la_SOURCES = video_out_vidix.c $(X11OSD)
-xineplug_vo_out_vidix_la_LIBADD =  $(X_LIBS) \
+xineplug_vo_out_vidix_la_LIBADD =  $(XINE_LIB) $(X_LIBS) \
 	$(top_builddir)/src/video_out/vidix/libvidix.la \
 	$(top_builddir)/src/video_out/libdha/libdha.la $(THREAD_LIBS)
 xineplug_vo_out_vidix_la_CFLAGS = $(VISIBILITY_FLAG) $(VIDIX_CFLAGS) $(X_CFLAGS) -fno-strict-aliasing
@@ -157,7 +157,7 @@ xineplug_vo_out_fb_la_CFLAGS = $(VISIBILITY_FLAG) $(MLIB_CFLAGS)
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_directfb_la_SOURCES = video_out_directfb.c $(X11OSD)
-xineplug_vo_out_directfb_la_LIBADD = $(DIRECTFB_LIBS) $(X_LIBS) $(THREAD_LIBS)
+xineplug_vo_out_directfb_la_LIBADD = $(XINE_LIB) $(DIRECTFB_LIBS) $(X_LIBS) $(THREAD_LIBS)
 xineplug_vo_out_directfb_la_CFLAGS = $(VISIBILITY_FLAG) $(DIRECTFB_CFLAGS) -fno-strict-aliasing
 xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module
 
@@ -167,7 +167,7 @@ xineplug_vo_out_sdl_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) $(SDL_CFLAGS)
 xineplug_vo_out_sdl_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_stk_la_SOURCES = video_out_stk.c 
-xineplug_vo_out_stk_la_LIBADD = $(LIBSTK_LIBS) $(THREAD_LIBS)
+xineplug_vo_out_stk_la_LIBADD = $(XINE_LIB) $(LIBSTK_LIBS) $(THREAD_LIBS)
 xineplug_vo_out_stk_la_CFLAGS = $(VISIBILITY_FLAG) $(LIBSTK_CFLAGS)
 xineplug_vo_out_stk_la_LDFLAGS = -avoid-version -module
 
