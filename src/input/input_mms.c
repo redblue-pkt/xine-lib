@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.64 2006/10/23 21:18:18 hadess Exp $
+ * $Id: input_mms.c,v 1.65 2007/01/03 15:09:42 klan Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -201,6 +201,26 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   return curpos;
 }
 
+static off_t mms_plugin_seek_time (input_plugin_t *this_gen, int time_offset, int origin) {
+  mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
+  off_t               curpos = 0;
+
+  lprintf ("seek_time %d msec, origin %d\n", time_offset, origin);
+  
+  switch (this->protocol) {
+    case PROTOCOL_MMST:
+      if (origin == SEEK_SET)
+        mms_set_start_time (this->mms, time_offset);
+      curpos = mms_get_current_pos (this->mms);
+      break;
+    case PROTOCOL_MMSH:
+      curpos = mmsh_get_current_pos (this->mmsh);
+      break;
+  }
+    
+  return curpos;
+}
+
 static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
   mms_input_plugin_t   *this = (mms_input_plugin_t *) this_gen; 
   off_t                 length = 0;
@@ -355,6 +375,10 @@ static int mms_plugin_open (input_plugin_t *this_gen) {
   
   this->mms      = mms;
   this->mmsh     = mmsh;
+  
+  if (this->protocol == PROTOCOL_MMST) {
+    this->input_plugin.seek_time = mms_plugin_seek_time;
+  }
   
   return 1;
 }
