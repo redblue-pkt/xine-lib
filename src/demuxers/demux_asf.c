@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.189 2006/12/19 11:15:14 klan Exp $
+ * $Id: demux_asf.c,v 1.190 2007/01/03 15:12:37 klan Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1791,10 +1791,6 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   int            i, state;
   int64_t        ts;
 
-  start_time /= 1000;
-  start_pos = (off_t) ( (double) start_pos / 65535 *
-              this->input->get_length (this->input) );
-
   lprintf ("demux_asf_seek: start_pos=%lld, start_time=%d\n",
 	   start_pos, start_time);
 
@@ -1825,6 +1821,10 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
   if (this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) {
 
     _x_demux_flush_engine(this->stream);
+    
+    start_time /= 1000;
+    start_pos = (off_t) ( (double) start_pos / 65535 *
+                this->input->get_length (this->input) );
     
     if ( (!start_pos) && (start_time))
       start_pos = start_time * this->rate;
@@ -1952,6 +1952,22 @@ static int demux_asf_seek (demux_plugin_t *this_gen,
     if (this->audio_stream >= 0) {
       this->streams[this->audio_stream].resync = 1;
       this->streams[this->audio_stream].skip   = 1;
+    }
+  } else if (!playing && this->input->seek_time != NULL) {    
+    if (start_pos && !start_time)
+      start_time = this->length * start_pos / 65535;
+      
+    this->input->seek_time (this->input, start_time, SEEK_SET);
+    
+    this->keyframe_ts = 0;
+    this->keyframe_found = 0; /* means next keyframe */
+    if (this->video_stream >= 0) {
+      this->streams[this->video_stream].resync = 1;
+      this->streams[this->video_stream].skip   = 1;
+    }
+    if (this->audio_stream >= 0) {
+      this->streams[this->audio_stream].resync = 0;
+      this->streams[this->audio_stream].skip   = 0;
     }
   } else {
     /* "streaming" mode */
