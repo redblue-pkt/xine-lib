@@ -1,5 +1,5 @@
 # German xine-lib.po file.
-# Copyright (C) 2002-2006 Free Software Foundation, Inc.
+# Copyright (C) 2002-2007 Free Software Foundation, Inc.
 # Jens Gutzeit <jens.gutzeit@web.de>, 2002.
 #
 msgid ""
@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2006-12-27 22:08+0100\n"
-"PO-Revision-Date: 2006-10-13 12:55+0200\n"
+"PO-Revision-Date: 2007-01-04 09:02+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -4323,14 +4323,13 @@ msgstr ""
 "Ein Zeichensatz aus xines font-Verzeichnis zur Anzeige von Untertiteln."
 
 #: src/libsputext/xine_decoder.c:972
-#, fuzzy
 msgid "An outline font file (e.g. a .ttf) to be used for the subtitle text."
 msgstr ""
-"Ein Zeichensatz aus xines font-Verzeichnis zur Anzeige von Untertiteln."
+"Ein Zeichensatz (z.B. .ttf) zur Anzeige von Untertiteln."
 
 #: src/libsputext/xine_decoder.c:978
 msgid "whether to use a freetype font"
-msgstr ""
+msgstr "ob Freetype-Zeichensätze genutzt werden"
 
 #: src/libsputext/xine_decoder.c:985
 msgid "encoding of the subtitles"
