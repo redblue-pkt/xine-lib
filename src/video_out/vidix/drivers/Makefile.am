@@ -40,7 +40,7 @@ pm3_vid_la_LIBADD = $(top_builddir)/src/video_out/vidix/libdha.la
 pm3_vid_la_LDFLAGS = -avoid-version -module
 
 mach64_vid_la_SOURCES = mach64_vid.c
-mach64_la_LIBADD = $(top_builddir)/src/video_out/vidix/libdha.la
+mach64_vid_la_LIBADD = $(top_builddir)/src/video_out/vidix/libdha.la
 mach64_vid_la_LDFLAGS = -avoid-version -module
 
 mga_vid_la_SOURCES = mga_vid.c
