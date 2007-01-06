@@ -136,7 +136,7 @@ dnl ---------------------------------------------
 dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
 dnl ---------------------------------------------
 
-AM_PROG_AS_MOD
+AM_PROG_AS
 
 
 dnl ---------------------------------------------
@@ -365,8 +365,17 @@ AC_SUBST(LIBMPEG2_CFLAGS)
 
 AC_ARG_WITH([external-ffmpeg], AC_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]))
 
+case "x$with_external_ffmpeg" in
+   xyes)
+      PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.20.0])
+      ;;
+   xsoft)
+      with_external_ffmpeg=yes
+      PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.20.0], [],
+			[AC_MSG_RESULT(no); with_external_ffmpeg=no])
+      ;;
+esac
 if test "x$with_external_ffmpeg" = "xyes"; then
-   PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.20.0])
    PKG_CHECK_MODULES([FFMPEG_POSTPROC], [libpostproc])
    AC_SUBST([FFMPEG_CFLAGS])
    AC_SUBST([FFMPEG_LIBS])
