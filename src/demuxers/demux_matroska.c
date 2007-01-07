@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2005 the xine project
+ * Copyright (C) 2000-2007 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.49 2006/11/14 14:17:31 dgp85 Exp $
+ * $Id: demux_matroska.c,v 1.50 2007/01/07 12:33:50 molivier Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -350,6 +350,140 @@ static int parse_audio_track (demux_matroska_t *this, matroska_audio_track_t *at
         if (!ebml_read_uint(ebml, &elem, &val))
           return 0;
         at->bits_per_sample = val;
+        break;
+      default:
+        lprintf("Unhandled ID: 0x%x\n", elem.id);
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+    }
+    next_level = ebml_get_next_level(ebml, &elem);
+  }
+  return 1;
+}
+
+
+static int parse_content_compression (demux_matroska_t *this, matroska_track_t *track) {
+  ebml_parser_t *ebml = this->ebml;
+  int next_level = 6;
+
+  while (next_level == 6) {
+    ebml_elem_t elem;
+    uint64_t    val;
+
+    if (!ebml_read_elem_head(ebml, &elem))
+      return 0;
+
+    switch (elem.id) {
+      case MATROSKA_ID_CE_COMPALGO:
+        lprintf("ContentCompAlgo\n");
+        if (!ebml_read_uint(ebml, &elem, &val))
+          return 0;
+        switch (val)
+        {
+          case MATROSKA_COMPRESS_ZLIB:
+          case MATROSKA_COMPRESS_BZLIB:
+          case MATROSKA_COMPRESS_LZO1X:
+          case MATROSKA_COMPRESS_HEADER_STRIP:
+            track->compress_algo = val;
+            break;
+          default:
+            track->compress_algo = MATROSKA_COMPRESS_UNKNOWN;
+            break;
+        }
+        break;
+      case MATROSKA_ID_CE_COMPSETTINGS:
+        lprintf("ContentCompSettings (UNSUPPORTED)\n");
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+        break;
+      default:
+        lprintf("Unhandled ID: 0x%x\n", elem.id);
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+    }
+    next_level = ebml_get_next_level(ebml, &elem);
+  }
+  return 1;
+}
+
+
+static int parse_content_encoding (demux_matroska_t *this, matroska_track_t *track) {
+  ebml_parser_t *ebml = this->ebml;
+  int next_level = 5;
+
+  while (next_level == 5) {
+    ebml_elem_t elem;
+    uint64_t    val;
+
+    if (!ebml_read_elem_head(ebml, &elem))
+      return 0;
+
+    switch (elem.id) {
+      case MATROSKA_ID_CE_ORDER:
+        lprintf("ContentEncodingOrder\n");
+        if (!ebml_read_uint(ebml, &elem, &val))
+          return 0;
+        if (val != 0) {  // multiple content encoding isn't supported
+          lprintf("   warning: a non-zero encoding order is UNSUPPORTED\n");
+          return 0;
+        }
+        break;
+      case MATROSKA_ID_CE_SCOPE:
+        lprintf("ContentEncodingScope\n");
+        if (!ebml_read_uint(ebml, &elem, &val))
+          return 0;
+        if (val != 1) {  // 1 (all frame contents) is the only supported option
+          lprintf("   warning: UNSUPPORTED encoding scope (%" PRId64 ")\n", val);
+          return 0;
+        }
+        break;
+      case MATROSKA_ID_CE_TYPE:
+        lprintf("ContentEncodingType\n");
+        if (!ebml_read_uint(ebml, &elem, &val))
+          return 0;
+        if (val != 0)  // only compression (0) is supported
+          return 0;
+        break;
+      case MATROSKA_ID_CE_COMPRESSION:
+        lprintf("ContentCompression\n");
+        if (!ebml_read_master (ebml, &elem))
+          return 0;
+        if ((elem.len > 0) && !parse_content_compression(this, track))
+          return 0;
+        break;
+      case MATROSKA_ID_CE_ENCRYPTION:
+        lprintf("ContentEncryption (UNSUPPORTED)\n");
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+        break;
+      default:
+        lprintf("Unhandled ID: 0x%x\n", elem.id);
+        if (!ebml_skip(ebml, &elem))
+          return 0;
+    }
+    next_level = ebml_get_next_level(ebml, &elem);
+  }
+  return 1;
+}
+
+
+static int parse_content_encodings (demux_matroska_t *this, matroska_track_t *track) {
+  ebml_parser_t *ebml = this->ebml;
+  int next_level = 4;
+
+  while (next_level == 4) {
+    ebml_elem_t elem;
+
+    if (!ebml_read_elem_head(ebml, &elem))
+      return 0;
+
+    switch (elem.id) {
+      case MATROSKA_ID_CONTENTENCODING:
+        lprintf("ContentEncoding\n");
+        if (!ebml_read_master (ebml, &elem))
+          return 0;
+        if ((elem.len > 0) && !parse_content_encoding(this, track))
+          return 0;
         break;
       default:
         lprintf("Unhandled ID: 0x%x\n", elem.id);
@@ -937,45 +1071,67 @@ static void handle_vobsub (demux_plugin_t *this_gen, matroska_track_t *track,
                            int input_normpos, int input_time) {
   demux_matroska_t *this = (demux_matroska_t *) this_gen;
   buf_element_t *buf;
-  z_stream zstream;
-  uint8_t *dest;
-  int old_data_len, result;
 
-  old_data_len = data_len;
-  zstream.zalloc = (alloc_func) 0;
-  zstream.zfree = (free_func) 0;
-  zstream.opaque = (voidpf) 0;
-  if (inflateInit (&zstream) != Z_OK) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            "demux_matroska: VobSub: zlib inflateInit failed.\n");
-    return;
-  }
-  zstream.next_in = (Bytef *)data;
-  zstream.avail_in = data_len;
+  if (track->compress_algo == MATROSKA_COMPRESS_ZLIB ||
+      track->compress_algo == MATROSKA_COMPRESS_UNKNOWN) {
+    z_stream zstream;
+    uint8_t *dest;
+    int old_data_len, result;
 
-  dest = (uint8_t *)malloc(data_len);
-  zstream.avail_out = data_len;
-  do {
-    data_len += 4000;
-    dest = (uint8_t *)realloc(dest, data_len);
-    zstream.next_out = (Bytef *)(dest + zstream.total_out);
-    result = inflate (&zstream, Z_NO_FLUSH);
-    if ((result != Z_OK) && (result != Z_STREAM_END)) {
+    old_data_len = data_len;
+    zstream.zalloc = (alloc_func) 0;
+    zstream.zfree = (free_func) 0;
+    zstream.opaque = (voidpf) 0;
+    if (inflateInit (&zstream) != Z_OK) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-              "demux_matroska: VobSub: zlib decompression failed.\n");
-      free(dest);
-      inflateEnd(&zstream);
+              "demux_matroska: VobSub: zlib inflateInit failed.\n");
       return;
     }
-    zstream.avail_out += 4000;
-  } while ((zstream.avail_out == 4000) &&
-           (zstream.avail_in != 0) && (result != Z_STREAM_END));
+    zstream.next_in = (Bytef *)data;
+    zstream.avail_in = data_len;
 
-  data_len = zstream.total_out;
-  inflateEnd(&zstream);
-
-  lprintf("VobSub: decompression for track %d from %d to %d\n",
-          (int)track->track_num, old_data_len, data_len);
+    dest = (uint8_t *)malloc(data_len);
+    zstream.avail_out = data_len;
+    do {
+      data_len += 4000;
+      dest = (uint8_t *)realloc(dest, data_len);
+      zstream.next_out = (Bytef *)(dest + zstream.total_out);
+      result = inflate (&zstream, Z_NO_FLUSH);
+      if ((result != Z_OK) && (result != Z_STREAM_END)) {
+        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+                "demux_matroska: VobSub: zlib decompression failed for track %d (result = %d).\n",
+                (int)track->track_num, result);
+        free(dest);
+        inflateEnd(&zstream);
+       
+        if (result == Z_DATA_ERROR && track->compress_algo == MATROSKA_COMPRESS_UNKNOWN) {
+          track->compress_algo = MATROSKA_COMPRESS_NONE;
+          data_len = old_data_len;
+          xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+                  "demux_matroska: VobSub: falling back to uncompressed mode.\n");
+          break;
+        }
+        return;
+      }
+      zstream.avail_out += 4000;
+    } while ((zstream.avail_out == 4000) &&
+            (zstream.avail_in != 0) && (result != Z_STREAM_END));
+ 
+    if (track->compress_algo != MATROSKA_COMPRESS_NONE) {
+      data_len = zstream.total_out;
+      inflateEnd(&zstream);
+ 
+      data = dest;
+      track->compress_algo = MATROSKA_COMPRESS_ZLIB;
+      lprintf("VobSub: decompression for track %d from %d to %d\n",
+              (int)track->track_num, old_data_len, data_len);
+    }
+  }
+  else
+  {
+    lprintf("VobSub: track %d isn't compressed (%d bytes)\n",
+            (int)track->track_num, data_len);
+  }
 
   buf = track->fifo->buffer_pool_alloc(track->fifo);
 
@@ -986,8 +1142,8 @@ static void handle_vobsub (demux_plugin_t *this_gen, matroska_track_t *track,
     buf->decoder_info[2] = SPU_DVD_SUBTYPE_VOBSUB_PACKAGE;
     buf->type = track->buf_type;
 
-    xine_fast_memcpy(buf->content, dest, data_len);
-    
+    xine_fast_memcpy(buf->content, data, data_len);
+
     buf->extra_info->input_normpos = input_normpos;
     buf->extra_info->input_time    = input_time;
 
@@ -1000,7 +1156,8 @@ static void handle_vobsub (demux_plugin_t *this_gen, matroska_track_t *track,
     buf->free_buffer(buf);
   }
 
-  free(dest);
+  if (track->compress_algo == MATROSKA_COMPRESS_ZLIB)
+    free(data);
 }
 
 static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
@@ -1101,6 +1258,15 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
           return 0;
         track->default_duration = val;
         lprintf("Default Duration: %lld\n", track->default_duration);
+      }
+      break;
+
+      case MATROSKA_ID_CONTENTENCODINGS: {
+        lprintf("ContentEncodings\n");
+        if (!ebml_read_master (ebml, &elem))
+          return 0;
+        if ((elem.len > 0) && !parse_content_encodings(this, track))
+          return 0;
       }
       break;
 
@@ -1289,6 +1455,14 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       track->buf_type = BUF_SPU_DVD;
       track->handle_content = handle_vobsub;
       init_codec = init_codec_vobsub;
+      
+      /* Enable autodetection of the zlib compression, unless it was
+       * explicitely set. Most vobsubs are compressed with zlib but
+       * are not declared as such.
+       */
+      if (track->compress_algo == MATROSKA_COMPRESS_NONE) {
+        track->compress_algo = MATROSKA_COMPRESS_UNKNOWN;
+      }
     } else {
       lprintf("unknown codec\n");
     }
@@ -1339,12 +1513,17 @@ static int parse_tracks(demux_matroska_t *this) {
 
     switch (elem.id) {
       case MATROSKA_ID_TR_ENTRY: {
+        matroska_track_t *track;
+
         /* alloc and initialize a track with 0 */
-        this->tracks[this->num_tracks] = xine_xmalloc(sizeof(matroska_track_t));
+        track = xine_xmalloc(sizeof(matroska_track_t));
+        track->compress_algo = MATROSKA_COMPRESS_NONE;
+        this->tracks[this->num_tracks] = track;
+
         lprintf("TrackEntry\n");
         if (!ebml_read_master (ebml, &elem))
           return 0;
-        if ((elem.len > 0) && !parse_track_entry(this, this->tracks[this->num_tracks]))
+        if ((elem.len > 0) && !parse_track_entry(this, track))
           return 0;
         this->num_tracks++;
       }
