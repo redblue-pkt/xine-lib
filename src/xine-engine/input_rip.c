@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.31 2006/06/20 00:35:07 dgp85 Exp $
+ * $Id: input_rip.c,v 1.32 2007/01/07 20:26:23 klan Exp $
  */
 
 /* TODO:
@@ -430,6 +430,14 @@ static off_t rip_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin)
   return this->curpos;
 }
 
+static off_t rip_plugin_seek_time(input_plugin_t *this_gen, int time_offset, int origin) {
+  rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
+  
+  lprintf("seek_time, time_offset: %d, origin: %d\n", time_offset, origin);
+
+  return this->main_input_plugin->seek_time(this->main_input_plugin, time_offset, origin);
+}
+
 /*
  * return current position,
  * check values for debug build
@@ -446,6 +454,12 @@ static off_t rip_plugin_get_current_pos(input_plugin_t *this_gen) {
 #endif
   
   return this->curpos;
+}
+
+static int rip_plugin_get_current_time(input_plugin_t *this_gen) {
+  rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
+  
+  return this->main_input_plugin->get_current_time(this->main_input_plugin);
 }
 
 static off_t rip_plugin_get_length (input_plugin_t *this_gen) {
@@ -655,7 +669,11 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   this->input_plugin.read                = rip_plugin_read;
   this->input_plugin.read_block          = rip_plugin_read_block;
   this->input_plugin.seek                = rip_plugin_seek;
+  if(this->main_input_plugin->seek_time)
+    this->input_plugin.seek_time         = rip_plugin_seek_time;
   this->input_plugin.get_current_pos     = rip_plugin_get_current_pos;
+  if(this->main_input_plugin->get_current_time)
+    this->input_plugin.get_current_time  = rip_plugin_get_current_time;
   this->input_plugin.get_length          = rip_plugin_get_length;
   this->input_plugin.get_blocksize       = rip_plugin_get_blocksize;
   this->input_plugin.get_mrl             = rip_plugin_get_mrl;
