@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.65 2007/01/03 15:09:42 klan Exp $
+ * $Id: input_mms.c,v 1.66 2007/01/09 20:50:59 klan Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -214,6 +214,8 @@ static off_t mms_plugin_seek_time (input_plugin_t *this_gen, int time_offset, in
       curpos = mms_get_current_pos (this->mms);
       break;
     case PROTOCOL_MMSH:
+      if (origin == SEEK_SET)
+        mmsh_set_start_time (this->mmsh, time_offset);
       curpos = mmsh_get_current_pos (this->mmsh);
       break;
   }
@@ -376,10 +378,6 @@ static int mms_plugin_open (input_plugin_t *this_gen) {
   this->mms      = mms;
   this->mmsh     = mmsh;
   
-  if (this->protocol == PROTOCOL_MMST) {
-    this->input_plugin.seek_time = mms_plugin_seek_time;
-  }
-  
   return 1;
 }
 
@@ -424,6 +422,7 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   this->input_plugin.read              = mms_plugin_read;
   this->input_plugin.read_block        = mms_plugin_read_block;
   this->input_plugin.seek              = mms_plugin_seek;
+  this->input_plugin.seek_time         = mms_plugin_seek_time;
   this->input_plugin.get_current_pos   = mms_plugin_get_current_pos;
   this->input_plugin.get_length        = mms_plugin_get_length;
   this->input_plugin.get_blocksize     = mms_plugin_get_blocksize;
