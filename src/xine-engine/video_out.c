@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.225 2006/03/25 01:26:34 dsalt Exp $
+ * $Id: video_out.c,v 1.226 2007/01/10 20:13:14 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1783,11 +1783,23 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
   this->frame_drop_limit      = 3;
   this->frame_drop_cpt        = 0;
 
-  num_frame_buffers = driver->get_property (driver, VO_PROP_MAX_NUM_FRAMES);
+  /* default number of video frames from config */
+  num_frame_buffers = xine->config->register_num (xine->config,
+                                                  "engine.buffers.video_num_frames",
+                                                  NUM_FRAME_BUFFERS, /* default */
+                                                  _("default number of video frames"),
+						  _("The default number of video frames to request "
+						    "from xine video out driver. Some drivers will "
+						    "override this setting with their own values."),
+                                                    20, NULL, NULL);
 
-  if (!num_frame_buffers)
-    num_frame_buffers = NUM_FRAME_BUFFERS; /* default */
-  else if (num_frame_buffers<5) 
+  /* check driver's limit and use the smaller value */
+  i = driver->get_property (driver, VO_PROP_MAX_NUM_FRAMES);
+  if (i && i < num_frame_buffers)
+    num_frame_buffers = i;
+
+  /* we need at least 5 frames */
+  if (num_frame_buffers<5) 
     num_frame_buffers = 5;
 
   this->extra_info_base = calloc (num_frame_buffers,
