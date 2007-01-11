@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mmsh.c,v 1.41 2007/01/09 20:50:59 klan Exp $
+ * $Id: mmsh.c,v 1.42 2007/01/11 16:20:55 klan Exp $
  *
  * MMS over HTTP protocol
  *   written by Thibaut Mattern
@@ -555,6 +555,9 @@ static int mmsh_connect_int(mmsh_t *this, int bandwidth) {
            
   asf_header_disable_streams (this->asf_header,
                               this->video_stream, this->audio_stream);
+                              
+  if (mmsh_tcp_connect(this))
+    return 0;
   
   return 1;
 }
@@ -569,9 +572,6 @@ static int mmsh_connect_int2(mmsh_t *this, int bandwidth) {
   
   /* second request */
   lprintf("second http request\n");
-  
-  if (mmsh_tcp_connect(this))
-    return 0;
 
   /* stream selection string */
   /* The same selection is done with mmst */
