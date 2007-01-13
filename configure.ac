@@ -102,7 +102,7 @@ dnl ---------------------------------------------
 dnl Made possible to build for another arch.
 dnl ---------------------------------------------
 
-if test x$XINE_BUILD != "x"; then
+if test "x$XINE_BUILD" != "x"; then
   AC_MSG_RESULT([*** build forced to $XINE_BUILD ***])
   build=$XINE_BUILD
   host=$XINE_BUILD
@@ -168,8 +168,8 @@ dnl ALL_LINGUAS="cs da de el en@quot en@boldquot es et fr gl id it ja ko nl nn n
 AM_ICONV
 AC_ARG_ENABLE([iconvtest],
 	AS_HELP_STRING([--disable-iconvtest], [don't require iconv library]))
-if test x$enable_iconvtest != xno; then
-  if test x"$am_cv_func_iconv" != xyes; then
+if test "x$enable_iconvtest" != xno; then
+  if test "x$am_cv_func_iconv" != xyes; then
     AC_MSG_ERROR([
 ****************************************************************
 * iconv library not found. It's necessary for proper           *
@@ -205,7 +205,7 @@ AC_CHECK_SIZEOF(long)
 dnl AC_CHECK_TYPES([ptrdiff_t])
 dnl For systems without inttypes.h would be needed extend generated replacement.
 AC_CHECK_GENERATE_INTTYPES([include])
-AM_CONDITIONAL(GENERATED_INTTYPES_H, test x"$ac_cv_header_inttypes_h" != x"yes")
+AM_CONDITIONAL(GENERATED_INTTYPES_H, test "x$ac_cv_header_inttypes_h" != x"yes")
 AC_CHECK_TYPE(ssize_t, :, AC_DEFINE(ssize_t, __int64, [define ssize_t to __int64 if it's missing in default includes]))
 
 dnl ---------------------------------------------
@@ -221,7 +221,7 @@ AC_ARG_WITH(pthread-prefix,
 
 case "$host" in
   *-*-freebsd*)
-    if test x"$pthread_prefix" = "xno"; then
+    if test "x$pthread_prefix" = "xno"; then
       pthread_prefix="/usr/local"
     fi
     THREAD_LIBS="-L$pthread_prefix/lib -pthread"
@@ -237,7 +237,7 @@ case "$host" in
     ;;
 
   *)
-    if test x"$pthread_prefix" = "xno"; then
+    if test "x$pthread_prefix" = "xno"; then
       THREAD_LIBS="-lpthread"
     else
       THREAD_LIBS="-L$pthread_prefix/lib -lpthread"
@@ -254,7 +254,7 @@ case "$host" in
     ;;
 esac
 
-if test x"$have_pthread" != "xyes"; then
+if test "x$have_pthread" != "xyes"; then
   AC_MSG_ERROR(pthread needed)
 fi
 
@@ -315,7 +315,7 @@ case "$host" in
 esac
 AC_SUBST(GOOM_LIBS)
 AC_SUBST(WIN32_CPPFLAGS)
-AM_CONDITIONAL(WIN32, test x$SYS = "xmingw32")
+AM_CONDITIONAL(WIN32, test "x$SYS" = "xmingw32")
 
 
 dnl ---------------------------------------------
@@ -414,7 +414,7 @@ for ucname in $ffmpeg_uncommon_codecs; do
   config_name="CONFIG_${ucname}_DECODER"
   enabled_name="ENABLE_${ucname}_DECODER"
   
-  if test x$enable_ffmpeg_uncommon_codecs != xno; then
+  if test "x$enable_ffmpeg_uncommon_codecs" != xno; then
     echo "#define $config_name 1" >> $ffmpeg_config_h
     echo "#define $enabled_name 1" >> $ffmpeg_config_h
   else
@@ -429,7 +429,7 @@ for ucname in $ffmpeg_popular_codecs; do
   config_name="CONFIG_${ucname}_DECODER"
   enabled_name="ENABLE_${ucname}_DECODER"
   
-  if test x$enable_ffmpeg_popular_codecs != xno; then
+  if test "x$enable_ffmpeg_popular_codecs" != xno; then
     echo "#define $config_name 1" >> $ffmpeg_config_h
     echo "#define $enabled_name 1" >> $ffmpeg_config_h
   else
@@ -493,8 +493,8 @@ AC_ARG_ENABLE([mlib],
 AC_ARG_ENABLE([mlib-lazyload],
 	AS_HELP_STRING([--enable-mlib-lazyload], [check for Sun mediaLib at runtime]))
 
-if test x$enable_mlib != xno; then
-    if test x"$MLIBHOME" = x; then
+if test "x$enable_mlib" != xno; then
+    if test "x$MLIBHOME" = x; then
 	mlibhome=/opt/SUNWmlib
     else
 	mlibhome="$MLIBHOME"
@@ -504,7 +504,7 @@ if test x$enable_mlib != xno; then
 	[ saved_CPPFLAGS="$CPPFLAGS"
 	  CPPFLAGS="$CPPFLAGS -I$mlibhome/include"
 	  AC_CHECK_HEADER(mlib_video.h,
-	       [ if test x$enable_mlib_lazyload = xyes; then
+	       [ if test "x$enable_mlib_lazyload" = xyes; then
 		     if test "$GCC" = yes; then
 			 MLIB_LIBS="-L$mlibhome/lib -Wl,-z,lazyload,-lmlib,-z,nolazyload"
 		     else
@@ -524,7 +524,7 @@ if test x$enable_mlib != xno; then
 	  CPPFLAGS="$saved_CPPFLAGS"
 	], , -L$mlibhome/lib)
 fi
-AM_CONDITIONAL(HAVE_MLIB, test x$ac_have_mlib = "xyes")
+AM_CONDITIONAL(HAVE_MLIB, test "x$ac_have_mlib" = "xyes")
 AC_SUBST(MLIB_LIBS)
 AC_SUBST(MLIB_CFLAGS)
 
@@ -540,7 +540,7 @@ if test "x$with_x" != "xno"; then
      dnl Check for XShm support (required with X)
      dnl ----------------------------------------------
 
-     if test x"$no_x" != "xyes"; then
+     if test "x$no_x" != "xyes"; then
         ac_save_CPPFLAGS="$CPPFLAGS"
         CPPFLAGS="$CPPFLAGS $X_CFLAGS"
         AC_CHECK_HEADERS([X11/extensions/XShm.h], [],
@@ -552,10 +552,10 @@ else
    no_x="yes"
 fi
 
-if test x"$no_x" != "xyes"; then
+if test "x$no_x" != "xyes"; then
     AC_DEFINE(HAVE_X11,1,[Define this if you have X11R6 installed])
 fi
-AM_CONDITIONAL(HAVE_X11, [test x"$no_x" != "xyes"])
+AM_CONDITIONAL(HAVE_X11, [test "x$no_x" != "xyes"])
 
 
 dnl ---------------------------------------------
@@ -612,7 +612,7 @@ AC_ARG_WITH(zlib-prefix,
   [zlib_prefix="$withval"],
   [zlib_prefix="no"])
 
-if test x"$zlib_prefix" = "xno"; then
+if test "x$zlib_prefix" = "xno"; then
   ZLIB_LIBS="-lz"
 else
   ZLIB_CPPFLAGS="-I$zlib_prefix/include"
@@ -672,7 +672,7 @@ case "$host_os" in
     enable_syncfb=no ;;
 esac
 
-AM_CONDITIONAL(HAVE_SYNCFB, test x"$enable_syncfb" != "xno")
+AM_CONDITIONAL(HAVE_SYNCFB, test "x$enable_syncfb" != "xno")
 
 
 dnl ----------------------------------------------
@@ -689,7 +689,7 @@ if test "x$enable_v4l" != "xno"; then
   fi
 fi
 
-AM_CONDITIONAL(HAVE_V4L, [test x"$have_v4l" = "xyes"])
+AM_CONDITIONAL(HAVE_V4L, [test "x$have_v4l" = "xyes"])
 
 dnl ----------------------------------------------
 dnl Check for Xv and XvMC support
@@ -710,13 +710,13 @@ else
   xv_prefer_shared="yes"
 fi
 
-if test x"$no_x" != "xyes"; then
+if test "x$no_x" != "xyes"; then
    PKG_CHECK_MODULES([XV], [xv], [
      ac_have_xv="yes"
      AC_DEFINE([HAVE_XV], [1], [Define this if you have libXv installed])
    ], [AC_FIND_LIBXV])
 fi
-AM_CONDITIONAL(HAVE_XV, test x$ac_have_xv = "xyes")
+AM_CONDITIONAL(HAVE_XV, test "x$ac_have_xv" = "xyes")
 
 
 host_or_hostalias="$host"
@@ -732,7 +732,7 @@ fi
 
 case "$host_or_hostalias" in
   hppa*)
-	if test x$ac_have_xv_static = "xyes"; then
+	if test "x$ac_have_xv_static" = "xyes"; then
 	  echo "warning: hppa linker - disabling static libXv"
 	  XV_LIBS="libXv.so"
 	fi
@@ -745,7 +745,7 @@ case "$host_or_hostalias" in
   *)
         ;;
 esac
-AM_CONDITIONAL(PPC_ARCH, test x$ppc_arch = "xyes")
+AM_CONDITIONAL(PPC_ARCH, test "x$ppc_arch" = "xyes")
 
 dnl
 dnl Check if we can enable the xxmc plugin.
@@ -754,7 +754,7 @@ dnl
 AC_ARG_ENABLE([xvmc],
   AS_HELP_STRING([--disable-xvmc], [Disable XxMC and XvMC outplut plugins]) )
 
-if test x$no_x = "x" && test "x$enable_xvmc" != "xno"; then
+if test "x$no_x" = "x" && test "x$enable_xvmc" != "xno"; then
 
 AC_ARG_WITH(xxmc-path, AC_HELP_STRING([--with-xxmc-path=path], [where libXvMC libraries for the
 	xxmc plugin are  installed. Defalts to the default X library path.]),
@@ -765,7 +765,7 @@ AC_ARG_WITH(xxmc-lib, AC_HELP_STRING([--with-xxmc-lib=XXXX], [The name of the Xv
 
 saved_libs="$LIBS"
 saved_CPPFLAGS="$CPPFLAGS"
-if test x$x_includes != "x"; then
+if test "x$x_includes" != "x"; then
 	CPPFLAGS="$CPPFLAGS -I$x_includes"
 fi
 
@@ -773,14 +773,14 @@ XXMC_LIBS="-L$xxmc_path -l$xxmc_stub"
 AC_MSG_CHECKING(whether to enable the xxmc plugin with vld extensions)
 AC_MSG_RESULT()
 dnl Check if vld "extended" XvMC is available
-if test x$xxmc_stub == "xXvMCW" && test x$ac_have_xv == "xyes"; then
+if test "x$xxmc_stub" == "xXvMCW" && test "x$ac_have_xv" == "xyes"; then
 	AC_CHECK_LIB($xxmc_stub, XvMCPutSlice,
              	     ac_have_xxmc="yes",
 	             [ac_have_xxmc="no"
               	        AC_MSG_RESULT([*** Could not link with -l$xxmc_stub for vld extensions.])],
                      [-L$xxmc_path $X_LIBS $X_PRE_LIBS $XV_LIBS -lXext $X_EXTRA_LIBS])
 else
-    if test x$ac_have_xv = "xyes"; then 
+    if test "x$ac_have_xv" = "xyes"; then 
       AC_CHECK_LIB($xxmc_stub, XvMCPutSlice,
 	           [ac_have_xxmc="yes"
 	             XXMC_LIBS="$XXMC_LIBS -lXvMC"],
@@ -792,7 +792,7 @@ else
     fi  
 fi
 
-if test x$ac_have_xxmc = "xyes"; then
+if test "x$ac_have_xxmc" = "xyes"; then
   AC_CHECK_HEADERS(X11/extensions/vldXvMC.h,
      [ac_have_vldxvmc_h="yes"],
      ac_have_vldxvmc="no",)
@@ -802,15 +802,15 @@ if test x$ac_have_xxmc = "xyes"; then
   fi
 fi
 dnl Try fallback to standard XvMC if vld failed
-if test x$ac_have_xxmc = "xno"; then
-  if test x$xxmc_stub == "xXvMCW"; then
+if test "x$ac_have_xxmc" = "xno"; then
+  if test "x$xxmc_stub" == "xXvMCW"; then
 	  AC_CHECK_LIB($xxmc_stub, XvMCCreateContext,
                ac_have_xxmc="yes",
 	       [ac_have_xxmc="no"
                 AC_MSG_RESULT([*** Could not link with -l$xxmc_stub for standard XvMC.])],
                [-L$xxmc_path $X_LIBS $X_PRE_LIBS $XV_LIBS -lXext $X_EXTRA_LIBS])
   else
-      if test x$ac_have_xv = "xyes"; then 
+      if test "x$ac_have_xv" = "xyes"; then 
         AC_CHECK_LIB($xxmc_stub, XvMCCreateContext,
 	             [ac_have_xxmc="yes"
 		      XXMC_LIBS="$XXMC_LIBS -lXvMC"],
@@ -822,11 +822,11 @@ if test x$ac_have_xxmc = "xno"; then
       fi  
   fi
 fi
-if test x$ac_have_xxmc = "xyes"; then
+if test "x$ac_have_xxmc" = "xyes"; then
   AC_CHECK_HEADERS(X11/extensions/XvMC.h,,
      ac_have_xxmc="no",)
 fi
-if test x$ac_have_xxmc = "xyes"; then
+if test "x$ac_have_xxmc" = "xyes"; then
   AC_DEFINE(HAVE_XXMC,1,[Define this to compile the xxmc plugin.])
   if test "x$ac_have_vldxvmc_h" = "xyes"; then
     AC_MSG_RESULT([*** Enabling xxmc plugin with vld extensions.])
@@ -838,14 +838,14 @@ else
 fi
 LIBS="$saved_libs"
 fi
-AM_CONDITIONAL(HAVE_VLDXVMC, test x$ac_have_vldxvmc_h = "xyes")
-AM_CONDITIONAL(HAVE_XXMC, test x$ac_have_xxmc = "xyes")
+AM_CONDITIONAL(HAVE_VLDXVMC, test "x$ac_have_vldxvmc_h" = "xyes")
+AM_CONDITIONAL(HAVE_XXMC, test "x$ac_have_xxmc" = "xyes")
 AC_SUBST(XXMC_LIBS)
 	   
 dnl
 dnl Check if we can enable the xvmc plugin.
 dnl
-if test x$no_x = "x" && test "x$enable_xvmc" != "xno"; then
+if test "x$no_x" = "x" && test "x$enable_xvmc" != "xno"; then
 
 AC_ARG_WITH(xvmc-path, AC_HELP_STRING([--with-xvmc-path=path], [where libXvMC libraries for the
 	xvmc plugin are  installed. Defalts to the default X library path.]),
@@ -857,14 +857,14 @@ saved_libs="$LIBS"
 XVMC_LIBS="-L$xvmc_path -l$xvmc_stub"
 AC_MSG_CHECKING(whether to enable the xvmc plugin)
 AC_MSG_RESULT()
-if test x$xvmc_stub == "xXvMCW"; then
+if test "x$xvmc_stub" == "xXvMCW"; then
 	AC_CHECK_LIB($xvmc_stub, XvMCCreateContext,
              ac_have_xvmc="yes",
 	     [ac_have_xvmc="no"
               AC_MSG_RESULT([*** Could not link with -l$xvmc_stub.])],
              [-L$xvmc_path $X_LIBS $X_PRE_LIBS $XV_LIBS -lXext $X_EXTRA_LIBS])
 else
-    if test x$ac_have_xv = "xyes"; then 
+    if test "x$ac_have_xv" = "xyes"; then 
       AC_CHECK_LIB($xvmc_stub, XvMCCreateContext,
 	           [ac_have_xvmc="yes"
 		    XVMC_LIBS="$XVMC_LIBS -lXvMC"],
@@ -875,11 +875,11 @@ else
       ac_have_xvmc="no",
     fi  
 fi
-if test x$ac_have_xvmc = "xyes"; then
+if test "x$ac_have_xvmc" = "xyes"; then
   AC_CHECK_HEADERS(X11/extensions/XvMC.h,,
      ac_have_xvmc="no",)
 fi
-if test x$ac_have_xvmc = "xyes"; then
+if test "x$ac_have_xvmc" = "xyes"; then
   AC_DEFINE(HAVE_XVMC,1,[Define this if you have an XvMC library and XvMC.h installed.])
   AC_MSG_RESULT([*** Enabling old xvmc plugin.])
 else
@@ -888,7 +888,7 @@ fi
 CPPFLAGS="$saved_CPPFLAGS"
 LIBS="$saved_libs"
 fi
-AM_CONDITIONAL(HAVE_XVMC, test x$ac_have_xvmc = "xyes")
+AM_CONDITIONAL(HAVE_XVMC, test "x$ac_have_xvmc" = "xyes")
 AC_SUBST(XVMC_LIBS)
 
 
@@ -913,7 +913,7 @@ if test "x$enable_xinerama" != "xno"; then
 else
   ac_have_xinerama=no
 fi
-dnl AM_CONDITIONAL(HAVE_XINERAMA, test x$ac_have_xinerama = "xyes")
+dnl AM_CONDITIONAL(HAVE_XINERAMA, test "x$ac_have_xinerama" = "xyes")
 
  
 dnl ---------------------------------------------
@@ -930,7 +930,7 @@ else
   no_aalib=yes
 fi
 
-AM_CONDITIONAL(HAVE_AA, test x$no_aalib != "xyes")
+AM_CONDITIONAL(HAVE_AA, test "x$no_aalib" != "xyes")
 
 dnl ---------------------------------------------
 dnl Checks for Color AsCii Art library
@@ -953,7 +953,7 @@ dnl Check solaris framebuffer device support
 dnl ---------------------------------------------
 
 AC_CHECK_HEADER(sys/fbio.h, ac_have_sunfb=yes,)
-AM_CONDITIONAL(HAVE_SUNFB, [test x"$ac_have_sunfb" = "xyes"])
+AM_CONDITIONAL(HAVE_SUNFB, [test "x$ac_have_sunfb" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -973,7 +973,7 @@ AC_CHECK_LIB(dga, XDgaGrabDrawable, [
 ])
 LDFLAGS="$saved_LDFLAGS"
 CPPFLAGS="$saved_CPPFLAGS"
-AM_CONDITIONAL(HAVE_SUNDGA, [test x"$ac_have_sundga" = "xyes"])
+AM_CONDITIONAL(HAVE_SUNDGA, [test "x$ac_have_sundga" = "xyes"])
 AC_SUBST(SUNDGA_CFLAGS)
 AC_SUBST(SUNDGA_LIBS)
 
@@ -987,7 +987,7 @@ AC_CHECK_HEADER(linux/fb.h,
                  have_fb=yes],)
 AC_ARG_ENABLE(fb, AC_HELP_STRING([--disable-fb], [do not build linux framebuffer support]),
 	      have_fb=$enableval)
-AM_CONDITIONAL(HAVE_FB, [test x"$have_fb" = "xyes"])
+AM_CONDITIONAL(HAVE_FB, [test "x$have_fb" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -996,7 +996,7 @@ dnl ---------------------------------------------
 
 AC_ARG_ENABLE(macosx_video, AC_HELP_STRING([--enable-macosx-video], [enable support for Mac OS X OpenGL video output]),
               have_macosx_video=$enableval)
-AM_CONDITIONAL(HAVE_MACOSX_VIDEO, [test x"$have_macosx_video" = "xyes"])
+AM_CONDITIONAL(HAVE_MACOSX_VIDEO, [test "x$have_macosx_video" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -1005,7 +1005,7 @@ dnl ---------------------------------------------
 
 AC_ARG_ENABLE(coreaudio, AC_HELP_STRING([--enable-coreaudio], [enable support for Mac OS X Coreaudio output]),
               have_coreaudio=$enableval)
-AM_CONDITIONAL(HAVE_COREAUDIO, [test x"$have_coreaudio" = "xyes"])
+AM_CONDITIONAL(HAVE_COREAUDIO, [test "x$have_coreaudio" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -1016,13 +1016,13 @@ AC_ARG_ENABLE(directfb,
 		enable_directfb=$enableval,
 		enable_directfb=no)
 
-if test x$enable_directfb = "xyes"; then
+if test "x$enable_directfb" = "xyes"; then
   PKG_CHECK_MODULES([DIRECTFB], [directfb >= 0.9.22], [have_directfb="yes"], [have_directfb="no"])
 fi
 
 AC_SUBST(DIRECTFB_CFLAGS)
 AC_SUBST(DIRECTFB_LIBS)
-AM_CONDITIONAL(HAVE_DIRECTFB, test x$have_directfb = "xyes" )
+AM_CONDITIONAL(HAVE_DIRECTFB, test "x$have_directfb" = "xyes" )
 
 
 dnl ---------------------------------------------
@@ -1052,7 +1052,7 @@ dnl ---------------------------------------------
 
 AC_MSG_CHECKING(for Libstk)
 dnl do some actual testing here
-if test x$PKG_CONFIG = xno ; then
+if test "x$PKG_CONFIG" = xno ; then
   AC_MSG_RESULT(no)
   echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
   echo "*** All of LIBSTK dependent parts will be disabled"
@@ -1070,7 +1070,7 @@ else
 fi
 AC_SUBST(LIBSTK_CFLAGS)
 AC_SUBST(LIBSTK_LIBS)
-AM_CONDITIONAL(HAVE_STK, [test x"$have_stk" = x"yes"])
+AM_CONDITIONAL(HAVE_STK, [test "x$have_stk" = x"yes"])
 
 dnl ---------------------------------------------
 dnl check for pulseaudio
@@ -1082,7 +1082,7 @@ AC_ARG_WITH([pulseaudio],
 if test "x$with_pulseaudio" != "xno"; then
    PKG_CHECK_MODULES([PULSEAUDIO], [libpulse], [have_pulseaudio="yes"], [have_pulseaudio="no"])
 fi
-AM_CONDITIONAL(HAVE_PULSEAUDIO, [test x"$have_pulseaudio" = x"yes"])
+AM_CONDITIONAL(HAVE_PULSEAUDIO, [test "x$have_pulseaudio" = x"yes"])
 
 dnl ---------------------------------------------
 dnl check for DirectX
@@ -1098,12 +1098,12 @@ dnl ---------------------------------------------
 case "$host_or_hostalias" in
   *-linux*)
     AC_CHECK_DXR3()
-    if test x"$have_libfame" = "xyes" ; then
+    if test "x$have_libfame" = "xyes" ; then
       AC_DEFINE_UNQUOTED(HAVE_LIBFAME,1,[Define this if you have libfame mpeg encoder installed (fame.sf.net)])
       AM_PATH_LIBFAME(0.8.10, 
         AC_DEFINE(HAVE_NEW_LIBFAME,1,[Define this if you have libfame 0.8.10 or above]))
     fi
-    if test x"$have_librte" = "xyes" ; then
+    if test "x$have_librte" = "xyes" ; then
       AC_DEFINE_UNQUOTED(HAVE_LIBRTE,1,[Define this if you have librte mpeg encoder installed (zapping.sf.net)])
     fi
     ;;
@@ -1114,9 +1114,9 @@ case "$host_or_hostalias" in
     have_encoder="no"
     ;;
 esac
-AM_CONDITIONAL(HAVE_DXR3, test x"$have_dxr3" = "xyes")
-AM_CONDITIONAL(HAVE_LIBFAME, test x"$have_libfame" = "xyes")
-AM_CONDITIONAL(HAVE_LIBRTE, test x"$have_librte" = "xyes")
+AM_CONDITIONAL(HAVE_DXR3, test "x$have_dxr3" = "xyes")
+AM_CONDITIONAL(HAVE_LIBFAME, test "x$have_libfame" = "xyes")
+AM_CONDITIONAL(HAVE_LIBRTE, test "x$have_librte" = "xyes")
 
 
 dnl ---------------------------------------------
@@ -1134,8 +1134,8 @@ AC_ARG_ENABLE(dha-kmod, AC_HELP_STRING([--enable-dha-kmod], [build DHA kernel mo
 enable_vidix="no"
 
 AC_MSG_CHECKING(for vidix support)
-if test x"$check_vidix" = "xyes" -a x"$ac_cv_prog_AWK" != "xno"; then
-  if test x"$no_x" != "xyes" -o x"$have_fb" = "xyes"; then
+if test "x$check_vidix" = "xyes" -a "x$ac_cv_prog_AWK" != "xno"; then
+  if test "x$no_x" != "xyes" -o "x$have_fb" = "xyes"; then
     case "$host_or_hostalias" in
       i?86-*-linux* | k?-*-linux* | athlon-*-linux*)
         enable_vidix="yes"
@@ -1155,17 +1155,17 @@ fi
 AC_MSG_RESULT($enable_vidix)
 
 AC_MSG_CHECKING(for DHA linux kernel module build)
-if test x"$enable_dha_kmod" = "xyes"; then
+if test "x$enable_dha_kmod" = "xyes"; then
   AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)
 fi
 
-AM_CONDITIONAL(HAVE_VIDIX, test x"$enable_vidix" = "xyes")
-AM_CONDITIONAL(HAVE_LINUX, test x"$enable_linux" = "xyes")
-AM_CONDITIONAL(BUILD_DHA_KMOD, test x"$enable_dha_kmod" = "xyes")
+AM_CONDITIONAL(HAVE_VIDIX, test "x$enable_vidix" = "xyes")
+AM_CONDITIONAL(HAVE_LINUX, test "x$enable_linux" = "xyes")
+AM_CONDITIONAL(BUILD_DHA_KMOD, test "x$enable_dha_kmod" = "xyes")
 AC_CHECK_PROG(MKNOD, mknod, mknod, no)
-AC_CHECK_PROG(DEPMOD, depmod, depmod, no, $PATH:/sbin)
+AC_CHECK_PROG(DEPMOD, depmod, depmod, no, "$PATH:/sbin")
 
 
 dnl ---------------------------------------------
@@ -1250,9 +1250,9 @@ AC_ARG_WITH(external-a52dec, AC_HELP_STRING([--with-external-a52dec], [use exter
 
 have_a52="no"
 
-if test x"$enable_a52dec" = "xno"; then
+if test "x$enable_a52dec" = "xno"; then
   AC_MSG_RESULT([a52dec support disabled])
-elif test x"$external_a52dec" = "xyes"; then
+elif test "x$external_a52dec" = "xyes"; then
   have_a52="yes"
   AC_CHECK_HEADERS([a52dec/a52.h a52dec/a52_internal.h],, have_a52="no",
 [
@@ -1279,8 +1279,8 @@ else
   AC_MSG_RESULT([Use included a52dec support])
 fi
 
-AM_CONDITIONAL(A52, test x"$enable_a52dec" = "xyes")
-AM_CONDITIONAL(EXTERNAL_A52DEC, test x"$have_a52" = "xyes")
+AM_CONDITIONAL(A52, test "x$enable_a52dec" = "xyes")
+AM_CONDITIONAL(EXTERNAL_A52DEC, test "x$have_a52" = "xyes")
 
 dnl ---------------------------------------------
 dnl External version of libmad
@@ -1295,7 +1295,7 @@ have_mad="no"
 
 if test "x$enable_libmad" = "xno"; then
   AC_MSG_RESULT([libmad support disabled])
-elif test x"$external_libmad" = "xyes"; then
+elif test "x$external_libmad" = "xyes"; then
   PKG_CHECK_MODULES(LIBMAD, [mad], have_mad=yes, have_mad=no)
   AC_CHECK_HEADERS([mad.h])
   AC_SUBST(LIBMAD_LIBS)
@@ -1308,7 +1308,7 @@ else
 fi
 
 AM_CONDITIONAL(MAD, test "x$enable_libmad" = "xyes")
-AM_CONDITIONAL(EXTERNAL_LIBMAD, test x"$have_mad" = "xyes")
+AM_CONDITIONAL(EXTERNAL_LIBMAD, test "x$have_mad" = "xyes")
 
 dnl ---------------------------------------------
 dnl MNG libs.
@@ -1329,7 +1329,7 @@ if test "x$with_mng" = "xyes"; then
 else
   have_libmng=no
 fi
-AM_CONDITIONAL(HAVE_LIBMNG, test x"$have_libmng" = "xyes")
+AM_CONDITIONAL(HAVE_LIBMNG, test "x$have_libmng" = "xyes")
 
 dnl ---------------------------------------------
 dnl MagickWand API of Imagemagick.
@@ -1347,7 +1347,7 @@ if test "x$with_imagemagick" != "xno"; then
    fi
 fi
 
-AM_CONDITIONAL([HAVE_WAND], [test x"$have_imagemagick" = "xyes"])
+AM_CONDITIONAL([HAVE_WAND], [test "x$have_imagemagick" = "xyes"])
 AC_SUBST(WAND_CFLAGS)
 AC_SUBST(WAND_LIBS)
 
@@ -1415,7 +1415,7 @@ if test "x$with_oss" = "xyes"; then
 else
   have_ossaudio=no
 fi
-AM_CONDITIONAL(HAVE_OSS, test x"$have_ossaudio" = "xyes")
+AM_CONDITIONAL(HAVE_OSS, test "x$have_ossaudio" = "xyes")
 
 
 dnl ---------------------------------------------
@@ -1475,7 +1475,7 @@ if test "x$with_arts" = "xyes"; then
 else
   no_arts=yes
 fi
-AM_CONDITIONAL(HAVE_ARTS, test x"$no_arts" != "xyes")
+AM_CONDITIONAL(HAVE_ARTS, test "x$no_arts" != "xyes")
 
 
 dnl ---------------------------------------------
@@ -1495,7 +1495,7 @@ if test "x$with_fusionsound" = "xyes"; then
 else
   no_fusionsound=yes
 fi
-AM_CONDITIONAL(HAVE_FUSIONSOUND, test x"$no_fusionsound" != "xyes")
+AM_CONDITIONAL(HAVE_FUSIONSOUND, test "x$no_fusionsound" != "xyes")
 
 
 dnl ---------------------------------------------
@@ -1508,7 +1508,7 @@ AC_ARG_ENABLE([jack],
             case "${enableval}" in
                 yes) jack=yes ;;
                 no) jack=no ;;
-                *) AC_MSG_ERROR(bad value ${enableval} for --disable-jack) ;;
+                *) AC_MSG_ERROR([bad value ${enableval} for --disable-jack]) ;;
             esac
         ],
         [jack=auto])
@@ -1546,7 +1546,7 @@ if test "x$with_gnome_vfs" = "xyes"; then
 		no_gnome_vfs=yes)
   AC_SUBST(GNOME_VFS_CFLAGS)
   AC_SUBST(GNOME_VFS_LIBS)
-  if test x"$no_gnome_vfs" != "xyes"; then
+  if test "x$no_gnome_vfs" != "xyes"; then
     AC_DEFINE(HAVE_GNOME_VFS,1,[Define this if you have gnome-vfs installed])
   else
     AC_MSG_RESULT(*** All of the gnome-vfs dependent parts will be disabled ***)
@@ -1554,7 +1554,7 @@ if test "x$with_gnome_vfs" = "xyes"; then
 else
   no_gnome_vfs=yes
 fi
-AM_CONDITIONAL(HAVE_GNOME_VFS, test x"$no_gnome_vfs" != "xyes")
+AM_CONDITIONAL(HAVE_GNOME_VFS, test "x$no_gnome_vfs" != "xyes")
 
 dnl ---------------------------------------------
 dnl gdk-pixbuf support
@@ -1569,7 +1569,7 @@ if test "x$enable_gdkpixbuf" != "xno"; then
 		no_gdkpixbuf=yes)
   AC_SUBST(GDK_PIXBUF_CFLAGS)
   AC_SUBST(GDK_PIXBUF_LIBS)
-  if test x"$no_gdkpixbuf" != "xyes"; then
+  if test "x$no_gdkpixbuf" != "xyes"; then
     AC_DEFINE(HAVE_GDK_PIXBUF,1,[Define this if you have gdk-pixbuf installed])
   else
     AC_MSG_RESULT(*** All of the gdk-pixbuf dependent parts will be disabled ***)
@@ -1577,7 +1577,7 @@ if test "x$enable_gdkpixbuf" != "xno"; then
 else
   no_gdkpixbuf=yes
 fi
-AM_CONDITIONAL(HAVE_GDK_PIXBUF, test x"$no_gdkpixbuf" != "xyes")
+AM_CONDITIONAL(HAVE_GDK_PIXBUF, test "x$no_gdkpixbuf" != "xyes")
 
 dnl ---------------------------------------------
 dnl libsmbclient support
@@ -1596,7 +1596,7 @@ if test "x$with_samba" = "xyes"; then
 	AC_MSG_RESULT([*** All libsmbclient dependent parts will be disabled ***]))
   AC_SUBST(LIBSMBCLIENT_LIBS)
 fi
-AM_CONDITIONAL(HAVE_LIBSMBCLIENT, test x"$have_libsmbclient" = "xyes")
+AM_CONDITIONAL(HAVE_LIBSMBCLIENT, test "x$have_libsmbclient" = "xyes")
 
 
 dnl ---------------------------------------------
@@ -1615,7 +1615,7 @@ AC_TRY_COMPILE([
 	    have_sunaudio=yes
 	])
 AC_MSG_RESULT($have_sunaudio)
-AM_CONDITIONAL(HAVE_SUNAUDIO, test x"$have_sunaudio" = "xyes")
+AM_CONDITIONAL(HAVE_SUNAUDIO, test "x$have_sunaudio" = "xyes")
 
 
 dnl ---------------------------------------------
@@ -1646,7 +1646,7 @@ AC_CHECK_HEADERS(sys/cdio.h linux/cdrom.h)
 AM_CHECK_CDROM_IOCTLS(
 	[AC_DEFINE(HAVE_CDROM_IOCTLS,1,[Define this if you have CDROM ioctls])],
 	[AC_MSG_RESULT([*** (S)VCD support will be disabled ***])])
-AM_CONDITIONAL(HAVE_CDROM_IOCTLS, [test x"$have_cdrom_ioctls" = "xyes"])
+AM_CONDITIONAL(HAVE_CDROM_IOCTLS, [test "x$have_cdrom_ioctls" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -1656,7 +1656,7 @@ dnl ---------------------------------------------
 AC_ARG_WITH(external-dvdnav, AC_HELP_STRING([--with-external-dvdnav], [use external dvdnav library (not recommended)]),
             [external_dvdnav="$withval"], [no_dvdnav="yes"; external_dvdnav="no"])
 
-if test x"$external_dvdnav" = "xyes"; then
+if test "x$external_dvdnav" = "xyes"; then
   AM_PATH_DVDNAV(0.1.9,
 	  AC_DEFINE(HAVE_DVDNAV,1,[Define this if you have a suitable version of libdvdnav]),
 	  [AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])])
@@ -1664,7 +1664,7 @@ else
   AC_MSG_RESULT([Use included DVDNAV support])
 fi
 
-AM_CONDITIONAL(HAVE_DVDNAV, [test x"$no_dvdnav" != "xyes"])
+AM_CONDITIONAL(HAVE_DVDNAV, [test "x$no_dvdnav" != "xyes"])
 
 
 dnl ---------------------------------------------
@@ -1683,7 +1683,7 @@ enable_vcdo="yes"
 AC_ARG_WITH(internal-vcdlibs, AC_HELP_STRING([--with-internal-vcdlibs], [force using internal libcdio/libvcd/libvcdinfo]),
             [internal_vcdnav="$withval"], [internal_vcdnav="no"])
 
-if test x"$enable_vcd" = "xyes"; then
+if test "x$enable_vcd" = "xyes"; then
   dnl empty_array_size
   AC_MSG_CHECKING([how to create empty arrays])
 
@@ -1707,7 +1707,7 @@ if test x"$enable_vcd" = "xyes"; then
   fi
   dnl empty_array_size
 
-  if test x"$internal_vcdnav" = "xno" && test x"$PKG_CONFIG" != "xno" ; then
+  if test "x$internal_vcdnav" = "xno" && test "x$PKG_CONFIG" != "xno" ; then
     AC_MSG_CHECKING(for libcdio)
     if $PKG_CONFIG --atleast-version 0.71 libcdio; then
       AC_MSG_RESULT(found)
@@ -1735,7 +1735,7 @@ if test x"$enable_vcd" = "xyes"; then
   fi
 
   dnl check twice, fallback is internal copy
-  if test x"$internal_vcdnav" = "xyes"; then
+  if test "x$internal_vcdnav" = "xyes"; then
     AC_DEFINE_UNQUOTED(HOST_ARCH, "$host_os/$host_cpu", [host os/cpu identifier])
 
     AC_DEFINE(_DEVELOPMENT_, [], enable warnings about being development release)
@@ -1926,8 +1926,8 @@ AC_SUBST(LIBISO9660_LIBS)
 AC_SUBST(LIBVCD_CFLAGS)
 AC_SUBST(LIBVCD_LIBS)
 AC_SUBST(LIBVCDINFO_LIBS)
-AM_CONDITIONAL(HAVE_VCDNAV, [test x"$internal_vcdnav" = "xno"])
-AM_CONDITIONAL(ENABLE_VCD, [test x"$enable_vcd" = "xyes"])
+AM_CONDITIONAL(HAVE_VCDNAV, [test "x$internal_vcdnav" = "xno"])
+AM_CONDITIONAL(ENABLE_VCD, [test "x$enable_vcd" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -1935,7 +1935,7 @@ dnl ASF build can be optional
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([asf], AS_HELP_STRING([--disable-asf], [do not build ASF demuxer]))
-AM_CONDITIONAL(BUILD_ASF, test x"$enable_asf" != "xno")
+AM_CONDITIONAL(BUILD_ASF, test "x$enable_asf" != "xno")
 
 
 dnl ---------------------------------------------
@@ -1943,7 +1943,7 @@ dnl FAAD build can be optional
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([faad], AS_HELP_STRING([--disable-faad], [do not build FAAD decoder]))
-AM_CONDITIONAL(BUILD_FAAD, test x"$enable_faad" != "xno")
+AM_CONDITIONAL(BUILD_FAAD, test "x$enable_faad" != "xno")
 
 dnl ---------------------------------------------
 dnl Optional and external libdts
@@ -1958,7 +1958,7 @@ have_dts="no"
 
 if test "x$enable_libdts" = "xno"; then
   AC_MSG_RESULT([libdts support disabled])
-elif test x"$external_libdts" = "xyes"; then
+elif test "x$external_libdts" = "xyes"; then
   PKG_CHECK_MODULES(LIBDTS, [libdts], have_dts=yes, have_dts=no)
   AC_CHECK_HEADERS([dts.h])
   AC_SUBST(LIBDTS_LIBS)
@@ -1971,7 +1971,7 @@ else
 fi
 
 AM_CONDITIONAL(DTS, test "x$enable_libdts" = "xyes")
-AM_CONDITIONAL(EXTERNAL_LIBDTS, test x"$have_dts" = "xyes")
+AM_CONDITIONAL(EXTERNAL_LIBDTS, test "x$have_dts" = "xyes")
 
 dnl ---------------------------------------------
 dnl libmodplug support 
@@ -1987,7 +1987,7 @@ fi
 
 AC_SUBST(LIBMODPLUG_CFLAGS)
 AC_SUBST(LIBMODPLUG_LIBS)
-dnl AM_CONDITIONAL(HAVE_MODPLUG, [test x"$have_modplug" = x"yes"])
+dnl AM_CONDITIONAL(HAVE_MODPLUG, [test "x$have_modplug" = x"yes"])
 
 dnl ---------------------------------------------
 dnl Wavpack library
@@ -2020,8 +2020,8 @@ AC_ARG_ENABLE([w32dll],
         enable_w32dll="no"
     esac
     AC_MSG_RESULT([$enable_w32dll])])
-AM_CONDITIONAL(HAVE_W32DLL, test x"$enable_w32dll" = "xyes")
-if test x"$enable_w32dll" = "xyes"; then
+AM_CONDITIONAL(HAVE_W32DLL, test "x$enable_w32dll" = "xyes")
+if test "x$enable_w32dll" = "xyes"; then
    W32DLL_DEP=""
 else 
    W32DLL_DEP="#"
@@ -2055,7 +2055,7 @@ dnl ip_mreqn
 dnl ---------------------------------------------
 
 AC_CHECK_IP_MREQN
-if test x"$have_ip_mreqn" = "xyes"; then
+if test "x$have_ip_mreqn" = "xyes"; then
   AC_DEFINE(HAVE_IP_MREQN,1,[Define this if you have ip_mreqn in netinet/in.h])
 fi
 
@@ -2068,12 +2068,12 @@ for restrict_keyword in restrict __restrict__ __restrict; do
   AC_TRY_COMPILE([],[ void foo(char * $restrict_keyword p); ],[
                  KEYWORD_FOUND=yes && AC_MSG_RESULT(yes) ],[
                  KEYWORD_FOUND=no && AC_MSG_RESULT(no) ])
-  if test x$KEYWORD_FOUND = xyes; then
+  if test "x$KEYWORD_FOUND" = xyes; then
     restrict="$restrict_keyword"
     break
   fi
 done
-if test x$restrict = x; then
+if test "x$restrict" = x; then
   AC_MSG_ERROR(No restrict keyword found)
 fi
 AC_DEFINE_UNQUOTED(restrict, $restrict, [restrict keyword])
@@ -2116,7 +2116,7 @@ int main(void) {
   hstrerror(0);
 }], ac_cv_function_system_hstrerror="yes")
 AC_CHECK_LIB([resolv], [hstrerror], [ac_cv_function_system_hstrerror="yes"])
-if test x"$ac_cv_function_system_hstrerror" = "xyes"; then
+if test "x$ac_cv_function_system_hstrerror" = "xyes"; then
   AC_DEFINE(HAVE_HSTRERROR, 1, [Define to 1 if you have 'hstrerror' in <netdb.h>])
 else
   AC_LIBOBJ(hstrerror)
@@ -2125,7 +2125,7 @@ fi
 AC_LIBSOURCE(dirent_msvc.c)
 AC_CHECK_FUNC(opendir,
   [AC_DEFINE(HAVE_OPENDIR, 1, [Define to 1 if you have 'opendir' function])],
-  [if test x"$SYS" = "xmingw32"; then
+  [if test "x$SYS" = "xmingw32"; then
     AC_LIBOBJ(dirent_msvc)
   else
     AC_MSG_ERROR([dirent is needed (opendir, readdir, ...)])
@@ -2202,7 +2202,7 @@ case "$host_or_hostalias" in
 
     AC_CHECK_HEADER([altivec.h], , enable_altivec=no)
     
-    if test x$enable_altivec != xno; then
+    if test "x$enable_altivec" != xno; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you want to use altivec on PowerPC CPUs])
         CFLAGS="$CFLAGS -faltivec -maltivec"
         LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec -maltivec"
@@ -2216,14 +2216,14 @@ case "$host_or_hostalias" in
 
     AC_CHECK_HEADER([altivec.h], , enable_altivec=no)
     
-    if test x$enable_altivec != xno; then
+    if test "x$enable_altivec" != xno; then
         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you have a Motorola 74xx CPU])
         CFLAGS="$CFLAGS -maltivec"
         LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -maltivec"
     fi
     ;;
   sparc*-*-linux*)
-    if test x$enable_vis != xno; then
+    if test "x$enable_vis" != xno; then
       has_vis=yes
     fi
 
@@ -2235,7 +2235,7 @@ case "$host_or_hostalias" in
       case `$CC --version 2>/dev/null` in
 	1.*|2.*) ;;
         *)
-          if test x$enable_vis != xno; then
+          if test "x$enable_vis" != xno; then
 	     has_vis=yes
           fi
 	  ;;
@@ -2264,19 +2264,19 @@ esac
 
 if test "x$has_vis" = "xyes"; then
    AC_DEFINE_UNQUOTED(ENABLE_VIS,,[Define this if you have Sun UltraSPARC CPU])
-   case $CFLAGS in
+   case "$CFLAGS" in
      *-mcpu=*) ;;
      *) CFLAGS="$CFLAGS -mcpu=v9" ;;
    esac
 fi
-AM_CONDITIONAL(ENABLE_VIS, test x"$has_vis" = "xyes")
+AM_CONDITIONAL(ENABLE_VIS, test "x$has_vis" = "xyes")
 
 if test "x$arch_x86" = "xyes"; then
    AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
    AC_DEFINE_UNQUOTED(HAVE_MMX,,[Define this if you can compile MMX asm instructions])
 fi
-AM_CONDITIONAL(ARCH_X86, test x"$arch_x86" = "xyes")
-AM_CONDITIONAL(HAVE_MMX, test x"$arch_x86" = "xyes")
+AM_CONDITIONAL(ARCH_X86, test "x$arch_x86" = "xyes")
+AM_CONDITIONAL(HAVE_MMX, test "x$arch_x86" = "xyes")
 
 case $host_os in
   darwin*)
@@ -2294,14 +2294,14 @@ case $host_os in
   *)
 	;;
 esac
-AM_CONDITIONAL(HOST_OS_DARWIN, test x"$HOST_OS_DARWIN" = "x1")
+AM_CONDITIONAL(HOST_OS_DARWIN, test "x$HOST_OS_DARWIN" = "x1")
 
 dnl ---------------------------------------------
 dnl Set IMPURE_TEXT_LDFLAGS
 dnl ---------------------------------------------
 
 IMPURE_TEXT_LDFLAGS=""
-if test x"$enable_impure_text" = xyes; then
+if test "x$enable_impure_text" = xyes; then
   case "$host_or_hostalias" in
     *solaris*)
       if test "$GCC" = yes; then
@@ -2318,7 +2318,7 @@ dnl ---------------------------------------------
 dnl HAVE_ARMV4L is currently used in libavcodec makefile.am
 dnl ---------------------------------------------
 
-AM_CONDITIONAL(HAVE_ARMV4L, test x"$enable_armv4l" = "xyes")
+AM_CONDITIONAL(HAVE_ARMV4L, test "x$enable_armv4l" = "xyes")
 
 
 dnl ---------------------------------------------
@@ -2356,7 +2356,7 @@ XINE_REL_PLUGINDIR="`makeexpand "$XINE_PLUGINDIR"`"
 XINE_REL_PLUGINDIR="`makeexpand "$XINE_REL_PLUGINDIR" | sed -e "s,^${prefix}/,,"`"
 XINE_REL_FONTDIR="`makeexpand "$XINE_FONTDIR" | sed -e "s,^${prefix}/,,"`"
 XINE_REL_LOCALEDIR="`makeexpand "$XINE_LOCALEDIR" | sed -e "s,^${prefix}/,,"`"
-if test x"$SYS" = "xmingw32" -o x"$SYS" = "xcygwin"; then
+if test "x$SYS" = "xmingw32" -o "x$SYS" = "xcygwin"; then
   dnl polish paths (MinGW runtime accepts both \ and / anyway)
   XINE_REL_PLUGINDIR="`echo "$XINE_REL_PLUGINDIR" | sed -e 's/\\//\\\\\\\\/g'`"
   XINE_REL_FONTDIR="`echo "$XINE_REL_FONTDIR" | sed -e 's/\\//\\\\\\\\/g'`"
@@ -2441,7 +2441,7 @@ dnl ---------------------------------------------
 dnl Get where .m4 should be installed.
 dnl ---------------------------------------------
 
-dnl if test x"${ACLOCAL_DIR+set}" != xset; then
+dnl if test "x${ACLOCAL_DIR+set}" != xset; then
 dnl   case "`id`" in
 dnl     uid=0\(* )
 dnl       AC_MSG_CHECKING(for aclocal directory)
@@ -2458,7 +2458,7 @@ dnl       ;;
 dnl   esac
 dnl fi
 AC_SUBST(ACLOCAL_DIR)
-AM_CONDITIONAL([INSTALL_M4],[test x"$ACLOCAL_DIR" != "x"])
+AM_CONDITIONAL([INSTALL_M4],[test "x$ACLOCAL_DIR" != "x"])
 
 
 dnl ---------------------------------------------
@@ -2501,7 +2501,7 @@ dnl as long as neither autoconf nor automake offer an A[CM]_PROG_OBJC
 dnl check we will have to call it
 _AM_DEPENDENCIES([OBJC])
 
-AM_CONDITIONAL([BUILD_DMX_IMAGE], [test x"$have_imagemagick" = "xyes" -o x"$no_gdkpixbuf" != "xyes"])
+AM_CONDITIONAL([BUILD_DMX_IMAGE], [test "x$have_imagemagick" = "xyes" -o "x$no_gdkpixbuf" != "xyes"])
 
 dnl Important warnings we _don't_ want to skip
 dnl Don't put these under conditional for optimisations, because these
@@ -2666,14 +2666,14 @@ echo "   - stdin_fifo    - rtp"
 echo "   - http          - mms"
 echo "   - pnm           - rtsp"
 echo "   - dvb"
-if test x"$external_dvdnav" = "xyes"; then
+if test "x$external_dvdnav" = "xyes"; then
   echo "   - dvd (external libs)"
 else
   echo "   - dvd (internal libs)"
 fi
-if test x"$have_cdrom_ioctls" = "xyes"; then
-  if test x"$enable_vcd" = "xyes"; then
-    if test x"$internal_vcdnav" = "xno"; then
+if test "x$have_cdrom_ioctls" = "xyes"; then
+  if test "x$enable_vcd" = "xyes"; then
+    if test "x$internal_vcdnav" = "xno"; then
       echo "   - vcd (external libs)"
     else
       echo "   - vcd (internal libs)"
@@ -2682,13 +2682,13 @@ if test x"$have_cdrom_ioctls" = "xyes"; then
   echo "   - vcdo"
   echo "   - cdda"
 fi
-if test x"$no_gnome_vfs" = "xno"; then
+if test "x$no_gnome_vfs" = "xno"; then
   echo "   - gnome-vfs"
 fi
-if test x"$have_v4l" = "xyes"; then
+if test "x$have_v4l" = "xyes"; then
   echo "   - v4l"
 fi
-if test x"$have_libsmbclient" = "xyes"; then
+if test "x$have_libsmbclient" = "xyes"; then
   echo "   - smbclient"
 fi
 echo ""
@@ -2714,16 +2714,16 @@ echo "   - nsv           - 4xm"
 echo "   - FLAC          - aac"
 echo "   - iff           - matroska"
 echo "   - vmd           - flv"
-if test x"$enable_asf" = "xyes"; then
+if test "x$enable_asf" = "xyes"; then
   echo "   - asf"
 fi
 if test "x$have_vorbis" = "xyes"; then
   echo "   - ogg"
 fi
-if test x"$have_libmng" = "xyes"; then
+if test "x$have_libmng" = "xyes"; then
   echo "   - mng"
 fi
-if test x"$enable_modplug" != x"no"; then
+if test "x$enable_modplug" != x"no"; then
   echo "   - mod"
 fi
 if test "x$have_libflac" = "xyes"; then
@@ -2732,8 +2732,8 @@ fi
 if test "x$have_wavpack" = "xyes"; then
   echo "   - wavpack"
 fi
-if test x"$enable_a52dec" = "xyes"; then
-  if test x"$have_a52" = "xyes"; then
+if test "x$enable_a52dec" = "xyes"; then
+  if test "x$have_a52" = "xyes"; then
     echo "   - ac3 (external library)"
   else
     echo "   - ac3 (internal library)"
@@ -2767,13 +2767,13 @@ echo "     - On2 VP3         - DV"
 echo "     - 8BPS            - Duck TrueMotion v1"
 echo "     - ATI VCR1        - Flash Video"
 echo "     - ZLIB            - MSZH"
-if test x"$have_dxr3" = "xyes"; then
+if test "x$have_dxr3" = "xyes"; then
   echo "   - dxr3_video"
 fi
-if test x"$enable_w32dll" = "xyes"; then
+if test "x$enable_w32dll" = "xyes"; then
   echo "   - w32dll"
 fi
-if test x"$have_imagemagick" = "xyes"; then
+if test "x$have_imagemagick" = "xyes"; then
   echo "   - image"
 fi
 if test x"no_gdkpixbuf" != "xyes"; then
@@ -2809,14 +2809,14 @@ fi
 if test "x$have_speex" = "xyes"; then
   echo "   - speex"
 fi
-if test x"$enable_w32dll" = "xyes"; then
+if test "x$enable_w32dll" = "xyes"; then
   echo "   - w32dll"
 fi
-if test x"$enable_faad" = "xyes"; then
+if test "x$enable_faad" = "xyes"; then
   echo "   - faad"
 fi
-if test x"$enable_libmad" = "xyes"; then
-  if test x"$have_mad" = "xyes"; then
+if test "x$enable_libmad" = "xyes"; then
+  if test "x$have_mad" = "xyes"; then
     echo "   - MAD (MPG 1/2/3) (external library)"
   else
     echo "   - MAD (MPG 1/2/3) (internal library)"
@@ -2825,15 +2825,15 @@ fi
 if test "x$have_wavpack" = "xyes"; then
   echo "   - wavpack"
 fi
-if test x"$enable_libdts" = "xyes"; then
-  if test x"$have_dts" = "xyes"; then
+if test "x$enable_libdts" = "xyes"; then
+  if test "x$have_dts" = "xyes"; then
     echo "   - DTS (external library)"
   else
     echo "   - DTS (internal library)"
   fi
 fi
-if test x"$enable_a52dec" = "xyes"; then
-  if test x"$have_a52" = "xyes"; then
+if test "x$enable_a52dec" = "xyes"; then
+  if test "x$have_a52" = "xyes"; then
     echo "   - A52/ra-dnet (external library)"
   else
     echo "   - A52/ra-dnet (internal library)"
@@ -2846,7 +2846,7 @@ echo " * subtitle decoder plugins:"
 echo "   - spu             - spucc"
 echo "   - spucmml         - sputext"
 echo "   - spudvb"
-if test x"$have_dxr3" = "xyes"; then
+if test "x$have_dxr3" = "xyes"; then
   echo "   - dxr3_spu"
 fi
 echo ""
@@ -2865,22 +2865,22 @@ echo ""
 
 dnl Video plugins
 echo " * video driver plugins:"
-if test x"$no_x" != "xyes"; then
+if test "x$no_x" != "xyes"; then
   echo "   - XShm (X11 shared memory)"
   dnl synfb
-  if test x$enable_syncfb != "xno"; then
+  if test "x$enable_syncfb" != "xno"; then
     echo "   - SyncFB (for Matrox G200/G400 cards)"
   fi
   dnl Xv
-  if test x$ac_have_xv = "xyes"; then
-    if test x$ac_have_xv_static = "xyes"; then
+  if test "x$ac_have_xv" = "xyes"; then
+    if test "x$ac_have_xv_static" = "xyes"; then
       echo "   - Xv (XVideo *static*)"
     else
       echo "   - Xv (XVideo *shared*)"
     fi
   fi
   dnl XxMC
-  if test x$ac_have_xxmc = "xyes"; then
+  if test "x$ac_have_xxmc" = "xyes"; then
     if test "x$ac_have_vldxvmc_h" = "xyes"; then
       echo "   - XxMC (XVideo extended motion compensation)"
     else
@@ -2888,71 +2888,71 @@ if test x"$no_x" != "xyes"; then
     fi
   fi
   dnl XvMC
-  if test x$ac_have_xvmc = "xyes"; then
+  if test "x$ac_have_xvmc" = "xyes"; then
     echo "   - XvMC (XVideo motion compensation)"
   fi
-  if test x$ac_have_opengl = "xyes" -a x$ac_have_glut="xyes" -o \
-	  x$ac_have_opengl = "xyes" -a x$ac_have_glu="xyes"; then	
+  if test "x$ac_have_opengl" = "xyes" -a "x$ac_have_glut" = "xyes" -o \
+	  x$"ac_have_opengl" = "xyes" -a "x$ac_have_glu" = "xyes"; then	
     echo "   - OpenGL"
   fi
-  if test x$ac_have_sunfb = "xyes"; then
-    if test x$ac_have_sundga = "xyes"; then
+  if test "x$ac_have_sunfb" = "xyes"; then
+    if test "x$ac_have_sundga" = "xyes"; then
       echo "   - PGX64 (for Sun XVR100/PGX64/PGX24 cards)"
       echo "   - PGX32 (for Sun PGX32 cards)"
     fi
   fi
 fi
-if test x$no_aalib != "xyes"; then
+if test "x$no_aalib" != "xyes"; then
   echo "   - aa (Ascii ART)"
 fi
 if test "x$have_caca" = "xyes"; then
   echo "   - caca (Color AsCii Art)"
 fi
-if test x$have_fb = "xyes"; then
+if test "x$have_fb" = "xyes"; then
   echo "   - fb (Linux framebuffer device)"
 fi
 if test "x$have_sdl" = "xyes"; then
   echo "   - sdl (Simple DirectMedia Layer)"
 fi
-if test x"$have_stk" = "xyes"; then
+if test "x$have_stk" = "xyes"; then
   echo "   - stk (Libstk Set-top Toolkit)"
 fi
-if test x"$have_directfb" = "xyes"; then
+if test "x$have_directfb" = "xyes"; then
   echo "   - directfb (DirectFB driver)"
 fi
-if test x"$have_dxr3" = "xyes"; then
-  if test x"$have_encoder" = "xyes"; then
+if test "x$have_dxr3" = "xyes"; then
+  if test "x$have_encoder" = "xyes"; then
     echo "   - dxr3 (Hollywood+ and Creative dxr3, both mpeg and non-mpeg video)"
   else
     echo "   - dxr3 (Hollywood+ and Creative dxr3, mpeg video only)"
   fi
 fi
-if test x"$enable_vidix" = "xyes"; then
+if test "x$enable_vidix" = "xyes"; then
   echo $ECHO_N "   - vidix ("
   
-  if test x"$no_x" != "xyes"; then
+  if test "x$no_x" != "xyes"; then
     echo $ECHO_N "X11"
-    if test x"$have_fb" = "xyes"; then
+    if test "x$have_fb" = "xyes"; then
       echo $ECHO_N " and "
     fi
   fi
     
-  if test x"$have_fb" = "xyes"; then
+  if test "x$have_fb" = "xyes"; then
       echo $ECHO_N "framebuffer"
   fi
   
   echo $ECHO_N " support"
 
-  if test x"$enable_dha_kmod" = "xyes"; then
+  if test "x$enable_dha_kmod" = "xyes"; then
     echo " with dhahelper)"
   else
     echo ")"
   fi
 fi
-if test x"$have_directx" = "xyes"; then
+if test "x$have_directx" = "xyes"; then
   echo "   - directx (DirectX video driver)"
 fi
-if test x"$have_macosx_video" = "xyes"; then
+if test "x$have_macosx_video" = "xyes"; then
   echo "   - Mac OS X OpenGL"
 fi
 
@@ -2960,7 +2960,7 @@ echo ""
 
 dnl Audio plugins
 echo " * audio driver plugins:"
-if test x"$have_ossaudio" = "xyes"; then
+if test "x$have_ossaudio" = "xyes"; then
   echo "   - oss (Open Sound System)"
 fi
 if test "x$have_alsa" = "xyes"; then
@@ -2969,22 +2969,22 @@ fi
 if test "x$have_esound" = "xyes"; then
   echo "   - esd (Enlightened Sound Daemon)"
 fi
-if test x"$no_arts" != "xyes"; then
+if test "x$no_arts" != "xyes"; then
   echo "   - arts (aRts - KDE soundserver)"
 fi
-if test x"$no_fusionsound" != "xyes"; then
+if test "x$no_fusionsound" != "xyes"; then
   echo "   - fusionsound (FusionSound driver)"
 fi
-if test x"$have_sunaudio" = "xyes"; then
+if test "x$have_sunaudio" = "xyes"; then
   echo "   - sun ()"
 fi
 if test "x$am_cv_have_irixal" = xyes; then
   echo "   - irixal (Irix audio library)"
 fi
-if test x"$have_directx" = "xyes"; then
+if test "x$have_directx" = "xyes"; then
   echo "   - directx (DirectX audio driver)"
 fi
-if test x"$have_coreaudio" = "xyes"; then
+if test "x$have_coreaudio" = "xyes"; then
   echo "   - CoreAudio (Mac OS X audio driver)"
 fi  
 if test "x$have_pulseaudio" = "xyes"; then
@@ -3003,7 +3003,7 @@ final_bindir="`eval eval eval eval echo $bindir`"
 
 if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/null ; then
   if test "$final_libdir" != "/lib" -a "$final_libdir" != "/usr/lib" ; then
-    if ! echo $LD_LIBRARY_PATH | egrep "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
+    if ! echo "$LD_LIBRARY_PATH" | egrep "(:|^)$final_libdir(/?:|/?$)" >/dev/null ; then
       echo
       echo "****************************************************************"
       echo "xine-lib will be installed to $final_libdir"
@@ -3024,7 +3024,7 @@ if test -r /etc/ld.so.conf && ! grep -x "$final_libdir" /etc/ld.so.conf >/dev/nu
   fi
 fi
 
-if ! echo $PATH | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
+if ! echo "$PATH" | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
   echo
   echo "****************************************************************"
   echo "xine-config will be installed to $final_bindir"
@@ -3045,8 +3045,8 @@ if ! echo $PATH | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
 fi
 
 dnl warn if no X11 plugins will be built
-if test x"$no_x" = "xyes" \
-        -a x$SYS != "xmingw32" -a x$SYS != "xcygwin" ; then
+if test "x$no_x" = "xyes" \
+        -a "x$SYS" != "xmingw32" -a "x$SYS" != "xcygwin" ; then
   echo
   echo "****************************************************************"
   echo "WARNING! No X11 output plugins will be built."
