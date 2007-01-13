@@ -33,9 +33,6 @@
 #include "common.h"
 #include "avcodec.h"
 
-#if defined(ARCH_X86) || defined(ARCH_X86_64)
-#define HAVE_MMX 1
-#endif
 
 //#define DEBUG
 /* dct code */
@@ -381,10 +378,12 @@ typedef struct DSPContext {
 #define BASIS_SHIFT 16
 #define RECON_SHIFT 6
 
+    /* h264 functions */
     void (*h264_idct_add)(uint8_t *dst, DCTELEM *block, int stride);
     void (*h264_idct8_add)(uint8_t *dst, DCTELEM *block, int stride);
     void (*h264_idct_dc_add)(uint8_t *dst, DCTELEM *block, int stride);
     void (*h264_idct8_dc_add)(uint8_t *dst, DCTELEM *block, int stride);
+    void (*h264_dct)(DCTELEM block[4][4]);
 
     /* snow wavelet */
     void (*vertical_compose97i)(DWTELEM *b0, DWTELEM *b1, DWTELEM *b2, DWTELEM *b3, DWTELEM *b4, DWTELEM *b5, int width);
@@ -410,6 +409,8 @@ typedef struct DSPContext {
 
 void dsputil_static_init(void);
 void dsputil_init(DSPContext* p, AVCodecContext *avctx);
+
+int ff_check_alignment(void);
 
 /**
  * permute block according to permuatation.
@@ -483,6 +484,7 @@ int mm_support(void);
 #define MM_SSE2   0x0010 /* PIV SSE2 functions */
 #define MM_3DNOWEXT  0x0020 /* AMD 3DNowExt */
 #define MM_SSE3   0x0040 /* Prescott SSE3 functions */
+#define MM_SSSE3  0x0080 /* Conroe SSSE3 functions */
 
 extern int mm_flags;
 
@@ -592,30 +594,6 @@ void dsputil_init_bfin(DSPContext* c, AVCodecContext *avctx);
 #define STRIDE_ALIGN 8
 
 #endif
-
-#ifdef __GNUC__
-
-struct unaligned_64 { uint64_t l; } __attribute__((packed));
-struct unaligned_32 { uint32_t l; } __attribute__((packed));
-struct unaligned_16 { uint16_t l; } __attribute__((packed));
-
-#define LD16(a) (((const struct unaligned_16 *) (a))->l)
-#define LD32(a) (((const struct unaligned_32 *) (a))->l)
-#define LD64(a) (((const struct unaligned_64 *) (a))->l)
-
-#define ST16(a, b) (((struct unaligned_16 *) (a))->l) = (b)
-#define ST32(a, b) (((struct unaligned_32 *) (a))->l) = (b)
-
-#else /* __GNUC__ */
-
-#define LD16(a) (*((uint16_t*)(a)))
-#define LD32(a) (*((uint32_t*)(a)))
-#define LD64(a) (*((uint64_t*)(a)))
-
-#define ST16(a, b) *((uint16_t*)(a)) = (b)
-#define ST32(a, b) *((uint32_t*)(a)) = (b)
-
-#endif /* !__GNUC__ */
 
 /* PSNR */
 void get_psnr(uint8_t *orig_image[3], uint8_t *coded_image[3],

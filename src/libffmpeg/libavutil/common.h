@@ -26,9 +26,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+#include <inttypes.h>
 
 #ifdef HAVE_AV_CONFIG_H
 /* only include the following when compiling package */
@@ -47,34 +45,17 @@
 #    include <math.h>
 #endif /* HAVE_AV_CONFIG_H */
 
-/* Suppress restrict if it was not defined in config.h.  */
-#ifndef restrict
-#    define restrict
-#endif
-
-#ifndef always_inline
+#ifndef av_always_inline
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#    define always_inline __attribute__((always_inline)) inline
+#    define av_always_inline __attribute__((always_inline)) inline
 #else
-#    define always_inline inline
+#    define av_always_inline inline
 #endif
 #endif
 
-#ifndef attribute_used
-#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#    define attribute_used __attribute__((used))
-#else
-#    define attribute_used
-#endif
-#endif
-
-#ifndef attribute_unused
-#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#    define attribute_unused __attribute__((unused))
-#else
-#    define attribute_unused
-#endif
-#endif
+#ifdef HAVE_AV_CONFIG_H
+#    include "internal.h"
+#endif /* HAVE_AV_CONFIG_H */
 
 #ifndef attribute_deprecated
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
@@ -84,91 +65,9 @@
 #endif
 #endif
 
-#   include <inttypes.h>
-
-#ifndef PRId64
-#define PRId64 "lld"
-#endif
-
-#ifndef PRIu64
-#define PRIu64 "llu"
-#endif
-
-#ifndef PRIx64
-#define PRIx64 "llx"
-#endif
-
-#ifndef PRIX64
-#define PRIX64 "llX"
-#endif
-
-#ifndef PRId32
-#define PRId32 "d"
-#endif
-
-#ifndef PRIdFAST16
-#define PRIdFAST16 PRId32
-#endif
-
-#ifndef PRIdFAST32
-#define PRIdFAST32 PRId32
-#endif
-
-#ifndef INT16_MIN
-#define INT16_MIN       (-0x7fff-1)
-#endif
-
-#ifndef INT16_MAX
-#define INT16_MAX       0x7fff
-#endif
-
-#ifndef INT32_MIN
-#define INT32_MIN       (-0x7fffffff-1)
-#endif
-
-#ifndef INT32_MAX
-#define INT32_MAX       0x7fffffff
-#endif
-
-#ifndef UINT32_MAX
-#define UINT32_MAX      0xffffffff
-#endif
-
-#ifndef INT64_MIN
-#define INT64_MIN       (-0x7fffffffffffffffLL-1)
-#endif
-
-#ifndef INT64_MAX
-#define INT64_MAX int64_t_C(9223372036854775807)
-#endif
-
-#ifndef UINT64_MAX
-#define UINT64_MAX uint64_t_C(0xFFFFFFFFFFFFFFFF)
-#endif
-
-#ifndef INT_BIT
-#    if INT_MAX != 2147483647
-#        define INT_BIT 64
-#    else
-#        define INT_BIT 32
-#    endif
-#endif
-
-#ifndef int64_t_C
-#define int64_t_C(c)     (c ## LL)
-#define uint64_t_C(c)    (c ## ULL)
-#endif
-
-#if defined(__MINGW32__) && !defined(BUILD_AVUTIL) && defined(BUILD_SHARED_AV)
-#  define FF_IMPORT_ATTR __declspec(dllimport)
-#else
-#  define FF_IMPORT_ATTR
-#endif
-
-
-#ifdef HAVE_AV_CONFIG_H
-/* only include the following when compiling package */
-#    include "internal.h"
+#ifndef INT64_C
+#define INT64_C(c)     (c ## LL)
+#define UINT64_C(c)    (c ## ULL)
 #endif
 
 //rounded divison & shift
@@ -184,7 +83,7 @@
 #define FFSWAP(type,a,b) do{type SWAP_tmp= b; b= a; a= SWAP_tmp;}while(0)
 
 /* misc math functions */
-extern FF_IMPORT_ATTR const uint8_t ff_log2_tab[256];
+extern const uint8_t ff_log2_tab[256];
 
 static inline int av_log2(unsigned int v)
 {
@@ -375,7 +274,7 @@ static inline uint64_t read_time(void)
         );
         return (d << 32) | (a & 0xffffffff);
 }
-#elif defined(ARCH_X86)
+#elif defined(ARCH_X86_32)
 static inline long long read_time(void)
 {
         long long l;
@@ -465,4 +364,8 @@ void av_freep(void *ptr);
 # define ASMALIGN(ZEROBITS) ".align 1<<" #ZEROBITS "\n\t"
 #endif
 
+/* xine: another config.h with codecs to use */
+#include "ffmpeg_config.h"
+
 #endif /* COMMON_H */
+

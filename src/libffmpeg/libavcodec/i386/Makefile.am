@@ -6,7 +6,7 @@ AM_CFLAGS = -fomit-frame-pointer -fno-strict-aliasing
 # CFLAGS is here to filter out -funroll-loops because it causes bad
 # behavior of libavcodec
 CFLAGS := `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
-AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil
+AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil -I$(top_srcdir)/src/libffmpeg
 
 # Avoid "can't find register" failures with -O1 and higher
 dsputil_mmx.o dsputil_mmx.lo: CFLAGS=$(shell echo @CFLAGS@ | sed -e 's/-funroll-loops//g; s/$$/ -Os/')
@@ -42,10 +42,10 @@ EXTRA_DIST = \
 	h264dsp_mmx.c \
 	mpegvideo_mmx_template.c
 
-if HAVE_FFMMX
+if HAVE_MMX
 mmx_modules = $(libavcodec_mmx_src)
 endif
 
 libavcodec_mmx_la_SOURCES = $(mmx_modules) $(libavcodec_mmx_dummy)
 
-noinst_HEADERS = dsputil_mmx_avg.h dsputil_mmx_rnd.h mmx.h
+noinst_HEADERS = dsputil_mmx_avg.h dsputil_mmx_rnd.h mathops.h mmx.h

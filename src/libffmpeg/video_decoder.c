@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.64 2006/12/02 21:06:18 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.65 2007/01/13 21:19:52 miguelfreitas Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -25,6 +25,7 @@
  
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+#include "ffmpeg_config.h"
 #endif
 
 #include <stdlib.h>
@@ -116,6 +117,8 @@ struct ff_video_decoder_s {
   int               is_direct_rendering_disabled;
 
   AVPaletteControl  palette_control;
+  
+  xine_list_t       *dr1_frames;
 };
 
 
@@ -203,16 +206,25 @@ static int get_buffer(AVCodecContext *context, AVFrame *av_frame){
 
   av_frame->type= FF_BUFFER_TYPE_USER;
 
+  xine_list_push_back(this->dr1_frames, av_frame);
+
   return 0;
 }
 
 static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
+  ff_video_decoder_t *this = (ff_video_decoder_t *)context->opaque;
 
   if (av_frame->type == FF_BUFFER_TYPE_USER) {
     vo_frame_t *img = (vo_frame_t *)av_frame->opaque;
+    xine_list_iterator_t it;
     
     assert(av_frame->opaque);  
     img->free(img);
+    
+    it = xine_list_find(this->dr1_frames, av_frame);
+    assert(it);
+    if( it != NULL )
+      xine_list_remove(this->dr1_frames, it);
   } else {
     avcodec_default_release_buffer(context, av_frame);
   }
@@ -249,6 +261,8 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_DV,          CODEC_ID_DVVIDEO,   "DV (ffmpeg)"},
   {BUF_VIDEO_HUFFYUV,     CODEC_ID_HUFFYUV,   "HuffYUV (ffmpeg)"},
   {BUF_VIDEO_VP31,        CODEC_ID_VP3,       "On2 VP3.1 (ffmpeg)"},
+  {BUF_VIDEO_VP5,         CODEC_ID_VP5,       "On2 VP5 (ffmpeg)"},
+  {BUF_VIDEO_VP6,         CODEC_ID_VP6,       "On2 VP6 (ffmpeg)"},
   {BUF_VIDEO_4XM,         CODEC_ID_4XM,       "4X Video (ffmpeg)"},
   {BUF_VIDEO_CINEPAK,     CODEC_ID_CINEPAK,   "Cinepak (ffmpeg)"},
   {BUF_VIDEO_MSVC,        CODEC_ID_MSVIDEO1,  "Microsoft Video 1 (ffmpeg)"},
@@ -376,7 +390,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
   /* enable direct rendering by default */
   this->output_format = XINE_IMGFMT_YV12;
 #ifdef ENABLE_DIRECT_RENDERING
-  if( this->codec->capabilities & CODEC_CAP_DR1 ) {
+  if( this->codec->capabilities & CODEC_CAP_DR1 && this->codec->id != CODEC_ID_H264 ) {
     this->context->get_buffer = get_buffer;
     this->context->release_buffer = release_buffer;
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
@@ -801,7 +815,7 @@ static void ff_check_bufsize (ff_video_decoder_t *this, int size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
 	    _("ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"), 
 	    this->bufsize);
-    this->buf = realloc(this->buf, this->bufsize);
+    this->buf = realloc(this->buf, this->bufsize + FF_INPUT_BUFFER_PADDING_SIZE );
   }
 }
 
@@ -826,7 +840,7 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
   lprintf ("header buffer\n");
 
   /* accumulate data */
-  ff_check_bufsize(this, this->size + buf->size + FF_INPUT_BUFFER_PADDING_SIZE);
+  ff_check_bufsize(this, this->size + buf->size);
   xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
   this->size += buf->size;
 
@@ -1102,7 +1116,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
       lprintf("no memcpy needed to accumulate data\n");
     } else {
       /* copy data into our internal buffer */
-      ff_check_bufsize(this, this->size + buf->size + FF_INPUT_BUFFER_PADDING_SIZE);
+      ff_check_bufsize(this, this->size + buf->size);
       chunk_buf = this->buf; /* ff_check_bufsize might realloc this->buf */
 
       xine_fast_memcpy (&this->buf[this->size], buf->content, buf->size);
@@ -1122,7 +1136,13 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
     int         codec_type = buf->type & 0xFFFF0000;
 
     /* pad input data */
-    chunk_buf[this->size] = 0;
+    /* note: bitstream, alt bitstream reader or something will cause
+     * severe mpeg4 artifacts if padding is less than 32 bits.
+     */
+    chunk_buf[this->size+0] = 0;
+    chunk_buf[this->size+1] = 0;
+    chunk_buf[this->size+2] = 0;
+    chunk_buf[this->size+3] = 0;
 
     while (this->size > 0) {
       
@@ -1150,7 +1170,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
           this->size -= len;
 
           if (this->size > 0) {
-            ff_check_bufsize(this, this->size + FF_INPUT_BUFFER_PADDING_SIZE);
+            ff_check_bufsize(this, this->size);
             memmove (this->buf, &chunk_buf[offset], this->size);
             chunk_buf = this->buf;
           }
@@ -1256,7 +1276,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         img->crop_bottom = this->crop_bottom;
         
         this->skipframes = img->draw(img, this->stream);
-
+        
         if(free_img)
           img->free(img);
       }
@@ -1360,12 +1380,23 @@ static void ff_dispose (video_decoder_t *this_gen) {
   ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
 
   lprintf ("ff_dispose\n");
-
+  
   if (this->decoder_ok) {
+    xine_list_iterator_t it;
+    AVFrame *av_frame;
+        
     pthread_mutex_lock(&ffmpeg_lock);
     avcodec_close (this->context);
     pthread_mutex_unlock(&ffmpeg_lock);
-
+    
+    /* frame garbage collector here - workaround for buggy ffmpeg codecs that
+     * don't release their DR1 frames */
+    while( (it = xine_list_front(this->dr1_frames)) != NULL )
+    {
+      av_frame = (AVFrame *)xine_list_get_value(this->dr1_frames, it);
+      release_buffer(this->context, av_frame);
+    }
+    
     this->stream->video_out->close(this->stream->video_out, this->stream);
     this->decoder_ok = 0;
   }
@@ -1394,6 +1425,8 @@ static void ff_dispose (video_decoder_t *this_gen) {
     
   if(this->pp_mode)
     pp_free_mode(this->pp_mode);
+    
+  xine_list_delete(this->dr1_frames);
   
   free (this_gen);
 }
@@ -1432,6 +1465,8 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->pp_quality        = 0;
   this->pp_context        = NULL;
   this->pp_mode           = NULL;
+  
+  this->dr1_frames        = xine_list_new();
   
   mpeg_parser_init(&this->mpeg_parser);
 
@@ -1483,73 +1518,223 @@ void *init_video_plugin (xine_t *xine, void *data) {
 }
 
 static uint32_t supported_video_types[] = { 
-  BUF_VIDEO_MSMPEG4_V1, 
+  #ifdef CONFIG_MSMPEG4V1_DECODER
+  BUF_VIDEO_MSMPEG4_V1,
+  #endif
+  #ifdef CONFIG_MSMPEG4V2_DECODER
   BUF_VIDEO_MSMPEG4_V2,
-  BUF_VIDEO_MSMPEG4_V3, 
-  BUF_VIDEO_WMV7, 
+  #endif
+  #ifdef CONFIG_MSMPEG4V3_DECODER
+  BUF_VIDEO_MSMPEG4_V3,
+  #endif
+  #ifdef CONFIG_WMV1_DECODER
+  BUF_VIDEO_WMV7,
+  #endif
+  #ifdef CONFIG_WMV2_DECODER
+  BUF_VIDEO_WMV8,
+  #endif
+  #ifdef CONFIG_WMV3_DECODER
+  BUF_VIDEO_WMV9,
+  #endif
+  #ifdef CONFIG_MPEG4_DECODER
   BUF_VIDEO_MPEG4,
-  BUF_VIDEO_XVID, 
-  BUF_VIDEO_DIVX5, 
+  #endif
+  #ifdef CONFIG_MPEG4_DECODER
+  BUF_VIDEO_XVID,
+  #endif
+  #ifdef CONFIG_MPEG4_DECODER
+  BUF_VIDEO_DIVX5,
+  #endif
+  #ifdef CONFIG_MPEG4_DECODER
   BUF_VIDEO_3IVX,
+  #endif
+  #ifdef CONFIG_MJPEG_DECODER
+  BUF_VIDEO_JPEG,
+  #endif
+  #ifdef CONFIG_MJPEG_DECODER
   BUF_VIDEO_MJPEG,
+  #endif
+  #ifdef CONFIG_MJPEGB_DECODER
   BUF_VIDEO_MJPEG_B,
+  #endif
+  #ifdef CONFIG_H263I_DECODER
+  BUF_VIDEO_I263,
+  #endif
+  #ifdef CONFIG_H263_DECODER
   BUF_VIDEO_H263,
+  #endif
+  #ifdef CONFIG_RV10_DECODER
   BUF_VIDEO_RV10,
+  #endif
+  #ifdef CONFIG_RV20_DECODER
   BUF_VIDEO_RV20,
+  #endif
+  #ifdef CONFIG_INDEO3_DECODER
   BUF_VIDEO_IV31,
+  #endif
+  #ifdef CONFIG_INDEO3_DECODER
   BUF_VIDEO_IV32,
+  #endif
+  #ifdef CONFIG_SVQ1_DECODER
   BUF_VIDEO_SORENSON_V1,
+  #endif
+  #ifdef CONFIG_SVQ3_DECODER
   BUF_VIDEO_SORENSON_V3,
-  BUF_VIDEO_JPEG, 
-  BUF_VIDEO_MPEG, 
+  #endif
+  #ifdef CONFIG_DVVIDEO_DECODER
   BUF_VIDEO_DV,
+  #endif
+  #ifdef CONFIG_HUFFYUV_DECODER
   BUF_VIDEO_HUFFYUV,
+  #endif
+  #ifdef CONFIG_VP3_DECODER
   BUF_VIDEO_VP31,
+  #endif
+  #ifdef CONFIG_VP5_DECODER
+  BUF_VIDEO_VP5,
+  #endif
+  #ifdef CONFIG_VP6_DECODER
+  BUF_VIDEO_VP6,
+  #endif
+  #ifdef CONFIG_4XM_DECODER
   BUF_VIDEO_4XM,
+  #endif
+  #ifdef CONFIG_CINEPAK_DECODER
   BUF_VIDEO_CINEPAK,
+  #endif
+  #ifdef CONFIG_MSVIDEO1_DECODER
   BUF_VIDEO_MSVC,
+  #endif
+  #ifdef CONFIG_MSRLE_DECODER
   BUF_VIDEO_MSRLE,
+  #endif
+  #ifdef CONFIG_RPZA_DECODER
   BUF_VIDEO_RPZA,
+  #endif
+  #ifdef CONFIG_CYUV_DECODER
   BUF_VIDEO_CYUV,
+  #endif
+  #ifdef CONFIG_ROQ_DECODER
   BUF_VIDEO_ROQ,
+  #endif
+  #ifdef CONFIG_IDCIN_DECODER
   BUF_VIDEO_IDCIN,
+  #endif
+  #ifdef CONFIG_XAN_WC3_DECODER
   BUF_VIDEO_WC3,
+  #endif
+  #ifdef CONFIG_WS_VQA_DECODER
   BUF_VIDEO_VQA,
+  #endif
+  #ifdef CONFIG_INTERPLAY_VIDEO_DECODER
   BUF_VIDEO_INTERPLAY,
+  #endif
+  #ifdef CONFIG_FLIC_DECODER
   BUF_VIDEO_FLI,
+  #endif
+  #ifdef CONFIG_8BPS_DECODER
   BUF_VIDEO_8BPS,
+  #endif
+  #ifdef CONFIG_SMC_DECODER
   BUF_VIDEO_SMC,
-  BUF_VIDEO_VMD,
+  #endif
+  #ifdef CONFIG_TRUEMOTION1_DECODER
   BUF_VIDEO_DUCKTM1,
+  #endif
+  #ifdef CONFIG_TRUEMOTION2_DECODER
   BUF_VIDEO_DUCKTM2,
+  #endif
+  #ifdef CONFIG_VMDVIDEO_DECODER
+  BUF_VIDEO_VMD,
+  #endif
+  #ifdef CONFIG_ZLIB_DECODER
   BUF_VIDEO_ZLIB,
+  #endif
+  #ifdef CONFIG_MSZH_DECODER
   BUF_VIDEO_MSZH,
+  #endif
+  #ifdef CONFIG_ASV1_DECODER
   BUF_VIDEO_ASV1,
+  #endif
+  #ifdef CONFIG_ASV2_DECODER
   BUF_VIDEO_ASV2,
+  #endif
+  #ifdef CONFIG_VCR1_DECODER
   BUF_VIDEO_ATIVCR1,
+  #endif
+  #ifdef CONFIG_FLV1_DECODER
   BUF_VIDEO_FLV1,
+  #endif
+  #ifdef CONFIG_QTRLE_DECODER
   BUF_VIDEO_QTRLE,
+  #endif
+  #ifdef CONFIG_H264_DECODER
   BUF_VIDEO_H264,
+  #endif
+  #ifdef CONFIG_H261_DECODER
   BUF_VIDEO_H261,
+  #endif
+  #ifdef CONFIG_AASC_DECODER
   BUF_VIDEO_AASC,
+  #endif
+  #ifdef CONFIG_LOCO_DECODER
   BUF_VIDEO_LOCO,
+  #endif
+  #ifdef CONFIG_QDRAW_DECODER
   BUF_VIDEO_QDRW,
+  #endif
+  #ifdef CONFIG_QPEG_DECODER
   BUF_VIDEO_QPEG,
+  #endif
+  #ifdef CONFIG_TSCC_DECODER
   BUF_VIDEO_TSCC,
+  #endif
+  #ifdef CONFIG_ULTI_DECODER
   BUF_VIDEO_ULTI,
+  #endif
+  #ifdef CONFIG_WNV1_DECODER
   BUF_VIDEO_WNV1,
+  #endif
+  #ifdef CONFIG_VIXL_DECODER
   BUF_VIDEO_XL,
+  #endif
+  #ifdef CONFIG_INDEO2_DECODER
   BUF_VIDEO_RT21,
+  #endif
+  #ifdef CONFIG_FRAPS_DECODER
   BUF_VIDEO_FPS1,
+  #endif
+  #ifdef CONFIG_MPEG1VIDEO_DECODER
+  BUF_VIDEO_MPEG,
+  #endif
+  #ifdef CONFIG_CSCD_DECODER
   BUF_VIDEO_CSCD,
-  BUF_VIDEO_ALGMM,
-  BUF_VIDEO_ZMBV,
+  #endif
+  #ifdef CONFIG_AVS_DECODER
   BUF_VIDEO_AVS,
+  #endif
+  #ifdef CONFIG_MMVIDEO_DECODER
+  BUF_VIDEO_ALGMM,
+  #endif
+  #ifdef CONFIG_ZMBV_DECODER
+  BUF_VIDEO_ZMBV,
+  #endif
+  #ifdef CONFIG_SMACKVIDEO_DECODER
   BUF_VIDEO_SMACKER,
+  #endif
+  #ifdef CONFIG_NUV_DECODER
   BUF_VIDEO_NUV,
+  #endif
+  #ifdef CONFIG_KMVC_DECODER
   BUF_VIDEO_KMVC,
+  #endif
+  #ifdef CONFIG_FLASHSV_DECODER
   BUF_VIDEO_FLASHSV,
+  #endif
+  #ifdef CONFIG_CAVS_DECODER
   BUF_VIDEO_CAVS,
+  #endif
+
   0 
 };
 

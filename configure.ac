@@ -208,7 +208,6 @@ AC_CHECK_GENERATE_INTTYPES([include])
 AM_CONDITIONAL(GENERATED_INTTYPES_H, test x"$ac_cv_header_inttypes_h" != x"yes")
 AC_CHECK_TYPE(ssize_t, :, AC_DEFINE(ssize_t, __int64, [define ssize_t to __int64 if it's missing in default includes]))
 
-
 dnl ---------------------------------------------
 dnl threads and OS specific stuff
 dnl ---------------------------------------------
@@ -393,12 +392,77 @@ use internal ffmpeg.
 *********************************************************************])
 else
   AC_MSG_RESULT([using included ffmpeg])
-  LIBFFMPEG_CPPFLAGS="-DSIMPLE_IDCT -DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DCONFIG_RISKY -DCONFIG_DECODERS -DXINE_MPEG_ENCODER -DCONFIG_ZLIB -DCONFIG_GPL -DCONFIG_MP3_DECODER -DCONFIG_MP2_DECODER -DCONFIG_DVVIDEO_DECODER"
-  AC_SUBST([LIBFFMPEG_CPPFLAGS])
-
+  LIBFFMPEG_CPPFLAGS="-DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DXINE_MPEG_ENCODER -D_ISOC9X_SOURCE -DCONFIG_DECODERS"
   AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CPPFLAGS="$LIBFFMPEG_CPPFLAGS -DEMULATE_FAST_INT"])
+  AC_SUBST([LIBFFMPEG_CPPFLAGS])
 fi
 AM_CONDITIONAL(HAVE_FFMPEG, test "x$with_external_ffmpeg" = "xyes")
+
+
+AC_ARG_ENABLE([ffmpeg_uncommon_codecs],
+	AS_HELP_STRING([--disable-ffmpeg-uncommon-codecs], [don't build uncommon ffmpeg codecs]))
+
+AC_ARG_ENABLE([ffmpeg_popular_codecs],
+	AS_HELP_STRING([--disable-ffmpeg-popular-codecs], [don't build popular ffmpeg codecs]))
+
+ffmpeg_config_h=src/libffmpeg/ffmpeg_config.h
+echo "/* Automatically generated */" > $ffmpeg_config_h
+
+dnl uncommon ffmpeg codecs
+ffmpeg_uncommon_codecs="AASC ASV1 ASV2 AVS CSCD CYUV DVVIDEO EIGHTBPS FLIC FLV FOURXM FRAPS HUFFYUV IDCIN INTERPLAY_VIDEO KMVC LOCO MMVIDEO NUV QDRAW QPEG ROQ RPZA SMACKER SMC SNOW TRUEMOTION1 TRUEMOTION2 TSCC ULTI VCR1 VMDVIDEO WNV1 XAN_WC3 XL ZMBV ALAC AMR_NB AMR_WB LIBGSM MACE3 MACE6 SHORTEN SMACKAUD TRUESPEECH TTA VMDAUDIO PCM_ALAW PCM_MULAW PCM_S8 PCM_S16BE PCM_S16LE PCM_S24BE PCM_S24DAUD PCM_S24LE PCM_S32BE PCM_S32LE PCM_U8 PCM_U16BE PCM_U16LE PCM_U24BE PCM_U24LE PCM_U32BE PCM_U32LE INTERPLAY_DPCM ROQ_DPCM SOL_DPCM VQA XAN_DPCM ADPCM_4XM ADPCM_CT ADPCM_EA ADPCM_IMA_DK3 ADPCM_IMA_DK4 ADPCM_IMA_QT ADPCM_IMA_SMJPEG ADPCM_IMA_WAV ADPCM_IMA_WS ADPCM_MS ADPCM_SBPRO_2 ADPCM_SBPRO_3 ADPCM_SBPRO_4 ADPCM_XA ADPCM_YAMAHA"
+for ucname in $ffmpeg_uncommon_codecs; do
+  config_name="CONFIG_${ucname}_DECODER"
+  enabled_name="ENABLE_${ucname}_DECODER"
+  
+  if test x$enable_ffmpeg_uncommon_codecs != xno; then
+    echo "#define $config_name 1" >> $ffmpeg_config_h
+    echo "#define $enabled_name 1" >> $ffmpeg_config_h
+  else
+    echo "#define $enabled_name 0" >> $ffmpeg_config_h
+  fi
+done
+
+dnl popular ffmpeg codecs
+ffmpeg_popular_codecs="CINEPAK FLASHSV H261 H263 H263I H264 INDEO2 INDEO3 MJPEG MJPEGB MPEG1VIDEO MPEG2VIDEO MPEG4 MPEGVIDEO MSMPEG4V1 MSMPEG4V2 MSMPEG4V3 MSRLE MSVIDEO1 QTRLE RV10 RV20 SVQ1 SVQ3 VC1 VP3 VP5 VP6 VP6F WMV1 WMV2 WMV3 COOK DTS FLAC MP2 MP3 QDM2 RA_144 RA_288 WAVPACK WMAV1 WMAV2 ADPCM_SWF"
+
+for ucname in $ffmpeg_popular_codecs; do
+  config_name="CONFIG_${ucname}_DECODER"
+  enabled_name="ENABLE_${ucname}_DECODER"
+  
+  if test x$enable_ffmpeg_popular_codecs != xno; then
+    echo "#define $config_name 1" >> $ffmpeg_config_h
+    echo "#define $enabled_name 1" >> $ffmpeg_config_h
+  else
+    echo "#define $enabled_name 0" >> $ffmpeg_config_h
+  fi
+done
+
+dnl disabled ffmpeg codecs
+ffmpeg_disabled_codecs="BMP CAVS CLJR DSICINVIDEO FFV1 FFVHUFF GIF MDEC MPEG_XVMC MSZH PNG RAWVIDEO SP5X TARGA TIERTEXSEQVIDEO TIFF VMNC ZLIB DSICINAUDIO IMC MP3ADU MP3ON4 MPC7 SONIC WS_SND1 ADPCM_ADX ADPCM_G726 DVBSUB DVDSUB THEORA AAC MPEG4AAC AC3 VORBIS"
+for ucname in $ffmpeg_disabled_codecs; do
+  config_name="CONFIG_${ucname}_DECODER"
+  enabled_name="ENABLE_${ucname}_DECODER"
+  
+  echo "#define $enabled_name 0" >> $ffmpeg_config_h
+done
+
+dnl disabled ffmpeg encoders
+ffmpeg_extra_encoders="H263P JPEGLS LJPEG PAM PBM PGM PGMYUV PPM SONIC_LS"
+for ucname in $ffmpeg_uncommon_codecs $ffmpeg_popular_codecs $ffmpeg_disabled_codecs $ffmpeg_extra_encoders; do
+  config_name="CONFIG_${ucname}_ENCODER"
+  enabled_name="ENABLE_${ucname}_ENCODER"
+  
+  echo "#define $enabled_name 0" >> $ffmpeg_config_h
+done
+
+dnl disabled parsers
+ffmpeg_parsers="AAC AC3 CAVSVIDEO DVBSUB DVDSUB H261 H263 H264 MJPEG MPEG4VIDEO MPEGAUDIO MPEGVIDEO PNM"
+for ucname in $ffmpeg_parsers; do
+  config_name="CONFIG_${ucname}_PARSER"
+  enabled_name="ENABLE_${ucname}_PARSER"
+  
+  echo "#define $enabled_name 0" >> $ffmpeg_config_h
+done
 
 LIBMPEG2_CFLAGS=""
 
@@ -414,6 +478,8 @@ AC_CHECK_DECL(rintf,[
       ],,[
 #include <math.h>
 ])
+
+AC_CHECK_FUNCS(memalign)
 
 AC_ARG_ENABLE([altivec],
 	AS_HELP_STRING([--disable-altivec], [do not use assembly codes for Motorola 74xx CPUs]))
@@ -1994,6 +2060,25 @@ if test x"$have_ip_mreqn" = "xyes"; then
 fi
 
 dnl ---------------------------------------------
+dnl restrict keyword finding (from gstreamer)
+dnl ---------------------------------------------
+restrict=""
+for restrict_keyword in restrict __restrict__ __restrict; do
+  AC_MSG_CHECKING(for restrict keyword $restrict_keyword)
+  AC_TRY_COMPILE([],[ void foo(char * $restrict_keyword p); ],[
+                 KEYWORD_FOUND=yes && AC_MSG_RESULT(yes) ],[
+                 KEYWORD_FOUND=no && AC_MSG_RESULT(no) ])
+  if test x$KEYWORD_FOUND = xyes; then
+    restrict="$restrict_keyword"
+    break
+  fi
+done
+if test x$restrict = x; then
+  AC_MSG_ERROR(No restrict keyword found)
+fi
+AC_DEFINE_UNQUOTED(restrict, $restrict, [restrict keyword])
+
+dnl ---------------------------------------------
 dnl ASM ALIGN is power of two ?
 dnl ---------------------------------------------
 asmalign_pot="unknown"
@@ -2082,7 +2167,7 @@ CC_ATTRIBUTE_SENTINEL
 
 AC_OPTIMIZATIONS
 
-enable_ffmmx="no"
+arch_x86="no"
 enable_armv4l="no"
 
 case "$host_or_hostalias" in
@@ -2093,9 +2178,9 @@ case "$host_or_hostalias" in
     dnl like the extended asm() or __attribute(__cdecl__), or other direct
     dnl mmx/sse/3dnow assembler instructions. 
     dnl
-    AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
+    AC_DEFINE_UNQUOTED(ARCH_X86_32,,[Define this if you're running x86 architecture 32 bits])
     AC_DEFINE(FPM_INTEL,1,[Define to select libmad fixed point arithmetic implementation])
-    enable_ffmmx="yes"
+    arch_x86="yes"
     enable_impure_text="yes"
 
     case "$host_or_hostalias" in
@@ -2105,9 +2190,9 @@ case "$host_or_hostalias" in
     esac
     ;;
   x86_64-*)
-    AC_DEFINE_UNQUOTED(ARCH_X86_64,,[Define this if you're running x86 architecture])
+    AC_DEFINE_UNQUOTED(ARCH_X86_64,,[Define this if you're running x86 architecture 64 bits])
     AC_DEFINE(FPM_64BIT,1,[Define to select libmad fixed point arithmetic implementation])
-    enable_ffmmx="yes"
+    arch_x86="yes"
     ;;
   powerpc-*-darwin*)
     dnl avoid ppc compilation crash
@@ -2186,7 +2271,12 @@ if test "x$has_vis" = "xyes"; then
 fi
 AM_CONDITIONAL(ENABLE_VIS, test x"$has_vis" = "xyes")
 
-AM_CONDITIONAL(HAVE_FFMMX, test x"$enable_ffmmx" = "xyes")
+if test "x$arch_x86" = "xyes"; then
+   AC_DEFINE_UNQUOTED(ARCH_X86,,[Define this if you're running x86 architecture])
+   AC_DEFINE_UNQUOTED(HAVE_MMX,,[Define this if you can compile MMX asm instructions])
+fi
+AM_CONDITIONAL(ARCH_X86, test x"$arch_x86" = "xyes")
+AM_CONDITIONAL(HAVE_MMX, test x"$arch_x86" = "xyes")
 
 case $host_os in
   darwin*)

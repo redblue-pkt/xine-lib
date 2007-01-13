@@ -6,7 +6,12 @@ ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec_armv4l.la
 
-libavcodec_armv4l_src = dsputil_arm.c jrevdct_arm.S mpegvideo_arm.c simple_idct_arm.S
+libavcodec_armv4l_src = dsputil_arm.c jrevdct_arm.S mpegvideo_arm.c simple_idct_arm.S \
+                       dsputil_arm_s.S dsputil_iwmmxt.c dsputil_iwmmxt_rnd.h  \
+                       mpegvideo_armv5te.c mpegvideo_iwmmxt.c simple_idct_armv5te.S
+
+noinst_HEADERS = mathops.h
+
 libavcodec_armv4l_dummy =  libavcodec_armv4l_dummy.c
 EXTRA_DIST =  $(libavcodec_armv4l_src) $(libavcodec_armv4l_dummy)
 

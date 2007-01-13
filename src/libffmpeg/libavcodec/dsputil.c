@@ -2549,6 +2549,11 @@ void ff_put_vc1_mspel_mc00_c(uint8_t *dst, uint8_t *src, int stride, int rnd) {
 }
 #endif /* CONFIG_VC1_DECODER||CONFIG_WMV3_DECODER */
 
+#if defined(CONFIG_H264_ENCODER)
+/* H264 specific */
+void ff_h264dsp_init(DSPContext* c, AVCodecContext *avctx);
+#endif /* CONFIG_H264_ENCODER */
+
 static void wmv2_mspel8_v_lowpass(uint8_t *dst, uint8_t *src, int dstStride, int srcStride, int w){
     uint8_t *cm = ff_cropTbl + MAX_NEG_CROP;
     int i;
@@ -3801,10 +3806,30 @@ void dsputil_static_init(void)
     for(i=0; i<64; i++) inv_zigzag_direct16[ff_zigzag_direct[i]]= i+1;
 }
 
+int ff_check_alignment(void){
+    static int did_fail=0;
+    DECLARE_ALIGNED_16(int, aligned);
+
+    if((int)&aligned & 15){
+        if(!did_fail){
+#if defined(HAVE_MMX) || defined(HAVE_ALTIVEC)
+            av_log(NULL, AV_LOG_ERROR,
+                "Compiler did not align stack variables. Libavcodec has been miscompiled\n"
+                "and may be very slow or crash. This is not a bug in libavcodec,\n"
+                "but in the compiler. Do not report crashes to FFmpeg developers.\n");
+#endif
+            did_fail=1;
+        }
+        return -1;
+    }
+    return 0;
+}
 
 void dsputil_init(DSPContext* c, AVCodecContext *avctx)
 {
     int i;
+
+    ff_check_alignment();
 
 #ifdef CONFIG_ENCODERS
     if(avctx->dct_algo==FF_DCT_FASTINT) {
@@ -4005,6 +4030,9 @@ void dsputil_init(DSPContext* c, AVCodecContext *avctx)
 #endif
 #if defined(CONFIG_VC1_DECODER) || defined(CONFIG_WMV3_DECODER)
     ff_vc1dsp_init(c,avctx);
+#endif
+#if defined(CONFIG_H264_ENCODER)
+    ff_h264dsp_init(c,avctx);
 #endif
 
     c->put_mspel_pixels_tab[0]= put_mspel8_mc00_c;

@@ -2140,7 +2140,7 @@ static void vc1_interp_mc(VC1Context *v)
     dsp->avg_h264_chroma_pixels_tab[0](s->dest[2], srcV, s->uvlinesize, 8, uvmx, uvmy);
 }
 
-static always_inline int scale_mv(int value, int bfrac, int inv, int qs)
+static av_always_inline int scale_mv(int value, int bfrac, int inv, int qs)
 {
     int n = bfrac;
 
@@ -3072,8 +3072,8 @@ static int vc1_decode_intra_block(VC1Context *v, DCTELEM block[64], int n, int c
         ac_val -= 16 * s->block_wrap[n];
 
     q1 = s->current_picture.qscale_table[mb_pos];
-    if(dc_pred_dir && c_avail) q2 = s->current_picture.qscale_table[mb_pos - 1];
-    if(!dc_pred_dir && a_avail) q2 = s->current_picture.qscale_table[mb_pos - s->mb_stride];
+    if(dc_pred_dir && c_avail && mb_pos) q2 = s->current_picture.qscale_table[mb_pos - 1];
+    if(!dc_pred_dir && a_avail && mb_pos >= s->mb_stride) q2 = s->current_picture.qscale_table[mb_pos - s->mb_stride];
     if(n && n<4) q2 = q1;
 
     if(coded) {

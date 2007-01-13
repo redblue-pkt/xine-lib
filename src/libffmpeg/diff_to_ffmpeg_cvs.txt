@@ -1,74 +1,79 @@
-Index: libavcodec/avcodec.h
+Index: libavutil/internal.h
 ===================================================================
---- libavcodec/avcodec.h	(revision 7221)
-+++ libavcodec/avcodec.h	(working copy)
-@@ -47,6 +47,13 @@
- #define AV_TIME_BASE            1000000
- #define AV_TIME_BASE_Q          (AVRational){1, AV_TIME_BASE}
+--- libavutil/internal.h	(revision 7433)
++++ libavutil/internal.h	(working copy)
+@@ -181,11 +181,15 @@
+ #include <assert.h>
  
-+/* FIXME: We cannot use ffmpeg's XvMC capabilities, since that would require
-+ * linking the ffmpeg plugin against XvMC libraries, which is a bad thing,
-+ * since they are output dependend.
-+ * The correct fix would be to reimplement the XvMC functions libavcodec uses
-+ * and do the necessary talking with our XvMC output plugin there. */
-+#undef HAVE_XVMC
-+
- enum CodecID {
-     CODEC_ID_NONE,
-     CODEC_ID_MPEG1VIDEO,
-@@ -2686,6 +2693,13 @@
+ /* dprintf macros */
+-#ifdef DEBUG
+-#    define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
+-#else
+-#    define dprintf(fmt,...)
+-#endif
++#    ifdef DEBUG
++#        ifdef __GNUC__
++#            define dprintf(fmt,args...) av_log(NULL, AV_LOG_DEBUG, fmt, ##args)
++#        else
++#            define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
++#        endif
++#    else
++#        define dprintf(fmt,...)
++#    endif
  
- extern unsigned int av_xiphlacing(unsigned char *s, unsigned int v);
+ #define av_abort()      do { av_log(NULL, AV_LOG_ERROR, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
  
-+/* unused static macro */
-+#if defined(__GNUC__) && !defined(DEBUG)
-+/* since we do not compile the encoder part of ffmpeg, some static
-+ * functions will be unused; this is ok, the compiler will take care */
-+#  define static static __attribute__((__unused__))
+Index: libavutil/integer.c
+===================================================================
+--- libavutil/integer.c	(revision 7433)
++++ libavutil/integer.c	(working copy)
+@@ -126,8 +126,8 @@
+     AVInteger quot_temp;
+     if(!quot) quot = &quot_temp;
+ 
+-    assert((int16_t)a[AV_INTEGER_SIZE-1] >= 0 && (int16_t)b[AV_INTEGER_SIZE-1] >= 0);
+-    assert(av_log2(b)>=0);
++    assert((int16_t)a.v[AV_INTEGER_SIZE-1] >= 0 && (int16_t)b.v[AV_INTEGER_SIZE-1] >= 0);
++    assert(av_log2_i(b)>=0);
+ 
+     if(i > 0)
+         b= av_shr_i(b, -i);
+Index: libavutil/common.h
+===================================================================
+--- libavutil/common.h	(revision 7433)
++++ libavutil/common.h	(working copy)
+@@ -345,4 +345,27 @@
+ char *av_strdup(const char *s);
+ void av_freep(void *ptr);
+ 
++/* xine: inline causes trouble for debug compiling */
++#ifdef DISABLE_INLINE
++# ifdef inline
++#  undef inline
++# endif
++# ifdef always_inline
++#  undef always_inline
++# endif
++# define inline
++# define always_inline
 +#endif
 +
- #ifdef __cplusplus
- }
- #endif
-Index: libavcodec/dsputil.h
-===================================================================
---- libavcodec/dsputil.h	(revision 7221)
-+++ libavcodec/dsputil.h	(working copy)
-@@ -33,6 +33,9 @@
- #include "common.h"
- #include "avcodec.h"
- 
-+#if defined(ARCH_X86) || defined(ARCH_X86_64)
-+#define HAVE_MMX 1
++/* xine: define ASMALIGN here since it's cleaner that generating it in the configure */
++#if HAVE_ASMALIGN_POT
++# define ASMALIGN(ZEROBITS) ".align " #ZEROBITS "\n\t"
++#else
++# define ASMALIGN(ZEROBITS) ".align 1<<" #ZEROBITS "\n\t"
 +#endif
- 
- //#define DEBUG
- /* dct code */
-Index: libavcodec/motion_est.c
-===================================================================
---- libavcodec/motion_est.c	(revision 7221)
-+++ libavcodec/motion_est.c	(working copy)
-@@ -23,6 +23,9 @@
-  * new Motion Estimation (X1/EPZS) by Michael Niedermayer <michaelni@gmx.at>
-  */
- 
-+/* motion estimation only needed for encoders */
-+#ifdef CONFIG_ENCODERS
 +
- /**
-  * @file motion_est.c
-  * Motion estimation.
-@@ -2112,3 +2115,5 @@
-         }
-     }
- }
++/* xine: another config.h with codecs to use */
++#include "ffmpeg_config.h"
 +
-+#endif /* CONFIG_ENCODERS */
+ #endif /* COMMON_H */
++
 Index: libavcodec/mjpeg.c
 ===================================================================
-diff -u -r1.38 mjpeg.c
---- libavcodec/mjpeg.c	4 Dec 2006 22:25:19 -0000	1.38
-+++ libavcodec/mjpeg.c	30 Dec 2006 22:21:34 -0000
+--- libavcodec/mjpeg.c	(revision 7433)
++++ libavcodec/mjpeg.c	(working copy)
 @@ -38,6 +38,13 @@
  #include "mpegvideo.h"
  #include "bytestream.h"
@@ -83,27 +88,61 @@ diff -u -r1.38 mjpeg.c
  /* use two quantizer tables (one for luminance and one for chrominance) */
  /* not yet working */
  #undef TWOMATRIXES
-Index: libavcodec/mpeg12.c
+Index: libavcodec/i386/dsputil_mmx.c
 ===================================================================
---- libavcodec/mpeg12.c	(revision 7221)
-+++ libavcodec/mpeg12.c	(working copy)
-@@ -36,6 +36,13 @@
- //#include <assert.h>
+--- libavcodec/i386/dsputil_mmx.c	(revision 7433)
++++ libavcodec/i386/dsputil_mmx.c	(working copy)
+@@ -2545,33 +2545,39 @@
+                 "pmullw %%mm5, %%mm2 \n\t" // (s-dx)*dy
+                 "pmullw %%mm4, %%mm1 \n\t" // dx*(s-dy)
  
+-                "movd   %4,    %%mm5 \n\t"
+-                "movd   %3,    %%mm4 \n\t"
++                "movd   %3,    %%mm5 \n\t"
++                "movd   %2,    %%mm4 \n\t"
+                 "punpcklbw %%mm7, %%mm5 \n\t"
+                 "punpcklbw %%mm7, %%mm4 \n\t"
+                 "pmullw %%mm5, %%mm3 \n\t" // src[1,1] * dx*dy
+                 "pmullw %%mm4, %%mm2 \n\t" // src[0,1] * (s-dx)*dy
  
-+/* if xine's MPEG encoder is enabled, enable the encoding features in
-+ * this particular module */
-+#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
-+#define CONFIG_ENCODERS
-+#endif
+-                "movd   %2,    %%mm5 \n\t"
+-                "movd   %1,    %%mm4 \n\t"
++                "movd   %1,    %%mm5 \n\t"
++                "movd   %0,    %%mm4 \n\t"
+                 "punpcklbw %%mm7, %%mm5 \n\t"
+                 "punpcklbw %%mm7, %%mm4 \n\t"
+                 "pmullw %%mm5, %%mm1 \n\t" // src[1,0] * dx*(s-dy)
+                 "pmullw %%mm4, %%mm0 \n\t" // src[0,0] * (s-dx)*(s-dy)
+-                "paddw  %5,    %%mm1 \n\t"
++                "paddw  %4,    %%mm1 \n\t"
+                 "paddw  %%mm3, %%mm2 \n\t"
+                 "paddw  %%mm1, %%mm0 \n\t"
+                 "paddw  %%mm2, %%mm0 \n\t"
+ 
+-                "psrlw    %6,    %%mm0 \n\t"
++                "psrlw    %5,    %%mm0 \n\t"
+                 "packuswb %%mm0, %%mm0 \n\t"
+-                "movd     %%mm0, %0    \n\t"
+ 
+-                : "=m"(dst[x+y*stride])
++                : 
+                 : "m"(src[0]), "m"(src[1]),
+                   "m"(src[stride]), "m"(src[stride+1]),
+                   "m"(*r4), "m"(shift2)
+             );
++            
++            asm volatile(
++                "movd     %%mm0, %0    \n\t"
 +
-+
- /* Start codes. */
- #define SEQ_END_CODE            0x000001b7
- #define SEQ_START_CODE          0x000001b3
++                : "=m"(dst[x+y*stride])
++                : 
++            );
+             src += stride;
+         }
+         src += 4-h*stride;
 Index: libavcodec/mpegvideo.c
 ===================================================================
---- libavcodec/mpegvideo.c	(revision 7221)
+--- libavcodec/mpegvideo.c	(revision 7433)
 +++ libavcodec/mpegvideo.c	(working copy)
 @@ -40,6 +40,14 @@
  //#undef NDEBUG
@@ -163,7 +202,7 @@ Index: libavcodec/mpegvideo.c
  
          if(avctx->rc_buffer_size){
              RateControlContext *rcc= &s->rc_context;
-@@ -4575,6 +4593,8 @@
+@@ -4574,6 +4592,8 @@
      case CODEC_ID_MPEG1VIDEO:
      case CODEC_ID_MPEG2VIDEO:
          mpeg1_encode_mb(s, s->block, motion_x, motion_y); break;
@@ -172,7 +211,7 @@ Index: libavcodec/mpegvideo.c
      case CODEC_ID_MPEG4:
          mpeg4_encode_mb(s, s->block, motion_x, motion_y); break;
      case CODEC_ID_MSMPEG4V2:
-@@ -4595,6 +4615,7 @@
+@@ -4594,6 +4614,7 @@
          h263_encode_mb(s, s->block, motion_x, motion_y); break;
      case CODEC_ID_MJPEG:
          mjpeg_encode_mb(s, s->block); break;
@@ -180,7 +219,7 @@ Index: libavcodec/mpegvideo.c
      default:
          assert(0);
      }
-@@ -4816,6 +4837,8 @@
+@@ -4815,6 +4836,8 @@
                 +sse(s, s->new_picture.data[2] + s->mb_x*8  + s->mb_y*s->uvlinesize*8,s->dest[2], w>>1, h>>1, s->uvlinesize);
  }
  
@@ -189,7 +228,7 @@ Index: libavcodec/mpegvideo.c
  static int pre_estimate_motion_thread(AVCodecContext *c, void *arg){
      MpegEncContext *s= arg;
  
-@@ -4859,6 +4882,7 @@
+@@ -4860,6 +4883,7 @@
      }
      return 0;
  }
@@ -197,7 +236,7 @@ Index: libavcodec/mpegvideo.c
  
  static int mb_var_thread(AVCodecContext *c, void *arg){
      MpegEncContext *s= arg;
-@@ -4883,6 +4907,8 @@
+@@ -4886,6 +4910,8 @@
  }
  
  static void write_slice_end(MpegEncContext *s){
@@ -206,7 +245,7 @@ Index: libavcodec/mpegvideo.c
      if(s->codec_id==CODEC_ID_MPEG4){
          if(s->partitioned_frame){
              ff_mpeg4_merge_partitions(s);
-@@ -4892,6 +4918,7 @@
+@@ -4895,6 +4921,7 @@
      }else if(s->out_format == FMT_MJPEG){
          ff_mjpeg_stuffing(&s->pb);
      }
@@ -214,7 +253,7 @@ Index: libavcodec/mpegvideo.c
  
      align_put_bits(&s->pb);
      flush_put_bits(&s->pb);
-@@ -4945,10 +4972,13 @@
+@@ -4950,10 +4977,13 @@
      case CODEC_ID_FLV1:
          s->gob_index = ff_h263_get_gob_height(s);
          break;
@@ -228,7 +267,7 @@ Index: libavcodec/mpegvideo.c
      }
  
      s->resync_mb_x=0;
-@@ -5021,9 +5051,12 @@
+@@ -5026,9 +5056,12 @@
                      if(s->start_mb_y != mb_y || mb_x!=0){
                          write_slice_end(s);
  
@@ -241,7 +280,7 @@ Index: libavcodec/mpegvideo.c
                      }
  
                      assert((put_bits_count(&s->pb)&7) == 0);
-@@ -5047,19 +5080,25 @@
+@@ -5052,19 +5085,25 @@
                      }
  
                      switch(s->codec_id){
@@ -267,18 +306,18 @@ Index: libavcodec/mpegvideo.c
                      }
  
                      if(s->flags&CODEC_FLAG_PASS1){
-@@ -5172,7 +5211,10 @@
- 
+@@ -5286,7 +5325,10 @@
+                     backup_s.dquant = 0;
                      s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
                      s->mb_intra= 0;
 +/* xine: do not need this for decode or MPEG-1 encoding modes */
 +#if 0
-                     ff_mpeg4_set_direct_mv(s, mx, my);
+                     ff_mpeg4_set_direct_mv(s, 0, 0);
 +#endif /* #if 0 */
                      encode_mb_hq(s, &backup_s, &best_s, CANDIDATE_MB_TYPE_DIRECT, pb, pb2, tex_pb,
-                                  &dmin, &next_block, mx, my);
+                                  &dmin, &next_block, 0, 0);
                  }
-@@ -5354,7 +5396,10 @@
+@@ -5400,7 +5442,10 @@
                      s->mb_intra= 0;
                      motion_x=s->b_direct_mv_table[xy][0];
                      motion_y=s->b_direct_mv_table[xy][1];
@@ -287,9 +326,9 @@ Index: libavcodec/mpegvideo.c
                      ff_mpeg4_set_direct_mv(s, motion_x, motion_y);
 +#endif /* #if 0 */
                      break;
-                 case CANDIDATE_MB_TYPE_BIDIR:
-                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD;
-@@ -5462,8 +5507,11 @@
+                 case CANDIDATE_MB_TYPE_DIRECT0:
+                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
+@@ -5513,8 +5558,11 @@
      }
  
      //not beautiful here but we must write it before flushing so it has to be here
@@ -301,7 +340,7 @@ Index: libavcodec/mpegvideo.c
  
      write_slice_end(s);
  
-@@ -5531,6 +5579,8 @@
+@@ -5582,6 +5630,8 @@
      }
  
      if(s->adaptive_quant){
@@ -310,7 +349,7 @@ Index: libavcodec/mpegvideo.c
          switch(s->codec_id){
          case CODEC_ID_MPEG4:
              ff_clean_mpeg4_qscales(s);
-@@ -5541,6 +5591,7 @@
+@@ -5592,6 +5642,7 @@
              ff_clean_h263_qscales(s);
              break;
          }
@@ -318,7 +357,7 @@ Index: libavcodec/mpegvideo.c
  
          s->lambda= s->lambda_table[0];
          //FIXME broken
-@@ -5562,10 +5613,13 @@
+@@ -5613,10 +5664,13 @@
      s->me.mb_var_sum_temp    =
      s->me.mc_mb_var_sum_temp = 0;
  
@@ -332,7 +371,7 @@ Index: libavcodec/mpegvideo.c
  
      s->me.scene_change_score=0;
  
-@@ -5596,6 +5650,8 @@
+@@ -5647,6 +5701,8 @@
          ff_update_duplicate_context(s->thread_context[i], s);
      }
  
@@ -341,7 +380,7 @@ Index: libavcodec/mpegvideo.c
      ff_init_me(s);
  
      /* Estimate motion for every MB */
-@@ -5610,6 +5666,8 @@
+@@ -5661,6 +5717,8 @@
  
          s->avctx->execute(s->avctx, estimate_motion_thread, (void**)&(s->thread_context[0]), NULL, s->avctx->thread_count);
      }else /* if(s->pict_type == I_TYPE) */{
@@ -350,7 +389,7 @@ Index: libavcodec/mpegvideo.c
          /* I-Frame */
          for(i=0; i<s->mb_stride*s->mb_height; i++)
              s->mb_type[i]= CANDIDATE_MB_TYPE_INTRA;
-@@ -5633,6 +5691,8 @@
+@@ -5684,6 +5742,8 @@
  //printf("Scene change detected, encoding as I Frame %d %d\n", s->current_picture.mb_var_sum, s->current_picture.mc_mb_var_sum);
      }
  
@@ -359,7 +398,7 @@ Index: libavcodec/mpegvideo.c
      if(!s->umvplus){
          if(s->pict_type==P_TYPE || s->pict_type==S_TYPE) {
              s->f_code= ff_get_best_fcode(s, s->p_mv_table, CANDIDATE_MB_TYPE_INTER);
-@@ -5686,6 +5746,7 @@
+@@ -5737,6 +5797,7 @@
              }
          }
      }
@@ -367,7 +406,7 @@ Index: libavcodec/mpegvideo.c
  
      if (estimate_qp(s, 0) < 0)
          return -1;
-@@ -5717,6 +5778,8 @@
+@@ -5768,6 +5829,8 @@
  
      s->last_bits= put_bits_count(&s->pb);
      switch(s->out_format) {
@@ -376,7 +415,7 @@ Index: libavcodec/mpegvideo.c
      case FMT_MJPEG:
          mjpeg_picture_header(s);
          break;
-@@ -5745,11 +5808,15 @@
+@@ -5796,11 +5859,15 @@
          else
              h263_encode_picture_header(s, picture_number);
          break;
@@ -392,11 +431,49 @@ Index: libavcodec/mpegvideo.c
      default:
          assert(0);
      }
+Index: libavcodec/mpeg12.c
+===================================================================
+--- libavcodec/mpeg12.c	(revision 7433)
++++ libavcodec/mpeg12.c	(working copy)
+@@ -36,6 +36,13 @@
+ //#include <assert.h>
+ 
+ 
++/* if xine's MPEG encoder is enabled, enable the encoding features in
++ * this particular module */
++#if defined(XINE_MPEG_ENCODER) && !defined(CONFIG_ENCODERS)
++#define CONFIG_ENCODERS
++#endif
++
++
+ /* Start codes. */
+ #define SEQ_END_CODE            0x000001b7
+ #define SEQ_START_CODE          0x000001b3
+Index: libavcodec/motion_est.c
+===================================================================
+--- libavcodec/motion_est.c	(revision 7433)
++++ libavcodec/motion_est.c	(working copy)
+@@ -23,6 +23,9 @@
+  * new Motion Estimation (X1/EPZS) by Michael Niedermayer <michaelni@gmx.at>
+  */
+ 
++/* motion estimation only needed for encoders */
++#ifdef CONFIG_ENCODERS
++
+ /**
+  * @file motion_est.c
+  * Motion estimation.
+@@ -2142,3 +2145,5 @@
+         }
+     }
+ }
++
++#endif /* CONFIG_ENCODERS */
 Index: libavcodec/snow.c
 ===================================================================
---- libavcodec/snow.c	(revision 7221)
+--- libavcodec/snow.c	(revision 7433)
 +++ libavcodec/snow.c	(working copy)
-@@ -1977,6 +1977,7 @@
+@@ -1982,6 +1982,7 @@
  #define P_MV1 P[9]
  #define FLAG_QPEL   1 //must be 1
  
@@ -404,15 +481,15 @@ Index: libavcodec/snow.c
  static int encode_q_branch(SnowContext *s, int level, int x, int y){
      uint8_t p_buffer[1024];
      uint8_t i_buffer[1024];
-@@ -2205,6 +2206,7 @@
+@@ -2210,6 +2211,7 @@
          return score;
      }
  }
 +#endif
  
- static always_inline int same_block(BlockNode *a, BlockNode *b){
+ static av_always_inline int same_block(BlockNode *a, BlockNode *b){
      if((a->type&BLOCK_INTRA) && (b->type&BLOCK_INTRA)){
-@@ -2319,6 +2321,7 @@
+@@ -2322,6 +2324,7 @@
      }
  }
  
@@ -420,7 +497,7 @@ Index: libavcodec/snow.c
  static void encode_blocks(SnowContext *s, int search){
      int x, y;
      int w= s->b_width;
-@@ -2340,6 +2343,7 @@
+@@ -2343,6 +2346,7 @@
          }
      }
  }
@@ -428,7 +505,7 @@ Index: libavcodec/snow.c
  
  static void decode_blocks(SnowContext *s){
      int x, y;
-@@ -3910,6 +3914,7 @@
+@@ -3931,6 +3935,7 @@
      }
  }
  
@@ -436,7 +513,7 @@ Index: libavcodec/snow.c
  static int encode_init(AVCodecContext *avctx)
  {
      SnowContext *s = avctx->priv_data;
-@@ -3997,6 +4002,7 @@
+@@ -4018,6 +4023,7 @@
  
      return 0;
  }
@@ -444,7 +521,7 @@ Index: libavcodec/snow.c
  
  static int frame_start(SnowContext *s){
     AVFrame tmp;
-@@ -4035,6 +4041,7 @@
+@@ -4056,6 +4062,7 @@
      return 0;
  }
  
@@ -452,7 +529,7 @@ Index: libavcodec/snow.c
  static int encode_frame(AVCodecContext *avctx, unsigned char *buf, int buf_size, void *data){
      SnowContext *s = avctx->priv_data;
      RangeCoder * const c= &s->c;
-@@ -4288,6 +4295,7 @@
+@@ -4308,6 +4315,7 @@
  
      return ff_rac_terminate(c);
  }
@@ -460,7 +537,7 @@ Index: libavcodec/snow.c
  
  static void common_end(SnowContext *s){
      int plane_index, level, orientation, i;
-@@ -4319,6 +4327,7 @@
+@@ -4339,6 +4347,7 @@
      }
  }
  
@@ -468,7 +545,7 @@ Index: libavcodec/snow.c
  static int encode_end(AVCodecContext *avctx)
  {
      SnowContext *s = avctx->priv_data;
-@@ -4328,6 +4337,7 @@
+@@ -4348,6 +4357,7 @@
  
      return 0;
  }
@@ -476,86 +553,9 @@ Index: libavcodec/snow.c
  
  static int decode_init(AVCodecContext *avctx)
  {
-Index: libavutil/common.h
-===================================================================
---- libavutil/common.h	(revision 7221)
-+++ libavutil/common.h	(working copy)
-@@ -375,7 +375,7 @@
-         );
-         return (d << 32) | (a & 0xffffffff);
- }
--#elif defined(ARCH_X86_32)
-+#elif defined(ARCH_X86)
- static inline long long read_time(void)
- {
-         long long l;
-@@ -446,4 +446,23 @@
- char *av_strdup(const char *s);
- void av_freep(void *ptr);
- 
-+/* xine: inline causes trouble for debug compiling */
-+#ifdef DISABLE_INLINE
-+# ifdef inline
-+#  undef inline
-+# endif
-+# ifdef always_inline
-+#  undef always_inline
-+# endif
-+# define inline
-+# define always_inline
-+#endif
-+
-+/* xine: define ASMALIGN here since it's cleaner that generating it in the configure */
-+#if HAVE_ASMALIGN_POT
-+# define ASMALIGN(ZEROBITS) ".align " #ZEROBITS "\n\t"
-+#else
-+# define ASMALIGN(ZEROBITS) ".align 1<<" #ZEROBITS "\n\t"
-+#endif
-+
- #endif /* COMMON_H */
-Index: libavutil/integer.c
-===================================================================
---- libavutil/integer.c	(revision 7221)
-+++ libavutil/integer.c	(working copy)
-@@ -126,8 +126,8 @@
-     AVInteger quot_temp;
-     if(!quot) quot = &quot_temp;
- 
--    assert((int16_t)a[AV_INTEGER_SIZE-1] >= 0 && (int16_t)b[AV_INTEGER_SIZE-1] >= 0);
--    assert(av_log2(b)>=0);
-+    assert((int16_t)a.v[AV_INTEGER_SIZE-1] >= 0 && (int16_t)b.v[AV_INTEGER_SIZE-1] >= 0);
-+    assert(av_log2_i(b)>=0);
- 
-     if(i > 0)
-         b= av_shr_i(b, -i);
-Index: libavutil/internal.h
-===================================================================
---- libavutil/internal.h	(revision 7221)
-+++ libavutil/internal.h	(working copy)
-@@ -93,11 +93,15 @@
- #include <assert.h>
- 
- /* dprintf macros */
--#ifdef DEBUG
--#    define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
--#else
--#    define dprintf(fmt,...)
--#endif
-+#    ifdef DEBUG
-+#        ifdef __GNUC__
-+#            define dprintf(fmt,args...) av_log(NULL, AV_LOG_DEBUG, fmt, ##args)
-+#        else
-+#            define dprintf(fmt,...) av_log(NULL, AV_LOG_DEBUG, fmt, __VA_ARGS__)
-+#        endif
-+#    else
-+#        define dprintf(fmt,...)
-+#    endif
- 
- #define av_abort()      do { av_log(NULL, AV_LOG_ERROR, "Abort at %s:%d\n", __FILE__, __LINE__); abort(); } while (0)
- 
 Index: libavcodec/mlib/dsputil_mlib.c
 ===================================================================
---- libavcodec/mlib/dsputil_mlib.c	(revision 7221)
+--- libavcodec/mlib/dsputil_mlib.c	(revision 7433)
 +++ libavcodec/mlib/dsputil_mlib.c	(working copy)
 @@ -22,6 +22,8 @@
  #include "../dsputil.h"
@@ -566,3 +566,35 @@ Index: libavcodec/mlib/dsputil_mlib.c
  #include <mlib_types.h>
  #include <mlib_status.h>
  #include <mlib_sys.h>
+Index: libavcodec/avcodec.h
+===================================================================
+--- libavcodec/avcodec.h	(revision 7433)
++++ libavcodec/avcodec.h	(working copy)
+@@ -47,6 +47,13 @@
+ #define AV_TIME_BASE            1000000
+ #define AV_TIME_BASE_Q          (AVRational){1, AV_TIME_BASE}
+ 
++/* FIXME: We cannot use ffmpeg's XvMC capabilities, since that would require
++ * linking the ffmpeg plugin against XvMC libraries, which is a bad thing,
++ * since they are output dependend.
++ * The correct fix would be to reimplement the XvMC functions libavcodec uses
++ * and do the necessary talking with our XvMC output plugin there. */
++#undef HAVE_XVMC
++
+ enum CodecID {
+     CODEC_ID_NONE,
+     CODEC_ID_MPEG1VIDEO,
+@@ -2688,6 +2695,13 @@
+ 
+ extern unsigned int av_xiphlacing(unsigned char *s, unsigned int v);
+ 
++/* unused static macro */
++#if defined(__GNUC__) && !defined(DEBUG)
++/* since we do not compile the encoder part of ffmpeg, some static
++ * functions will be unused; this is ok, the compiler will take care */
++#  define static static __attribute__((__unused__))
++#endif
++
+ #ifdef __cplusplus
+ }
+ #endif

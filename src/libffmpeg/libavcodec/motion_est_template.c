@@ -555,7 +555,7 @@ if( (y)>(ymax<<(S)) ) printf("%d %d %d %d %d ymax" #v, ymax, (x), (y), s->mb_x, 
     const int qpel= flags&FLAG_QPEL;\
     const int shift= 1+qpel;\
 
-static always_inline int small_diamond_search(MpegEncContext * s, int *best, int dmin,
+static av_always_inline int small_diamond_search(MpegEncContext * s, int *best, int dmin,
                                        int src_index, int ref_index, int const penalty_factor,
                                        int size, int h, int flags)
 {
@@ -667,30 +667,27 @@ static int hex_search(MpegEncContext * s, int *best, int dmin,
     LOAD_COMMON
     LOAD_COMMON2
     int map_generation= c->map_generation;
-    int x,y,i,d;
-    static const int hex[6][2]={{-2, 0}, { 2,0}, {-1,-2}, {1,-2}, {-1,2},{1,2}};
+    int x,y,d;
+    const int dec= dia_size & (dia_size-1);
 
     cmpf= s->dsp.me_cmp[size];
     chroma_cmpf= s->dsp.me_cmp[size+1];
 
-    for(;dia_size; dia_size--){
+    for(;dia_size; dia_size= dec ? dia_size-1 : dia_size>>1){
         do{
             x= best[0];
             y= best[1];
-            for(i=0; i<6; i++){
-                CHECK_CLIPPED_MV(x+hex[i][0]*dia_size, y+hex[i][1]*dia_size);
+
+            CHECK_CLIPPED_MV(x  -dia_size    , y);
+            CHECK_CLIPPED_MV(x+  dia_size    , y);
+            CHECK_CLIPPED_MV(x+( dia_size>>1), y+dia_size);
+            CHECK_CLIPPED_MV(x+( dia_size>>1), y-dia_size);
+            if(dia_size>1){
+                CHECK_CLIPPED_MV(x+(-dia_size>>1), y+dia_size);
+                CHECK_CLIPPED_MV(x+(-dia_size>>1), y-dia_size);
             }
         }while(best[0] != x || best[1] != y);
     }
-
-    do{
-        x= best[0];
-        y= best[1];
-        CHECK_CLIPPED_MV(x+1, y);
-        CHECK_CLIPPED_MV(x, y+1);
-        CHECK_CLIPPED_MV(x-1, y);
-        CHECK_CLIPPED_MV(x, y-1);
-    }while(best[0] != x || best[1] != y);
 
     return dmin;
 }
@@ -704,14 +701,16 @@ static int l2s_dia_search(MpegEncContext * s, int *best, int dmin,
     LOAD_COMMON
     LOAD_COMMON2
     int map_generation= c->map_generation;
-    int x,y,i,d, dia_size;
+    int x,y,i,d;
+    int dia_size= c->dia_size&0xFF;
+    const int dec= dia_size & (dia_size-1);
     static const int hex[8][2]={{-2, 0}, {-1,-1}, { 0,-2}, { 1,-1},
                                 { 2, 0}, { 1, 1}, { 0, 2}, {-1, 1}};
 
     cmpf= s->dsp.me_cmp[size];
     chroma_cmpf= s->dsp.me_cmp[size+1];
 
-    for(dia_size= c->dia_size&0xFF; dia_size; dia_size--){
+    for(; dia_size; dia_size= dec ? dia_size-1 : dia_size>>1){
         do{
             x= best[0];
             y= best[1];
@@ -775,7 +774,7 @@ static int umh_search(MpegEncContext * s, int *best, int dmin,
         }
     }
 
-    return hex_search(s, best, dmin, src_index, ref_index, penalty_factor, size, h, flags, 1);
+    return hex_search(s, best, dmin, src_index, ref_index, penalty_factor, size, h, flags, 2);
 }
 
 #define SAB_CHECK_MV(ax,ay)\
@@ -824,20 +823,27 @@ static int sab_diamond_search(MpegEncContext * s, int *best, int dmin,
     cmpf= s->dsp.me_cmp[size];
     chroma_cmpf= s->dsp.me_cmp[size+1];
 
-    for(j=i=0; i<ME_MAP_SIZE; i++){
+    /*Note j<MAX_SAB_SIZE is needed if MAX_SAB_SIZE < ME_MAP_SIZE as j can
+      become larger due to MVs overflowing their ME_MAP_MV_BITS bits space in map
+     */
+    for(j=i=0; i<ME_MAP_SIZE && j<MAX_SAB_SIZE; i++){
         uint32_t key= map[i];
 
         key += (1<<(ME_MAP_MV_BITS-1)) + (1<<(2*ME_MAP_MV_BITS-1));
 
         if((key&((-1)<<(2*ME_MAP_MV_BITS))) != map_generation) continue;
 
-        assert(j<MAX_SAB_SIZE); //max j = number of predictors
-
         minima[j].height= score_map[i];
         minima[j].x= key & ((1<<ME_MAP_MV_BITS)-1); key>>=ME_MAP_MV_BITS;
         minima[j].y= key & ((1<<ME_MAP_MV_BITS)-1);
         minima[j].x-= (1<<(ME_MAP_MV_BITS-1));
         minima[j].y-= (1<<(ME_MAP_MV_BITS-1));
+
+        // all entries in map should be in range except if the mv overflows their ME_MAP_MV_BITS bits space
+        if(   minima[j].x > xmax || minima[j].x < xmin
+           || minima[j].y > ymax || minima[j].y < ymin)
+            continue;
+
         minima[j].checked=0;
         if(minima[j].x || minima[j].y)
             minima[j].height+= (mv_penalty[((minima[j].x)<<shift)-pred_x] + mv_penalty[((minima[j].y)<<shift)-pred_y])*penalty_factor;
@@ -965,7 +971,7 @@ if(256*256*256*64 % (stats[0]+1)==0){
     return dmin;
 }
 
-static always_inline int diamond_search(MpegEncContext * s, int *best, int dmin,
+static av_always_inline int diamond_search(MpegEncContext * s, int *best, int dmin,
                                        int src_index, int ref_index, int const penalty_factor,
                                        int size, int h, int flags){
     MotionEstContext * const c= &s->me;
@@ -985,7 +991,7 @@ static always_inline int diamond_search(MpegEncContext * s, int *best, int dmin,
         return   var_diamond_search(s, best, dmin, src_index, ref_index, penalty_factor, size, h, flags);
 }
 
-static always_inline int epzs_motion_search_internal(MpegEncContext * s, int *mx_ptr, int *my_ptr,
+static av_always_inline int epzs_motion_search_internal(MpegEncContext * s, int *mx_ptr, int *my_ptr,
                              int P[10][2], int src_index, int ref_index, int16_t (*last_mv)[2],
                              int ref_mv_scale, int flags, int size, int h)
 {
@@ -1017,6 +1023,10 @@ static always_inline int epzs_motion_search_internal(MpegEncContext * s, int *mx
     dmin= cmp(s, 0, 0, 0, 0, size, h, ref_index, src_index, cmpf, chroma_cmpf, flags);
     map[0]= map_generation;
     score_map[0]= dmin;
+
+    //FIXME precalc first term below?
+    if((s->pict_type == B_TYPE && !(c->flags & FLAG_DIRECT)) || s->flags&CODEC_FLAG_MV0)
+        dmin += (mv_penalty[pred_x] + mv_penalty[pred_y])*penalty_factor;
 
     /* first line */
     if (s->first_slice_line) {

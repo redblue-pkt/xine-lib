@@ -4,14 +4,15 @@ SUBDIRS = armv4l i386 mlib alpha ppc sparc libpostproc
 
 # some of ffmpeg's decoders are not used by xine yet
 EXTRA_DIST = motion_est_template.c \
-	adx.c cljr.c fdctref.c ffv1.c g726.c jpeg_ls.c mdec.c raw.c snow.c svq3.c wmv2.c
+	adx.c cljr.c fdctref.c ffv1.c g726.c jpeg_ls.c mdec.c raw.c svq3.c wmv2.c
 
 # we need to compile everything in debug mode, including the encoders,
 # otherwise we get unresolved symbols, because some unsatisfied function calls
 # are not optimized away with debug optimization
-AM_CFLAGS = `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS` -fno-strict-aliasing -DCONFIG_VC1_DECODER
+#AM_CFLAGS = `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS` -fno-strict-aliasing
+AM_CFLAGS = `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)"` -fno-strict-aliasing
 AM_CPPFLAGS = $(ZLIB_CPPFLAGS) $(LIBFFMPEG_CPPFLAGS) \
-	-I$(top_srcdir)/src/libffmpeg/libavutil
+	-I$(top_srcdir)/src/libffmpeg/libavutil -I$(top_srcdir)/src/libffmpeg
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec.la
@@ -94,6 +95,7 @@ libavcodec_la_SOURCES = \
 	simple_idct.c \
 	smacker.c \
 	smc.c \
+	snow.c \
 	svq1.c \
 	tscc.c \
 	truemotion1.c \
@@ -110,7 +112,12 @@ libavcodec_la_SOURCES = \
 	vorbis_data.c \
 	vp3.c \
 	vp3dsp.c \
+	vp5.c \
+        vp56.c \
+        vp56data.c \
+        vp6.c \
 	vqavideo.c \
+	wavpack.c \
 	wmadec.c \
 	wnv1.c \
 	xan.c \
@@ -175,4 +182,8 @@ noinst_HEADERS = \
 	vc1acdata.h \
 	vc1data.h \
 	vp3data.h \
+	vp56.h \
+	vp56data.h \
+	vp5data.h \
+	vp6data.h \
 	wmadata.h
