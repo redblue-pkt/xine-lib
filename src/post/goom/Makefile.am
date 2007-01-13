@@ -18,9 +18,8 @@ lib_LTLIBRARIES = xineplug_post_goom.la
 #AM_CPPFLAGS = -DCPU_POWERPC
 #endif
 
-if HAVE_FFMMX
+if HAVE_MMX
 extra_files = mmx.c xmmx.c
-AM_CPPFLAGS = -DHAVE_MMX
 endif
 
 xineplug_post_goom_la_SOURCES = $(extra_files) xine_goom.c \
