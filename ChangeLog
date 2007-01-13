@@ -44,8 +44,10 @@ xine-lib (1.1.4)
   * Fix demuxing of uncompressed VobSub subtitles in Matroska files
   * ffmpeg update to 51.28.0
   * Workaround ffmpeg buggy codecs that don't release their DR1 frames.
+    [bugs #1599975, #1601299, #1319154]
   * Fix several segfaults and freezing problem with H264 streams that use a lot
-    of reference frames (eg. 15)
+    of reference frames (eg. 15) [bugs #1603305, #1576588]
+  * Fix mpeg4 artifacts introduced in cvs (not present in 1.1.3) [#1625911]
   * Initial support to enable/disable ffmpeg codecs. Codecs may be disabled in
     groups by --disable-ffmpeg-uncommon-codecs/--disable-ffmpeg-popular-codecs
     Think of "uncommon" codecs what people would never want to play with their
