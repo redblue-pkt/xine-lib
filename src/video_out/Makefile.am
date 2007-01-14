@@ -156,7 +156,7 @@ xineplug_vo_out_fb_la_CFLAGS = $(VISIBILITY_FLAG) $(MLIB_CFLAGS)
 xineplug_vo_out_fb_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_directfb_la_SOURCES = video_out_directfb.c $(X11OSD)
-xineplug_vo_out_directfb_la_LIBADD = $(XINE_LIB) $(DIRECTFB_LIBS) $(X_LIBS) $(THREAD_LIBS)
+xineplug_vo_out_directfb_la_LIBADD = $(XINE_LIB) $(DIRECTFB_LIBS) $(X_LIBS) -lXext $(THREAD_LIBS)
 xineplug_vo_out_directfb_la_CFLAGS = $(VISIBILITY_FLAG) $(DIRECTFB_CFLAGS) -fno-strict-aliasing
 xineplug_vo_out_directfb_la_LDFLAGS = -avoid-version -module
 
