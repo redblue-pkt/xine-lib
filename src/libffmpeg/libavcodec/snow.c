@@ -487,7 +487,9 @@ typedef struct {
 #define slice_buffer_get_line(slice_buf, line_num) ((slice_buf)->line[line_num] ? (slice_buf)->line[line_num] : slice_buffer_load_line((slice_buf), (line_num)))
 //#define slice_buffer_get_line(slice_buf, line_num) (slice_buffer_load_line((slice_buf), (line_num)))
 
+#ifdef CONFIG_ENCODERS
 static void iterative_me(SnowContext *s);
+#endif
 
 static void slice_buffer_init(slice_buffer * buf, int line_count, int max_allocated_lines, int line_width, DWTELEM * base_buffer)
 {
@@ -3182,6 +3184,7 @@ static av_always_inline int check_4block_inter(SnowContext *s, int mb_x, int mb_
     }
 }
 
+#ifdef CONFIG_ENCODERS
 static void iterative_me(SnowContext *s){
     int pass, mb_x, mb_y;
     const int b_width = s->b_width  << s->block_max_depth;
@@ -3406,6 +3409,7 @@ static void iterative_me(SnowContext *s){
         av_log(NULL, AV_LOG_ERROR, "pass:4mv changed:%d\n", change*4);
     }
 }
+#endif
 
 static void quantize(SnowContext *s, SubBand *b, DWTELEM *src, int stride, int bias){
     const int level= b->level;
