@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.65 2007/01/13 21:19:52 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.66 2007/01/14 16:53:37 klan Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -263,6 +263,7 @@ static const ff_codec_t ff_video_lookup[] = {
   {BUF_VIDEO_VP31,        CODEC_ID_VP3,       "On2 VP3.1 (ffmpeg)"},
   {BUF_VIDEO_VP5,         CODEC_ID_VP5,       "On2 VP5 (ffmpeg)"},
   {BUF_VIDEO_VP6,         CODEC_ID_VP6,       "On2 VP6 (ffmpeg)"},
+  {BUF_VIDEO_VP6F,        CODEC_ID_VP6F,      "On2 VP6 (ffmepg)"},
   {BUF_VIDEO_4XM,         CODEC_ID_4XM,       "4X Video (ffmpeg)"},
   {BUF_VIDEO_CINEPAK,     CODEC_ID_CINEPAK,   "Cinepak (ffmpeg)"},
   {BUF_VIDEO_MSVC,        CODEC_ID_MSVIDEO1,  "Microsoft Video 1 (ffmpeg)"},
@@ -1595,6 +1596,7 @@ static uint32_t supported_video_types[] = {
   #endif
   #ifdef CONFIG_VP6_DECODER
   BUF_VIDEO_VP6,
+  BUF_VIDEO_VP6F,
   #endif
   #ifdef CONFIG_4XM_DECODER
   BUF_VIDEO_4XM,
