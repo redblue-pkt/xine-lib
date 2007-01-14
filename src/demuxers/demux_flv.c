@@ -20,11 +20,13 @@
 
 /*
  * Flash Video (.flv) File Demuxer
- *   by Mike Melanson (melanson@pcisys.net) and Claudio Ciccani (klan@directfb.org)
+ *   by Mike Melanson (melanson@pcisys.net) and 
+ *      Claudio Ciccani (klan@directfb.org)
+ *
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.14 2006/12/23 14:43:16 klan Exp $
+ * $Id: demux_flv.c,v 1.15 2007/01/14 16:55:25 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -42,7 +44,6 @@
 /*
 #define LOG
 */
-
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "compat.h"
@@ -177,7 +178,7 @@ static int open_flv_file(demux_flv_t *this) {
   this->input->seek(this->input, this->start, SEEK_SET);
   
   lprintf("  qualified FLV file, repositioned @ offset 0x%" PRIxMAX "\n", 
-          (intmax_t)this->movie_start);
+          (intmax_t)this->start);
 
   return 1;
 }
@@ -239,6 +240,8 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
         len = parse_flv_var(this, tmp, end-tmp, str);
         tmp += len;
       }
+      if (*tmp++ != FLV_DATA_TYPE_ENDOBJECT)
+        return 0;
       break;
     case FLV_DATA_TYPE_ECMARRAY:
       lprintf("  got EMCA array (%d indices)\n", BE_32(tmp));
@@ -379,9 +382,21 @@ static int read_flv_packet(demux_flv_t *this) {
             buf_type = BUF_VIDEO_FLV1;
             break;
           case FLV_VIDEO_FORMAT_VP6:
-            /* FIXME: we need ffmpeg's vp6 codec */
-          /*buf_type = BUF_VIDEO_VP6;
-            break;*/
+            buf_type = BUF_VIDEO_VP6F;
+            /* skip VP6 packet header */
+            if (remaining_bytes >= 1) {
+              this->input->seek (this->input, 1, SEEK_CUR);
+              remaining_bytes--;
+            }
+            break;
+          case FLV_VIDEO_FORMAT_VP6A:
+            buf_type = BUF_VIDEO_VP6F;
+            /* skip VP6A packet header */
+            if (remaining_bytes >= 4) {
+              this->input->seek (this->input, 4, SEEK_CUR);
+              remaining_bytes -= 4;
+            }
+            break;
           default:
             lprintf("  unsupported video format (%d)...\n", buffer[0] & 0x0F);
             buf_type = BUF_VIDEO_UNKNOWN;
