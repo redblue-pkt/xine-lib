@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.66 2007/01/14 16:53:37 klan Exp $
+ * $Id: video_decoder.c,v 1.67 2007/01/15 21:27:34 dsalt Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -430,7 +430,7 @@ static void pp_change_quality (ff_video_decoder_t *this) {
   this->pp_quality = this->class->pp_quality;
 
   if(this->pp_available && this->pp_quality) {
-    if(!this->pp_context)
+    if(!this->pp_context && this->context)
       this->pp_context = pp_get_context(this->context->width, this->context->height,
                                         this->pp_flags);
     if(this->pp_mode)
