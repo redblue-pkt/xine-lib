@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.226 2007/01/10 20:13:14 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.227 2007/01/16 16:00:26 miguelfreitas Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -1195,7 +1195,7 @@ static void *video_out_loop (void *this_gen) {
       if (this->clock->speed == XINE_SPEED_PAUSE)
         paused_loop (this, vpts);
 
-      if (next_frame_vpts) {
+      if (next_frame_vpts && this->clock->speed > 0) {
         usec_to_sleep = (next_frame_vpts - vpts) * 100 * XINE_FINE_SPEED_NORMAL / (9 * this->clock->speed);
       } else {
         /* we don't know when the next frame is due, only wait a little */
