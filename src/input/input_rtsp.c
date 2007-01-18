@@ -280,7 +280,7 @@ static input_plugin_t *rtsp_class_get_instance (input_class_t *cls_gen, xine_str
  * rtsp input plugin class stuff
  */
 
-static char *rtsp_class_get_description (input_class_t *this_gen) {
+static const char *rtsp_class_get_description (input_class_t *this_gen) {
   return _("rtsp streaming input plugin");
 }
 

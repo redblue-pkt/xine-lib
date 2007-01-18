@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.118 2006/12/19 19:10:51 dsalt Exp $
+ * $Id: input_file.c,v 1.119 2007/01/18 23:02:18 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -659,7 +659,7 @@ static off_t get_file_size(char *filepathname, char *origin) {
   return pstat.st_size;
 }
 
-static char *file_class_get_description (input_class_t *this_gen) {
+static const char *file_class_get_description (input_class_t *this_gen) {
   return _("file input plugin");
 }
 

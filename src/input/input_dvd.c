@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.212 2006/12/19 19:10:51 dsalt Exp $
+ * $Id: input_dvd.c,v 1.213 2007/01/18 23:02:18 dgp85 Exp $
  *
  */
 
@@ -1680,7 +1680,7 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   return &this->input_plugin;
 }
 
-static char *dvd_class_get_description (input_class_t *this_gen) {
+static const char *dvd_class_get_description (input_class_t *this_gen) {
   trace_print("Called\n");
 
   return "DVD Navigator";

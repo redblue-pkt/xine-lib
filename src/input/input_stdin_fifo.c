@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.67 2006/07/10 22:08:16 dgp85 Exp $
+ * $Id: input_stdin_fifo.c,v 1.68 2007/01/18 23:02:18 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -346,7 +346,7 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *class_gen,
  * stdin input plugin class stuff
  */
 
-static char *stdin_class_get_description (input_class_t *this_gen) {
+static const char *stdin_class_get_description (input_class_t *this_gen) {
   return _("stdin streaming input plugin");
 }
 

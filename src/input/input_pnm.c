@@ -258,7 +258,7 @@ static input_plugin_t *pnm_class_get_instance (input_class_t *cls_gen, xine_stre
  * pnm input plugin class stuff
  */
 
-static char *pnm_class_get_description (input_class_t *this_gen) {
+static const char *pnm_class_get_description (input_class_t *this_gen) {
   return _("pnm streaming input plugin");
 }
 

@@ -739,7 +739,7 @@ static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
  *  net plugin class
  */
  
-static char *rtp_class_get_description (input_class_t *this_gen) {
+static const char *rtp_class_get_description (input_class_t *this_gen) {
 	return _("RTP and UDP input plugin as shipped with xine");
 }
 

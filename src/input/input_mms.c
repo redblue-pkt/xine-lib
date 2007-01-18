@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.66 2007/01/09 20:50:59 klan Exp $
+ * $Id: input_mms.c,v 1.67 2007/01/18 23:02:18 dgp85 Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -439,7 +439,7 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
  * mms input plugin class stuff
  */
 
-static char *mms_class_get_description (input_class_t *this_gen) {
+static const char *mms_class_get_description (input_class_t *this_gen) {
   return _("mms streaming input plugin");
 }
 

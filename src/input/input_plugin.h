@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.62 2006/12/22 16:38:15 klan Exp $
+ * $Id: input_plugin.h,v 1.63 2007/01/18 23:02:18 dgp85 Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -60,7 +60,7 @@ struct input_class_s {
    * return human readable (verbose = 1 line) description for 
    * this plugin class
    */
-  char* (*get_description) (input_class_t *this);
+  const char* (*get_description) (input_class_t *this);
 
   /*
    * ls function, optional: may be NULL

@@ -3085,7 +3085,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
  * dvb input plugin class stuff
  */
 
-static char *dvb_class_get_description (input_class_t *this_gen) {
+static const char *dvb_class_get_description (input_class_t *this_gen) {
   return _("DVB (Digital TV) input plugin");
 }
 

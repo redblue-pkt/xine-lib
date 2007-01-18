@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.63 2006/12/19 19:10:51 dsalt Exp $
+ * $Id: input_pvr.c,v 1.64 2007/01/18 23:02:18 dgp85 Exp $
  */
 
 /**************************************************************************
@@ -1524,7 +1524,7 @@ static input_plugin_t *pvr_class_get_instance (input_class_t *cls_gen, xine_stre
  * plugin class functions
  */
 
-static char *pvr_class_get_description (input_class_t *this_gen) {
+static const char *pvr_class_get_description (input_class_t *this_gen) {
   return _("WinTV-PVR 250/350 input plugin");
 }
 
