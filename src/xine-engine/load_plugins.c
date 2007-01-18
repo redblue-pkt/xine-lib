@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.228 2006/11/23 21:05:31 klan Exp $
+ * $Id: load_plugins.c,v 1.229 2007/01/18 23:30:18 dgp85 Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -2375,14 +2375,14 @@ char *xine_get_file_extensions (xine_t *self) {
   list_size = xine_sarray_size (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   for (list_id = 0; list_id < list_size; list_id++) {
     demux_class_t *cls;
-    char          *exts;
+    const char    *exts;
 
     node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
     if (node->plugin_class || _load_plugin_class(self, node, NULL)) {
 
       cls = (demux_class_t *)node->plugin_class;
 
-      if((exts = cls->get_extensions(cls)) && strlen(exts))
+      if((exts = cls->get_extensions(cls)) && *exts)
 	len += strlen(exts) + 1;
     }
   }
@@ -2394,7 +2394,7 @@ char *xine_get_file_extensions (xine_t *self) {
   list_size = xine_sarray_size (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
   for (list_id = 0; list_id < list_size; list_id++) {
     demux_class_t *cls;
-    char          *e;
+    const char    *e;
     int            l;
     
     node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
@@ -2402,7 +2402,7 @@ char *xine_get_file_extensions (xine_t *self) {
 
       cls = (demux_class_t *)node->plugin_class;
 
-      if((e = cls->get_extensions (cls)) && strlen(e)) {
+      if((e = cls->get_extensions (cls)) && *e) {
 	l = strlen(e);
 	memcpy (&str[pos], e, l);
       
@@ -2444,7 +2444,7 @@ char *xine_get_mime_types (xine_t *self) {
 
   for (list_id = 0; list_id < list_size; list_id++) {
     demux_class_t *cls;
-    char *s;
+    const char *s;
 
     node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
     if (node->plugin_class || _load_plugin_class(self, node, NULL)) {
@@ -2466,7 +2466,7 @@ char *xine_get_mime_types (xine_t *self) {
 
   for (list_id = 0; list_id < list_size; list_id++) {
     demux_class_t *cls;
-    char *s;
+    const char *s;
     int l;
 
     node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
@@ -2503,6 +2503,7 @@ char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) {
   char             *id = NULL;
   char             *mime_arg, *mime_demux;
   char             *s;
+  const char       *mt;
   int               list_id, list_size;
 
   /* create a copy and convert to lower case */  
@@ -2522,9 +2523,9 @@ char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) {
 
       cls = (demux_class_t *)node->plugin_class;
 
-      s = cls->get_mimetypes (cls);
-      if (s) {
-	mime_demux = strdup(s);
+      mt = cls->get_mimetypes (cls);
+      if (mt) {
+	mime_demux = strdup(mt);
       
 	for(s=mime_demux; *s; s++)
 	  *s = tolower(*s);
