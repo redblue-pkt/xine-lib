@@ -20,7 +20,7 @@
  * Demuxer helper functions
  * hide some xine engine details from demuxers and reduce code duplication
  *
- * $Id: demux.c,v 1.65 2006/12/03 19:23:16 miguelfreitas Exp $ 
+ * $Id: demux.c,v 1.66 2007/01/18 23:28:46 dgp85 Exp $ 
  */
 
 
@@ -448,7 +448,7 @@ int _x_demux_read_header( input_plugin_t *input, unsigned char *buffer, off_t si
   return read_size;
 }
 
-int _x_demux_check_extension (char *mrl, char *extensions){
+int _x_demux_check_extension (const char *mrl, const char *extensions){
   char *last_dot, *e, *ext_copy, *ext_work;
 
   ext_copy = strdup(extensions);
