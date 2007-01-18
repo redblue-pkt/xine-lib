@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-12-27 22:08+0100\n"
+"POT-Creation-Date: 2007-01-17 20:23+0100\n"
 "PO-Revision-Date: 2004-09-15 13:53+0100\n"
 "Last-Translator: \n"
 "Language-Team: Slovak <ski18n@lists.isternet.sk>\n"
@@ -1083,7 +1083,7 @@ msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: zlyhalo čítanie vo vstupnom module\n"
 
 #: src/xine-engine/input_rip.c:162 src/xine-engine/input_rip.c:291
-#: src/xine-engine/input_rip.c:643
+#: src/xine-engine/input_rip.c:657
 #, fuzzy, c-format
 msgid "input_rip: error writing to file %<PRIdMAX> bytes: %s\n"
 msgstr "input_rip: chyba pri zápise do súboru %lld bytov: %s\n"
@@ -1106,11 +1106,11 @@ msgstr "input_rip: skok zlyhal: %s\n"
 msgid "input_rip: %<PRIdMAX> bytes dropped\n"
 msgstr "input_rip: %lld bytov zahodených\n"
 
-#: src/xine-engine/input_rip.c:548
+#: src/xine-engine/input_rip.c:562
 msgid "input_rip: input plugin not defined!\n"
 msgstr "input_rip: vstupný modul nedefinovaný!\n"
 
-#: src/xine-engine/input_rip.c:554
+#: src/xine-engine/input_rip.c:568
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'media.capture.save_dir'\n"
@@ -1118,7 +1118,7 @@ msgstr ""
 "input_rip: cieľový adresár nebol špecifikovaný, prosím vyplnte voľbu 'media."
 "capture.save_dir'\n"
 
-#: src/xine-engine/input_rip.c:556
+#: src/xine-engine/input_rip.c:570
 msgid ""
 "The stream save feature is disabled until you set media.capture.save_dir in "
 "the configuration."
@@ -1126,22 +1126,22 @@ msgstr ""
 "Schopnosť ukladania je zakázaná dovtedy kým nenastavíte media.capture."
 "save_dir v konfigurácii."
 
-#: src/xine-engine/input_rip.c:563
+#: src/xine-engine/input_rip.c:577
 msgid "input_rip: ripping/caching of this source is not permitted!\n"
 msgstr "input_rip: ukladanie/kešovanie z tohto zdroja nedovolené!\n"
 
-#: src/xine-engine/input_rip.c:565
+#: src/xine-engine/input_rip.c:579
 msgid ""
 "xine is not allowed to save from this source. (possibly copyrighted "
 "material?)"
 msgstr ""
 "xine nemá povolené ukladať z tohto zdroja. (možno autorsky chránenýmateriál?)"
 
-#: src/xine-engine/input_rip.c:571
+#: src/xine-engine/input_rip.c:585
 msgid "input_rip: file name not given!\n"
 msgstr "input_rip: nezadané meno súboru!\n"
 
-#: src/xine-engine/input_rip.c:613
+#: src/xine-engine/input_rip.c:627
 #, c-format
 msgid "input_rip: error opening file %s: %s\n"
 msgstr "input_rip: nemožno otvoriť súbor %s: %s\n"
@@ -1331,27 +1331,37 @@ msgstr ""
 "video_out: zahadzuje sa obraz s pts %<PRId64>, pretože už je príliš starý "
 "(rozdiel: %<PRId64>).\n"
 
-#: src/xine-engine/video_out.c:1818
+#: src/xine-engine/video_out.c:1790
+msgid "default number of video frames"
+msgstr ""
+
+#: src/xine-engine/video_out.c:1791
+msgid ""
+"The default number of video frames to request from xine video out driver. "
+"Some drivers will override this setting with their own values."
+msgstr ""
+
+#: src/xine-engine/video_out.c:1830
 msgid "percentage of skipped frames to tolerate"
 msgstr ""
 
-#: src/xine-engine/video_out.c:1819
+#: src/xine-engine/video_out.c:1831
 msgid ""
 "When more than this percentage of frames are not shown, because they were "
 "not decoded in time, xine sends a notification."
 msgstr ""
 
-#: src/xine-engine/video_out.c:1824
+#: src/xine-engine/video_out.c:1836
 msgid "percentage of discarded frames to tolerate"
 msgstr ""
 
-#: src/xine-engine/video_out.c:1825
+#: src/xine-engine/video_out.c:1837
 msgid ""
 "When more than this percentage of frames are not shown, because they were "
 "not scheduled for display in time, xine sends a notification."
 msgstr ""
 
-#: src/xine-engine/video_out.c:1859
+#: src/xine-engine/video_out.c:1871
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr "video_out: prepáč, toto sa nemalo stať, reštartuj xine.\n"
 
@@ -3587,12 +3597,12 @@ msgstr "rtsp: zlé mrl: %s\n"
 msgid "rtsp: failed to connect to '%s'\n"
 msgstr "rtsp: nemožno sa pripojiť k '%s'\n"
 
-#: src/input/librtsp/rtsp_session.c:93 src/input/input_mms.c:456
+#: src/input/librtsp/rtsp_session.c:93 src/input/input_mms.c:479
 #, fuzzy
 msgid "network bandwidth"
 msgstr "Sieťové prenosové pásmo"
 
-#: src/input/librtsp/rtsp_session.c:94 src/input/input_mms.c:457
+#: src/input/librtsp/rtsp_session.c:94 src/input/input_mms.c:480
 msgid ""
 "Specify the bandwidth of your internet connection here. This will be used "
 "when streaming servers offer different versions with different bandwidth "
@@ -3662,41 +3672,41 @@ msgstr "cesta k rádio zariadeniu v4l"
 msgid "pnm streaming input plugin"
 msgstr "modul vstupu z prúdu pnm"
 
-#: src/input/mmsh.c:195
+#: src/input/mmsh.c:201
 msgid "libmmsh: send error\n"
 msgstr "libmmsh: chyba posielania\n"
 
-#: src/input/mmsh.c:240
+#: src/input/mmsh.c:246
 msgid "libmmsh: bad response format\n"
 msgstr "libmmsh: zlý formát odpovede\n"
 
-#: src/input/mmsh.c:246
+#: src/input/mmsh.c:252
 #, c-format
 msgid "libmmsh: 3xx redirection not implemented: >%d %s<\n"
 msgstr "libmmsh: presmerovanie 3xx nie je implementované: >%d %s<\n"
 
-#: src/input/mmsh.c:253
+#: src/input/mmsh.c:259
 #, c-format
 msgid "libmmsh: http status not 2xx: >%d %s<\n"
 msgstr "libmmsh: stav http nie je 2xx: >%d %s<\n"
 
-#: src/input/mmsh.c:261
+#: src/input/mmsh.c:267
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr "libmmsh: Presmerovanie umiestnenia nie je implementované\n"
 
-#: src/input/mmsh.c:471
+#: src/input/mmsh.c:476
 msgid "Connecting MMS server (over http)..."
 msgstr "Pripájanie na MMS server (cez http)..."
 
-#: src/input/mmsh.c:639
+#: src/input/mmsh.c:657
 msgid "invalid url\n"
 msgstr "neplatné url\n"
 
-#: src/input/mmsh.c:644
+#: src/input/mmsh.c:662
 msgid "unsupported protocol\n"
 msgstr "nepodporovaný protokol\n"
 
-#: src/input/mms.c:537
+#: src/input/mms.c:561
 msgid "Connecting MMS server (over tcp)..."
 msgstr "Pripájanie k MMS serveru (cez tcp)..."
 
@@ -3722,15 +3732,15 @@ msgstr "input_pnm: zlyhalo nastavenie prúdu dát\n"
 msgid "CIFS/SMB input plugin based on libsmbclient"
 msgstr ""
 
-#: src/input/input_mms.c:420
+#: src/input/input_mms.c:443
 msgid "mms streaming input plugin"
 msgstr "modul vstupu zo siete protokolom mms"
 
-#: src/input/input_mms.c:466
+#: src/input/input_mms.c:489
 msgid "MMS protocol"
 msgstr "MMS protokol"
 
-#: src/input/input_mms.c:467
+#: src/input/input_mms.c:490
 #, fuzzy
 msgid ""
 "Select the protocol to encapsulate MMS.\n"
@@ -5033,22 +5043,22 @@ msgstr "Dxr3enc: Maximálny kvantizér"
 msgid "The maximum compression to apply to an image in constant quality mode."
 msgstr ""
 
-#: src/libffmpeg/audio_decoder.c:119
+#: src/libffmpeg/audio_decoder.c:120
 #, c-format
 msgid "ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr "ffmpeg_audio_dec: zväčšujem buffer na %d aby sa predišlo pretečeniu.\n"
 
-#: src/libffmpeg/audio_decoder.c:163
+#: src/libffmpeg/audio_decoder.c:164
 #, c-format
 msgid "ffmpeg_audio_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr "ffmpeg_audio_dec: nenašiel ffmpeg dekóder pre buf typu 0x%X\n"
 
-#: src/libffmpeg/audio_decoder.c:255
+#: src/libffmpeg/audio_decoder.c:256
 #, fuzzy
 msgid "ffmpeg_audio_dec: trying to open null codec\n"
 msgstr "ffmpeg_audio_dec: nemôžem otvoriť dekóder\n"
 
-#: src/libffmpeg/audio_decoder.c:264
+#: src/libffmpeg/audio_decoder.c:265
 msgid "ffmpeg_audio_dec: couldn't open decoder\n"
 msgstr "ffmpeg_audio_dec: nemôžem otvoriť dekóder\n"
 
@@ -5057,39 +5067,39 @@ msgstr "ffmpeg_audio_dec: nemôžem otvoriť dekóder\n"
 msgid "dvaudio: increasing buffer to %d to avoid overflow.\n"
 msgstr "ffmpeg_audio_dec: zväčšujem buffer na %d aby sa predišlo pretečeniu.\n"
 
-#: src/libffmpeg/video_decoder.c:153
+#: src/libffmpeg/video_decoder.c:156
 msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
 msgstr "ffmpeg_video_dec: nepodporovaný formát snímku, DR1 nepovolený.\n"
 
-#: src/libffmpeg/video_decoder.c:171
+#: src/libffmpeg/video_decoder.c:174
 #, fuzzy
 msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
 msgstr "ffmpeg_video_dec: nepodporovaný formát snímku, DR1 nepovolený.\n"
 
-#: src/libffmpeg/video_decoder.c:319
+#: src/libffmpeg/video_decoder.c:334
 #, c-format
 msgid "ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr "ffmpeg_video_dec: nenájdený ffmpeg dekóder pre buf typu 0x%X\n"
 
-#: src/libffmpeg/video_decoder.c:348
+#: src/libffmpeg/video_decoder.c:363
 msgid "ffmpeg_video_dec: couldn't open decoder\n"
 msgstr "ffmpeg_video_dec: nedá sa otvoriť dekóder\n"
 
-#: src/libffmpeg/video_decoder.c:383
+#: src/libffmpeg/video_decoder.c:398
 msgid "ffmpeg_video_dec: direct rendering enabled\n"
 msgstr "ffmpeg_video_dec: priame vykreslovanie zapnuté\n"
 
-#: src/libffmpeg/video_decoder.c:802
+#: src/libffmpeg/video_decoder.c:817
 #, c-format
 msgid "ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr "ffmpeg_video_dec: zväčšujem buffer na %d aby sa predišlo pretečeniu.\n"
 
-#: src/libffmpeg/video_decoder.c:1474
+#: src/libffmpeg/video_decoder.c:1510
 #, fuzzy
 msgid "MPEG-4 postprocessing quality"
 msgstr "kvalita ffmpeg mpeg-4 postspracovania"
 
-#: src/libffmpeg/video_decoder.c:1475
+#: src/libffmpeg/video_decoder.c:1511
 msgid ""
 "You can adjust the amount of post processing applied to MPEG-4 video.\n"
 "Higher values result in better quality, but need more CPU. Lower values may "

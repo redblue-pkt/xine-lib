@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2006-12-27 22:08+0100\n"
+"POT-Creation-Date: 2007-01-17 20:23+0100\n"
 "PO-Revision-Date: 2007-01-04 09:02+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -1211,7 +1211,7 @@ msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: Lesefehler im input_rip-Plugin\n"
 
 #: src/xine-engine/input_rip.c:162 src/xine-engine/input_rip.c:291
-#: src/xine-engine/input_rip.c:643
+#: src/xine-engine/input_rip.c:657
 #, c-format
 msgid "input_rip: error writing to file %<PRIdMAX> bytes: %s\n"
 msgstr "input_rip: Schreibfehler in Datei bei %<PRIdMAX> Bytes: %s\n"
@@ -1234,11 +1234,11 @@ msgstr "input_rip: Positionierung fehlgeschlagen: %s\n"
 msgid "input_rip: %<PRIdMAX> bytes dropped\n"
 msgstr "input_rip: %<PRIdMAX> Bytes verworfen\n"
 
-#: src/xine-engine/input_rip.c:548
+#: src/xine-engine/input_rip.c:562
 msgid "input_rip: input plugin not defined!\n"
 msgstr "input_rip: Input-Plugin nicht definiert!\n"
 
-#: src/xine-engine/input_rip.c:554
+#: src/xine-engine/input_rip.c:568
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'media.capture.save_dir'\n"
@@ -1246,7 +1246,7 @@ msgstr ""
 "input_rip: Zielverzeichnis nicht angegeben, bitte die Option 'media.capture."
 "save_dir' angeben\n"
 
-#: src/xine-engine/input_rip.c:556
+#: src/xine-engine/input_rip.c:570
 msgid ""
 "The stream save feature is disabled until you set media.capture.save_dir in "
 "the configuration."
@@ -1254,11 +1254,11 @@ msgstr ""
 "Das Abspeichern von Datenströmen ist solange deaktiviert, bis media.capture."
 "save_dir in der Konfiguration gesetzt ist."
 
-#: src/xine-engine/input_rip.c:563
+#: src/xine-engine/input_rip.c:577
 msgid "input_rip: ripping/caching of this source is not permitted!\n"
 msgstr "input_rip: Rippen/Zwischenspeichern dieser Quelle nicht erlaubt!\n"
 
-#: src/xine-engine/input_rip.c:565
+#: src/xine-engine/input_rip.c:579
 msgid ""
 "xine is not allowed to save from this source. (possibly copyrighted "
 "material?)"
@@ -1266,11 +1266,11 @@ msgstr ""
 "xine darf diese Quelle nicht speichern. (Möglicherweise kopiergeschütztes "
 "Material?)"
 
-#: src/xine-engine/input_rip.c:571
+#: src/xine-engine/input_rip.c:585
 msgid "input_rip: file name not given!\n"
 msgstr "input_rip: Dateiname nicht angegeben!\n"
 
-#: src/xine-engine/input_rip.c:613
+#: src/xine-engine/input_rip.c:627
 #, c-format
 msgid "input_rip: error opening file %s: %s\n"
 msgstr "input_ipd: Fehler beim Öffnen der Datei %s: %s\n"
@@ -1476,11 +1476,22 @@ msgstr ""
 "video_out: Verwerfe Bild mit pts %<PRId64>, weil es zu alt ist (Unterschied: "
 "%<PRId64>).\n"
 
-#: src/xine-engine/video_out.c:1818
+#: src/xine-engine/video_out.c:1790
+#, fuzzy
+msgid "default number of video frames"
+msgstr "Standardanzahl von Bildwiederholungen"
+
+#: src/xine-engine/video_out.c:1791
+msgid ""
+"The default number of video frames to request from xine video out driver. "
+"Some drivers will override this setting with their own values."
+msgstr ""
+
+#: src/xine-engine/video_out.c:1830
 msgid "percentage of skipped frames to tolerate"
 msgstr "Erlaubter Prozentsatz für übersprungene Frames"
 
-#: src/xine-engine/video_out.c:1819
+#: src/xine-engine/video_out.c:1831
 msgid ""
 "When more than this percentage of frames are not shown, because they were "
 "not decoded in time, xine sends a notification."
@@ -1488,11 +1499,11 @@ msgstr ""
 "xine zeigt eine Meldung an, wenn mehr Frames als dieser Prozentsatz nicht "
 "angezeigt werden, weil sie nicht rechtzeitig dekodiert werden konnten."
 
-#: src/xine-engine/video_out.c:1824
+#: src/xine-engine/video_out.c:1836
 msgid "percentage of discarded frames to tolerate"
 msgstr "Erlaubter Prozentsatz für verworfene Frames"
 
-#: src/xine-engine/video_out.c:1825
+#: src/xine-engine/video_out.c:1837
 msgid ""
 "When more than this percentage of frames are not shown, because they were "
 "not scheduled for display in time, xine sends a notification."
@@ -1500,7 +1511,7 @@ msgstr ""
 "xine zeigt eine Meldung an, wenn mehr Frames als dieser Prozentsatz nicht "
 "angezeigt werden, weil sie nicht rechtzeitig dargestellt werden konnten."
 
-#: src/xine-engine/video_out.c:1859
+#: src/xine-engine/video_out.c:1871
 msgid "video_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 "video_out : Ups, das sollte eigentlich nicht passieren, bitte xine "
@@ -4003,11 +4014,11 @@ msgstr "rtsp: Fehlerhafte mrl: %s\n"
 msgid "rtsp: failed to connect to '%s'\n"
 msgstr "rtsp: Kann keine Verbindung zu '%s' aufbauen\n"
 
-#: src/input/librtsp/rtsp_session.c:93 src/input/input_mms.c:456
+#: src/input/librtsp/rtsp_session.c:93 src/input/input_mms.c:479
 msgid "network bandwidth"
 msgstr "Netzwerkbandbreite"
 
-#: src/input/librtsp/rtsp_session.c:94 src/input/input_mms.c:457
+#: src/input/librtsp/rtsp_session.c:94 src/input/input_mms.c:480
 msgid ""
 "Specify the bandwidth of your internet connection here. This will be used "
 "when streaming servers offer different versions with different bandwidth "
@@ -4075,41 +4086,41 @@ msgstr "Pfad zum Video4Linux Radiogerät"
 msgid "pnm streaming input plugin"
 msgstr "PNM Streaming-Plugin"
 
-#: src/input/mmsh.c:195
+#: src/input/mmsh.c:201
 msgid "libmmsh: send error\n"
 msgstr "libmmsh: Sendefehler\n"
 
-#: src/input/mmsh.c:240
+#: src/input/mmsh.c:246
 msgid "libmmsh: bad response format\n"
 msgstr "libmmsh: Fehlerhaftes Empfangsformat\n"
 
-#: src/input/mmsh.c:246
+#: src/input/mmsh.c:252
 #, c-format
 msgid "libmmsh: 3xx redirection not implemented: >%d %s<\n"
 msgstr "libmmsh: 3xx Weiterleitung nicht implementiert: >%d %s<\n"
 
-#: src/input/mmsh.c:253
+#: src/input/mmsh.c:259
 #, c-format
 msgid "libmmsh: http status not 2xx: >%d %s<\n"
 msgstr "libmmsh: http-Status ungleich 2xx: >%d %s<\n"
 
-#: src/input/mmsh.c:261
+#: src/input/mmsh.c:267
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr "libmmsh: Weiterleitung nicht implementiert\n"
 
-#: src/input/mmsh.c:471
+#: src/input/mmsh.c:476
 msgid "Connecting MMS server (over http)..."
 msgstr "Kontaktiere MMS Server (über HTTP)..."
 
-#: src/input/mmsh.c:639
+#: src/input/mmsh.c:657
 msgid "invalid url\n"
 msgstr "Ungültige URL\n"
 
-#: src/input/mmsh.c:644
+#: src/input/mmsh.c:662
 msgid "unsupported protocol\n"
 msgstr "Nichtunterstütztes Protokoll\n"
 
-#: src/input/mms.c:537
+#: src/input/mms.c:561
 msgid "Connecting MMS server (over tcp)..."
 msgstr "Kontaktiere MMS Server (über TCP)..."
 
@@ -4135,15 +4146,15 @@ msgstr "input_pnm: Datenstrom konnte nicht eingerichtet werden\n"
 msgid "CIFS/SMB input plugin based on libsmbclient"
 msgstr "CIFS/SMB Plugin basierend auf libsmbclient"
 
-#: src/input/input_mms.c:420
+#: src/input/input_mms.c:443
 msgid "mms streaming input plugin"
 msgstr "MMS-Streaming-Plugin"
 
-#: src/input/input_mms.c:466
+#: src/input/input_mms.c:489
 msgid "MMS protocol"
 msgstr "MMS-Protokoll"
 
-#: src/input/input_mms.c:467
+#: src/input/input_mms.c:490
 msgid ""
 "Select the protocol to encapsulate MMS.\n"
 "TCP is better but you may need HTTP behind a firewall."
@@ -4324,8 +4335,7 @@ msgstr ""
 
 #: src/libsputext/xine_decoder.c:972
 msgid "An outline font file (e.g. a .ttf) to be used for the subtitle text."
-msgstr ""
-"Ein Zeichensatz (z.B. .ttf) zur Anzeige von Untertiteln."
+msgstr "Ein Zeichensatz (z.B. .ttf) zur Anzeige von Untertiteln."
 
 #: src/libsputext/xine_decoder.c:978
 msgid "whether to use a freetype font"
@@ -5585,22 +5595,22 @@ msgstr "Maximaler Quantisierer"
 msgid "The maximum compression to apply to an image in constant quality mode."
 msgstr "Maximale Kompression für ein Bild im Modus konstanter Qualität"
 
-#: src/libffmpeg/audio_decoder.c:119
+#: src/libffmpeg/audio_decoder.c:120
 #, c-format
 msgid "ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr "ffmpeg_audio_dec: Vergrößere Puffer auf %d um Überlauf zu vermeiden.\n"
 
-#: src/libffmpeg/audio_decoder.c:163
+#: src/libffmpeg/audio_decoder.c:164
 #, c-format
 msgid "ffmpeg_audio_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr ""
 "ffmpeg_audio_dec: Konnte keinen ffmpeg-Dekoder für Puffertyp 0x%X finden\n"
 
-#: src/libffmpeg/audio_decoder.c:255
+#: src/libffmpeg/audio_decoder.c:256
 msgid "ffmpeg_audio_dec: trying to open null codec\n"
 msgstr "ffmpeg_audio_dec: Besuche NULl-Codec zu öffnen\n"
 
-#: src/libffmpeg/audio_decoder.c:264
+#: src/libffmpeg/audio_decoder.c:265
 msgid "ffmpeg_audio_dec: couldn't open decoder\n"
 msgstr "ffmpeg_audio_dec: Konnte Dekoder nicht öffnen\n"
 
@@ -5609,38 +5619,38 @@ msgstr "ffmpeg_audio_dec: Konnte Dekoder nicht öffnen\n"
 msgid "dvaudio: increasing buffer to %d to avoid overflow.\n"
 msgstr "dvaudio: Vergrößere Puffer auf %d um Überlauf zu vermeiden.\n"
 
-#: src/libffmpeg/video_decoder.c:153
+#: src/libffmpeg/video_decoder.c:156
 msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
 msgstr "ffmpeg_video_dec: Nichtunterstütztes Bildformat, DR1 deaktiviert.\n"
 
-#: src/libffmpeg/video_decoder.c:171
+#: src/libffmpeg/video_decoder.c:174
 msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
 msgstr "ffmpeg_video_dec: Nichtunterstütztes Bildformat, DR1 deaktiviert.\n"
 
-#: src/libffmpeg/video_decoder.c:319
+#: src/libffmpeg/video_decoder.c:334
 #, c-format
 msgid "ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"
 msgstr ""
 "ffmpeg_video_dec: Konnte keinen ffmpeg-Dekoder für Puffertyp 0x%X finden\n"
 
-#: src/libffmpeg/video_decoder.c:348
+#: src/libffmpeg/video_decoder.c:363
 msgid "ffmpeg_video_dec: couldn't open decoder\n"
 msgstr "ffmpeg_video_dec: Konnte Dekoder nicht öffnen\n"
 
-#: src/libffmpeg/video_decoder.c:383
+#: src/libffmpeg/video_decoder.c:398
 msgid "ffmpeg_video_dec: direct rendering enabled\n"
 msgstr "ffmpeg_video_dec: Direktausgabe aktiviert\n"
 
-#: src/libffmpeg/video_decoder.c:802
+#: src/libffmpeg/video_decoder.c:817
 #, c-format
 msgid "ffmpeg_video_dec: increasing buffer to %d to avoid overflow.\n"
 msgstr "ffmpeg_video_dec: Vergrößere Puffer auf %d um Überlauf zu vermeiden.\n"
 
-#: src/libffmpeg/video_decoder.c:1474
+#: src/libffmpeg/video_decoder.c:1510
 msgid "MPEG-4 postprocessing quality"
 msgstr "Qualität der MPEG-4 Nachbearbeitungsstufe"
 
-#: src/libffmpeg/video_decoder.c:1475
+#: src/libffmpeg/video_decoder.c:1511
 msgid ""
 "You can adjust the amount of post processing applied to MPEG-4 video.\n"
 "Higher values result in better quality, but need more CPU. Lower values may "
