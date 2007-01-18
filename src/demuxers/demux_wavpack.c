@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.2 2006/12/26 14:28:48 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.3 2007/01/18 21:06:26 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -81,23 +81,30 @@ typedef struct {
 # endif
 #endif
 
-static int32_t xine_input_read_bytes(input_plugin_t *this, void *data, int32_t bcount) {
+static int32_t xine_input_read_bytes(void *const this_gen, void *const data,
+				     const int32_t bcount) {
+  input_plugin_t *const this = (input_plugin_t*)this_gen;
   return this->read(this, data, bcount);
 }
 
-static uint32_t xine_input_get_pos(input_plugin_t *this) {
+static uint32_t xine_input_get_pos(void *const this_gen) {
+  input_plugin_t *const this = (input_plugin_t*)this_gen;
   return this->get_current_pos(this);
 }
 
-static int xine_input_set_pos_abs(input_plugin_t *this, uint32_t pos) {
+static int xine_input_set_pos_abs(void *const this_gen, const uint32_t pos) {
+  input_plugin_t *const this = (input_plugin_t*)this_gen;
   return this->seek(this, pos, SEEK_SET);
 }
 
-static int xine_input_set_pos_rel(input_plugin_t *this, int32_t delta, int mode) {
+static int xine_input_set_pos_rel(void *const this_gen, const int32_t delta,
+				  const int mode) {
+  input_plugin_t *const this = (input_plugin_t*)this_gen;
   return this->seek(this, delta, mode);
 }
 
-static int xine_input_push_back_byte(input_plugin_t *this, int c) {
+static int xine_input_push_back_byte(void *const this_gen, const int c) {
+  input_plugin_t *const this = (input_plugin_t*)this_gen;
   if ( this->seek(this, -1, SEEK_CUR) ) {
     return c;
   } else {
@@ -106,20 +113,24 @@ static int xine_input_push_back_byte(input_plugin_t *this, int c) {
   }
 }
 
-static uint32_t xine_input_get_length(input_plugin_t *this) {
+static uint32_t xine_input_get_length(void *const this_gen) {
+  input_plugin_t *const this = (input_plugin_t*)this_gen;
   return this->get_length(this);
 }
 
-static int xine_input_can_seek(input_plugin_t *this) {
+static int xine_input_can_seek(void *const this_gen) {
+  input_plugin_t *const this = (input_plugin_t*)this_gen;
   return INPUT_IS_SEEKABLE(this);
 }
 
-static int32_t xine_input_write_bytes(__unused void *id, __unused void *data, __unused int32_t bcount) {
+static int32_t xine_input_write_bytes(__unused void *const id,
+				      __unused void *const data,
+				      __unused const int32_t bcount) {
   lprintf("xine_input_write_bytes: acces is read-only.\n");
   return 0;
 }
 
-static const WavpackStreamReader wavpack_input_reader = {
+static WavpackStreamReader wavpack_input_reader = {
   .read_bytes		= xine_input_read_bytes,
   .get_pos		= xine_input_get_pos,
   .set_pos_abs		= xine_input_set_pos_abs,
@@ -130,7 +141,7 @@ static const WavpackStreamReader wavpack_input_reader = {
   .write_bytes		= xine_input_write_bytes
 };
 
-static int open_wv_file(demux_wv_t *this) {
+static int open_wv_file(demux_wv_t *const this) {
   WavpackContext *ctx = NULL;
   char error[256]; /* Current version of wavpack (4.31) does not write more than this */
 
@@ -177,8 +188,8 @@ static int open_wv_file(demux_wv_t *this) {
   return 1;
 }
 
-static int demux_wv_send_chunk(demux_plugin_t *this_gen) {
-  demux_wv_t *this = (demux_wv_t *) this_gen;
+static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
+  demux_wv_t *const this = (demux_wv_t *) this_gen;
   uint32_t bytes_to_read;
 
   /* Check if we've finished */
@@ -241,8 +252,8 @@ static int demux_wv_send_chunk(demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static void demux_wv_send_headers(demux_plugin_t *this_gen) {
-  demux_wv_t *this = (demux_wv_t *) this_gen;
+static void demux_wv_send_headers(demux_plugin_t *const this_gen) {
+  demux_wv_t *const this = (demux_wv_t *) this_gen;
   buf_element_t *buf;
 
   this->audio_fifo  = this->stream->audio_fifo;
@@ -273,7 +284,7 @@ static void demux_wv_send_headers(demux_plugin_t *this_gen) {
 
 static int demux_wv_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
-  demux_wv_t *this = (demux_wv_t *) this_gen;
+  demux_wv_t *const this = (demux_wv_t *) this_gen;
 
   /* If thread is not running, initialize demuxer */
   if( !playing ) {
@@ -287,37 +298,37 @@ static int demux_wv_seek (demux_plugin_t *this_gen,
   return this->status;
 }
 
-static void demux_wv_dispose (demux_plugin_t *this_gen) {
-  demux_wv_t *this = (demux_wv_t *) this_gen;
+static void demux_wv_dispose (demux_plugin_t *const this_gen) {
+  demux_wv_t *const this = (demux_wv_t *) this_gen;
 
   free(this);
 }
 
-static int demux_wv_get_status (demux_plugin_t *this_gen) {
-  demux_wv_t *this = (demux_wv_t *) this_gen;
+static int demux_wv_get_status (demux_plugin_t *const this_gen) {
+  const demux_wv_t *const this = (const demux_wv_t *) this_gen;
 
   return this->status;
 }
 
-static int demux_wv_get_stream_length (demux_plugin_t *this_gen) {
+static int demux_wv_get_stream_length (demux_plugin_t *const this_gen) {
 //  demux_wv_t *this = (demux_wv_t *) this_gen;
 
   return 0;
 }
 
-static uint32_t demux_wv_get_capabilities(demux_plugin_t *this_gen) {
+static uint32_t demux_wv_get_capabilities(demux_plugin_t *const this_gen) {
   return DEMUX_CAP_NOCAP;
 }
 
-static int demux_wv_get_optional_data(demux_plugin_t *this_gen,
-                                       void *data, int data_type) {
+static int demux_wv_get_optional_data(demux_plugin_t *const this_gen,
+                                      void *data, const int data_type) {
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
-static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
-				    input_plugin_t *input) {
-  demux_wv_t *this;
-  this = xine_xmalloc (sizeof (demux_wv_t));
+static demux_plugin_t *open_plugin (demux_class_t *const class_gen,
+				    xine_stream_t *const stream,
+				    input_plugin_t *const input) {
+  demux_wv_t *const this = xine_xmalloc (sizeof (demux_wv_t));
   this->stream = stream;
   this->input = input;
 
@@ -335,10 +346,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_EXTENSION: {
-    char *extensions, *mrl;
-
-    mrl = input->get_mrl (input);
-    extensions = class_gen->get_extensions (class_gen);
+    char *const mrl = input->get_mrl (input);
+    char *const extensions = class_gen->get_extensions (class_gen);
 
     if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
@@ -365,32 +374,30 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   return &this->demux_plugin;
 }
 
-static char *get_description (demux_class_t *this_gen) {
+static char *get_description (demux_class_t *const this_gen) {
   return "Wavpack demux plugin";
 }
 
-static char *get_identifier (demux_class_t *this_gen) {
+static char *get_identifier (demux_class_t *const this_gen) {
   return "Wavpack";
 }
 
-static char *get_extensions (demux_class_t *this_gen) {
+static char *get_extensions (demux_class_t *const this_gen) {
   return "wv";
 }
 
-static char *get_mimetypes (demux_class_t *this_gen) {
+static char *get_mimetypes (demux_class_t *const this_gen) {
   return NULL;
 }
 
-static void class_dispose (demux_class_t *this_gen) {
-  demux_wv_class_t *this = (demux_wv_class_t *) this_gen;
+static void class_dispose (demux_class_t *const this_gen) {
+  demux_wv_class_t *const this = (demux_wv_class_t *) this_gen;
 
   free (this);
 }
 
-static void *demux_wv_init_plugin (xine_t *xine, void *data) {
-  demux_wv_class_t *this;
-  
-  this = xine_xmalloc (sizeof (demux_wv_class_t));
+static void *demux_wv_init_plugin (xine_t *const xine, void *const data) {
+  demux_wv_class_t *const this = xine_xmalloc (sizeof (demux_wv_class_t));
 
   this->demux_class.open_plugin     = open_plugin;
   this->demux_class.get_description = get_description;
