@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.50 2006/12/08 16:26:10 mshopf Exp $
+ * $Id: demux_sputext.c,v 1.51 2007/01/18 11:57:16 mshopf Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -727,7 +727,7 @@ static subtitle_t *sub_read_line_aqt (demux_sputext_t *this, subtitle_t *current
   sub_readtext((char *) &line,&current->text[1]);
   current->lines = 2;
   
-  if ((current->text[0]=="") && (current->text[1]=="")) {
+  if ((current->text[0][0]==0) && (current->text[1][0]==0)) {
     return NULL;
   }
   
