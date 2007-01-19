@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: scratch.c,v 1.23 2006/12/13 18:30:30 dsalt Exp $
+ * $Id: scratch.c,v 1.24 2007/01/19 00:12:22 dgp85 Exp $
  *
  * top-level xine functions
  *
@@ -67,7 +67,7 @@ static void __attribute__((__format__(__printf__, 2, 0)))
   pthread_mutex_unlock (&this->lock);
 }
 
-static const char **scratch_get_content (scratch_buffer_t *this) {
+static char **scratch_get_content (scratch_buffer_t *this) {
   int i, j;
 
   pthread_mutex_lock (&this->lock);
