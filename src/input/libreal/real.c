@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real.c,v 1.25 2006/12/18 21:31:47 klan Exp $
+ * $Id: real.c,v 1.26 2007/01/19 01:19:06 dgp85 Exp $
  *
  * special functions for real streams.
  * adopted from joschkas real tools.
@@ -289,18 +289,15 @@ static void calc_response (char *result, char *field) {
 
 static void calc_response_string (char *result, char *challenge) {
  
-  char field[128];
+  char field[128] = {
+    0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+    0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  };
   char zres[20];
   int  i;
       
-  /* initialize our field */
-  BE_32C (field,      0x01234567);
-  BE_32C ((field+4),  0x89ABCDEF);
-  BE_32C ((field+8),  0xFEDCBA98);
-  BE_32C ((field+12), 0x76543210);
-  BE_32C ((field+16), 0x00000000);
-  BE_32C ((field+20), 0x00000000);
-
   /* calculate response */
   call_hash(field, challenge, 64);
   calc_response(zres,field);
