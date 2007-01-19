@@ -181,7 +181,7 @@ static void pnm_plugin_dispose (input_plugin_t *this_gen) {
   free (this);
 }
 
-static char* pnm_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* pnm_plugin_get_mrl (input_plugin_t *this_gen) {
   pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
 
   return this->mrl;

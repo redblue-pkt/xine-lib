@@ -2651,7 +2651,7 @@ static void dvb_plugin_dispose (input_plugin_t *this_gen) {
   free (this);
 }
 
-static char* dvb_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* dvb_plugin_get_mrl (input_plugin_t *this_gen) {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
 
   return this->mrl;

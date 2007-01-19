@@ -38,7 +38,7 @@
  * usage: 
  *   xine pvr:/<prefix_to_tmp_files>\!<prefix_to_saved_files>\!<max_page_age>
  *
- * $Id: input_pvr.c,v 1.64 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_pvr.c,v 1.65 2007/01/19 01:05:25 dgp85 Exp $
  */
 
 /**************************************************************************
@@ -1317,7 +1317,7 @@ static uint32_t pvr_plugin_get_blocksize (input_plugin_t *this_gen) {
   return PVR_BLOCK_SIZE;
 }
 
-static char* pvr_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* pvr_plugin_get_mrl (input_plugin_t *this_gen) {
   pvr_input_plugin_t *this = (pvr_input_plugin_t *) this_gen;
 
   return this->mrl;

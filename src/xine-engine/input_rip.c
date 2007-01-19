@@ -29,7 +29,7 @@
  * - it's possible speeder saving streams in the xine without playing:
  *     xine stream_mrl#save:file.raw\;noaudio\;novideo
  *
- * $Id: input_rip.c,v 1.32 2007/01/07 20:26:23 klan Exp $
+ * $Id: input_rip.c,v 1.33 2007/01/19 01:05:25 dgp85 Exp $
  */
 
 /* TODO:
@@ -479,7 +479,7 @@ static uint32_t rip_plugin_get_blocksize(input_plugin_t *this_gen) {
   return this->main_input_plugin->get_blocksize(this->main_input_plugin);
 }
 
-static char* rip_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* rip_plugin_get_mrl (input_plugin_t *this_gen) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
 
   return this->main_input_plugin->get_mrl(this->main_input_plugin);

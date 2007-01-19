@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.52 2007/01/19 00:26:41 dgp85 Exp $
+ * $Id: demux_sputext.c,v 1.53 2007/01/19 01:05:25 dgp85 Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -1404,10 +1404,8 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
   switch (stream->content_detection_method) {
   case METHOD_BY_EXTENSION:
     {
-      char *mrl, *ending;
-      
-      mrl = input->get_mrl(input);
-      ending = strrchr(mrl, '.');
+      const char *const mrl = input->get_mrl(input);
+      const char *const ending = strrchr(mrl, '.');
 
       if (!ending || (
 	  (strncasecmp(ending, ".asc", 4) != 0) &&

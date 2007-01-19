@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_block.c,v 1.218 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_mpeg_block.c,v 1.219 2007/01/19 01:05:24 dgp85 Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * used with fixed blocksize devices (like dvd/vcd)
@@ -1456,9 +1456,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
+    char *ending;
 
-    mrl = input->get_mrl (input);
+    const char *const mrl = input->get_mrl (input);
 
     if(!strncmp(mrl, "vcd:", 4)) {
       this->blocksize = 2324;

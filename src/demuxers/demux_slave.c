@@ -21,7 +21,7 @@
  */
 
 /*
- * $Id: demux_slave.c,v 1.22 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_slave.c,v 1.23 2007/01/19 01:05:24 dgp85 Exp $
  *
  * demuxer for slave "protocol"
  * master xine must be started with XINE_PARAM_BROADCASTER_PORT set, that is,
@@ -338,9 +338,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_EXTENSION: {
-    char *mrl;
-
-    mrl = input->get_mrl (input);
+    const char *const mrl = input->get_mrl (input);
 
     if(!strncmp(mrl, "slave://", 8))
       break;

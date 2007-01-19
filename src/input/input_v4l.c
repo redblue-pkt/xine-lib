@@ -1628,7 +1628,7 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
  *
  * Get the current MRL used by the plugin.
  */
-static char* v4l_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* v4l_plugin_get_mrl (input_plugin_t *this_gen) {
   v4l_input_plugin_t *this = (v4l_input_plugin_t *) this_gen;
   
   return this->mrl;

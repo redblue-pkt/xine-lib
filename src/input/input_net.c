@@ -20,7 +20,7 @@
  * Read from a tcp network stream over a lan (put a tweaked mp1e encoder the
  * other end and you can watch tv anywhere in the house ..)
  *
- * $Id: input_net.c,v 1.69 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_net.c,v 1.70 2007/01/19 01:05:25 dgp85 Exp $
  *
  * how to set up mp1e for use with this plugin:
  * 
@@ -367,7 +367,7 @@ static off_t net_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
 }
 
 
-static char* net_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* net_plugin_get_mrl (input_plugin_t *this_gen) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
 
   return this->mrl;

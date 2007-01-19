@@ -559,7 +559,7 @@ static uint32_t rtp_plugin_get_blocksize (input_plugin_t *this_gen) {
 /*
  *
  */
-static char* rtp_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* rtp_plugin_get_mrl (input_plugin_t *this_gen) {
   rtp_input_plugin_t *this = (rtp_input_plugin_t *) this_gen;
   
   return this->mrl;

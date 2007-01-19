@@ -196,7 +196,7 @@ static void rtsp_plugin_dispose (input_plugin_t *this_gen) {
   free (this);
 }
 
-static char* rtsp_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* rtsp_plugin_get_mrl (input_plugin_t *this_gen) {
   rtsp_input_plugin_t *this = (rtsp_input_plugin_t *) this_gen;
 
   return this->public_mrl;

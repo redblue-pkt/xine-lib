@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_stdin_fifo.c,v 1.68 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_stdin_fifo.c,v 1.69 2007/01/19 01:05:25 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -202,7 +202,7 @@ static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen){
   return this->curpos;
 }
 
-static char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
   return this->mrl;

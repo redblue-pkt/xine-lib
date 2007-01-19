@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.126 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_http.c,v 1.127 2007/01/19 01:05:25 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -574,7 +574,7 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
   return this->curpos;
 }
 
-static char* http_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* http_plugin_get_mrl (input_plugin_t *this_gen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
   return this->mrl;

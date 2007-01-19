@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_plugin.h,v 1.63 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_plugin.h,v 1.64 2007/01/19 01:05:25 dgp85 Exp $
  */
 
 #ifndef HAVE_INPUT_PLUGIN_H
@@ -201,7 +201,7 @@ struct input_plugin_s {
   /*
    * return current MRL
    */
-  char * (*get_mrl) (input_plugin_t *this);
+  const char * (*get_mrl) (input_plugin_t *this);
 
 
   /*

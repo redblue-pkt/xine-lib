@@ -30,7 +30,7 @@
  *    build_frame_table
  *  free_qt_info
  *
- * $Id: demux_qt.c,v 1.213 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_qt.c,v 1.214 2007/01/19 01:05:24 dgp85 Exp $
  *
  */
 
@@ -2993,11 +2993,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
+    const char *const mrl = input->get_mrl (input);
+    const char *const ending = strrchr(mrl, '.');
 
     if (!ending) {
       free (this);

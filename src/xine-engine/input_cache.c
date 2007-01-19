@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.12 2006/09/08 06:20:37 tmattern Exp $
+ * $Id: input_cache.c,v 1.13 2007/01/19 01:05:25 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -304,7 +304,7 @@ static uint32_t cache_plugin_get_blocksize(input_plugin_t *this_gen) {
   return this->main_input_plugin->get_blocksize(this->main_input_plugin);
 }
 
-static char* cache_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* cache_plugin_get_mrl (input_plugin_t *this_gen) {
   cache_input_plugin_t *this = (cache_input_plugin_t *)this_gen;
 
   return this->main_input_plugin->get_mrl(this->main_input_plugin);

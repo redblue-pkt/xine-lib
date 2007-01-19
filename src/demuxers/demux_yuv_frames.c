@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: demux_yuv_frames.c,v 1.23 2007/01/19 00:26:41 dgp85 Exp $
+ * $Id: demux_yuv_frames.c,v 1.24 2007/01/19 01:05:24 dgp85 Exp $
  *
  * dummy demultiplexer for raw yuv frames (delivered by v4l)
  */
@@ -185,9 +185,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     break;
 
   case METHOD_BY_EXTENSION: {
-    char *mrl;
-
-    mrl = input->get_mrl (input);
+    const char *const mrl = input->get_mrl (input);
 
     if (strncmp (mrl, "v4l:/", 5))
       return NULL;

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.213 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_dvd.c,v 1.214 2007/01/19 01:05:25 dgp85 Exp $
  *
  */
 
@@ -930,7 +930,7 @@ static uint32_t dvd_plugin_get_blocksize (input_plugin_t *this_gen) {
   return DVD_BLOCK_SIZE;
 }
 
-static char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* dvd_plugin_get_mrl (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
   
   trace_print("Called\n");

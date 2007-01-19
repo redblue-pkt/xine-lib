@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.119 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_file.c,v 1.120 2007/01/19 01:05:25 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -299,7 +299,7 @@ static int is_a_dir(char *filepathname) {
   return (S_ISDIR(pstat.st_mode));
 }
 
-static char* file_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* file_plugin_get_mrl (input_plugin_t *this_gen) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
 
   return this->mrl;

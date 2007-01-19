@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.38 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_mpeg_pes.c,v 1.39 2007/01/19 01:05:24 dgp85 Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -1594,11 +1594,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    ending = strrchr(mrl, '.');
+    const char *const mrl = input->get_mrl (input);
+    const char *const ending = strrchr(mrl, '.');
 
     if (!ending) {
       free (this->scratch_base);

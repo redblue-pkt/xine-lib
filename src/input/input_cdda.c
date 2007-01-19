@@ -20,7 +20,7 @@
  * Compact Disc Digital Audio (CDDA) Input Plugin 
  *   by Mike Melanson (melanson@pcisys.net)
  *
- * $Id: input_cdda.c,v 1.92 2007/01/18 23:02:18 dgp85 Exp $
+ * $Id: input_cdda.c,v 1.93 2007/01/19 01:05:24 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -2270,7 +2270,7 @@ static uint32_t cdda_plugin_get_blocksize (input_plugin_t *this_gen) {
   return CD_RAW_FRAME_SIZE;
 }
 
-static char* cdda_plugin_get_mrl (input_plugin_t *this_gen) {
+static const char* cdda_plugin_get_mrl (input_plugin_t *this_gen) {
   cdda_input_plugin_t *this = (cdda_input_plugin_t *) this_gen;
 
   return this->mrl;

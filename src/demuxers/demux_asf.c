@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.191 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_asf.c,v 1.192 2007/01/19 01:05:24 dgp85 Exp $
  *
  * demultiplexer for asf streams
  *
@@ -1356,7 +1356,6 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
   int             buf_used = 0;
   int             len;
   char           *href = NULL;
-  char           *mrl;
   int             free_href = 0;
 
   /* read file to memory.
@@ -1381,7 +1380,7 @@ static int demux_asf_parse_http_references( demux_asf_t *this) {
   ptr = buf;
   if (!strncmp(ptr, "[Reference]", 11)) {
 
-    mrl = this->input->get_mrl(this->input);
+    const char *const mrl = this->input->get_mrl(this->input);
     if (!strncmp(mrl, "http", 4)) {
       /* never trust a ms server, reopen the same mrl with the mms input plugin
        * some servers are badly configured and return a incorrect reference.
@@ -2052,15 +2051,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     break;
 
   case METHOD_BY_EXTENSION: {
-    char *ending, *mrl;
-
-    mrl = input->get_mrl (input);
-
-    /*
-     * check extension
-     */
-
-    ending = strrchr (mrl, '.');
+    const char *const mrl = input->get_mrl (input);
+    const char *const ending = strrchr (mrl, '.');
 
     if (!ending)
       return NULL;
