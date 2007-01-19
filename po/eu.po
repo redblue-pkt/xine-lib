@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib-1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-17 20:23+0100\n"
+"POT-Creation-Date: 2007-01-19 03:36+0100\n"
 "PO-Revision-Date: 2005-02-17 14:29+0100\n"
 "Last-Translator: Piarres Beobide <pi@beobide.net>\n"
 "Language-Team: lubrezale <librezale@librezale.org>\n"
@@ -2728,20 +2728,20 @@ msgstr "video_out_pgx32: Error: ioctl hutsa, okerreko gailua (%s)\n"
 msgid "video_out_pgx32: Error: '%s' is not a pgx32 framebuffer device\n"
 msgstr "video_out_pgx32: Errorea: '%s' ez da pgx32 framebuffer gailua\n"
 
-#: src/libmusepack/xine_decoder.c:237
+#: src/libmusepack/xine_decoder.c:241
 #, c-format
 msgid "libmusepack: mpc_streaminfo_read failed: %d\n"
 msgstr ""
 
-#: src/libmusepack/xine_decoder.c:311
+#: src/libmusepack/xine_decoder.c:315
 msgid "libmusepack: data after last frame ignored\n"
 msgstr ""
 
-#: src/libmusepack/xine_decoder.c:322
+#: src/libmusepack/xine_decoder.c:326
 msgid "libmusepack: mpc_decoder_initialise failed\n"
 msgstr ""
 
-#: src/libmusepack/xine_decoder.c:342 src/libmusepack/xine_decoder.c:357
+#: src/libmusepack/xine_decoder.c:346 src/libmusepack/xine_decoder.c:361
 #, c-format
 msgid "libmusepack: mpc_decoder_decode failed: %d\n"
 msgstr ""
@@ -3588,74 +3588,74 @@ msgstr ""
 "geldoarazteak ez du ezertan txikiagotzen erreprodukzio kalitatea.\n"
 "Zero balioa poliagotzea ezgaitzen da."
 
-#: src/input/input_rtp.c:182
+#: src/input/input_rtp.c:185
 #, c-format
 msgid "socket(): %s.\n"
 msgstr "Socketa: %s.\n"
 
-#: src/input/input_rtp.c:192
+#: src/input/input_rtp.c:195
 msgid "IP address specified is multicast\n"
 msgstr "ezarritako IP helbidea multidifusioa (multicast) da\n"
 
-#: src/input/input_rtp.c:201
+#: src/input/input_rtp.c:204
 #, c-format
 msgid "setsockopt(SO_RCVBUF): %s.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:209
+#: src/input/input_rtp.c:212
 #, c-format
 msgid "setsockopt(SO_REUSEADDR): %s.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:216
+#: src/input/input_rtp.c:219
 #, c-format
 msgid "bind(): %s.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:236
+#: src/input/input_rtp.c:239
 #, c-format
 msgid "Can't find address for iface %s:%s\n"
 msgstr "Ezin da %s interfazearen helbidea aurkitu:%s\n"
 
-#: src/input/input_rtp.c:254
+#: src/input/input_rtp.c:257
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
 msgstr ""
 
-#: src/input/input_rtp.c:276
+#: src/input/input_rtp.c:279
 #, c-format
 msgid "unable to resolve '%s'.\n"
 msgstr "ezin da '%s' ebatzi.\n"
 
-#: src/input/input_rtp.c:286
+#: src/input/input_rtp.c:289
 #, c-format
 msgid "unable to bind to '%s'.\n"
 msgstr "Ezin da '%s' lotu.\n"
 
-#: src/input/input_rtp.c:314
+#: src/input/input_rtp.c:317
 #, c-format
 msgid "recv(): %s.\n"
 msgstr "recv(): %s.\n"
 
-#: src/input/input_rtp.c:602
+#: src/input/input_rtp.c:605
 msgid "RTP: stopping reading thread...\n"
 msgstr "RTP: geratu irakurketa haria...\n"
 
-#: src/input/input_rtp.c:605
+#: src/input/input_rtp.c:608
 msgid "RTP: reading thread terminated\n"
 msgstr "RTP: hari irakurketa amaiturik\n"
 
-#: src/input/input_rtp.c:620
+#: src/input/input_rtp.c:623
 #, c-format
 msgid "Opening >filename:%s port:%d interface:%s<\n"
 msgstr "Opening >fitxategia:%s ataka:%d interfazea:%s<\n"
 
-#: src/input/input_rtp.c:637
+#: src/input/input_rtp.c:640
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
 msgstr "input_rtp: Ezin da hari berria sortu (%s)\n"
 
-#: src/input/input_rtp.c:743
+#: src/input/input_rtp.c:746
 msgid "RTP and UDP input plugin as shipped with xine"
 msgstr "RTP eta UDP sarrera plugina, xinerekin banatzen dena"
 
@@ -3942,11 +3942,11 @@ msgstr "bitplane: Anim ASCIIJ ez da onartzen momentuz\n"
 msgid "bitplane: This anim-type is not supported at the moment\n"
 msgstr "bitplane: Animazio-mota ahu ez da onartzen momentu honetan\n"
 
-#: src/libsputext/demux_sputext.c:1508
+#: src/libsputext/demux_sputext.c:1506
 msgid "default duration of subtitle display in seconds"
 msgstr "azpititulu bistaratze denbora segundutan"
 
-#: src/libsputext/demux_sputext.c:1509
+#: src/libsputext/demux_sputext.c:1507
 msgid ""
 "Some subtitle formats do not explicitly give a duration for each subtitle. "
 "For these, you can set a default duration here. Setting to zero will result "
@@ -4880,7 +4880,7 @@ msgstr "demux_asf: abisua: id=%d korrontea enkriptaturik dago.\n"
 msgid "Media stream scrambled/encrypted"
 msgstr "Medioa korrontea nahasi/enkriptaturik"
 
-#: src/demuxers/demux_asf.c:1635
+#: src/demuxers/demux_asf.c:1634
 #, c-format
 msgid "demux_asf: Wrong ASX version: %s\n"
 msgstr "demux_asf: Okerreko ASX bertsioa: %s\n"

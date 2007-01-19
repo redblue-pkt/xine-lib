@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-17 20:23+0100\n"
+"POT-Creation-Date: 2007-01-19 03:36+0100\n"
 "PO-Revision-Date: 2007-01-04 09:02+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -2997,20 +2997,20 @@ msgstr "video_out_pgx32: Fehler: ioctl schlug fehl, fehlerhaftes Gerät (%s)\n"
 msgid "video_out_pgx32: Error: '%s' is not a pgx32 framebuffer device\n"
 msgstr "video_out_pgx32: Fehler: '%s' ist kein pgx32 Framebuffer Gerät\n"
 
-#: src/libmusepack/xine_decoder.c:237
+#: src/libmusepack/xine_decoder.c:241
 #, c-format
 msgid "libmusepack: mpc_streaminfo_read failed: %d\n"
 msgstr "libmusepack: mpc_streaminfo_read schlug fehl: %d\n"
 
-#: src/libmusepack/xine_decoder.c:311
+#: src/libmusepack/xine_decoder.c:315
 msgid "libmusepack: data after last frame ignored\n"
 msgstr "libmusepack: Daten nach letzem Bild ignoriert\n"
 
-#: src/libmusepack/xine_decoder.c:322
+#: src/libmusepack/xine_decoder.c:326
 msgid "libmusepack: mpc_decoder_initialise failed\n"
 msgstr "libmusepack: mpc_decoder_initialise schlug fehl\n"
 
-#: src/libmusepack/xine_decoder.c:342 src/libmusepack/xine_decoder.c:357
+#: src/libmusepack/xine_decoder.c:346 src/libmusepack/xine_decoder.c:361
 #, c-format
 msgid "libmusepack: mpc_decoder_decode failed: %d\n"
 msgstr "libmusepack: mpc_decoder_decode schlug fehl: %d\n"
@@ -3933,74 +3933,74 @@ msgstr ""
 "auf die Wiedergabeleistung haben sollte.\n"
 "Ein Wert von Null deaktiviert das Bremsen."
 
-#: src/input/input_rtp.c:182
+#: src/input/input_rtp.c:185
 #, c-format
 msgid "socket(): %s.\n"
 msgstr "socket(): %s.\n"
 
-#: src/input/input_rtp.c:192
+#: src/input/input_rtp.c:195
 msgid "IP address specified is multicast\n"
 msgstr "IP-Adresse für Multicast\n"
 
-#: src/input/input_rtp.c:201
+#: src/input/input_rtp.c:204
 #, c-format
 msgid "setsockopt(SO_RCVBUF): %s.\n"
 msgstr "setsockopt(SO_RCVBUF): %s.\n"
 
-#: src/input/input_rtp.c:209
+#: src/input/input_rtp.c:212
 #, c-format
 msgid "setsockopt(SO_REUSEADDR): %s.\n"
 msgstr "setsockopt(SO_REUSEADDR): %s.\n"
 
-#: src/input/input_rtp.c:216
+#: src/input/input_rtp.c:219
 #, c-format
 msgid "bind(): %s.\n"
 msgstr "bind(): %s.\n"
 
-#: src/input/input_rtp.c:236
+#: src/input/input_rtp.c:239
 #, c-format
 msgid "Can't find address for iface %s:%s\n"
 msgstr "Adresse für iface %s nicht gefunden:%s\n"
 
-#: src/input/input_rtp.c:254
+#: src/input/input_rtp.c:257
 #, c-format
 msgid "setsockopt(IP_ADD_MEMBERSHIP) failed (multicast kernel?): %s.\n"
 msgstr "setsockopt(IP_ADD_MEMBERSHIP) abgbrochen (multicast Kernel?): %s.\n"
 
-#: src/input/input_rtp.c:276
+#: src/input/input_rtp.c:279
 #, c-format
 msgid "unable to resolve '%s'.\n"
 msgstr "Kann '%s' nicht auflösen.\n"
 
-#: src/input/input_rtp.c:286
+#: src/input/input_rtp.c:289
 #, c-format
 msgid "unable to bind to '%s'.\n"
 msgstr "Kann keine Verbindung zu '%s' herstellen.\n"
 
-#: src/input/input_rtp.c:314
+#: src/input/input_rtp.c:317
 #, c-format
 msgid "recv(): %s.\n"
 msgstr "recv(): %s.\n"
 
-#: src/input/input_rtp.c:602
+#: src/input/input_rtp.c:605
 msgid "RTP: stopping reading thread...\n"
 msgstr "RTP: Stoppe Lese-Thread...\n"
 
-#: src/input/input_rtp.c:605
+#: src/input/input_rtp.c:608
 msgid "RTP: reading thread terminated\n"
 msgstr "RTP: Lese-Thread terminiert\n"
 
-#: src/input/input_rtp.c:620
+#: src/input/input_rtp.c:623
 #, c-format
 msgid "Opening >filename:%s port:%d interface:%s<\n"
 msgstr "Öffne >Dateiname:%s Port:%d Schnittstelle:%s<\n"
 
-#: src/input/input_rtp.c:637
+#: src/input/input_rtp.c:640
 #, c-format
 msgid "input_rtp: can't create new thread (%s)\n"
 msgstr "input_rtp: Kann neuen Thread (%s) nicht erstellen\n"
 
-#: src/input/input_rtp.c:743
+#: src/input/input_rtp.c:746
 msgid "RTP and UDP input plugin as shipped with xine"
 msgstr "Mit xine ausgeliefertes RTP und UDP Plugin"
 
@@ -4286,11 +4286,11 @@ msgstr "bitplane: Anim ASCIIJ wird momentan nicht unterstützt\n"
 msgid "bitplane: This anim-type is not supported at the moment\n"
 msgstr "bitplane: Dieser anim-Type wird momentan nicht unterstützt\n"
 
-#: src/libsputext/demux_sputext.c:1508
+#: src/libsputext/demux_sputext.c:1506
 msgid "default duration of subtitle display in seconds"
 msgstr "Standardzeitspanne in Sekunden bis zum Ausblenden des Untertitels"
 
-#: src/libsputext/demux_sputext.c:1509
+#: src/libsputext/demux_sputext.c:1507
 msgid ""
 "Some subtitle formats do not explicitly give a duration for each subtitle. "
 "For these, you can set a default duration here. Setting to zero will result "
@@ -5425,7 +5425,7 @@ msgstr "demux_asf: Warnung: Datenstrom id=%d ist verschlüsselt.\n"
 msgid "Media stream scrambled/encrypted"
 msgstr "Medienstrom gestört/verschlüsselt"
 
-#: src/demuxers/demux_asf.c:1635
+#: src/demuxers/demux_asf.c:1634
 #, c-format
 msgid "demux_asf: Wrong ASX version: %s\n"
 msgstr "demux_asf: Falsche ASX Version: %s\n"
