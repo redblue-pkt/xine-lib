@@ -1,4 +1,3 @@
-LIBTOOL = $(SHELL) $(top_builddir)/libtool
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
 
 $(XINE_LIB):
