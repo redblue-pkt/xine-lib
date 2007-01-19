@@ -1311,6 +1311,29 @@ AM_CONDITIONAL(MAD, test "x$enable_libmad" = "xyes")
 AM_CONDITIONAL(EXTERNAL_LIBMAD, test "x$have_mad" = "xyes")
 
 dnl ---------------------------------------------
+dnl External libmpcdec support
+dnl ---------------------------------------------
+
+AC_ARG_ENABLE([musepack], AC_HELP_STRING([--disable-musepack], [Disable support for MusePack decoding (default: enabled)]))
+AC_ARG_WITH([external-libmpcdec], AC_HELP_STRING([--with-external-libmpcdec], [Use external libmpc library]))
+
+if test "x$enable_musepack" = "xno"; then
+   AC_MSG_RESULT([musepack support disabled])
+elif test "x$with_external_libmpcdec" = "xyes"; then
+   AC_CHECK_LIB([mpcdec], [mpc_decoder_decode], [have_mpcdec=yes])
+   AC_CHECK_HEADERS([mpcdec/mpcdec.h], , [have_mpcdec=no])
+   if test "x$have_mpcdec" != "xyes"; then
+      AC_MSG_ERROR([Unable to find mpcdec])
+   fi
+   AC_DEFINE([HAVE_LIBMPC], [1], [Define if external libmpc is used])
+else
+   AC_MSG_RESULT([Use included libmusepack])
+fi
+
+AM_CONDITIONAL([MUSEPACK], [test "x$enable_musepack" != "xno"])
+AM_CONDITIONAL([EXTERNAL_MPCDEC], [test "x$have_mpcdec" = "xyes"])
+
+dnl ---------------------------------------------
 dnl MNG libs.
 dnl ---------------------------------------------
 
@@ -2837,6 +2860,13 @@ if test "x$enable_a52dec" = "xyes"; then
     echo "   - A52/ra-dnet (external library)"
   else
     echo "   - A52/ra-dnet (internal library)"
+  fi
+fi
+if test "x$enable_musepack" != "xno"; then
+  if test "x$have_mpcdec" = "xyes"; then
+    echo "   - MusePack (external library)"
+  else
+    echo "   - MusePack (internal library)"
   fi
 fi
 echo ""

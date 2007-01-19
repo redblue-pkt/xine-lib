@@ -55,6 +55,11 @@ xine-lib (1.1.4)
     Note: currently both uncommon/popular codecs are _build_ but disabled.
     that is, build system still need some improvements to really save memory.
   * Fix possible division by zero when pausing.
+  * Allow disabling build of musepack decoder through a ./configure parameter
+    (--disable-musepack).
+  * Allow using external libmpcdec for MusePack decoding rather than the
+    internal copy of an old libmusepack, through a ./configure parameter
+    (--with-external-libmpcdec).
 
 xine-lib (1.1.3)
   * Security fixes:
