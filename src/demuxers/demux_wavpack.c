@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.3 2007/01/18 21:06:26 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.4 2007/01/19 00:26:40 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -346,8 +346,8 @@ static demux_plugin_t *open_plugin (demux_class_t *const class_gen,
   switch (stream->content_detection_method) {
 
   case METHOD_BY_EXTENSION: {
-    char *const mrl = input->get_mrl (input);
-    char *const extensions = class_gen->get_extensions (class_gen);
+    const char *const mrl = input->get_mrl (input);
+    const char *const extensions = class_gen->get_extensions (class_gen);
 
     if (!_x_demux_check_extension (mrl, extensions)) {
       free (this);
@@ -374,19 +374,19 @@ static demux_plugin_t *open_plugin (demux_class_t *const class_gen,
   return &this->demux_plugin;
 }
 
-static char *get_description (demux_class_t *const this_gen) {
+static const char *get_description (demux_class_t *const this_gen) {
   return "Wavpack demux plugin";
 }
 
-static char *get_identifier (demux_class_t *const this_gen) {
+static const char *get_identifier (demux_class_t *const this_gen) {
   return "Wavpack";
 }
 
-static char *get_extensions (demux_class_t *const this_gen) {
+static const char *get_extensions (demux_class_t *const this_gen) {
   return "wv";
 }
 
-static char *get_mimetypes (demux_class_t *const this_gen) {
+static const char *get_mimetypes (demux_class_t *const this_gen) {
   return NULL;
 }
 

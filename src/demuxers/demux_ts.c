@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.123 2006/08/08 03:58:15 miguelfreitas Exp $
+ * $Id: demux_ts.c,v 1.124 2007/01/19 00:26:40 dgp85 Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -2089,12 +2089,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     break;
 
   case METHOD_BY_EXTENSION: {
-    char  *extensions, *mrl;
-
-    mrl = input->get_mrl (input);
+    const char *const mrl = input->get_mrl (input);
 
     /* check extension */
-    extensions = class_gen->get_extensions (class_gen);
+    const char *const extensions = class_gen->get_extensions (class_gen);
 
     if (_x_demux_check_extension (mrl, extensions))
       break;
@@ -2190,19 +2188,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
  * ts demuxer class
  */
 
-static char *get_description (demux_class_t *this_gen) {
+static const char *get_description (demux_class_t *this_gen) {
   return "MPEG Transport Stream demuxer";
 }
  
-static char *get_identifier (demux_class_t *this_gen) {
+static const char *get_identifier (demux_class_t *this_gen) {
   return "MPEG_TS";
 }
 
-static char *get_extensions (demux_class_t *this_gen) {
+static const char *get_extensions (demux_class_t *this_gen) {
   return "ts m2t trp";
 }
 
-static char *get_mimetypes (demux_class_t *this_gen) {
+static const char *get_mimetypes (demux_class_t *this_gen) {
   return NULL;
 }
 

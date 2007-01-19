@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_sputext.c,v 1.51 2007/01/18 11:57:16 mshopf Exp $
+ * $Id: demux_sputext.c,v 1.52 2007/01/19 00:26:41 dgp85 Exp $
  *
  * code based on old libsputext/xine_decoder.c
  *
@@ -1452,19 +1452,19 @@ static demux_plugin_t *open_demux_plugin (demux_class_t *class_gen, xine_stream_
   return NULL;
 }
   
-static char *get_demux_description (demux_class_t *this_gen) {
+static const char *get_demux_description (demux_class_t *this_gen) {
   return "sputext demuxer plugin";
 }
 
-static char *get_demux_identifier (demux_class_t *this_gen) {
+static const char *get_demux_identifier (demux_class_t *this_gen) {
   return "sputext";
 }
 
-static char *get_demux_extensions (demux_class_t *this_gen) {
+static const char *get_demux_extensions (demux_class_t *this_gen) {
   return "asc txt sub srt smi ssa";
 }
 
-static char *get_demux_mimetypes (demux_class_t *this_gen) {
+static const char *get_demux_mimetypes (demux_class_t *this_gen) {
   return NULL;
 
   /* do not report this mimetype, it might confuse browsers. */

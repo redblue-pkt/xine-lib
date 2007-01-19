@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.145 2006/09/03 02:03:21 dgp85 Exp $
+ * $Id: demux_mpgaudio.c,v 1.146 2007/01/19 00:26:40 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -1016,8 +1016,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   case METHOD_BY_EXTENSION: {
-    char *mrl = input->get_mrl(input);
-    char *extensions = class_gen->get_extensions (class_gen);
+    const char *const mrl = input->get_mrl(input);
+    const char *const extensions = class_gen->get_extensions (class_gen);
     
     lprintf ("stage by extension %s\n", mrl);
     
@@ -1058,15 +1058,15 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
  * demux mpegaudio class
  */
 
-static char *get_description (demux_class_t *this_gen) {
+static const char *get_description (demux_class_t *this_gen) {
   return "MPEG audio demux plugin";
 }
 
-static char *get_identifier (demux_class_t *this_gen) {
+static const char *get_identifier (demux_class_t *this_gen) {
   return "MPEGAUDIO";
 }
 
-static char *get_extensions (demux_class_t *this_gen) {
+static const char *get_extensions (demux_class_t *this_gen) {
   demux_mpgaudio_class_t *this = (demux_mpgaudio_class_t *) this_gen;
   
   if( _x_decoder_available(this->xine, BUF_AUDIO_MPEG) )
@@ -1075,7 +1075,7 @@ static char *get_extensions (demux_class_t *this_gen) {
     return "";
 }
 
-static char *get_mimetypes (demux_class_t *this_gen) {
+static const char *get_mimetypes (demux_class_t *this_gen) {
   demux_mpgaudio_class_t *this = (demux_mpgaudio_class_t *) this_gen;
 
   if( _x_decoder_available(this->xine, BUF_AUDIO_MPEG) )

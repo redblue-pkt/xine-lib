@@ -20,7 +20,7 @@
  * True Audio demuxer by Diego Pettenò <flameeyes@gentoo.org>
  * Inspired by tta libavformat demuxer by Alex Beregszaszi
  *
- * $Id: demux_tta.c,v 1.1 2006/12/26 16:59:55 dgp85 Exp $
+ * $Id: demux_tta.c,v 1.2 2007/01/19 00:26:40 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_tta"
@@ -255,7 +255,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_EXTENSION: {
-    char *extensions, *mrl;
+    const char *extensions, *mrl;
 
     mrl = input->get_mrl (input);
     extensions = class_gen->get_extensions (class_gen);
@@ -283,19 +283,19 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   return &this->demux_plugin;
 }
 
-static char *get_description (demux_class_t *this_gen) {
+static const char *get_description (demux_class_t *this_gen) {
   return "True Audio demux plugin";
 }
 
-static char *get_identifier (demux_class_t *this_gen) {
+static const char *get_identifier (demux_class_t *this_gen) {
   return "True Audio";
 }
 
-static char *get_extensions (demux_class_t *this_gen) {
+static const char *get_extensions (demux_class_t *this_gen) {
   return "tta";
 }
 
-static char *get_mimetypes (demux_class_t *this_gen) {
+static const char *get_mimetypes (demux_class_t *this_gen) {
   return NULL;
 }
 

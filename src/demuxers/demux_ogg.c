@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.171 2006/11/10 14:53:23 dgp85 Exp $
+ * $Id: demux_ogg.c,v 1.172 2007/01/19 00:26:40 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1926,7 +1926,7 @@ static int detect_ogg_content (int detection_method, demux_class_t *class_gen,
     }
 
     case METHOD_BY_EXTENSION: {
-      char *extensions, *mrl;
+      const char *extensions, *mrl;
 
       mrl = input->get_mrl (input);
       extensions = class_gen->get_extensions (class_gen);
@@ -1988,7 +1988,7 @@ static int detect_anx_content (int detection_method, demux_class_t *class_gen,
 #undef ANNODEX_SIGNATURE_SEARCH
 
     case METHOD_BY_EXTENSION: {
-      char *extensions, *mrl;
+      const char *extensions, *mrl;
 
       mrl = input->get_mrl (input);
       extensions = class_gen->get_extensions (class_gen);
@@ -2099,19 +2099,19 @@ static demux_plugin_t *ogg_open_plugin (demux_class_t *class_gen,
  * Annodex demuxer class
  */
 
-static char *anx_get_description (demux_class_t *this_gen) {
+static const char *anx_get_description (demux_class_t *this_gen) {
   return "Annodex demux plugin";
 }
  
-static char *anx_get_identifier (demux_class_t *this_gen) {
+static const char *anx_get_identifier (demux_class_t *this_gen) {
   return "Annodex";
 }
 
-static char *anx_get_extensions (demux_class_t *this_gen) {
+static const char *anx_get_extensions (demux_class_t *this_gen) {
   return "anx axa axv";
 }
 
-static char *anx_get_mimetypes (demux_class_t *this_gen) {
+static const char *anx_get_mimetypes (demux_class_t *this_gen) {
   return "application/x-annodex: ogg: Annodex media;";
 }
 
@@ -2140,19 +2140,19 @@ static void *anx_init_class (xine_t *xine, void *data) {
  * ogg demuxer class
  */
 
-static char *ogg_get_description (demux_class_t *this_gen) {
+static const char *ogg_get_description (demux_class_t *this_gen) {
   return "OGG demux plugin";
 }
  
-static char *ogg_get_identifier (demux_class_t *this_gen) {
+static const char *ogg_get_identifier (demux_class_t *this_gen) {
   return "OGG";
 }
 
-static char *ogg_get_extensions (demux_class_t *this_gen) {
+static const char *ogg_get_extensions (demux_class_t *this_gen) {
   return "ogg ogm spx";
 }
 
-static char *ogg_get_mimetypes (demux_class_t *this_gen) {
+static const char *ogg_get_mimetypes (demux_class_t *this_gen) {
   return "audio/x-ogg: ogg: OggVorbis Audio;"
          "audio/x-speex: ogg: Speex Audio;"
          "application/x-ogg: ogg: OggVorbis Audio;";

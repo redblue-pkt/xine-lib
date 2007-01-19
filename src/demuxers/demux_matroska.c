@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.50 2007/01/07 12:33:50 molivier Exp $
+ * $Id: demux_matroska.c,v 1.51 2007/01/19 00:26:40 dgp85 Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -2802,12 +2802,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   case METHOD_BY_EXTENSION: {
-    char *mrl = input->get_mrl(input);
-    char *extensions;
+    const char *const mrl = input->get_mrl(input);
+    const char *const extensions = class_gen->get_extensions (class_gen);;
 
     lprintf ("stage by extension %s\n", mrl);
-
-    extensions = class_gen->get_extensions (class_gen);
 
     if (!_x_demux_check_extension (mrl, extensions))
       return NULL;
@@ -2866,22 +2864,22 @@ error:
  * demux matroska class
  */
 
-static char *get_description (demux_class_t *this_gen) {
+static const char *get_description (demux_class_t *this_gen) {
   return "matroska demux plugin";
 }
 
 
-static char *get_identifier (demux_class_t *this_gen) {
+static const char *get_identifier (demux_class_t *this_gen) {
   return "matroska";
 }
 
 
-static char *get_extensions (demux_class_t *this_gen) {
+static const char *get_extensions (demux_class_t *this_gen) {
   return "mkv";
 }
 
 
-static char *get_mimetypes (demux_class_t *this_gen) {
+static const char *get_mimetypes (demux_class_t *this_gen) {
   return "video/mkv: mkv: matroska;";
 }
 

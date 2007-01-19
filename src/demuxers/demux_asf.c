@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.190 2007/01/03 15:12:37 klan Exp $
+ * $Id: demux_asf.c,v 1.191 2007/01/19 00:26:40 dgp85 Exp $
  *
  * demultiplexer for asf streams
  *
@@ -2123,20 +2123,20 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   return &this->demux_plugin;
 }
 
-static char *get_description (demux_class_t *this_gen) {
+static const char *get_description (demux_class_t *this_gen) {
   return "ASF demux plugin";
 }
 
-static char *get_identifier (demux_class_t *this_gen) {
+static const char *get_identifier (demux_class_t *this_gen) {
   return "ASF";
 }
 
-static char *get_extensions (demux_class_t *this_gen) {
+static const char *get_extensions (demux_class_t *this_gen) {
   /* asx, wvx, wax are metafile or playlist */
   return "asf wmv wma asx wvx wax";
 }
 
-static char *get_mimetypes (demux_class_t *this_gen) {
+static const char *get_mimetypes (demux_class_t *this_gen) {
 
   return "video/x-ms-asf: asf: ASF stream;"
          "video/x-ms-wmv: wmv: Windows Media Video;"
