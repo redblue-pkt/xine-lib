@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: broadcaster.c,v 1.13 2007/01/19 01:16:46 dgp85 Exp $
+ * $Id: broadcaster.c,v 1.14 2007/01/19 01:21:25 dgp85 Exp $
  * 
  * broadcaster.c - xine network broadcaster
  *
@@ -321,7 +321,7 @@ broadcaster_t *_x_init_broadcaster(xine_stream_t *stream, int port)
   servAddr.in.sin_addr.s_addr = htonl(INADDR_ANY);
   servAddr.in.sin_port = htons(port);
 
-  if(bind(msock, &servAddr.sa, sizeof(servAddr))<0)
+  if(bind(msock, &servAddr.sa, sizeof(servAddr.sa))<0)
   {
     xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "broadcaster: error binding to port %d\n", port);
     return NULL;
