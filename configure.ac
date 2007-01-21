@@ -2345,6 +2345,26 @@ AM_CONDITIONAL(HAVE_ARMV4L, test "x$enable_armv4l" = "xyes")
 
 
 dnl ---------------------------------------------
+dnl Use features of autoconf 2.61, but stay compatible
+dnl with older versions.
+dnl ---------------------------------------------
+
+if test "x$datarootdir" = "x"; then
+   datarootdir='${datadir}'
+   AC_SUBST(datarootdir)
+fi
+
+if test "x$docdir" = "x"; then
+   docdir='${datarootdir}/doc/${PACKAGE}'
+   AC_SUBST(docdir)
+fi
+
+if test "x$htmldir" = "x"; then
+   htmldir='${docdir}'
+   AC_SUBST(htmldir)
+fi
+
+dnl ---------------------------------------------
 dnl XINE_ROOTDIR does not work if architecture independent files are 
 dnl installed to another place than architecture dependent files !!!
 dnl ---------------------------------------------
@@ -2418,12 +2438,12 @@ AC_SUBST(XINE_FONTDIR)
 AC_SUBST(XINE_LOCALEDIR)
 
 dnl Where aclocal m4 files should be installed
-XINE_ACFLAGS="-I `makeexpand "${datarootdir:-${datadir}}/aclocal"`"
+XINE_ACFLAGS="-I `makeexpand "${datarootdir}/aclocal"`"
 AC_DEFINE_UNQUOTED(XINE_ACFLAGS, "$XINE_ACFLAGS", [Path where aclocal m4 files will be.])
 AC_SUBST(XINE_ACFLAGS)
 
 dnl Where architecture independent data (e.g. logo) will/should be installed
-XINE_DATADIR="`makeexpand "${datarootdir:-${datadir}}/xine"`"
+XINE_DATADIR="`makeexpand "${datarootdir}/xine"`"
 AC_SUBST(XINE_DATADIR)
 
 dnl Where scripts will/should be installed.
