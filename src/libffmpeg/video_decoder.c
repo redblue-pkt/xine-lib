@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.68 2007/01/15 22:52:33 molivier Exp $
+ * $Id: video_decoder.c,v 1.69 2007/01/21 15:12:21 klan Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1664,7 +1664,7 @@ static uint32_t supported_video_types[] = {
   #ifdef CONFIG_VCR1_DECODER
   BUF_VIDEO_ATIVCR1,
   #endif
-  #ifdef CONFIG_FLV1_DECODER
+  #ifdef CONFIG_FLV_DECODER
   BUF_VIDEO_FLV1,
   #endif
   #ifdef CONFIG_QTRLE_DECODER
