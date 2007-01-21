@@ -10,6 +10,8 @@
 #
 # Origin: gettext-0.14.4
 
+include Makefile.format
+
 PACKAGE = @PACKAGE@
 LIBNAME = @LIBNAME@
 VERSION = @VERSION@
@@ -121,6 +123,7 @@ $(DOMAIN).pot-update: $(POTFILES) $(srcdir)/POTFILES.in remove-potcdate.sed
 	  msgid_bugs_address='$(PACKAGE_BUGREPORT)'; \
 	fi; \
 	$(XGETTEXT) --default-domain=$(DOMAIN) --directory=$(top_srcdir) \
+	  $(XGETTEXT_FORMAT_FLAGS) $(XGETTEXT_FORMAT_FLAGS_PRIVATE) \
 	  --add-comments=TRANSLATORS: $(XGETTEXT_OPTIONS) \
 	  --files-from=$(srcdir)/POTFILES.in \
 	  --copyright-holder='$(COPYRIGHT_HOLDER)' \
