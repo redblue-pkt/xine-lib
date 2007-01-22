@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.172 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_ogg.c,v 1.173 2007/01/22 17:33:35 klan Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -2155,7 +2155,8 @@ static const char *ogg_get_extensions (demux_class_t *this_gen) {
 static const char *ogg_get_mimetypes (demux_class_t *this_gen) {
   return "audio/x-ogg: ogg: OggVorbis Audio;"
          "audio/x-speex: ogg: Speex Audio;"
-         "application/x-ogg: ogg: OggVorbis Audio;";
+         "application/x-ogg: ogg: Ogg Stream;"
+         "application/ogg: ogg: Ogg Stream;";
 }
 
 static void ogg_class_dispose (demux_class_t *this_gen) {
