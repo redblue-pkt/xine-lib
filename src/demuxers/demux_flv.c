@@ -26,7 +26,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.17 2007/01/22 16:25:08 klan Exp $
+ * $Id: demux_flv.c,v 1.18 2007/01/22 17:07:08 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -271,7 +271,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
       lprintf("  got array (%d indices)\n", BE_32(tmp));
       num = BE_32(tmp);
       tmp += 4;
-      if (!strncmp (key, "times", 5)) {
+      if (key && !strncmp (key, "times", 5)) {
         if (this->index)
           free (this->index);
         this->index = xine_xmalloc(num*sizeof(flv_index_entry_t));
@@ -285,7 +285,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
         }
         break;
       }
-      if (!strncmp (key, "filepositions", 13)) {
+      if (key && !strncmp (key, "filepositions", 13)) {
         if (this->index && this->num_indices == num) {
           for (num = 0; num < this->num_indices && tmp < end; num++) {
             if (*tmp++ == FLV_DATA_TYPE_NUMBER) {
