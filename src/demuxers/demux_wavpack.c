@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.4 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.5 2007/01/23 15:05:58 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -180,7 +180,14 @@ static int open_wv_file(demux_wv_t *const this) {
   this->length = this->samples / this->samplerate;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC, ME_32(this->header.buffer));
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
+		     ME_32(this->header.buffer));
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
+		     this->channels);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
+		     this->samplerate);
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITS,
+		     this->bits_per_sample);
 
   WavpackCloseFile(ctx);
   this->input->seek(this->input, SEEK_SET, 0);
@@ -293,6 +300,7 @@ static int demux_wv_seek (demux_plugin_t *this_gen,
     _x_demux_control_newpts(this->stream, 0, 0);
 
     this->status = DEMUX_OK;
+
   }
 
   return this->status;
