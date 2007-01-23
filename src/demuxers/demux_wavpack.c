@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.5 2007/01/23 15:05:58 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.6 2007/01/23 15:09:39 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -319,9 +319,9 @@ static int demux_wv_get_status (demux_plugin_t *const this_gen) {
 }
 
 static int demux_wv_get_stream_length (demux_plugin_t *const this_gen) {
-//  demux_wv_t *this = (demux_wv_t *) this_gen;
+  const demux_wv_t *const this = (demux_wv_t *) this_gen;
 
-  return 0;
+  return this->length * 1000;
 }
 
 static uint32_t demux_wv_get_capabilities(demux_plugin_t *const this_gen) {
