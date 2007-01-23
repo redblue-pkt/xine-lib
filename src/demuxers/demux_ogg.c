@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.173 2007/01/22 17:33:35 klan Exp $
+ * $Id: demux_ogg.c,v 1.174 2007/01/23 23:20:23 hadess Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -536,7 +536,11 @@ static void update_chapter_display (demux_ogg_t *this, int stream_num, ogg_packe
     if (chapter >= 0) {
       char t_title[256];
 
-      snprintf(t_title, sizeof (t_title), "%s / %s", this->title, this->chapter_info->entries[chapter].name);
+      if (this->title) {
+        snprintf(t_title, sizeof (t_title), "%s / %s", this->title, this->chapter_info->entries[chapter].name);
+      } else {
+        snprintf(t_title, sizeof (t_title), "%s", this->chapter_info->entries[chapter].name);
+      }
       title = t_title;
     } else {
       title = this->title;
