@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.6 2007/01/23 15:09:39 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.7 2007/01/23 15:42:15 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -66,7 +66,6 @@ typedef struct {
   uint32_t samplerate;
   uint32_t bits_per_sample;
   uint32_t channels;
-  unsigned int length;
 } demux_wv_t;
 
 typedef struct {
@@ -177,7 +176,6 @@ static int open_wv_file(demux_wv_t *const this) {
   lprintf("bits_per_sample: %u\n", this->bits_per_sample);
   this->channels = WavpackGetNumChannels(ctx);
   lprintf("channels: %u\n", this->channels);
-  this->length = this->samples / this->samplerate;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
@@ -226,12 +224,12 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
   while(bytes_to_read) {
     off_t bytes_read = 0;
     buf_element_t *buf = NULL;
+    int64_t input_time_guess;
 
     /* Get a buffer */
     buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
-    buf->type = BUF_AUDIO_WAVPACK;
     buf->pts = 0;
-    buf->extra_info->total_time = this->length;
+    buf->type = BUF_AUDIO_WAVPACK;
     buf->decoder_flags = 0;
 
     /* Set normalised position */
@@ -240,7 +238,12 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
 	     this->input->get_length(this->input));
 
     /* Set time */
-    buf->extra_info->input_time = this->current_sample / this->samplerate;
+    input_time_guess = this->samples;
+    input_time_guess /= this->samplerate;
+    input_time_guess *= 1000;
+    input_time_guess *= buf->extra_info->input_normpos;
+    input_time_guess /= 65535;
+    buf->extra_info->input_time = input_time_guess;
 
     bytes_read = this->input->read(this->input, buf->content, ( bytes_to_read > buf->max_size ) ? buf->max_size : bytes_to_read);
 
@@ -321,7 +324,7 @@ static int demux_wv_get_status (demux_plugin_t *const this_gen) {
 static int demux_wv_get_stream_length (demux_plugin_t *const this_gen) {
   const demux_wv_t *const this = (demux_wv_t *) this_gen;
 
-  return this->length * 1000;
+  return (this->samples*1000) / this->samplerate;
 }
 
 static uint32_t demux_wv_get_capabilities(demux_plugin_t *const this_gen) {
