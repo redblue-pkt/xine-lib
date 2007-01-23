@@ -1,4 +1,5 @@
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
+xineplugdir = $(XINE_PLUGINDIR)
 
 $(XINE_LIB):
 	@cd $(top_srcdir)/src/xine-engine && $(MAKE)
