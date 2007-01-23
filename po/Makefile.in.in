@@ -10,7 +10,7 @@
 #
 # Origin: gettext-0.14.4
 
-include Makefile.format
+include @srcdir@/Makefile.format
 
 PACKAGE = @PACKAGE@
 LIBNAME = @LIBNAME@
