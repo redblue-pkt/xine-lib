@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.5 2007/01/24 21:44:06 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.6 2007/01/24 22:03:41 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -239,12 +239,14 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
 
 	  decoded_count = WavpackUnpackSamples(ctx, decoded, buf_samples);
 	  if ( decoded_count == 0 && *error ) {
-	    fprintf(stderr, "Error during decode: %s\n", error);
+	    lprintf("Error during decode: %s\n", error);
+	    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, NULL);
 	    break;
 	  }
 
 	  if ( decoded_count == 0 ) {
 	    lprintf("Finished decoding, but still %"PRId64" samples left?\n", samples_left);
+	    this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, NULL);
 	    break;
 	  }
 
