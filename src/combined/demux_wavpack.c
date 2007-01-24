@@ -17,9 +17,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
+ * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: demux_wavpack.c,v 1.4 2007/01/24 20:47:31 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.5 2007/01/24 20:51:04 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
