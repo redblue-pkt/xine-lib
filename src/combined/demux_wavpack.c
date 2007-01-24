@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: demux_wavpack.c,v 1.5 2007/01/24 20:51:04 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.6 2007/01/24 21:41:30 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -141,7 +141,7 @@ static int open_wv_file(demux_wv_t *const this) {
     return 0;
 
   /* Rewind */
-  this->input->seek(this->input, 0 - sizeof(wvheader_t), SEEK_CUR);
+  this->input->seek(this->input, 0, SEEK_SET);
 
   ctx = WavpackOpenFileInputEx(&wavpack_input_reader, this->input, NULL, error, 0, 0);
   if ( ! ctx ) {
