@@ -12,10 +12,6 @@ if HAVE_VORBIS
 ogg_module = xineplug_dmx_ogg.la
 endif
 
-if HAVE_WAVPACK
-wavpack_module = xineplug_dmx_wavpack.la
-endif
-
 if BUILD_ASF
 asf_module = xineplug_dmx_asf.la 
 endif
@@ -34,7 +30,6 @@ endif
 # All of xine demuxer plugins should be named like the scheme "xineplug_dmx_"
 
 lib_LTLIBRARIES = $(ogg_module) $(asf_module) $(mng_module) $(image_module) \
-	$(wavpack_module) \
 	xineplug_dmx_games.la \
 	xineplug_dmx_audio.la \
 	xineplug_dmx_mpeg_ts.la \
@@ -134,11 +129,6 @@ xineplug_dmx_audio_la_SOURCES = group_audio.c demux_aud.c demux_aiff.c \
 				demux_tta.c
 xineplug_dmx_audio_la_LIBADD = $(XINE_LIB) $(LIBMODPLUG_LIBS)
 xineplug_dmx_audio_la_LDFLAGS = -avoid-version -module
-
-xineplug_dmx_wavpack_la_SOURCES = demux_wavpack.c
-xineplug_dmx_wavpack_la_CFLAGS = $(WAVPACK_CFLAGS)
-xineplug_dmx_wavpack_la_LIBADD = $(XINE_LIB) $(WAVPACK_LIBS)
-xineplug_dmx_wavpack_la_LDFLAGS = -avoid-version -module
 
 xineplug_dmx_yuv_frames_la_SOURCES = demux_yuv_frames.c
 xineplug_dmx_yuv_frames_la_LIBADD = $(XINE_LIB)
