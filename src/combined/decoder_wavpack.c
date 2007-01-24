@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.4 2007/01/24 21:42:21 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.5 2007/01/24 21:44:06 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -234,7 +234,6 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
 
 	  buf_samples = audio_buffer->mem_size / (this->channels * (this->bits_per_sample/8));
 	  if ( buf_samples > samples_left ) buf_samples = samples_left;
-	  if ( buf_samples > 4096 ) buf_samples = 4096;
 
 	  decoded = alloca(buf_samples * this->channels * sizeof(int32_t));
 
