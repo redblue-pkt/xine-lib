@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.2 2007/01/24 05:05:11 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.3 2007/01/24 20:40:11 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -181,7 +181,8 @@ static int open_wv_file(demux_wv_t *const this) {
 
 static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
   demux_wv_t *const this = (demux_wv_t *) this_gen;
-  uint32_t bytes_to_read;
+  uint32_t bytes_to_read; uint8_t header_sent = 0;
+  wvheader_t header;
 
   /* Check if we've finished */
   if (this->current_sample >= this->samples) {
@@ -192,23 +193,20 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
 
   lprintf("current sample: %u\n", this->current_sample);
 
-  /* For some reason, FFmpeg requires to send it the latter 12 bytes of the header.. don't ask! */
-  if ( this->input->read(this->input, this->header.buffer, sizeof(wvheader_t)-12) != sizeof(wvheader_t)-12 ) {
+  if ( this->input->read(this->input, &header, sizeof(wvheader_t)) != sizeof(wvheader_t) ) {
       this->status = DEMUX_FINISHED;
       return this->status;
   }
 
   /* The size of the block is «of course» minus 8, and
-     it also includes the size of the header, but we need
-     to give FFmpeg the 12 extra bytes (for some reason),
-     so the amount of bytes to read is the following.
+     it also includes the size of the header.
   */
-  bytes_to_read = le2me_32(this->header.wv.block_size) + 8 - (sizeof(wvheader_t)-12);
+  bytes_to_read = le2me_32(header.block_size) + 8 - sizeof(wvheader_t);
 
   lprintf("demux_wavpack: going to read %u bytes.\n", bytes_to_read);
 
   while(bytes_to_read) {
-    off_t bytes_read = 0;
+    off_t bytes_read = 0, bytes_to_read_now, offset = 0;
     buf_element_t *buf = NULL;
     int64_t input_time_guess;
 
@@ -222,7 +220,7 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
       (int) ((double) this->input->get_current_pos(this->input) * 65535 /
 	     this->input->get_length(this->input));
 
-    buf->pts = (((this->current_sample) / this->samplerate)-1)*90000;
+    buf->pts = (((this->current_sample) / this->samplerate))*90000;
     lprintf("Sending buffer with PTS %d\n", buf->pts);
 
     /* Set time */
@@ -233,9 +231,17 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
     input_time_guess /= 65535;
     buf->extra_info->input_time = input_time_guess;
 
-    bytes_read = this->input->read(this->input, buf->content, ( bytes_to_read > buf->max_size ) ? buf->max_size : bytes_to_read);
+    bytes_to_read_now = ( bytes_to_read > buf->max_size ) ? buf->max_size : bytes_to_read;
+    if ( ! header_sent ) {
+      bytes_to_read_now -= (offset = sizeof(wvheader_t));
 
-    buf->size = bytes_read;
+      header_sent = 1;
+      xine_fast_memcpy(buf->content, &header, sizeof(wvheader_t));
+    }
+
+    bytes_read = this->input->read(this->input, &buf->content[offset], bytes_to_read_now);
+
+    buf->size = offset + bytes_read;
 
     bytes_to_read -= bytes_read;
 
@@ -245,7 +251,7 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
     this->audio_fifo->put(this->audio_fifo, buf);
   }
 
-  this->current_sample += this->header.wv.samples_count;
+  this->current_sample += le2me_32(header.samples_count);
 
   return this->status;
 }

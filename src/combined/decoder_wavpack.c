@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: decoder_wavpack.c,v 1.1 2007/01/24 04:57:27 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.2 2007/01/24 20:40:11 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -183,15 +183,6 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
     } else if (this->output_open) {
       /* This isn't a header frame and we have opened the output device */
 
-      /* First time, we prepend the header, so that Wavpack library can open it.
-       * As FFmpeg requires the last 12 bytes of the header for its stream, create
-       * the rest of the header when the frame ended (so we have its size).
-       */
-      if ( ! this->buf )
-	this->buf = xine_xmalloc(this->buf_size = sizeof(wvheader_t)-12);
-      if ( this->buf_pos == 0 )
-	this->buf_pos = sizeof(wvheader_t)-12;
-
       /* What we have buffered so far, and what is coming in
        * is larger than our buffer
        */
@@ -218,25 +209,13 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
 	};
 
 	WavpackContext *ctx = NULL;
-	char error[256]; /* Current version of wavpack (4.31) does not write more than this */
+	char error[256]; /* Current version of wavpack (4.40) does not write more than this */
 	int32_t samples_left; uint32_t samples_total;
-	wvheader_t *header = (wvheader_t*)this->buf;
-
-	header->idcode = wvpk_signature;
-#ifdef WORDS_BIGENDIAN
-	header->block_size = bswap_32(this->buf_size-sizeof(wvheader_t));
-	header->wv_version = bswap_16(0x0406);
-#else
-	header->block_size = this->buf_pos-8;
-	header->wv_version = 0x0406;
-#endif
-	header->track = 0; header->index = 0;
-	header->file_samples = (uint32_t)-1;
-	header->samples_index = 0;
+	const wvheader_t *header = (const wvheader_t*)this->buf;
 
 	this->buf_pos = 0;
 
-	if ( header->samples_count == 0 ) return;
+	if ( le2me_32(header->samples_count) == 0 ) return;
 	
 	ctx = WavpackOpenFileInputEx(&wavpack_buffer_reader, this, NULL, error, OPEN_STREAMING, 0);
 	if ( ! ctx ) {
