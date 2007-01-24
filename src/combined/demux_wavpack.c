@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gentoo.org>
  *
- * $Id: demux_wavpack.c,v 1.3 2007/01/24 20:40:11 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.4 2007/01/24 20:47:31 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -41,11 +41,6 @@ typedef struct {
   fifo_buffer_t *audio_fifo;
   input_plugin_t *input;
   int status;
-
-  union {
-    wvheader_t wv;
-    uint8_t buffer[sizeof(wvheader_t)];
-  } header;
 
   uint32_t current_sample;
   uint32_t samples;
@@ -129,6 +124,7 @@ static WavpackStreamReader wavpack_input_reader = {
 static int open_wv_file(demux_wv_t *const this) {
   WavpackContext *ctx = NULL;
   char error[256]; /* Current version of wavpack (4.31) does not write more than this */
+  wvheader_t header;
 
   /* Right now we don't support non-seekable streams */
   if (! INPUT_IS_SEEKABLE(this->input) ) {
@@ -137,11 +133,11 @@ static int open_wv_file(demux_wv_t *const this) {
   }
 
   /* Read the file header */
-  if (_x_demux_read_header(this->input, this->header.buffer, sizeof(wvheader_t)) != sizeof(wvheader_t))
+  if (_x_demux_read_header(this->input, (uint8_t*)(&header), sizeof(wvheader_t)) != sizeof(wvheader_t))
     return 0;
 
   /* Validate header, we currently support only Wavpack 4 */
-  if ( this->header.wv.idcode != wvpk_signature || (le2me_16(this->header.wv.wv_version) >> 8) != 4 )
+  if ( header.idcode != wvpk_signature || (le2me_16(header.wv_version) >> 8) != 4 )
     return 0;
 
   /* Rewind */
@@ -165,7 +161,7 @@ static int open_wv_file(demux_wv_t *const this) {
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
-		     ME_32(this->header.buffer));
+		     wvpk_signature);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS,
 		     this->channels);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE,
@@ -193,7 +189,7 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
 
   lprintf("current sample: %u\n", this->current_sample);
 
-  if ( this->input->read(this->input, &header, sizeof(wvheader_t)) != sizeof(wvheader_t) ) {
+  if ( this->input->read(this->input, (uint8_t*)(&header), sizeof(wvheader_t)) != sizeof(wvheader_t) ) {
       this->status = DEMUX_FINISHED;
       return this->status;
   }
@@ -278,9 +274,7 @@ static void demux_wv_send_headers(demux_plugin_t *const this_gen) {
     buf->decoder_info[2] = this->bits_per_sample;
     buf->decoder_info[3] = this->channels;
 
-    /* Copy the header */
-    buf->size = sizeof(xine_waveformatex) + sizeof(wvheader_t);
-    memcpy(buf->content+sizeof(xine_waveformatex), this->header.buffer, buf->size);
+    buf->size = 0;
 
     this->audio_fifo->put (this->audio_fifo, buf);
   }
