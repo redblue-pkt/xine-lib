@@ -2601,6 +2601,7 @@ misc/xine-lib.spec
 po/Makefile.in
 src/Makefile
 src/audio_out/Makefile
+src/combined/Makefile
 src/demuxers/Makefile
 src/dxr3/Makefile
 src/input/Makefile
@@ -2773,7 +2774,7 @@ if test "x$have_libflac" = "xyes"; then
   echo "   - FLAC (with libFLAC)"
 fi
 if test "x$have_wavpack" = "xyes"; then
-  echo "   - wavpack"
+  echo "   - WavPack"
 fi
 if test "x$enable_a52dec" = "xyes"; then
   if test "x$have_a52" = "xyes"; then
@@ -2888,6 +2889,9 @@ if test "x$enable_musepack" != "xno"; then
   else
     echo "   - MusePack (internal library)"
   fi
+fi
+if test "x$have_wavpack" = "xyes"; then
+  echo "   - WavPack"
 fi
 echo ""
 
