@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-19 03:36+0100\n"
+"POT-Creation-Date: 2007-01-21 14:52+0000\n"
 "PO-Revision-Date: 2007-01-04 09:02+0200\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -110,6 +110,7 @@ msgid "w32codec: decoder failed to start. Is '%s' installed?\n"
 msgstr "w32codec: Dekoder startete nicht. Ist '%s' installiert?\n"
 
 #: src/libw32dll/w32codec.c:1221
+#, c-format
 msgid "w32codec: (ACM_Decoder) Unappropriate audio format\n"
 msgstr "w32codec: (ACM_Decoder) Unpassendes Audioformat\n"
 
@@ -119,10 +120,12 @@ msgid "w32codec: (ACM_Decoder) acmStreamOpen error %d\n"
 msgstr "w32codec: (ACM_Decoder) acmStreamOpen Fehler %d\n"
 
 #: src/libw32dll/w32codec.c:1243
+#, c-format
 msgid "w32codec: Error initializing DirectShow Audio\n"
 msgstr "w32codec: Fehler beim Initialisieren von DirectShow Audio\n"
 
 #: src/libw32dll/w32codec.c:1261
+#, c-format
 msgid "w32codec: Error initializing DMO Audio\n"
 msgstr "w32codec: Fehler beim Initialisieren von DMO Audio\n"
 
@@ -523,10 +526,12 @@ msgid "unknown error"
 msgstr "Unbekannter Fehler"
 
 #: src/audio_out/audio_directx2_out.c:206
+#, c-format
 msgid "Unable to create direct sound object."
 msgstr "Kann DirectSound-Objekt nicht erzeugen."
 
 #: src/audio_out/audio_directx2_out.c:212
+#, c-format
 msgid "Could not set direct sound cooperative level."
 msgstr "Konnte DirectSound-Kooperationslevel nicht setzen."
 
@@ -535,6 +540,7 @@ msgid "Unable to create secondary direct sound buffer"
 msgstr "Konnte keinen sekundären DirectSound-Puffer erzeugen"
 
 #: src/audio_out/audio_directx2_out.c:310
+#, c-format
 msgid "Unable to create buffer position events."
 msgstr "Konnte kein Pufferposition-Ereignis erzeugen."
 
@@ -567,6 +573,7 @@ msgid "Can't set sound volume"
 msgstr "Konnte Lautstärke nicht setzen"
 
 #: src/audio_out/audio_directx2_out.c:432
+#, c-format
 msgid ": buffer lost, tryig to restore\n"
 msgstr ": Puffer verloren, versuche wiederherzustellen\n"
 
@@ -579,10 +586,12 @@ msgid "Couldn't unlock direct sound buffer"
 msgstr "Konnte DirectSound-Puffer nicht freigeben"
 
 #: src/audio_out/audio_directx2_out.c:544
+#, c-format
 msgid "Unable to create primary direct sound buffer."
 msgstr "Konnte keinen primären DirectSound-Puffer erzeugen."
 
 #: src/audio_out/audio_directx2_out.c:637
+#, c-format
 msgid ": play cursor overran, flushing buffers\n"
 msgstr ": Wiedergabeposition überrannt, leere Puffer\n"
 
@@ -643,6 +652,7 @@ msgid "xine audio output plugin for win32 using directx"
 msgstr "xine Soundausgabe benutzt directx für win32"
 
 #: src/audio_out/audio_alsa_out.c:355
+#, c-format
 msgid "audio_alsa_out:Already open...WHY!"
 msgstr "audio_alsa_out:Bereits geöffnet...WARUM?"
 
@@ -766,6 +776,7 @@ msgid "snd_pcm_open() failed:%d:%s\n"
 msgstr "snd_pcm_open() schlug fehl:%d:%s\n"
 
 #: src/audio_out/audio_alsa_out.c:1428
+#, c-format
 msgid ">>> Check if another program already uses PCM <<<\n"
 msgstr ">>> Überprüfen Sie, ob ein anderen Programm bereis PCM benutzt <<<\n"
 
@@ -908,6 +919,7 @@ msgid "xine audio output plugin using pulseaudio sound server"
 msgstr "xine Soundausgabe benutzt Pulse-Audio Soundserver"
 
 #: src/xine-engine/io_helper.c:252
+#, c-format
 msgid "io_helper: waiting abandoned\n"
 msgstr "io_helper: Warten aufgegeben\n"
 
@@ -921,14 +933,17 @@ msgid "failed to get status of socket"
 msgstr "Status des Sockets konnte nicht ermittelt werden"
 
 #: src/xine-engine/io_helper.c:388
+#, c-format
 msgid "io_helper: Permission denied\n"
 msgstr "io_helper: Zugriff verweigert\n"
 
 #: src/xine-engine/io_helper.c:392
+#, c-format
 msgid "io_helper: File not found\n"
 msgstr "io_helper: Datei nicht gefunden\n"
 
 #: src/xine-engine/io_helper.c:396
+#, c-format
 msgid "io_helper: Connection Refused\n"
 msgstr "io_helper: Verbindung verweigert\n"
 
@@ -1018,6 +1033,7 @@ msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: Demultiplexer-Plugins %s startete nicht\n"
 
 #: src/xine-engine/xine.c:836
+#, c-format
 msgid "xine: join rip input plugin\n"
 msgstr "xine: Join rip Plugin\n"
 
@@ -1056,6 +1072,7 @@ msgid "xine: error opening subtitle mrl\n"
 msgstr "xine: Fehler beim Öffnen der Untertitel-MRL\n"
 
 #: src/xine-engine/xine.c:1049
+#, c-format
 msgid "xine: error while parsing MRL\n"
 msgstr "xine: Fehler beim parsen der MRL\n"
 
@@ -1075,14 +1092,17 @@ msgid "xine: found demuxer plugin: %s\n"
 msgstr "xine: Demultiplexer-Plugin gefunden: %s\n"
 
 #: src/xine-engine/xine.c:1112
+#, c-format
 msgid "xine: demuxer failed to start\n"
 msgstr "xine: Demultiplexer-Plugins startete nicht\n"
 
 #: src/xine-engine/xine.c:1177
+#, c-format
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: Kein Demultiplexer vorhanden\n"
 
 #: src/xine-engine/xine.c:1247
+#, c-format
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: Demultiplexer startete nicht\n"
 
@@ -1207,6 +1227,7 @@ msgid "input_rip: reading of saved data failed: %s\n"
 msgstr "input_rip: Fehlschlag beim Lesen der gespeicherten Daten: %s\n"
 
 #: src/xine-engine/input_rip.c:154
+#, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: Lesefehler im input_rip-Plugin\n"
 
@@ -1217,10 +1238,12 @@ msgid "input_rip: error writing to file %<PRIdMAX> bytes: %s\n"
 msgstr "input_rip: Schreibfehler in Datei bei %<PRIdMAX> Bytes: %s\n"
 
 #: src/xine-engine/input_rip.c:183
+#, c-format
 msgid "input_rip: open() function should never be called\n"
 msgstr "input_rip: open()-Funktion sollte niemals aufgerufen werden\n"
 
 #: src/xine-engine/input_rip.c:314 src/xine-engine/input_rip.c:419
+#, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_rip: Positionierung fehlgeschlagen\n"
 
@@ -1235,10 +1258,12 @@ msgid "input_rip: %<PRIdMAX> bytes dropped\n"
 msgstr "input_rip: %<PRIdMAX> Bytes verworfen\n"
 
 #: src/xine-engine/input_rip.c:562
+#, c-format
 msgid "input_rip: input plugin not defined!\n"
 msgstr "input_rip: Input-Plugin nicht definiert!\n"
 
 #: src/xine-engine/input_rip.c:568
+#, c-format
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'media.capture.save_dir'\n"
@@ -1255,6 +1280,7 @@ msgstr ""
 "save_dir in der Konfiguration gesetzt ist."
 
 #: src/xine-engine/input_rip.c:577
+#, c-format
 msgid "input_rip: ripping/caching of this source is not permitted!\n"
 msgstr "input_rip: Rippen/Zwischenspeichern dieser Quelle nicht erlaubt!\n"
 
@@ -1267,6 +1293,7 @@ msgstr ""
 "Material?)"
 
 #: src/xine-engine/input_rip.c:585
+#, c-format
 msgid "input_rip: file name not given!\n"
 msgstr "input_rip: Dateiname nicht angegeben!\n"
 
@@ -1319,10 +1346,12 @@ msgstr ""
 "aber die CPU-Belastung geringer."
 
 #: src/xine-engine/input_cache.c:167
+#, c-format
 msgid ": open() function should never be called\n"
 msgstr ": open()-Funktion sollte niemals aufgerufen werden\n"
 
 #: src/xine-engine/input_cache.c:349
+#, c-format
 msgid ": input plugin not defined!\n"
 msgstr ": Input-Plugin nicht definiert!\n"
 
@@ -1427,6 +1456,7 @@ msgstr ""
 "Hintergrund aufgelistst."
 
 #: src/xine-engine/configfile.c:924
+#, c-format
 msgid "The current config file has been modified by a newer version of xine."
 msgstr ""
 "Die Konfigurationsdatei wurde von einer neueren Version von xine modifiziert."
@@ -1763,6 +1793,7 @@ msgstr ""
 "neustarten.\n"
 
 #: src/xine-engine/load_plugins.c:212
+#, c-format
 msgid "map_decoder_list: no space for decoder, skipped.\n"
 msgstr "map_decoder_list: Kein Platz für Dekoder, übersprungen.\n"
 
@@ -1813,6 +1844,7 @@ msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: Plugin %s gefunden\n"
 
 #: src/xine-engine/load_plugins.c:499
+#, c-format
 msgid "load_plugins: static plugin found\n"
 msgstr "load_plugins: statisches Plugin gefunden\n"
 
@@ -1822,6 +1854,7 @@ msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr "load_plugins: Plugingrenze erreicht, %s konnte nicht geladen werden\n"
 
 #: src/xine-engine/load_plugins.c:509
+#, c-format
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
 msgstr ""
 "load_plugins: Plugingrenze erreicht, statisches Plugin konnte nicht geladen "
@@ -4091,6 +4124,7 @@ msgid "libmmsh: send error\n"
 msgstr "libmmsh: Sendefehler\n"
 
 #: src/input/mmsh.c:246
+#, c-format
 msgid "libmmsh: bad response format\n"
 msgstr "libmmsh: Fehlerhaftes Empfangsformat\n"
 
@@ -4105,6 +4139,7 @@ msgid "libmmsh: http status not 2xx: >%d %s<\n"
 msgstr "libmmsh: http-Status ungleich 2xx: >%d %s<\n"
 
 #: src/input/mmsh.c:267
+#, c-format
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr "libmmsh: Weiterleitung nicht implementiert\n"
 
@@ -4113,10 +4148,12 @@ msgid "Connecting MMS server (over http)..."
 msgstr "Kontaktiere MMS Server (über HTTP)..."
 
 #: src/input/mmsh.c:657
+#, c-format
 msgid "invalid url\n"
 msgstr "Ungültige URL\n"
 
 #: src/input/mmsh.c:662
+#, c-format
 msgid "unsupported protocol\n"
 msgstr "Nichtunterstütztes Protokoll\n"
 
@@ -4177,6 +4214,7 @@ msgid "Connecting HTTP server..."
 msgstr "Kontaktiere HTTP Server..."
 
 #: src/input/input_http.c:816
+#, c-format
 msgid "input_http: invalid http answer\n"
 msgstr "input_http: Ungültige http-Antwort\n"
 
@@ -4267,22 +4305,27 @@ msgid "dvbsub: cannot create timer thread\n"
 msgstr "dvbsub: Kann keinen Zeitgeber-Thread erzeugen\n"
 
 #: src/libxinevdec/bitplane.c:1272
+#, c-format
 msgid "bitplane: error doing ByteRun1 decompression\n"
 msgstr "bitplane: Fehler beim ByteRun1-Dekomprimieren\n"
 
 #: src/libxinevdec/bitplane.c:1331
+#, c-format
 msgid "bitplane: Anim Opt 1 is not supported at the moment\n"
 msgstr "bitplane: Anim Opt 1 wird momentan nicht unterstützt\n"
 
 #: src/libxinevdec/bitplane.c:1338
+#, c-format
 msgid "bitplane: Anim Opt 2 is not supported at the moment\n"
 msgstr "bitplane: Anim Opt 2 wird momentan nicht unterstützt\n"
 
 #: src/libxinevdec/bitplane.c:1388
+#, c-format
 msgid "bitplane: Anim ASCIIJ is not supported at the moment\n"
 msgstr "bitplane: Anim ASCIIJ wird momentan nicht unterstützt\n"
 
 #: src/libxinevdec/bitplane.c:1394
+#, c-format
 msgid "bitplane: This anim-type is not supported at the moment\n"
 msgstr "bitplane: Dieser anim-Type wird momentan nicht unterstützt\n"
 
@@ -5394,6 +5437,7 @@ msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %<PRIdMAX>\n"
 msgstr "demux_avi: Ungültiges AVI-Paket \"%c%c%c%c\" an Position %<PRIdMAX>\n"
 
 #: src/demuxers/demux_avi.c:828
+#, c-format
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: AVI-Index ist fehlerhaft\n"
 
@@ -5409,10 +5453,12 @@ msgid "demux_mpc: frame too big for buffer"
 msgstr "demux_mpc: Bild zu grpß für Puffer"
 
 #: src/demuxers/demux_film.c:188
+#, c-format
 msgid "invalid FILM chunk size\n"
 msgstr "Ungültige Größe des FILM-Pakets\n"
 
 #: src/demuxers/demux_film.c:342
+#, c-format
 msgid "unrecognized FILM chunk\n"
 msgstr "Nicht erkanntes FILM-Paket\n"
 
@@ -5460,6 +5506,7 @@ msgstr ""
 "melden\n"
 
 #: src/demuxers/demux_ogg.c:797
+#, c-format
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr "ogg: vorbis Tonspur erkannt, aber kein Heder im Datenstrom gefunden.\n"
 
@@ -5479,6 +5526,7 @@ msgstr ""
 "demux_mpeg_block: Fehler! Freigabe. Bitte bei den xine-Entwicklern melden.\n"
 
 #: src/demuxers/demux_mpeg_block.c:640
+#, c-format
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_block: Warnung: PES-Header reserviert 10 Bits nicht gefunden\n"
@@ -5509,6 +5557,7 @@ msgstr ""
 "fehlgeschlagen.\n"
 
 #: src/demuxers/demux_mpeg_pes.c:771
+#, c-format
 msgid "demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_pes: Warnung: PES-Header reserviert 10 Bits nicht gefunden\n"
@@ -5538,10 +5587,12 @@ msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr "demux_wc3movie: SHOT Paket referenziert ungültige Palette (%d >= %d)\n"
 
 #: src/demuxers/demux_wc3movie.c:406
+#, c-format
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr "demux_wc3movie: Beim Laden der Palette ist ein Problem aufgetreten\n"
 
 #: src/demuxers/demux_snd.c:104
+#, c-format
 msgid "demux_snd: bad header parameters\n"
 msgstr "demux_snd: Ungültige Header-Parameter\n"
 

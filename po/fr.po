@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-19 03:36+0100\n"
+"POT-Creation-Date: 2007-01-21 14:52+0000\n"
 "PO-Revision-Date: 2002-06-07 15:08 +0200\n"
 "Last-Translator: Daniel Caujolle-Bert <segfault@club-internet.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -92,6 +92,7 @@ msgid "w32codec: decoder failed to start. Is '%s' installed?\n"
 msgstr ""
 
 #: src/libw32dll/w32codec.c:1221
+#, c-format
 msgid "w32codec: (ACM_Decoder) Unappropriate audio format\n"
 msgstr ""
 
@@ -101,10 +102,12 @@ msgid "w32codec: (ACM_Decoder) acmStreamOpen error %d\n"
 msgstr ""
 
 #: src/libw32dll/w32codec.c:1243
+#, c-format
 msgid "w32codec: Error initializing DirectShow Audio\n"
 msgstr ""
 
 #: src/libw32dll/w32codec.c:1261
+#, c-format
 msgid "w32codec: Error initializing DMO Audio\n"
 msgstr ""
 
@@ -416,10 +419,12 @@ msgid "unknown error"
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:206
+#, c-format
 msgid "Unable to create direct sound object."
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:212
+#, c-format
 msgid "Could not set direct sound cooperative level."
 msgstr ""
 
@@ -428,6 +433,7 @@ msgid "Unable to create secondary direct sound buffer"
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:310
+#, c-format
 msgid "Unable to create buffer position events."
 msgstr ""
 
@@ -460,6 +466,7 @@ msgid "Can't set sound volume"
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:432
+#, c-format
 msgid ": buffer lost, tryig to restore\n"
 msgstr ""
 
@@ -472,11 +479,12 @@ msgid "Couldn't unlock direct sound buffer"
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:544
-#, fuzzy
+#, fuzzy, c-format
 msgid "Unable to create primary direct sound buffer."
 msgstr "incapable d'allouer le buffer d'entrée.\n"
 
 #: src/audio_out/audio_directx2_out.c:637
+#, c-format
 msgid ": play cursor overran, flushing buffers\n"
 msgstr ""
 
@@ -541,6 +549,7 @@ msgid "xine audio output plugin for win32 using directx"
 msgstr "plugin de sortie audio de xine utilisant esd"
 
 #: src/audio_out/audio_alsa_out.c:355
+#, c-format
 msgid "audio_alsa_out:Already open...WHY!"
 msgstr ""
 
@@ -641,6 +650,7 @@ msgid "snd_pcm_open() failed:%d:%s\n"
 msgstr "input_cda: open(%s) a échoué: %s.\n"
 
 #: src/audio_out/audio_alsa_out.c:1428
+#, c-format
 msgid ">>> Check if another program already uses PCM <<<\n"
 msgstr ""
 
@@ -786,6 +796,7 @@ msgid "xine audio output plugin using pulseaudio sound server"
 msgstr "plugin de sortie audio de xine utilisant esd"
 
 #: src/xine-engine/io_helper.c:252
+#, c-format
 msgid "io_helper: waiting abandoned\n"
 msgstr ""
 
@@ -799,14 +810,17 @@ msgid "failed to get status of socket"
 msgstr ""
 
 #: src/xine-engine/io_helper.c:388
+#, c-format
 msgid "io_helper: Permission denied\n"
 msgstr ""
 
 #: src/xine-engine/io_helper.c:392
+#, c-format
 msgid "io_helper: File not found\n"
 msgstr ""
 
 #: src/xine-engine/io_helper.c:396
+#, c-format
 msgid "io_helper: Connection Refused\n"
 msgstr ""
 
@@ -879,6 +893,7 @@ msgid "xine: specified demuxer %s failed to start\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:836
+#, c-format
 msgid "xine: join rip input plugin\n"
 msgstr ""
 
@@ -919,6 +934,7 @@ msgid "xine: error opening subtitle mrl\n"
 msgstr "input_dvd: ne peux pas ouvrir le fichier >%s<\n"
 
 #: src/xine-engine/xine.c:1049
+#, c-format
 msgid "xine: error while parsing MRL\n"
 msgstr ""
 
@@ -938,14 +954,17 @@ msgid "xine: found demuxer plugin: %s\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:1112
+#, c-format
 msgid "xine: demuxer failed to start\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:1177
+#, c-format
 msgid "xine_play: no demux available\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:1247
+#, c-format
 msgid "xine_play: demux failed to start\n"
 msgstr ""
 
@@ -1041,7 +1060,7 @@ msgid "input_rip: reading of saved data failed: %s\n"
 msgstr "input_cda: l'ouverture du serveur '%s:%d' a échouée: %s\n"
 
 #: src/xine-engine/input_rip.c:154
-#, fuzzy
+#, fuzzy, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_dvd: erreur de lecture dans le plugin input_dvd\n"
 
@@ -1052,11 +1071,12 @@ msgid "input_rip: error writing to file %<PRIdMAX> bytes: %s\n"
 msgstr "input_dvd: ne peux pas ouvrir le fichier >%s<\n"
 
 #: src/xine-engine/input_rip.c:183
+#, c-format
 msgid "input_rip: open() function should never be called\n"
 msgstr ""
 
 #: src/xine-engine/input_rip.c:314 src/xine-engine/input_rip.c:419
-#, fuzzy
+#, fuzzy, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_cda: fopen(%s) à échoué: %s\n"
 
@@ -1071,10 +1091,12 @@ msgid "input_rip: %<PRIdMAX> bytes dropped\n"
 msgstr ""
 
 #: src/xine-engine/input_rip.c:562
+#, c-format
 msgid "input_rip: input plugin not defined!\n"
 msgstr ""
 
 #: src/xine-engine/input_rip.c:568
+#, c-format
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'media.capture.save_dir'\n"
@@ -1087,6 +1109,7 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/input_rip.c:577
+#, c-format
 msgid "input_rip: ripping/caching of this source is not permitted!\n"
 msgstr ""
 
@@ -1097,6 +1120,7 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/input_rip.c:585
+#, c-format
 msgid "input_rip: file name not given!\n"
 msgstr ""
 
@@ -1140,11 +1164,12 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/input_cache.c:167
+#, c-format
 msgid ": open() function should never be called\n"
 msgstr ""
 
 #: src/xine-engine/input_cache.c:349
-#, fuzzy
+#, fuzzy, c-format
 msgid ": input plugin not defined!\n"
 msgstr "input_dvd: ne peux pas ouvrir le fichier >%s<\n"
 
@@ -1240,6 +1265,7 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/configfile.c:924
+#, c-format
 msgid "The current config file has been modified by a newer version of xine."
 msgstr ""
 
@@ -1521,6 +1547,7 @@ msgid "audio_out: sorry, this should not happen. please restart xine.\n"
 msgstr ""
 
 #: src/xine-engine/load_plugins.c:212
+#, c-format
 msgid "map_decoder_list: no space for decoder, skipped.\n"
 msgstr ""
 
@@ -1562,7 +1589,7 @@ msgid "load_plugins: plugin %s found\n"
 msgstr ""
 
 #: src/xine-engine/load_plugins.c:499
-#, fuzzy
+#, fuzzy, c-format
 msgid "load_plugins: static plugin found\n"
 msgstr "input_net: impossible de se connecter à '%s'.\n"
 
@@ -1572,6 +1599,7 @@ msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr ""
 
 #: src/xine-engine/load_plugins.c:509
+#, c-format
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
 msgstr ""
 
@@ -3485,6 +3513,7 @@ msgid "libmmsh: send error\n"
 msgstr ""
 
 #: src/input/mmsh.c:246
+#, c-format
 msgid "libmmsh: bad response format\n"
 msgstr ""
 
@@ -3499,6 +3528,7 @@ msgid "libmmsh: http status not 2xx: >%d %s<\n"
 msgstr ""
 
 #: src/input/mmsh.c:267
+#, c-format
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr ""
 
@@ -3507,10 +3537,12 @@ msgid "Connecting MMS server (over http)..."
 msgstr ""
 
 #: src/input/mmsh.c:657
+#, c-format
 msgid "invalid url\n"
 msgstr ""
 
 #: src/input/mmsh.c:662
+#, c-format
 msgid "unsupported protocol\n"
 msgstr ""
 
@@ -3568,6 +3600,7 @@ msgid "Connecting HTTP server..."
 msgstr ""
 
 #: src/input/input_http.c:816
+#, c-format
 msgid "input_http: invalid http answer\n"
 msgstr ""
 
@@ -3655,22 +3688,27 @@ msgid "dvbsub: cannot create timer thread\n"
 msgstr "input_rtp: ne peux pas créer le nouveau thread (%s)\n"
 
 #: src/libxinevdec/bitplane.c:1272
+#, c-format
 msgid "bitplane: error doing ByteRun1 decompression\n"
 msgstr ""
 
 #: src/libxinevdec/bitplane.c:1331
+#, c-format
 msgid "bitplane: Anim Opt 1 is not supported at the moment\n"
 msgstr ""
 
 #: src/libxinevdec/bitplane.c:1338
+#, c-format
 msgid "bitplane: Anim Opt 2 is not supported at the moment\n"
 msgstr ""
 
 #: src/libxinevdec/bitplane.c:1388
+#, c-format
 msgid "bitplane: Anim ASCIIJ is not supported at the moment\n"
 msgstr ""
 
 #: src/libxinevdec/bitplane.c:1394
+#, c-format
 msgid "bitplane: This anim-type is not supported at the moment\n"
 msgstr ""
 
@@ -4449,6 +4487,7 @@ msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %<PRIdMAX>\n"
 msgstr ""
 
 #: src/demuxers/demux_avi.c:828
+#, c-format
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: l'index avi est corrompu\n"
 
@@ -4462,10 +4501,12 @@ msgid "demux_mpc: frame too big for buffer"
 msgstr ""
 
 #: src/demuxers/demux_film.c:188
+#, c-format
 msgid "invalid FILM chunk size\n"
 msgstr ""
 
 #: src/demuxers/demux_film.c:342
+#, c-format
 msgid "unrecognized FILM chunk\n"
 msgstr ""
 
@@ -4510,6 +4551,7 @@ msgid ""
 msgstr ""
 
 #: src/demuxers/demux_ogg.c:797
+#, c-format
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 
@@ -4526,6 +4568,7 @@ msgid ""
 msgstr ""
 
 #: src/demuxers/demux_mpeg_block.c:640
+#, c-format
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 
@@ -4551,6 +4594,7 @@ msgid "demux_mpeg_pes: warning: PACK stream id=0x%x decode failed.\n"
 msgstr ""
 
 #: src/demuxers/demux_mpeg_pes.c:771
+#, c-format
 msgid "demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 
@@ -4576,10 +4620,12 @@ msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr ""
 
 #: src/demuxers/demux_wc3movie.c:406
+#, c-format
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr ""
 
 #: src/demuxers/demux_snd.c:104
+#, c-format
 msgid "demux_snd: bad header parameters\n"
 msgstr ""
 

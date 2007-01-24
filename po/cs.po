@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-19 03:36+0100\n"
+"POT-Creation-Date: 2007-01-21 14:52+0000\n"
 "PO-Revision-Date: 2005-12-11 20:47+0100\n"
 "Last-Translator: František Dvořák <valtri@atlas.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -107,6 +107,7 @@ msgid "w32codec: decoder failed to start. Is '%s' installed?\n"
 msgstr "w32codec: selhalo spuštění dekodéru. Je nainstalován '%s?\n"
 
 #: src/libw32dll/w32codec.c:1221
+#, c-format
 msgid "w32codec: (ACM_Decoder) Unappropriate audio format\n"
 msgstr "w32codec: (ACM_Decoder) Neadekvátní zvukový formát\n"
 
@@ -116,10 +117,12 @@ msgid "w32codec: (ACM_Decoder) acmStreamOpen error %d\n"
 msgstr "w32codec: (ACM_Decoder) chyba acmStreamOpen%d\n"
 
 #: src/libw32dll/w32codec.c:1243
+#, c-format
 msgid "w32codec: Error initializing DirectShow Audio\n"
 msgstr "w32codec: Chyba inicializace DirectShow zvuku\n"
 
 #: src/libw32dll/w32codec.c:1261
+#, c-format
 msgid "w32codec: Error initializing DMO Audio\n"
 msgstr "w32codec: Chyba inicializace DMO zvuku\n"
 
@@ -522,10 +525,12 @@ msgid "unknown error"
 msgstr "neznámá chyba"
 
 #: src/audio_out/audio_directx2_out.c:206
+#, c-format
 msgid "Unable to create direct sound object."
 msgstr "Nepodařilo se vytvořit objekt direct sound."
 
 #: src/audio_out/audio_directx2_out.c:212
+#, c-format
 msgid "Could not set direct sound cooperative level."
 msgstr "Nelze nastavit cooperativní úroveň direct sound."
 
@@ -534,6 +539,7 @@ msgid "Unable to create secondary direct sound buffer"
 msgstr "Nepodařilo se vytvořit sekundární buffer direct sound"
 
 #: src/audio_out/audio_directx2_out.c:310
+#, c-format
 msgid "Unable to create buffer position events."
 msgstr "Nepodařilo se vytvořit poziční události bufferu."
 
@@ -566,6 +572,7 @@ msgid "Can't set sound volume"
 msgstr "Nelze nastavit hlasitost zvuku"
 
 #: src/audio_out/audio_directx2_out.c:432
+#, c-format
 msgid ": buffer lost, tryig to restore\n"
 msgstr ": buffer ztracen, zkusí se obnovit\n"
 
@@ -578,10 +585,12 @@ msgid "Couldn't unlock direct sound buffer"
 msgstr "Nešlo odemknout buffer direct sound"
 
 #: src/audio_out/audio_directx2_out.c:544
+#, c-format
 msgid "Unable to create primary direct sound buffer."
 msgstr "Nepodařilo se vytvořit primární buffer direct sound."
 
 #: src/audio_out/audio_directx2_out.c:637
+#, c-format
 msgid ": play cursor overran, flushing buffers\n"
 msgstr ": kurzor přehrávání přeběhl, resetování bufferů\n"
 
@@ -642,6 +651,7 @@ msgid "xine audio output plugin for win32 using directx"
 msgstr "modul zvukového výstupu xine pro win32 používající directx"
 
 #: src/audio_out/audio_alsa_out.c:355
+#, c-format
 msgid "audio_alsa_out:Already open...WHY!"
 msgstr "audio_alsa_out: Již otevřeno...PROČ!"
 
@@ -763,6 +773,7 @@ msgid "snd_pcm_open() failed:%d:%s\n"
 msgstr "snd_cm_open() selhalo:%d:%s\n"
 
 #: src/audio_out/audio_alsa_out.c:1428
+#, c-format
 msgid ">>> Check if another program already uses PCM <<<\n"
 msgstr ">>> Zkontrolujte, jestli už jiný program nepoužívá PCM <<<\n"
 
@@ -906,6 +917,7 @@ msgid "xine audio output plugin using pulseaudio sound server"
 msgstr "modul zvukového výstupu xine použije esound"
 
 #: src/xine-engine/io_helper.c:252
+#, c-format
 msgid "io_helper: waiting abandoned\n"
 msgstr "io_helper: čekání ukončeno\n"
 
@@ -919,14 +931,17 @@ msgid "failed to get status of socket"
 msgstr "selhalo získání stavu soketu"
 
 #: src/xine-engine/io_helper.c:388
+#, c-format
 msgid "io_helper: Permission denied\n"
 msgstr "io_helper: Přístup odepřen\n"
 
 #: src/xine-engine/io_helper.c:392
+#, c-format
 msgid "io_helper: File not found\n"
 msgstr "io_helper: Soubor nenalezen\n"
 
 #: src/xine-engine/io_helper.c:396
+#, c-format
 msgid "io_helper: Connection Refused\n"
 msgstr "io_helper: Spojení odmítnuto\n"
 
@@ -1014,6 +1029,7 @@ msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: selhalo spuštění demultiplexoru %s\n"
 
 #: src/xine-engine/xine.c:836
+#, c-format
 msgid "xine: join rip input plugin\n"
 msgstr "xine: připojen ripovací vstupní modul\n"
 
@@ -1052,6 +1068,7 @@ msgid "xine: error opening subtitle mrl\n"
 msgstr "xine: chyba otevírání MRL titulků\n"
 
 #: src/xine-engine/xine.c:1049
+#, c-format
 msgid "xine: error while parsing MRL\n"
 msgstr "xine: chyba během zpracování MRL\n"
 
@@ -1071,14 +1088,17 @@ msgid "xine: found demuxer plugin: %s\n"
 msgstr "xine: nalezen demultiplexní modul: %s\n"
 
 #: src/xine-engine/xine.c:1112
+#, c-format
 msgid "xine: demuxer failed to start\n"
 msgstr "xine: selhalo spuštění demultiplexoru\n"
 
 #: src/xine-engine/xine.c:1177
+#, c-format
 msgid "xine_play: no demux available\n"
 msgstr "xine_play: žádný dostupný demultiplexor\n"
 
 #: src/xine-engine/xine.c:1247
+#, c-format
 msgid "xine_play: demux failed to start\n"
 msgstr "xine_play: selhalo spuštění demultiplexoru\n"
 
@@ -1202,6 +1222,7 @@ msgid "input_rip: reading of saved data failed: %s\n"
 msgstr "input_rip: čtení uložených dat selhalo: %s\n"
 
 #: src/xine-engine/input_rip.c:154
+#, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: čtení vstupním modulem selhalo\n"
 
@@ -1212,10 +1233,12 @@ msgid "input_rip: error writing to file %<PRIdMAX> bytes: %s\n"
 msgstr "input_rip: chyba zápisu %<PRIdMAX> bytů do souboru: %s\n"
 
 #: src/xine-engine/input_rip.c:183
+#, c-format
 msgid "input_rip: open() function should never be called\n"
 msgstr "input_rip: funkce open() by nikdy neměla být volána\n"
 
 #: src/xine-engine/input_rip.c:314 src/xine-engine/input_rip.c:419
+#, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_rip: selhalo nastavení pozice\n"
 
@@ -1230,10 +1253,12 @@ msgid "input_rip: %<PRIdMAX> bytes dropped\n"
 msgstr "input_rip: zahozeno %<PRIdMAX> bytů\n"
 
 #: src/xine-engine/input_rip.c:562
+#, c-format
 msgid "input_rip: input plugin not defined!\n"
 msgstr "input_rip: vstupní modul není definován!\n"
 
 #: src/xine-engine/input_rip.c:568
+#, c-format
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'media.capture.save_dir'\n"
@@ -1250,6 +1275,7 @@ msgstr ""
 "save_dir'."
 
 #: src/xine-engine/input_rip.c:577
+#, c-format
 msgid "input_rip: ripping/caching of this source is not permitted!\n"
 msgstr "input_rip: ukládání z tohoto zdroje není povoleno!\n"
 
@@ -1262,6 +1288,7 @@ msgstr ""
 "autorskými právy?)"
 
 #: src/xine-engine/input_rip.c:585
+#, c-format
 msgid "input_rip: file name not given!\n"
 msgstr "input_rip: nebyl dán název souboru!\n"
 
@@ -1312,10 +1339,12 @@ msgstr ""
 "také se sníží využití procesoru."
 
 #: src/xine-engine/input_cache.c:167
+#, c-format
 msgid ": open() function should never be called\n"
 msgstr ": funkce open() by nikdy neměla být volána\n"
 
 #: src/xine-engine/input_cache.c:349
+#, c-format
 msgid ": input plugin not defined!\n"
 msgstr ": vstupní modul není definován!\n"
 
@@ -1415,6 +1444,7 @@ msgstr ""
 "nespecifikují žádnou barvu. Paleta je uvedena ve formě: popředí-okraj-pozadí."
 
 #: src/xine-engine/configfile.c:924
+#, c-format
 msgid "The current config file has been modified by a newer version of xine."
 msgstr "Stávající konfigurační soubor byl upraven novější verzí xine."
 
@@ -1751,6 +1781,7 @@ msgstr ""
 "audio_out: Litujeme, toto by se nemělo přihodit. Prosím restartujte xine.\n"
 
 #: src/xine-engine/load_plugins.c:212
+#, c-format
 msgid "map_decoder_list: no space for decoder, skipped.\n"
 msgstr ""
 
@@ -1801,6 +1832,7 @@ msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: nalezen modul %s\n"
 
 #: src/xine-engine/load_plugins.c:499
+#, c-format
 msgid "load_plugins: static plugin found\n"
 msgstr "load_plugins: nalezen statický modul\n"
 
@@ -1810,6 +1842,7 @@ msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr "load_plugins: dosažen limit počtu modulů, %s nemohl být nahrán\n"
 
 #: src/xine-engine/load_plugins.c:509
+#, c-format
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
 msgstr ""
 "load_plugins: dosažen limit počtu modulů, statický modul nemohl být nahrán\n"
@@ -4072,6 +4105,7 @@ msgid "libmmsh: send error\n"
 msgstr "libmmsh: chyba při posílání\n"
 
 #: src/input/mmsh.c:246
+#, c-format
 msgid "libmmsh: bad response format\n"
 msgstr "libmmsh: špatný formát odpovědi\n"
 
@@ -4086,6 +4120,7 @@ msgid "libmmsh: http status not 2xx: >%d %s<\n"
 msgstr "libmmsh: stav http není 2xx: >%d %s<\n"
 
 #: src/input/mmsh.c:267
+#, c-format
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr "libmmsh: Přesměrování umístění není implementováno\n"
 
@@ -4094,10 +4129,12 @@ msgid "Connecting MMS server (over http)..."
 msgstr "Připojuje se k MMS serveru (přes HTTP)..."
 
 #: src/input/mmsh.c:657
+#, c-format
 msgid "invalid url\n"
 msgstr "neplatné URL\n"
 
 #: src/input/mmsh.c:662
+#, c-format
 msgid "unsupported protocol\n"
 msgstr "nepodporovaný protokol\n"
 
@@ -4158,6 +4195,7 @@ msgid "Connecting HTTP server..."
 msgstr "Připojuje se k HTTP serveru..."
 
 #: src/input/input_http.c:816
+#, c-format
 msgid "input_http: invalid http answer\n"
 msgstr "input_http: neplatná odpověď http\n"
 
@@ -4247,22 +4285,27 @@ msgid "dvbsub: cannot create timer thread\n"
 msgstr "dvbsub: nelze vytvořit časovací vlákno\n"
 
 #: src/libxinevdec/bitplane.c:1272
+#, c-format
 msgid "bitplane: error doing ByteRun1 decompression\n"
 msgstr "bitplane: chyba při provádění dekomprese ByteRun1\n"
 
 #: src/libxinevdec/bitplane.c:1331
+#, c-format
 msgid "bitplane: Anim Opt 1 is not supported at the moment\n"
 msgstr "bitplane: V tomto okamžiku není Anim Opt 1 podporován\n"
 
 #: src/libxinevdec/bitplane.c:1338
+#, c-format
 msgid "bitplane: Anim Opt 2 is not supported at the moment\n"
 msgstr "bitplane: V tomto okamžiku není Anim Opt 2 podporován\n"
 
 #: src/libxinevdec/bitplane.c:1388
+#, c-format
 msgid "bitplane: Anim ASCIIJ is not supported at the moment\n"
 msgstr "bitplane: V tomto okamžiku není Anim ASCIIJ podporován\n"
 
 #: src/libxinevdec/bitplane.c:1394
+#, c-format
 msgid "bitplane: This anim-type is not supported at the moment\n"
 msgstr "bitplane: V tomto okamžiku není tento typ anim podporován\n"
 
@@ -5345,6 +5388,7 @@ msgstr ""
 "demux:avi: neplatný datový blok avi \"%c%c%c%c\" na pozici %<PRIdMAX>\n"
 
 #: src/demuxers/demux_avi.c:828
+#, c-format
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: index avi je porušen\n"
 
@@ -5359,10 +5403,12 @@ msgid "demux_mpc: frame too big for buffer"
 msgstr "demux_mpc: snímek příliš velký do bufferu"
 
 #: src/demuxers/demux_film.c:188
+#, c-format
 msgid "invalid FILM chunk size\n"
 msgstr "neplatná velikost datového bloku FILM\n"
 
 #: src/demuxers/demux_film.c:342
+#, c-format
 msgid "unrecognized FILM chunk\n"
 msgstr "nerozpoznaný datový blok FILM\n"
 
@@ -5407,6 +5453,7 @@ msgid ""
 msgstr "neznámý typ komprese VOC (0x%02X); prosím oznamte vývojářům xine\n"
 
 #: src/demuxers/demux_ogg.c:797
+#, c-format
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 "ogg: zjištěna zvuková stopa vorbis, ale nenalezena žádná hlavička dat "
@@ -5428,6 +5475,7 @@ msgstr ""
 "demux_mpeg_block: Chyba! Uvolní se. Prosím oznamte to vývojářům xine.\n"
 
 #: src/demuxers/demux_mpeg_block.c:640
+#, c-format
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_block: varování: 10 rezervovaných bitů hlavičky PES nenalezeno\n"
@@ -5456,6 +5504,7 @@ msgid "demux_mpeg_pes: warning: PACK stream id=0x%x decode failed.\n"
 msgstr "demux_mpeg_pes: varování: selhalo dekódování sekvence PACK id=0x%x.\n"
 
 #: src/demuxers/demux_mpeg_pes.c:771
+#, c-format
 msgid "demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_pes: varování: 10 rezervovaných bitů hlavičky PES nenalezeno\n"
@@ -5485,10 +5534,12 @@ msgstr ""
 "demux_wc3movie: datový blok SHOT odkazoval na neplatnou paletu (%d >= %d)\n"
 
 #: src/demuxers/demux_wc3movie.c:406
+#, c-format
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr "demux_wc3movie: Byl zde problém během načítání datových bloků palety\n"
 
 #: src/demuxers/demux_snd.c:104
+#, c-format
 msgid "demux_snd: bad header parameters\n"
 msgstr "demux_snd: špatné parametry hlavičky\n"
 

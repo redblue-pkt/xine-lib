@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib-1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-19 03:36+0100\n"
+"POT-Creation-Date: 2007-01-21 14:52+0000\n"
 "PO-Revision-Date: 2005-02-17 14:29+0100\n"
 "Last-Translator: Piarres Beobide <pi@beobide.net>\n"
 "Language-Team: lubrezale <librezale@librezale.org>\n"
@@ -101,6 +101,7 @@ msgstr ""
 "w32codec: huts deskodetzailea abiaraztean. '%s' instalaturik al dago?\n"
 
 #: src/libw32dll/w32codec.c:1221
+#, c-format
 msgid "w32codec: (ACM_Decoder) Unappropriate audio format\n"
 msgstr "w32codec: (ACM_Decoder) Okerreko audio formatua\n"
 
@@ -110,10 +111,12 @@ msgid "w32codec: (ACM_Decoder) acmStreamOpen error %d\n"
 msgstr "w32codec: (ACM_Decoder) acmStreamOpen errorea %d\n"
 
 #: src/libw32dll/w32codec.c:1243
+#, c-format
 msgid "w32codec: Error initializing DirectShow Audio\n"
 msgstr "w32codec: Errorea DirectShow Audio abiarazterakoan\n"
 
 #: src/libw32dll/w32codec.c:1261
+#, c-format
 msgid "w32codec: Error initializing DMO Audio\n"
 msgstr "w32codec: Errorea DMO Audioa abiarazterakoan\n"
 
@@ -515,10 +518,12 @@ msgid "unknown error"
 msgstr "Errore ezezaguna"
 
 #: src/audio_out/audio_directx2_out.c:206
+#, c-format
 msgid "Unable to create direct sound object."
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:212
+#, c-format
 msgid "Could not set direct sound cooperative level."
 msgstr ""
 
@@ -527,6 +532,7 @@ msgid "Unable to create secondary direct sound buffer"
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:310
+#, c-format
 msgid "Unable to create buffer position events."
 msgstr ""
 
@@ -559,6 +565,7 @@ msgid "Can't set sound volume"
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:432
+#, c-format
 msgid ": buffer lost, tryig to restore\n"
 msgstr ""
 
@@ -571,10 +578,12 @@ msgid "Couldn't unlock direct sound buffer"
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:544
+#, c-format
 msgid "Unable to create primary direct sound buffer."
 msgstr ""
 
 #: src/audio_out/audio_directx2_out.c:637
+#, c-format
 msgid ": play cursor overran, flushing buffers\n"
 msgstr ""
 
@@ -636,6 +645,7 @@ msgid "xine audio output plugin for win32 using directx"
 msgstr "xine audio irteera plugina win32-arentzat directx erabiliaz"
 
 #: src/audio_out/audio_alsa_out.c:355
+#, c-format
 msgid "audio_alsa_out:Already open...WHY!"
 msgstr "audio_alsa_out:Dagoeneko irekirik...ZERGATIK!"
 
@@ -760,6 +770,7 @@ msgid "snd_pcm_open() failed:%d:%s\n"
 msgstr "snd_pcm_open()-ek huts egin du:%d:%s\n"
 
 #: src/audio_out/audio_alsa_out.c:1428
+#, c-format
 msgid ">>> Check if another program already uses PCM <<<\n"
 msgstr ">>> Egiaztatu beste programa batek PCM darabilkien<<<\n"
 
@@ -905,7 +916,7 @@ msgid "xine audio output plugin using pulseaudio sound server"
 msgstr "xine audio irteera plugina esound erabiliz"
 
 #: src/xine-engine/io_helper.c:252
-#, fuzzy
+#, fuzzy, c-format
 msgid "io_helper: waiting abandoned\n"
 msgstr "io_helper: Baimena ukaturik\n"
 
@@ -919,14 +930,17 @@ msgid "failed to get status of socket"
 msgstr "huts soket egoera eskuratzerakoan"
 
 #: src/xine-engine/io_helper.c:388
+#, c-format
 msgid "io_helper: Permission denied\n"
 msgstr "io_helper: Baimena ukaturik\n"
 
 #: src/xine-engine/io_helper.c:392
+#, c-format
 msgid "io_helper: File not found\n"
 msgstr "io_helper: Fitxategia ez da aurkitu\n"
 
 #: src/xine-engine/io_helper.c:396
+#, c-format
 msgid "io_helper: Connection Refused\n"
 msgstr "io_helper: Konexioa Ukaturik\n"
 
@@ -999,6 +1013,7 @@ msgid "xine: specified demuxer %s failed to start\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:836
+#, c-format
 msgid "xine: join rip input plugin\n"
 msgstr ""
 
@@ -1037,6 +1052,7 @@ msgid "xine: error opening subtitle mrl\n"
 msgstr "xine: errorea azpititulu mrl-a irekitzerakoan\n"
 
 #: src/xine-engine/xine.c:1049
+#, c-format
 msgid "xine: error while parsing MRL\n"
 msgstr "xine: errorea MRL-analizatzerakoan\n"
 
@@ -1056,14 +1072,17 @@ msgid "xine: found demuxer plugin: %s\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:1112
+#, c-format
 msgid "xine: demuxer failed to start\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:1177
+#, c-format
 msgid "xine_play: no demux available\n"
 msgstr ""
 
 #: src/xine-engine/xine.c:1247
+#, c-format
 msgid "xine_play: demux failed to start\n"
 msgstr ""
 
@@ -1173,6 +1192,7 @@ msgid "input_rip: reading of saved data failed: %s\n"
 msgstr "input_rip: huts grabatutako datuak irakurtzerkaoan: %s\n"
 
 #: src/xine-engine/input_rip.c:154
+#, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: huts sarrera pluginetik irakirtzerakoan\n"
 
@@ -1183,10 +1203,12 @@ msgid "input_rip: error writing to file %<PRIdMAX> bytes: %s\n"
 msgstr "input_rip: errorea %lld fitxategian idazterakoan, byte-ak: %s\n"
 
 #: src/xine-engine/input_rip.c:183
+#, c-format
 msgid "input_rip: open() function should never be called\n"
 msgstr "input_rip: open() funtzioa ez zen inoiz deitu beharko\n"
 
 #: src/xine-engine/input_rip.c:314 src/xine-engine/input_rip.c:419
+#, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_rip: bilaketak huts egin du\n"
 
@@ -1201,10 +1223,12 @@ msgid "input_rip: %<PRIdMAX> bytes dropped\n"
 msgstr "input_rip: %lld byte alde batetara utzirik\n"
 
 #: src/xine-engine/input_rip.c:562
+#, c-format
 msgid "input_rip: input plugin not defined!\n"
 msgstr "input_rip: sarrera pluginia ez ezarririk!\n"
 
 #: src/xine-engine/input_rip.c:568
+#, c-format
 msgid ""
 "input_rip: target directory wasn't specified, please fill out the option "
 "'media.capture.save_dir'\n"
@@ -1219,6 +1243,7 @@ msgstr ""
 "save_dir ezarri arte."
 
 #: src/xine-engine/input_rip.c:577
+#, c-format
 msgid "input_rip: ripping/caching of this source is not permitted!\n"
 msgstr ""
 
@@ -1231,6 +1256,7 @@ msgstr ""
 "materiala agian?)"
 
 #: src/xine-engine/input_rip.c:585
+#, c-format
 msgid "input_rip: file name not given!\n"
 msgstr "input_rip: ez da fitxategi izena eman!\n"
 
@@ -1274,12 +1300,12 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/input_cache.c:167
-#, fuzzy
+#, fuzzy, c-format
 msgid ": open() function should never be called\n"
 msgstr "input_rip: open() funtzioa ez zen inoiz deitu beharko\n"
 
 #: src/xine-engine/input_cache.c:349
-#, fuzzy
+#, fuzzy, c-format
 msgid ": input plugin not defined!\n"
 msgstr "input_rip: sarrera pluginia ez ezarririk!\n"
 
@@ -1378,6 +1404,7 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/configfile.c:924
+#, c-format
 msgid "The current config file has been modified by a newer version of xine."
 msgstr ""
 "Konfigurazio fitxategia xine-ren bertsio berriagobategatik aldatua izan da."
@@ -1672,6 +1699,7 @@ msgstr ""
 "audio_out: barkatu, hau ez zen gertatu beharko. mesedez xine berrabiarazi.\n"
 
 #: src/xine-engine/load_plugins.c:212
+#, c-format
 msgid "map_decoder_list: no space for decoder, skipped.\n"
 msgstr ""
 
@@ -1715,7 +1743,7 @@ msgid "load_plugins: plugin %s found\n"
 msgstr "load_plugins: %s plugin aurkitu dira\n"
 
 #: src/xine-engine/load_plugins.c:499
-#, fuzzy
+#, fuzzy, c-format
 msgid "load_plugins: static plugin found\n"
 msgstr "load_plugins: %s plugin aurkitu dira\n"
 
@@ -1725,7 +1753,7 @@ msgid "load_plugins: plugin limit reached, %s could not be loaded\n"
 msgstr "load_plugins: plugin muga gainditu da, %s ezin da kargatu\n"
 
 #: src/xine-engine/load_plugins.c:509
-#, fuzzy
+#, fuzzy, c-format
 msgid "load_plugins: plugin limit reached, static plugin could not be loaded\n"
 msgstr "load_plugins: plugin muga gainditu da, %s ezin da kargatu\n"
 
@@ -3747,6 +3775,7 @@ msgid "libmmsh: send error\n"
 msgstr "libmmsh: bidalketa errorea\n"
 
 #: src/input/mmsh.c:246
+#, c-format
 msgid "libmmsh: bad response format\n"
 msgstr "libmmsh: okerreko erantzun formatua\n"
 
@@ -3761,6 +3790,7 @@ msgid "libmmsh: http status not 2xx: >%d %s<\n"
 msgstr "libmmsh: http egoera ez da 2xx: >%d %s<\n"
 
 #: src/input/mmsh.c:267
+#, c-format
 msgid "libmmsh: Location redirection not implemented\n"
 msgstr "libmmsh: Kokaleku nbirbideratzea ez da onartzen\n"
 
@@ -3769,10 +3799,12 @@ msgid "Connecting MMS server (over http)..."
 msgstr "MMS zerbitzarira konektatzen (http bidez)..."
 
 #: src/input/mmsh.c:657
+#, c-format
 msgid "invalid url\n"
 msgstr "url baliogabea\n"
 
 #: src/input/mmsh.c:662
+#, c-format
 msgid "unsupported protocol\n"
 msgstr "onartzen ez den protokoloa\n"
 
@@ -3833,6 +3865,7 @@ msgid "Connecting HTTP server..."
 msgstr "HTTP zerbitzarira konektatzen..."
 
 #: src/input/input_http.c:816
+#, c-format
 msgid "input_http: invalid http answer\n"
 msgstr "input_http: http erantzun baliogabea\n"
 
@@ -3923,22 +3956,27 @@ msgid "dvbsub: cannot create timer thread\n"
 msgstr "input_rtp: Ezin da hari berria sortu (%s)\n"
 
 #: src/libxinevdec/bitplane.c:1272
+#, c-format
 msgid "bitplane: error doing ByteRun1 decompression\n"
 msgstr "bitplane: errorea ByteRun1 dekonpresioa egiterakoan\n"
 
 #: src/libxinevdec/bitplane.c:1331
+#, c-format
 msgid "bitplane: Anim Opt 1 is not supported at the moment\n"
 msgstr "bitplane: Anim Opt 1 ez da onartzen momentuz\n"
 
 #: src/libxinevdec/bitplane.c:1338
+#, c-format
 msgid "bitplane: Anim Opt 2 is not supported at the moment\n"
 msgstr "bitplane: Anim Opt 2 ez da onartzen momentuz\n"
 
 #: src/libxinevdec/bitplane.c:1388
+#, c-format
 msgid "bitplane: Anim ASCIIJ is not supported at the moment\n"
 msgstr "bitplane: Anim ASCIIJ ez da onartzen momentuz\n"
 
 #: src/libxinevdec/bitplane.c:1394
+#, c-format
 msgid "bitplane: This anim-type is not supported at the moment\n"
 msgstr "bitplane: Animazio-mota ahu ez da onartzen momentu honetan\n"
 
@@ -4851,6 +4889,7 @@ msgid "demux_avi: invalid avi chunk \"%c%c%c%c\" at pos %<PRIdMAX>\n"
 msgstr "demux_avi: \"%c%c%c%c\" baliogabeko avi zatia %lld kokalekuan\n"
 
 #: src/demuxers/demux_avi.c:828
+#, c-format
 msgid "demux_avi: avi index is broken\n"
 msgstr "demux_avi: avi indizea hautsirik dago\n"
 
@@ -4864,10 +4903,12 @@ msgid "demux_mpc: frame too big for buffer"
 msgstr ""
 
 #: src/demuxers/demux_film.c:188
+#, c-format
 msgid "invalid FILM chunk size\n"
 msgstr "baliogabeko FILMA zati tamaina\n"
 
 #: src/demuxers/demux_film.c:342
+#, c-format
 msgid "unrecognized FILM chunk\n"
 msgstr "FILMA zati ezezaguna\n"
 
@@ -4916,6 +4957,7 @@ msgstr ""
 "garatzaileei\n"
 
 #: src/demuxers/demux_ogg.c:797
+#, c-format
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
 "ogg: vorbis audio pista esan da baina ez da vorbis korronte bururik "
@@ -4937,6 +4979,7 @@ msgstr ""
 "demux_mpeg_block: errorea! askatzen. Mesedez abisua eman xine garatzaileei.\n"
 
 #: src/demuxers/demux_mpeg_block.c:640
+#, c-format
 msgid "demux_mpeg_block: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_block: abisua: PES buarentzat gorderiko 10 bit ez dira aurkitu\n"
@@ -4966,6 +5009,7 @@ msgstr ""
 "demux_mpeg_pes: kontuz: PACK korronte -aid=0x%x dekodifikatzerakoan huts.\n"
 
 #: src/demuxers/demux_mpeg_pes.c:771
+#, c-format
 msgid "demux_mpeg_pes: warning: PES header reserved 10 bits not found\n"
 msgstr ""
 "demux_mpeg_pes: abisua: PES buruarentzat gorderiko 10 bit ez dira aurkitu\n"
@@ -4994,10 +5038,12 @@ msgid "demux_wc3movie: SHOT chunk referenced invalid palette (%d >= %d)\n"
 msgstr ""
 
 #: src/demuxers/demux_wc3movie.c:406
+#, c-format
 msgid "demux_wc3movie: There was a problem while loading palette chunks\n"
 msgstr "demux_wc3movie: Arazo bat dago paleta zatiak kargatzerakoan\n"
 
 #: src/demuxers/demux_snd.c:104
+#, c-format
 msgid "demux_snd: bad header parameters\n"
 msgstr "demux_snd: okerreko goiburu parametroa\n"
 
