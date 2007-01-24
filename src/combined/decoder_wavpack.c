@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.3 2007/01/24 20:51:04 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.4 2007/01/24 21:42:21 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -209,7 +209,8 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
 	};
 
 	WavpackContext *ctx = NULL;
-	char error[256]; /* Current version of wavpack (4.40) does not write more than this */
+	/* Current version of wavpack (4.40) does not write more than this */
+	char error[256] = { 0, };
 	int32_t samples_left; uint32_t samples_total;
 	const wvheader_t *header = (const wvheader_t*)this->buf;
 
