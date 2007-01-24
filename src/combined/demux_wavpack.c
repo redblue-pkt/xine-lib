@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: demux_wavpack.c,v 1.6 2007/01/24 21:41:30 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.7 2007/01/24 22:05:09 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -180,72 +180,76 @@ static int demux_wv_send_chunk(demux_plugin_t *const this_gen) {
   uint32_t bytes_to_read; uint8_t header_sent = 0;
   wvheader_t header;
 
+  lprintf("new frame\n");
+
   /* Check if we've finished */
   if (this->current_sample >= this->samples) {
     lprintf("all frames read\n");
     this->status = DEMUX_FINISHED;
     return this->status;
   }
-
+  
   lprintf("current sample: %u\n", this->current_sample);
 
-  if ( this->input->read(this->input, (uint8_t*)(&header), sizeof(wvheader_t)) != sizeof(wvheader_t) ) {
+  do {
+    if ( this->input->read(this->input, (uint8_t*)(&header), sizeof(wvheader_t)) != sizeof(wvheader_t) ) {
       this->status = DEMUX_FINISHED;
       return this->status;
-  }
-
-  /* The size of the block is «of course» minus 8, and
-     it also includes the size of the header.
-  */
-  bytes_to_read = le2me_32(header.block_size) + 8 - sizeof(wvheader_t);
-
-  lprintf("demux_wavpack: going to read %u bytes.\n", bytes_to_read);
-
-  while(bytes_to_read) {
-    off_t bytes_read = 0, bytes_to_read_now, offset = 0;
-    buf_element_t *buf = NULL;
-    int64_t input_time_guess;
-
-    /* Get a buffer */
-    buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
-    buf->type = BUF_AUDIO_WAVPACK;
-    buf->decoder_flags = 0;
-
-    /* Set normalised position */
-    buf->extra_info->input_normpos =
-      (int) ((double) this->input->get_current_pos(this->input) * 65535 /
-	     this->input->get_length(this->input));
-
-    buf->pts = (((this->current_sample) / this->samplerate))*90000;
-    lprintf("Sending buffer with PTS %d\n", buf->pts);
-
-    /* Set time */
-    input_time_guess = this->samples;
-    input_time_guess /= this->samplerate;
-    input_time_guess *= 1000;
-    input_time_guess *= buf->extra_info->input_normpos;
-    input_time_guess /= 65535;
-    buf->extra_info->input_time = input_time_guess;
-
-    bytes_to_read_now = ( bytes_to_read > buf->max_size ) ? buf->max_size : bytes_to_read;
-    if ( ! header_sent ) {
-      bytes_to_read_now -= (offset = sizeof(wvheader_t));
-
-      header_sent = 1;
-      xine_fast_memcpy(buf->content, &header, sizeof(wvheader_t));
     }
 
-    bytes_read = this->input->read(this->input, &buf->content[offset], bytes_to_read_now);
+    /* The size of the block is «of course» minus 8, and
+       it also includes the size of the header.
+    */
+    bytes_to_read = le2me_32(header.block_size) + 8 - sizeof(wvheader_t);
 
-    buf->size = offset + bytes_read;
+    lprintf("demux_wavpack: going to read %u bytes.\n", bytes_to_read);
 
-    bytes_to_read -= bytes_read;
+    while(bytes_to_read) {
+      off_t bytes_read = 0, bytes_to_read_now, offset = 0;
+      buf_element_t *buf = NULL;
+      int64_t input_time_guess;
 
-    if ( bytes_to_read <= 0 )
-      buf->decoder_flags |= BUF_FLAG_FRAME_END;
+      /* Get a buffer */
+      buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+      buf->type = BUF_AUDIO_WAVPACK;
+      buf->decoder_flags = 0;
+
+      /* Set normalised position */
+      buf->extra_info->input_normpos =
+	(int) ((double) this->input->get_current_pos(this->input) * 65535 /
+	       this->input->get_length(this->input));
+
+      buf->pts = (((this->current_sample) / this->samplerate))*90000;
+      lprintf("Sending buffer with PTS %"PRId64"\n", buf->pts);
+
+      /* Set time */
+      input_time_guess = this->samples;
+      input_time_guess /= this->samplerate;
+      input_time_guess *= 1000;
+      input_time_guess *= buf->extra_info->input_normpos;
+      input_time_guess /= 65535;
+      buf->extra_info->input_time = input_time_guess;
+
+      bytes_to_read_now = ( bytes_to_read > buf->max_size ) ? buf->max_size : bytes_to_read;
+      if ( ! header_sent ) {
+	bytes_to_read_now -= (offset = sizeof(wvheader_t));
+
+	header_sent = 1;
+	xine_fast_memcpy(buf->content, &header, sizeof(wvheader_t));
+      }
+
+      bytes_read = this->input->read(this->input, &buf->content[offset], bytes_to_read_now);
+
+      buf->size = offset + bytes_read;
+
+      bytes_to_read -= bytes_read;
+
+      if ( bytes_to_read <= 0 && (le2me_32(header.flags) & FINAL_BLOCK) == FINAL_BLOCK)
+	buf->decoder_flags |= BUF_FLAG_FRAME_END;
     
-    this->audio_fifo->put(this->audio_fifo, buf);
-  }
+      this->audio_fifo->put(this->audio_fifo, buf);
+    }
+  } while ( (le2me_32(header.flags) & FINAL_BLOCK) != FINAL_BLOCK );
 
   this->current_sample += le2me_32(header.samples_count);
 
