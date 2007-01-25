@@ -12,7 +12,8 @@ EXTRA_DIST = motion_est_template.c \
 #AM_CFLAGS = `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)" && echo -DCONFIG_ENCODERS` -fno-strict-aliasing
 AM_CFLAGS = `test "$(CFLAGS)" = "$(DEBUG_CFLAGS)"` -fno-strict-aliasing
 AM_CPPFLAGS = $(ZLIB_CPPFLAGS) $(LIBFFMPEG_CPPFLAGS) \
-	-I$(top_srcdir)/src/libffmpeg/libavutil -I$(top_srcdir)/src/libffmpeg
+	-I$(top_srcdir)/src/libffmpeg/libavutil -I$(top_srcdir)/src/libffmpeg \
+	-I$(top_builddir)/src/libffmpeg
 ASFLAGS =
 
 noinst_LTLIBRARIES = libavcodec.la

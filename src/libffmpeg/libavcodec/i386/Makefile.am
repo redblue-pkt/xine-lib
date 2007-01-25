@@ -6,7 +6,7 @@ AM_CFLAGS = -fomit-frame-pointer -fno-strict-aliasing
 # CFLAGS is here to filter out -funroll-loops because it causes bad
 # behavior of libavcodec
 CFLAGS := `echo @CFLAGS@ | sed -e 's/-funroll-loops//g'`
-AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil -I$(top_srcdir)/src/libffmpeg
+AM_CPPFLAGS = $(LIBFFMPEG_CPPFLAGS) -I$(top_srcdir)/src/libffmpeg/libavutil -I$(top_srcdir)/src/libffmpeg -I$(top_builddir)/src/libffmpeg
 
 # Avoid "can't find register" failures with -O1 and higher
 dsputil_mmx.o dsputil_mmx.lo: CFLAGS=$(shell echo @CFLAGS@ | sed -e 's/-funroll-loops//g; s/$$/ -Os/')
