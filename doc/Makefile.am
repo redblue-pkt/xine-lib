@@ -7,7 +7,7 @@ doc_DATA = README README.dvb README.dxr3 \
 	    README.solaris README.syncfb README_xxmc.html README.MINGWCROSS \
 	    README.WIN32
 
-EXTRA_DIST = $(docs_DATA)
+EXTRA_DIST = $(doc_DATA)
 
 docs clean-docs:
 	@cd faq && $(MAKE) $@
