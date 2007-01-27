@@ -405,7 +405,7 @@ AC_ARG_ENABLE([ffmpeg_uncommon_codecs],
 AC_ARG_ENABLE([ffmpeg_popular_codecs],
 	AS_HELP_STRING([--disable-ffmpeg-popular-codecs], [don't build popular ffmpeg codecs]))
 
-${mkdir_p} src/libffmpeg/
+AS_MKDIR_P(src/libffmpeg)
 ffmpeg_config_h=src/libffmpeg/ffmpeg_config.h
 echo "/* Automatically generated */" > $ffmpeg_config_h
 
