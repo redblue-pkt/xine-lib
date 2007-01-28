@@ -1,3 +1,6 @@
+xine-lib (1.1.5)
+  (write here)
+
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
     strings or names of files, device nodes or directories. This information
