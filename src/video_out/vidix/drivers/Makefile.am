@@ -23,54 +23,42 @@ endif
 lib_LTLIBRARIES = $(vidix_drivers)
 
 radeon_vid_la_SOURCES = radeon_vid.c
-radeon_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 radeon_vid_la_LDFLAGS = -avoid-version -module -lm
 
 rage128_vid_la_SOURCES = radeon_vid.c
-rage128_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 rage128_vid_la_LDFLAGS = -avoid-version -module -lm
 rage128_vid_la_CFLAGS = -DRAGE128 $(AM_CFLAGS)
 
 pm2_vid_la_SOURCES = pm2_vid.c
-pm2_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 pm2_vid_la_LDFLAGS = -avoid-version -module
 
 pm3_vid_la_SOURCES = pm3_vid.c
-pm3_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 pm3_vid_la_LDFLAGS = -avoid-version -module
 
 mach64_vid_la_SOURCES = mach64_vid.c
-mach64_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 mach64_vid_la_LDFLAGS = -avoid-version -module
 
 mga_vid_la_SOURCES = mga_vid.c
-mga_vid_la_LIBADD = -lm $(top_builddir)/src/video_out/libdha/libdha.la
-mga_vid_la_LDFLAGS = -avoid-version -module
+mga_vid_la_LDFLAGS = -avoid-version -module -lm
 
 mga_crtc2_vid_la_SOURCES = mga_vid.c
-mga_crtc2_vid_la_LIBADD = -lm $(top_builddir)/src/video_out/libdha/libdha.la
-mga_crtc2_vid_la_LDFLAGS = -avoid-version -module
+mga_crtc2_vid_la_LDFLAGS = -avoid-version -module -lm
 mga_crtc2_vid_la_CFLAGS = -DCRTC2 $(AM_CFLAGS)
 
 cyberblade_vid_la_SOURCES = cyberblade_vid.c
-cyberblade_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 cyberblade_vid_la_LDFLAGS = -avoid-version -module
 
 unichrome_vid_la_SOURCES = unichrome_vid.c
-unichrome_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 unichrome_vid_la_LDFLAGS = -avoid-version -module
 
 nvidia_vid_la_SOURCES = nvidia_vid.c
-nvidia_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 nvidia_vid_la_LDFLAGS = -avoid-version -module
 
 sis_vid_la_SOURCES = sis_vid.c sis_bridge.c
-sis_vid_la_LIBADD = $(top_builddir)/src/video_out/libdha/libdha.la
 sis_vid_la_LDFLAGS = -avoid-version -module
 
 savage_vid_la_SOURCES = savage_vid.c
-savage_vid_la_LIBADD = -lm $(top_builddir)/src/video_out/libdha/libdha.la
-savage_vid_la_LDFLAGS = -avoid-version -module
+savage_vid_la_LDFLAGS = -avoid-version -module -lm
 
 noinst_HEADERS = mach64.h glint_regs.h pm3_regs.h radeon.h savage_regs.h \
 	cyberblade_regs.h unichrome_regs.h sis_defs.h sis_regs.h
