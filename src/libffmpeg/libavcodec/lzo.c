@@ -26,7 +26,7 @@
 
 //! define if we may write up to 12 bytes beyond the output buffer
 #define OUTBUF_PADDED 1
-//! define if we may read up to 4 bytes beyond the input buffer
+//! define if we may read up to 8 bytes beyond the input buffer
 #define INBUF_PADDED 1
 typedef struct LZOContext {
     uint8_t *in, *in_end;
@@ -44,6 +44,12 @@ static inline int get_byte(LZOContext *c) {
     c->error |= LZO_INPUT_DEPLETED;
     return 1;
 }
+
+#ifdef INBUF_PADDED
+#define GETB(c) (*(c).in++)
+#else
+#define GETB(c) get_byte(&(c))
+#endif
 
 /**
  * \brief decode a length value in the coding used by lzo
@@ -67,11 +73,11 @@ static inline int get_len(LZOContext *c, int x, int mask) {
 static inline void copy(LZOContext *c, int cnt) {
     register uint8_t *src = c->in;
     register uint8_t *dst = c->out;
-    if (src + cnt > c->in_end) {
+    if (src + cnt > c->in_end || src + cnt < src) {
         cnt = c->in_end - src;
         c->error |= LZO_INPUT_DEPLETED;
     }
-    if (dst + cnt > c->out_end) {
+    if (dst + cnt > c->out_end || dst + cnt < dst) {
         cnt = c->out_end - dst;
         c->error |= LZO_OUTPUT_FULL;
     }
@@ -101,11 +107,11 @@ static inline void copy(LZOContext *c, int cnt) {
 static inline void copy_backptr(LZOContext *c, int back, int cnt) {
     register uint8_t *src = &c->out[-back];
     register uint8_t *dst = c->out;
-    if (src < c->out_start) {
+    if (src < c->out_start || src > dst) {
         c->error |= LZO_INVALID_BACKPTR;
         return;
     }
-    if (dst + cnt > c->out_end) {
+    if (dst + cnt > c->out_end || dst +  cnt < dst) {
         cnt = c->out_end - dst;
         c->error |= LZO_OUTPUT_FULL;
     }
@@ -170,10 +176,10 @@ int lzo1x_decode(void *out, int *outlen, void *in, int *inlen) {
     c.out = c.out_start = out;
     c.out_end = (uint8_t *)out + * outlen;
     c.error = 0;
-    x = get_byte(&c);
+    x = GETB(c);
     if (x > 17) {
         copy(&c, x - 17);
-        x = get_byte(&c);
+        x = GETB(c);
         if (x < 16) c.error |= LZO_ERROR;
     }
     while (!c.error) {
@@ -181,16 +187,16 @@ int lzo1x_decode(void *out, int *outlen, void *in, int *inlen) {
         if (x >> 4) {
             if (x >> 6) {
                 cnt = (x >> 5) - 1;
-                back = (get_byte(&c) << 3) + ((x >> 2) & 7) + 1;
+                back = (GETB(c) << 3) + ((x >> 2) & 7) + 1;
             } else if (x >> 5) {
                 cnt = get_len(&c, x, 31);
-                x = get_byte(&c);
-                back = (get_byte(&c) << 6) + (x >> 2) + 1;
+                x = GETB(c);
+                back = (GETB(c) << 6) + (x >> 2) + 1;
             } else {
                 cnt = get_len(&c, x, 7);
                 back = (1 << 14) + ((x & 8) << 11);
-                x = get_byte(&c);
-                back += (get_byte(&c) << 6) + (x >> 2);
+                x = GETB(c);
+                back += (GETB(c) << 6) + (x >> 2);
                 if (back == (1 << 14)) {
                     if (cnt != 1)
                         c.error |= LZO_ERROR;
@@ -202,15 +208,15 @@ int lzo1x_decode(void *out, int *outlen, void *in, int *inlen) {
             case COPY:
                 cnt = get_len(&c, x, 15);
                 copy(&c, cnt + 3);
-                x = get_byte(&c);
+                x = GETB(c);
                 if (x >> 4)
                     continue;
                 cnt = 1;
-                back = (1 << 11) + (get_byte(&c) << 2) + (x >> 2) + 1;
+                back = (1 << 11) + (GETB(c) << 2) + (x >> 2) + 1;
                 break;
             case BACKPTR:
                 cnt = 0;
-                back = (get_byte(&c) << 2) + (x >> 2) + 1;
+                back = (GETB(c) << 2) + (x >> 2) + 1;
                 break;
         }
         copy_backptr(&c, back, cnt + 2);
@@ -218,9 +224,45 @@ int lzo1x_decode(void *out, int *outlen, void *in, int *inlen) {
         state = cnt ? BACKPTR : COPY;
         if (cnt)
             copy(&c, cnt);
-        x = get_byte(&c);
+        x = GETB(c);
+        if (c.in > c.in_end)
+            c.error |= LZO_INPUT_DEPLETED;
     }
     *inlen = c.in_end - c.in;
+    if (c.in > c.in_end)
+        *inlen = 0;
     *outlen = c.out_end - c.out;
     return c.error;
 }
+
+#ifdef TEST
+#include <stdio.h>
+#include <lzo/lzo1x.h>
+#include "log.h"
+#define MAXSZ (10*1024*1024)
+int main(int argc, char *argv[]) {
+    FILE *in = fopen(argv[1], "rb");
+    uint8_t *orig = av_malloc(MAXSZ + 16);
+    uint8_t *comp = av_malloc(2*MAXSZ + 16);
+    uint8_t *decomp = av_malloc(MAXSZ + 16);
+    size_t s = fread(orig, 1, MAXSZ, in);
+    lzo_uint clen = 0;
+    long tmp[LZO1X_MEM_COMPRESS];
+    int inlen, outlen;
+    int i;
+    av_log_level = AV_LOG_DEBUG;
+    lzo1x_999_compress(orig, s, comp, &clen, tmp);
+    for (i = 0; i < 300; i++) {
+START_TIMER
+        inlen = clen; outlen = MAXSZ;
+        if (lzo1x_decode(decomp, &outlen, comp, &inlen))
+            av_log(NULL, AV_LOG_ERROR, "decompression error\n");
+STOP_TIMER("lzod")
+    }
+    if (memcmp(orig, decomp, s))
+        av_log(NULL, AV_LOG_ERROR, "decompression incorrect\n");
+    else
+        av_log(NULL, AV_LOG_ERROR, "decompression ok\n");
+    return 0;
+}
+#endif

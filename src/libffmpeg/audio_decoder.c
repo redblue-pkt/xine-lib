@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.32 2007/01/13 21:19:52 miguelfreitas Exp $
+ * $Id: audio_decoder.c,v 1.33 2007/01/28 18:38:33 miguelfreitas Exp $
  *
  * xine audio decoder plugin using ffmpeg
  *
@@ -291,7 +291,8 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
       offset = 0;
       while (this->size>0) {
-        bytes_consumed = avcodec_decode_audio (this->context, 
+        decode_buffer_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+        bytes_consumed = avcodec_decode_audio2 (this->context, 
                                                (int16_t *)this->decode_buffer,
                                                &decode_buffer_size, 
                                                &this->buf[offset],

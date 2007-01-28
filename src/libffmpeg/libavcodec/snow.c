@@ -1961,18 +1961,18 @@ static inline void init_ref(MotionEstContext *c, uint8_t *src[3], uint8_t *ref[3
 }
 
 static inline void pred_mv(SnowContext *s, int *mx, int *my, int ref,
-                           BlockNode *left, BlockNode *top, BlockNode *tr){
+                           const BlockNode *left, const BlockNode *top, const BlockNode *tr){
     if(s->ref_frames == 1){
         *mx = mid_pred(left->mx, top->mx, tr->mx);
         *my = mid_pred(left->my, top->my, tr->my);
     }else{
         const int *scale = scale_mv_ref[ref];
-        *mx = mid_pred(left->mx * scale[left->ref] + 128 >>8,
-                       top ->mx * scale[top ->ref] + 128 >>8,
-                       tr  ->mx * scale[tr  ->ref] + 128 >>8);
-        *my = mid_pred(left->my * scale[left->ref] + 128 >>8,
-                       top ->my * scale[top ->ref] + 128 >>8,
-                       tr  ->my * scale[tr  ->ref] + 128 >>8);
+        *mx = mid_pred((left->mx * scale[left->ref] + 128) >>8,
+                       (top ->mx * scale[top ->ref] + 128) >>8,
+                       (tr  ->mx * scale[tr  ->ref] + 128) >>8);
+        *my = mid_pred((left->my * scale[left->ref] + 128) >>8,
+                       (top ->my * scale[top ->ref] + 128) >>8,
+                       (tr  ->my * scale[tr  ->ref] + 128) >>8);
     }
 }
 
@@ -2001,12 +2001,12 @@ static int encode_q_branch(SnowContext *s, int level, int x, int y){
     const int block_w= 1<<(LOG2_MB_SIZE - level);
     int trx= (x+1)<<rem_depth;
     int try= (y+1)<<rem_depth;
-    BlockNode *left  = x ? &s->block[index-1] : &null_block;
-    BlockNode *top   = y ? &s->block[index-w] : &null_block;
-    BlockNode *right = trx<w ? &s->block[index+1] : &null_block;
-    BlockNode *bottom= try<h ? &s->block[index+w] : &null_block;
-    BlockNode *tl    = y && x ? &s->block[index-w-1] : left;
-    BlockNode *tr    = y && trx<w && ((x&1)==0 || level==0) ? &s->block[index-w+(1<<rem_depth)] : tl; //FIXME use lt
+    const BlockNode *left  = x ? &s->block[index-1] : &null_block;
+    const BlockNode *top   = y ? &s->block[index-w] : &null_block;
+    const BlockNode *right = trx<w ? &s->block[index+1] : &null_block;
+    const BlockNode *bottom= try<h ? &s->block[index+w] : &null_block;
+    const BlockNode *tl    = y && x ? &s->block[index-w-1] : left;
+    const BlockNode *tr    = y && trx<w && ((x&1)==0 || level==0) ? &s->block[index-w+(1<<rem_depth)] : tl; //FIXME use lt
     int pl = left->color[0];
     int pcb= left->color[1];
     int pcr= left->color[2];
@@ -2054,10 +2054,10 @@ static int encode_q_branch(SnowContext *s, int level, int x, int y){
     s->m.mb_stride=2;
     s->m.mb_x=
     s->m.mb_y= 0;
-    s->m.me.skip= 0;
+    c->skip= 0;
 
-    assert(s->m.me.  stride ==   stride);
-    assert(s->m.me.uvstride == uvstride);
+    assert(c->  stride ==   stride);
+    assert(c->uvstride == uvstride);
 
     c->penalty_factor    = get_penalty_factor(s->lambda, s->lambda2, c->avctx->me_cmp);
     c->sub_penalty_factor= get_penalty_factor(s->lambda, s->lambda2, c->avctx->me_sub_cmp);
@@ -2101,7 +2101,7 @@ static int encode_q_branch(SnowContext *s, int level, int x, int y){
         assert(ref_my >= c->ymin);
         assert(ref_my <= c->ymax);
 
-        ref_score= s->m.me.sub_motion_search(&s->m, &ref_mx, &ref_my, ref_score, 0, 0, level-LOG2_MB_SIZE+4, block_w);
+        ref_score= c->sub_motion_search(&s->m, &ref_mx, &ref_my, ref_score, 0, 0, level-LOG2_MB_SIZE+4, block_w);
         ref_score= ff_get_mb_score(&s->m, ref_mx, ref_my, 0, 0, level-LOG2_MB_SIZE+4, block_w, 0);
         ref_score+= 2*av_log2(2*ref)*c->penalty_factor;
         if(s->ref_mvs[ref]){
@@ -2229,10 +2229,10 @@ static void encode_q_branch2(SnowContext *s, int level, int x, int y){
     const int index= (x + y*w) << rem_depth;
     int trx= (x+1)<<rem_depth;
     BlockNode *b= &s->block[index];
-    BlockNode *left  = x ? &s->block[index-1] : &null_block;
-    BlockNode *top   = y ? &s->block[index-w] : &null_block;
-    BlockNode *tl    = y && x ? &s->block[index-w-1] : left;
-    BlockNode *tr    = y && trx<w && ((x&1)==0 || level==0) ? &s->block[index-w+(1<<rem_depth)] : tl; //FIXME use lt
+    const BlockNode *left  = x ? &s->block[index-1] : &null_block;
+    const BlockNode *top   = y ? &s->block[index-w] : &null_block;
+    const BlockNode *tl    = y && x ? &s->block[index-w-1] : left;
+    const BlockNode *tr    = y && trx<w && ((x&1)==0 || level==0) ? &s->block[index-w+(1<<rem_depth)] : tl; //FIXME use lt
     int pl = left->color[0];
     int pcb= left->color[1];
     int pcr= left->color[2];
@@ -2282,10 +2282,10 @@ static void decode_q_branch(SnowContext *s, int level, int x, int y){
     const int rem_depth= s->block_max_depth - level;
     const int index= (x + y*w) << rem_depth;
     int trx= (x+1)<<rem_depth;
-    BlockNode *left  = x ? &s->block[index-1] : &null_block;
-    BlockNode *top   = y ? &s->block[index-w] : &null_block;
-    BlockNode *tl    = y && x ? &s->block[index-w-1] : left;
-    BlockNode *tr    = y && trx<w && ((x&1)==0 || level==0) ? &s->block[index-w+(1<<rem_depth)] : tl; //FIXME use lt
+    const BlockNode *left  = x ? &s->block[index-1] : &null_block;
+    const BlockNode *top   = y ? &s->block[index-w] : &null_block;
+    const BlockNode *tl    = y && x ? &s->block[index-w-1] : left;
+    const BlockNode *tr    = y && trx<w && ((x&1)==0 || level==0) ? &s->block[index-w+(1<<rem_depth)] : tl; //FIXME use lt
     int s_context= 2*left->level + 2*top->level + tl->level + tr->level;
 
     if(s->keyframe){
@@ -2911,11 +2911,11 @@ static inline int get_block_bits(SnowContext *s, int x, int y, int w){
     const int b_stride = s->b_width << s->block_max_depth;
     const int b_height = s->b_height<< s->block_max_depth;
     int index= x + y*b_stride;
-    BlockNode *b     = &s->block[index];
-    BlockNode *left  = x ? &s->block[index-1] : &null_block;
-    BlockNode *top   = y ? &s->block[index-b_stride] : &null_block;
-    BlockNode *tl    = y && x ? &s->block[index-b_stride-1] : left;
-    BlockNode *tr    = y && x+w<b_stride ? &s->block[index-b_stride+w] : tl;
+    const BlockNode *b     = &s->block[index];
+    const BlockNode *left  = x ? &s->block[index-1] : &null_block;
+    const BlockNode *top   = y ? &s->block[index-b_stride] : &null_block;
+    const BlockNode *tl    = y && x ? &s->block[index-b_stride-1] : left;
+    const BlockNode *tr    = y && x+w<b_stride ? &s->block[index-b_stride+w] : tl;
     int dmx, dmy;
 //  int mx_context= av_log2(2*FFABS(left->mx - top->mx));
 //  int my_context= av_log2(2*FFABS(left->my - top->my));
@@ -3555,7 +3555,7 @@ static void correlate_slice_buffered(SnowContext *s, slice_buffer * sb, SubBand 
 
 //    START_TIMER
 
-    DWTELEM * line;
+    DWTELEM * line=0; // silence silly "could be used without having been initialized" warning
     DWTELEM * prev;
 
     if (start_y != 0)

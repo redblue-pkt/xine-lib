@@ -37,7 +37,7 @@ xine-lib (1.1.4)
   * Implement a True Audio files demuxer. [bug #1586381]
   * Allow decoding of MusePack SV 7.x files (7.1 files at least play fine).
   * Fix demuxing of uncompressed VobSub subtitles in Matroska files
-  * ffmpeg update to 51.28.0
+  * ffmpeg update to 51.29.0
   * Workaround ffmpeg buggy codecs that don't release their DR1 frames.
     [bugs #1599975, #1601299, #1319154]
   * Fix several segfaults and freezing problem with H264 streams that use a lot
