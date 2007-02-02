@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2000-2006 the xine project
+ * Copyright (C) 2000-2007 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.6 2007/02/02 23:36:57 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.7 2007/02/02 23:43:01 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -88,8 +88,6 @@ typedef struct pulse_driver_s {
   uint32_t       bytes_per_frame;
 
   uint32_t       frames_written;
-
-  pthread_mutex_t lock;
 
 } pulse_driver_t;
 
@@ -164,8 +162,6 @@ static int ao_pulse_open(ao_driver_t *this_gen,
       break;
   }
 
-  pthread_mutex_lock(&this->lock);
-    
   if (!pa_sample_spec_valid(&ss)) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_pulse_out: Invalid sample spec\n");
     goto fail;
@@ -204,14 +200,11 @@ static int ao_pulse_open(ao_driver_t *this_gen,
              pa_strerror(pa_context_errno(this->context)));
     goto fail;
   }
-  pthread_mutex_unlock(&this->lock);
-
   this->frames_written = 0;
 
   return this->sample_rate;
 
 fail:
-  pthread_mutex_unlock(&this->lock);
   this_gen->close(this_gen);
   return 0;
 }
@@ -243,17 +236,13 @@ static int ao_pulse_write(ao_driver_t *this_gen, int16_t *data,
   
   assert(this->stream && this->context);
 
-  pthread_mutex_lock(&this->lock);
-
   if (pa_stream_get_state(this->stream) == PA_STREAM_READY) {
 
     while (size > 0) {
       size_t l;
 
       while (!(l = pa_stream_writable_size(this->stream))) {
-        pthread_mutex_unlock(&this->lock);
         xine_usec_sleep (10000);
-        pthread_mutex_lock(&this->lock);
       }
 
       if (l > size)
@@ -271,7 +260,6 @@ static int ao_pulse_write(ao_driver_t *this_gen, int16_t *data,
     if (pa_stream_get_state(this->stream) == PA_STREAM_READY)
       ret = 1;
   }
-  pthread_mutex_unlock(&this->lock);
 
   return ret;
 }
@@ -283,8 +271,6 @@ static int ao_pulse_delay (ao_driver_t *this_gen)
   pa_usec_t latency = 0;
   int delay_frames;
 
-  pthread_mutex_lock(&this->lock);
-
   for (;;) {
     if (pa_stream_get_latency(this->stream, &latency, NULL) >= 0)
       break;
@@ -293,8 +279,6 @@ static int ao_pulse_delay (ao_driver_t *this_gen)
       /* error */
     }
   }
-
-  pthread_mutex_unlock(&this->lock);
 
   /* convert latency (us) to frame units. */
   delay_frames = (int)(latency * this->sample_rate / 1000000);
@@ -309,7 +293,6 @@ static void ao_pulse_close(ao_driver_t *this_gen)
 {
   pulse_driver_t *this = (pulse_driver_t *) this_gen;
   
-  pthread_mutex_lock(&this->lock);
   if (this->stream) {
     if (pa_stream_get_state(this->stream) == PA_STREAM_READY)
       wait_for_operation(this, pa_stream_drain(this->stream, NULL, NULL));
@@ -328,7 +311,6 @@ static void ao_pulse_close(ao_driver_t *this_gen)
     pa_threaded_mainloop_free(this->mainloop);
     this->mainloop = NULL;
   }
-  pthread_mutex_unlock(&this->lock);
 }
 
 static uint32_t ao_pulse_get_capabilities (ao_driver_t *this_gen) {
@@ -368,11 +350,9 @@ static int ao_pulse_get_property (ao_driver_t *this_gen, int property) {
   switch(property) {
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
-    pthread_mutex_lock(&this->lock);
     if( this->stream && this->context )
       wait_for_operation(this,
         pa_context_get_sink_input_info(this->context, pa_stream_get_index(this->stream), info_func, this));
-    pthread_mutex_unlock(&this->lock);
     return (int) (pa_sw_volume_to_linear(this->swvolume)*100);
     break;
   case AO_PROP_MUTE_VOL:
@@ -388,7 +368,6 @@ static int ao_pulse_set_property (ao_driver_t *this_gen, int property, int value
   switch(property) {
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
-    pthread_mutex_lock(&this->lock);
     this->swvolume = pa_sw_volume_from_linear((double)value/100.0);
     if( this->stream && this->context ) {
       pa_cvolume_set(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels, this->swvolume);
@@ -396,7 +375,6 @@ static int ao_pulse_set_property (ao_driver_t *this_gen, int property, int value
         pa_context_set_sink_input_volume(this->context, pa_stream_get_index(this->stream),
         &this->cvolume, NULL, NULL));
     }
-    pthread_mutex_unlock(&this->lock);
     break;
   case AO_PROP_MUTE_VOL:
     break;
@@ -408,7 +386,6 @@ static int ao_pulse_set_property (ao_driver_t *this_gen, int property, int value
 static int ao_pulse_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   pulse_driver_t *this = (pulse_driver_t *) this_gen;
 
-  pthread_mutex_lock(&this->lock);
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
@@ -436,7 +413,6 @@ static int ao_pulse_ctrl(ao_driver_t *this_gen, int cmd, ...) {
     this->frames_written = 0;
     break;
   }
-  pthread_mutex_unlock(&this->lock);
 
   return 0;
 }
@@ -504,8 +480,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 
   xprintf (class->xine, XINE_VERBOSITY_DEBUG, "audio_pulse_out: host %s sink %s\n",
            this->host ? this->host : "(null)", this->sink ? this->sink : "(null)");
-
-  pthread_mutex_init (&this->lock, NULL);
 
   /* test pulseaudio connection */
   if( this->ao_driver.open(&this->ao_driver, 16, 44100, AO_CAP_MODE_STEREO) != 0 ) {
