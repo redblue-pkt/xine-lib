@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.5 2006/11/10 12:10:54 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.6 2007/02/02 23:36:57 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -44,8 +44,6 @@
 #include <pthread.h>
 
 #include <pulse/pulseaudio.h>
-#include <pulse/error.h>
-#include <pulse/mainloop.h>
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -76,7 +74,7 @@ typedef struct pulse_driver_s {
   struct pa_context *context;
 
   /** Main event loop object */
-  struct pa_mainloop *mainloop;
+  struct pa_threaded_mainloop *mainloop;
 
   pa_volume_t    swvolume;
   pa_cvolume     cvolume;
@@ -101,34 +99,18 @@ typedef struct {
   xine_t               *xine;
 } pulse_class_t;
 
+int wait_for_operation(pulse_driver_t *this, pa_operation *o)
+{
+  assert(this && o && this->mainloop);
 
-/** Make sure that the connection context doesn't starve to death */
-static void keep_alive(pulse_driver_t *this) {
-  assert(this->context && this->mainloop);
+  pa_threaded_mainloop_lock(this->mainloop);
+  
+  while (pa_operation_get_state(o) == PA_OPERATION_RUNNING)
+    pa_threaded_mainloop_wait(this->mainloop);
+  
+  pa_threaded_mainloop_unlock(this->mainloop);
 
-  while (pa_mainloop_iterate(this->mainloop, 0, NULL) > 0);
-}
-
-/** Wait until no further actions are pending on the connection context */
-static void wait_for_completion(pulse_driver_t *this) {
-  assert(this->context && this->mainloop);
-
-  while (pa_context_is_pending(this->context)) {
-    int r = pa_mainloop_iterate(this->mainloop, 1, NULL);
-    assert(r >= 0);
-  }
-}
-
-/** Wait until the specified operation completes */
-static void wait_for_operation(pulse_driver_t *this, struct pa_operation *o) {
-  assert(o && this->context && this->mainloop);
-
-  while (pa_operation_get_state(o) == PA_OPERATION_RUNNING) {
-    int r = pa_mainloop_iterate(this->mainloop, 1, NULL);
-    assert(r >= 0);
-  }
-
-  pa_operation_unref(o);
+  return 0;
 }
 
 /*
@@ -189,15 +171,14 @@ static int ao_pulse_open(ao_driver_t *this_gen,
     goto fail;
   }
 
-  this->mainloop = pa_mainloop_new();
-  assert(this->mainloop);
+  this->mainloop = pa_threaded_mainloop_new();
+  pa_threaded_mainloop_start(this->mainloop);
+  _x_assert(this->mainloop);
 
-  this->context = pa_context_new(pa_mainloop_get_api(this->mainloop), __progname);
-  assert(this->context);
+  this->context = pa_context_new(pa_threaded_mainloop_get_api(this->mainloop), __progname);
+  _x_assert(this->context);
 
   pa_context_connect(this->context, this->host, 1, NULL);
-
-  wait_for_completion(this);
 
   if (pa_context_get_state(this->context) != PA_CONTEXT_READY) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_pulse_out: Failed to connect to server: %s\n",
@@ -217,8 +198,6 @@ static int ao_pulse_open(ao_driver_t *this_gen,
   pa_stream_connect_playback(this->stream, this->sink, &a,
                              PA_STREAM_INTERPOLATE_TIMING|PA_STREAM_AUTO_TIMING_UPDATE, 
                              &this->cvolume, NULL);
-
-  wait_for_completion(this);
 
   if (pa_stream_get_state(this->stream) != PA_STREAM_READY) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_pulse_out: Failed to connect to server: %s\n",
@@ -271,13 +250,10 @@ static int ao_pulse_write(ao_driver_t *this_gen, int16_t *data,
     while (size > 0) {
       size_t l;
 
-      keep_alive(this);
-        
       while (!(l = pa_stream_writable_size(this->stream))) {
         pthread_mutex_unlock(&this->lock);
         xine_usec_sleep (10000);
         pthread_mutex_lock(&this->lock);
-        keep_alive(this);
       }
 
       if (l > size)
@@ -316,7 +292,6 @@ static int ao_pulse_delay (ao_driver_t *this_gen)
     if (pa_context_errno(this->context) != PA_ERR_NODATA) {
       /* error */
     }
-    keep_alive(this);
   }
 
   pthread_mutex_unlock(&this->lock);
@@ -350,7 +325,7 @@ static void ao_pulse_close(ao_driver_t *this_gen)
   }
 
   if (this->mainloop) {
-    pa_mainloop_free(this->mainloop);
+    pa_threaded_mainloop_free(this->mainloop);
     this->mainloop = NULL;
   }
   pthread_mutex_unlock(&this->lock);
@@ -451,7 +426,6 @@ static int ao_pulse_ctrl(ao_driver_t *this_gen, int cmd, ...) {
         assert(o1 && o2);
         wait_for_operation(this,o1);
         wait_for_operation(this,o2);
-        wait_for_completion(this);
     }
     break;
 
