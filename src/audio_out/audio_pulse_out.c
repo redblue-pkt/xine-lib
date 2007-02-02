@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.7 2007/02/02 23:43:01 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.8 2007/02/02 23:45:23 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -40,7 +40,6 @@
 #include <math.h>
 #include <unistd.h>
 #include <inttypes.h>
-#include <assert.h>
 #include <pthread.h>
 
 #include <pulse/pulseaudio.h>
@@ -99,7 +98,7 @@ typedef struct {
 
 int wait_for_operation(pulse_driver_t *this, pa_operation *o)
 {
-  assert(this && o && this->mainloop);
+  _x_assert(this && o && this->mainloop);
 
   pa_threaded_mainloop_lock(this->mainloop);
   
@@ -183,7 +182,7 @@ static int ao_pulse_open(ao_driver_t *this_gen,
   }
 
   this->stream = pa_stream_new(this->context, "audio stream", &ss, NULL);
-  assert(this->stream);
+  _x_assert(this->stream);
 
   a.maxlength = pa_bytes_per_second(&ss)*1;
   a.tlength = a.maxlength*9/10;
@@ -234,7 +233,7 @@ static int ao_pulse_write(ao_driver_t *this_gen, int16_t *data,
   int size = num_frames * this->bytes_per_frame;
   int ret = 0;
   
-  assert(this->stream && this->context);
+  _x_assert(this->stream && this->context);
 
   if (pa_stream_get_state(this->stream) == PA_STREAM_READY) {
 
@@ -389,25 +388,25 @@ static int ao_pulse_ctrl(ao_driver_t *this_gen, int cmd, ...) {
   switch (cmd) {
 
   case AO_CTRL_PLAY_PAUSE:
-    assert(this->stream && this->context );
+    _x_assert(this->stream && this->context );
     if(pa_stream_get_state(this->stream) == PA_STREAM_READY)
       wait_for_operation(this,pa_stream_cork(this->stream, 1, NULL, NULL));
     break;
 
   case AO_CTRL_PLAY_RESUME:
-    assert(this->stream && this->context);
+    _x_assert(this->stream && this->context);
     if(pa_stream_get_state(this->stream) == PA_STREAM_READY) {
         struct pa_operation *o2, *o1;
         o1 = pa_stream_prebuf(this->stream, NULL, NULL);
         o2 = pa_stream_cork(this->stream, 0, NULL, NULL);
-        assert(o1 && o2);
+        _x_assert(o1 && o2);
         wait_for_operation(this,o1);
         wait_for_operation(this,o2);
     }
     break;
 
   case AO_CTRL_FLUSH_BUFFERS:
-    assert(this->stream && this->context);
+    _x_assert(this->stream && this->context);
     if(pa_stream_get_state(this->stream) == PA_STREAM_READY)
       wait_for_operation(this,pa_stream_flush(this->stream, NULL, NULL));
     this->frames_written = 0;
