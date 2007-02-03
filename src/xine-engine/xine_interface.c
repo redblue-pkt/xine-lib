@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.100 2006/12/19 19:10:52 dsalt Exp $
+ * $Id: xine_interface.c,v 1.101 2007/02/03 16:31:55 dsalt Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -929,7 +929,7 @@ int _x_message(xine_stream_t *stream, int type, ...) {
   va_list                 ap;
   char                   *s, *params;
   char                   *args[1025];
-  static char            *std_explanation[] = {
+  static const char      *std_explanation[] = {
     "",
     N_("Warning:"),
     N_("Unknown host:"),
