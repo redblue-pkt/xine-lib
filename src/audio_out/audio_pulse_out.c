@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.10 2007/02/03 10:45:02 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.11 2007/02/03 10:46:14 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -256,7 +256,6 @@ static int ao_pulse_open(ao_driver_t *this_gen,
     xine_usec_sleep (100);
 
     streamstate = pa_stream_get_state(this->stream);
-    fprintf(stderr, "PulseAudio stream state: %d\n", streamstate);
   } while (streamstate < PA_STREAM_READY);
      
   if (streamstate != PA_STREAM_READY) {
