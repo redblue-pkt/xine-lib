@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.9 2007/02/03 10:41:09 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.10 2007/02/03 10:45:02 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -101,40 +101,6 @@ typedef struct {
   /** Main event loop object */
   struct pa_threaded_mainloop *mainloop;
 } pulse_class_t;
-
-/**
- * @brief Callback function called when the status of the PulseAudio
- *        context changes
- * @param ctx Context that changed (same as class->context)
- * @param class_gen pulse_class_t pointer for the PulseAudio output
- *        instance.
- */
-static void __xine_pa_ctx_state_callback(pa_context *const ctx, void *const class_gen)
-{
-  pulse_class_t *const class = (pulse_class_t*)class_gen;
-
-  _x_assert(ctx); _x_assert(class);
-  _x_assert(ctx == class->context);
-
-  pa_threaded_mainloop_signal(class->mainloop, 0);
-}
-
-/**
- * @brief Callback function called when the status of the PulseAudio
- *        stream changes
- * @param stream Stream that changed (same as this->stream)
- * @param this_gen pulse_driver_t pointer for the PulseAudio output
- *        instance.
- */
-static void __xine_pa_stream_state_callback(pa_stream *const stream, void *const this_gen)
-{
-  pulse_driver_t *const this = (pulse_driver_t*)this_gen;
-
-  _x_assert(stream); _x_assert(this);
-  _x_assert(stream == this->stream);
-
-  pa_threaded_mainloop_signal(this->mainloop, 0);
-}
 
 /**
  * @brief Callback function called when a stream operation succeed
@@ -275,8 +241,6 @@ static int ao_pulse_open(ao_driver_t *this_gen,
 
   this->stream = pa_stream_new(this->context, "audio stream", &ss, NULL);
   _x_assert(this->stream);
-
-  pa_stream_set_state_callback(this->stream, __xine_pa_stream_state_callback, this);
 
   a.maxlength = pa_bytes_per_second(&ss)*1;
   a.tlength = a.maxlength*9/10;
@@ -626,8 +590,6 @@ static void *init_class (xine_t *xine, void *data) {
 
   this->context = pa_context_new(pa_threaded_mainloop_get_api(this->mainloop), __progname);
   _x_assert(this->context);
-
-  pa_context_set_state_callback(this->context, __xine_pa_ctx_state_callback, this);
 
   return this;
 }
