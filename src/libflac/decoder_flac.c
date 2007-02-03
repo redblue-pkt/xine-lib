@@ -363,7 +363,7 @@ open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
     FLAC__stream_decoder_set_client_data (this->flac_decoder, this);
 
-    if (FLAC__stream_decoder_init (this->flac_decoder) == FLAC__STREAM_DECODER_SEARCH_FOR_METADATA) {
+    if (FLAC__stream_decoder_init (this->flac_decoder) != FLAC__STREAM_DECODER_SEARCH_FOR_METADATA) {
 	    free (this);
 	    return NULL;
     }
