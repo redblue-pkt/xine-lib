@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.146 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_mpgaudio.c,v 1.147 2007/02/03 23:56:32 dsalt Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -1085,7 +1085,7 @@ static const char *get_mimetypes (demux_class_t *this_gen) {
           "audio/x-mpeg3: mp3: MPEG audio;"
           "audio/mpeg: mpa,abs,mpega: MPEG audio;"
           "audio/x-mpeg: mpa,abs,mpega: MPEG audio;"
-          "x-mpegurl: mp3: MPEG audio;"
+          "audio/x-mpegurl: mp3: MPEG audio;"
           "audio/mpegurl: mp3: MPEG audio;"
           "audio/mp3: mp3: MPEG audio;"
           "audio/x-mp3: mp3: MPEG audio;";
