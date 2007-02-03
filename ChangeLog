@@ -1,5 +1,6 @@
 xine-lib (1.1.5)
-  (write here)
+  * Improved PulseAudio plugin, now only one connection per instance is opened
+    and the mainloop is threaded to reduce latency during playback.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
