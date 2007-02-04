@@ -78,6 +78,20 @@ slackbuild:
 	 PREFIX="/usr" misc/SlackBuild
 
 
+STRINGS=$(shell which -- "${CHOST}-strings" 2>/dev/null || which strings 2>/dev/null || false)
+
+install-exec-hook:
+	find $(top_srcdir) -name \*.so | \
+	  xargs $(STRINGS) | \
+	  egrep '^([-a-z]+/[-+.a-z0-9]+:[^:]+:[^;]+;[ \t]*)+' | \
+	  sed -e 's/:[^;]\+;/\n/g' | \
+	  sort -u | \
+	  sed -e '1 d' >$(DESTDIR)$(XINE_PLUGINDIR)/mime.types
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(XINE_PLUGINDIR)/mime.types
+
+
 install-data-hook:
 	@rm -f $(DESTDIR)$(XINE_PLUGINDIR)/*.la
 	@rm -f $(DESTDIR)$(XINE_PLUGINDIR)/*/*.la
