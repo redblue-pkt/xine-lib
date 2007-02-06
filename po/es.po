@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-21 14:52+0000\n"
+"POT-Creation-Date: 2007-01-26 18:31+0100\n"
 "PO-Revision-Date: 2002-02-20 00:00+0100\n"
 "Last-Translator: Juan Manuel García Molina <juanma_gm@wanadoo.es>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -3558,7 +3558,7 @@ msgstr "input_net: no se puede conectar a '%s'.\n"
 msgid "input_pnm: failed to set up stream\n"
 msgstr "input_http: falló al abrir el socket\n"
 
-#: src/input/input_smb.c:154
+#: src/input/input_smb.c:158
 msgid "CIFS/SMB input plugin based on libsmbclient"
 msgstr ""
 
@@ -4544,7 +4544,7 @@ msgid ""
 "unknown VOC compression type (0x%02X); please report to xine developers\n"
 msgstr ""
 
-#: src/demuxers/demux_ogg.c:797
+#: src/demuxers/demux_ogg.c:801
 #, c-format
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""

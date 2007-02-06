@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pl_PL\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-21 14:52+0000\n"
+"POT-Creation-Date: 2007-01-26 18:31+0100\n"
 "PO-Revision-Date: 2003-05-24 12:36+0200\n"
 "Last-Translator: Bartłomiej Muryn <_4ever_@irc.pl>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -3780,7 +3780,7 @@ msgstr "input_net: nie mogę podłączyć się do '%s'.\n"
 msgid "input_pnm: failed to set up stream\n"
 msgstr "input_http: otwarcie gniazda zawiodło\n"
 
-#: src/input/input_smb.c:154
+#: src/input/input_smb.c:158
 msgid "CIFS/SMB input plugin based on libsmbclient"
 msgstr ""
 
@@ -4829,7 +4829,7 @@ msgstr ""
 "nieznany typ kompresji VOC (0x%02X); proszę skontaktować się z programistami "
 "xine\n"
 
-#: src/demuxers/demux_ogg.c:797
+#: src/demuxers/demux_ogg.c:801
 #, c-format
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib-1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2007-01-21 14:52+0000\n"
+"POT-Creation-Date: 2007-01-26 18:31+0100\n"
 "PO-Revision-Date: 2005-02-17 14:29+0100\n"
 "Last-Translator: Piarres Beobide <pi@beobide.net>\n"
 "Language-Team: lubrezale <librezale@librezale.org>\n"
@@ -3830,7 +3830,7 @@ msgstr "input_pnm: ezin da '%s' konektatu\n"
 msgid "input_pnm: failed to set up stream\n"
 msgstr "input_pnm: huts korrotea ezartzerakoan\n"
 
-#: src/input/input_smb.c:154
+#: src/input/input_smb.c:158
 msgid "CIFS/SMB input plugin based on libsmbclient"
 msgstr ""
 
@@ -4956,7 +4956,7 @@ msgstr ""
 "VOC konpresio mota (0x%02X) ezezaguna; mesedez erreportea eman xine "
 "garatzaileei\n"
 
-#: src/demuxers/demux_ogg.c:797
+#: src/demuxers/demux_ogg.c:801
 #, c-format
 msgid "ogg: vorbis audio track indicated but no vorbis stream header found.\n"
 msgstr ""
