@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.124 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_ts.c,v 1.125 2007/02/08 02:40:22 dsalt Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -2015,11 +2015,12 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
     case DEMUX_OPTIONAL_DATA_AUDIOLANG:
       if (this->audioLang[0])
 	{
-	  strcpy(str, this->audioLang);
+	  strncpy(str, this->audioLang, XINE_LANG_MAX - 1);
+	  str[XINE_LANG_MAX - 1] = 0;
 	}
       else
 	{
-	  sprintf(str, "%3i", _x_get_audio_channel(this->stream));
+	  snprintf(str, XINE_LANG_MAX, "%3i", _x_get_audio_channel(this->stream));
 	}
       return DEMUX_OPTIONAL_SUCCESS;
 
@@ -2028,7 +2029,7 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 	  && this->current_spu_channel < this->no_spu_langs)
 	{
 	  memcpy(str, this->spu_langs[this->current_spu_channel].desc.lang, 3);
-	  str[4] = 0;
+	  str[3] = 0;
 	}
       else if (this->current_spu_channel == -1)
 	{
@@ -2036,7 +2037,7 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 	}
       else
 	{
-	  sprintf(str, "%3i", this->current_spu_channel);
+	  snprintf(str, XINE_LANG_MAX, "%3i", this->current_spu_channel);
 	}
       return DEMUX_OPTIONAL_SUCCESS;
 

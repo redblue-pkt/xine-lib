@@ -1,5 +1,5 @@
 /*
-  $Id: xineplug_inp_vcd.c,v 1.52 2006/12/19 19:10:51 dsalt Exp $
+  $Id: xineplug_inp_vcd.c,v 1.53 2007/02/08 02:40:23 dsalt Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -1295,7 +1295,7 @@ vcd_get_optional_data (input_plugin_t *this_gen,
 
       dbg_print(INPUT_DBG_EXT, "AUDIO CHANNEL = %d\n", channel);
       if (channel == (uint8_t)-1) {
-        sprintf(data, " %s", "auto");
+        strcpy(data, "auto");
       } else {
         const vcdinfo_obj_t *p_vcdinfo= my_vcd.player.vcd;
         unsigned int audio_type;
@@ -1320,9 +1320,9 @@ vcd_get_optional_data (input_plugin_t *this_gen,
       channel = (int8_t) _x_get_spu_channel(my_vcd.stream);
       dbg_print(INPUT_DBG_EXT, "SPU CHANNEL = %d\n", channel);
       if (-1 == channel) {
-        sprintf(data, " %s", "auto");
+        strcpy(data, "auto");
       } else {
-        sprintf(data, " %1d", channel);
+        sprintf(data, "%1d", channel);
       }
       
     }

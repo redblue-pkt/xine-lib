@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.174 2007/01/23 23:20:23 hadess Exp $
+ * $Id: demux_ogg.c,v 1.175 2007/02/08 02:40:22 dsalt Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -1865,9 +1865,7 @@ static int format_lang_string (demux_ogg_t * this, uint32_t buf_mask, uint32_t b
   for (stream_num=0; stream_num<this->num_streams; stream_num++) {
     if ((this->si[stream_num]->buf_types & buf_mask) == buf_type) {
       if (this->si[stream_num]->language) {
-        strncpy (str, this->si[stream_num]->language, XINE_LANG_MAX);
-        str[XINE_LANG_MAX - 1] = '\0';
-        if (strlen(this->si[stream_num]->language) >= XINE_LANG_MAX)
+        if (snprintf (str, XINE_LANG_MAX, "%s", this->si[stream_num]->language) >= XINE_LANG_MAX)
           /* the string got truncated */
           str[XINE_LANG_MAX - 2] = str[XINE_LANG_MAX - 3] = str[XINE_LANG_MAX - 4] = '.';
         /* TODO: provide long version in XINE_META_INFO_FULL_LANG */

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.214 2007/01/19 01:05:25 dgp85 Exp $
+ * $Id: input_dvd.c,v 1.215 2007/02/08 02:40:23 dsalt Exp $
  *
  */
 
@@ -1278,7 +1278,7 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
     if(this && this->stream && this->dvdnav) {
 
       if(!(dvdnav_is_domain_vts(this->dvdnav))) {
-	sprintf(data, "%s", "menu");
+	strcpy(data, "menu");
 	if (channel <= 0)
 	  return INPUT_OPTIONAL_SUCCESS;
 	else
@@ -1297,11 +1297,11 @@ static int dvd_plugin_get_optional_data (input_plugin_t *this_gen,
 	  sprintf(data, " %c%c", lang >> 8, lang & 0xff);
 	  /* TODO: provide long version in XINE_META_INFO_FULL_LANG */
 	else
-	  sprintf(data, " %c%c", '?', '?');
+	  strcpy(data, " ??");
 	return INPUT_OPTIONAL_SUCCESS;
       } else {
         if (channel == -1) {
-	  sprintf(data, "%s", "none");
+	  strcpy(data, "none");
 	  return INPUT_OPTIONAL_SUCCESS;
 	}
       }
