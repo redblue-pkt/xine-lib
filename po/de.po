@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 1.0.0\n"
+"Project-Id-Version: xine-lib 1.1.5\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
 "POT-Creation-Date: 2007-01-26 18:31+0100\n"
-"PO-Revision-Date: 2007-01-04 09:02+0200\n"
+"PO-Revision-Date: 2007-02-13 09:28+0100\n"
 "Last-Translator: Philipp Hahn <pmhahn@users.sf.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -1507,15 +1507,17 @@ msgstr ""
 "%<PRId64>).\n"
 
 #: src/xine-engine/video_out.c:1790
-#, fuzzy
 msgid "default number of video frames"
-msgstr "Standardanzahl von Bildwiederholungen"
+msgstr "Standardanzahl von Videobildern"
 
 #: src/xine-engine/video_out.c:1791
 msgid ""
 "The default number of video frames to request from xine video out driver. "
 "Some drivers will override this setting with their own values."
 msgstr ""
+"Die Standardanzahl von Videobildern, die vom xine Videoausgabetreiber "
+"angefordert werden. Einige Treiber überschreiben diese Einstellung mit ihren "
+"eigenen Werten."
 
 #: src/xine-engine/video_out.c:1830
 msgid "percentage of skipped frames to tolerate"
