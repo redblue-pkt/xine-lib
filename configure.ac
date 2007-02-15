@@ -894,6 +894,46 @@ AC_SUBST(XVMC_LIBS)
 
 
 dnl ---------------------------------------------
+dnl Check for xcb
+dnl ---------------------------------------------
+AC_ARG_WITH([xcb], AC_HELP_STRING([--without-xcb], [Doesn't build XCB video out plugins]))
+
+if test "x$with_xcb" != "xno"; then
+  PKG_CHECK_MODULES([XCB], [xcb-shape >= 1.0], [have_xcb="yes"], [have_xcb="no"])
+fi
+
+AC_SUBST(XCB_CFLAGS)
+AC_SUBST(XCB_LIBS)
+AM_CONDITIONAL(HAVE_XCB, test "x$have_xcb" = "xyes" )
+
+
+dnl ---------------------------------------------
+dnl Check for xcb-shm
+dnl ---------------------------------------------
+
+if test "x$have_xcb" = "xyes"; then
+  PKG_CHECK_MODULES([XCBSHM], [xcb-shm], [have_xcbshm="yes"], [have_xcbshm="no"])
+fi
+
+AC_SUBST(XCBSHM_CFLAGS)
+AC_SUBST(XCBSHM_LIBS)
+AM_CONDITIONAL(HAVE_XCBSHM, test "x$have_xcbshm" = "xyes" )
+
+
+dnl ---------------------------------------------
+dnl Check for xcb-xv
+dnl ---------------------------------------------
+
+if test "x$have_xcb" = "xyes"; then
+  PKG_CHECK_MODULES([XCBXV], [xcb-xv], [have_xcbxv="yes"], [have_xcbxv="no"])
+fi
+
+AC_SUBST(XCBXV_CFLAGS)
+AC_SUBST(XCBXV_LIBS)
+AM_CONDITIONAL(HAVE_XCBXV, test "x$have_xcbxv" = "xyes" )
+
+
+dnl ---------------------------------------------
 dnl Checks for Xinerama extension
 dnl ---------------------------------------------
 
@@ -2957,6 +2997,16 @@ if test "x$no_x" != "xyes"; then
       echo "   - PGX64 (for Sun XVR100/PGX64/PGX24 cards)"
       echo "   - PGX32 (for Sun PGX32 cards)"
     fi
+  fi
+fi
+if test "x$have_xcb" = "xyes"; then
+  dnl xcb-shm
+  if test "x$have_xcbshm" = "xyes"; then
+    echo "   - xcb-shm (X shared memory using XCB)"
+  fi
+  dnl xcb-xv
+  if test "x$have_xcbxv" = "xyes"; then
+    echo "   - xcb-xv (XVideo using XCB)"
   fi
 fi
 if test "x$no_aalib" != "xyes"; then

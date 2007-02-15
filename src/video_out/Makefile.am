@@ -37,6 +37,16 @@ endif
 endif
 endif
 
+if HAVE_XCB
+XCBOSD = xcbosd.c
+if HAVE_XCBSHM
+xcbshm_module = xineplug_vo_out_xcbshm.la
+endif
+if HAVE_XCBXV
+xcbxv_module = xineplug_vo_out_xcbxv.la
+endif
+endif
+
 if HAVE_VIDIX
 vidix_module = xineplug_vo_out_vidix.la
 endif
@@ -86,7 +96,19 @@ lib_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   $(caca_module) \
 		  $(macosx_module) \
 		  $(xxmc_module) \
+		  $(xcbshm_module) \
+		  $(xcbxv_module) \
                   xineplug_vo_out_none.la
+
+xineplug_vo_out_xcbshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c video_out_xcbshm.c $(XCBOSD)
+xineplug_vo_out_xcbshm_la_LIBADD = $(MLIB_LIBS) $(XINE_LIB) $(THREAD_LIBS) $(XCB_LIBS) $(XCBSHM_LIBS)
+xineplug_vo_out_xcbshm_la_CFLAGS = $(VISIBILITY_FLAG) $(MLIB_CFLAGS) $(XCB_CFLAGS) $(XCBSHM_CFLAGS)
+xineplug_vo_out_xcbshm_la_LDFLAGS = -avoid-version -module
+
+xineplug_vo_out_xcbxv_la_SOURCES = deinterlace.c video_out_xcbxv.c $(XCBOSD)
+xineplug_vo_out_xcbxv_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS) $(XCBXV_LIBS) $(XCB_LIBS)
+xineplug_vo_out_xcbxv_la_CFLAGS = $(VISIBILITY_FLAG) $(XCB_CFLAGS) $(XCBXV_CFLAGS)
+xineplug_vo_out_xcbxv_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_xshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
 	video_out_xshm.c $(X11OSD)
@@ -192,4 +214,4 @@ xineplug_vo_out_macosx_la_LDFLAGS = -avoid-version -module \
 	-Wl,-framework -Wl,Cocoa -framework Cocoa -framework OpenGL
 
 noinst_HEADERS = deinterlace.h video_out_syncfb.h \
-	yuv2rgb.h x11osd.h
+	yuv2rgb.h x11osd.h xcbosd.h

@@ -1,6 +1,10 @@
 xine-lib (1.1.5)
   * Improved PulseAudio plugin, now only one connection per instance is opened
     and the mainloop is threaded to reduce latency during playback.
+  * Added XCB-based output plugins (Xv and XShm), to use in software using
+    XCB to talk with the server rather than libX11 (like new Kaffeine).
+    The plugins are contributed by Christoph Pfister with the help of
+    Vincent Torri, Jamey Sharp and Christophe Thommeret.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.163 2007/02/08 02:10:58 dsalt Exp $
+ * $Id: xine.h.in,v 1.164 2007/02/15 15:19:33 dgp85 Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -176,6 +176,7 @@ void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver) XINE_PRO
 #define XINE_VISUAL_TYPE_DIRECTX           7 /* used by the win32/msvc port */
 #define XINE_VISUAL_TYPE_CACA              8
 #define XINE_VISUAL_TYPE_MACOSX            9
+#define XINE_VISUAL_TYPE_XCB              11
 
 /*
  * free all resources, close all plugins, close engine.
@@ -1192,6 +1193,82 @@ typedef struct {
    void (*unlock_display) (void *user_data);
 
 } x11_visual_t;
+
+/*
+ * this is the visual data struct any xcb gui
+ * must supply to the xine_open_video_driver call
+ * ("data" parameter)
+ */
+typedef struct {
+
+  /* some information about the display */
+  void        *connection; /* xcb_connection_t */
+  void        *screen;     /* xcb_screen_t     */
+
+  /* window to display the video in / on */
+  unsigned int window; /* xcb_window_t */
+
+  void        *user_data;
+
+  /*
+   * dest size callback
+   *
+   * this will be called by the video driver to find out
+   * how big the video output area size will be for a
+   * given video size. The ui should _not_ adjust it's
+   * video out area, just do some calculations and return
+   * the size. This will be called for every frame, ui
+   * implementation should be fast.
+   * dest_pixel_aspect should be set to the used display pixel aspect.
+   * NOTE: Semantics has changed: video_width and video_height
+   * are no longer pixel aspect corrected. Get the old semantics
+   * in the UI with
+   *   *dest_pixel_aspect = display_pixel_aspect;
+   *   if (video_pixel_aspect >= display_pixel_aspect)
+   *     video_width  = video_width * video_pixel_aspect / display_pixel_aspect + .5;
+   *   else
+   *     video_height = video_height * display_pixel_aspect / video_pixel_aspect + .5;
+   */
+  void (*dest_size_cb) (void *user_data,
+			int video_width, int video_height,
+			double video_pixel_aspect,
+			int *dest_width, int *dest_height,
+			double *dest_pixel_aspect);
+
+  /*
+   * frame output callback
+   *
+   * this will be called by the video driver for every frame
+   * it's about to draw. ui can adapt it's size if necessary
+   * here.
+   * note: the ui doesn't have to adjust itself to this
+   * size, this is just to be taken as a hint.
+   * ui must return the actual size of the video output
+   * area and the video output driver will do it's best
+   * to adjust the video frames to that size (while
+   * preserving aspect ratio and stuff).
+   *    dest_x, dest_y: offset inside window
+   *    dest_width, dest_height: available drawing space
+   *    dest_pixel_aspect: display pixel aspect
+   *    win_x, win_y: window absolute screen position
+   * NOTE: Semantics has changed: video_width and video_height
+   * are no longer pixel aspect corrected. Get the old semantics
+   * in the UI with
+   *   *dest_pixel_aspect = display_pixel_aspect;
+   *   if (video_pixel_aspect >= display_pixel_aspect)
+   *     video_width  = video_width * video_pixel_aspect / display_pixel_aspect + .5;
+   *   else
+   *     video_height = video_height * display_pixel_aspect / video_pixel_aspect + .5;
+   */
+  void (*frame_output_cb) (void *user_data,
+			   int video_width, int video_height,
+			   double video_pixel_aspect,
+			   int *dest_x, int *dest_y,
+			   int *dest_width, int *dest_height,
+			   double *dest_pixel_aspect,
+			   int *win_x, int *win_y);
+
+} xcb_visual_t;
 
 /*
  * this is the visual data struct any fb gui
