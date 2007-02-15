@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.221 2006/12/25 15:19:51 dgp85 Exp $
+ * $Id: video_out_xv.c,v 1.222 2007/02/15 18:26:55 dgp85 Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -953,6 +953,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     /* XExposeEvent * xev = (XExposeEvent *) data; */
 
     if (this->cur_frame) {
+      int i;
 
       LOCK_DISPLAY(this);
 
@@ -970,6 +971,16 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 		   this->sc.displayed_width, this->sc.displayed_height,
 		   this->sc.output_xoffset, this->sc.output_yoffset,
 		   this->sc.output_width, this->sc.output_height);
+      }
+
+      XSetForeground (this->display, this->gc, this->black.pixel);
+
+      for( i = 0; i < 4; i++ ) {
+	if( this->sc.border[i].w && this->sc.border[i].h ) {
+	  XFillRectangle(this->display, this->drawable, this->gc,
+			 this->sc.border[i].x, this->sc.border[i].y,
+			 this->sc.border[i].w, this->sc.border[i].h);
+	}
       }
 
       if(this->xoverlay)

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xcbxv.c,v 1.1 2007/02/15 15:19:33 dgp85 Exp $
+ * $Id: video_out_xcbxv.c,v 1.2 2007/02/15 18:26:55 dgp85 Exp $
  *
  * video_out_xcbxv.c, X11 video extension interface for xine
  *
@@ -898,6 +898,9 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
     /* XExposeEvent * xev = (XExposeEvent *) data; */
 
     if (this->cur_frame) {
+      int i;
+      xcb_rectangle_t rects[4];
+      int rects_count = 0;
 
       pthread_mutex_lock(&this->main_mutex);
 
@@ -919,6 +922,21 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 			 this->cur_frame->xv_width, this->cur_frame->xv_height,
 			 this->cur_frame->xv_data_size, this->cur_frame->image);
       }
+
+      xcb_change_gc(this->connection, this->gc, XCB_GC_FOREGROUND, &this->screen->black_pixel);
+
+      for( i = 0; i < 4; i++ ) {
+	if( this->sc.border[i].w && this->sc.border[i].h ) {
+	  rects[rects_count].x = this->sc.border[i].x;
+	  rects[rects_count].y = this->sc.border[i].y;
+	  rects[rects_count].width = this->sc.border[i].w;
+	  rects[rects_count].height = this->sc.border[i].h;
+	  rects_count++;
+	}
+      }
+
+      if (rects_count > 0)
+	xcb_poly_fill_rectangle(this->connection, this->window, this->gc, rects_count, rects);
 
       if(this->xoverlay)
 	xcbosd_expose(this->xoverlay);
