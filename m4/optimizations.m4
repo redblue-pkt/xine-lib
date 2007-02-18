@@ -17,11 +17,6 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
     if test "$GCC" = yes; then
         dnl
         dnl check cflags not supported by all gcc versions
-        dnl eg: -mpreferred-stack-boundary=2 and 2.91.66,
-        dnl and gcc-2.7.2.3 support a bit less options
-        dnl
-        AC_TRY_CFLAGS("-mpreferred-stack-boundary=2",
-            m_psb="-mpreferred-stack-boundary=2", m_psb="")
         AC_TRY_CFLAGS("-fschedule-insns2", f_si="-fschedule-insns2", f_si="")
         AC_TRY_CFLAGS("-mwide-multiply", m_wm="-mwide-multiply", m_wm="")
         dnl
