@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xcbxv.c,v 1.2 2007/02/15 18:26:55 dgp85 Exp $
+ * $Id: video_out_xcbxv.c,v 1.3 2007/02/19 22:22:32 dgp85 Exp $
  *
  * video_out_xcbxv.c, X11 video extension interface for xine
  *
@@ -1494,7 +1494,8 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
   for (; format_it.rem; xcb_xv_image_format_info_next(&format_it)) {
     lprintf ("Xv image format: 0x%x (%4.4s) %s\n",
 	     format_it.data->id, (char*)&format_it.data->id,
-	     (format_it.data->format == XvPacked) ? "packed" : "planar");
+	     (format_it.data->format == XCB_XV_IMAGE_FORMAT_INFO_FORMAT_PACKED)
+	       ? "packed" : "planar");
 
     if (format_it.data->id == XINE_IMGFMT_YV12)  {
       this->xv_format_yv12 = format_it.data->id;
