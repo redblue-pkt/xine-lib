@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: load_plugins.c,v 1.229 2007/01/18 23:30:18 dgp85 Exp $
+ * $Id: load_plugins.c,v 1.230 2007/02/19 23:33:33 dgp85 Exp $
  *
  *
  * Load input/demux/audio_out/video_out/codec plugins
@@ -1989,18 +1989,19 @@ int _x_decoder_available (xine_t *xine, uint32_t buftype)
   return 0;
 }
 
-
 #ifdef LOG
 static void _display_file_plugin_list (xine_list_t *list, plugin_file_t *file) {
-  plugin_node_t *node;
+  xine_list_iterator_t ite = xine_list_front(list);
 
-  node = xine_list_first_content(list);
-  while (node) {
+  while (ite) {
+    plugin_node_t *node = xine_list_get_value(list, ite);
+
     if ((node->file == file) && (node->ref)) {
       printf("    plugin: %s, class: %p , %d instance(s)\n",
 	     node->info->id, node->plugin_class, node->ref);
     }
-    node = xine_list_next_content(list);
+
+    ite = xine_list_next(list, ite);
   }
 }
 #endif
