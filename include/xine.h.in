@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.164 2007/02/15 15:19:33 dgp85 Exp $
+ * $Id: xine.h.in,v 1.165 2007/02/19 23:20:19 dgp85 Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -805,7 +805,7 @@ void   xine_vlog(xine_t *self, int buf,
 #endif
 
 /* get log messages of specified section */
-const char *const *xine_get_log (xine_t *self, int buf) XINE_PROTECTED;
+char *const *xine_get_log (xine_t *self, int buf) XINE_PROTECTED;
 
 /* log callback will be called whenever something is logged */
 typedef void (*xine_log_cb_t) (void *user_data, int section);

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.340 2006/12/22 16:38:15 klan Exp $
+ * $Id: xine.c,v 1.341 2007/02/19 23:20:19 dgp85 Exp $
  */
 
 /*
@@ -2003,7 +2003,7 @@ void xine_vlog(xine_t *this, int buf, const char *format,
   this->log_buffers[buf]->scratch_printf(this->log_buffers[buf], format, args);
 }
 
-const char *const *xine_get_log (xine_t *this, int buf) {
+char *const *xine_get_log (xine_t *this, int buf) {
 
   if(buf >= XINE_LOG_NUM)
     return NULL;
