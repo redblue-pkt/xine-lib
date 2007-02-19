@@ -2590,16 +2590,19 @@ AM_CONDITIONAL([BUILD_DMX_IMAGE], [test "x$have_imagemagick" = "xyes" -o "x$no_g
 dnl Important warnings we _don't_ want to skip
 dnl Don't put these under conditional for optimisations, because these
 dnl need always to be enabled.
-AC_TRY_CFLAGS("-Wformat", wformat="-Wformat")
-AC_TRY_CFLAGS("-Wformat=2", wformat="-Wformat=2")
+AC_TRY_CFLAGS([-Wformat], [wformat="-Wformat"])
+AC_TRY_CFLAGS([-Wformat=2], [wformat="-Wformat=2"])
 if test "x$wformat" != "x"; then
-   AC_TRY_CFLAGS("-Wno-format-zero-length", wformat="$wformat -Wno-format-zero-length")
+   AC_TRY_CFLAGS([-Wno-format-zero-length], [wformat="$wformat -Wno-format-zero-length"])
 fi
-AC_TRY_CFLAGS("-Wmissing-format-attribute", wformat="$wformat -Wmissing-format-attribute")
+AC_TRY_CFLAGS([-Wmissing-format-attribute], [wformat="$wformat -Wmissing-format-attribute"])
 CFLAGS="$CFLAGS $wformat"
 
-AC_TRY_CFLAGS("-Wstrict-aliasing", wsa="-Wstrict-aliasing")
-AC_TRY_CFLAGS("-Wstrict-aliasing=2", wsa="-Wstrict-aliasing=2")
+dnl This has to be stay at the end as it can break some autoconf tests.
+AC_TRY_CFLAGS([-Werror-implicit-function-declaration], [CFLAGS="$CFLAGS -Werror-implicit-function-declaration"])
+
+AC_TRY_CFLAGS([-Wstrict-aliasing], [wsa="-Wstrict-aliasing"])
+AC_TRY_CFLAGS([-Wstrict-aliasing=2], [wsa="-Wstrict-aliasing=2"])
 CFLAGS="$CFLAGS $wsa"
 
 dnl disabled "-Wl,-z,defs": it breaks compilation for vidix drivers.
