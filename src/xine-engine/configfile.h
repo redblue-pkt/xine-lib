@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.39 2006/12/19 19:10:52 dsalt Exp $
+ * $Id: configfile.h,v 1.40 2007/02/19 23:53:40 dgp85 Exp $
  *
  * config file management
  *
@@ -131,7 +131,7 @@ struct config_values_s {
   int (*register_enum) (config_values_t *self,
 			const char *key,
 			int def_value,
-			char **values,
+			const char **values,
 			const char *description,
 			const char *help,
 			int exp_level,
