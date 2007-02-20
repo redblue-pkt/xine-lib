@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: post.h,v 1.24 2006/12/25 18:43:38 dgp85 Exp $
+ * $Id: post.h,v 1.25 2007/02/20 01:02:47 dgp85 Exp $
  *
  * post plugin definitions
  *
@@ -380,7 +380,7 @@ static xine_post_api_parameter_t temp_p[] = {
 
 #define PARAM_ITEM( param_type, var, enumv, min, max, readonly, descr ) \
 { param_type, #var, sizeof(temp_s.var), \
-  (char *)&temp_s.var-(char *)&temp_s, enumv, min, max, readonly, descr },
+  &temp_s.var-&temp_s, enumv, min, max, readonly, descr },
 
 #define END_PARAM_DESCR( name ) \
   { POST_PARAM_TYPE_LAST, NULL, 0, 0, NULL, 0, 0, 1, NULL } \
