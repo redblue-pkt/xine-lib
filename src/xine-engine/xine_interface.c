@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.101 2007/02/03 16:31:55 dsalt Exp $
+ * $Id: xine_interface.c,v 1.102 2007/02/20 00:43:06 dgp85 Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -136,7 +136,7 @@ int xine_config_register_range (xine_t *self,
 int xine_config_register_enum (xine_t *self,
 			       const char *key,
 			       int def_value,
-			       char **values,
+			       const char **values,
 			       const char *description,
 			       const char *help,
 			       int   exp_level,
