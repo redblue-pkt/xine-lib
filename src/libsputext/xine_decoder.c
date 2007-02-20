@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.98 2007/02/20 00:34:57 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.99 2007/02/20 01:04:07 dgp85 Exp $
  *
  */
 
@@ -925,7 +925,7 @@ static void update_src_encoding(void *class_gen, xine_cfg_entry_t *entry)
 
 static void *init_spu_decoder_plugin (xine_t *xine, void *data) {
 
-  static char *subtitle_size_strings[] = { 
+  static const char *subtitle_size_strings[] = { 
     "tiny", "small", "normal", "large", "very large", "huge", NULL 
   };
   sputext_class_t *this ;

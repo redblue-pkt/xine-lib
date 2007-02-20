@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_dvd.c,v 1.215 2007/02/08 02:40:23 dsalt Exp $
+ * $Id: input_dvd.c,v 1.216 2007/02/20 01:04:07 dgp85 Exp $
  *
  */
 
@@ -1749,9 +1749,9 @@ static void *init_class (xine_t *xine, void *data) {
   dvd_input_class_t   *this;
   config_values_t     *config = xine->config;
   void                *dvdcss;
-  static char         *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
-  static char         *seek_modes[] = {"seek in program chain", "seek in program", NULL};
-  static char         *play_single_chapter_modes[] = {"entire dvd", "one chapter", NULL};
+  static const char   *skip_modes[] = {"skip program", "skip part", "skip title", NULL};
+  static const char   *seek_modes[] = {"seek in program chain", "seek in program", NULL};
+  static const char   *play_single_chapter_modes[] = {"entire dvd", "one chapter", NULL};
 
   trace_print("Called\n");
 #ifdef INPUT_DEBUG
@@ -1795,7 +1795,7 @@ static void *init_class (xine_t *xine, void *data) {
   {
     /* we have found libdvdcss, enable the specific config options */
     char *raw_device;
-    static char *decrypt_modes[] = { "key", "disc", "title", NULL };
+    static const char *decrypt_modes[] = { "key", "disc", "title", NULL };
     char *css_cache_default, *css_cache;
     int mode;
     
