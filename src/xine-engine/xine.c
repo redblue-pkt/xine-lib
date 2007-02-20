@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.c,v 1.341 2007/02/19 23:20:19 dgp85 Exp $
+ * $Id: xine.c,v 1.342 2007/02/20 00:37:02 dgp85 Exp $
  */
 
 /*
@@ -1535,8 +1535,8 @@ static void config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
 }
 
 void xine_init (xine_t *this) {
-  static char *demux_strategies[] = {"default", "reverse", "content",
-				     "extension", NULL};
+  static const char *demux_strategies[] = {"default", "reverse", "content",
+					   "extension", NULL};
 
   /* initialize color conversion tables and functions */
   init_yuv_conversion();
