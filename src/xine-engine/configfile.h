@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.h,v 1.40 2007/02/19 23:53:40 dgp85 Exp $
+ * $Id: configfile.h,v 1.41 2007/02/20 00:01:19 dgp85 Exp $
  *
  * config file management
  *
@@ -163,7 +163,7 @@ struct config_values_s {
   void (*update_string) (config_values_t *self, const char *key, const char *value);
 
   /* small utility function for enum handling */
-  int (*parse_enum) (const char *str, char **values);
+  int (*parse_enum) (const char *str, const char **values);
 
   /*
    * lookup config entries

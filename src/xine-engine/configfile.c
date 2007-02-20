@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.83 2007/02/19 23:53:40 dgp85 Exp $
+ * $Id: configfile.c,v 1.84 2007/02/20 00:01:19 dgp85 Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -689,9 +689,9 @@ static int config_register_range (config_values_t *this,
   return entry->num_value;
 }
 
-static int config_parse_enum (const char *str, char **values) {
+static int config_parse_enum (const char *str, const char **values) {
 
-  char **value;
+  const char **value;
   int    i;
 
 
@@ -725,7 +725,8 @@ static int config_register_enum (config_values_t *this,
 				 void *cb_data) {
 
   cfg_entry_t *entry;
-  char **value_src, **value_dest;
+  const char **value_src;
+  char **value_dest;
   int value_count;
 
 
