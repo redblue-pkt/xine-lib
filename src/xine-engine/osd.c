@@ -200,7 +200,7 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   int x, y, required;
   uint8_t *c;
 
-  lprintf("osd=%p vpts=%lld\n", osd, vpts);
+  lprintf("osd=%p vpts=%"PRId64"\n", osd, vpts);
   
   this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
   
@@ -347,7 +347,7 @@ static int _osd_hide (osd_object_t *osd, int64_t vpts) {
   osd_renderer_t *this = osd->renderer;
   video_overlay_manager_t *ovl_manager;
   
-  lprintf("osd=%p vpts=%lld\n",osd, vpts);
+  lprintf("osd=%p vpts=%"PRId64"\n",osd, vpts);
       
   if( osd->handle < 0 )
     return 0;

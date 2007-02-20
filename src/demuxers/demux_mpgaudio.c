@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.147 2007/02/03 23:56:32 dsalt Exp $
+ * $Id: demux_mpgaudio.c,v 1.148 2007/02/20 00:34:56 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -437,7 +437,7 @@ static vbri_header_t* parse_vbri_header(mpg_audio_frame_t *frame,
       for (i = 0; i <= vbri->toc_entries; i++) {
         toc_stream_size += vbri->toc[i];
       }
-      lprintf("stream size from toc: %lld\n", toc_stream_size);
+      lprintf("stream size from toc: %"PRId64"\n", toc_stream_size);
     }
 
     return vbri;
@@ -460,7 +460,7 @@ static int parse_frame_payload(demux_mpgaudio_t *this,
   uint64_t       pts = 0;
 
   frame_pos = this->input->get_current_pos(this->input) - 4;
-  lprintf("frame_pos = %lld\n", frame_pos);
+  lprintf("frame_pos = %"PRId64"\n", frame_pos);
 
   buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
 
@@ -510,7 +510,7 @@ static int parse_frame_payload(demux_mpgaudio_t *this,
   buf->decoder_flags          = decoder_flags|BUF_FLAG_FRAME_END;
 
   this->audio_fifo->put(this->audio_fifo, buf);
-  lprintf("send buffer: pts=%lld\n", pts);  
+  lprintf("send buffer: pts=%"PRId64"\n", pts);  
   this->cur_time += this->cur_frame.duration;
   return 1;
 }
@@ -823,9 +823,9 @@ static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
 
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, this->br);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->br);
-    lprintf("frame_start: %lld, frame_end: %lld\n",
+    lprintf("frame_start: %"PRId64", frame_end: %"PRId64"\n",
             this->mpg_frame_start, this->mpg_frame_end);
-    lprintf("stream size: %lld, mp3 size: %lld\n",
+    lprintf("stream size: %"PRId64", mp3 size: %"PRId64"\n",
             this->input->get_length(this->input),
             this->mpg_size);
     lprintf("stream_length: %d ms\n", this->stream_length);
@@ -939,7 +939,7 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
     /* Convert position seek to time seek */
     if (!start_time) {
       start_time = (int)((double)start_pos * (double)this->stream_length / 65535.0f);
-      lprintf("position seek: start_pos=%lld => start_time=%d\n", start_pos, start_time);
+      lprintf("position seek: start_pos=%"PRId64" => start_time=%d\n", start_pos, start_time);
     }
 
     if (start_time < 0)
@@ -951,14 +951,14 @@ static int demux_mpgaudio_seek (demux_plugin_t *this_gen,
       if (this->xing_header &&
           (this->xing_header->flags & (XING_TOC_FLAG | XING_BYTES_FLAG))) {
         seek_pos += xing_get_seek_point(this->xing_header, start_time, this->stream_length);
-        lprintf("time seek: xing: time=%d, pos=%lld\n", start_time, seek_pos);
+        lprintf("time seek: xing: time=%d, pos=%"PRId64"\n", start_time, seek_pos);
       } else if (this->vbri_header) {
         seek_pos += vbri_get_seek_point(this->vbri_header, start_time, this->stream_length);
-        lprintf("time seek: vbri: time=%d, pos=%lld\n", start_time, seek_pos);
+        lprintf("time seek: vbri: time=%d, pos=%"PRId64"\n", start_time, seek_pos);
       } else {
         /* cbr */
         seek_pos += ((double)start_time / 1000.0) * ((double)this->br / 8.0);
-        lprintf("time seek: cbr: time=%d, pos=%lld\n", start_time, seek_pos);
+        lprintf("time seek: cbr: time=%d, pos=%"PRId64"\n", start_time, seek_pos);
       }
     }
     /* assume seeking is always perfect... */

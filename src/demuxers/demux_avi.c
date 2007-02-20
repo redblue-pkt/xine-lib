@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.229 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_avi.c,v 1.230 2007/02/20 00:34:55 dgp85 Exp $
  *
  * demultiplexer for avi streams
  *
@@ -1392,7 +1392,7 @@ static avi_t *AVI_init(demux_avi_t *this) {
   AVI->video_posf = 0;
   AVI->video_posb = 0;
 
-  lprintf("done, pos=%lld, AVI->movi_start=%" PRIdMAX "\n", this->input->get_current_pos(this->input), (intmax_t)AVI->movi_start);
+  lprintf("done, pos=%"PRId64", AVI->movi_start=%" PRIdMAX "\n", this->input->get_current_pos(this->input), (intmax_t)AVI->movi_start);
   return AVI;
 }
 

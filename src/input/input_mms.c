@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.68 2007/01/19 01:05:25 dgp85 Exp $
+ * $Id: input_mms.c,v 1.69 2007/02/20 00:34:56 dgp85 Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -102,7 +102,7 @@ static off_t mms_plugin_read (input_plugin_t *this_gen,
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
   off_t               n = 0;
 
-  lprintf ("mms_plugin_read: %lld bytes ...\n", len);
+  lprintf ("mms_plugin_read: %"PRId64" bytes ...\n", len);
 
   switch (this->protocol) {
     case PROTOCOL_MMST:
@@ -122,7 +122,7 @@ static buf_element_t *mms_plugin_read_block (input_plugin_t *this_gen,
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   int                   total_bytes;
 
-  lprintf ("mms_plugin_read_block: %lld bytes...\n", todo);
+  lprintf ("mms_plugin_read_block: %"PRId64" bytes...\n", todo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
@@ -144,7 +144,7 @@ static off_t mms_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin
   off_t                 dest = 0;
   off_t                 curpos = 0;
 
-  lprintf ("mms_plugin_seek: %lld offset, %d origin...\n", offset, origin);
+  lprintf ("mms_plugin_seek: %"PRId64" offset, %d origin...\n", offset, origin);
 
 
   switch (this->protocol) {
@@ -239,7 +239,7 @@ static off_t mms_plugin_get_length (input_plugin_t *this_gen) {
       break;
   }
 
-  lprintf ("length is %lld\n", length);
+  lprintf ("length is %"PRId64"\n", length);
 
   return length;
 

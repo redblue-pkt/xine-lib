@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_elem.c,v 1.90 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_elem.c,v 1.91 2007/02/20 00:34:55 dgp85 Exp $
  *
  * demultiplexer for elementary mpeg streams
  */
@@ -73,7 +73,7 @@ static int demux_mpeg_elem_next (demux_mpeg_elem_t *this, int preview_mode) {
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   blocksize = (this->blocksize ? this->blocksize : buf->max_size);
   done = this->input->read(this->input, buf->mem, blocksize);
-  lprintf ("read size = %lld\n", done);
+  lprintf ("read size = %"PRId64"\n", done);
 
   if (done <= 0) {
     buf->free_buffer (buf);
@@ -160,7 +160,7 @@ static int demux_mpeg_elem_seek (demux_plugin_t *this_gen,
       this->status = DEMUX_FINISHED;
       return this->status;
     }
-    lprintf ("seeking to %lld\n", start_pos);
+    lprintf ("seeking to %"PRId64"\n", start_pos);
   }
 
   /*

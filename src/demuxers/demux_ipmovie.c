@@ -23,7 +23,7 @@
  * For more information regarding the Interplay MVE file format, visit:
  *   http://www.pcisys.net/~melanson/codecs/
  *
- * $Id: demux_ipmovie.c,v 1.26 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_ipmovie.c,v 1.27 2007/02/20 00:34:55 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -326,7 +326,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         audio_pts *= this->audio_frame_count;
         audio_pts /= this->wave.nSamplesPerSec;
 
-        lprintf("sending audio frame with pts %lld (%d audio frames)\n",
+        lprintf("sending audio frame with pts %"PRId64" (%d audio frames)\n",
           audio_pts, this->audio_frame_count);
 
         if(this->audio_fifo) {
@@ -432,7 +432,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
         lprintf("set video data\n");
 
         current_file_pos = this->input->get_current_pos(this->input);
-        lprintf("sending video data with pts %lld\n",
+        lprintf("sending video data with pts %"PRId64"\n",
           this->video_pts);
 
         /* send off any new palette data */

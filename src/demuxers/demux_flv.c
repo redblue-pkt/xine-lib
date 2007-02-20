@@ -26,7 +26,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.18 2007/01/22 17:07:08 klan Exp $
+ * $Id: demux_flv.c,v 1.19 2007/02/20 00:34:55 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -138,10 +138,10 @@ static void check_newpts(demux_flv_t *this, int64_t pts, int video) {
   int64_t diff;
 
   diff = pts - this->last_pts[video];
-  lprintf ("check_newpts %lld\n", pts);
+  lprintf ("check_newpts %"PRId64"\n", pts);
 
   if (pts && (this->send_newpts || (this->last_pts[video] && abs(diff)>WRAP_THRESHOLD))) {
-    lprintf ("diff=%lld\n", diff);
+    lprintf ("diff=%"PRId64"\n", diff);
 
     if (this->buf_flag_seek) {
       _x_demux_control_newpts(this->stream, pts, BUF_FLAG_SEEK);
@@ -303,7 +303,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
       }
       break;
     case FLV_DATA_TYPE_DATE:
-      lprintf("  got date (%lld, %d)\n", BE_64(tmp), BE_16(tmp+8));
+      lprintf("  got date (%"PRId64", %d)\n", BE_64(tmp), BE_16(tmp+8));
       tmp += 10;
       break;
     default:
@@ -358,7 +358,7 @@ static int read_flv_packet(demux_flv_t *this) {
     remaining_bytes = BE_24(&buffer[1]);
     pts = BE_24(&buffer[4]) | (buffer[7] << 24);
     
-    lprintf("  tag_type = 0x%02X, 0x%X bytes, pts %lld\n",
+    lprintf("  tag_type = 0x%02X, 0x%X bytes, pts %"PRId64"\n",
             tag_type, remaining_bytes, pts/90);
 
     switch (tag_type) {

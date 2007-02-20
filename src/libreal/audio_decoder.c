@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.50 2006/12/19 19:10:51 dsalt Exp $
+ * $Id: audio_decoder.c,v 1.51 2007/02/20 00:34:57 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -443,7 +443,7 @@ static unsigned char sipr_swaps[38][2]={
 static void realdec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
-  lprintf ("decode_data %d bytes, flags=0x%08x, pts=%lld ...\n", 
+  lprintf ("decode_data %d bytes, flags=0x%08x, pts=%"PRId64" ...\n", 
 	   buf->size, buf->decoder_flags, buf->pts);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {

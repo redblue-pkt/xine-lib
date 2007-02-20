@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.162 2006/12/03 19:23:16 miguelfreitas Exp $
+ * $Id: video_decoder.c,v 1.163 2007/02/20 00:34:58 dgp85 Exp $
  *
  */
 
@@ -308,7 +308,7 @@ static void *video_decoder_loop (void *stream_gen) {
       break;
     
     case BUF_CONTROL_NEWPTS:
-      lprintf ("new pts %lld\n", buf->disc_off);
+      lprintf ("new pts %"PRId64"\n", buf->disc_off);
 
       if (stream->video_decoder_plugin) {
         running_ticket->acquire(running_ticket, 0);

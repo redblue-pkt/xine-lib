@@ -80,7 +80,7 @@ static off_t pnm_plugin_read (input_plugin_t *this_gen,
   pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
   off_t               n;
 
-  lprintf ("pnm_plugin_read: %lld bytes ...\n", len);
+  lprintf ("pnm_plugin_read: %"PRId64" bytes ...\n", len);
 
   nbc_check_buffers (this->nbc);
 
@@ -96,7 +96,7 @@ static buf_element_t *pnm_plugin_read_block (input_plugin_t *this_gen,
   buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
   int                   total_bytes;
 
-  lprintf ("pnm_plugin_read_block: %lld bytes...\n", todo);
+  lprintf ("pnm_plugin_read_block: %"PRId64" bytes...\n", todo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
@@ -156,7 +156,7 @@ static off_t pnm_plugin_get_current_pos (input_plugin_t *this_gen){
   pnm_input_plugin_t *this = (pnm_input_plugin_t *) this_gen;
 
   /*
-  printf ("current pos is %lld\n", this->curpos);
+  printf ("current pos is %"PRId64"\n", this->curpos);
   */
 
   return this->curpos;

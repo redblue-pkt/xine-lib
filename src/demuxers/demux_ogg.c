@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.175 2007/02/08 02:40:22 dsalt Exp $
+ * $Id: demux_ogg.c,v 1.176 2007/02/20 00:34:56 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -718,7 +718,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     buf->size = 12 + op->bytes + 1;
 
-    lprintf ("CMML stream %d (bytes=%ld): PTS %lld: %s\n",
+    lprintf ("CMML stream %d (bytes=%ld): PTS %"PRId64": %s\n",
              stream_num, op->bytes, buf->pts, str);
 
     this->video_fifo->put (this->video_fifo, buf);

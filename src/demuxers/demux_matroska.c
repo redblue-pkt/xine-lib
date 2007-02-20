@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_matroska.c,v 1.51 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_matroska.c,v 1.52 2007/02/20 00:34:55 dgp85 Exp $
  *
  * demultiplexer for matroska streams
  *
@@ -1257,7 +1257,7 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
         if (!ebml_read_uint(ebml, &elem, &val))
           return 0;
         track->default_duration = val;
-        lprintf("Default Duration: %lld\n", track->default_duration);
+        lprintf("Default Duration: %"PRIu64"\n", track->default_duration);
       }
       break;
 

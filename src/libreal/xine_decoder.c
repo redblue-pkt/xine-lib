@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.84 2006/12/19 19:10:51 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.85 2007/02/20 00:34:57 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -262,7 +262,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   this->duration = 90000.0 / this->fps;
 #endif
   
-  lprintf("this->ratio=%d\n", this->ratio);
+  lprintf("this->ratio=%f\n", this->ratio);
   
   lprintf ("init_data.w=%d(0x%x), init_data.h=%d(0x%x),"
 	   "this->width=%d(0x%x), this->height=%d(0x%x)\n",
@@ -338,7 +338,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
 static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   realdec_decoder_t *this = (realdec_decoder_t *) this_gen;
 
-  lprintf ("decode_data, flags=0x%08x, len=%d, pts=%lld ...\n", 
+  lprintf ("decode_data, flags=0x%08x, len=%d, pts=%"PRId64" ...\n", 
            buf->decoder_flags, buf->size, buf->pts);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
@@ -374,7 +374,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
         this->chunk_buffer_size = 0;
         this->pts = buf->pts;
-        lprintf ("new frame starting, pts=%lld\n", this->pts);
+        lprintf ("new frame starting, pts=%"PRId64"\n", this->pts);
       }
       
       if ((this->chunk_buffer_size + buf->size) > this->chunk_buffer_max) {

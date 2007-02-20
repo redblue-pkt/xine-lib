@@ -22,7 +22,7 @@
  * The goal of this input plugin is to reduce 
  * the number of calls to the real input plugin.
  *
- * $Id: input_cache.c,v 1.13 2007/01/19 01:05:25 dgp85 Exp $
+ * $Id: input_cache.c,v 1.14 2007/02/20 00:34:57 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,7 +67,7 @@ static off_t cache_plugin_read(input_plugin_t *this_gen, char *buf, off_t len) {
   off_t read_len = 0;
   off_t main_read;
 
-  lprintf("cache_plugin_read: len=%lld\n", len);
+  lprintf("cache_plugin_read: len=%"PRId64"\n", len);
   this->read_call++;
 
   /* optimized for common cases */
@@ -205,7 +205,7 @@ static off_t cache_plugin_seek(input_plugin_t *this_gen, off_t offset, int origi
   off_t rel_offset;
   off_t new_buf_pos;
 
-  lprintf("offset: %lld, origin: %d\n", offset, origin);
+  lprintf("offset: %"PRId64", origin: %d\n", offset, origin);
   this->seek_call++;
 
   if( !this->buf_len ) {
@@ -236,7 +236,7 @@ static off_t cache_plugin_seek(input_plugin_t *this_gen, off_t offset, int origi
     }
   
     new_buf_pos = (off_t)this->buf_pos + rel_offset;
-    lprintf("buf_len: %d, rel_offset=%lld, new_buf_pos=%lld\n",
+    lprintf("buf_len: %d, rel_offset=%"PRId64", new_buf_pos=%"PRId64"\n",
   	  this->buf_len, rel_offset, new_buf_pos);
   
     if ((new_buf_pos < 0) || (new_buf_pos >= this->buf_len)) {

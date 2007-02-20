@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_mpeg.c,v 1.151 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_mpeg.c,v 1.152 2007/02/20 00:34:55 dgp85 Exp $
  *
  * demultiplexer for mpeg 1/2 program streams
  * reads streams of variable blocksizes
@@ -310,7 +310,7 @@ static void parse_mpeg2_packet (demux_mpeg_t *this, int stream_id, int64_t scr) 
         check_newpts( this, this->pts, PTS_VIDEO );
       */
       this->video_fifo->put (this->video_fifo, buf);
-      lprintf ("SPU SVCD PACK (pts: %lld, spu id: %d) put on FIFO\n", 
+      lprintf ("SPU SVCD PACK (pts: %"PRId64", spu id: %d) put on FIFO\n", 
 	       buf->pts, spu_id);
 
       return;

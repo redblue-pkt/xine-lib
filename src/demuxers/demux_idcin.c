@@ -65,7 +65,7 @@
  *     - if any bytes exceed 63, do not shift the bytes at all before
  *       transmitting them to the video decoder
  *
- * $Id: demux_idcin.c,v 1.54 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_idcin.c,v 1.55 2007/02/20 00:34:55 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -222,7 +222,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
     if (!remaining_sample_bytes)
       buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-    lprintf("sending video buf with %d bytes, %lld pts\n", buf->size, buf->pts);
+    lprintf("sending video buf with %d bytes, %"PRId64" pts\n", buf->size, buf->pts);
     this->video_fifo->put(this->video_fifo, buf);
   }
 
@@ -263,7 +263,7 @@ static int demux_idcin_send_chunk(demux_plugin_t *this_gen) {
       if (!remaining_sample_bytes)
         buf->decoder_flags |= BUF_FLAG_FRAME_END;
 
-      lprintf("sending audio buf with %d bytes, %lld pts\n", buf->size, buf->pts);
+      lprintf("sending audio buf with %d bytes, %"PRId64" pts\n", buf->size, buf->pts);
       this->audio_fifo->put(this->audio_fifo, buf);
     }
   }

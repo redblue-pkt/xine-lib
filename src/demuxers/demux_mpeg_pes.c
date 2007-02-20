@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.39 2007/01/19 01:05:24 dgp85 Exp $
+ * $Id: demux_mpeg_pes.c,v 1.40 2007/02/20 00:34:56 dgp85 Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -572,7 +572,7 @@ static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t 
     this->scr += ( (p[8] & 0x03 << 7) | (p[9] & 0xFE >> 1) );
     */
 
-    lprintf ("SCR=%lld\n", this->scr);
+    lprintf ("SCR=%"PRId64"\n", this->scr);
 
     /* mux_rate */
 
@@ -649,7 +649,7 @@ static int32_t parse_private_stream_2(demux_mpeg_pes_t *this, uint8_t *p, buf_el
     this->last_begin_time = buf->extra_info->input_time;
   }
     
-  lprintf ("NAV packet, start pts = %lld, end_pts = %lld\n",
+  lprintf ("NAV packet, start pts = %"PRId64", end_pts = %"PRId64"\n",
            start_pts, end_pts);
 
   if (this->nav_last_end_pts != start_pts && !this->preview_mode) {
@@ -795,7 +795,7 @@ static int32_t parse_pes_for_pts(demux_mpeg_pes_t *this, uint8_t *p, buf_element
       this->pts |= (int64_t)  p[12]         <<  7 ;
       this->pts |= (int64_t) (p[13] & 0xFE) >>  1 ;
 
-      lprintf ("pts = %lld\n", this->pts);
+      lprintf ("pts = %"PRId64"\n", this->pts);
 
     } else
       this->pts = 0;
@@ -862,7 +862,7 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
         check_newpts( this, this->pts, PTS_VIDEO );
       */
       this->video_fifo->put (this->video_fifo, buf);    
-      lprintf ("SPU SVCD PACK (%lld, %d) put on fifo\n", this->pts, spu_id);
+      lprintf ("SPU SVCD PACK (%"PRId64", %d) put on fifo\n", this->pts, spu_id);
       
       return this->packet_len + result;
     }
@@ -880,7 +880,7 @@ static int32_t parse_private_stream_1(demux_mpeg_pes_t *this, uint8_t *p, buf_el
         check_newpts( this, this->pts, PTS_VIDEO );
       */      
       this->video_fifo->put (this->video_fifo, buf);    
-      lprintf ("SPU CVD PACK (%lld, %d) put on fifo\n", this->pts, spu_id);
+      lprintf ("SPU CVD PACK (%"PRId64", %d) put on fifo\n", this->pts, spu_id);
       
       return this->packet_len + result;
     }
@@ -1283,7 +1283,7 @@ static int demux_mpeg_pes_estimate_rate (demux_mpeg_pes_t *this) {
 	count ++;
 	
 	/*
-	printf ("demux_mpeg_pes: stream_id %02x, pos: %lld, pts: %d, cur_rate = %d, overall rate : %d\n", 
+	printf ("demux_mpeg_pes: stream_id %02x, pos: %"PRId64", pts: %d, cur_rate = %d, overall rate : %d\n", 
 		stream_id, pos, pts, cur_rate, rate); 
 	*/
       }

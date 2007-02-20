@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.97 2006/12/19 19:10:51 dsalt Exp $
+ * $Id: xine_decoder.c,v 1.98 2007/02/20 00:34:57 dgp85 Exp $
  *
  */
 
@@ -591,7 +591,7 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   
   this->renderer->hide (this->osd, sub_end);
   
-  lprintf ("scheduling subtitle >%s< at %lld until %lld, current time is %lld\n",
+  lprintf ("scheduling subtitle >%s< at %"PRId64" until %"PRId64", current time is %"PRId64"\n",
 	   this->text[0], sub_start, sub_end, 
 	   this->stream->xine->clock->get_current_time (this->stream->xine->clock));
 }

@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.127 2007/01/19 01:05:25 dgp85 Exp $
+ * $Id: input_http.c,v 1.128 2007/02/20 00:34:56 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -363,7 +363,7 @@ static off_t http_plugin_read_int (http_input_plugin_t *this,
   int read_bytes = 0;
   int nlen;
   
-  lprintf("total=%lld\n", total);
+  lprintf("total=%"PRId64"\n", total);
   while (total) {
     nlen = total;
     if (this->shoutcast_mode &&
@@ -415,7 +415,7 @@ static off_t http_plugin_read (input_plugin_t *this_gen,
     else
       n = nlen;
 
-    lprintf ("%lld bytes from preview (which has %lld bytes)\n", n, this->preview_size);
+    lprintf ("%"PRId64" bytes from preview (which has %"PRId64" bytes)\n", n, this->preview_size);
     memcpy (buf, &this->preview[this->curpos], n);
 
     num_bytes += n;
@@ -942,7 +942,7 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
     return -12;
   }
   
-  lprintf("preview_size=%lld\n", this->preview_size);
+  lprintf("preview_size=%"PRId64"\n", this->preview_size);
   this->curpos = 0;
   
   return 1;

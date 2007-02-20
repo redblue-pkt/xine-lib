@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: mms.c,v 1.64 2007/01/03 15:09:42 klan Exp $
+ * $Id: mms.c,v 1.65 2007/02/20 00:34:56 dgp85 Exp $
  *
  * MMS over TCP protocol
  *   based on work from major mms
@@ -385,7 +385,7 @@ static int get_packet_header (mms_t *this, mms_packet_header_t *header) {
   return packet_type;
   
 error:
-  lprintf("read error, len=%d\n", len);
+  lprintf("read error, len=%zd\n", len);
   return MMS_PACKET_ERR;
 }
 

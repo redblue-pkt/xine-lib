@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.13 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_flac.c,v 1.14 2007/02/20 00:34:55 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -166,7 +166,7 @@ static int open_flac_file(demux_flac_t *flac) {
       flac->bits_per_sample = ((flac->sample_rate >> 4) & 0x1F) + 1;
       flac->sample_rate >>= 12;
       flac->total_samples = BE_64(&streaminfo[10]) & UINT64_C(0x0FFFFFFFFF);  /* 36 bits */
-      lprintf ("%d Hz, %d bits, %d channels, %lld total samples\n", 
+      lprintf ("%d Hz, %d bits, %d channels, %"PRId64" total samples\n", 
         flac->sample_rate, flac->bits_per_sample, 
         flac->channels, flac->total_samples);
       break;
@@ -193,15 +193,15 @@ static int open_flac_file(demux_flac_t *flac) {
         if (flac->input->read(flac->input, buffer, FLAC_SEEKPOINT_SIZE) != FLAC_SEEKPOINT_SIZE)
           return 0;
         flac->seekpoints[i].sample_number = BE_64(&buffer[0]);
-        lprintf (" %d: sample %lld, ", i, flac->seekpoints[i].sample_number);
+        lprintf (" %d: sample %"PRId64", ", i, flac->seekpoints[i].sample_number);
         flac->seekpoints[i].offset = BE_64(&buffer[8]);
         flac->seekpoints[i].size = BE_16(&buffer[16]);
-        lprintf ("@ 0x%llX, size = %d bytes, ", 
+        lprintf ("@ 0x%"PRIX64", size = %d bytes, ", 
           flac->seekpoints[i].offset, flac->seekpoints[i].size);
         flac->seekpoints[i].pts = flac->seekpoints[i].sample_number;
         flac->seekpoints[i].pts *= 90000;
         flac->seekpoints[i].pts /= flac->sample_rate;
-        lprintf ("pts = %lld\n", flac->seekpoints[i].pts);
+        lprintf ("pts = %"PRId64"\n", flac->seekpoints[i].pts);
       }
       break;
 
