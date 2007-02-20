@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_goom.c,v 1.64 2006/12/02 22:35:18 miguelfreitas Exp $
+ * $Id: xine_goom.c,v 1.65 2007/02/20 00:58:51 dgp85 Exp $
  *
  * GOOM post plugin.
  *
@@ -218,7 +218,7 @@ static void *goom_init_plugin(xine_t *xine, void *data)
   
 
   cfg->register_enum (cfg, "effects.goom.csc_method", 0,
-                           (char **)goom_csc_methods,
+                           goom_csc_methods,
                            _("colorspace conversion method"),
                            _("You can choose the colorspace conversion method used by goom.\n"
 			     "The available selections should be self-explaining."),
