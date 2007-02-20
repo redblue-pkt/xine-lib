@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_mms.c,v 1.69 2007/02/20 00:34:56 dgp85 Exp $
+ * $Id: input_mms.c,v 1.70 2007/02/20 00:51:39 dgp85 Exp $
  *
  * mms input plugin based on work from major mms
  */
@@ -56,18 +56,18 @@
 #define PROTOCOL_MMSH      2
 
 /* network bandwidth */
-const uint32_t mms_bandwidths[]={14400,19200,28800,33600,34430,57600,
-                                  115200,262200,393216,524300,1544000,10485800};
+static const uint32_t mms_bandwidths[]={14400,19200,28800,33600,34430,57600,
+					115200,262200,393216,524300,1544000,10485800};
 
-const char * mms_bandwidth_strs[]={"14.4 Kbps (Modem)", "19.2 Kbps (Modem)",
-                                   "28.8 Kbps (Modem)", "33.6 Kbps (Modem)",
-                                   "34.4 Kbps (Modem)", "57.6 Kbps (Modem)",
-                                   "115.2 Kbps (ISDN)", "262.2 Kbps (Cable/DSL)",
-                                   "393.2 Kbps (Cable/DSL)","524.3 Kbps (Cable/DSL)",
-                                   "1.5 Mbps (T1)", "10.5 Mbps (LAN)", NULL};
+static const char * mms_bandwidth_strs[]={"14.4 Kbps (Modem)", "19.2 Kbps (Modem)",
+					  "28.8 Kbps (Modem)", "33.6 Kbps (Modem)",
+					  "34.4 Kbps (Modem)", "57.6 Kbps (Modem)",
+					  "115.2 Kbps (ISDN)", "262.2 Kbps (Cable/DSL)",
+					  "393.2 Kbps (Cable/DSL)","524.3 Kbps (Cable/DSL)",
+					  "1.5 Mbps (T1)", "10.5 Mbps (LAN)", NULL};
 
 /* connection methods */
-const char *mms_protocol_strs[]={"auto", "TCP", "HTTP", NULL};
+static const char *mms_protocol_strs[]={"auto", "TCP", "HTTP", NULL};
 
 typedef struct {
   input_plugin_t   input_plugin;
@@ -475,7 +475,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->input_class.eject_media        = NULL;
 
   xine->config->register_enum(xine->config, "media.network.bandwidth", 10,
-			      (char **)mms_bandwidth_strs,
+			      mms_bandwidth_strs,
 			      _("network bandwidth"),
 			      _("Specify the bandwidth of your internet connection here. "
 			        "This will be used when streaming servers offer different versions "
@@ -485,7 +485,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->protocol = xine->config->register_enum(xine->config,
     "media.network.mms_protocol", 
     0, 
-    (char **)mms_protocol_strs, 
+    mms_protocol_strs, 
     _("MMS protocol"),
     _("Select the protocol to encapsulate MMS.\nTCP is better but you may need HTTP behind a firewall."),
      20, 
