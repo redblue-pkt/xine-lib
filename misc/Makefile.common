@@ -1,5 +1,7 @@
 XINE_LIB = $(top_builddir)/src/xine-engine/libxine.la
+
 xineplugdir = $(XINE_PLUGINDIR)
+xineplug_ldflags = $(NOUNDEF) -avoid-version -module
 
 $(XINE_LIB):
 	@cd $(top_srcdir)/src/xine-engine && $(MAKE)

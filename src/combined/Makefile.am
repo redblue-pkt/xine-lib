@@ -9,4 +9,4 @@ xineplug_LTLIBRARIES = $(xineplug_wavpack)
 xineplug_wavpack_la_SOURCES = demux_wavpack.c decoder_wavpack.c combined_wavpack.c combined_wavpack.h
 xineplug_wavpack_la_CFLAGS = $(WAVPACK_CFLAGS) -I$(srcdir)/../demuxers
 xineplug_wavpack_la_LIBADD = $(XINE_LIB) $(WAVPACK_LIBS)
-xineplug_wavpack_la_LDFLAGS = -avoid-version -module
+xineplug_wavpack_la_LDFLAGS = $(xineplug_ldflags)

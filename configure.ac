@@ -2605,17 +2605,16 @@ AC_TRY_CFLAGS([-Wstrict-aliasing], [wsa="-Wstrict-aliasing"])
 AC_TRY_CFLAGS([-Wstrict-aliasing=2], [wsa="-Wstrict-aliasing=2"])
 CFLAGS="$CFLAGS $wsa"
 
-dnl disabled "-Wl,-z,defs": it breaks compilation for vidix drivers.
-dnl note: no, linking twice to libdha.a is not an acceptable solution.
-dnl case $host_or_hostalias in
-dnl      dnl FreeBSD (et al.) does not complete linking for shared objects when pthreads
-dnl      dnl are requested, as different implementations are present; to avoid problems
-dnl      dnl use -Wl,-z,defs only for those platform not behaving this way.
-dnl      *-freebsd*) ;;
-dnl      *)
-dnl 	AC_TRY_LDFLAGS([-Wl,-z,defs], [LDFLAGS="$LDFLAGS -Wl,-z,defs"])
-dnl 	;;
-dnl esac
+case $host_or_hostalias in
+     dnl FreeBSD (et al.) does not complete linking for shared objects when pthreads
+     dnl are requested, as different implementations are present; to avoid problems
+     dnl use -Wl,-z,defs only for those platform not behaving this way.
+     *-freebsd*) ;;
+     *)
+	AC_TRY_LDFLAGS([-Wl,-z,defs], [NOUNDEF="-Wl,-z,defs"])
+	;;
+esac
+AC_SUBST([NOUNDEF])
 
 dnl Common cflags for all platforms
 CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
