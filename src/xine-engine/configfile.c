@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: configfile.c,v 1.84 2007/02/20 00:01:19 dgp85 Exp $
+ * $Id: configfile.c,v 1.85 2007/02/22 15:49:16 dgp85 Exp $
  *
  * config object (was: file) management - implementation
  *
@@ -717,7 +717,7 @@ static int config_parse_enum (const char *str, const char **values) {
 static int config_register_enum (config_values_t *this,
 				 const char *key,
 				 int def_value,
-				 const char **values,
+				 char **values,
 				 const char *description,
 				 const char *help,
 				 int exp_level,

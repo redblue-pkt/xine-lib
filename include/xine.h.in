@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.166 2007/02/20 00:43:06 dgp85 Exp $
+ * $Id: xine.h.in,v 1.167 2007/02/22 15:49:16 dgp85 Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1488,7 +1488,7 @@ int   xine_config_register_range  (xine_t *self,
 int   xine_config_register_enum   (xine_t *self,
 				   const char *key,
 				   int def_value,
-				   const char **values,
+				   char **values,
 				   const char *description,
 				   const char *help,
 				   int   exp_level,
