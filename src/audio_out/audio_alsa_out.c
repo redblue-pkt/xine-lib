@@ -26,7 +26,7 @@
  * (c) 2001 James Courtier-Dutton <James@superbug.demon.co.uk>
  *
  * 
- * $Id: audio_alsa_out.c,v 1.166 2007/02/20 00:04:50 dgp85 Exp $
+ * $Id: audio_alsa_out.c,v 1.167 2007/02/25 21:54:04 miguelfreitas Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -162,7 +162,6 @@ static int my_snd_mixer_wait(snd_mixer_t *mixer, int timeout) {
 static void *ao_alsa_handle_event_thread(void *data) {
   alsa_driver_t  *this = (alsa_driver_t *) data;
 
-  this->mixer.running = 1;
   do {
 
     if(my_snd_mixer_wait(this->mixer.handle, 333) > 0) {
@@ -1292,6 +1291,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   if (send_events && found) {
     pthread_attr_t       pth_attrs;
     struct sched_param   pth_params;
+  
+    this->mixer.running = 1;
 
     pthread_attr_init(&pth_attrs);
     
