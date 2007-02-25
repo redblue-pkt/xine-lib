@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.10 2007/02/25 17:53:51 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.11 2007/02/25 17:57:04 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -116,7 +116,6 @@ static uint32_t xine_buffer_get_length(void *const this_gen) {
 }
 
 static int xine_buffer_can_seek(void *const this_gen) {
-  wavpack_decoder_t *const this = (wavpack_decoder_t*)this_gen;
   return 1;
 }
 
@@ -137,7 +136,7 @@ static void wavpack_reset (audio_decoder_t *const this_gen)
 
 static void wavpack_discontinuity (audio_decoder_t *const this_gen) 
 {
-  wavpack_decoder_t *this = (wavpack_decoder_t *) this_gen;
+  /* wavpack_decoder_t *this = (wavpack_decoder_t *) this_gen; */
 
   lprintf("Discontinuity!\n");
 }
@@ -145,7 +144,6 @@ static void wavpack_discontinuity (audio_decoder_t *const this_gen)
 static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t *const buf)
 {
     wavpack_decoder_t *const this = (wavpack_decoder_t *) this_gen;
-    int ret = 1;
         
     /* We are getting the stream header, open up the audio
      * device, and collect information about the stream
