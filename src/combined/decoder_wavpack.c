@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.8 2007/02/25 17:34:48 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.9 2007/02/25 17:52:16 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -40,11 +40,11 @@ typedef struct {
 
   xine_stream_t    *stream;
 
-  int               output_open;
-
   int               sample_rate;
-  int               bits_per_sample;
-  int               channels;
+  uint16_t          bits_per_sample:6;
+  uint16_t          channels:4;
+
+  uint16_t          output_open:1;
 
   uint8_t          *buf;
   size_t            buf_size;
@@ -123,7 +123,7 @@ static int xine_buffer_can_seek(void *const this_gen) {
 static int32_t xine_buffer_write_bytes(__unused void *const id,
 				      __unused void *const data,
 				      __unused const int32_t bcount) {
-  lprintf("xine_buffer_write_bytes: acces is read-only.\n");
+  lprintf("xine_buffer_write_bytes: access is read-only.\n");
   return 0;
 }
 
@@ -155,7 +155,9 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
         int mode = AO_CAP_MODE_MONO;
 
         this->sample_rate     = buf->decoder_info[1];
+	_x_assert(buf->decoder_info[2] <= 32);
         this->bits_per_sample = buf->decoder_info[2];
+	_x_assert(buf->decoder_info[3] <= 8);
         this->channels        = buf->decoder_info[3];
 
 	mode = _x_ao_channels2mode(this->channels);
@@ -170,7 +172,7 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
                                             this->stream,
                                             this->bits_per_sample,
                                             this->sample_rate,
-                                            mode);
+                                            mode) ? 1 : 0;
         }
         this->buf_pos = 0;
     } else if (this->output_open) {

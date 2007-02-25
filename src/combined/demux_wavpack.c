@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: demux_wavpack.c,v 1.8 2007/02/25 17:34:48 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.9 2007/02/25 17:52:16 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -46,8 +46,8 @@ typedef struct {
   uint32_t current_sample;
   uint32_t samples;
   uint32_t samplerate;
-  uint32_t bits_per_sample;
-  uint32_t channels;
+  uint16_t bits_per_sample:6;
+  uint16_t channels:4;
 } demux_wv_t;
 
 typedef struct {
@@ -118,6 +118,7 @@ static int open_wv_file(demux_wv_t *const this) {
   WavpackContext *ctx = NULL;
   char error[256]; /* Current version of wavpack (4.31) does not write more than this */
   wvheader_t header;
+  uint32_t tmp;
 
   /* Right now we don't support non-seekable streams */
   if (! INPUT_IS_SEEKABLE(this->input) ) {
@@ -147,10 +148,14 @@ static int open_wv_file(demux_wv_t *const this) {
   lprintf("number of samples: %u\n", this->samples);
   this->samplerate = WavpackGetSampleRate(ctx);
   lprintf("samplerate: %u Hz\n", this->samplerate);
-  this->bits_per_sample = WavpackGetBitsPerSample(ctx);
-  lprintf("bits_per_sample: %u\n", this->bits_per_sample);
-  this->channels = WavpackGetNumChannels(ctx);
-  lprintf("channels: %u\n", this->channels);
+
+  tmp = WavpackGetBitsPerSample(ctx); _x_assert(tmp <= 32);
+  lprintf("bits_per_sample: %u\n", tmp);
+  this->bits_per_sample = tmp;
+
+  tmp = WavpackGetNumChannels(ctx); _x_assert(tmp <= 8);
+  lprintf("channels: %u\n", tmp);
+  this->channels = tmp;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_FOURCC,
