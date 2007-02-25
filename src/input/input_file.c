@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.120 2007/01/19 01:05:25 dgp85 Exp $
+ * $Id: input_file.c,v 1.121 2007/02/25 18:04:08 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -280,11 +280,6 @@ static off_t file_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t file_plugin_get_blocksize (input_plugin_t *this_gen) {
-  file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
-#if 0 && defined(HAVE_MMAP)
-  if ( check_mmap_file(this) )
-    return this->mmap_len;
-#endif
   return 0;
 }
 
