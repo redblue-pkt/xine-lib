@@ -20,7 +20,7 @@
  * True Audio demuxer by Diego Pettenò <flameeyes@gentoo.org>
  * Inspired by tta libavformat demuxer by Alex Beregszaszi
  *
- * $Id: demux_tta.c,v 1.2 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_tta.c,v 1.3 2007/02/25 18:04:57 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_tta"
@@ -68,7 +68,7 @@ typedef struct {
 
 static int open_tta_file(demux_tta_t *this) {
   uint8_t peek[4];
-  uint32_t framelen; int i;
+  uint32_t framelen;
 
   if (_x_demux_read_header(this->input, peek, 4) != 4)
       return 0;
