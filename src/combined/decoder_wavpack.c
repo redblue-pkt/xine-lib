@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.9 2007/02/25 17:52:16 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.10 2007/02/25 17:53:51 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -274,8 +274,7 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
 	WavpackCloseFile(ctx);
 	this->buf_pos = 0;
       }
-    } else
-      return;
+    }
 }
 
 static void wavpack_dispose (audio_decoder_t *this_gen) {
