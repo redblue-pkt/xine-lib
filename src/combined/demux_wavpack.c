@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: demux_wavpack.c,v 1.9 2007/02/25 17:52:16 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.10 2007/02/25 18:02:13 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -96,9 +96,9 @@ static int xine_input_can_seek(void *const this_gen) {
   return INPUT_IS_SEEKABLE(this);
 }
 
-static int32_t xine_input_write_bytes(__unused void *const id,
-				      __unused void *const data,
-				      __unused const int32_t bcount) {
+static int32_t xine_input_write_bytes(__attr_unused void *const id,
+				      __attr_unused void *const data,
+				      __attr_unused const int32_t bcount) {
   lprintf("xine_input_write_bytes: acces is read-only.\n");
   return 0;
 }

@@ -59,11 +59,11 @@
 # define XINE_SENTINEL
 #endif
 
-#ifndef __unused
+#ifndef __attr_unused
 # ifdef SUPPORT_ATTRIBUTE_UNUSED
-#  define __unused __attribute__((unused))
+#  define __attr_unused __attribute__((unused))
 # else
-#  define __unused
+#  define __attr_unused
 # endif
 #endif
 

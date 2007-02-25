@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.11 2007/02/25 17:57:04 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.12 2007/02/25 18:02:13 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
@@ -119,9 +119,9 @@ static int xine_buffer_can_seek(void *const this_gen) {
   return 1;
 }
 
-static int32_t xine_buffer_write_bytes(__unused void *const id,
-				      __unused void *const data,
-				      __unused const int32_t bcount) {
+static int32_t xine_buffer_write_bytes(__attr_unused void *const id,
+				      __attr_unused void *const data,
+				      __attr_unused const int32_t bcount) {
   lprintf("xine_buffer_write_bytes: access is read-only.\n");
   return 0;
 }
