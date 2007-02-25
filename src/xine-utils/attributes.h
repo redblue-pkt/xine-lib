@@ -59,4 +59,12 @@
 # define XINE_SENTINEL
 #endif
 
+#ifndef __unused
+# ifdef SUPPORT_ATTRIBUTE_UNUSED
+#  define __unused __attribute__((unused))
+# else
+#  define __unused
+# endif
+#endif
+
 #endif /* ATTRIBUTE_H_ */

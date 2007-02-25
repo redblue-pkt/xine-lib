@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: demux_wavpack.c,v 1.7 2007/01/24 22:05:09 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.8 2007/02/25 17:34:48 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_wavpack"
@@ -29,6 +29,7 @@
 #include "xineutils.h"
 #include "demux.h"
 #include "bswap.h"
+#include "attributes.h"
 
 #include <wavpack/wavpack.h>
 
@@ -52,14 +53,6 @@ typedef struct {
 typedef struct {
   demux_class_t demux_class;
 } demux_wv_class_t;
-
-#ifndef __unused
-# ifdef SUPPORT_ATTRIBUTE_UNUSED
-#  define __unused __attribute__((unused))
-# else
-#  define __unused
-# endif
-#endif
 
 static int32_t xine_input_read_bytes(void *const this_gen, void *const data,
 				     const int32_t bcount) {

@@ -19,13 +19,14 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.7 2007/01/26 18:23:06 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.8 2007/02/25 17:34:48 dgp85 Exp $
  */
 
 #define LOG_MODULE "decode_wavpack"
 #define LOG_VERBOSE
 
 #include "xine_internal.h"
+#include "attributes.h"
 
 #include <wavpack/wavpack.h>
 #include "combined_wavpack.h"
@@ -49,14 +50,6 @@ typedef struct {
   size_t            buf_size;
   size_t            buf_pos;
 } wavpack_decoder_t;
-
-#ifndef __unused
-# ifdef SUPPORT_ATTRIBUTE_UNUSED
-#  define __unused __attribute__((unused))
-# else
-#  define __unused
-# endif
-#endif
 
 /* Wrapper functions for Wavpack */
 static int32_t xine_buffer_read_bytes(void *const this_gen, void *const data,
