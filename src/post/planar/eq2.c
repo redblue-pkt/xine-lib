@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: eq2.c,v 1.16 2006/03/26 14:45:41 valtri Exp $
+ * $Id: eq2.c,v 1.17 2007/02/26 19:15:15 dsalt Exp $
  *
  * mplayer's eq2 (soft video equalizer)
  * Software equalizer (brightness, contrast, gamma, saturation)
@@ -599,12 +599,12 @@ static int eq2_draw(vo_frame_t *frame, xine_stream_t *stream)
     pthread_mutex_lock (&this->lock);
 
     for (i = 0; i < 3; i++) {
-      int height;
+      int height, width;
       height = (i==0) ? frame->height : frame->height/2;
-
+      width = (i==0) ? frame->width : frame->width/2;
       if (eq2->param[i].adjust != NULL) {
         eq2->param[i].adjust (&eq2->param[i], out_frame->base[i], yv12_frame->base[i],
-          frame->width, height, out_frame->pitches[i], yv12_frame->pitches[i]);
+          width, height, out_frame->pitches[i], yv12_frame->pitches[i]);
       }
       else {
         xine_fast_memcpy(out_frame->base[i],yv12_frame->base[i],

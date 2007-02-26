@@ -6,6 +6,7 @@ xine-lib (1.1.5)
     The plugins are contributed by Christoph Pfister with the help of
     Vincent Torri, Jamey Sharp and Christophe Thommeret.
   * Fix race condition in alsa audio out driver.
+  * Fixed a crash in the eq2 plugin. [Bug 1644312]
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
