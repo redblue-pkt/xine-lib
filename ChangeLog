@@ -7,6 +7,8 @@ xine-lib (1.1.5)
     Vincent Torri, Jamey Sharp and Christophe Thommeret.
   * Fix race condition in alsa audio out driver.
   * Fixed a crash in the eq2 plugin. [Bug 1644312]
+  * Fixed content type detection for AAC (seekable) streams with ID3v2
+    tags prefixed clobbering the preview buffer, by skipping over the tag.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
@@ -31,7 +33,7 @@ xine-lib (1.1.4)
     by Roland Kay. [bug #1602631]
   * Don't check for libpostproc version and assume that if libavcodec is found
     correctly, libpostproc is of the same version, too. Reported by Ville
-    Skytt‰. [bug #1617344]
+    Skytt√§. [bug #1617344]
   * Fix Shorten demuxer: the whole "ajkg" signature has to be found, not only
     one character of it. [bug #1601134]
   * Implement at least a partial content-based detection of ModPlug-decoded
@@ -1276,7 +1278,7 @@ xine (0.5.0) unstable; urgency=low
   * artsd support
   * dxr3/h+ support now finally in the official tree
   * 4/5/5.1 audio channel output (OSS/ ALSA?)
-  * a new default skin by JÈrÙme Villette
+  * a new default skin by J√©r√¥me Villette
 
  -- Guenter Bartsch <guenter@users.sourceforge.net>  Sun,  22 Jul 2001 13:10:52 +0200
 
