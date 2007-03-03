@@ -21,7 +21,7 @@
  * This demuxer detects ADIF and ADTS headers in AAC files.
  * Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.15 2007/03/03 00:33:51 dgp85 Exp $
+ * $Id: demux_aac.c,v 1.16 2007/03/03 00:58:52 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,9 +37,9 @@
 
 #define LOG_MODULE "demux_aac"
 #define LOG_VERBOSE
-
+/*
 #define LOG
-
+*/
 
 #include "xine_internal.h"
 #include "xineutils.h"
@@ -88,37 +88,7 @@ static int open_aac_file(demux_aac_t *this) {
 
     this->input->seek(this->input, 4, SEEK_SET);
 
-    /* Now parse the tag */
-    switch(peak[3]) {
-    case 2: /* ID3v2.2 */
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      LOG_MODULE ": ID3V2.2 tag\n");
-      if ( ! id3v22_parse_tag(this->input, this->stream, peak) )
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		LOG_MODULE ": ID3V2.2 tag parsing error\n");
-	return 0;
-      break;
-
-    case 3: /* ID3v2.3 */
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      LOG_MODULE ": ID3V2.3 tag\n");
-      if ( ! id3v23_parse_tag(this->input, this->stream, peak) )
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		LOG_MODULE ": ID3V2.3 tag parsing error\n");
-      break;
-
-    case 4: /* ID3v2.4 */
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      LOG_MODULE ": ID3V2.4 tag\n");
-      if ( ! id3v24_parse_tag(this->input, this->stream, peak) )
-	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		LOG_MODULE ": ID3V2.4 tag parsing error\n");
-      break;
-
-    default:
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      LOG_MODULE ": Unknown ID3v2 version: 0x%02x.\n", peak[3]);
-    }
+    id3v2_parse_tag(this->input, this->stream, peak);
 
     lprintf("ID3v2 tag encountered, skipping %u bytes.\n", id3size);
   }

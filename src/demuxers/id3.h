@@ -21,7 +21,7 @@
  *
  * Supported versions: v1, v1.1, v2.2, v2.3, v2.4
  *
- * $Id: id3.h,v 1.4 2005/09/15 18:45:15 tmattern Exp $
+ * $Id: id3.h,v 1.5 2007/03/03 00:58:52 dgp85 Exp $
  */
 
 #ifndef ID3_H
@@ -37,6 +37,7 @@
 #define ID3V23_TAG        FOURCC_TAG('I', 'D', '3', 3) /* id3 v2.3 header tag */
 #define ID3V24_TAG        FOURCC_TAG('I', 'D', '3', 4) /* id3 v2.4 header tag */
 #define ID3V24_FOOTER_TAG FOURCC_TAG('3', 'D', 'I', 0) /* id3 v2.4 footer tag */
+
 
 /*
  *  ID3 v2.2
@@ -163,5 +164,10 @@ int id3v23_parse_tag(input_plugin_t *input,
 int id3v24_parse_tag(input_plugin_t *input,
                      xine_stream_t *stream,
                      int8_t *mp3_frame_header);
+
+/* Generic function that switch between the three above */
+int id3v2_parse_tag(input_plugin_t *input,
+		    xine_stream_t *stream,
+		    int8_t *mp3_frame_header);
 
 #endif /* ID3_H */
