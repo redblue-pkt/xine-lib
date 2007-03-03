@@ -1482,12 +1482,14 @@ static void osd_free_object (osd_object_t *osd_to_close) {
     if ( osd == osd_to_close ) {
       free( osd->area );
 
+#ifdef HAVE_FT2
       if( osd->ft2 ) {
 	if ( osd->ft2->library )
 	  FT_Done_FreeType(osd->ft2->library);
 
 	free( osd->ft2 );
       }
+#endif
 
       osd_free_encoding(osd);
       
