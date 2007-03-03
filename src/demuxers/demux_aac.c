@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2005 the xine project
+ * Copyright (C) 2001-2007 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -21,7 +21,7 @@
  * This demuxer detects ADIF and ADTS headers in AAC files.
  * Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.14 2007/03/02 20:07:33 dgp85 Exp $
+ * $Id: demux_aac.c,v 1.15 2007/03/03 00:33:51 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -48,6 +48,8 @@
 #include "bswap.h"
 #include "group_audio.h"
 
+#include "id3.h"
+
 typedef struct {
   demux_plugin_t       demux_plugin;
 
@@ -72,29 +74,59 @@ static int open_aac_file(demux_aac_t *this) {
   uint8_t peak[MAX_PREVIEW_SIZE];
   uint16_t syncword = 0;
   uint32_t id3size = 0;
-  off_t data_start;
+  off_t data_start = 0;
 
-  /* Check for an ADIF header - should be at the start of the file */
-  if (_x_demux_read_header(this->input, peak, 4) != 4)
+  _x_assert(MAX_PREVIEW_SIZE > 10);
+
+  /* Get enough data to be able to check the size of ID3 tag */
+  if (_x_demux_read_header(this->input, peak, 10) != 10)
       return 0;
 
-  /* Skip the ID3v2 tag at the start */
+  /* Check if there's an ID3v2 tag at the start */
   if ( peak[0] == 'I' && peak[1] == 'D' && peak[2] == '3' ) {
+    id3size = (peak[6] << 7*3) + (peak[7] << 7*2) + (peak[8] << 7) + peak[9] + 10;
 
-    this->input->seek(this->input, 6, SEEK_SET);
-    if ( this->input->read(this->input, peak, 4) != 4 )
-      return 0;
+    this->input->seek(this->input, 4, SEEK_SET);
 
-    id3size = (peak[0] << 7*3) + (peak[1] << 7*2) + (peak[2] << 7) + peak[3] + 10;
+    /* Now parse the tag */
+    switch(peak[3]) {
+    case 2: /* ID3v2.2 */
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      LOG_MODULE ": ID3V2.2 tag\n");
+      if ( ! id3v22_parse_tag(this->input, this->stream, peak) )
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		LOG_MODULE ": ID3V2.2 tag parsing error\n");
+	return 0;
+      break;
+
+    case 3: /* ID3v2.3 */
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      LOG_MODULE ": ID3V2.3 tag\n");
+      if ( ! id3v23_parse_tag(this->input, this->stream, peak) )
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		LOG_MODULE ": ID3V2.3 tag parsing error\n");
+      break;
+
+    case 4: /* ID3v2.4 */
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      LOG_MODULE ": ID3V2.4 tag\n");
+      if ( ! id3v24_parse_tag(this->input, this->stream, peak) )
+	xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		LOG_MODULE ": ID3V2.4 tag parsing error\n");
+      break;
+
+    default:
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+	      LOG_MODULE ": Unknown ID3v2 version: 0x%02x.\n", peak[3]);
+    }
 
     lprintf("ID3v2 tag encountered, skipping %u bytes.\n", id3size);
-
-    this->input->seek(this->input, id3size-10, SEEK_CUR);
-
-    if ( this->input->read(this->input, peak, 4) != 4 )
-      return 0;
   }
 
+  if ( this->input->read(this->input, peak, 4) != 4 )
+    return 0;
+
+  /* Check for an ADIF header - should be at the start of the file */
   if ((peak[0] == 'A') && (peak[1] == 'D') &&
       (peak[2] == 'I') && (peak[3] == 'F')) {
     lprintf("found ADIF header\n");
@@ -112,8 +144,6 @@ static int open_aac_file(demux_aac_t *this) {
   } else if (_x_demux_read_header(this->input, peak, MAX_PREVIEW_SIZE) != 
 	   MAX_PREVIEW_SIZE)
     return 0;
-
-  data_start = 0;
 
   for (i=0; i<MAX_PREVIEW_SIZE; i++) {
     if ((syncword & 0xfff6) == 0xfff0) {
