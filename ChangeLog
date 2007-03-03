@@ -9,6 +9,10 @@ xine-lib (1.1.5)
   * Fixed a crash in the eq2 plugin. [Bug 1644312]
   * Fixed content type detection for AAC (seekable) streams with ID3v2
     tags prefixed clobbering the preview buffer, by skipping over the tag.
+  * Parse ID3v2 tags on AAC and FLAC files, as well as mp3 files.
+  * Priority of the AAC encoder is now lower than anything else, so
+    it's not going to crash xine down if you try to run an mp3 stream
+    on FAAD2.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
