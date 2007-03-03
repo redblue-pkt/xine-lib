@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2007 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -21,7 +21,7 @@
  *
  * Supported versions: v1, v1.1, v2.2, v2.3, v2.4
  *
- * $Id: id3.h,v 1.5 2007/03/03 00:58:52 dgp85 Exp $
+ * $Id: id3.h,v 1.6 2007/03/03 01:41:16 dgp85 Exp $
  */
 
 #ifndef ID3_H
@@ -169,5 +169,20 @@ int id3v24_parse_tag(input_plugin_t *input,
 int id3v2_parse_tag(input_plugin_t *input,
 		    xine_stream_t *stream,
 		    int8_t *mp3_frame_header);
+
+static inline int id3v2_istag(uint8_t *ptr) {
+  return
+    (ptr[0] == 'I') &&
+    (ptr[1] == 'D') &&
+    (ptr[2] == '3');
+}
+
+static inline uint32_t id3v2_tagsize(uint8_t *ptr) {
+  return
+    ((uint32_t)ptr[0] << 21) +
+    ((uint32_t)ptr[1] << 14) +
+    ((uint32_t)ptr[2] << 7) +
+    (uint32_t)ptr[3];
+}
 
 #endif /* ID3_H */

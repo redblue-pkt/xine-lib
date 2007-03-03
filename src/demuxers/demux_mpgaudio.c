@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2003 the xine project
+ * Copyright (C) 2000-2007 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.150 2007/03/03 00:58:52 dgp85 Exp $
+ * $Id: demux_mpgaudio.c,v 1.151 2007/03/03 01:41:16 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -606,7 +606,7 @@ static int demux_mpgaudio_next (demux_mpgaudio_t *this, int decoder_flags, int s
 	
         return parse_frame_payload(this, header_buf, decoder_flags);
         
-      } else if ( header_buf[0] == 'I' && header_buf[1] == 'D' && header_buf[2] == '3' ) {
+      } else if ( id3v2_istag(header_buf) ) {
 	if (!id3v2_parse_tag(this->input, this->stream, header_buf)) {
           xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
                   LOG_MODULE ": ID3V2 tag parsing error\n");
@@ -693,10 +693,7 @@ static int detect_mpgaudio_file(input_plugin_t *input) {
      * flac files can contain id3v2 tags
      */
     uint8_t *ptr = &buf[6];
-    uint32_t tag_size = ((uint32_t)ptr[0] << 21) +
-                        ((uint32_t)ptr[1] << 14) +
-                        ((uint32_t)ptr[2] << 7) +
-                         (uint32_t)ptr[3];
+    uint32_t tag_size = id3v2_tagsize(ptr);
     lprintf("try to skip id3v2 tag (%d bytes)\n", tag_size);
     if ((10 + tag_size) >= preview_len) {
       lprintf("cannot skip id3v2 tag\n");

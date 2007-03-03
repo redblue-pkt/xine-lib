@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2004 the xine project
+ * Copyright (C) 2000-2007 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.15 2007/03/02 23:46:29 dgp85 Exp $
+ * $Id: demux_flac.c,v 1.16 2007/03/03 01:41:16 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -49,6 +49,7 @@
 #include "bswap.h"
 #include "group_audio.h"
 
+#include "id3.h"
 #include "flacutils.h"
 
 typedef struct {
@@ -81,7 +82,7 @@ typedef struct {
  * It returns 1 if flac file was opened successfully. */
 static int open_flac_file(demux_flac_t *flac) {
 
-  unsigned char preamble[4];
+  unsigned char preamble[10];
   unsigned int block_length;
   unsigned char buffer[FLAC_SEEKPOINT_SIZE];
   unsigned char *streaminfo = flac->streaminfo + sizeof(xine_waveformatex);
@@ -89,8 +90,9 @@ static int open_flac_file(demux_flac_t *flac) {
 
   flac->seekpoints = NULL;
 
-  /* fetch the file signature */
-  if ( flac->input->read(flac->input, preamble, 4) != 4 )
+  /* fetch the file signature, get enough bytes so that id3 can also
+     be skipped and/or parsed */
+  if (_x_demux_read_header(flac->input, preamble, 10) != 10)
     return 0;
 
   /* Unfortunately some FLAC files have an ID3 flag prefixed on them
@@ -98,7 +100,7 @@ static int open_flac_file(demux_flac_t *flac) {
    * users use them and want them working, so check and skip the ID3
    * tag if present.
    */
-  if ( preamble[0] == 'I' && preamble[1] == 'D' && preamble[2] == '3' ) {
+  if ( id3v2_istag(preamble) ) {
     uint32_t id3size;
 
     /* First 3 bytes are the ID3 signature as above, then comes two bytes
@@ -109,18 +111,16 @@ static int open_flac_file(demux_flac_t *flac) {
      * is encoded as four bytes.. but only 7 out of 8 bits of every byte is
      * used... don't ask.
      */
-    flac->input->seek(flac->input, 6, SEEK_SET);
-    if ( flac->input->read(flac->input, preamble, 4) != 4 )
-      return 0;
+    id3size = id3v2_tagsize(&preamble[6]);
 
-    id3size = (preamble[0] << 7*3) + (preamble[1] << 7*2) +
-              (preamble[2] << 7) + preamble[3];
+    id3v2_parse_tag(flac->input, flac->stream, preamble);
 
-    flac->input->seek(flac->input, id3size, SEEK_CUR);
+    flac->input->seek(flac->input, id3size, SEEK_SET);
 
     if ( flac->input->read(flac->input, preamble, 4) != 4 )
       return 0;
-  }
+  } else
+    flac->input->seek(flac->input, 4, SEEK_SET);
 
   /* validate signature */
   if ((preamble[0] != 'f') || (preamble[1] != 'L') ||

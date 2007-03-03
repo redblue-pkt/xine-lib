@@ -21,7 +21,7 @@
  * This demuxer detects ADIF and ADTS headers in AAC files.
  * Then it shovels buffer-sized chunks over to the AAC decoder.
  *
- * $Id: demux_aac.c,v 1.16 2007/03/03 00:58:52 dgp85 Exp $
+ * $Id: demux_aac.c,v 1.17 2007/03/03 01:41:16 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -83,8 +83,8 @@ static int open_aac_file(demux_aac_t *this) {
       return 0;
 
   /* Check if there's an ID3v2 tag at the start */
-  if ( peak[0] == 'I' && peak[1] == 'D' && peak[2] == '3' ) {
-    id3size = (peak[6] << 7*3) + (peak[7] << 7*2) + (peak[8] << 7) + peak[9] + 10;
+  if ( id3v2_istag(peak) ) {
+    id3size = id3v2_tagsize(&peak[6]);
 
     this->input->seek(this->input, 4, SEEK_SET);
 
