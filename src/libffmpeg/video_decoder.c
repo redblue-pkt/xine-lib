@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2004 the xine project
+ * Copyright (C) 2001-2007 the xine project
  * 
  * This file is part of xine, a free video player.
  * 
@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.69 2007/01/21 15:12:21 klan Exp $
+ * $Id: video_decoder.c,v 1.70 2007/03/03 13:33:34 dgp85 Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -1140,10 +1140,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
     /* note: bitstream, alt bitstream reader or something will cause
      * severe mpeg4 artifacts if padding is less than 32 bits.
      */
-    chunk_buf[this->size+0] = 0;
-    chunk_buf[this->size+1] = 0;
-    chunk_buf[this->size+2] = 0;
-    chunk_buf[this->size+3] = 0;
+    memset(&chunk_buf[this->size], 0, FF_INPUT_BUFFER_PADDING_SIZE);
 
     while (this->size > 0) {
       
