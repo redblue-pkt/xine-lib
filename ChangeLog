@@ -1,4 +1,4 @@
-xine-lib (1.1.5)
+xine-lib (1.1.5) (Unreleased)
   * Improved PulseAudio plugin, now only one connection per instance is opened
     and the mainloop is threaded to reduce latency during playback.
   * Added XCB-based output plugins (Xv and XShm), to use in software using
@@ -13,6 +13,8 @@ xine-lib (1.1.5)
   * Priority of the AAC encoder is now lower than anything else, so
     it's not going to crash xine down if you try to run an mp3 stream
     on FAAD2.
+  * Relicense the xine-lib XML parser under the GNU LGPL, for use in other
+    projects.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
