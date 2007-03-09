@@ -285,6 +285,11 @@ LIBS="$ac_save_LIBS"
 
 AC_MSG_RESULT($have_recursive_mutex)
 
+AC_CHECK_DECL(sysi86,[
+	AC_DEFINE(HAVE_SYSI86,1,[Define this if the 'sysi86' function is declared in sys/sysi86.h])
+      ],,[
+#include <sys/sysi86.h>
+])
 
 dnl ---------------------------------------------
 dnl Windows ports checks
