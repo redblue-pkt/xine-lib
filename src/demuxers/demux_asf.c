@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_asf.c,v 1.193 2007/02/20 00:34:55 dgp85 Exp $
+ * $Id: demux_asf.c,v 1.194 2007/03/09 23:18:19 dgp85 Exp $
  *
  * demultiplexer for asf streams
  *
@@ -38,6 +38,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
 
 #define LOG_MODULE "demux_asf"
 #define LOG_VERBOSE

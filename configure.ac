@@ -2171,7 +2171,7 @@ if test "x$some_snprintf" != "xyes" -o \
 fi
 AC_FUNC_FSEEKO
 AC_DEFINE(_GNU_SOURCE)
-AC_CHECK_HEADERS(assert.h byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h)
+AC_CHECK_HEADERS(assert.h byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h alloca.h)
 AC_REPLACE_FUNCS(asprintf basename gettimeofday setenv strndup strpbrk strsep strtok_r timegm unsetenv)
 
 AC_LIBSOURCE(hstrerror.c)
