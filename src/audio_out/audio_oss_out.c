@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.117 2006/07/16 16:18:09 dsalt Exp $
+ * $Id: audio_oss_out.c,v 1.118 2007/03/09 23:56:42 dgp85 Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -74,6 +74,16 @@
 #include "audio_out.h"
 
 #include <sys/time.h>
+
+#ifndef SNDCTL_DSP_SETFMT
+/* Deprecated OSS API */
+#define SNDCTL_DSP_SETFMT SOUND_PCM_SETFMT
+#endif
+
+#ifndef SNDCTL_DSP_SPEED
+/* Deprecated OSS API */
+#define SNDCTL_DSP_SPEED SOUND_PCM_WRITE_RATE
+#endif
 
 #ifndef AFMT_S16_NE
 # if defined(sparc) || defined(__sparc__) || defined(PPC)
@@ -789,9 +799,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
    */
 
   arg = AFMT_S16_NE; 
-  status = ioctl(audio_fd, SOUND_PCM_SETFMT, &arg);
+  status = ioctl(audio_fd, SNDCTL_DSP_SETFMT, &arg);
   arg = 44100;
-  status = ioctl(audio_fd, SOUND_PCM_WRITE_RATE, &arg);
+  status = ioctl(audio_fd, SNDCTL_DSP_SPEED, &arg);
 
   /*
    * find out which sync method to use
@@ -903,12 +913,12 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   this->capabilities = 0;
   
   arg = AFMT_U8;
-  if( ioctl(audio_fd, SOUND_PCM_SETFMT, &arg) != -1  && arg == AFMT_U8)
+  if( ioctl(audio_fd, SNDCTL_DSP_SETFMT, &arg) != -1  && arg == AFMT_U8)
     this->capabilities |= AO_CAP_8BITS;
   
   /* switch back to 16bits, because some soundcards otherwise do not report all their capabilities */
   arg = AFMT_S16_NE;
-  if (ioctl(audio_fd, SOUND_PCM_SETFMT, &arg) == -1 || arg != AFMT_S16_NE) {
+  if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &arg) == -1 || arg != AFMT_S16_NE) {
     xprintf(class->xine, XINE_VERBOSITY_DEBUG, "audio_oss_out: switching the soundcard to 16 bits mode failed\n");
     free(this);
     close(audio_fd);
