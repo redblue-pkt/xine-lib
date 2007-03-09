@@ -131,6 +131,7 @@ AC_PROG_LN_S
 AC_PROG_AWK
 AC_C_INLINE
 
+AC_CHECK_TOOL([STRINGS], [strings], [false])
 
 dnl ---------------------------------------------
 dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL

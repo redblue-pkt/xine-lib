@@ -78,11 +78,9 @@ slackbuild:
 	 PREFIX="/usr" misc/SlackBuild
 
 
-STRINGS=$(shell which -- "${CHOST}-strings" 2>/dev/null || which strings 2>/dev/null || false)
-
 install-exec-hook:
 	find $(top_builddir) -name \*.so | \
-	  xargs $(STRINGS) | \
+	  xargs $(STRINGS) -a | \
 	  egrep '^([-a-z]+/[-+.a-z0-9]+:[^:]+:[^;]+;[ \t]*)+' | \
 	  sed -e 's/:[^;]\+;/\n/g' | \
 	  sort -u | \
