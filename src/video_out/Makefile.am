@@ -118,18 +118,18 @@ xineplug_vo_out_xshm_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_xv_la_SOURCES = $(X11OSD) deinterlace.c video_out_xv.c
 xineplug_vo_out_xv_la_LIBADD = $(XV_LIBS) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
-xineplug_vo_out_xv_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) -fno-strict-aliasing
+xineplug_vo_out_xv_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) $(XV_CFLAGS) -fno-strict-aliasing
 xineplug_vo_out_xv_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_xvmc_la_SOURCES = deinterlace.c video_out_xvmc.c
 xineplug_vo_out_xvmc_la_LIBADD = $(XVMC_LIBS) $(XV_LIBS) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
-xineplug_vo_out_xvmc_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS)
+xineplug_vo_out_xvmc_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) $(XV_CFLAGS)
 xineplug_vo_out_xvmc_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_xxmc_la_SOURCES = $(X11OSD) deinterlace.c video_out_xxmc.c\
 				xvmc_mocomp.c xvmc_vld.c xxmc.h
 xineplug_vo_out_xxmc_la_LIBADD = $(XXMC_LIBS) $(XV_LIBS) $(X_LIBS) -lXext $(X_PRE_LIBS) -lX11 $(XINE_LIB) $(THREAD_LIBS)
-xineplug_vo_out_xxmc_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) -fno-strict-aliasing
+xineplug_vo_out_xxmc_la_CFLAGS = $(VISIBILITY_FLAG) $(X_CFLAGS) $(XV_CFLAGS) -fno-strict-aliasing
 xineplug_vo_out_xxmc_la_LDFLAGS = -avoid-version -module
 
 xineplug_vo_out_opengl_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c \
