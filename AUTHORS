@@ -568,4 +568,7 @@ Chris Cannam <chris.cannam@ferventsoftware.com>
 Christoph Pfister <christophpfister@gmail.com>
   XCB output plugins
 
+Albert Lee <trisk+xine@acm.jhu.edu>
+  Solaris portability fixes (and other miscellaneous fixes)
+
 (let us know if we've forgotten anyone)
