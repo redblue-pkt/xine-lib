@@ -12,7 +12,7 @@ install-data-hook:
 	    $(top_srcdir)/post-install.sh ; \
 	  fi; \
 	fi; \
-	if test -x /usr/bin/chcon -a `id -u` -eq 0; then \
+	if test -x /usr/bin/chcon -a "`id -u`" -eq 0; then \
 	  list='$(lib_LTLIBRARIES)'; \
 	  if test -n "$$list" ; then \
 	    for p in $$list; do \
