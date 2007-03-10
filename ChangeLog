@@ -1,4 +1,7 @@
 xine-lib (1.1.5) (Unreleased)
+  * Security fixes:
+    - Fix heap overflow in DMO loader. (CVE-2007-1246) [bug #1676925]
+      Thanks to Kees Cook for reporting.
   * Improved PulseAudio plugin, now only one connection per instance is opened
     and the mainloop is threaded to reduce latency during playback.
   * Added XCB-based output plugins (Xv and XShm), to use in software using
