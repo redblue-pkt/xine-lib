@@ -55,7 +55,8 @@ wrapper:
 	leal .Lwrapper_return@GOTOFF(%ebx), %eax
 	movl %eax, 40(%ebp)
 
-	movl wrapper_target@GOTOFF(%ebx), %eax
+	movl wrapper_target@GOT(%ebx), %eax
+	movl (%eax), %eax
 	mov %eax, 40(%ebp)	# wrapper_target should return at .Lwrapper_return
 
 	leave			# restore %esp, %ebp
