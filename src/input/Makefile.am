@@ -82,7 +82,7 @@ xineplug_inp_dvd_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_dvd_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_net_la_SOURCES = input_net.c net_buf_ctrl.c
-xineplug_inp_net_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
+xineplug_inp_net_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(THREAD_LIBS)
 xineplug_inp_net_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_net_la_LDFLAGS = -avoid-version -module
 
@@ -102,12 +102,12 @@ xineplug_inp_stdin_fifo_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_stdin_fifo_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_rtp_la_SOURCES = input_rtp.c net_buf_ctrl.c
-xineplug_inp_rtp_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
+xineplug_inp_rtp_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(THREAD_LIBS)
 xineplug_inp_rtp_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_rtp_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_http_la_SOURCES = input_http.c net_buf_ctrl.c http_helper.c
-xineplug_inp_http_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
+xineplug_inp_http_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(THREAD_LIBS)
 xineplug_inp_http_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_http_la_LDFLAGS = -avoid-version -module
 

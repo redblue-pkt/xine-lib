@@ -28,7 +28,7 @@ libxine_la_DEPENDENCIES = $(XINEUTILS_LIB) \
                           $(pthread_dep) $(LIBXINEPOSIX)
 libxine_la_LIBADD = $(THREAD_LIBS) $(DYNAMIC_LD_LIBS) $(LTLIBINTL) $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(LIBICONV) $(FT2_LIBS) $(FONTCONFIG_LIBS) \
-                    $(LIBXINEPOSIX) $(RT_LIBS)
+                    $(LIBXINEPOSIX) $(RT_LIBS) $(NET_LIBS)
 
 libxine_la_LDFLAGS =  \
 	-version-info $(XINE_LT_CURRENT):$(XINE_LT_REVISION):$(XINE_LT_AGE) \

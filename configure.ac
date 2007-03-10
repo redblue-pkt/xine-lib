@@ -2185,9 +2185,14 @@ AC_LINK_IFELSE([#include <netdb.h>
 int main(void) {
   hstrerror(0);
 }], ac_cv_function_system_hstrerror="yes")
-AC_CHECK_LIB([resolv], [hstrerror], [ac_cv_function_system_hstrerror="yes"])
+AC_CHECK_LIB([resolv], [hstrerror], [
+  ac_cv_function_system_hstrerror="yes"
+  NET_LIBS="-lresolv $NET_LIBS"
+])
+AC_SUBST(NET_LIBS)
 if test "x$ac_cv_function_system_hstrerror" = "xyes"; then
   AC_DEFINE(HAVE_HSTRERROR, 1, [Define to 1 if you have 'hstrerror' in <netdb.h>])
+
 else
   AC_LIBOBJ(hstrerror)
 fi
