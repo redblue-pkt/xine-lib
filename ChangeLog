@@ -20,6 +20,7 @@ xine-lib (1.1.5) (Unreleased)
     projects.
   * Improvement in portability to Solaris and NetBSD, thanks to Albert Lee and
     Sergey Svishchev respectively.
+  * Spanish translation updated by Carlos E. Robinson M.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
