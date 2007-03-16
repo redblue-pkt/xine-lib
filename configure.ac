@@ -1754,35 +1754,18 @@ if test "x$enable_vcd" = "xyes"; then
   fi
   dnl empty_array_size
 
-  if test "x$internal_vcdnav" = "xno" && test "x$PKG_CONFIG" != "xno" ; then
-    AC_MSG_CHECKING(for libcdio)
-    if $PKG_CONFIG --atleast-version 0.71 libcdio; then
-      AC_MSG_RESULT(found)
-      LIBCDIO_CFLAGS=`$PKG_CONFIG --cflags libcdio`
-      LIBCDIO_LIBS=`$PKG_CONFIG --libs libcdio`
-
-      AC_MSG_CHECKING(for libvcdinfo)
-      if $PKG_CONFIG --atleast-version 0.7.23 libvcdinfo; then
-        AC_MSG_RESULT(found)
-        LIBVCDINFO_CFLAGS=`$PKG_CONFIG --cflags libvcdinfo`
-        LIBVCDINFO_LIBS=`$PKG_CONFIG --libs libvcdinfo`
-	  AC_DEFINE(HAVE_VCDNAV,1,[Define this if you have a suitable version of libcdio/libvcd])
-      else
-        AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
-	internal_vcdnav="yes"
-      fi
-
-    else
-      AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
-      internal_vcdnav="yes"
+  if test "x$internal_vcdnav" = "xno" ; then
+    PKG_CHECK_MODULES([LIBCDIO], [libcdio >= 0.71], [], [internal_vcdnav=yes])
+    PKG_CHECK_MODULES([LIBVCDINFO], [libvcdinfo >= 0.7.23], [], [internal_vcdnav=yes])
+    if "x$internal_vcdnav" = "xyes"; then
+       AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
     fi
-  else
-    AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
-    internal_vcdnav="yes"
   fi
 
   dnl check twice, fallback is internal copy
-  if test "x$internal_vcdnav" = "xyes"; then
+  if test "x$internal_vcdnav" = "xno"; then
+     AC_DEFINE([HAVE_VCDNAV], [1], [Define this if you use external libcdio/libvcdinfo])
+  else
     AC_DEFINE_UNQUOTED(HOST_ARCH, "$host_os/$host_cpu", [host os/cpu identifier])
 
     AC_DEFINE(_DEVELOPMENT_, [], enable warnings about being development release)
