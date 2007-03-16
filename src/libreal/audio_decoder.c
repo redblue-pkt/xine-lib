@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.52 2007/03/16 19:31:57 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.53 2007/03/16 20:02:33 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -101,22 +101,6 @@ typedef struct {
     int    codec_data_length;
     void  *extras;
 } ra_init_t;
-
-void *__builtin_new(unsigned long size);
-void __builtin_delete (void *foo);
-void *__builtin_vec_new(unsigned long size);
-void __builtin_vec_delete(void *mem);
-void __pure_virtual(void);
-
-
-void *__builtin_new(unsigned long size) {
-  return malloc(size);
-}
-
-void __builtin_delete (void *foo) {
-  /* printf ("libareal: __builtin_delete called\n"); */
-  free (foo);
-}
 
 static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
 			    const char *alt_codec_name) {
@@ -624,24 +608,6 @@ static char *get_description (audio_decoder_class_t *this) {
 
 static void dispose_class (audio_decoder_class_t *this) {
   free (this);
-}
-
-/*
- * some fake functions to make real codecs happy 
- */
-void *__builtin_vec_new(unsigned long size) EXPORTED;
-void __builtin_vec_delete(void *mem) EXPORTED;
-void __pure_virtual(void) EXPORTED;
-
-void *__builtin_vec_new(unsigned long size) {
-  return malloc(size);
-}
-void __builtin_vec_delete(void *mem) {
-  free(mem);
-}
-void __pure_virtual(void) {
-  lprintf("libareal: FATAL: __pure_virtual() called!\n");
-  /*      exit(1); */
 }
 
 /*

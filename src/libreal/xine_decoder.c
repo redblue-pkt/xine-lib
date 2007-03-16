@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.86 2007/03/16 19:31:57 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.87 2007/03/16 20:02:33 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -522,23 +522,7 @@ static void dispose_class (video_decoder_class_t *this) {
   free (this);
 }
 
-/*
- * some fake functions to make real codecs happy 
- */
-void *__builtin_vec_new(uint32_t size) EXPORTED;
-void __builtin_vec_delete(void *mem) EXPORTED;
-void __pure_virtual(void) EXPORTED;
 
-void *__builtin_vec_new(uint32_t size) {
-  return malloc(size);
-}
-void __builtin_vec_delete(void *mem) {
-  free(mem);
-}
-void __pure_virtual(void) {
-  lprintf("libreal: FATAL: __pure_virtual() called!\n");
-  /*      exit(1); */
-}
 
 
 static void *init_class (xine_t *xine, void *data) {
