@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.c,v 1.5 2007/03/16 22:14:57 dgp85 Exp $
+ * $Id: real_common.c,v 1.6 2007/03/16 22:26:54 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -76,7 +76,7 @@ void _x_real_codecs_init(xine_t *const xine) {
   struct stat s;
 
 #define try_real_path(path) \
-  if (!stat (path "/dvr3.so.6.0", &s)) \
+  if ( !stat (path "/dvr3.so.6.0", &s) || !stat (path "/dvrc.so", &s) ) \
     default_real_codecs_path = path;
 #define try_real_subpath(path) \
   try_real_path("/usr/" path) \
