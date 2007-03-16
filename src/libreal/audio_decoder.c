@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.56 2007/03/16 22:54:06 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.57 2007/03/16 22:54:56 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -104,12 +104,12 @@ typedef struct {
     void  *extras;
 } ra_init_t;
 
-static int load_syms_linux (realdec_decoder_t *this, const char *codec_name) {
+static int load_syms_linux (realdec_decoder_t *this, const char *const codec_name, const char *const codec_alternate) {
   cfg_entry_t* entry =
     this->stream->xine->config->lookup_entry(this->stream->xine->config,
 					     "decoder.external.real_codecs_path");
 
-  if ( (this->ra_handle = _x_real_codec_open(this->stream, entry->str_value, codec_name)) == NULL )
+  if ( (this->ra_handle = _x_real_codec_open(this->stream, entry->str_value, codec_name, codec_alternate)) == NULL )
     return 0;
 
   this->raCloseCodec        = dlsym (this->ra_handle, "RACloseCodec");
