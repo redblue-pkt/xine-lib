@@ -1,13 +1,42 @@
 # Functions to check for attributes support in compiler
 
-AC_DEFUN([CC_ATTRIBUTE_CONSTRUCTOR], [
+AC_DEFUN([CC_CHECK_CFLAGS], [
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $1"
+	AC_MSG_CHECKING([if compiler supports $1])
+	AC_COMPILE_IFELSE([int a;],
+		[cc_check_cflags=yes],
+		[cc_check_cflags=no])
+	AC_MSG_RESULT([$cc_check_cflags])
+	CFLAGS="$ac_save_CFLAGS"
+	
+	if test "x$cc_check_cflags" = "xyes"; then
+		true
+		$2
+	else
+		true
+		$3
+	fi
+])
+
+AC_DEFUN([CC_CHECK_WERROR], [
+	CC_CHECK_CFLAGS([-Werror], [werror=-Werror])
+
+	dnl This is for SUN Studio compiler
+	if test "x$werror" = "x"; then
+		CC_CHECK_CFLAGS([-errwarn=%all], [werror=-errwarn=%all])
+	fi
+])
+
+AC_DEFUN([CC_ATTRIBUTE_CONSTRUCTOR], [
+	AC_REQUIRE([CC_CHECK_WERROR])
+	ac_save_CFLAGS="$CFLAGS"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports __attribute__((constructor))],
 		[cc_cv_attribute_constructor],
 		[AC_COMPILE_IFELSE([
 			void ctor() __attribute__((constructor));
-			void ctor() { };
+			void ctor() { int a; };
 			],
 			[cc_cv_attribute_constructor=yes],
 			[cc_cv_attribute_constructor=no])
@@ -24,8 +53,9 @@ AC_DEFUN([CC_ATTRIBUTE_CONSTRUCTOR], [
 ])
 
 AC_DEFUN([CC_ATTRIBUTE_FORMAT], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports __attribute__((format(printf, n, n)))],
 		[cc_cv_attribute_format],
 		[AC_COMPILE_IFELSE([
@@ -46,8 +76,9 @@ AC_DEFUN([CC_ATTRIBUTE_FORMAT], [
 ])
 
 AC_DEFUN([CC_ATTRIBUTE_FORMAT_ARG], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports __attribute__((format_arg(printf)))],
 		[cc_cv_attribute_format_arg],
 		[AC_COMPILE_IFELSE([
@@ -68,8 +99,9 @@ AC_DEFUN([CC_ATTRIBUTE_FORMAT_ARG], [
 ])
 
 AC_DEFUN([CC_ATTRIBUTE_VISIBILITY], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports __attribute__((visibility("...")))],
 		[cc_cv_attribute_visibility],
 		[AC_COMPILE_IFELSE([
@@ -92,8 +124,9 @@ AC_DEFUN([CC_ATTRIBUTE_VISIBILITY], [
 ])
 
 AC_DEFUN([CC_FLAG_VISIBILITY], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports -fvisibility=hidden],
 		[cc_cv_flag_visibility],
 		[
@@ -116,8 +149,9 @@ AC_DEFUN([CC_FLAG_VISIBILITY], [
 ])
 
 AC_DEFUN([CC_ATTRIBUTE_NONNULL], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports __attribute__((nonnull()))],
 		[cc_cv_attribute_nonnull],
 		[AC_COMPILE_IFELSE([
@@ -139,8 +173,9 @@ AC_DEFUN([CC_ATTRIBUTE_NONNULL], [
 ])
 
 AC_DEFUN([CC_ATTRIBUTE_UNUSED], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports __attribute__((unused))],
 		[cc_cv_attribute_unused],
 		[AC_COMPILE_IFELSE([
@@ -161,8 +196,9 @@ AC_DEFUN([CC_ATTRIBUTE_UNUSED], [
 ])
 
 AC_DEFUN([CC_FUNC_EXPECT], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler has __builtin_expect function],
 		[cc_cv_func_expect],
 		[AC_COMPILE_IFELSE([
@@ -187,8 +223,9 @@ AC_DEFUN([CC_FUNC_EXPECT], [
 ])
 
 AC_DEFUN([CC_ATTRIBUTE_SENTINEL], [
+	AC_REQUIRE([CC_CHECK_WERROR])
 	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS -Werror"
+	CFLAGS="$CFLAGS $werror"
 	AC_CACHE_CHECK([if compiler supports __attribute__((sentinel))],
 		[cc_cv_attribute_sentinel],
 		[AC_COMPILE_IFELSE([
@@ -201,6 +238,30 @@ AC_DEFUN([CC_ATTRIBUTE_SENTINEL], [
 	
 	if test "x$cc_cv_attribute_sentinel" = "xyes"; then
 		AC_DEFINE([SUPPORT_ATTRIBUTE_SENTINEL], 1, [Define this if the compiler supports the sentinel attribute])
+		$1
+	else
+		true
+		$2
+	fi
+])
+
+AC_DEFUN([CC_ATTRIBUTE_ALIAS], [
+	AC_REQUIRE([CC_CHECK_WERROR])
+	ac_save_CFLAGS="$CFLAGS"
+	CFLAGS="$CFLAGS $werror"
+	AC_CACHE_CHECK([if compiler supports __attribute__((weak, alias))],
+		[cc_cv_attribute_alias],
+		[AC_COMPILE_IFELSE([
+			void other_function(void *foo) { }
+			void some_function(void *foo) __attribute__((weak, alias("other_function")));
+			],
+			[cc_cv_attribute_alias=yes],
+			[cc_cv_attribute_alias=no])
+		])
+	CFLAGS="$ac_save_CFLAGS"
+	
+	if test "x$cc_cv_attribute_alias" = "xyes"; then
+		AC_DEFINE([SUPPORT_ATTRIBUTE_ALIAS], 1, [Define this if the compiler supports the alias attribute])
 		$1
 	else
 		true
