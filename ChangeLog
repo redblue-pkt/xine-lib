@@ -21,6 +21,9 @@ xine-lib (1.1.5) (Unreleased)
   * Improvement in portability to Solaris and NetBSD, thanks to Albert Lee and
     Sergey Svishchev respectively.
   * Spanish translation updated by Carlos E. Robinson M.
+  * Don't leave libstk support to be detected automagically; also made it
+    disabled by default as upstream is dead and a different libstk is found
+    on Debian.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
