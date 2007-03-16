@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.90 2007/03/16 22:46:49 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.91 2007/03/16 22:49:16 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -109,7 +109,7 @@ void __pure_virtual(void);
  * real codec loader
  */
 
-static int load_syms_linux (realdec_decoder_t *this, const char *codec_name, const char *const codec_alternate = NULL) {
+static int load_syms_linux (realdec_decoder_t *this, const char *codec_name, const char *const codec_alternate) {
   cfg_entry_t* entry =
     this->stream->xine->config->lookup_entry(this->stream->xine->config,
 					     "decoder.external.real_codecs_path");
@@ -158,7 +158,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   switch (buf->type) {
   case BUF_VIDEO_RV20:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 2.0");
-    if (!load_syms_linux (this, "drv2.so"))
+    if (!load_syms_linux (this, "drv2.so", "drv2.so.6.0"))
       return 0;
     break;
   case BUF_VIDEO_RV30:

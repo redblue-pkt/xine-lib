@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.c,v 1.9 2007/03/16 22:46:49 dgp85 Exp $
+ * $Id: real_common.c,v 1.10 2007/03/16 22:49:16 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -120,16 +120,6 @@ void *_x_real_codec_open(xine_stream_t *const stream, const char *const path,
   char *codecpath = NULL;
   void *codecmodule = NULL;
   
-  asprintf(&codecpath, "%s/%s.6.0", path, codec_name);
-  if ( (codecmodule = dlopen(codecpath, RTLD_NOW)) ) {
-    free(codecpath);
-    return codecmodule;
-  }
-
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
-	   LOG_MODULE ": error loading %s: %s\n", codecpath, dlerror());
-
-  free(codecpath);
   asprintf(&codecpath, "%s/%s", path, codec_name);
   if ( (codecmodule = dlopen(codecpath, RTLD_NOW)) ) {
     free(codecpath);
