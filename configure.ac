@@ -2059,6 +2059,19 @@ fi
 AC_SUBST(W32DLL_DEP)
 
 dnl --------------------------------------------
+dnl Real binary codecs support
+dnl --------------------------------------------
+
+AC_ARG_ENABLE([real-codecs],
+	AS_HELP_STRING([--disable-real-codecs], [Disable Real binary codecs support]))
+AC_ARG_WITH([real-codecs-path],
+	AS_HELP_STRING([--with-real-codecs-path=dir], [Specify directory for Real binary codecs]), [
+		AC_DEFINE_UNQUOTED([REAL_CODEC_PATH], ["$withval"], [Specified path for Real binary codecs])
+	])
+
+AM_CONDITIONAL([ENABLE_REAL], [test "x$enable_real_codecs" != "xno"])
+
+dnl --------------------------------------------
 dnl mmap() support
 dnl --------------------------------------------
 

@@ -1,6 +1,8 @@
 include $(top_srcdir)/misc/Makefile.common
 
+if ENABLE_REAL
 xineplug_LTLIBRARIES = xineplug_decode_real.la xineplug_decode_real_audio.la
+endif
 
 xineplug_decode_real_la_SOURCES = xine_decoder.c real_common.c
 xineplug_decode_real_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS)
