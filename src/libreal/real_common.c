@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.c,v 1.4 2007/03/16 21:37:58 dgp85 Exp $
+ * $Id: real_common.c,v 1.5 2007/03/16 22:14:57 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -68,6 +68,9 @@ void __ctype_b(void) { exit(0); }
 #endif
 
 void _x_real_codecs_init(xine_t *const xine) {
+#ifdef REAL_CODEC_PATH
+  const char *const default_real_codecs_path = REAL_CODEC_PATH;
+#else
   const char *default_real_codecs_path = "";
   const char *real_codecs_path = NULL;
   struct stat s;
@@ -92,6 +95,7 @@ void _x_real_codecs_init(xine_t *const xine) {
 
 #undef try_real_path
 #undef try_real_subpath
+#endif
 
   real_codecs_path = 
     xine->config->register_filename (xine->config, "decoder.external.real_codecs_path", 
