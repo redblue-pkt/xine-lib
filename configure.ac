@@ -1565,34 +1565,18 @@ dnl ---------------------------------------------
 dnl JACK support
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([jack], 
-    AC_HELP_STRING([--disable-jack], [Disable optional JACK support]), 
-        [
-            case "${enableval}" in
-                yes) jack=yes ;;
-                no) jack=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --disable-jack]) ;;
-            esac
-        ],
-        [jack=auto])
+AC_ARG_WITH([jack],
+	AS_HELP_STRING([--without-jack], [Build without Jack support]))
 
-if test "x${jack}" != xno ; then
-    PKG_CHECK_MODULES(JACK, [ jack >= 0.100 ],
-        HAVE_JACK=1,
-        [
-            HAVE_JACK=0
-            if test "x$jack" = xyes ; then
-                AC_MSG_ERROR([*** JACK support not found])
-            fi
-        ])
-else
-    HAVE_JACK=0
+if test "x$with_jack" != "xno"; then
+   PKG_CHECK_MODULES([JACK], [jack >= 0.100], [have_jack=yes], [have_jack=no])
+   
+   if test "x$with_jack" = "xyes" && test "x$have_jack" = "xno"; then
+      AC_MSG_ERROR([Jack support requested, but Jack not found])
+   fi
 fi
 
-AC_SUBST(JACK_CFLAGS)
-AC_SUBST(JACK_LIBS)
-AC_SUBST(HAVE_JACK)
-AM_CONDITIONAL([HAVE_JACK], [test "x$HAVE_JACK" = x1])
+AM_CONDITIONAL([HAVE_JACK], [test "x$have_jack" = "xyes"])
 
 
 dnl ---------------------------------------------
@@ -3102,6 +3086,9 @@ if test "x$have_coreaudio" = "xyes"; then
 fi  
 if test "x$have_pulseaudio" = "xyes"; then
   echo "   - pulseaudio sound server"
+fi
+if test "x$have_jack" = "xyes"; then
+  echo "   - Jack"
 fi
 echo "---"
 
