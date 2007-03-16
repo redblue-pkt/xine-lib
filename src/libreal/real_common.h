@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.h,v 1.2 2007/03/16 20:21:40 dgp85 Exp $
+ * $Id: real_common.h,v 1.3 2007/03/16 20:45:21 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -53,5 +53,7 @@ FILE *stderr __attribute__((weak, alias("__stderrp")));
 void ___brk_addr(void) EXPORTED;
 void __ctype_b(void) EXPORTED;
 #endif
+
+void _x_real_codecs_init(xine_t *const xine);
 
 #endif

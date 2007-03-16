@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.53 2007/03/16 20:02:33 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.54 2007/03/16 20:45:21 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -44,6 +44,8 @@
 #include "video_out.h"
 #include "buffer.h"
 #include "xineutils.h"
+
+#include "real_common.h"
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
@@ -618,9 +620,6 @@ static void *init_class (xine_t *xine, void *data) {
 
   real_class_t       *this;
   config_values_t    *config = xine->config;
-  char               *real_codec_path;
-  char               *default_real_codec_path = "";
-  struct stat s;
 
   this = (real_class_t *) xine_xmalloc (sizeof (real_class_t));
 
@@ -629,45 +628,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
 
-  /* try some auto-detection */
-
-  if (!stat ("/usr/local/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/local/RealPlayer8/Codecs";
-  if (!stat ("/usr/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/RealPlayer8/Codecs";
-  if (!stat ("/usr/lib/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/lib/RealPlayer8/Codecs";
-  if (!stat ("/opt/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/opt/RealPlayer8/Codecs";
-  if (!stat ("/usr/lib/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/lib/RealPlayer9/users/Real/Codecs";
-  if (!stat ("/usr/lib/RealPlayer10/codecs/drvc.so", &s)) 
-    default_real_codec_path = "/usr/lib/RealPlayer10/codecs";
-  if (!stat ("/usr/lib64/RealPlayer8/Codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/lib64/RealPlayer8/Codecs";
-  if (!stat ("/usr/lib64/RealPlayer9/users/Real/Codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/lib64/RealPlayer9/users/Real/Codecs";
-  if (!stat ("/usr/lib64/RealPlayer10/codecs/drvc.so", &s)) 
-    default_real_codec_path = "/usr/lib64/RealPlayer10/codecs";
-  if (!stat ("/usr/lib/codecs/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/lib/codecs";
-  if (!stat ("/usr/lib/win32/drv3.so.6.0", &s)) 
-    default_real_codec_path = "/usr/lib/win32";
-  
-  real_codec_path = config->register_filename (config, "decoder.external.real_codecs_path", 
-					     default_real_codec_path,
-					     XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
-					     _("path to RealPlayer codecs"),
-					     _("If you have RealPlayer installed, specify the path "
-					       "to its codec directory here. You can easily find "
-					       "the codec directory by looking for a file named "
-					       "\"drv3.so.6.0\" in it. If xine can find the RealPlayer "
-					       "codecs, it will use them to decode RealPlayer content "
-					       "for you. Consult the xine FAQ for more information on "
-					       "how to install the codecs."),
-					     10, NULL, this);
-  
-  lprintf ("real codec path : %s\n",  real_codec_path);
+  _x_real_codecs_init(xine);
 
   return this;
 }
