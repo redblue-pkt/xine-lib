@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.54 2007/03/16 20:45:21 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.55 2007/03/16 21:37:58 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -104,29 +104,14 @@ typedef struct {
     void  *extras;
 } ra_init_t;
 
-static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
-			    const char *alt_codec_name) {
+static int load_syms_linux (realdec_decoder_t *this, const char *codec_name) {
+  cfg_entry_t* entry =
+    this->stream->xine->config->lookup_entry(this->stream->xine->config,
+					     "decoder.external.real_codecs_path");
 
-  cfg_entry_t* entry = this->stream->xine->config->lookup_entry(
-			 this->stream->xine->config, "decoder.external.real_codecs_path");
-  char path[1024];
-  struct stat sb;
-
-  snprintf (path, sizeof(path), "%s/%s", entry->str_value, codec_name);
-  if (stat(path, &sb))
-    snprintf (path, sizeof(path), "%s/%s", entry->str_value, alt_codec_name);
-    
-  lprintf ("(audio) opening shared obj '%s'\n", path);
-
-  this->ra_handle = dlopen (path, RTLD_LAZY);
-
-  if (!this->ra_handle) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libareal: error: %s\n", dlerror());
-    _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
-                 codec_name, NULL);
+  if ( (this->ra_handle = _x_real_codec_open(this->stream, entry->str_value, codec_name)) == NULL )
     return 0;
-  }
-  
+
   this->raCloseCodec        = dlsym (this->ra_handle, "RACloseCodec");
   this->raDecode            = dlsym (this->ra_handle, "RADecode");
   this->raFlush             = dlsym (this->ra_handle, "RAFlush");
@@ -142,7 +127,7 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
       !this->raGetFlavorProperty || !this->raOpenCodec2 || !this->raSetFlavor ||
       /*!raSetDLLAccessPath ||*/ !this->raInitDecoder){
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG, 
-	     _("libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n"), path);
+	     _("libareal: (audio) Cannot resolve symbols - incompatible dll: %s\n"), codec_name);
     return 0;
   }
 
@@ -231,32 +216,32 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   switch (buf->type) {
   case BUF_AUDIO_COOK:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Cook");
-    if (!load_syms_linux (this, "cook.so", "cook.so.6.0"))
+    if (!load_syms_linux (this, "cook.so"))
       return 0;
     break;
     
   case BUF_AUDIO_ATRK:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Atrac");
-    if (!load_syms_linux (this, "atrc.so", "atrc.so.6.0"))
+    if (!load_syms_linux (this, "atrc.so"))
       return 0;
     this->block_align = 384;
     break;
 
   case BUF_AUDIO_14_4:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 14.4");
-    if (!load_syms_linux (this, "14_4.so", "14_4.so.6.0"))
+    if (!load_syms_linux (this, "14_4.so"))
       return 0;
     break;
 
   case BUF_AUDIO_28_8:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Real 28.8");
-    if (!load_syms_linux (this, "28_8.so", "28_8.so.6.0"))
+    if (!load_syms_linux (this, "28_8.so"))
       return 0;
     break;
 
   case BUF_AUDIO_SIPRO:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "Sipro");
-    if (!load_syms_linux (this, "sipr.so", "sipr.so.6.0"))
+    if (!load_syms_linux (this, "sipr.so"))
       return 0;
     /* this->block_align = 19; */
     break;

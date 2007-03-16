@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.88 2007/03/16 20:45:21 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.89 2007/03/16 21:37:58 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -109,29 +109,14 @@ void __pure_virtual(void);
  * real codec loader
  */
 
-static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
-			    const char *alt_codec_name) {
+static int load_syms_linux (realdec_decoder_t *this, const char *codec_name) {
+  cfg_entry_t* entry =
+    this->stream->xine->config->lookup_entry(this->stream->xine->config,
+					     "decoder.external.real_codecs_path");
 
-  cfg_entry_t* entry = this->stream->xine->config->lookup_entry(
-			 this->stream->xine->config, "decoder.external.real_codecs_path");
-  char path[1024];
-  struct stat sb;
-
-  snprintf (path, sizeof(path), "%s/%s", entry->str_value, codec_name);
-  if (stat(path, &sb))
-    snprintf (path, sizeof(path), "%s/%s", entry->str_value, alt_codec_name);
-
-  lprintf ("opening shared obj '%s'\n", path);
-
-  this->rv_handle = dlopen (path, RTLD_LAZY);
-
-  if (!this->rv_handle) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "libreal: error: %s\n", dlerror());
-    _x_message(this->stream, XINE_MSG_LIBRARY_LOAD_ERROR,
-                 codec_name, NULL);
+  if ( (this->rv_handle = _x_real_codec_open(this->stream, entry->str_value, codec_name)) == NULL )
     return 0;
-  }
-  
+
   this->rvyuv_custom_message = dlsym (this->rv_handle, "RV20toYUV420CustomMessage");
   this->rvyuv_free           = dlsym (this->rv_handle, "RV20toYUV420Free");
   this->rvyuv_hive_message   = dlsym (this->rv_handle, "RV20toYUV420HiveMessage");
@@ -173,17 +158,17 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   switch (buf->type) {
   case BUF_VIDEO_RV20:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 2.0");
-    if (!load_syms_linux (this, "drv2.so", "drv2.so.6.0"))
+    if (!load_syms_linux (this, "drv2.so"))
       return 0;
     break;
   case BUF_VIDEO_RV30:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 3.0");
-    if (!load_syms_linux (this, "drvc.so", "drv3.so.6.0"))
+    if (!load_syms_linux (this, "drvc.so"))
       return 0;
     break;
   case BUF_VIDEO_RV40:
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "Real Video 4.0");
-    if (!load_syms_linux(this, "drvc.so", "drv4.so.6.0"))
+    if (!load_syms_linux(this, "drvc.so"))
       return 0;
     break;
   default:
@@ -539,7 +524,7 @@ static void *init_class (xine_t *xine, void *data) {
   this->decoder_class.get_description = get_description;
   this->decoder_class.dispose         = dispose_class;
 
-  _x_real_codecs_init();
+  _x_real_codecs_init(xine);
 
   return this;
 }
