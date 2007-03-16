@@ -1103,7 +1103,7 @@ dnl ---------------------------------------------
 AC_ARG_WITH([libstk],
 	AS_HELP_STRING([--with-libstk], [Build with STK surface video driver]))
 
-if test "x$with_libstk" != "xno"; then
+if test "x$with_libstk" = "xyes"; then
    PKG_CHECK_MODULES([LIBSTK], [libstk >= 0.2.0], [have_libstk=yes], [have_libstk=no])
    if test "x$with_libstk" = "xyes" && test "x$have_libstk" = "xno"; then
       AC_MSG_ERROR([libstk support requested, but libstk not found])
