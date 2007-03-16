@@ -550,9 +550,9 @@ if test "x$with_x" != "xno"; then
      if test "x$no_x" != "xyes"; then
         ac_save_CPPFLAGS="$CPPFLAGS"
         CPPFLAGS="$CPPFLAGS $X_CFLAGS"
-        AC_CHECK_HEADERS([X11/extensions/XShm.h], ,
+        AC_CHECK_HEADERS([X11/extensions/XShm.h], [ ],
   		   [AC_MSG_ERROR([XShm extension is required])])
-	AC_CHECK_LIB([Xext], [main], ,
+	AC_CHECK_LIB([Xext], [main], [ ],
 	           [AC_MSG_ERROR([libXext is required])], [$X_LIBS])
         CPPFLAGS="$ac_save_CPPFLAGS"
 	X_LIBS="$X_LIBS $X_PRE_LIBS -lX11 -lXext"
