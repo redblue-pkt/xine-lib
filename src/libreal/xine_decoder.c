@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_decoder.c,v 1.91 2007/03/16 22:49:16 dgp85 Exp $
+ * $Id: xine_decoder.c,v 1.92 2007/03/16 23:22:13 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -63,11 +63,11 @@ typedef struct realdec_decoder_s {
 
   void            *rv_handle;
 
-  uint32_t        (*rvyuv_custom_message)(uint32_t*, void*);
+  uint32_t        (*rvyuv_custom_message)(void*, void*);
   uint32_t        (*rvyuv_free)(void*);
   uint32_t        (*rvyuv_hive_message)(uint32_t, uint32_t);
   uint32_t        (*rvyuv_init)(void*, void*); /* initdata,context */
-  uint32_t        (*rvyuv_transform)(char*, char*, uint32_t*, uint32_t*,void*);
+  uint32_t        (*rvyuv_transform)(char*, char*, void*, uint32_t*,void*);
 
   void            *context;
 
@@ -100,10 +100,27 @@ typedef struct {
   int32_t  format;
 } rv_init_t;
 
+/*
+ * Structures for data packets.  These used to be tables of unsigned ints, but
+ * that does not work on 64 bit platforms (e.g. Alpha).  The entries that are
+ * pointers get truncated.  Pointers on 64 bit platforms are 8 byte longs.
+ * So we have to use structures so the compiler will assign the proper space
+ * for the pointer.
+ */
+typedef struct cmsg_data_s {
+        uint32_t data1;
+        uint32_t data2;
+        uint32_t* dimensions;
+} cmsg_data_t;
 
-void *__builtin_vec_new(uint32_t size);
-void __builtin_vec_delete(void *mem);
-void __pure_virtual(void);
+typedef struct transform_in_s {
+        uint32_t len;
+        uint32_t unknown1;
+        uint32_t chunks;
+        uint32_t* extra;
+        uint32_t unknown2;
+        uint32_t timestamp;
+} transform_in_t;
 
 /*
  * real codec loader
@@ -233,20 +250,14 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   /* setup rv30 codec (codec sub-type and image dimensions): */
   if ((init_data.format>=0x20200002) && (buf->type != BUF_VIDEO_RV40)) {
     int       i, j;
-    uint32_t *cmsg24;
-    uint32_t  cmsg_data[9];
+    uint32_t  cmsg24[(buf->size - 34 + 2) * sizeof(uint32_t)];
+    cmsg_data_t cmsg_data = { 0x24, 1 + ((init_data.subformat >> 16) & 7), &cmsg24[0] };
 
-    cmsg24 = xine_xmalloc((buf->size - 34 + 2) * sizeof(uint32_t));
-    
     cmsg24[0] = this->width;
     cmsg24[1] = this->height;
     for(i = 2, j = 34; j < buf->size; i++, j++)
       cmsg24[i] = 4 * buf->content[j];
     
-    cmsg_data[0] = 0x24;
-    cmsg_data[1] = 1 + ((init_data.subformat >> 16) & 7);
-    cmsg_data[2] = (uint32_t) cmsg24;
-
 #ifdef LOG
     printf ("libreal: CustomMessage cmsg_data:\n");
     xine_hexdump ((uint8_t *) cmsg_data, sizeof (cmsg_data));
@@ -254,9 +265,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
     xine_hexdump ((uint8_t *) cmsg24, (buf->size - 34 + 2) * sizeof(uint32_t));
 #endif
     
-    this->rvyuv_custom_message (cmsg_data, this->context);
-    
-    free(cmsg24);
+    this->rvyuv_custom_message (&cmsg_data, this->context);
   }
   
   this->stream->video_out->open(this->stream->video_out, this->stream);
@@ -336,16 +345,23 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
         vo_frame_t    *img;
 
         uint32_t       transform_out[5];
-        uint32_t       transform_in[6];
+	transform_in_t transform_in = {
+	  this->chunk_buffer_size,
+	    /* length of the packet (sub-packets appended) */
+	  0,
+	    /* unknown, seems to be unused  */
+	  buf->decoder_info[2],
+	    /* number of sub-packets - 1 */
+	  buf->decoder_info_ptr[2],
+	    /* table of sub-packet offsets */
+	  0,
+	    /* unknown, seems to be unused  */
+	  this->pts / 90
+	    /* timestamp (the integer value from the stream) */
+	};
 
         lprintf ("chunk table\n");
 
-        transform_in[0] = this->chunk_buffer_size; /* length of the packet (sub-packets appended) */
-        transform_in[1] = 0;                       /* unknown, seems to be unused  */
-        transform_in[2] = buf->decoder_info[2];    /* number of sub-packets - 1 */
-        transform_in[3] = (uint32_t) buf->decoder_info_ptr[2]; /* table of sub-packet offsets */
-        transform_in[4] = 0;                       /* unknown, seems to be unused  */
-        transform_in[5] = this->pts / 90;          /* timestamp (the integer value from the stream) */
 
 #ifdef LOG
         printf ("libreal: got %d chunks\n",
@@ -364,7 +380,7 @@ static void realdec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) 
 
         result = this->rvyuv_transform (this->chunk_buffer,
                                         this->frame_buffer,
-                                        transform_in,
+                                        &transform_in,
                                         transform_out,
                                         this->context);
 
