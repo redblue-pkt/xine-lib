@@ -1100,27 +1100,17 @@ dnl ---------------------------------------------
 dnl check for Libstk
 dnl ---------------------------------------------
 
-AC_MSG_CHECKING(for Libstk)
-dnl do some actual testing here
-if test "x$PKG_CONFIG" = xno ; then
-  AC_MSG_RESULT(no)
-  echo "*** pkg-config not found. See http://pkgconfig.sourceforge.net"
-  echo "*** All of LIBSTK dependent parts will be disabled"
-else
-    LIBSTK_REQUIRED_VERSION=0.2.0
-    if $PKG_CONFIG --atleast-version $LIBSTK_REQUIRED_VERSION libstk ; then
-        LIBSTK_CFLAGS=`$PKG_CONFIG --cflags libstk`
-        LIBSTK_LIBS=`$PKG_CONFIG --libs libstk`
-        have_stk="yes"
-        AC_MSG_RESULT(yes)
-    else
-        AC_MSG_RESULT(no)
-        AC_MSG_RESULT([*** All of Libstk dependent parts will be disabled ***])
-    fi
+AC_ARG_WITH([libstk],
+	AS_HELP_STRING([--with-libstk], [Build with STK surface video driver]))
+
+if test "x$with_libstk" != "xno"; then
+   PKG_CHECK_MODULES([LIBSTK], [libstk >= 0.2.0], [have_libstk=yes], [have_libstk=no])
+   if test "x$with_libstk" = "xyes" && test "x$have_libstk" = "xno"; then
+      AC_MSG_ERROR([libstk support requested, but libstk not found])
+   fi
 fi
-AC_SUBST(LIBSTK_CFLAGS)
-AC_SUBST(LIBSTK_LIBS)
-AM_CONDITIONAL(HAVE_STK, [test "x$have_stk" = x"yes"])
+
+AM_CONDITIONAL([HAVE_STK], [test "x$have_libstk" = "xyes"])
 
 dnl ---------------------------------------------
 dnl check for pulseaudio
@@ -3037,7 +3027,7 @@ fi
 if test "x$have_sdl" = "xyes"; then
   echo "   - sdl (Simple DirectMedia Layer)"
 fi
-if test "x$have_stk" = "xyes"; then
+if test "x$have_libstk" = "xyes"; then
   echo "   - stk (Libstk Set-top Toolkit)"
 fi
 if test "x$have_directfb" = "xyes"; then
