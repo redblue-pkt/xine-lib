@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_oss_out.c,v 1.118 2007/03/09 23:56:42 dgp85 Exp $
+ * $Id: audio_oss_out.c,v 1.119 2007/03/16 17:13:57 dgp85 Exp $
  *
  * 20-8-2001 First implementation of Audio sync and Audio driver separation.
  * Copyright (C) 2001 James Courtier-Dutton James@superbug.demon.co.uk
@@ -114,6 +114,13 @@
 #define OSS_SYNC_GETOPTR      2
 #define OSS_SYNC_SOFTSYNC     3
 #define OSS_SYNC_PROBEBUFFER  4
+
+/* On FreeBSD the request type is unsigned long rather than int */
+#ifdef __FreeBSD__
+typedef unsigned long ioctl_request_t;
+#else
+typedef int ioctl_request_t;
+#endif
 
 typedef struct oss_driver_s {
 
@@ -525,7 +532,7 @@ static int ao_oss_get_property (ao_driver_t *this_gen, int property) {
     if(!this->mixer.mute) {
       
       if(this->mixer.fd != -1) {
-	int cmd = 0;
+	ioctl_request_t cmd = 0;
 	int v;
 	
 	ioctl(this->mixer.fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
@@ -564,7 +571,7 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
     if(!this->mixer.mute) {
       
       if(this->mixer.fd != -1) {
-	int cmd = 0;
+	ioctl_request_t cmd = 0;
 	int v;
 	
 	ioctl(this->mixer.fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
@@ -593,7 +600,7 @@ static int ao_oss_set_property (ao_driver_t *this_gen, int property, int value) 
     if(this->mixer.mute) {
       
       if(this->mixer.fd != -1) {
-	int cmd = 0;
+	ioctl_request_t cmd = 0;
 	int v = 0;
 	
 	ioctl(this->mixer.fd, SOUND_MIXER_READ_DEVMASK, &audio_devs);
