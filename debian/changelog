@@ -1,3 +1,14 @@
+xine-lib (1.1.5~cvs-0) unstable; urgency=low
+
+  * CVS snapshot.
+
+  [Darren Salt]
+  * Resync build deps with 1.1.4-2.
+  * Add or update some minimum version numbers.
+  * Add a build dependency on libdirectfb-dev.
+
+ -- Darren Salt <linux@youmustbejoking.demon.co.uk>  Fri, 16 Mar 2007 01:33:24 +0000
+
 xine-lib (1.1.3-0) unstable; urgency=medium
 
   * New upstream release.
