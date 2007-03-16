@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.51 2007/02/20 00:34:57 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.52 2007/03/16 19:31:57 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -32,9 +32,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dlfcn.h>
-#ifdef __x86_64__
-  #include <elf.h>
-#endif
 
 #define LOG_MODULE "real_audio_decoder"
 #define LOG_VERBOSE
@@ -121,49 +118,6 @@ void __builtin_delete (void *foo) {
   free (foo);
 }
 
-#ifdef __x86_64__
-/* (gb) quick-n-dirty check to be run natively */
-static int is_x86_64_object_(FILE *f)
-{
-  Elf64_Ehdr *hdr = malloc(sizeof(Elf64_Ehdr));
-  if (hdr == NULL)
-	return 0;
-
-  if (fseek(f, 0, SEEK_SET) != 0) {
-	free(hdr);
-	return 0;
-  }
-
-  if (fread(hdr, sizeof(Elf64_Ehdr), 1, f) != 1) {
-	free(hdr);
-	return 0;
-  }
-
-  if (hdr->e_ident[EI_MAG0] != ELFMAG0 ||
-	  hdr->e_ident[EI_MAG1] != ELFMAG1 ||
-	  hdr->e_ident[EI_MAG2] != ELFMAG2 ||
-	  hdr->e_ident[EI_MAG3] != ELFMAG3) {
-	free(hdr);
-	return 0;
-  }
-
-  return hdr->e_machine == EM_X86_64;
-}
-
-static inline int is_x86_64_object(const char *filename)
-{
-  FILE *f;
-  int ret;
-
-  if ((f = fopen(filename, "r")) == NULL)
-	return 0;
-
-  ret = is_x86_64_object_(f);
-  fclose(f);
-  return ret;
-}
-#endif
-
 static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
 			    const char *alt_codec_name) {
 
@@ -176,12 +130,6 @@ static int load_syms_linux (realdec_decoder_t *this, char *codec_name,
   if (stat(path, &sb))
     snprintf (path, sizeof(path), "%s/%s", entry->str_value, alt_codec_name);
     
-#ifdef __x86_64__
-  /* check whether it's a real x86-64 library */
-  if (!is_x86_64_object(path))
-	return 0;
-#endif
-
   lprintf ("(audio) opening shared obj '%s'\n", path);
 
   this->ra_handle = dlopen (path, RTLD_LAZY);
