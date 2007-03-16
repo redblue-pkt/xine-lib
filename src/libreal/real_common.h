@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.h,v 1.1 2007/03/16 20:02:33 dgp85 Exp $
+ * $Id: real_common.h,v 1.2 2007/03/16 20:21:40 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -42,6 +42,16 @@ void *__builtin_vec_new(size_t size) EXPORTED;
 void __builtin_vec_delete(void *mem) EXPORTED;
 void __pure_virtual(void) EXPORTED;
 
+#endif
+
+#ifdef __FreeBSD__
+ #ifdef SUPPORT_ATTRIBUTE_ALIAS
+char **__environ __attribute__((weak, alias("environ")));
+FILE *stderr __attribute__((weak, alias("__stderrp")));
+
+ #endif
+void ___brk_addr(void) EXPORTED;
+void __ctype_b(void) EXPORTED;
 #endif
 
 #endif
