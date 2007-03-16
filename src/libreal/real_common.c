@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.c,v 1.8 2007/03/16 22:28:48 dgp85 Exp $
+ * $Id: real_common.c,v 1.9 2007/03/16 22:46:49 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -76,7 +76,7 @@ void _x_real_codecs_init(xine_t *const xine) {
   struct stat s;
 
 #define try_real_path(path) \
-  if ( !stat (path "/dvr3.so.6.0", &s) || !stat (path "/dvrc.so", &s) ) \
+  if (!stat (path "/dvrc.so", &s)) \
     default_real_codecs_path = path;
 #define try_real_subpath(path) \
   try_real_path("/usr/" path) \
@@ -105,7 +105,7 @@ void _x_real_codecs_init(xine_t *const xine) {
 				     _("If you have RealPlayer installed, specify the path "
 				       "to its codec directory here. You can easily find "
 				       "the codec directory by looking for a file named "
-				       "\"drv3.so.6.0\" in it. If xine can find the RealPlayer "
+				       "\"drvc.so\" in it. If xine can find the RealPlayer "
 				       "codecs, it will use them to decode RealPlayer content "
 				       "for you. Consult the xine FAQ for more information on "
 				       "how to install the codecs."),
@@ -115,7 +115,8 @@ void _x_real_codecs_init(xine_t *const xine) {
 }
 
 void *_x_real_codec_open(xine_stream_t *const stream, const char *const path,
-			 const char *const codec_name) {
+			 const char *const codec_name,
+			 const char *const codec_alternate) {
   char *codecpath = NULL;
   void *codecmodule = NULL;
   
@@ -139,6 +140,17 @@ void *_x_real_codec_open(xine_stream_t *const stream, const char *const path,
 	   LOG_MODULE ": error loading %s: %s\n", codecpath, dlerror());
 
   free(codecpath);
+
+  if ( codec_alternate ) {
+    asprintf(&codecpath, "%s/%s", path, codec_alternate);
+    if ( (codecmodule = dlopen(codecpath, RTLD_NOW)) ) {
+      free(codecpath);
+      return codecmodule;
+    }
+
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+	     LOG_MODULE ": error loading %s: %s\n", codecpath, dlerror());
+  }
 
   _x_message(stream, XINE_MSG_LIBRARY_LOAD_ERROR, codec_name, NULL);
   
