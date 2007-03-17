@@ -33,6 +33,10 @@ xine-lib (1.1.5) (Unreleased)
     by default (it can, and probably should) be different from the Win32
     codecs path.
   * Avoid a possible floating-point exception when starting stream playback.
+  * Now xine can play correctly media on HTTP servers reporting status codes but
+    no status message.
+  * Wave files with 24-bit integer PCM streams now should play correctly
+    (downplayed to 16-bit).
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
