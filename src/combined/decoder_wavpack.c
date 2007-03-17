@@ -19,14 +19,19 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.12 2007/02/25 18:02:13 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.13 2007/03/17 07:34:02 dgp85 Exp $
  */
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 #define LOG_MODULE "decode_wavpack"
 #define LOG_VERBOSE
 
 #include "xine_internal.h"
 #include "attributes.h"
+#include "bswap.h"
 
 #include <wavpack/wavpack.h>
 #include "combined_wavpack.h"

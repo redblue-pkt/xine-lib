@@ -19,13 +19,11 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: combined_wavpack.c,v 1.2 2007/01/24 20:51:04 dgp85 Exp $
+ * $Id: combined_wavpack.c,v 1.3 2007/03/17 07:34:02 dgp85 Exp $
  */
 
 #include "xine_internal.h"
-
-extern void *demux_wv_init_plugin (xine_t *const xine, void *const data);
-extern void *decoder_wavpack_init_plugin (xine_t *xine, void *data);
+#include "combined_wavpack.h"
 
 static const demuxer_info_t demux_info_wv = {
   0			/* priority */

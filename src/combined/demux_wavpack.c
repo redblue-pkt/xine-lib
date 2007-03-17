@@ -19,8 +19,12 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: demux_wavpack.c,v 1.10 2007/02/25 18:02:13 dgp85 Exp $
+ * $Id: demux_wavpack.c,v 1.11 2007/03/17 07:34:02 dgp85 Exp $
  */
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 #define LOG_MODULE "demux_wavpack"
 #define LOG_VERBOSE
@@ -32,7 +36,6 @@
 #include "attributes.h"
 
 #include <wavpack/wavpack.h>
-
 #include "combined_wavpack.h"
 
 typedef struct {

@@ -19,11 +19,10 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: combined_wavpack.h,v 1.2 2007/01/24 20:51:04 dgp85 Exp $
+ * $Id: combined_wavpack.h,v 1.3 2007/03/17 07:34:02 dgp85 Exp $
  */
 
 #include "os_types.h"
-#include "bswap.h"
 
 typedef struct {
   uint32_t idcode;        /* This should always be the string "wvpk" */
@@ -45,3 +44,6 @@ static const uint32_t wvpk_signature = ('k' + ('p' << 8) + ('v' << 16) + ('w' <<
 #else
 static const uint32_t wvpk_signature = ('w' + ('v' << 8) + ('p' << 16) + ('k' << 24));
 #endif
+
+void *demux_wv_init_plugin (xine_t *const xine, void *const data);
+void *decoder_wavpack_init_plugin (xine_t *xine, void *data);
