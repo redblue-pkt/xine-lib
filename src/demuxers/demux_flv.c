@@ -26,7 +26,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.19 2007/02/20 00:34:55 dgp85 Exp $
+ * $Id: demux_flv.c,v 1.20 2007/03/17 09:17:19 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -344,7 +344,7 @@ static int read_flv_packet(demux_flv_t *this) {
   unsigned int   remaining_bytes;
   unsigned int   buf_type = 0;
   unsigned int   buf_flags = 0;
-  int64_t        pts;
+  unsigned int   pts;
  
   while (1) {
     lprintf ("  reading FLV tag...\n");
@@ -358,7 +358,7 @@ static int read_flv_packet(demux_flv_t *this) {
     remaining_bytes = BE_24(&buffer[1]);
     pts = BE_24(&buffer[4]) | (buffer[7] << 24);
     
-    lprintf("  tag_type = 0x%02X, 0x%X bytes, pts %"PRId64"\n",
+    lprintf("  tag_type = 0x%02X, 0x%X bytes, pts %u\n",
             tag_type, remaining_bytes, pts/90);
 
     switch (tag_type) {
@@ -448,7 +448,7 @@ static int read_flv_packet(demux_flv_t *this) {
           buf = fifo->buffer_pool_alloc(fifo);
           buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER |
                                BUF_FLAG_FRAMERATE | BUF_FLAG_FRAME_END;
-          buf->decoder_info[0] = 90000.0 / (this->framerate ? : 12.0);  
+          buf->decoder_info[0] = this->framerate ? (90000.0/this->framerate) : 0;  
           bih = (xine_bmiheader *) buf->content;
           memset(bih, 0, sizeof(xine_bmiheader));
           bih->biSize = sizeof(xine_bmiheader);
