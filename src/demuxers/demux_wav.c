@@ -22,7 +22,7 @@
  * MS WAV File Demuxer by Mike Melanson (melanson@pcisys.net)
  * based on WAV specs that are available far and wide
  *
- * $Id: demux_wav.c,v 1.64 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_wav.c,v 1.65 2007/03/17 20:57:04 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -86,18 +86,7 @@ static int open_wav_file(demux_wav_t *this) {
   if (_x_demux_read_header(this->input, signature, WAV_SIGNATURE_SIZE) != WAV_SIGNATURE_SIZE)
     return 0;
 
-  if ((signature[0] != 'R') ||
-      (signature[1] != 'I') ||
-      (signature[2] != 'F') ||
-      (signature[3] != 'F') ||
-      (signature[8] != 'W') ||
-      (signature[9] != 'A') ||
-      (signature[10] != 'V') ||
-      (signature[11] != 'E') ||
-      (signature[12] != 'f') ||
-      (signature[13] != 'm') ||
-      (signature[14] != 't') ||
-      (signature[15] != ' '))
+  if (memcmp(signature, "RIFF", 4) || memcmp(&signature[8], "WAVEfmt ", 8) )
     return 0;
 
   /* file is qualified; skip over the header bytes in the stream */
@@ -108,7 +97,7 @@ static int open_wav_file(demux_wav_t *this) {
     (unsigned char *)&this->wave_size, 4) != 4)
     return 0;
   this->wave_size = le2me_32(this->wave_size);
-  this->wave = (xine_waveformatex *) malloc( this->wave_size );
+  this->wave = xine_xmalloc( this->wave_size );
     
   if (this->input->read(this->input, (void *)this->wave, this->wave_size) !=
     this->wave_size) {
