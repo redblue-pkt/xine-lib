@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.57 2007/03/16 22:54:56 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.58 2007/03/17 00:28:41 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -628,7 +628,7 @@ static uint32_t audio_types[] = {
 
 static const decoder_info_t dec_info_audio = {
   audio_types,         /* supported types */
-  5                    /* priority        */
+  7                    /* priority        */
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
