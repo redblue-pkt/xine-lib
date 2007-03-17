@@ -1457,27 +1457,25 @@ dnl ---------------------------------------------
 dnl OSS style audio interface
 dnl ---------------------------------------------
 AC_ARG_ENABLE([oss],
-  AC_HELP_STRING([--disable-oss], [do not build OSS support]),
-  [with_oss=$enableval], [with_oss=yes])
+	AS_HELP_STRING([--disable-oss], [Do not build OSS audio output support]))
 
-if test "x$with_oss" = "xyes"; then
-  AC_MSG_CHECKING(for OSS audio support)
-  have_ossaudio=no
-  AC_TRY_COMPILE([
-	    #ifdef __NetBSD__
-	    #include <soundcard.h>
-	    #else
-	    #include <sys/soundcard.h>
-	    #endif
-	],[
-	    int arg = SNDCTL_DSP_SETFRAGMENT;
-	],[
-	    have_ossaudio=yes
-	])
-  AC_MSG_RESULT($have_ossaudio)
-else
-  have_ossaudio=no
+if test "x$enable_oss" != "xno"; then
+   AC_CHECK_HEADERS([sys/soundcard.h machine/soundcard.h soundcard.h], [break])
+   AC_CHECK_DECL([SNDCTL_DSP_SETFRAGMENT], [have_ossaudio=yes], [], [
+     #ifdef HAVE_SYS_SOUNDCARD_H
+     # include <sys/soundcard.h>
+     #endif
+     #ifdef HAVE_MACHINE_SOUNDCARD_H
+     # include <sys/soundcard.h>
+     #endif
+     #ifdef HAVE_SOUNDCARD_H
+     # include <soundcard.h>
+     #endif
+   ])
+
+   AC_IOCTL_REQUEST
 fi
+
 AM_CONDITIONAL(HAVE_OSS, test "x$have_ossaudio" = "xyes")
 
 
