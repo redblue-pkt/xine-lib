@@ -43,8 +43,12 @@ AC_DEFUN([AC_CHECK_SYMBOL], [
        [eval "AS_TR_SH([ac_cv_symbol_$1])=no"])
     ])
 
-  ifelse([$2], , [AC_DEFINE_UNQUOTED(AS_TR_CPP([HAVE_$1]), [1], [Define to 1 if you have the $1 symbol.])], [$2])
-  ifelse([$3], , , [$3])
+  if eval test [x$]AS_TR_SH([ac_cv_symbol_$1]) = xyes; then
+    ifelse([$2], , [AC_DEFINE_UNQUOTED(AS_TR_CPP([HAVE_$1]), [1],
+      [Define to 1 if you have the $1 symbol.])], [$2])
+  else
+    ifelse([$3], , [:], [$3])
+  fi
 ])
 
 dnl AC_CHECK_SYMBOLS - Check for multiple symbols
