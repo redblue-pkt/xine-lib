@@ -32,6 +32,7 @@ xine-lib (1.1.5) (Unreleased)
     support altogether and one to choose the path where to look for the codecs
     by default (it can, and probably should) be different from the Win32
     codecs path.
+  * Avoid a possible floating-point exception when starting stream playback.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
