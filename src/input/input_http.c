@@ -19,7 +19,7 @@
  *
  * input plugin for http network streams
  *
- * $Id: input_http.c,v 1.128 2007/02/20 00:34:56 dgp85 Exp $
+ * $Id: input_http.c,v 1.129 2007/03/17 16:47:16 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -804,18 +804,20 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
       if (linenum == 1) {
         int httpver, httpsub;
-	char httpstatus[51];
+	char httpstatus[51] = { 0, };
 
-	if (sscanf(this->buf, "HTTP/%d.%d %d %50[^\015\012]", &httpver, &httpsub,
-		   &httpcode, httpstatus) != 4)	{
-	  
-	  /* icecast 1 ? */
-	  if (sscanf(this->buf, "ICY %d %50[^\015\012]", &httpcode, httpstatus) != 2)	{
+	if (
+	    (sscanf(this->buf, "HTTP/%d.%d %d %50[^\015\012]", &httpver, &httpsub,
+		    &httpcode, httpstatus) != 4) &&
+	    (sscanf(this->buf, "HTTP/%d.%d %d", &httpver, &httpsub,
+		    &httpcode) != 3) &&
+	    (sscanf(this->buf, "ICY %d %50[^\015\012]", /* icecast 1 ? */
+		    &httpcode, httpstatus) != 2)
+	   ) {
 	    _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
 	    xine_log (this->stream->xine, XINE_LOG_MSG, 
 		      _("input_http: invalid http answer\n"));
 	    return -6;
-	  }
 	}
 
 	if (httpcode >= 300 && httpcode < 400) {
