@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.h,v 1.6 2007/03/17 06:11:31 dgp85 Exp $
+ * $Id: real_common.h,v 1.7 2007/03/17 15:45:41 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -76,5 +76,11 @@ void _x_real_codecs_init(xine_t *const xine);
 void *_x_real_codec_open(xine_stream_t *const stream, const char *const path,
 			 const char *const codec_name,
 			 const char *const codec_alternate);
+
+const decoder_info_t dec_info_realvideo;
+void *init_realvdec (xine_t *xine, void *data);
+
+const decoder_info_t dec_info_realaudio;
+void *init_realadec (xine_t *xine, void *data);
 
 #endif

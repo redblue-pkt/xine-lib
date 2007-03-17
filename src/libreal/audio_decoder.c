@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_decoder.c,v 1.58 2007/03/17 00:28:41 dgp85 Exp $
+ * $Id: audio_decoder.c,v 1.59 2007/03/17 15:45:41 dgp85 Exp $
  *
  * thin layer to use real binary-only codecs in xine
  *
@@ -597,11 +597,7 @@ static void dispose_class (audio_decoder_class_t *this) {
   free (this);
 }
 
-/*
- * real audio codec loader
- */
-
-static void *init_class (xine_t *xine, void *data) {
+void *init_realadec (xine_t *xine, void *data) {
 
   real_class_t       *this;
   config_values_t    *config = xine->config;
@@ -626,13 +622,7 @@ static uint32_t audio_types[] = {
   BUF_AUDIO_COOK, BUF_AUDIO_ATRK, /* BUF_AUDIO_14_4, BUF_AUDIO_28_8, */ BUF_AUDIO_SIPRO, 0
  };
 
-static const decoder_info_t dec_info_audio = {
+const decoder_info_t dec_info_realaudio = {
   audio_types,         /* supported types */
   7                    /* priority        */
-};
-
-const plugin_info_t xine_plugin_info[] EXPORTED = {
-  /* type, API, "name", version, special_info, init_function */  
-  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 15, "realadec", XINE_VERSION_CODE, &dec_info_audio, init_class },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
