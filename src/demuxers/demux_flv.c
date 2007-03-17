@@ -26,7 +26,7 @@
  * For more information on the FLV file format, visit:
  * http://download.macromedia.com/pub/flash/flash_file_format_specification.pdf
  *
- * $Id: demux_flv.c,v 1.20 2007/03/17 09:17:19 klan Exp $
+ * $Id: demux_flv.c,v 1.21 2007/03/17 11:29:43 klan Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -200,7 +200,8 @@ static int open_flv_file(demux_flv_t *this) {
   _tmp.d;\
 })\
 
-static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *key) {
+static int parse_flv_var(demux_flv_t *this, 
+                         unsigned char *buf, int size, char *key, int keylen) {
   unsigned char *tmp = buf;
   unsigned char *end = buf + size;
   char          *str;
@@ -217,19 +218,22 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
       lprintf("  got number (%f)\n", BE_F64(tmp));
       if (key) {
         double val = BE_F64(tmp);
-        if (!strncmp(key, "duration", 8)) {
+        if (keylen == 8 && !strncmp(key, "duration", 8)) {
           this->length = val * 1000.0;
         }
-        else if (!strncmp(key, "width", 5)) {
+        else if (keylen == 5 && !strncmp(key, "width", 5)) {
           this->width = val;
           _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, this->width);
         }
-        else if (!strncmp(key, "height", 6)) {
+        else if (keylen == 6 && !strncmp(key, "height", 6)) {
           this->height = val;
           _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, this->height);
         }
-        else if (!strncmp(key, "framerate", 9)) {
+        else if (keylen == 9 && !strncmp(key, "framerate", 9)) {
           this->framerate = val;
+        }
+        else if (keylen == 13 && !strncmp(key, "videodatarate", 13)) {
+          _x_stream_info_set(this->stream, XINE_STREAM_INFO_BITRATE, val*1000.0);
         }
       }
       tmp += 8;
@@ -248,7 +252,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
         lprintf("  got object var (%s)\n", tmp+2);
         str = tmp + 2;
         tmp += len + 2;
-        len = parse_flv_var(this, tmp, end-tmp, str);
+        len = parse_flv_var(this, tmp, end-tmp, str, len);
         tmp += len;
       }
       if (*tmp++ != FLV_DATA_TYPE_ENDOBJECT)
@@ -263,7 +267,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
         len = BE_16(tmp);
         str = tmp + 2;
         tmp += len + 2;
-        len = parse_flv_var(this, tmp, end-tmp, str);
+        len = parse_flv_var(this, tmp, end-tmp, str, len);
         tmp += len;
       }
       break;
@@ -271,7 +275,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
       lprintf("  got array (%d indices)\n", BE_32(tmp));
       num = BE_32(tmp);
       tmp += 4;
-      if (key && !strncmp (key, "times", 5)) {
+      if (key && keylen == 5 && !strncmp(key, "times", 5)) {
         if (this->index)
           free (this->index);
         this->index = xine_xmalloc(num*sizeof(flv_index_entry_t));
@@ -285,7 +289,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
         }
         break;
       }
-      if (key && !strncmp (key, "filepositions", 13)) {
+      if (key && keylen == 13 && !strncmp(key, "filepositions", 13)) {
         if (this->index && this->num_indices == num) {
           for (num = 0; num < this->num_indices && tmp < end; num++) {
             if (*tmp++ == FLV_DATA_TYPE_NUMBER) {
@@ -298,7 +302,7 @@ static int parse_flv_var(demux_flv_t *this, unsigned char *buf, int size, char *
         }
       }
       while (num-- && tmp < end) {
-        len = parse_flv_var(this, tmp, end-tmp, NULL);
+        len = parse_flv_var(this, tmp, end-tmp, NULL, 0);
         tmp += len;
       }
       break;
@@ -327,7 +331,7 @@ static void parse_flv_script(demux_flv_t *this, int size) {
   }
 
   while (tmp < end) {
-    len = parse_flv_var(this, tmp, end-tmp, NULL);
+    len = parse_flv_var(this, tmp, end-tmp, NULL, 0);
     if (len < 1)
       break;
     tmp += len;
