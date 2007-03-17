@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.h,v 1.5 2007/03/16 22:46:49 dgp85 Exp $
+ * $Id: real_common.h,v 1.6 2007/03/17 06:11:31 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -44,13 +44,31 @@ void __pure_virtual(void) EXPORTED;
 
 #endif
 
-#ifdef __FreeBSD__
- #ifdef SUPPORT_ATTRIBUTE_ALIAS
-char **__environ __attribute__((weak, alias("environ")));
-FILE *stderr __attribute__((weak, alias("__stderrp")));
+#ifndef HAVE___ENVIRON
+# ifdef HAVE__ENVIRON
+  char **__environ __attribute__((weak, alias("_environ")));
+# elif defined(HAVE_ENVIRON)
+  char **__environ __attribute__((weak, alias("environ")));
+# else
+  char **fake__environ = { NULL };
+  char **__environ __attribute__((weak, alias("fake__environ")));
+# endif
+#endif
 
- #endif
+#ifndef HAVE_STDERR
+# ifdef HAVE___STDERRP
+#  undef stderr
+FILE *stderr __attribute__((weak, alias("__stderrp")));
+# else
+#  error Your stderr alias is not supported, please report to xine developers.
+# endif
+#endif
+
+#ifndef HAVE____BRK_ADDR
 void ___brk_addr(void) EXPORTED;
+#endif
+
+#ifndef HAVE___CTYPE_B
 void __ctype_b(void) EXPORTED;
 #endif
 

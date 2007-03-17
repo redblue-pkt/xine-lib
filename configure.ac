@@ -2069,6 +2069,19 @@ AC_ARG_WITH([real-codecs-path],
 		AC_DEFINE_UNQUOTED([REAL_CODEC_PATH], ["$withval"], [Specified path for Real binary codecs])
 	])
 
+if test "x$enable_real_codecs" != "xno"; then
+   dnl For those that have a replacement, break at the first one found
+   AC_CHECK_SYMBOLS([__environ _environ environ], [break], [need_weak_aliases=yes])
+   AC_CHECK_SYMBOLS([stderr __stderrp], [break], [need_weak_aliases=yes])
+
+   dnl For these there are no replacements
+   AC_CHECK_SYMBOLS([___brk_addr __ctype_b])
+
+   if test "x$need_weak_aliases" = "xyes"; then
+      CC_ATTRIBUTE_ALIAS(, [AC_MSG_ERROR([You need weak aliases support for Real codecs on your platform])])
+   fi
+fi
+
 AM_CONDITIONAL([ENABLE_REAL], [test "x$enable_real_codecs" != "xno"])
 
 dnl --------------------------------------------
@@ -2212,7 +2225,6 @@ CC_FLAG_VISIBILITY([
 AC_SUBST([VISIBILITY_FLAG])
 
 CC_ATTRIBUTE_SENTINEL
-CC_ATTRIBUTE_ALIAS
 
 AC_OPTIMIZATIONS
 

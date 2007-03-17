@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: real_common.c,v 1.10 2007/03/16 22:49:16 dgp85 Exp $
+ * $Id: real_common.c,v 1.11 2007/03/17 06:11:30 dgp85 Exp $
  *
  * Common function for the thin layer to use Real binary-only codecs in xine
  */
@@ -62,8 +62,11 @@ void __pure_virtual(void) {
 
 #endif
 
-#ifdef __FreeBSD__ /* TODO: alias them if at all possible */
+#ifndef HAVE____BRK_ADDR
 void ___brk_addr(void) { exit(0); }
+#endif
+
+#ifndef HAVE___CTYPE_B
 void __ctype_b(void) { exit(0); }
 #endif
 
