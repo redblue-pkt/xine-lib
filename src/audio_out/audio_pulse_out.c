@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.11 2007/02/03 10:46:14 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.12 2007/03/17 20:57:59 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -223,14 +223,10 @@ static int ao_pulse_open(ao_driver_t *this_gen,
       ss.format = PA_SAMPLE_U8;
       break;
     case 16:
-#ifdef WORDS_BIGENDIAN
-      ss.format = PA_SAMPLE_S16BE;
-#else
-      ss.format = PA_SAMPLE_S16LE;
-#endif
+      ss.format = PA_SAMPLE_S16NE;
       break;
     case 32:
-      ss.format = PA_SAMPLE_FLOAT32;
+      ss.format = PA_SAMPLE_FLOAT32NE;
       break;
   }
 
