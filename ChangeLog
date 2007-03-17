@@ -24,6 +24,14 @@ xine-lib (1.1.5) (Unreleased)
   * Don't leave libstk support to be detected automagically; also made it
     disabled by default as upstream is dead and a different libstk is found
     on Debian.
+  * Improvement in portability to FreeBSD, merged some patches (with changes)
+    from the ports.
+  * Cleaned up Real binary codecs support, adding support for FreeBSD (still
+    to be completely cleaned up though), and to 64-bit platforms. Also add
+    two new configure option, one to enable or disable building of Real binary
+    support altogether and one to choose the path where to look for the codecs
+    by default (it can, and probably should) be different from the Win32
+    codecs path.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
