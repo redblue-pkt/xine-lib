@@ -37,6 +37,8 @@ xine-lib (1.1.5) (Unreleased)
     no status message.
   * Wave files with 24-bit integer PCM streams now should play correctly
     (downplayed to 16-bit).
+  * Added centre-cutout (4:3 in 16:9) to the expand plugin.
+    Patch by Reinhard Nissl.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
