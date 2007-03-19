@@ -117,6 +117,7 @@ dnl ---------------------------------------------
 dnl Check for programs.
 dnl ---------------------------------------------
 
+AC_GNU_SOURCE
 dnl Save CFLAGS, AC_ISC_POSIX set some unwanted default CFLAGS
 saved_CFLAGS="$CFLAGS"
 AC_ISC_POSIX
@@ -270,7 +271,6 @@ AC_MSG_CHECKING(for recursive mutex support in pthread)
 ac_save_LIBS="$LIBS"
 LIBS="$LIBS $THREAD_LIBS"
 
-AC_DEFINE(_GNU_SOURCE)
 have_recursive_mutex=no
 AC_COMPILE_IFELSE(AC_LANG_SOURCE([#include <pthread.h>
 
@@ -1770,7 +1770,6 @@ if test "x$enable_vcd" = "xyes"; then
     AC_DEFINE_UNQUOTED(HOST_ARCH, "$host_os/$host_cpu", [host os/cpu identifier])
 
     AC_DEFINE(_DEVELOPMENT_, [], enable warnings about being development release)
-    AC_DEFINE(_GNU_SOURCE, [], enable GNU libc extension)
     AC_STDC_HEADERS
     AC_CHECK_HEADERS(sys/stat.h stdint.h glob.h inttypes.h stdbool.h)
 
@@ -2169,7 +2168,6 @@ if test "x$some_snprintf" != "xyes" -o \
   AC_MSG_ERROR([required function not found])
 fi
 AC_FUNC_FSEEKO
-AC_DEFINE(_GNU_SOURCE)
 AC_CHECK_HEADERS(assert.h byteswap.h malloc.h execinfo.h ucontext.h sys/mman.h sys/mixer.h libgen.h netdb.h dirent.h sys/times.h sys/ioctl.h sys/param.h alloca.h)
 AC_REPLACE_FUNCS(asprintf basename gettimeofday setenv strndup strpbrk strsep strtok_r timegm unsetenv)
 
