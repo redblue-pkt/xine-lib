@@ -2070,6 +2070,12 @@ AC_ARG_WITH([real-codecs-path],
 		AC_DEFINE_UNQUOTED([REAL_CODEC_PATH], ["$withval"], [Specified path for Real binary codecs])
 	])
 
+dnl On some systems, we cannot enable Real codecs support to begin with.
+dnl This includes Darwin, that uses Mach-O rather than ELF.
+case $host in
+     *-darwin*) enable_real_codecs="no" ;;
+esac
+
 if test "x$enable_real_codecs" != "xno"; then
    dnl For those that have a replacement, break at the first one found
    AC_CHECK_SYMBOLS([__environ _environ environ], [break], [need_weak_aliases=yes])
