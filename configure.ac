@@ -3161,20 +3161,25 @@ if ! echo "$PATH" | egrep "(:|^)$final_bindir(/?:|/?$)" >/dev/null ; then
 fi
 
 dnl warn if no X11 plugins will be built
-if test "x$no_x" = "xyes" \
-        -a "x$SYS" != "xmingw32" -a "x$SYS" != "xcygwin" ; then
-  echo
-  echo "****************************************************************"
-  echo "WARNING! No X11 output plugins will be built."
-  echo
-  echo "For some reason, the requirements for building the X11 video"
-  echo "output plugins are not met. That means, that you will NOT be"
-  echo "able to use the resulting xine-lib to watch videos in a window"
-  echo "on any X11-based display (e.g. your desktop)."
-  echo
-  echo "If this is not what you want, provide the necessary X11 build"
-  echo "dependencies (usually done by installing a package called"
-  echo "XFree86-devel or similar) and run configure again."
-  echo "****************************************************************"
-  echo
+if test "x$no_x" = "xyes"; then
+  case $host in
+    *mingw*|*-cygwin) ;;
+    *-darwin*) ;;
+    *)
+      echo
+      echo "****************************************************************"
+      echo "WARNING! No X11 output plugins will be built."
+      echo
+      echo "For some reason, the requirements for building the X11 video"
+      echo "output plugins are not met. That means, that you will NOT be"
+      echo "able to use the resulting xine-lib to watch videos in a window"
+      echo "on any X11-based display (e.g. your desktop)."
+      echo
+      echo "If this is not what you want, provide the necessary X11 build"
+      echo "dependencies (usually done by installing a package called"
+      echo "XFree86-devel or similar) and run configure again."
+      echo "****************************************************************"
+      echo
+      ;;
+  esac
 fi
