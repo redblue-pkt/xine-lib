@@ -2222,9 +2222,8 @@ CC_ATTRIBUTE_VISIBILITY([
     AC_DEFINE([EXPORTED], [__attribute__((visibility("default")))],
       [Mark a symbol as being exported if visibility is changed])
     VISIBILITY_FLAG="-fvisibility=hidden"
-    ], [
-    AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
-  ])
+    ], [AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
+  ], [AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])])
 ])
 
 AC_SUBST([VISIBILITY_FLAG])
