@@ -133,6 +133,9 @@ AC_C_INLINE
 
 AC_CHECK_TOOL([STRINGS], [strings], [false])
 
+dnl We need to check this beforehand or autoconf bails out as we have it conditional.
+CC_CHECK_WERROR
+
 dnl ---------------------------------------------
 dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
 dnl ---------------------------------------------
