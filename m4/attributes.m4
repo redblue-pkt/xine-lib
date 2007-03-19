@@ -33,7 +33,7 @@ dnl this special exception to the GPL to apply to your modified version as
 dnl well.
 
 AC_DEFUN([CC_CHECK_CFLAGS], [
-  AC_CACHE_CHECK([if compiler supports $1 flag],
+  AC_CACHE_CHECK([if $CC supports $1 flag],
     AS_TR_SH([cc_cv_cflags_$1]),
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $1"
