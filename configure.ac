@@ -2592,22 +2592,22 @@ AM_CONDITIONAL([BUILD_DMX_IMAGE], [test "x$have_imagemagick" = "xyes" -o "x$no_g
 dnl Important warnings we _don't_ want to skip
 dnl Don't put these under conditional for optimisations, because these
 dnl need always to be enabled.
-AC_TRY_CFLAGS([-Wformat], [wformat="-Wformat"])
-AC_TRY_CFLAGS([-Wformat=2], [wformat="-Wformat=2"])
-if test "x$wformat" != "x"; then
-   AC_TRY_CFLAGS([-Wno-format-zero-length], [wformat="$wformat -Wno-format-zero-length"])
-fi
-AC_TRY_CFLAGS([-Wmissing-format-attribute], [wformat="$wformat -Wmissing-format-attribute"])
-CFLAGS="$CFLAGS $wformat"
+CC_CHECK_CFLAGS([-Wformat=2], [wformat="-Wformat=2"],
+  [CC_CHECK_CFLAGS([-Wformat], [wformat="-Wformat"])])
 
-dnl This has to be stay at the end as it can break some autoconf tests.
-AC_TRY_CFLAGS([-Werror-implicit-function-declaration], [CFLAGS="$CFLAGS -Werror-implicit-function-declaration"])
+test "x$wformat" != "x" && \
+   CC_CHECK_CFLAGS([-Wno-format-zero-length], [wformat="$wformat -Wno-format-zero-length"])
 
-AC_TRY_CFLAGS([-Wstrict-aliasing], [wsa="-Wstrict-aliasing"])
-AC_TRY_CFLAGS([-Wstrict-aliasing=2], [wsa="-Wstrict-aliasing=2"])
-CFLAGS="$CFLAGS $wsa"
+CC_CHECK_CFLAGS([-Wmissing-format-attribute], [wformat="$wformat -Wmissing-format-attribute"])
+warnflags="$warnflags $wformat"
 
-case $host_or_hostalias in
+dnl This *has* to stay at the end as it can break some autoconf tests.
+CC_CHECK_CFLAGS([-Werror-implicit-function-declaration], [warnflags="$warnflags -Werror-implicit-function-declaration"])
+
+CC_CHECK_CFLAGS([-Wstrict-aliasing=2], [warnflags="$warnflags -Wstrict-aliasing=2"],
+  [CC_CHECK_CFLAGS([-Wstrict-aliasing], [warnflags="$warnflags -Wstrict-aliasing"])])
+
+case $host in
      dnl FreeBSD (et al.) does not complete linking for shared objects when pthreads
      dnl are requested, as different implementations are present; to avoid problems
      dnl use -Wl,-z,defs only for those platform not behaving this way.
@@ -2619,7 +2619,7 @@ esac
 AC_SUBST([NOUNDEF])
 
 dnl Common cflags for all platforms
-CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $CFLAGS"
+CFLAGS="-DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $warnflags $CFLAGS"
 DEBUG_CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
 
 dnl ---------------------------------------------
