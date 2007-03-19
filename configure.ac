@@ -2219,15 +2219,15 @@ dnl WARNING! Do not move this check behind the $(MULTIPASS_CFLAGS)!
 dnl (the alignment test macro does not like variables in the CFLAGS)
 AC_C_ATTRIBUTE_ALIGNED
 
-CC_ATTRIBUTE_VISIBILITY
-CC_FLAG_VISIBILITY([
-		AC_DEFINE([EXPORTED],
-			[__attribute__((visibility("default")))],
-			[Mark a symbol as being exported if visibility is changed])
-		VISIBILITY_FLAG="-fvisibility=hidden"
-	], [
-		AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
-	])
+CC_ATTRIBUTE_VISIBILITY([
+  CC_FLAG_VISIBILITY([
+    AC_DEFINE([EXPORTED], [__attribute__((visibility("default")))],
+      [Mark a symbol as being exported if visibility is changed])
+    VISIBILITY_FLAG="-fvisibility=hidden"
+    ], [
+    AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
+  ])
+])
 
 AC_SUBST([VISIBILITY_FLAG])
 
