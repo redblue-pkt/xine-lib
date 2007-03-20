@@ -1,5 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
+AM_CPPFLAGS = -DXINE_COMPILE
+
 EXTRA_DIST = \
              video_window.h \
              XineOpenGLView.m \
