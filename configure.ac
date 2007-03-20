@@ -2346,19 +2346,12 @@ AM_CONDITIONAL(HAVE_MMX, test "x$arch_x86" = "xyes")
 
 case $host_os in
   darwin*)
+      AC_PROG_OBJC
       HOST_OS_DARWIN=1
       AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
-      OBJC=${CC:-gcc}
-      AC_SUBST(OBJC)
       OBJCFLAGS="-D_INTL_REDIRECT_MACROS $CFLAGS $OBJCFLAGS"
       AC_SUBST(OBJCFLAGS)
-      OBJCDEPMODE="depmode=gcc3"
-      dnl Do not use AC_SUBST(OBJCDEPMODE): we don't need it as long we use
-      dnl _AM_DEPENDENCIES (below), and doing the AC_SUBST elicits a warning
-      dnl from automake 1.6.
         ;;
-  *)
-	;;
 esac
 AM_CONDITIONAL(HOST_OS_DARWIN, test "x$HOST_OS_DARWIN" = "x1")
 
