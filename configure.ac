@@ -2369,6 +2369,9 @@ if test "x$enable_impure_text" = xyes; then
         IMPURE_TEXT_LDFLAGS="-z textoff"
       fi
     ;;
+    *-darwin*)
+      IMPURE_TEXT_LDFLAGS="-read-only-relocs warning"
+      ;;
   esac
 fi
 AC_SUBST(IMPURE_TEXT_LDFLAGS)
