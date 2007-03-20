@@ -1758,7 +1758,7 @@ if test "x$enable_vcd" = "xyes"; then
   if test "x$internal_vcdnav" = "xno" ; then
     PKG_CHECK_MODULES([LIBCDIO], [libcdio >= 0.71], [], [internal_vcdnav=yes])
     PKG_CHECK_MODULES([LIBVCDINFO], [libvcdinfo >= 0.7.23], [], [internal_vcdnav=yes])
-    if "x$internal_vcdnav" = "xyes"; then
+    if test "x$internal_vcdnav" = "xyes"; then
        AC_MSG_RESULT([Use included libcdio/libvcdinfo support])
     fi
   fi
