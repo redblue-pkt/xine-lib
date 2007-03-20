@@ -2370,7 +2370,7 @@ if test "x$enable_impure_text" = xyes; then
       fi
     ;;
     *-darwin*)
-      IMPURE_TEXT_LDFLAGS="-read-only-relocs warning"
+      IMPURE_TEXT_LDFLAGS="-Wl,-read_only_relocs,warning"
       ;;
   esac
 fi
