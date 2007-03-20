@@ -305,3 +305,25 @@ AC_DEFUN([CC_ATTRIBUTE_ALIAS], [
 		$2
 	fi
 ])
+
+AC_DEFUN([CC_ATTRIBUTE_ALIGNED], [
+  AC_REQUIRE([CC_CHECK_WERROR])
+  AC_CACHE_CHECK([highest __attribute__ ((aligned ())) supported],
+    [cc_cv_attribute_aligned],
+    [ac_save_CFLAGS="$CFLAGS"
+     CFLAGS="$CFLAGS $cc_cv_werror"
+     for cc_attribute_align_try in 64 32 16 8 4 2; do
+        AC_COMPILE_IFELSE([
+          int main() {
+            static char c __attribute__ ((aligned($cc_attribute_align_try))) = 0;
+            return c;
+          }], [cc_cv_attribute_aligned=$cc_attribute_align_try; break])
+     done
+     CFLAGS="$ac_save_CFLAGS"
+  ])
+
+  if test "x$cc_cv_attribute_aligned" != "x"; then
+     AC_DEFINE_UNQUOTED([ATTRIBUTE_ALIGNED_MAX], [$cc_cv_attribute_aligned],
+       [Define the highest alignment supported])
+  fi
+])
