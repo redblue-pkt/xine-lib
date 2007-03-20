@@ -41,6 +41,8 @@ xine-lib (1.1.5) (Unreleased)
     Patch by Reinhard Nissl.
   * Fix support of block devices for AC3 and DTS demuxers. Thanks to Matthias
     Kretz for the original patch.
+  * Portability fixes for Mac OS X, in particular Mac OS X on the new Intel
+    Macs. Thanks to Martin Aumueller and Emanuele Giaquinta.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
