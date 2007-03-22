@@ -2063,13 +2063,13 @@ AC_DEFINE_UNQUOTED(restrict, $restrict, [restrict keyword])
 
 dnl ---------------------------------------------
 dnl ASM ALIGN is power of two ?
+dnl Used by internal FFmpeg and Planar postprocess
 dnl ---------------------------------------------
-asmalign_pot="unknown"
-if test $asmalign_pot = "unknown"; then
-    AC_TRY_COMPILE([], [ asm (".align 3"); ],[
-    AC_DEFINE([HAVE_ASMALIGN_POT], 1, "asmalign power of two")],[
-    AC_DEFINE([HAVE_ASMALIGN_POT], 0, "asmalign power of two")])
-fi
+AC_TRY_COMPILE([], [ asm (".align 3"); ],[
+  AC_DEFINE([ASMALIGN(ZEROBITS)], [".align " #ZEROBITS "\n\t"], "asmalign power of two")
+],[
+  AC_DEFINE([ASMALIGN(ZEROBITS)], [".align 1<<" #ZEROBITS "\n\t"], "asmalign power of two")
+])
 
 dnl ---------------------------------------------
 dnl Some extra checks.

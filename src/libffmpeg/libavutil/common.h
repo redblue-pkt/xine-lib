@@ -357,13 +357,6 @@ void av_freep(void *ptr);
 # define always_inline
 #endif
 
-/* xine: define ASMALIGN here since it's cleaner that generating it in the configure */
-#if HAVE_ASMALIGN_POT
-# define ASMALIGN(ZEROBITS) ".align " #ZEROBITS "\n\t"
-#else
-# define ASMALIGN(ZEROBITS) ".align 1<<" #ZEROBITS "\n\t"
-#endif
-
 /* xine: another config.h with codecs to use */
 #include "ffmpeg_config.h"
 
