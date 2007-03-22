@@ -92,13 +92,6 @@ AM_INIT_AUTOMAKE("xine-lib", $SPEC_VERSION)
 dnl AM_INIT_AUTOMAKE("xine-lib", $XINE_MAJOR-$XINE_PRE)
 
 dnl ---------------------------------------------
-dnl Requirements for macros whose first invocations are conditional
-dnl ---------------------------------------------
-
-PKG_PROG_PKG_CONFIG
-
-
-dnl ---------------------------------------------
 dnl Made possible to build for another arch.
 dnl ---------------------------------------------
 
@@ -117,32 +110,30 @@ dnl ---------------------------------------------
 dnl Check for programs.
 dnl ---------------------------------------------
 
+AC_PROG_CC
+AM_PROG_AS
+case "$host_os" in
+  *darwin*)
+     AC_PROG_OBJC
+     ;;
+esac
+
 AC_GNU_SOURCE
 dnl Save CFLAGS, AC_ISC_POSIX set some unwanted default CFLAGS
 saved_CFLAGS="$CFLAGS"
 AC_ISC_POSIX
 AC_PATH_MAGIC
 CFLAGS="$saved_CFLAGS"
-AC_PROG_CC
 AC_HEADER_STDC
+
 AC_PROG_MAKE_SET
-dnl AC_PROG_EGREP  needs autoconf 2.54, just hardcode for "egrep"
+AC_PROG_EGREP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_AWK
 AC_C_INLINE
 
 AC_CHECK_TOOL([STRINGS], [strings], [false])
-
-dnl We need to check this beforehand or autoconf bails out as we have it conditional.
-CC_CHECK_WERROR
-
-dnl ---------------------------------------------
-dnl Check for assembler (ffmpeg need it), don't call this before LIBTOOL
-dnl ---------------------------------------------
-
-AM_PROG_AS
-
 
 dnl ---------------------------------------------
 dnl Libtool
@@ -164,6 +155,13 @@ else
 fi
 AC_SUBST(STATIC)
 
+
+dnl ---------------------------------------------
+dnl Requirements for macros whose first invocations are conditional
+dnl ---------------------------------------------
+
+PKG_PROG_PKG_CONFIG
+CC_CHECK_WERROR
 
 dnl ---------------------------------------------
 dnl NLS Support
@@ -200,8 +198,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 dnl ---------------------------------------------
 
 AC_C_BIGENDIAN
-dnl AC_C_BIGENDIAN triggers an AC_TRY_RUN warning; we can't cross compile
-dnl xine (oh, well)
 AC_C_CONST
 dnl AC_C_ALWAYS_INLINE removal allows ffmpeg to be more widely buildable
 AC_TYPE_OFF_T
@@ -2346,11 +2342,9 @@ AM_CONDITIONAL(HAVE_MMX, test "x$arch_x86" = "xyes")
 
 case $host_os in
   darwin*)
-      AC_PROG_OBJC
       HOST_OS_DARWIN=1
       AC_DEFINE_UNQUOTED(HOST_OS_DARWIN, 1, [Define this if built on Mac OS X/Darwin])
-      OBJCFLAGS="-D_INTL_REDIRECT_MACROS $CFLAGS $OBJCFLAGS"
-      AC_SUBST(OBJCFLAGS)
+      OBJCFLAGS="-D_INTL_REDIRECT_MACROS $OBJCFLAGS"
         ;;
 esac
 AM_CONDITIONAL(HOST_OS_DARWIN, test "x$HOST_OS_DARWIN" = "x1")

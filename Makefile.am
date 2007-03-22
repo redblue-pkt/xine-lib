@@ -81,7 +81,7 @@ slackbuild:
 install-exec-hook:
 	find $(top_builddir) -name \*.so | \
 	  xargs $(STRINGS) -a | \
-	  egrep '^([-a-z]+/[-+.a-z0-9]+:[^:]+:[^;]+;[ \t]*)+' | \
+	  $(EGREP) '^([-a-z]+/[-+.a-z0-9]+:[^:]+:[^;]+;[ \t]*)+' | \
 	  sed -e 's/:[^;]\+;/\n/g' | \
 	  sort -u | \
 	  sed -e '1 d' >$(DESTDIR)$(XINE_PLUGINDIR)/mime.types
