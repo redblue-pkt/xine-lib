@@ -21,7 +21,7 @@ libxineMacOSXVideo_la_LDFLAGS = -version-info \
 	-Wl,-framework -Wl,Cocoa -framework Cocoa \
 	-Wl,-framework -Wl,OpenGL -framework OpenGL
 
-include_HEADERS = video_window.h XineOpenGLView.h XineVideoWindow.h
+xineinclude_HEADERS = video_window.h XineOpenGLView.h XineVideoWindow.h
 
 endif
 

@@ -151,6 +151,6 @@ xineplug_inp_pvr_la_LIBADD = $(XINE_LIB) $(THREAD_LIBS)
 xineplug_inp_pvr_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_pvr_la_LDFLAGS = -avoid-version -module
 
-include_HEADERS = input_plugin.h
+xineinclude_HEADERS = input_plugin.h
 noinst_HEADERS = net_buf_ctrl.h mms.h mmsh.h pnm.h media_helper.h videodev2.h http_helper.h
 

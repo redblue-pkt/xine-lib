@@ -35,7 +35,7 @@ libxine_la_LDFLAGS =  \
 	$(def_ldflags)
 
 
-include_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \
+xineinclude_HEADERS  = buffer.h metronom.h configfile.h vo_scale.h \
         audio_out.h resample.h video_out.h xine_internal.h spu_decoder.h \
 	video_overlay.h osd.h scratch.h xine_plugin.h xineintl.h  \
 	plugin_catalog.h audio_decoder.h video_decoder.h post.h \
