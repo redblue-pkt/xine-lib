@@ -95,13 +95,10 @@ dnl ---------------------------------------------
 dnl Made possible to build for another arch.
 dnl ---------------------------------------------
 
-if test "x$XINE_BUILD" != "x"; then
-  AC_MSG_RESULT([*** build forced to $XINE_BUILD ***])
-  build=$XINE_BUILD
-  host=$XINE_BUILD
-else
-  check_athlon=yes
-fi
+AC_CANONICAL_HOST
+AC_CANONICAL_BUILD
+
+test "$host" == "$build" && check_athlon=yes
 
 AM_CONFIG_HEADER(config.h)
 
@@ -213,59 +210,12 @@ dnl ---------------------------------------------
 dnl threads and OS specific stuff
 dnl ---------------------------------------------
 
-AC_ARG_WITH(pthread-prefix, 
-  AC_HELP_STRING(
-    [--with-pthread-prefix=PREFIX],
-    [path to pthread library]),
-  [pthread_prefix="$withval"],
-  [pthread_prefix="no"])
-
-case "$host" in
-  *-*-freebsd*)
-    if test "x$pthread_prefix" = "xno"; then
-      pthread_prefix="/usr/local"
-    fi
-    THREAD_LIBS="-L$pthread_prefix/lib -pthread"
-    THREAD_CPPFLAGS="-I$pthread_prefix/include"
-    CPPFLAGS="$CPPFLAGS $THREAD_CPPFLAGS -D_THREAD_SAFE"
-    have_pthread=yes
-    ;;
-
-  *-*-hpux11*)
-    THREAD_LIBS="-lpthread"
-    have_pthread=yes
-
-    ;;
-
-  *)
-    if test "x$pthread_prefix" = "xno"; then
-      THREAD_LIBS="-lpthread"
-    else
-      THREAD_LIBS="-L$pthread_prefix/lib -lpthread"
-      THREAD_CPPFLAGS="-I$pthread_prefix/include"
-    fi
-    CPPFLAGS="$CPPFLAGS $THREAD_CPPFLAGS"
-
-    ac_save_LIBS="$LIBS"
-    LIBS="$LIBS $THREAD_LIBS"
-
-    AC_CHECK_LIB(pthread, pthread_create, have_pthread=yes)
-
-    LIBS="$ac_save_LIBS"
-    ;;
-esac
-
-if test "x$have_pthread" != "xyes"; then
-  AC_MSG_ERROR(pthread needed)
-fi
-
-AC_SUBST(THREAD_CPPFLAGS)
-AC_SUBST(THREAD_LIBS)
+CC_PTHREAD_FLAGS(, [AC_MSG_ERROR([Pthread support is needed])])
 
 dnl
 AC_MSG_CHECKING(for recursive mutex support in pthread)
 ac_save_LIBS="$LIBS"
-LIBS="$LIBS $THREAD_LIBS"
+LIBS="$LIBS $PTHREAD_LIBS"
 
 have_recursive_mutex=no
 AC_COMPILE_IFELSE(AC_LANG_SOURCE([#include <pthread.h>

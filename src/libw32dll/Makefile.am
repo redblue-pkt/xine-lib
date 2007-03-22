@@ -20,7 +20,7 @@ xineplug_decode_w32dll_la_LDFLAGS = -avoid-version -module
 xineplug_decode_w32dll_la_LIBADD = \
 	$(top_builddir)/src/libw32dll/wine/libwine.la \
 	$(XINE_LIB) \
-	$(THREAD_LIBS) \
+	$(PTHREAD_LIBS) \
 	-lm \
 	$(top_builddir)/src/libw32dll/DirectShow/libds_filter.la \
 	$(top_builddir)/src/libw32dll/dmo/libdmo_filter.la \
@@ -31,7 +31,7 @@ xineplug_decode_qt_la_LDFLAGS = -avoid-version -module
 xineplug_decode_qt_la_LIBADD = \
 	$(top_builddir)/src/libw32dll/wine/libwine.la \
 	$(XINE_LIB) \
-	$(THREAD_LIBS) \
+	$(PTHREAD_LIBS) \
 	-lm \
 	@KSTAT_LIBS@
 

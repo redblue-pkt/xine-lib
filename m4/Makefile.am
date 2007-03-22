@@ -31,4 +31,5 @@ EXTRA_DIST = glibc2.m4 intdiv0.m4 intmax.m4 inttypes.m4 inttypes_h.m4 inttypes-p
 	progtest.m4 \
 	xine.m4 \
 	_xine.m4 \
-	xv.m4
+	xv.m4 \
+	pthreads.m4
