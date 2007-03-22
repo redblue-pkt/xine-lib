@@ -109,6 +109,7 @@ dnl ---------------------------------------------
 
 AC_PROG_CC
 AM_PROG_AS
+
 case "$host_os" in
   *darwin*)
      AC_PROG_OBJC
@@ -1978,32 +1979,6 @@ fi
 AM_CONDITIONAL([HAVE_WAVPACK], [test "x$have_wavpack" = "xyes"])
 
 
-dnl ---------------------------------------------
-dnl Win32 DLL codecs
-dnl ---------------------------------------------
-AC_ARG_ENABLE([w32dll],
-  AC_HELP_STRING([--disable-w32dll], [Disable Win32 DLL support]),
-  enable_w32dll=$enableval, [
-    AC_MSG_CHECKING([whether to enable Win32 DLL support])
-    case "$host_or_hostalias" in
-      *-mingw* | *-cygwin)
-        enable_w32dll="no"
-        ;;
-      i?86-* | k?-* | athlon-* | pentium*-)
-        enable_w32dll="yes"
-        ;;
-      *)
-        enable_w32dll="no"
-    esac
-    AC_MSG_RESULT([$enable_w32dll])])
-AM_CONDITIONAL(HAVE_W32DLL, test "x$enable_w32dll" = "xyes")
-if test "x$enable_w32dll" = "xyes"; then
-   W32DLL_DEP=""
-else 
-   W32DLL_DEP="#"
-fi
-AC_SUBST(W32DLL_DEP)
-
 dnl --------------------------------------------
 dnl Real binary codecs support
 dnl --------------------------------------------
@@ -2450,9 +2425,36 @@ dnl ---------------------------------------------
 dnl For win32 libraries location, needed by libw32dll.
 dnl ---------------------------------------------
 
-AC_ARG_WITH(w32-path, AC_HELP_STRING([--with-w32-path=path], [location of WIN32 libraries]),
-            w32_path="$withval", w32_path="/usr/lib/codecs")
+AC_ARG_WITH([w32-path],
+  AS_HELP_STRING([--with-w32-path=path], [location of Win32 binary codecs]),
+  [w32_path="$withval"], [w32_path="/usr/lib/codecs"])
 AC_SUBST(w32_path)
+
+AC_ARG_ENABLE([w32dll],
+  AS_HELP_STRING([--disable-w32dll], [Disable Win32 DLL support]),
+  , [enable_w32dll=$with_gnu_as])
+
+case $host in
+   *-mingw* | *-cygwin)
+     enable_w32dll="no" ;;
+   i?86-* | k?-* | athlon-* | pentium*-)
+     if test "x$enable_w32dll" != "xno"; then
+	CC_PROG_AS
+     fi
+     test "x$enable_w32dll" = "x" && \
+       enable_w32dll="$with_gnu_as"
+     ;;
+   *)
+     enable_w32dll="no" ;;
+esac
+
+if test "x$enable_w32dll" = "xyes" && \
+   test "x$with_gnu_as" = "xno"; then
+
+   AC_MSG_ERROR([You need GNU as to enable Win32 codecs support])
+fi
+
+AM_CONDITIONAL(HAVE_W32DLL, test "x$enable_w32dll" != "xno")
 
 
 dnl ---------------------------------------------
