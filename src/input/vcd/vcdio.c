@@ -1,5 +1,5 @@
 /*
-  $Id: vcdio.c,v 1.8 2006/12/13 19:14:19 dsalt Exp $
+  $Id: vcdio.c,v 1.9 2007/03/23 21:47:31 dsalt Exp $
  
   Copyright (C) 2002, 2003, 2004, 2005 Rocky Bernstein <rocky@panix.com>
   
@@ -115,8 +115,7 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
       break;
 
     default:
-      /* Opened the device, but it's not a VCD => close it & return failure */
-      vcdinfo_close(p_vcdplayer->vcd);
+      /* Opened the device, but it's not a VCD => is closed, return failure */
       return false;
   }
 
