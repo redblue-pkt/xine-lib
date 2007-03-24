@@ -136,28 +136,23 @@ AC_DEFUN([CC_ATTRIBUTE_FORMAT_ARG], [
 ])
 
 AC_DEFUN([CC_ATTRIBUTE_VISIBILITY], [
-	AC_REQUIRE([CC_CHECK_WERROR])
-	ac_save_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS $cc_cv_werror"
-	AC_CACHE_CHECK([if compiler supports __attribute__((visibility("...")))],
-		[cc_cv_attribute_visibility],
-		[AC_COMPILE_IFELSE([
-			void __attribute__((visibility("internal"))) internal_function() { }
-			void __attribute__((visibility("hidden"))) hidden_function() { }
-			void __attribute__((visibility("default"))) external_function() { }
-			],
-			[cc_cv_attribute_visibility=yes],
-			[cc_cv_attribute_visibility=no])
-		])
-	CFLAGS="$ac_save_CFLAGS"
-	
-	if test "x$cc_cv_attribute_visibility" = "xyes"; then
-		AC_DEFINE([SUPPORT_ATTRIBUTE_VISIBILITY], 1, [Define this if the compiler supports the visibility attribute])
-		$1
-	else
-		true
-		$2
-	fi
+  AC_REQUIRE([CC_CHECK_WERROR])
+  AC_CACHE_CHECK([if $CC supports __attribute__((visibility("$1")))],
+    AS_TR_SH([cc_cv_attribute_visibility_$1]),
+    [ac_save_CFLAGS="$CFLAGS"
+     CFLAGS="$CFLAGS $cc_cv_werror"
+     AC_COMPILE_IFELSE([void __attribute__((visibility("$1"))) $1_function() { }],
+       [eval "AS_TR_SH([cc_cv_attribute_visibility_$1])='yes'"],
+       [eval "AS_TR_SH([cc_cv_attribute_visibility_$1])='no'"])
+     CFLAGS="$ac_save_CFLAGS"
+    ])
+
+  if eval test [x$]AS_TR_SH([cc_cv_attribute_visibility_$1]); then
+    AC_DEFINE(AS_TR_CPP([SUPPORT_ATTRIBUTE_VISIBILITY_$1]), 1, [Define this if the compiler supports __attribute__((visibility("$1")))])
+    ifelse([$2], , [:], [$2])
+  else
+    ifelse([$3], , [:], [$3])
+  fi
 ])
 
 AC_DEFUN([CC_FLAG_VISIBILITY], [

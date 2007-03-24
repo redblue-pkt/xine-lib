@@ -47,8 +47,10 @@
 #endif
 
 /* Export protected only for libxine functions */
-#if defined(XINE_LIBRARY_COMPILE) && defined(SUPPORT_ATTRIBUTE_VISIBILITY)
+#if defined(XINE_LIBRARY_COMPILE) && defined(SUPPORT_ATTRIBUTE_VISIBILITY_PROTECTED)
 # define XINE_PROTECTED __attribute__((visibility("protected")))
+#elif defined(XINE_LIBRARY_COMPILE) && defined(SUPPORT_ATTRIBUTE_VISIBILITY_DEFAULT)
+# define XINE_PROTECTED __attribute__((visibility("default")))
 #else
 # define XINE_PROTECTED
 #endif

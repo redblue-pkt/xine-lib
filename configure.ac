@@ -2139,14 +2139,20 @@ dnl ---------------------------------------------
 
 CC_ATTRIBUTE_ALIGNED
 
-CC_ATTRIBUTE_VISIBILITY([
+CC_ATTRIBUTE_VISIBILITY([protected], [visibility_export="protected"],
+  [CC_ATTRIBUTE_VISIBILITY([default], [visibility_export="default"])]
+)
+
+if test "x$visibility_export" != "x"; then
   CC_FLAG_VISIBILITY([
     AC_DEFINE([EXPORTED], [__attribute__((visibility("default")))],
       [Mark a symbol as being exported if visibility is changed])
     VISIBILITY_FLAG="-fvisibility=hidden"
     ], [AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
-  ])], [AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
-])
+  ])
+else
+  AC_DEFINE([EXPORTED], [], [Dummy mark as being exported])
+fi
 
 AC_SUBST([VISIBILITY_FLAG])
 
