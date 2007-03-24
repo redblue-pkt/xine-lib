@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.151 2007/03/03 01:41:16 dgp85 Exp $
+ * $Id: demux_mpgaudio.c,v 1.152 2007/03/24 03:14:15 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -166,7 +166,7 @@ typedef struct {
 /* bitrate table[mpeg version][layer][bitrate index]
  * values stored in kbps
  */
-const int mp3_bitrates[3][3][16] = {
+static const int mp3_bitrates[3][3][16] = {
    { {0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,},
      {0, 32, 48, 56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 384,},
      {0, 32, 40, 48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320,} },
@@ -179,21 +179,21 @@ const int mp3_bitrates[3][3][16] = {
 };
 
 /* frequency table[mpeg version][frequence index] (in KHz) */
-static int mp3_freqs[3][3] = {
+static const int mp3_freqs[3][3] = {
 	{ 44100, 48000, 32000 },
 	{ 22050, 24000, 16000 },
 	{ 11025, 12000,  8000 }
 };
 
 /* samples per frame table[mpeg version][layer] */
-static int mp3_samples[3][3] = {
+static const int mp3_samples[3][3] = {
 	{ 384, 1152, 1152 },
 	{ 384, 1152, 576 },
 	{ 384, 1152, 576 }
 };
 
 /* samples per frame table[layer][padding bit] */
-static int mp3_paddings[3][2] = {
+static const int mp3_paddings[3][2] = {
 	{ 0, 4 },
 	{ 0, 1 },
 	{ 0, 1 }
