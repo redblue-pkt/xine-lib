@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.222 2007/02/15 18:26:55 dgp85 Exp $
+ * $Id: video_out_xv.c,v 1.223 2007/03/25 23:13:53 dgp85 Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -257,6 +257,11 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
 			       int width, int height, int format) {
   unsigned int  xv_format;
   XvImage      *image = NULL;
+
+  if (width <= 0)
+    width = 1;
+  if (height <= 0)
+    height = 1;
 
   if (this->use_pitch_alignment) {
     width = (width + 7) & ~0x7;

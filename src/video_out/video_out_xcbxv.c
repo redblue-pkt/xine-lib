@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xcbxv.c,v 1.4 2007/03/25 23:07:23 dgp85 Exp $
+ * $Id: video_out_xcbxv.c,v 1.5 2007/03/25 23:13:53 dgp85 Exp $
  *
  * video_out_xcbxv.c, X11 video extension interface for xine
  *
@@ -214,6 +214,11 @@ static void create_ximage(xv_driver_t *this, xv_frame_t *frame, int width, int h
   xcb_xv_query_image_attributes_reply_t *query_attributes_reply;
 
   unsigned int length;
+
+  if (width <= 0)
+    width = 1;
+  if (height <= 0)
+    height = 1;
 
   if (this->use_pitch_alignment) {
     width = (width + 7) & ~0x7;

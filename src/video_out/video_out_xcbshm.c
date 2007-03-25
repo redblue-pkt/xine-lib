@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xcbshm.c,v 1.2 2007/03/25 23:07:23 dgp85 Exp $
+ * $Id: video_out_xcbshm.c,v 1.3 2007/03/25 23:13:53 dgp85 Exp $
  * 
  * video_out_xcbshm.c, X11 shared memory extension interface for xine
  *
@@ -133,6 +133,11 @@ typedef struct {
  */
 static void create_ximage(xshm_driver_t *this, xshm_frame_t *frame, int width, int height)
 {
+  if (width <= 0)
+    width = 1;
+  if (height <= 0)
+    height = 1;
+
   frame->bytes_per_line = ((this->bpp * width + this->scanline_pad - 1) &
 			   (~(this->scanline_pad - 1))) >> 3;
 
