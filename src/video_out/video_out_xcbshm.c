@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xcbshm.c,v 1.1 2007/02/15 15:19:33 dgp85 Exp $
+ * $Id: video_out_xcbshm.c,v 1.2 2007/03/25 23:07:23 dgp85 Exp $
  * 
  * video_out_xcbshm.c, X11 shared memory extension interface for xine
  *
@@ -149,8 +149,8 @@ static void create_ximage(xshm_driver_t *this, xshm_frame_t *frame, int width, i
 
     if (shmid < 0) {
       xprintf(this->xine, XINE_VERBOSITY_LOG,
-	      _("video_out_xshm: %s: allocating image\n"
-		"video_out_xshm: => not using MIT Shared Memory extension.\n"), strerror(errno));
+	      _("video_out_xcbshm: %s: allocating image\n"
+		"video_out_xcbshm: => not using MIT Shared Memory extension.\n"), strerror(errno));
       goto shm_fail1;
     }
   
@@ -158,8 +158,8 @@ static void create_ximage(xshm_driver_t *this, xshm_frame_t *frame, int width, i
   
     if (frame->image == ((void *) -1)) {
       xprintf(this->xine, XINE_VERBOSITY_LOG,
-	      _("video_out_xshm: shared memory error (address error) when allocating image \n"
-		"video_out_xshm: => not using MIT Shared Memory extension.\n"));
+	      _("video_out_xcbshm: shared memory error (address error) when allocating image \n"
+		"video_out_xcbshm: => not using MIT Shared Memory extension.\n"));
       goto shm_fail2;
     }
 
@@ -169,8 +169,8 @@ static void create_ximage(xshm_driver_t *this, xshm_frame_t *frame, int width, i
 
     if (generic_error != NULL) {
       xprintf(this->xine, XINE_VERBOSITY_LOG,
-	      _("video_out_xshm: x11 error during shared memory XImage creation\n"
-		"video_out_xshm: => not using MIT Shared Memory extension.\n"));
+	      _("video_out_xcbshm: x11 error during shared memory XImage creation\n"
+		"video_out_xcbshm: => not using MIT Shared Memory extension.\n"));
       free(generic_error);
       goto shm_fail3;
     }
@@ -593,7 +593,7 @@ static void xshm_overlay_blend (vo_driver_t *this_gen,
          break;
         default:
 	  xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
-		  "xine-lib:video_out_xshm:xshm_overlay_blend: Cannot blend bpp:%i\n", this->bpp);
+		  "xine-lib:video_out_xcbshm:xshm_overlay_blend: Cannot blend bpp:%i\n", this->bpp);
 	/* it should never get here, unless a user tries to play in bpp:8 */
 	break;
       }
@@ -731,7 +731,7 @@ static int xshm_get_property (vo_driver_t *this_gen, int property) {
     return this->sc.gui_height;
   default:
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_xshm: tried to get unsupported property %d\n", property);
+	    "video_out_xcbshm: tried to get unsupported property %d\n", property);
   }
 
   return 0;
@@ -747,7 +747,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
       value = XINE_VO_ASPECT_AUTO;
     this->sc.user_ratio = value;
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, 
-	    "video_out_xshm: aspect ratio changed to %s\n", _x_vo_scale_aspect_ratio_name(value));
+	    "video_out_xcbshm: aspect ratio changed to %s\n", _x_vo_scale_aspect_ratio_name(value));
 
   } else if (property == VO_PROP_BRIGHTNESS) {
 
@@ -781,7 +781,7 @@ static int xshm_set_property (vo_driver_t *this_gen,
 
   } else {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, 
-	     "video_out_xshm: tried to set unsupported property %d\n", property);
+	     "video_out_xcbshm: tried to set unsupported property %d\n", property);
   }
 
   return value;
@@ -1105,7 +1105,7 @@ static vo_driver_t *xshm_open_plugin(video_driver_class_t *class_gen, const void
   } 
   else {
     xprintf(this->xine, XINE_VERBOSITY_LOG,
-	    _("video_out_xshm: MIT shared memory extension not present on display.\n"));
+	    _("video_out_xcbshm: MIT shared memory extension not present on display.\n"));
     this->use_shm = 0;
   }
 
@@ -1143,7 +1143,7 @@ static vo_driver_t *xshm_open_plugin(video_driver_class_t *class_gen, const void
   swapped = cpu_byte_order != image_byte_order;
   
   xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-	  "video_out_xshm: video mode depth is %d (%d bpp), %s, %sswapped,\n"
+	  "video_out_xcbshm: video mode depth is %d (%d bpp), %s, %sswapped,\n"
 	  "\tred: %08x, green: %08x, blue: %08x\n",
 	  this->depth, this->bpp,
 	  visual_class_name(visualtype),
@@ -1204,7 +1204,7 @@ static vo_driver_t *xshm_open_plugin(video_driver_class_t *class_gen, const void
 
   if (!mode) {
     xprintf (this->xine, XINE_VERBOSITY_LOG, 
-	     _("video_out_xshm: your video mode was not recognized, sorry :-(\n"));
+	     _("video_out_xcbshm: your video mode was not recognized, sorry :-(\n"));
     return NULL;
   }
   
