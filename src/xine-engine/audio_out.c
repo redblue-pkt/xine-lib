@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.208 2006/12/25 15:07:52 dgp85 Exp $
+ * $Id: audio_out.c,v 1.209 2007/03/25 23:09:42 dgp85 Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -1760,13 +1760,15 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
 
     this->amp_factor = (double) value / 100.0;
 
-    this->do_amp = (this->amp_factor != 1.0);
+    this->do_amp = (this->amp_factor != 1.0 || this->amp_mute);
 
     ret = this->amp_factor*100;
     break;
 
   case AO_PROP_AMP_MUTE:
     ret = this->amp_mute = value;
+
+    this->do_amp = (this->amp_factor != 1.0 || this->amp_mute);
     break;
 
   case AO_PROP_EQ_30HZ:

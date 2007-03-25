@@ -43,6 +43,7 @@ xine-lib (1.1.5) (Unreleased)
     Kretz for the original patch.
   * Portability fixes for Mac OS X, in particular Mac OS X on the new Intel
     Macs. Thanks to Martin Aumueller and Emanuele Giaquinta.
+  * Fix amp muting when level is still at 100. Patch by Reinhard Nissl.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain
