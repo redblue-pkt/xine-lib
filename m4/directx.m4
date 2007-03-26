@@ -11,7 +11,7 @@ dnl DIRECTX_VIDEO_LIBS.
 dnl
 AC_DEFUN([AM_PATH_DIRECTX], [
 
-AC_ARG_WITH(dxheaders, AC_HELP_STRING([--with-dxheaders], [specify location of DirectX headers]),
+AC_ARG_WITH(dxheaders, AS_HELP_STRING([--with-dxheaders], [specify location of DirectX headers]),
   [dxheaders_prefix="$withval"],
   [dxheaders_prefix="no"]
 )

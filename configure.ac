@@ -318,7 +318,7 @@ dnl ---------------------------------------------
 
 AC_SUBST(LIBMPEG2_CFLAGS)
 
-AC_ARG_WITH([external-ffmpeg], AC_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]))
+AC_ARG_WITH([external-ffmpeg], AS_HELP_STRING([--with-external-ffmpeg], [use external ffmpeg library]))
 
 case "x$with_external_ffmpeg" in
    xyes)
@@ -566,7 +566,7 @@ dnl zlib
 dnl ---------------------------------------------
 
 AC_ARG_WITH(zlib-prefix, 
-  AC_HELP_STRING(
+  AS_HELP_STRING(
     [--with-zlib-prefix=PREFIX],
     [path to zlib compression library]),
   [zlib_prefix="$withval"],
@@ -621,7 +621,7 @@ dnl Check for platform which supports syncfb
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([syncfb],
-	AC_HELP_STRING([--disable-syncfb], [do not build syncfb plugin]))
+	AS_HELP_STRING([--disable-syncfb], [do not build syncfb plugin]))
 
 case "$host_os" in
   *linux*) ;;
@@ -639,7 +639,7 @@ dnl ----------------------------------------------
 dnl Check for usable video-for-linux (v4l) support
 dnl ----------------------------------------------
 AC_ARG_ENABLE([v4l],
-	AC_HELP_STRING([--disable-v4l], [do not build Video4Linux input plugin]))
+	AS_HELP_STRING([--disable-v4l], [do not build Video4Linux input plugin]))
 
 if test "x$enable_v4l" != "xno"; then
   AC_CHECK_HEADERS([linux/videodev.h], [have_v4l=yes], [have_v4l=no])
@@ -658,11 +658,11 @@ dnl ----------------------------------------------
 dnl With recent XFree86 or Xorg, dynamic linking is preferred!
 dnl Only dynamic linking is possible when using libtool < 1.4.0
 
-AC_ARG_WITH(xv-path, AC_HELP_STRING([--with-xv-path=path], [where libXv is installed]),
+AC_ARG_WITH(xv-path, AS_HELP_STRING([--with-xv-path=path], [where libXv is installed]),
             xv_path="$withval",)
 
 AC_ARG_ENABLE([static-xv],
-        AC_HELP_STRING([--enable-static-xv],[Enable this to force linking against libXv.a]))
+        AS_HELP_STRING([--enable-static-xv],[Enable this to force linking against libXv.a]))
 
 if test "x$enable_static_xv" = "xyes"; then
   xv_prefer_shared="no"
@@ -716,10 +716,10 @@ AC_ARG_ENABLE([xvmc],
 
 if test "x$no_x" = "x" && test "x$enable_xvmc" != "xno"; then
 
-AC_ARG_WITH(xxmc-path, AC_HELP_STRING([--with-xxmc-path=path], [where libXvMC libraries for the
+AC_ARG_WITH(xxmc-path, AS_HELP_STRING([--with-xxmc-path=path], [where libXvMC libraries for the
 	xxmc plugin are  installed. Defalts to the default X library path.]),
 	xxmc_path="$withval", xxmc_path="$x_libraries")
-AC_ARG_WITH(xxmc-lib, AC_HELP_STRING([--with-xxmc-lib=XXXX], [The name of the XvMC library 
+AC_ARG_WITH(xxmc-lib, AS_HELP_STRING([--with-xxmc-lib=XXXX], [The name of the XvMC library 
 	libXXXX.so for the xxmc plugin.]),xxmc_stub="$withval", 
 	xxmc_stub="XvMCW")
 
@@ -807,10 +807,10 @@ dnl Check if we can enable the xvmc plugin.
 dnl
 if test "x$no_x" = "x" && test "x$enable_xvmc" != "xno"; then
 
-AC_ARG_WITH(xvmc-path, AC_HELP_STRING([--with-xvmc-path=path], [where libXvMC libraries for the
+AC_ARG_WITH(xvmc-path, AS_HELP_STRING([--with-xvmc-path=path], [where libXvMC libraries for the
 	xvmc plugin are  installed. Defalts to the default X library path.]),
 	xvmc_path="$withval", xvmc_path="$x_libraries")
-AC_ARG_WITH(xvmc-lib, AC_HELP_STRING([--with-xvmc-lib=XXXX], [The name of the XvMC library 
+AC_ARG_WITH(xvmc-lib, AS_HELP_STRING([--with-xvmc-lib=XXXX], [The name of the XvMC library 
 	libXXXX.so for the xvmc plugin.]),xvmc_stub="$withval", 
 	xvmc_stub="XvMCW")
 saved_libs="$LIBS"
@@ -855,7 +855,7 @@ AC_SUBST(XVMC_LIBS)
 dnl ---------------------------------------------
 dnl Check for xcb
 dnl ---------------------------------------------
-AC_ARG_WITH([xcb], AC_HELP_STRING([--without-xcb], [Doesn't build XCB video out plugins]))
+AC_ARG_WITH([xcb], AS_HELP_STRING([--without-xcb], [Doesn't build XCB video out plugins]))
 
 if test "x$with_xcb" != "xno"; then
   PKG_CHECK_MODULES([XCB], [xcb-shape >= 1.0], [have_xcb="yes"], [have_xcb="no"])
@@ -897,7 +897,7 @@ dnl Checks for Xinerama extension
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([xinerama],
-  AC_HELP_STRING([--disable-xinerama], [do not build Xinerama support]))
+  AS_HELP_STRING([--disable-xinerama], [do not build Xinerama support]))
 
 if test "x$enable_xinerama" != "xno"; then
    PKG_CHECK_MODULES([XINERAMA], [xinerama], [ac_have_xinerama=yes], [
@@ -921,7 +921,7 @@ dnl Checks for Ascii-Art library
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([aalib],
-  AC_HELP_STRING([--disable-aalib], [do not build AALIB support]),
+  AS_HELP_STRING([--disable-aalib], [do not build AALIB support]),
   [with_aalib=$enableval], [with_aalib=yes])
 
 if test "x$with_aalib" = "xyes"; then
@@ -985,7 +985,7 @@ dnl ---------------------------------------------
 AC_CHECK_HEADER(linux/fb.h,
                 [AC_DEFINE(HAVE_FB,1,[Define this if you have linux framebuffer support])
                  have_fb=yes],)
-AC_ARG_ENABLE(fb, AC_HELP_STRING([--disable-fb], [do not build linux framebuffer support]),
+AC_ARG_ENABLE(fb, AS_HELP_STRING([--disable-fb], [do not build linux framebuffer support]),
 	      have_fb=$enableval)
 AM_CONDITIONAL(HAVE_FB, [test "x$have_fb" = "xyes"])
 
@@ -994,7 +994,7 @@ dnl ---------------------------------------------
 dnl Check whether to build Mac OS X video output driver
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(macosx_video, AC_HELP_STRING([--enable-macosx-video], [enable support for Mac OS X OpenGL video output]),
+AC_ARG_ENABLE(macosx_video, AS_HELP_STRING([--enable-macosx-video], [enable support for Mac OS X OpenGL video output]),
               have_macosx_video=$enableval)
 AM_CONDITIONAL(HAVE_MACOSX_VIDEO, [test "x$have_macosx_video" = "xyes"])
 
@@ -1003,7 +1003,7 @@ dnl ---------------------------------------------
 dnl Check whether to build Mac OS X audio output driver
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(coreaudio, AC_HELP_STRING([--enable-coreaudio], [enable support for Mac OS X Coreaudio output]),
+AC_ARG_ENABLE(coreaudio, AS_HELP_STRING([--enable-coreaudio], [enable support for Mac OS X Coreaudio output]),
               have_coreaudio=$enableval)
 AM_CONDITIONAL(HAVE_COREAUDIO, [test "x$have_coreaudio" = "xyes"])
 
@@ -1012,7 +1012,7 @@ dnl ---------------------------------------------
 dnl Check for DirectFB
 dnl ---------------------------------------------
 AC_ARG_ENABLE(directfb,
-	AC_HELP_STRING([--enable-directfb], [enable use of DirectFB]),
+	AS_HELP_STRING([--enable-directfb], [enable use of DirectFB]),
 		enable_directfb=$enableval,
 		enable_directfb=no)
 
@@ -1116,9 +1116,9 @@ dnl ---------------------------------------------
 AC_LINUX_PATH(/usr/src/linux)
 AC_SUBST([LINUX_INCLUDE])
 
-AC_ARG_ENABLE(vidix, AC_HELP_STRING([--disable-vidix], [do not build vidix support]),
+AC_ARG_ENABLE(vidix, AS_HELP_STRING([--disable-vidix], [do not build vidix support]),
 	      check_vidix=$enableval, check_vidix=yes)
-AC_ARG_ENABLE(dha-kmod, AC_HELP_STRING([--enable-dha-kmod], [build DHA kernel module]),
+AC_ARG_ENABLE(dha-kmod, AS_HELP_STRING([--enable-dha-kmod], [build DHA kernel module]),
 	      enable_dha_kmod=$enableval,enable_dha_kmod=no)
 
 enable_vidix="no"
@@ -1220,7 +1220,7 @@ dnl check for libFLAC
 dnl ---------------------------------------------
 
 AC_ARG_WITH([libflac],
-  AC_HELP_STRING([--with-libflac], [build libFLAC-based decoder and demuxer]))
+  AS_HELP_STRING([--with-libflac], [build libFLAC-based decoder and demuxer]))
 
 have_libflac="no"
 if test "x$with_libflac" = "xyes"; then
@@ -1233,9 +1233,9 @@ dnl ---------------------------------------------
 dnl External version of a52dec
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(a52dec, AC_HELP_STRING([--disable-a52dec], [Disable support for a52dec decoding library (default: enabled)]),
+AC_ARG_ENABLE(a52dec, AS_HELP_STRING([--disable-a52dec], [Disable support for a52dec decoding library (default: enabled)]),
               [enable_a52dec="$enableval"], [enable_a52dec="yes"])
-AC_ARG_WITH(external-a52dec, AC_HELP_STRING([--with-external-a52dec], [use external a52dec library (not recommended)]),
+AC_ARG_WITH(external-a52dec, AS_HELP_STRING([--with-external-a52dec], [use external a52dec library (not recommended)]),
             [external_a52dec="$withval"], [external_a52dec="no"])
 
 have_a52="no"
@@ -1276,9 +1276,9 @@ dnl ---------------------------------------------
 dnl External version of libmad
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(mad, AC_HELP_STRING([--disable-mad], [Disable support for MAD decoding library (default: enabled)]),
+AC_ARG_ENABLE(mad, AS_HELP_STRING([--disable-mad], [Disable support for MAD decoding library (default: enabled)]),
               [enable_libmad="$enableval"], [enable_libmad="yes"])
-AC_ARG_WITH(external-libmad, AC_HELP_STRING([--with-external-libmad], [use external libmad library (not recommended)]),
+AC_ARG_WITH(external-libmad, AS_HELP_STRING([--with-external-libmad], [use external libmad library (not recommended)]),
             [external_libmad="$withval"], [external_libmad="no"])
 
 have_mad="no"
@@ -1304,8 +1304,8 @@ dnl ---------------------------------------------
 dnl External libmpcdec support
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE([musepack], AC_HELP_STRING([--disable-musepack], [Disable support for MusePack decoding (default: enabled)]))
-AC_ARG_WITH([external-libmpcdec], AC_HELP_STRING([--with-external-libmpcdec], [Use external libmpc library]))
+AC_ARG_ENABLE([musepack], AS_HELP_STRING([--disable-musepack], [Disable support for MusePack decoding (default: enabled)]))
+AC_ARG_WITH([external-libmpcdec], AS_HELP_STRING([--with-external-libmpcdec], [Use external libmpc library]))
 
 if test "x$enable_musepack" = "xno"; then
    AC_MSG_RESULT([musepack support disabled])
@@ -1328,7 +1328,7 @@ dnl MNG libs.
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([mng],
-  AC_HELP_STRING([--disable-mng], [do not build mng support]),
+  AS_HELP_STRING([--disable-mng], [do not build mng support]),
   [with_mng=$enableval], [with_mng=yes])
 
 if test "x$with_mng" = "xyes"; then
@@ -1476,7 +1476,7 @@ dnl ARTS support
 dnl ---------------------------------------------
 
 AC_ARG_WITH([arts],
-  AC_HELP_STRING([--without-arts], [Build without ARTS audio output]),
+  AS_HELP_STRING([--without-arts], [Build without ARTS audio output]),
   [with_arts=$withval], [with_arts=yes])
 
 if test "x$with_arts" = "xyes"; then
@@ -1494,7 +1494,7 @@ dnl FusionSound support
 dnl ---------------------------------------------
 
 AC_ARG_WITH([fusionsound],
-  AC_HELP_STRING([--with-fusionsound], [Build with FunsionSound audio output]),
+  AS_HELP_STRING([--with-fusionsound], [Build with FunsionSound audio output]),
   [with_fusionsound=$withval], [with_fusionsound=no])
 
 if test "x$with_fusionsound" = "xyes"; then
@@ -1532,7 +1532,7 @@ dnl gnome-vfs support
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([gnomevfs],
-  AC_HELP_STRING([--disable-gnomevfs], [do not build gnome-vfs support]),
+  AS_HELP_STRING([--disable-gnomevfs], [do not build gnome-vfs support]),
   [with_gnome_vfs=$enableval], [with_gnome_vfs=yes])
 
 if test "x$with_gnome_vfs" = "xyes"; then
@@ -1579,7 +1579,7 @@ dnl libsmbclient support
 dnl ---------------------------------------------
 
 AC_ARG_ENABLE([samba],
-  AC_HELP_STRING([--disable-samba], [do not build Samba support]),
+  AS_HELP_STRING([--disable-samba], [do not build Samba support]),
   [with_samba=$enableval], [with_samba=yes])
 
 if test "x$with_samba" = "xyes"; then
@@ -1648,7 +1648,7 @@ dnl ---------------------------------------------
 dnl check for a usable version of libdvdnav
 dnl ---------------------------------------------
 
-AC_ARG_WITH(external-dvdnav, AC_HELP_STRING([--with-external-dvdnav], [use external dvdnav library (not recommended)]),
+AC_ARG_WITH(external-dvdnav, AS_HELP_STRING([--with-external-dvdnav], [use external dvdnav library (not recommended)]),
             [external_dvdnav="$withval"], [no_dvdnav="yes"; external_dvdnav="no"])
 
 if test "x$external_dvdnav" = "xyes"; then
@@ -1666,16 +1666,16 @@ dnl ---------------------------------------------
 dnl Video CD
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(vcd, AC_HELP_STRING([--disable-vcd], [do not compile VCD plugin]),
+AC_ARG_ENABLE(vcd, AS_HELP_STRING([--disable-vcd], [do not compile VCD plugin]),
               enable_vcd=$enableval, enable_vcd=yes)
 
 dnl Force build of both vcd plugins, for now.
-dnl AC_ARG_ENABLE(vcdo, AC_HELP_STRING([--disable-vcdo], [do not compile old VCD plugin]),
+dnl AC_ARG_ENABLE(vcdo, AS_HELP_STRING([--disable-vcdo], [do not compile old VCD plugin]),
 dnl               enable_vcdo=$enableval, enable_vcdo=yes)
 dnl
 enable_vcdo="yes"
 
-AC_ARG_WITH(internal-vcdlibs, AC_HELP_STRING([--with-internal-vcdlibs], [force using internal libcdio/libvcd/libvcdinfo]),
+AC_ARG_WITH(internal-vcdlibs, AS_HELP_STRING([--with-internal-vcdlibs], [force using internal libcdio/libvcd/libvcdinfo]),
             [internal_vcdnav="$withval"], [internal_vcdnav="no"])
 
 if test "x$enable_vcd" = "xyes"; then
@@ -1926,9 +1926,9 @@ dnl ---------------------------------------------
 dnl Optional and external libdts
 dnl ---------------------------------------------
 
-AC_ARG_ENABLE(dts, AC_HELP_STRING([--disable-dts], [Disable support for DTS decoding library (default: enabled)]),
+AC_ARG_ENABLE(dts, AS_HELP_STRING([--disable-dts], [Disable support for DTS decoding library (default: enabled)]),
               [enable_libdts="$enableval"], [enable_libdts="yes"])
-AC_ARG_WITH(external-libdts, AC_HELP_STRING([--with-external-libdts], [use external libdts library (not recommended)]),
+AC_ARG_WITH(external-libdts, AS_HELP_STRING([--with-external-libdts], [use external libdts library (not recommended)]),
             [external_libdts="$withval"], [external_libdts="no"])
 
 have_dts="no"

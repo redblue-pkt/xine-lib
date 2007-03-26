@@ -69,7 +69,7 @@ AC_DEFUN([AC_PREREQ_LIBTOOL],
 dnl
 AC_DEFUN([AC_CHECK_LIRC],
   [AC_ARG_ENABLE(lirc,
-     AC_HELP_STRING([--disable-lirc], [turn off LIRC support]),
+     AS_HELP_STRING([--disable-lirc], [turn off LIRC support]),
      enable_lirc=$enableval, enable_lirc=yes)
 
   if test x"$enable_lirc" = xyes; then
@@ -101,7 +101,7 @@ AC_DEFUN([AC_CHECK_LIRC],
 dnl AC_LINUX_PATH(DEFAULT PATH)
 AC_DEFUN([AC_LINUX_PATH],
   [AC_ARG_WITH(linux-path,
-    AC_HELP_STRING([--with-linux-path=PATH], [where the linux sources are located]),
+    AS_HELP_STRING([--with-linux-path=PATH], [where the linux sources are located]),
             linux_path="$withval", linux_path="$1")
   LINUX_INCLUDE="-I$linux_path/include"
 ])
@@ -110,7 +110,7 @@ dnl AC_CHECK_DXR3()
 AC_DEFUN([AC_CHECK_DXR3],
 [
   AC_ARG_ENABLE(dxr3,
-    AC_HELP_STRING([--disable-dxr3], [do not build the DXR3/HW+ plugins]),
+    AS_HELP_STRING([--disable-dxr3], [do not build the DXR3/HW+ plugins]),
     enable_dxr3=$enableval, enable_dxr3=yes)
   if test x"$enable_dxr3" = xyes; then
     have_dxr3=yes

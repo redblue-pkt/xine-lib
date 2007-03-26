@@ -12,7 +12,7 @@ dnl ----------
 dnl find the pathname to the GNU or non-GNU assembler
 AC_DEFUN([CC_PROG_AS],
 [AC_ARG_WITH([gnu-as],
-    [AC_HELP_STRING([--with-gnu-as],
+    [AS_HELP_STRING([--with-gnu-as],
 	[assume the C compiler uses GNU as @<:@default=no@:>@])],
     [test "$withval" = no || with_gnu_as=yes],
     [with_gnu_as=no])

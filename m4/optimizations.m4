@@ -9,7 +9,7 @@ dnl
 
 AC_DEFUN([AC_OPTIMIZATIONS], [
   AC_ARG_ENABLE([optimizations],
-    AC_HELP_STRING([--disable-optimizations], [Don't try to guess what optimization to enable]))
+    AS_HELP_STRING([--disable-optimizations], [Don't try to guess what optimization to enable]))
 
   if test "x$enable_optimizations" != "xno"; then
     INLINE_FUNCTIONS=-finline-functions

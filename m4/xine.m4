@@ -31,13 +31,13 @@ AC_DEFUN([AM_PATH_XINE],
 dnl Get the cflags and libraries from the xine-config script
 dnl
 AC_ARG_WITH(xine-prefix,
-    AC_HELP_STRING([--with-xine-prefix=DIR], [prefix where XINE is installed (optional)]),
+    AS_HELP_STRING([--with-xine-prefix=DIR], [prefix where XINE is installed (optional)]),
             xine_config_prefix="$withval", xine_config_prefix="")
 AC_ARG_WITH(xine-exec-prefix,
-    AC_HELP_STRING([--with-xine-exec-prefix=DIR], [exec prefix where XINE is installed (optional)]),
+    AS_HELP_STRING([--with-xine-exec-prefix=DIR], [exec prefix where XINE is installed (optional)]),
             xine_config_exec_prefix="$withval", xine_config_exec_prefix="")
 AC_ARG_ENABLE(xinetest, 
-    AC_HELP_STRING([--disable-xinetest], [do not try to compile and run a test XINE program]),
+    AS_HELP_STRING([--disable-xinetest], [do not try to compile and run a test XINE program]),
             enable_xinetest=$enableval, enable_xinetest=yes)
 
   if test x$xine_config_exec_prefix != x ; then

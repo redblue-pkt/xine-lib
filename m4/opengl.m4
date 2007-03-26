@@ -6,11 +6,11 @@ dnl
 
 AC_DEFUN([AM_PATH_OPENGL], [
 
-  AC_ARG_ENABLE(opengl, AC_HELP_STRING([--disable-opengl], [do not build OpenGL plugin]),
+  AC_ARG_ENABLE(opengl, AS_HELP_STRING([--disable-opengl], [do not build OpenGL plugin]),
     [enableopengl=$enableval],
     [enableopengl="yes"]
   )
-  AC_ARG_ENABLE(glu, AC_HELP_STRING([--disable-glu], [build OpenGL plugin without GLU (no verbose errors)]),
+  AC_ARG_ENABLE(glu, AS_HELP_STRING([--disable-glu], [build OpenGL plugin without GLU (no verbose errors)]),
     [enableglu=$enableval],
     [enableglu="yes"]
   )

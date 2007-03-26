@@ -31,13 +31,13 @@ AC_DEFUN([AM_PATH_DVDNAV],
 dnl Get the cflags and libraries from the dvdnav-config script
 dnl
 AC_ARG_WITH(dvdnav-prefix,
-    AC_HELP_STRING([--with-dvdnav-prefix=DIR], [prefix where DVDNAV is installed (optional)]),
+    AS_HELP_STRING([--with-dvdnav-prefix=DIR], [prefix where DVDNAV is installed (optional)]),
             dvdnav_config_prefix="$withval", dvdnav_config_prefix="")
 AC_ARG_WITH(dvdnav-exec-prefix,
-    AC_HELP_STRING([--with-dvdnav-exec-prefix=DIR], [exec prefix where DVDNAV is installed (optional)]),
+    AS_HELP_STRING([--with-dvdnav-exec-prefix=DIR], [exec prefix where DVDNAV is installed (optional)]),
             dvdnav_config_exec_prefix="$withval", dvdnav_config_exec_prefix="")
 AC_ARG_ENABLE(dvdnavtest, 
-    AC_HELP_STRING([--disable-dvdnavtest], [do not try to compile and run a test DVDNAV program]),
+    AS_HELP_STRING([--disable-dvdnavtest], [do not try to compile and run a test DVDNAV program]),
             enable_dvdnavtest=$enableval, enable_dvdnavtest=yes)
 
   if test x$dvdnav_config_exec_prefix != x ; then
