@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.152 2007/03/24 03:14:15 dgp85 Exp $
+ * $Id: demux_mpgaudio.c,v 1.153 2007/03/26 21:52:12 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -80,21 +80,21 @@
 typedef struct {
   /* header */
   uint16_t  frame_sync;
-  uint8_t   mpeg25_bit;
-  uint8_t   lsf_bit;
   uint8_t   layer;
-  uint8_t   protection_bit;
-  uint8_t   bitrate_idx;
-  uint8_t   freq_idx;
-  uint8_t   padding_bit;
-  uint8_t   private_bit;
-  uint8_t   channel_mode;
-  uint8_t   mode_extension;
-  uint8_t   copyright;
-  uint8_t   original;
-  uint8_t   emphasis;
+  uint32_t  mpeg25_bit:1;
+  uint32_t  lsf_bit:1;
+  uint32_t  bitrate_idx:4;
+  uint32_t  freq_idx:3;
+  uint32_t  protection_bit:1;
+  uint32_t  padding_bit:1;
+  uint32_t  private_bit:1;
+  uint32_t  channel_mode:3;
+  uint32_t  mode_extension:3;
+  uint32_t  copyright:1;
+  uint32_t  original:1;
+  uint32_t  emphasis:3;
 
-  uint8_t   version_idx;          /* 0: mpeg1, 1: mpeg2, 2: mpeg2.5 */
+  uint32_t  version_idx:2;        /* 0: mpeg1, 1: mpeg2, 2: mpeg2.5 */
   int       bitrate;              /* in bit per second */
   int       freq;                 /* in Hz */
   int       samples;              /* samples per frame */
