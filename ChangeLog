@@ -48,6 +48,7 @@ xine-lib (1.1.5) (Unreleased)
     thus reported as 0×0), to avoid disabling shared memory for all others.
     Patch by Reinhard Nissl.
   * Send an event when the amp level is modified. Patch by Reinhard Nissl.
+  * Add support for H.264 video stream in PES packets. Patch by Reinhard Nissl.
 
 xine-lib (1.1.4)
   * Mark string-type configuration items according to whether they're plain

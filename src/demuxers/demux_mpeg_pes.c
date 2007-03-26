@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.40 2007/02/20 00:34:56 dgp85 Exp $
+ * $Id: demux_mpeg_pes.c,v 1.41 2007/03/26 21:06:32 dgp85 Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -91,6 +91,7 @@ typedef struct demux_mpeg_pes_s {
   uint32_t              stream_id;
   int32_t               mpeg1;
   int32_t               wait_for_program_stream_pack_header;
+  int                   mpeg12_h264_detected;
 
   int64_t               last_cell_time;
   off_t                 last_cell_pos;
@@ -416,6 +417,9 @@ static int32_t parse_padding_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elem
 
     done += i;
   }
+
+  /* trigger detection of MPEG 1/2 respectively H.264 content */
+  this->mpeg12_h264_detected = 0;
 
   buf->free_buffer(buf);
   return this->packet_len + 6;
@@ -1062,21 +1066,102 @@ static int32_t parse_video_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elemen
   uint32_t todo_length=0;
   uint32_t i;
   uint32_t chunk_length;
+  int buf_type = BUF_VIDEO_MPEG;
+  int payload_size;
 
   result = parse_pes_for_pts(this, p, buf);
   if (result < 0) return -1;
 
   p += result;
 
-  buf->content   = p;
+  buf->content = p;
+  payload_size = buf->max_size - result;
+  if (payload_size > this->packet_len)
+    payload_size = this->packet_len;
 
-  if (this->packet_len <= (buf->max_size - 6)) {
-    buf->size      = this->packet_len;
-  } else {
-    buf->size      = buf->max_size - result;
-    todo_length    = this->packet_len - buf->size;
+  /* H.264 broadcasts via DVB-S use standard video PES packets,
+     so there is no way other than scanning the video data to
+     detect whether BUF_VIDEO_H264 needs to be used.
+     For performance reasons, this is not a general scanner for
+     H.264 content, as this kind of data format is likely to be
+     used only by VDR and VDR will ensure that an AUD-NAL unit
+     will be at the beginning of the PES packet's payload.
+     To minimize false hits, the whole payload is scanned for
+     MPEG 1/2 start codes, so there is only a little chance left
+     that a MPEG 1/2 slice 9 start code will be considered as a
+     H.264 access unit delimiter (should only happen after a seek).
+
+     Meaning of bit 0 and 1 of mpeg12_h264_detected:
+     Bit 0: H.264 access unit delimiter seen
+     Bit 1: H.264 AUD seen again or MPEG 1/2 start code seen
+
+     For performance reasons, the scanner is only active until
+     a H.264 AUD has been seen a second time or a MPEG 1/2 start
+     code has been seen. The scanner get's activated initially
+     (e. g. when opening the stream), after seeking or when VDR
+     sends a padding packet.
+     Until the scanner is convinced of it's decision by setting
+     bit 1, the default behaviour is to assume MPEG 1/2 unless
+     an AUD has been found at the beginning of the payload.
+   */
+  if (this->mpeg12_h264_detected < 2) {
+    uint8_t *pp = p + 2, *pp_limit = p + payload_size - 1;
+    while (0 < pp && pp < pp_limit) {
+      if (pp[0] == 0x01 && pp[-1] == 0x00 && pp[-2] == 0x00) {
+        if (pp[1] >= 0x80) { /* MPEG 1/2 start code */
+          this->mpeg12_h264_detected = 2;
+          break;
+        } else {
+          int nal_type_code = pp[1] & 0x1f;
+          if (nal_type_code == 9 && pp == (p + 2)) { /* access unit delimiter */
+            if (this->mpeg12_h264_detected == 1) {
+              this->mpeg12_h264_detected = 3;
+              break;
+            }
+            this->mpeg12_h264_detected = 1;
+          }
+        }
+      }
+      pp++;
+      pp = memchr(pp, 0x01, pp_limit - pp);
+    }
+    lprintf("%s%c\n", (this->mpeg12_h264_detected & 1) ? "H.264" : "MPEG1/2", (this->mpeg12_h264_detected & 2) ? '!' : '?');
   }
-  buf->type      = BUF_VIDEO_MPEG;
+
+  /* when an H.264 AUD is seen, we first need to tell the decoder that the
+     previous frame was complete.
+   */
+  if (this->mpeg12_h264_detected & 1) {
+    buf_type = BUF_VIDEO_H264;
+    int nal_type_code = -1;
+    if (payload_size >= 4 && p[2] == 0x01 && p[1] == 0x00 && p[0] == 0x00)
+      nal_type_code = p[3] & 0x1f; 
+    if (nal_type_code == 9) { /* access unit delimiter */
+      buf_element_t *b = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+      b->content       = b->mem;
+      b->size          = 0;
+      b->pts           = 0;
+      b->type          = buf_type;
+      b->decoder_flags = BUF_FLAG_FRAME_END;
+      this->video_fifo->put (this->video_fifo, b);
+    }
+  }
+
+  if (this->packet_len <= (buf->max_size - result)) {
+    buf->size = this->packet_len;
+    /* VDR ensures that H.264 still images end with an end of sequence NAL unit. We
+       need to detect this to inform the decoder that the current frame is complete.
+     */
+    if (this->mpeg12_h264_detected & 1) {
+      uint8_t *t = buf->content + buf->size;
+      if (buf->size >=4 && t[-1] == 10 && t[-2] == 0x01 && t[-3] == 0x00 && t[-4] == 0x00) /* end of sequence */
+        buf->decoder_flags = BUF_FLAG_FRAME_END;
+    }
+  } else {
+    buf->size    = buf->max_size - result;
+    todo_length  = this->packet_len - buf->size;
+  }
+  buf->type      = buf_type;
   buf->pts       = this->pts;
   buf->decoder_info[0] = this->pts - this->dts;
   if( !this->preview_mode )
@@ -1098,10 +1183,20 @@ static int32_t parse_video_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_elemen
       }
     buf->content   = buf->mem;
     buf->size      = chunk_length;
-    buf->type      = BUF_VIDEO_MPEG;
+    buf->type      = buf_type;
     buf->pts       = 0;
-    this->video_fifo->put (this->video_fifo, buf);
     todo_length -= chunk_length;
+
+    /* VDR ensures that H.264 still images end with an end of sequence NAL unit. We
+       need to detect this to inform the decoder that the current frame is complete.
+     */
+    if ((this->mpeg12_h264_detected & 1) && todo_length <= 0) {
+      uint8_t *t = buf->content + buf->size;
+      if (buf->size >= 4 && t[-1] == 10 && t[-2] == 0x01 && t[-3] == 0x00 && t[-4] == 0x00) /* end of sequence */
+        buf->decoder_flags = BUF_FLAG_FRAME_END;
+    }
+
+    this->video_fifo->put (this->video_fifo, buf);
   }
 
   lprintf ("MPEG Video PACK put on fifo\n");
@@ -1426,6 +1521,8 @@ static int demux_mpeg_pes_seek (demux_plugin_t *this_gen,
   } else {
     this->buf_flag_seek = 1;
     this->nav_last_end_pts = this->nav_last_start_pts = 0;
+    /* trigger detection of MPEG 1/2 respectively H.264 content */
+    this->mpeg12_h264_detected = 0;
     _x_demux_flush_engine(this->stream);
   }
   
@@ -1500,7 +1597,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->status     = DEMUX_FINISHED;
   /* Don't start demuxing stream until we see a program_stream_pack_header */
   /* We need to system header in order to identify is the stream is mpeg1 or mpeg2. */
-  this->wait_for_program_stream_pack_header=1;
+  this->wait_for_program_stream_pack_header = 1;
+  /* trigger detection of MPEG 1/2 respectively H.264 content */
+  this->mpeg12_h264_detected = 0;
 
   this->preview_size = 0;
 
