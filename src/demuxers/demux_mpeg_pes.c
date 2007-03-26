@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpeg_pes.c,v 1.41 2007/03/26 21:06:32 dgp85 Exp $
+ * $Id: demux_mpeg_pes.c,v 1.42 2007/03/26 21:18:52 dgp85 Exp $
  *
  * demultiplexer for mpeg 2 PES (Packetized Elementary Streams)
  * reads streams of variable blocksizes
@@ -89,10 +89,10 @@ typedef struct demux_mpeg_pes_s {
   int64_t               pts;
   int64_t               dts;
   uint32_t              stream_id;
-  int32_t               mpeg1;
-  int32_t               wait_for_program_stream_pack_header;
-  int                   mpeg12_h264_detected;
-
+  uint8_t               mpeg1:1;
+  uint8_t               wait_for_program_stream_pack_header:1;
+  uint8_t               mpeg12_h264_detected:2;
+  
   int64_t               last_cell_time;
   off_t                 last_cell_pos;
   int                   last_begin_time;
