@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine_interface.c,v 1.103 2007/02/22 16:04:45 dgp85 Exp $
+ * $Id: xine_interface.c,v 1.104 2007/03/26 11:48:01 dgp85 Exp $
  *
  * convenience/abstraction layer, functions to implement
  * libxine's public interface
@@ -341,6 +341,24 @@ int xine_port_send_gui_data (xine_video_port_t *vo,
 						  type, data);
 }
 
+static void send_audio_amp_event_internal(xine_stream_t *stream)
+{
+  xine_event_t            event;
+  xine_audio_level_data_t data;
+
+  data.left
+    = data.right
+    = stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP);
+  data.mute
+    = stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP_MUTE);
+
+  event.type        = XINE_EVENT_AUDIO_AMP_LEVEL;
+  event.data        = &data;
+  event.data_length = sizeof (data);
+
+  xine_event_send(stream, &event);
+}
+
 void xine_set_param (xine_stream_t *stream, int param, int value) {
   /* Avoid crashing */
   if ( ! stream ) {
@@ -412,15 +430,21 @@ void xine_set_param (xine_stream_t *stream, int param, int value) {
     
   case XINE_PARAM_AUDIO_AMP_LEVEL:
     stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
-    if (stream->audio_out)
-      stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP, value);
+    if (stream->audio_out) {
+      int old_value = stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP);
+      if (old_value != stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP, value))
+        send_audio_amp_event_internal(stream);
+    }
     stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 
   case XINE_PARAM_AUDIO_AMP_MUTE:
     stream->xine->port_ticket->acquire(stream->xine->port_ticket, 0);
-    if (stream->audio_out)
-      stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP_MUTE, value);
+    if (stream->audio_out) {
+      int old_value = stream->audio_out->get_property (stream->audio_out, AO_PROP_AMP_MUTE);
+      if (old_value != stream->audio_out->set_property (stream->audio_out, AO_PROP_AMP_MUTE, value))
+        send_audio_amp_event_internal(stream);
+    }
     stream->xine->port_ticket->release(stream->xine->port_ticket, 0);
     break;
 

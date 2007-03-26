@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: xine.h.in,v 1.167 2007/02/22 15:49:16 dgp85 Exp $
+ * $Id: xine.h.in,v 1.168 2007/03/26 11:48:01 dgp85 Exp $
  *
  * public xine-lib (libxine) interface and documentation
  *
@@ -1582,6 +1582,7 @@ void xine_config_reset (xine_t *self) XINE_PROTECTED;
 #define XINE_EVENT_SPU_BUTTON            11 /* the mouse pointer enter/leave a button */
 #define XINE_EVENT_DROPPED_FRAMES        12 /* number of dropped frames is too high */
 #define XINE_EVENT_MRL_REFERENCE_EXT     13 /* demuxer->frontend: MRL reference(s) for the real stream */
+#define XINE_EVENT_AUDIO_AMP_LEVEL       14 /* report current audio amp level (l/r/mute) */
 
 
 /* input events coming from frontend */
