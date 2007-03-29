@@ -20,7 +20,7 @@
  * Simple MPEG-ES parser/framer by Thibaut Mattern (tmattern@noos.fr)
  *   based on libmpeg2 decoder.
  *
- * $Id: mpeg_parser.h,v 1.3 2007/03/29 17:31:43 dgp85 Exp $
+ * $Id: mpeg_parser.h,v 1.4 2007/03/29 17:59:35 dgp85 Exp $
  */
 #ifndef HAVE_MPEG_PARSER_H
 #define HAVE_MPEG_PARSER_H
@@ -61,6 +61,9 @@ typedef struct mpeg_parser_s {
 
 /* parser initialization */
 void mpeg_parser_init (mpeg_parser_t *parser);
+
+/* parser disposal */
+void mpeg_parser_dispose (mpeg_parser_t *parser);
 
 /* read a frame
  *   return a pointer to the first byte of the next frame
