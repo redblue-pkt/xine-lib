@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.231 2007/03/29 19:07:00 dgp85 Exp $
+ * $Id: demux_avi.c,v 1.232 2007/03/29 19:24:18 dgp85 Exp $
  *
  * demultiplexer for avi streams
  *
@@ -251,28 +251,27 @@ typedef struct demux_avi_s {
   input_plugin_t      *input;
   int                  status;
 
-  int                  no_audio;
-
   uint32_t             video_step;
   uint32_t             AVI_errno;
+
+  /* seeking args backup */
+  int                  seek_start_time;
+  off_t                seek_start_pos;
 
   avi_t               *avi;
 
   idx_grow_t           idx_grow;
 
-  int                  streaming;
-  int                  last_index_entry_type;
-  int                  has_index;
-  
-  /* seeking args backup */
-  int                  seek_request;
-  off_t                seek_start_pos;
-  int                  seek_start_time;
+  uint8_t              no_audio:1;
+
+  uint8_t              streaming:1;
+  uint8_t              has_index:1;
+
+  uint8_t              seek_request:1;
 
   /* discontinuity detection (only at seek) */
-  int                  send_newpts;
-  int                  buf_flag_seek;
-  
+  uint8_t              buf_flag_seek:1;
+  uint8_t              send_newpts:1;
 } demux_avi_t ;
 
 typedef struct {
