@@ -20,7 +20,7 @@
  * True Audio demuxer by Diego Pettenò <flameeyes@gentoo.org>
  * Inspired by tta libavformat demuxer by Alex Beregszaszi
  *
- * $Id: demux_tta.c,v 1.3 2007/02/25 18:04:57 dgp85 Exp $
+ * $Id: demux_tta.c,v 1.4 2007/03/29 16:46:23 dgp85 Exp $
  */
 
 #define LOG_MODULE "demux_tta"
@@ -40,6 +40,11 @@ typedef struct {
   fifo_buffer_t       *video_fifo;
   fifo_buffer_t       *audio_fifo;
   input_plugin_t      *input;
+
+  uint32_t            *seektable;
+  uint32_t             totalframes;
+  uint32_t             currentframe;
+
   int                  status;
 
   union {
@@ -54,10 +59,6 @@ typedef struct {
     } __attribute__((__packed__)) tta;
     uint8_t buffer[22]; /* This is the size of the header */
   } header;
-
-  uint32_t totalframes;
-  uint32_t currentframe;
-  uint32_t *seektable;
 } demux_tta_t;
 
 typedef struct {
