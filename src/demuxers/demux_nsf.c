@@ -30,7 +30,7 @@
  * For more information regarding the NSF format, visit:
  *   http://www.tripoint.org/kevtris/nes/nsfspec.txt
  *
- * $Id: demux_nsf.c,v 1.23 2007/01/19 00:26:40 dgp85 Exp $
+ * $Id: demux_nsf.c,v 1.24 2007/03/29 17:03:06 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -71,12 +71,14 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
-  char                *title;
-  char                *artist;
-  char                *copyright;
   int                  total_songs;
   int                  current_song;
   int                  new_song;  /* indicates song change */
+
+  char                *title;
+  char                *artist;
+  char                *copyright;
+
   off_t                filesize;
 
   int64_t              current_pts;
