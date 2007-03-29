@@ -20,7 +20,7 @@
  * Simple MPEG-ES parser/framer by Thibaut Mattern (tmattern@noos.fr)
  *   based on libmpeg2 decoder.
  *
- * $Id: mpeg_parser.c,v 1.6 2007/03/29 17:59:35 dgp85 Exp $
+ * $Id: mpeg_parser.c,v 1.7 2007/03/29 18:52:45 dgp85 Exp $
  */
 #define LOG_MODULE "mpeg_parser"
 #define LOG_VERBOSE
@@ -170,8 +170,7 @@ static int parse_chunk (mpeg_parser_t *parser, int code, uint8_t *buffer, int le
   case 0xb3:     /* sequence_header_code */
     {
       int value;
-      int width;
-      int height;
+      uint16_t width, height;
       
       if (parser->is_sequence_needed) {
         parser->is_sequence_needed = 0;
