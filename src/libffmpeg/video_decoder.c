@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.71 2007/03/29 17:48:34 dgp85 Exp $
+ * $Id: video_decoder.c,v 1.72 2007/03/29 18:00:23 dgp85 Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -106,7 +106,7 @@ struct ff_video_decoder_s {
   pp_mode_t        *pp_mode;
 
   /* mpeg-es parsing */
-  mpeg_parser_t     mpeg_parser;
+  mpeg_parser_t    *mpeg_parser;
 
   double            aspect_ratio;
   int               aspect_ratio_prio;
@@ -523,7 +523,7 @@ static int ff_handle_mpeg_sequence(ff_video_decoder_t *this, mpeg_parser_t *pars
     data.pan_scan = 0;
     xine_event_send(this->stream, &event);
   }
-  this->video_step = this->mpeg_parser.frame_duration;
+  this->video_step = this->mpeg_parser->frame_duration;
   
   return 1;
 }
@@ -826,8 +826,14 @@ static void ff_handle_preview_buffer (ff_video_decoder_t *this, buf_element_t *b
   lprintf ("preview buffer\n");
 
   codec_type = buf->type & 0xFFFF0000;
-  if (codec_type == BUF_VIDEO_MPEG)
+  if (codec_type == BUF_VIDEO_MPEG) {
     this->is_mpeg12 = 1;
+    if ( this->mpeg_parser == NULL ) {
+      this->mpeg_parser = xine_xmalloc(sizeof(mpeg_parser_t));
+      mpeg_parser_init(this->mpeg_parser);
+      this->decoder_init_mode = 0;
+    }
+  }
 
   if (this->decoder_init_mode && !this->is_mpeg12) {
     init_video_codec(this, codec_type);
@@ -980,7 +986,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
     got_picture = 0;
     if (!flush) {
-      current = mpeg_parser_decode_data(&this->mpeg_parser,
+      current = mpeg_parser_decode_data(this->mpeg_parser,
                                         buf->content + offset, buf->content + offset + size,
                                         &next_flush);
     } else {
@@ -992,8 +998,8 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
       return;
     }
 
-    if (this->mpeg_parser.has_sequence) {
-      ff_handle_mpeg_sequence(this, &this->mpeg_parser);
+    if (this->mpeg_parser->has_sequence) {
+      ff_handle_mpeg_sequence(this, this->mpeg_parser);
     }
 
     if (!this->decoder_ok)
@@ -1002,16 +1008,16 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
     if (flush) {
       lprintf("flush lavc buffers\n");
       /* hack: ffmpeg outputs the last frame if size=0 */
-      this->mpeg_parser.buffer_size = 0;
+      this->mpeg_parser->buffer_size = 0;
     }
 
     /* skip decoding b frames if too late */
     this->context->hurry_up = (this->skipframes > 0);
 
-    lprintf("avcodec_decode_video: size=%d\n", this->mpeg_parser.buffer_size);
+    lprintf("avcodec_decode_video: size=%d\n", this->mpeg_parser->buffer_size);
     len = avcodec_decode_video (this->context, this->av_frame,
-                                &got_picture, this->mpeg_parser.chunk_buffer,
-                                this->mpeg_parser.buffer_size);
+                                &got_picture, this->mpeg_parser->chunk_buffer,
+                                this->mpeg_parser->buffer_size);
     lprintf("avcodec_decode_video: decoded_size=%d, got_picture=%d\n",
             len, got_picture);
     len = current - buf->content - offset;
@@ -1364,7 +1370,7 @@ static void ff_reset (video_decoder_t *this_gen) {
     avcodec_flush_buffers(this->context);
   
   if (this->is_mpeg12)
-    mpeg_parser_reset(&this->mpeg_parser);
+    mpeg_parser_reset(this->mpeg_parser);
 }
 
 static void ff_discontinuity (video_decoder_t *this_gen) {
@@ -1423,6 +1429,8 @@ static void ff_dispose (video_decoder_t *this_gen) {
     
   if(this->pp_mode)
     pp_free_mode(this->pp_mode);
+
+  mpeg_parser_dispose(this->mpeg_parser);
     
   xine_list_delete(this->dr1_frames);
   
@@ -1464,9 +1472,9 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->pp_context        = NULL;
   this->pp_mode           = NULL;
   
-  this->dr1_frames        = xine_list_new();
+  this->mpeg_parser       = NULL;
   
-  mpeg_parser_init(&this->mpeg_parser);
+  this->dr1_frames        = xine_list_new();
 
   return &this->video_decoder;
 }
