@@ -19,7 +19,7 @@
  *
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  *
- * $Id: decoder_wavpack.c,v 1.13 2007/03/17 07:34:02 dgp85 Exp $
+ * $Id: decoder_wavpack.c,v 1.14 2007/03/29 19:45:33 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -45,15 +45,16 @@ typedef struct {
 
   xine_stream_t    *stream;
 
+  uint8_t          *buf;
+  size_t            buf_size;
+  size_t            buf_pos;
+
   int               sample_rate;
   uint16_t          bits_per_sample:6;
   uint16_t          channels:4;
 
   uint16_t          output_open:1;
 
-  uint8_t          *buf;
-  size_t            buf_size;
-  size_t            buf_pos;
 } wavpack_decoder_t;
 
 /* Wrapper functions for Wavpack */

@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: input_file.c,v 1.121 2007/02/25 18:04:08 dgp85 Exp $
+ * $Id: input_file.c,v 1.122 2007/03/29 19:47:17 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -66,8 +66,8 @@ typedef struct {
   xine_t           *xine;
   config_values_t  *config;
   
-  int               show_hidden_files;
   char             *origin_path;
+  int               show_hidden_files;
 
   int               mrls_allocated_entries;
   xine_mrl_t      **mrls;
