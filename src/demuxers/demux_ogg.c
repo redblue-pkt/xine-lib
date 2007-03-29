@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_ogg.c,v 1.176 2007/02/20 00:34:56 dgp85 Exp $
+ * $Id: demux_ogg.c,v 1.177 2007/03/29 19:38:51 dgp85 Exp $
  *
  * demultiplexer for ogg streams
  *
@@ -126,17 +126,20 @@ typedef struct demux_ogg_s {
   input_plugin_t       *input;
   int                   status;
 
+  int                   frame_duration;
+
 #ifdef HAVE_THEORA
   theora_info           t_info;
   theora_comment        t_comment;
 #endif
 
-  int                   frame_duration;
-
   ogg_sync_state        oy;
   ogg_page              og;
 
   int64_t               start_pts;
+  int64_t               last_pts[2];
+
+  int                   time_length;
 
   int                   num_streams;
   stream_info_t        *si[MAX_STREAMS];   /* stream info */
@@ -148,16 +151,14 @@ typedef struct demux_ogg_s {
 
   off_t                 avg_bitrate;
 
-  int64_t               last_pts[2];
-  int                   send_newpts;
-  int                   buf_flag_seek;
-  int                   keyframe_needed;
-  int                   ignore_keyframes;
-  int                   time_length;
-
   char                 *title;
   chapter_info_t       *chapter_info;
   xine_event_queue_t   *event_queue;
+
+  uint8_t               send_newpts:1;
+  uint8_t               buf_flag_seek:1;
+  uint8_t               keyframe_needed:1;
+  uint8_t               ignore_keyframes:1;
 } demux_ogg_t ;
 
 typedef struct {
