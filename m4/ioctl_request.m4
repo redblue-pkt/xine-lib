@@ -38,10 +38,10 @@ AC_DEFUN([AC_IOCTL_REQUEST], [
     ac_cv_ioctl_request,
     [for ac_ioctl_request_type in "unsigned long" "int"
      do
-       AC_TRY_LINK([
+       AC_LINK_IFELSE([AC_LANG_PROGRAM([[
         #include <sys/ioctl.h>
         int ioctl(int fd, $ac_ioctl_request_type request, ...);
-       ], [], [ac_cv_ioctl_request=$ac_ioctl_request_type])
+       ]], [[]])],[ac_cv_ioctl_request=$ac_ioctl_request_type],[])
      done])
 
   if test "x$ac_cv_ioctl_request" = "x"; then

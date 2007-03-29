@@ -54,7 +54,7 @@ dnl Now check if the installed ARTS is sufficiently new. (Also sanity
 dnl checks the results of artsc-config to some extent)
 dnl
       rm -f conf.artstest
-      AC_TRY_RUN([
+      AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,11 +108,14 @@ int main ()
     }
 }
 
-],, no_arts=yes,
-         AC_TRY_LINK([
+]])],[],[no_arts=yes],[no_arts=cc])
+
+       if test "x$no_arts" = "xcc"; then
+         AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <artsc.h>
-],       [ return 0; ],, no_arts=yes))
+]], [[ return 0; ]])],[no_arts=''],[no_arts=yes])
+       fi
        CFLAGS="$ac_save_CFLAGS"
        LIBS="$ac_save_LIBS"
      fi
@@ -134,10 +137,10 @@ int main ()
           echo "*** Could not run ARTS test program, checking why..."
           CFLAGS="$CFLAGS $ARTS_CFLAGS"
           LIBS="$LIBS $ARTS_LIBS"
-          AC_TRY_LINK([
+          AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <artsc.h>
-],      [ return 0; ],
+]], [[ return 0; ]])],
         [ echo "*** The test program compiled, but did not run. This usually means"
           echo "*** that the run-time linker is not finding ARTS or finding the wrong"
           echo "*** version of ARTS. If it is not finding ARTS, you'll need to set your"

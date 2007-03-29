@@ -53,7 +53,7 @@ AC_DEFUN([AC_OPTIMIZATIONS], [
         AC_MSG_CHECKING(for sane -Wpointer-arith)
         SAVE_CFLAGS="$CFLAGS"
         CFLAGS="-O2 -Wpointer-arith -Werror $CFLAGS"
-        AC_TRY_COMPILE([#include <string.h>],[int a; memset(&a, 0, sizeof(int));],
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <string.h>]], [[int a; memset(&a, 0, sizeof(int));]])],
             [AC_MSG_RESULT(yes); CFLAGS="-Wpointer-arith $SAVE_CFLAGS"],
             [AC_MSG_RESULT(no);  CFLAGS="$SAVE_CFLAGS"]);
 

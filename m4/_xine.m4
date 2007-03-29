@@ -9,7 +9,7 @@ AC_DEFUN([AC_C_ALWAYS_INLINE],
         AC_MSG_CHECKING([for always_inline])
         SAVE_CFLAGS="$CFLAGS"
         CFLAGS="$CFLAGS -Wall -Werror"
-        AC_TRY_COMPILE([],[inline __attribute__ ((__always_inline__)) void f (void);],
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[inline __attribute__ ((__always_inline__)) void f (void);]])],
             [ac_cv_always_inline=yes],[ac_cv_always_inline=no])
         CFLAGS="$SAVE_CFLAGS"
         AC_MSG_RESULT([$ac_cv_always_inline])
@@ -148,7 +148,7 @@ AC_DEFUN([AC_TRY_CFLAGS],
     [AC_MSG_CHECKING([if $CC supports $1 flags])
     SAVE_CFLAGS="$CFLAGS"
     CFLAGS="$1"
-    AC_TRY_COMPILE([],[],[ac_cv_try_cflags_ok=yes],[ac_cv_try_cflags_ok=no])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[ac_cv_try_cflags_ok=yes],[ac_cv_try_cflags_ok=no])
     CFLAGS="$SAVE_CFLAGS"
     AC_MSG_RESULT([$ac_cv_try_cflags_ok])
     if test x"$ac_cv_try_cflags_ok" = x"yes"; then
@@ -163,7 +163,7 @@ AC_DEFUN([AC_TRY_LDFLAGS],
     [AC_MSG_CHECKING([if $CC supports $1 flags])
     SAVE_LDFLAGS="$LDFLAGS"
     LDFLAGS="$1"
-    AC_TRY_LINK([],[],[ac_cv_try_ldflags_ok=yes],[ac_cv_try_ldflags_ok=no])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[ac_cv_try_ldflags_ok=yes],[ac_cv_try_ldflags_ok=no])
     LDFLAGS="$SAVE_LDFLAGS"
     AC_MSG_RESULT([$ac_cv_try_ldflags_ok])
     if test x"$ac_cv_try_ldflags_ok" = x"yes"; then
@@ -362,7 +362,7 @@ dnl AC_COMPILE_CHECK_SIZEOF (TYPE SUPPOSED-SIZE)
 dnl abort if the given type does not have the supposed size
 AC_DEFUN([AC_COMPILE_CHECK_SIZEOF],
     [AC_MSG_CHECKING(that size of $1 is $2)
-    AC_TRY_COMPILE([],[switch (0) case 0: case (sizeof ($1) == $2):;],[],
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[switch (0) case 0: case (sizeof ($1) == $2):;]])],[],
         [AC_MSG_ERROR([can not build a default inttypes.h])])
     AC_MSG_RESULT([yes])])
 
@@ -545,26 +545,18 @@ AC_DEFUN([AC_CHECK_SOCKLEN_T], [
   AC_LANG_PUSH(C++)
 
   AC_CACHE_VAL(ac_cv_socklen_t, [
-    AC_TRY_COMPILE(
-#include <sys/types.h>
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/socket.h>
-      ,
-socklen_t a=0;
+      ]], [[socklen_t a=0;
 getsockname(0,(struct sockaddr*)0, &a);
-      ,
-      ac_cv_socklen_t=socklen_t,
-      [
-        AC_TRY_COMPILE(
-#include <sys/types.h>
-#include <sys/socket.h>
-        ,
+      ]])],[ac_cv_socklen_t=socklen_t],[ac_cv_socklen_t=''])
+    if test "x$ac_cv_socklen_t" = x; then
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
+#include <sys/socket.h>]], [[
 int a=0;
-getsockname(0,(struct sockaddr*)0, &a);
-        ,
-        ac_cv_socklen_t=int,
-        ac_cv_socklen_t=size_t
-      )]
-    )
+getsockname(0,(struct sockaddr*)0, &a);]])],
+      [ac_cv_socklen_t=int],[ac_cv_socklen_t=size_t])
+    fi
   ])
   AC_LANG_POP([C++])
 

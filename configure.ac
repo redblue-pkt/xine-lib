@@ -100,7 +100,7 @@ AC_CANONICAL_BUILD
 
 test "$host" == "$build" && check_athlon=yes
 
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 
 dnl ---------------------------------------------
@@ -1600,15 +1600,15 @@ dnl ---------------------------------------------
 
 AC_MSG_CHECKING(for Sun audio support)
 have_sunaudio=no
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 	    #include <sys/types.h>
 	    #include <sys/audioio.h>
-	],[
+	]], [[
 	    audio_info_t audio_info;
 	    AUDIO_INITINFO(&audio_info);
-	],[
+	]])],[
 	    have_sunaudio=yes
-	])
+	],[])
 AC_MSG_RESULT($have_sunaudio)
 AM_CONDITIONAL(HAVE_SUNAUDIO, test "x$have_sunaudio" = "xyes")
 
@@ -1683,10 +1683,10 @@ if test "x$enable_vcd" = "xyes"; then
   AC_MSG_CHECKING([how to create empty arrays])
 
   empty_array_size="xxx"
-  AC_TRY_COMPILE([],[struct { int foo; int bar[]; } doo;], empty_array_size="")
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[struct { int foo; int bar[]; } doo;]])],[empty_array_size=""],[])
 
   if test "x$empty_array_size" = "xxxx";then
-   AC_TRY_COMPILE([],[struct { int foo; int bar[0]; } doo;], empty_array_size="0")
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[struct { int foo; int bar[0]; } doo;]])],[empty_array_size="0"],[])
   fi
 
   if test "x$empty_array_size" = "xxxx"
@@ -1717,7 +1717,7 @@ if test "x$enable_vcd" = "xyes"; then
     AC_DEFINE_UNQUOTED(HOST_ARCH, "$host_os/$host_cpu", [host os/cpu identifier])
 
     AC_DEFINE(_DEVELOPMENT_, [], enable warnings about being development release)
-    AC_STDC_HEADERS
+    AC_HEADER_STDC
     AC_CHECK_HEADERS(sys/stat.h stdint.h glob.h inttypes.h stdbool.h)
 
     if test "x$ac_cv_header_stdint_h" != "xyes" 
@@ -1729,10 +1729,10 @@ if test "x$enable_vcd" = "xyes"; then
 
     dnl ISOC99_PRAGMA
     AC_MSG_CHECKING([whether $CC supports ISOC99 _Pragma()])
-    AC_TRY_COMPILE([],[_Pragma("pack(1)")], [
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[_Pragma("pack(1)")]])],[
       ISOC99_PRAGMA=yes 
       AC_DEFINE(HAVE_ISOC99_PRAGMA, [], [Supports ISO _Pragma() macro])
-    ],ISOC99_PRAGMA=no)
+    ],[ISOC99_PRAGMA=no])
     AC_MSG_RESULT($ISOC99_PRAGMA)
 
     dnl
@@ -1805,10 +1805,10 @@ Because it's needed for VCD plugin, disable VCD by configure option
      AC_MSG_RESULT(MSBF${TEXT})
     fi
 
-    AC_HAVE_HEADERS( errno.h fcntl.h \
+    AC_CHECK_HEADERS([errno.h fcntl.h \
 		     stdbool.h  stdlib.h stdint.h stdio.h string.h \
 		     strings.h linux/version.h sys/cdio.h sys/stat.h \
-		     sys/types.h )
+		     sys/types.h ])
 
     LIBCDIO_CFLAGS='-I$(top_srcdir)/src/input/vcd/libcdio'
     LIBCDIO_LIBS='$(top_builddir)/src/input/vcd/libcdio/libcdio.la'
@@ -1830,12 +1830,12 @@ Because it's needed for VCD plugin, disable VCD by configure option
             AC_CHECK_HEADERS(linux/version.h)
             AC_CHECK_HEADERS(linux/cdrom.h, [have_linux_cdrom_h="yes"])
 	    if test "x$have_linux_cdrom_h" = "xyes" ; then
-	       AC_TRY_COMPILE(,[
+	       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[
 #include <linux/cdrom.h>
 struct cdrom_generic_command test;
-int has_timeout=sizeof(test.timeout);],
+int has_timeout=sizeof(test.timeout);]])],
                 [AC_DEFINE([HAVE_LINUX_CDROM_TIMEOUT], [1], 
-                       [Define 1 if timeout is in cdrom_generic_command struct])])
+                       [Define 1 if timeout is in cdrom_generic_command struct])],[])
 	       AC_DEFINE([HAVE_LINUX_CDROM], [1], 
                        [Define 1 if you have Linux-type CD-ROM support])
 	    fi
@@ -2048,7 +2048,7 @@ dnl ---------------------------------------------
 restrict=""
 for restrict_keyword in restrict __restrict__ __restrict; do
   AC_MSG_CHECKING(for restrict keyword $restrict_keyword)
-  AC_TRY_COMPILE([],[ void foo(char * $restrict_keyword p); ],[
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[ void foo(char * $restrict_keyword p); ]])],[
                  KEYWORD_FOUND=yes && AC_MSG_RESULT(yes) ],[
                  KEYWORD_FOUND=no && AC_MSG_RESULT(no) ])
   if test "x$KEYWORD_FOUND" = xyes; then
@@ -2065,7 +2065,7 @@ dnl ---------------------------------------------
 dnl ASM ALIGN is power of two ?
 dnl Used by internal FFmpeg and Planar postprocess
 dnl ---------------------------------------------
-AC_TRY_COMPILE([], [ asm (".align 3"); ],[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[ asm (".align 3"); ]])],[
   AC_DEFINE([ASMALIGN(ZEROBITS)], [".align " #ZEROBITS "\n\t"], "asmalign power of two")
 ],[
   AC_DEFINE([ASMALIGN(ZEROBITS)], [".align 1<<" #ZEROBITS "\n\t"], "asmalign power of two")

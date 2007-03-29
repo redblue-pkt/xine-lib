@@ -32,9 +32,8 @@ AC_DEFUN([AM_PATH_OPENGL], [
                   [AC_MSG_CHECKING([if GLU is sane])
                     ac_save_LIBS="$LIBS"
                     LIBS="$X_LIBS $XPRE_LIBS $OPENGL_LIBS -lGLU $X_EXTRA_LIBS"
-                    AC_TRY_LINK([#include <GL/gl.h>
-#include <GL/glu.h>],
-                      [ gluPerspective(45.0f,1.33f,1.0f,1000.0f); glBegin(GL_POINTS); glEnd(); return 0 ],
+                    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <GL/gl.h>
+#include <GL/glu.h>]], [[ gluPerspective(45.0f,1.33f,1.0f,1000.0f); glBegin(GL_POINTS); glEnd(); return 0 ]])],
                       [ ac_have_glu="yes"
                         GLU_LIBS="-lGLU" 
                         AC_DEFINE(HAVE_GLU,1,[Define this if you have GLU support available])
