@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xv.c,v 1.223 2007/03/25 23:13:53 dgp85 Exp $
+ * $Id: video_out_xv.c,v 1.224 2007/03/29 19:01:03 dgp85 Exp $
  *
  * video_out_xv.c, X11 video extension interface for xine
  *
@@ -130,10 +130,10 @@ struct xv_driver_s {
   xv_property_t      props[VO_NUM_PROPERTIES];
   uint32_t           capabilities;
 
+  int                ovl_changed;
   xv_frame_t        *recent_frames[VO_NUM_RECENT_FRAMES];
   xv_frame_t        *cur_frame;
   x11osd            *xoverlay;
-  int                ovl_changed;
 
   /* all scaling information goes here */
   vo_scale_t         sc;

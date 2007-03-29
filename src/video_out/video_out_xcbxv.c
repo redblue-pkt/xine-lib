@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out_xcbxv.c,v 1.5 2007/03/25 23:13:53 dgp85 Exp $
+ * $Id: video_out_xcbxv.c,v 1.6 2007/03/29 18:58:21 dgp85 Exp $
  *
  * video_out_xcbxv.c, X11 video extension interface for xine
  *
@@ -123,8 +123,8 @@ struct xv_driver_s {
 
   int                use_shm;
   int                use_pitch_alignment;
-  xv_property_t      props[VO_NUM_PROPERTIES];
   uint32_t           capabilities;
+  xv_property_t      props[VO_NUM_PROPERTIES];
 
   xv_frame_t        *recent_frames[VO_NUM_RECENT_FRAMES];
   xv_frame_t        *cur_frame;
