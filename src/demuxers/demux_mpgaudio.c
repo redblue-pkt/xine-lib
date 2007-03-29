@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.153 2007/03/26 21:52:12 dgp85 Exp $
+ * $Id: demux_mpgaudio.c,v 1.154 2007/03/29 16:01:30 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -79,28 +79,16 @@
 /* mp3 frame struct */
 typedef struct {
   /* header */
-  uint16_t  frame_sync;
-  uint8_t   layer;
-  uint32_t  mpeg25_bit:1;
-  uint32_t  lsf_bit:1;
-  uint32_t  bitrate_idx:4;
-  uint32_t  freq_idx:3;
-  uint32_t  protection_bit:1;
-  uint32_t  padding_bit:1;
-  uint32_t  private_bit:1;
-  uint32_t  channel_mode:3;
-  uint32_t  mode_extension:3;
-  uint32_t  copyright:1;
-  uint32_t  original:1;
-  uint32_t  emphasis:3;
+  double               duration;
+  uint32_t             size;                 /* in bytes */
+  uint16_t             freq;                 /* in Hz */
+  uint16_t             bitrate;              /* in bit per second */
 
-  uint32_t  version_idx:2;        /* 0: mpeg1, 1: mpeg2, 2: mpeg2.5 */
-  int       bitrate;              /* in bit per second */
-  int       freq;                 /* in Hz */
-  int       samples;              /* samples per frame */
-  int       padding;              /* padding bytes (0, 1 or 4)*/
-  int       size;                 /* in bytes */
-  double    duration;             /* in xine pts */
+  uint8_t              layer;
+
+  uint8_t              version_idx:2;        /* 0: mpeg1, 1: mpeg2, 2: mpeg2.5 */
+  uint8_t              lsf_bit:1;
+  uint8_t              channel_mode:3;
 } mpg_audio_frame_t;
 
 /* Xing Vbr Header struct */
@@ -163,61 +151,72 @@ typedef struct {
 
 } demux_mpgaudio_class_t;
 
-/* bitrate table[mpeg version][layer][bitrate index]
- * values stored in kbps
- */
-static const int mp3_bitrates[3][3][16] = {
-   { {0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,},
-     {0, 32, 48, 56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 384,},
-     {0, 32, 40, 48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320,} },
-   { {0, 32, 48, 56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256,},
-     {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,},
-     {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,} },
-   { {0, 32, 48, 56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256,},
-     {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,},
-     {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,} }
-};
-
-/* frequency table[mpeg version][frequence index] (in KHz) */
-static const int mp3_freqs[3][3] = {
-	{ 44100, 48000, 32000 },
-	{ 22050, 24000, 16000 },
-	{ 11025, 12000,  8000 }
-};
-
-/* samples per frame table[mpeg version][layer] */
-static const int mp3_samples[3][3] = {
-	{ 384, 1152, 1152 },
-	{ 384, 1152, 576 },
-	{ 384, 1152, 576 }
-};
-
-/* samples per frame table[layer][padding bit] */
-static const int mp3_paddings[3][2] = {
-	{ 0, 4 },
-	{ 0, 1 },
-	{ 0, 1 }
-};
-
 /*
  * Parse a mp3 frame
  * return 1 on success
  */
-static int parse_frame_header(mpg_audio_frame_t *frame, uint8_t *buf) {
-  uint32_t head;
+static int parse_frame_header(mpg_audio_frame_t *const frame, const uint8_t *const buf) {
+  /* bitrate table[mpeg version][layer][bitrate index]
+   * values stored in kbps
+   */
+  static const uint16_t mp3_bitrates[3][3][16] = {
+    { {0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,},
+      {0, 32, 48, 56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 384,},
+      {0, 32, 40, 48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320,} },
+    { {0, 32, 48, 56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256,},
+      {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,},
+      {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,} },
+    { {0, 32, 48, 56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256,},
+      {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,},
+      {0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160,} }
+  };
 
-  head = BE_32(buf);
+  /* frequency table[mpeg version][frequence index] (in KHz) */
+  static const uint16_t mp3_freqs[3][3] = {
+    { 44100, 48000, 32000 },
+    { 22050, 24000, 16000 },
+    { 11025, 12000,  8000 }
+  };
+
+  /* samples per frame table[mpeg version][layer] */
+  static const uint16_t mp3_samples[3][3] = {
+    { 384, 1152, 1152 },
+    { 384, 1152, 576 },
+    { 384, 1152, 576 }
+  };
+
+  struct {
+    uint16_t  mpeg25_bit:1;
+    uint16_t  bitrate_idx:4;
+    uint16_t  freq_idx:3;
+    uint16_t  padding_bit:1;
+    uint16_t  channel_mode:3;
+
+#if 0 /* Unused */
+    uint16_t  protection_bit:1;
+    uint16_t  private_bit:1;
+    uint16_t  mode_extension:3;
+    uint16_t  copyright:1;
+    uint16_t  original:1;
+#endif
+
+#if defined(OPT_STRICT)
+    uint16_t  emphasis:3;
+#endif
+  } frame_header;
+
+  const uint32_t head = BE_32(buf);
+  const uint16_t frame_sync = head >> 21;
 
   lprintf("header: %08X\n", head);
-  frame->frame_sync     =  head >> 21;
-  if (frame->frame_sync != 0x7ff) {
+  if (frame_sync != 0x7ff) {
     lprintf("invalid frame sync\n");
     return 0;
   }
 
-  frame->mpeg25_bit     = (head >> 20) & 0x1;
+  frame_header.mpeg25_bit     = (head >> 20) & 0x1;
   frame->lsf_bit        = (head >> 19) & 0x1;
-  if (!frame->mpeg25_bit) {
+  if (!frame_header.mpeg25_bit) {
     if (frame->lsf_bit) {
       lprintf("reserved mpeg25 lsf combination\n");
       return 0;
@@ -236,54 +235,60 @@ static int parse_frame_header(mpg_audio_frame_t *frame, uint8_t *buf) {
     return 0;
   }
 
-  frame->protection_bit = (head >> 16) & 0x1;
-  frame->bitrate_idx    = (head >> 12) & 0xf;
-  if ((frame->bitrate_idx == 0) || (frame->bitrate_idx == 15)) {
+  frame_header.bitrate_idx    = (head >> 12) & 0xf;
+  if ((frame_header.bitrate_idx == 0) || (frame_header.bitrate_idx == 15)) {
     lprintf("invalid bitrate index\n");
     return 0;
   }
 
-  frame->freq_idx       = (head >> 10) & 0x3;
-  if (frame->freq_idx == 3) {
+  frame_header.freq_idx       = (head >> 10) & 0x3;
+  if (frame_header.freq_idx == 3) {
     lprintf("invalid frequence index\n");
     return 0;
   }
 
-  frame->padding_bit    = (head >>  9) & 0x1;
-  frame->private_bit    = (head >>  8) & 0x1;
-  frame->channel_mode   = (head >>  6) & 0x3;
-  frame->mode_extension = (head >>  4) & 0x3;
-  frame->copyright      = (head >>  3) & 0x1;
-  frame->original       = (head >>  2) & 0x1;
-  frame->emphasis       =  head        & 0x3;
+  frame_header.padding_bit    = (head >>  9) & 0x1;
+  frame_header.channel_mode   = (head >>  6) & 0x3;
+
+#if 0 /* Unused */
+  frame_header.protection_bit = (head >> 16) & 0x1;
+  frame_header.private_bit    = (head >>  8) & 0x1;
+  frame_header.mode_extension = (head >>  4) & 0x3;
+  frame_header.copyright      = (head >>  3) & 0x1;
+  frame_header.original       = (head >>  2) & 0x1;
+#endif
 
 #if defined(OPT_STRICT)
+  frame_header.emphasis       =  head        & 0x3;
+
   /*
    * ISO/IEC 11172-3 says this is a reserved emphasis value, but
    * streams exist which use it anyway. Since the value is not important
    * to the decoder proper, we allow it unless OPT_STRICT is defined.
    */
-  if (frame->emphasis == 2) {
+  if (frame_header.emphasis == 2) {
     lprintf("reserved emphasis\n");
     return 0;
   }
 #endif
   
-  frame->bitrate = mp3_bitrates[frame->version_idx][frame->layer - 1][frame->bitrate_idx] * 1000;
-  frame->freq    = mp3_freqs[frame->version_idx][frame->freq_idx];
-  frame->samples = mp3_samples[frame->version_idx][frame->layer - 1];
-  frame->padding = mp3_paddings[frame->layer - 1][frame->padding_bit];
+  {
+    const uint16_t samples = mp3_samples[frame->version_idx][frame->layer - 1];
+    frame->bitrate = mp3_bitrates[frame->version_idx][frame->layer - 1][frame_header.bitrate_idx] * 1000;
+    frame->freq    = mp3_freqs[frame->version_idx][frame_header.freq_idx];
   
-  frame->size  = frame->samples * (frame->bitrate / 8);
-  frame->size /= frame->freq;
-  frame->size += frame->padding;
+    frame->size  = samples * (frame->bitrate / 8);
+    frame->size /= frame->freq;
+    /* Padding: only if padding_bit is set; 4 bytes for Layer 1 and 1 byte for others */
+    frame->size += ( frame_header.padding_bit ? ( frame->layer == 1 ? 4 : 1 ) : 0 );
 
-  frame->duration  = 1000.0f * (double)frame->samples / (double)frame->freq;
+    frame->duration  = 1000.0f * (double)samples / (double)frame->freq;
+  }
 
   lprintf("mpeg %d, layer %d\n", frame->version_idx + 1, frame->layer);
   lprintf("bitrate: %d bps, samplerate: %d Hz\n", frame->bitrate, frame->freq);
   lprintf("length: %d bytes, %f ms\n", frame->size, frame->duration);
-  lprintf("padding: %d bytes\n", frame->padding);
+  lprintf("padding: %d bytes\n", ( frame_header.padding_bit ? ( frame->layer == 1 ? 4 : 1 ) : 0 ));
   return 1;
 }
 
@@ -294,7 +299,9 @@ static int parse_frame_header(mpg_audio_frame_t *frame, uint8_t *buf) {
 static xing_header_t* parse_xing_header(mpg_audio_frame_t *frame,
                                         uint8_t *buf, int bufsize) {
 
+#ifdef LOG
   int i;
+#endif
   uint8_t *ptr = buf;
   xing_header_t *xing;
 
@@ -338,14 +345,12 @@ static xing_header_t* parse_xing_header(mpg_audio_frame_t *frame,
       lprintf("toc found\n");
       if (ptr >= (buf + bufsize - XING_TOC_LENGTH)) return 0;
 
+      memcpy(xing->toc, ptr, XING_TOC_LENGTH);
+#ifdef LOG
       for (i = 0; i < XING_TOC_LENGTH; i++) {
-        xing->toc[i] = *(ptr + i);
-#ifdef LOG
-        printf("%d ", xing->toc[i]);
-#endif
+        lprintf("%d ", xing->toc[i]);
       }
-#ifdef LOG
-      printf("\n");
+      lprintf("\n");
 #endif
       ptr += XING_TOC_LENGTH;
     }
