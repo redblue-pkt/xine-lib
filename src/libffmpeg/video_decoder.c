@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.72 2007/03/29 18:00:23 dgp85 Exp $
+ * $Id: video_decoder.c,v 1.73 2007/03/29 18:41:02 dgp85 Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -114,11 +114,12 @@ struct ff_video_decoder_s {
   int               crop_right, crop_bottom;
   
   int               output_format;
+
+  xine_list_t       *dr1_frames;
+
   yuv_planes_t      yuv;
 
   AVPaletteControl  palette_control;
-  
-  xine_list_t       *dr1_frames;
 };
 
 
