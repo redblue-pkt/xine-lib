@@ -23,7 +23,7 @@
  * For more information on the FLAC file format, visit:
  *   http://flac.sourceforge.net/
  *
- * $Id: demux_flac.c,v 1.16 2007/03/03 01:41:16 dgp85 Exp $
+ * $Id: demux_flac.c,v 1.17 2007/03/29 16:52:23 dgp85 Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -67,10 +67,10 @@ typedef struct {
   off_t                data_start;
   off_t                data_size;
 
-  unsigned char        streaminfo[sizeof(xine_waveformatex) + FLAC_STREAMINFO_SIZE];
   flac_seekpoint_t    *seekpoints;
   int                  seekpoint_count;
 
+  unsigned char        streaminfo[sizeof(xine_waveformatex) + FLAC_STREAMINFO_SIZE];
 } demux_flac_t;
 
 typedef struct {
