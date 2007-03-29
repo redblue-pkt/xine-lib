@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_decoder.c,v 1.70 2007/03/03 13:33:34 dgp85 Exp $
+ * $Id: video_decoder.c,v 1.71 2007/03/29 17:48:34 dgp85 Exp $
  *
  * xine video decoder plugin using ffmpeg
  *
@@ -79,8 +79,14 @@ struct ff_video_decoder_s {
   xine_stream_t    *stream;
   int64_t           pts;
   int               video_step;
-  int               decoder_ok;
-  int               decoder_init_mode;
+
+  uint8_t           decoder_ok:1;
+  uint8_t           decoder_init_mode:1;
+  uint8_t           is_mpeg12:1;
+  uint8_t           pp_available:1;
+  uint8_t           yuv_init:1;
+  uint8_t           is_direct_rendering_disabled:1;
+  uint8_t           cs_convert_init:1;
 
   xine_bmiheader    bih;
   unsigned char    *buf;
@@ -94,7 +100,6 @@ struct ff_video_decoder_s {
   AVCodecContext   *context;
   AVCodec          *codec;
   
-  int               pp_available;
   int               pp_quality;
   int               pp_flags;
   pp_context_t     *pp_context;
@@ -102,7 +107,6 @@ struct ff_video_decoder_s {
 
   /* mpeg-es parsing */
   mpeg_parser_t     mpeg_parser;
-  int               is_mpeg12;
 
   double            aspect_ratio;
   int               aspect_ratio_prio;
@@ -111,10 +115,6 @@ struct ff_video_decoder_s {
   
   int               output_format;
   yuv_planes_t      yuv;
-  int               yuv_init;
-
-  int               cs_convert_init;
-  int               is_direct_rendering_disabled;
 
   AVPaletteControl  palette_control;
   
