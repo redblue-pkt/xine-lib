@@ -19,7 +19,7 @@
  */
 
 /*
- * $Id: demux_avi.c,v 1.230 2007/02/20 00:34:55 dgp85 Exp $
+ * $Id: demux_avi.c,v 1.231 2007/03/29 19:07:00 dgp85 Exp $
  *
  * demultiplexer for avi streams
  *
@@ -194,8 +194,8 @@ typedef struct{
   uint32_t  audio_posb;      /* Audio position: byte within chunk */
 
 
+  int       wavex_len;
   xine_waveformatex *wavex;
-  int    wavex_len;
 
   audio_index_t  audio_idx;
 
@@ -251,12 +251,12 @@ typedef struct demux_avi_s {
   input_plugin_t      *input;
   int                  status;
 
-  avi_t               *avi;
-
   int                  no_audio;
 
   uint32_t             video_step;
   uint32_t             AVI_errno;
+
+  avi_t               *avi;
 
   idx_grow_t           idx_grow;
 
