@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_mpgaudio.c,v 1.155 2007/03/29 16:21:48 dgp85 Exp $
+ * $Id: demux_mpgaudio.c,v 1.156 2007/03/29 16:32:12 dgp85 Exp $
  *
  * demultiplexer for mpeg audio (i.e. mp3) streams
  *
@@ -38,9 +38,9 @@
 
 #define LOG_MODULE "demux_mpeg_audio"
 #define LOG_VERBOSE
-
+/*
 #define LOG
-
+*/
 #include "xine_internal.h"
 #include "xineutils.h"
 #include "demux.h"
