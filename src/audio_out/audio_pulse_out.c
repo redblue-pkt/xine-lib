@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.13 2007/03/31 20:58:51 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.14 2007/03/31 21:16:22 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -363,48 +363,70 @@ static void ao_pulse_exit(ao_driver_t *this_gen)
 
 static int ao_pulse_get_property (ao_driver_t *this_gen, int property) {
   pulse_driver_t *this = (pulse_driver_t *) this_gen;
+  int result = 0;
 
+  if ( ! this->stream || ! this->pa_class->context )
+    return 0;
+
+  pthread_mutex_lock(&this->pa_class->pa_mutex);
+  
   switch(property) {
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
-    if( this->stream && this->pa_class->context ) {
-      pthread_mutex_lock(&this->pa_class->pa_mutex);
-      wait_for_operation(this,
-        pa_context_get_sink_input_info(this->pa_class->context, pa_stream_get_index(this->stream),
-				       __xine_pa_sink_info_callback, this));
-      pthread_mutex_unlock(&this->pa_class->pa_mutex);
-    }
-    return (int) (pa_sw_volume_to_linear(this->swvolume)*100);
+    wait_for_operation(this,
+      pa_context_get_sink_input_info(this->pa_class->context, pa_stream_get_index(this->stream),
+				     __xine_pa_sink_info_callback, this));
+    result = (pa_sw_volume_to_linear(this->swvolume)*100);
     break;
 
   case AO_PROP_MUTE_VOL:
+    result = pa_cvolume_is_muted(&this->cvolume);
     break;
   }
   
-  return 0;
+  pthread_mutex_unlock(&this->pa_class->pa_mutex);
+  
+  return result;
 }
 
 static int ao_pulse_set_property (ao_driver_t *this_gen, int property, int value) {
   pulse_driver_t *this = (pulse_driver_t *) this_gen;
+  int result = ~value;
+
+  if ( ! this->stream || ! this->pa_class->context )
+    return result;
+
+  pthread_mutex_lock(&this->pa_class->pa_mutex);
 
   switch(property) {
   case AO_PROP_PCM_VOL:
   case AO_PROP_MIXER_VOL:
     this->swvolume = pa_sw_volume_from_linear((double)value/100.0);
-    if( this->stream && this->pa_class->context ) {
-      pthread_mutex_lock(&this->pa_class->pa_mutex);
-      pa_cvolume_set(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels, this->swvolume);
-      wait_for_operation(this,
-        pa_context_set_sink_input_volume(this->pa_class->context, pa_stream_get_index(this->stream),
-        &this->cvolume, __xine_pa_context_success_callback, this));
-      pthread_mutex_unlock(&this->pa_class->pa_mutex);
-    }
+    pa_cvolume_set(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels, this->swvolume);
+    wait_for_operation(this,
+      pa_context_set_sink_input_volume(this->pa_class->context, pa_stream_get_index(this->stream),
+				       &this->cvolume, __xine_pa_context_success_callback, this));
+
+    result = value;
     break;
+
   case AO_PROP_MUTE_VOL:
+    if ( value )
+      pa_cvolume_mute(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels);
+    else
+      pa_cvolume_set(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels, this->swvolume);
+
+    wait_for_operation(this,
+      pa_context_set_sink_input_volume(this->pa_class->context, pa_stream_get_index(this->stream),
+				       &this->cvolume, __xine_pa_context_success_callback, this));
+    
+    result = value;
     break;
   }
   
-  return 0;
+  pthread_mutex_unlock(&this->pa_class->pa_mutex);
+
+  return result;
 }
 
 static int ao_pulse_ctrl(ao_driver_t *this_gen, int cmd, ...) {
