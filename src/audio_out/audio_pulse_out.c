@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.14 2007/03/31 21:16:22 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.15 2007/03/31 21:22:58 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -229,10 +229,14 @@ static int ao_pulse_open(ao_driver_t *this_gen,
   a.prebuf = a.tlength/2;
   a.minreq = a.tlength/10;
 
+  pthread_mutex_lock(&this->pa_class->pa_mutex);
+
   pa_cvolume_set(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels, this->swvolume);
   pa_stream_connect_playback(this->stream, this->sink, &a,
                              PA_STREAM_INTERPOLATE_TIMING|PA_STREAM_AUTO_TIMING_UPDATE, 
                              &this->cvolume, NULL);
+
+  pthread_mutex_unlock(&this->pa_class->pa_mutex);
 
   do {
     xine_usec_sleep (100);
