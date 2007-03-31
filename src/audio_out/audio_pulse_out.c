@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_pulse_out.c,v 1.15 2007/03/31 21:22:58 dgp85 Exp $
+ * $Id: audio_pulse_out.c,v 1.16 2007/03/31 22:06:54 dgp85 Exp $
  *
  * ao plugin for pulseaudio (rename of polypaudio):
  * http://0pointer.de/lennart/projects/pulsaudio/
@@ -231,12 +231,9 @@ static int ao_pulse_open(ao_driver_t *this_gen,
 
   pthread_mutex_lock(&this->pa_class->pa_mutex);
 
-  pa_cvolume_set(&this->cvolume, pa_stream_get_sample_spec(this->stream)->channels, this->swvolume);
   pa_stream_connect_playback(this->stream, this->sink, &a,
                              PA_STREAM_INTERPOLATE_TIMING|PA_STREAM_AUTO_TIMING_UPDATE, 
-                             &this->cvolume, NULL);
-
-  pthread_mutex_unlock(&this->pa_class->pa_mutex);
+                             NULL, NULL);
 
   do {
     xine_usec_sleep (100);
@@ -244,12 +241,16 @@ static int ao_pulse_open(ao_driver_t *this_gen,
     streamstate = pa_stream_get_state(this->stream);
   } while (streamstate < PA_STREAM_READY);
      
+  pthread_mutex_unlock(&this->pa_class->pa_mutex);
+
   if (streamstate != PA_STREAM_READY) {
     xprintf (this->xine, XINE_VERBOSITY_LOG, "audio_pulse_out: Failed to connect to server: %s\n",
              pa_strerror(pa_context_errno(this->pa_class->context)));
     goto fail;
   }
   this->frames_written = 0;
+
+  this->ao_driver.set_property(this, AO_PROP_PCM_VOL, 100);
 
   return this->sample_rate;
 
@@ -504,7 +505,6 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                        AO_CAP_16BITS | AO_CAP_FLOAT32;
 
   this->sample_rate  = 0;
-  this->swvolume = PA_VOLUME_NORM;
   
   this->ao_driver.get_capabilities    = ao_pulse_get_capabilities;
   this->ao_driver.get_property        = ao_pulse_get_property;
