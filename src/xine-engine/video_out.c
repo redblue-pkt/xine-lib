@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: video_out.c,v 1.227 2007/01/16 16:00:26 miguelfreitas Exp $
+ * $Id: video_out.c,v 1.228 2007/04/01 01:03:06 dgp85 Exp $
  *
  * frame allocation / queuing / scheduling / output functions
  */
@@ -93,11 +93,20 @@ typedef struct {
 
   vo_frame_t               *last_frame;
   vo_frame_t               *img_backup;
-  int                       redraw_needed;
+
+  uint32_t                  video_loop_running:1;
+  uint32_t                  video_opened:1;
+
+  uint32_t                  overlay_enabled:1;
+
+  uint32_t                  warn_threshold_event_sent:1;
+
+  /* do we true real-time output or is this a grab only instance ? */
+  uint32_t                  grab_only:1;
+
+  uint32_t                  redraw_needed:3;
   int                       discard_frames;
   
-  int                       video_loop_running;
-  int                       video_opened;
   pthread_t                 video_thread;
 
   int                       num_frames_delivered;
@@ -108,17 +117,12 @@ typedef struct {
   int                       warn_skipped_threshold;
   int                       warn_discarded_threshold;
   int                       warn_threshold_exceeded;
-  int                       warn_threshold_event_sent;
 
   /* pts value when decoder delivered last video frame */
   int64_t                   last_delivery_pts; 
 
 
   video_overlay_manager_t  *overlay_source;
-  int                       overlay_enabled;
-
-  /* do we true real-time output or is this a grab only instance ? */
-  int                       grab_only;
 
   extra_info_t             *extra_info_base; /* used to free mem chunk */
 
@@ -600,7 +604,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
      */
     send_event = (this->warn_threshold_exceeded == 5 && 
                   !this->warn_threshold_event_sent);
-    this->warn_threshold_event_sent += send_event;
+    this->warn_threshold_event_sent = send_event;
 
     pthread_mutex_lock(&this->streams_lock);
     for (ite = xine_list_front(this->streams); ite;
