@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.125 2007/02/08 02:40:22 dsalt Exp $
+ * $Id: demux_ts.c,v 1.126 2007/04/01 22:49:07 dgp85 Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -262,6 +262,14 @@ typedef struct {
   int media_index;
 } demux_ts_spu_lang;
   
+/* Audio Channels */
+#define MAX_AUDIO_TRACKS 16
+
+typedef struct {
+    int pid;
+    int media_index;
+    char lang[4];
+} demux_ts_audio_track;
 
 typedef struct {
   /*
@@ -299,10 +307,10 @@ typedef struct {
   unsigned int     pid;
   unsigned int     pid_count;
   unsigned int     videoPid;
-  unsigned int     audioPid;
   unsigned int     videoMedia;
-  unsigned int     audioMedia;
-  char             audioLang[4];
+  
+  demux_ts_audio_track audio_tracks[MAX_AUDIO_TRACKS];
+  int              audio_tracks_count;
   
   int              send_end_buffers;
   int64_t          last_pts[2];
@@ -627,7 +635,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
     /* force PMT reparsing when pmt_pid changes */
     if (this->pmt_pid[program_count] != pmt_pid) {
       this->pmt_pid[program_count] = pmt_pid;
-      this->audioPid = INVALID_PID;
+      this->audio_tracks_count = 0;
       this->videoPid = INVALID_PID;
       this->spu_pid = INVALID_PID;
     }
@@ -737,7 +745,7 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
        (p[0] == 0x0B && p[1] == 0x77)) { /* ac3 - syncword */
       m->content   = p;
       m->size = packet_len;
-      m->type = BUF_AUDIO_A52;
+      m->type |= BUF_AUDIO_A52;
       return 1;
 
     } else if (m->descriptor_tag == 0x06
@@ -761,7 +769,7 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
 
       m->content   = p+4;
       m->size      = packet_len - 4;
-      m->type      = BUF_AUDIO_A52 + track;
+      m->type      |= BUF_AUDIO_A52 + track;
       return 1;
 
     } else if ((p[0]&0xf0) == 0xa0) {
@@ -777,7 +785,7 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
 
       m->content   = p+pcm_offset;
       m->size      = packet_len-pcm_offset;
-      m->type      = BUF_AUDIO_LPCM_BE + track;
+      m->type      |= BUF_AUDIO_LPCM_BE + track;
       return 1;
     }
 
@@ -818,16 +826,16 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
     case  ISO_11172_AUDIO: 
     case  ISO_13818_AUDIO:
       lprintf ("demux_ts: found MPEG audio track.\n");
-      m->type      = BUF_AUDIO_MPEG + track;
+      m->type      |= BUF_AUDIO_MPEG + track;
       break;
     case  ISO_13818_PART7_AUDIO:
     case  ISO_14496_PART3_AUDIO:
       lprintf ("demux_ts: found AAC audio track.\n");
-      m->type      = BUF_AUDIO_AAC + track;
+      m->type      |= BUF_AUDIO_AAC + track;
       break;
     default:
       lprintf ("demux_ts: unknown audio type: %d, defaulting to MPEG.\n", m->descriptor_tag);
-      m->type      = BUF_AUDIO_MPEG + track;
+      m->type      |= BUF_AUDIO_MPEG + track;
       break;
     }
     return 1;
@@ -1248,15 +1256,26 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
     case ISO_13818_AUDIO:
     case ISO_13818_PART7_AUDIO:
     case ISO_14496_PART3_AUDIO:
-      if (this->audioPid == INVALID_PID) {
+      if (this->audio_tracks_count < MAX_AUDIO_TRACKS) {
+        int i, found = 0;
+        for(i = 0; i < this->audio_tracks_count; i++) {
+            if(this->audio_tracks[i].pid == pid) {
+                found = 1;
+                break;
+            }
+        }
+        if(!found) {
 #ifdef TS_PMT_LOG
-        printf ("demux_ts: PMT audio pid 0x%.4x\n", pid);
+            printf ("demux_ts: PMT audio pid 0x%.4x\n", pid);
 #endif
-        demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo,stream[0]);
-        this->audioPid = pid;
-        this->audioMedia = this->media_num;
-	demux_ts_get_lang_desc(this, this->audioLang,
+            demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo,stream[0]);
+            this->audio_tracks[this->audio_tracks_count].pid = pid;
+            this->audio_tracks[this->audio_tracks_count].media_index = this->media_num;
+            this->media[this->media_num].type = this->audio_tracks_count;
+            demux_ts_get_lang_desc(this, this->audio_tracks[this->audio_tracks_count].lang,
 			       stream + 5, stream_info_length);
+            this->audio_tracks_count++;
+        }
       }
       break;
     case ISO_13818_PRIVATE:
@@ -1275,10 +1294,18 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
       break;
     case ISO_13818_PES_PRIVATE:
       for (i = 5; i < coded_length; i += stream[i+1] + 2) {
-        if ((stream[i] == 0x6a) && (this->audioPid == INVALID_PID)) {
+          if ((stream[i] == 0x6a) && (this->audio_tracks_count < MAX_AUDIO_TRACKS)) {
           uint32_t format_identifier=0;
+          int i, found = 0;
+          for(i = 0; i < this->audio_tracks_count; i++) {
+            if(this->audio_tracks[i].pid == pid) {
+              found = 1;
+              break;
+             }
+	  }
+          if(!found) {
 #ifdef TS_PMT_LOG
-          printf ("demux_ts: PMT AC3 audio pid 0x%.4x\n", pid);
+            printf ("demux_ts: PMT AC3 audio pid 0x%.4x\n", pid);
 #endif
           demux_ts_get_reg_desc(this, &format_identifier,
                                 stream + 5, stream_info_length);
@@ -1292,13 +1319,15 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
             demux_ts_pes_new(this, this->media_num, pid,
                              this->audio_fifo,stream[0]);
 
-          this->audioPid = pid;
-          this->audioMedia = this->media_num;
-	  demux_ts_get_lang_desc(this, this->audioLang,
-				 stream + 5, stream_info_length);
+          this->audio_tracks[this->audio_tracks_count].pid = pid;
+          this->audio_tracks[this->audio_tracks_count].media_index = this->media_num;
+          this->media[this->media_num].type = this->audio_tracks_count;
+          demux_ts_get_lang_desc(this, this->audio_tracks[this->audio_tracks_count].lang,
+                                 stream + 5, stream_info_length);
+          this->audio_tracks_count++;
           break;
+          }
         }
-
         /* Teletext */
         else if (stream[i] == 0x56)
           {
@@ -1356,18 +1385,30 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
  * if is does, we tag this as an audio stream.
  * FIXME: This will need expanding if we ever see a DTS or other media format here.
  */ 
-      if (this->audioPid == INVALID_PID && (stream[0] >= 0x80) ) {
-        uint32_t format_identifier=0;
-        demux_ts_get_reg_desc(this, &format_identifier,
-			       stream + 5, stream_info_length);
-        /* If no format identifier, assume A52 */
-        if ((format_identifier == 0x41432d33) || (format_identifier == 0)) {
-	  demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo, stream[0]);
-          this->audioPid = pid;
-          this->audioMedia = this->media_num;
-	  demux_ts_get_lang_desc(this, this->audioLang,
-		  	       stream + 5, stream_info_length);
-          break;
+        if ((this->audio_tracks_count < MAX_AUDIO_TRACKS) && (stream[0] >= 0x80) ) {
+        int i, found = 0;
+        for(i = 0; i < this->audio_tracks_count; i++) {
+            if(this->audio_tracks[i].pid == pid) {
+                found = 1;
+                break;
+            }
+        }
+        if(!found) {
+            uint32_t format_identifier=0;
+            demux_ts_get_reg_desc(this, &format_identifier,
+                    stream + 5, stream_info_length);
+            /* If no format identifier, assume A52 */
+            if ((format_identifier == 0x41432d33) || (format_identifier == 0)) {
+                printf("ADD APID: %d\n", pid);
+                demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo, stream[0]);
+                this->audio_tracks[this->audio_tracks_count].pid = pid;
+                this->audio_tracks[this->audio_tracks_count].media_index = this->media_num;
+                this->media[this->media_num].type = this->audio_tracks_count;
+                demux_ts_get_lang_desc(this, this->audio_tracks[this->audio_tracks_count].lang,
+                                       stream + 5, stream_info_length);
+                this->audio_tracks_count++;
+                break;
+            }
         }
       } else {
 #ifdef TS_PMT_LOG
@@ -1612,6 +1653,16 @@ static int64_t demux_ts_adaptation_field_parse(uint8_t *data,
   return PCR;
 }
 
+/* check if an apid is in the list of known apids */
+static int apid_check(demux_ts_t*this, unsigned int pid) {
+  int i;
+  for(i=0; i<this->audio_tracks_count; i++) {
+    if(this->audio_tracks[i].pid == pid)
+      return i;
+  }
+  return -1;
+}
+
 /* transport stream packet layer */
 static void demux_ts_parse_packet (demux_ts_t*this) {
 
@@ -1753,15 +1804,27 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 	demux_ts_pes_new(this, this->media_num++, pid, this->video_fifo, pes_stream_id);
       }
     } else if ( (pes_stream_id >= AUDIO_STREAM_S) && (pes_stream_id <= AUDIO_STREAM_E) ) {
-      if ( this->audioPid == INVALID_PID) {
-
-	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, 
-		 "demux_ts: auto-detected audio pid 0x%.4x\n", pid);
-
-	this->audioPid = pid;
-	this->audioMedia = this->media_num;
-	demux_ts_pes_new(this, this->media_num++, pid, this->audio_fifo, pes_stream_id);
-      }
+       if (this->audio_tracks_count < MAX_AUDIO_TRACKS) {
+           int i, found = 0;
+           for(i = 0; i < this->audio_tracks_count; i++) {
+               if(this->audio_tracks[i].pid == pid) {
+                   found = 1;
+                   break;
+               }
+           }
+           if(!found) {
+#ifdef TS_PMT_LOG
+               xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+                        "demux_ts: auto-detected audio pid 0x%.4x\n", pid);
+#endif
+               this->audio_tracks[this->audio_tracks_count].pid = pid;
+               this->audio_tracks[this->audio_tracks_count].media_index = this->media_num;
+               this->media[this->media_num].type = this->audio_tracks_count;
+               demux_ts_pes_new(this, this->media_num++, pid,
+                                this->audio_fifo,pes_stream_id);
+               this->audio_tracks_count++;
+	   }
+       }
     }
   }
   
@@ -1775,6 +1838,7 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
     /*
      * Do the demuxing in descending order of packet frequency!
      */
+    int index;
     if (pid == this->videoPid) {
 #ifdef TS_LOG
       printf ("demux_ts: Video pid: 0x%.4x\n", pid);
@@ -1785,12 +1849,13 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
 			   data_len);
       return;
     }
-    else if (pid == this->audioPid) {
+    else if ((index = apid_check(this, pid)) > -1) {
 #ifdef TS_LOG
       printf ("demux_ts: Audio pid: 0x%.4x\n", pid);
 #endif
-      check_newpts(this, this->media[this->audioMedia].pts, PTS_AUDIO);
-      demux_ts_buffer_pes (this, originalPkt+data_offset, this->audioMedia,
+      check_newpts(this, this->media[this->audio_tracks[index].media_index].pts, PTS_AUDIO);
+      demux_ts_buffer_pes (this, originalPkt+data_offset,
+               this->audio_tracks[index].media_index,
 			   payload_unit_start_indicator, continuity_counter,
 			   data_len);
       return;
@@ -1830,7 +1895,7 @@ static void demux_ts_event_handler (demux_ts_t *this) {
     case XINE_EVENT_PIDS_CHANGE:
 
       this->videoPid    = INVALID_PID;
-      this->audioPid    = INVALID_PID;
+      this->audio_tracks_count = 0;
       this->media_num   = 0;
       this->send_newpts = 1;
       this->spu_pid     = INVALID_PID;
@@ -1909,7 +1974,7 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
    */
 
   this->videoPid = INVALID_PID;
-  this->audioPid = INVALID_PID;
+  this->audio_tracks_count = 0;
   this->media_num= 0;
 
   _x_demux_control_start (this->stream);
@@ -2005,6 +2070,8 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 {
   demux_ts_t *this = (demux_ts_t *) this_gen;
   char *str = data;
+  int channel = *((int *)data);
+  int track_num;
 
   /* be a bit paranoid */
   if (this == NULL || this->stream == NULL)
@@ -2013,11 +2080,12 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
   switch (data_type)
     {
     case DEMUX_OPTIONAL_DATA_AUDIOLANG:
-      if (this->audioLang[0])
-	{
-	  strncpy(str, this->audioLang, XINE_LANG_MAX - 1);
-	  str[XINE_LANG_MAX - 1] = 0;
-	}
+      if ((channel >= 0) && (channel < this->audio_tracks_count)) {
+        if(this->audio_tracks[channel].lang)
+            strcpy(str, this->audio_tracks[channel].lang);
+        else
+            sprintf(str, "%3i", _x_get_audio_channel(this->stream));
+      }
       else
 	{
 	  snprintf(str, XINE_LANG_MAX, "%3i", _x_get_audio_channel(this->stream));
@@ -2162,7 +2230,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->pcrPid = INVALID_PID;
   this->scrambled_npids = 0;
   this->videoPid = INVALID_PID;
-  this->audioPid = INVALID_PID;
+  this->audio_tracks_count = 0;
 
   this->rate = 16000; /* FIXME */
   
