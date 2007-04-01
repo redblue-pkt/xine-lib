@@ -42,7 +42,7 @@ xine-lib (1.1.5) (Unreleased)
   * Fix support of block devices for AC3 and DTS demuxers. Thanks to Matthias
     Kretz for the original patch.
   * Portability fixes for Mac OS X, in particular Mac OS X on the new Intel
-    Macs. Thanks to Martin Aumueller and Emanuele Giaquinta.
+    Macs. Thanks to Martin Aumueller, Emanuele Giaquinta and Matt Messier.
   * Fix amp muting when level is still at 100. Patch by Reinhard Nissl.
   * Create at least a 1×1 shared image when the first frame is skipped (and
     thus reported as 0×0), to avoid disabling shared memory for all others.
