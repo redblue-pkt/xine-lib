@@ -17,7 +17,7 @@
  * along with self program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: audio_out.c,v 1.209 2007/03/25 23:09:42 dgp85 Exp $
+ * $Id: audio_out.c,v 1.210 2007/04/01 00:52:36 dgp85 Exp $
  *
  * 22-8-2001 James imported some useful AC3 sections from the previous alsa driver.
  *   (c) 2001 Andy Lo A Foe <andy@alsaplayer.org>
@@ -204,36 +204,45 @@ typedef struct {
   /* private stuff */
   ao_driver_t         *driver;
   pthread_mutex_t      driver_lock;
-  int                  driver_open;
-  pthread_mutex_t      driver_action_lock; /* protects num_driver_actions */
+  
+  uint32_t             driver_open:1;
+  uint32_t             audio_loop_running:1;
+  uint32_t             audio_thread_created:1;
+  uint32_t             grab_only:1; /* => do not start thread, frontend will consume samples */
+  uint32_t             do_resample:1;
+  uint32_t             do_compress:1;
+  uint32_t             do_amp:1;
+  uint32_t             amp_mute:1;
+  uint32_t             do_equ:1;
+
   int                  num_driver_actions; /* number of threads, that wish to call
                                             * functions needing driver_lock */
+  pthread_mutex_t      driver_action_lock; /* protects num_driver_actions */
+
   metronom_clock_t    *clock;
   xine_t              *xine;
   xine_list_t         *streams;
   pthread_mutex_t      streams_lock;
 
-  int             audio_loop_running;
-  int             grab_only; /* => do not start thread, frontend will consume samples */
   pthread_t       audio_thread;
-  int             audio_thread_created;
 
   int64_t         audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
   int32_t         frames_per_kpts;      /* frames per 1024/90000 sec                  */
   
+  int             av_sync_method_conf;
+  resample_sync_t resample_sync_info;
+  double          resample_sync_factor; /* correct buffer length by this factor
+                                         * to sync audio hardware to (dxr3) clock */
+  int             resample_sync_method; /* fix sound card clock drift by resampling */
+
+  int             gap_tolerance;
+
   ao_format_t     input, output;        /* format conversion done at audio_out.c */
   double          frame_rate_factor;
   double          output_frame_excess;  /* used to keep track of 'half' frames */
 
-  int             av_sync_method_conf;
-  resample_sync_t resample_sync_info;
-  int             resample_sync_method; /* fix sound card clock drift by resampling */
-  double          resample_sync_factor; /* correct buffer length by this factor
-                                         * to sync audio hardware to (dxr3) clock */
   int             resample_conf;
   uint32_t        force_rate;           /* force audio output rate to this value if non-zero */
-  int             do_resample;
-  int             gap_tolerance;
   audio_fifo_t   *free_fifo;
   audio_fifo_t   *out_fifo;
   int64_t         last_audio_vpts;
@@ -247,22 +256,18 @@ typedef struct {
 
   int64_t         passthrough_offset;
   int             flush_audio_driver;
+  int             discard_buffers;
   pthread_mutex_t flush_audio_driver_lock;
   pthread_cond_t  flush_audio_driver_reached;
-  int             discard_buffers;
 
   /* some built-in audio filters */
 
-  int             do_compress;
   double          compression_factor;   /* current compression */
   double          compression_factor_max; /* user limit on compression */
-  int             do_amp;
-  int             amp_mute;
   double          amp_factor;
 
   /* 10-band equalizer */
 
-  int             do_equ;
   int             eq_gain[EQ_BANDS];
   int             eq_preamp;
   int             eq_i;
