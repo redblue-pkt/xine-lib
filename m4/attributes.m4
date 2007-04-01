@@ -147,7 +147,7 @@ AC_DEFUN([CC_ATTRIBUTE_VISIBILITY], [
      CFLAGS="$ac_save_CFLAGS"
     ])
 
-  if eval test [x$]AS_TR_SH([cc_cv_attribute_visibility_$1]); then
+  if eval test [x$]AS_TR_SH([cc_cv_attribute_visibility_$1]) = xyes; then
     AC_DEFINE(AS_TR_CPP([SUPPORT_ATTRIBUTE_VISIBILITY_$1]), 1, [Define this if the compiler supports __attribute__((visibility("$1")))])
     ifelse([$2], , [:], [$2])
   else
