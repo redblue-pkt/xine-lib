@@ -113,6 +113,7 @@ AM_PROG_AS
 case "$host_os" in
   *darwin*)
      AC_PROG_OBJC
+     CPPFLAGS="$CPPFLAGS -DCONFIG_DARWIN"
      ;;
 esac
 
