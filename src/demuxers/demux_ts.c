@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.126 2007/04/01 22:49:07 dgp85 Exp $
+ * $Id: demux_ts.c,v 1.127 2007/04/02 09:51:53 dgp85 Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1399,7 +1399,6 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
                     stream + 5, stream_info_length);
             /* If no format identifier, assume A52 */
             if ((format_identifier == 0x41432d33) || (format_identifier == 0)) {
-                printf("ADD APID: %d\n", pid);
                 demux_ts_pes_new(this, this->media_num, pid, this->audio_fifo, stream[0]);
                 this->audio_tracks[this->audio_tracks_count].pid = pid;
                 this->audio_tracks[this->audio_tracks_count].media_index = this->media_num;
