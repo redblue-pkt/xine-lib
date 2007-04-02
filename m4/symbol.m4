@@ -84,5 +84,3 @@ m4_define([AH_CHECK_SYMBOLS], [
    [AH_TEMPLATE(AS_TR_CPP([HAVE_]m4_defn([AC_Symbol])),
       [Define to 1 if you have the ]m4_defn([AC_Symbol])[ symbol.])])
 ])
-
-m4_ifdef([m4_foreach_w_is_compatibility], [m4_undefine([m4_foreach_w])])
