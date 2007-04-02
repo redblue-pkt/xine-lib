@@ -16,7 +16,7 @@ AC_DEFUN([CC_PROG_AS],
 	[assume the C compiler uses GNU as @<:@default=no@:>@])],
     [test "$withval" = no || with_gnu_as=yes],
     [with_gnu_as=no])
-AC_REQUIRE([AC_PROG_SED])dnl
+AC_REQUIRE([LT_AC_PROG_SED])dnl
 AC_REQUIRE([AC_PROG_CC])dnl
 AC_REQUIRE([AC_CANONICAL_HOST])dnl
 AC_REQUIRE([AC_CANONICAL_BUILD])dnl
