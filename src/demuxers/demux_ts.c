@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.128 2007/04/02 10:13:02 dgp85 Exp $
+ * $Id: demux_ts.c,v 1.129 2007/04/02 10:46:08 dgp85 Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -1307,17 +1307,8 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
 #ifdef TS_PMT_LOG
             printf ("demux_ts: PMT AC3 audio pid 0x%.4x\n", pid);
 #endif
-          demux_ts_get_reg_desc(this, &format_identifier,
-                                stream + 5, stream_info_length);
-          if (format_identifier == 0x41432d33) /* AC-3 */
-            demux_ts_pes_new(this, this->media_num, pid,
-                             this->audio_fifo, 0x81);
-          else if((stream[i+1]>1) && (stream[i+2] & 0x80 ) && (stream[3] & 0x40)) /* AC3 Full Service */
-            demux_ts_pes_new(this, this->media_num, pid,
-                             this->audio_fifo, 0x81);
-          else
-            demux_ts_pes_new(this, this->media_num, pid,
-                             this->audio_fifo,stream[0]);
+          demux_ts_pes_new(this, this->media_num, pid,
+                           this->audio_fifo, 0x81);
 
           this->audio_tracks[this->audio_tracks_count].pid = pid;
           this->audio_tracks[this->audio_tracks_count].media_index = this->media_num;
