@@ -62,8 +62,27 @@ AC_DEFUN([AC_CHECK_SYMBOLS], [
   done
 ])
 
+m4_ifdef([m4_foreach_w], [], [
+  # m4_foreach_w(VARIABLE, LIST, EXPRESSION)
+  # ----------------------------------------
+  #
+  # Like m4_foreach, but the list is whitespace separated.
+  #
+  # This macro is robust to active symbols:
+  #    m4_foreach_w([Var], [ active
+  #    b	act\
+  #    ive  ], [-Var-])end
+  #    => -active--b--active-end
+  #
+  m4_define([m4_foreach_w],
+  [m4_foreach([$1], m4_split(m4_normalize([$2])), [$3])])
+  m4_define([m4_foreach_w_is_compatibility])
+])
+
 m4_define([AH_CHECK_SYMBOLS], [
   m4_foreach_w([AC_Symbol], [$1],
    [AH_TEMPLATE(AS_TR_CPP([HAVE_]m4_defn([AC_Symbol])),
       [Define to 1 if you have the ]m4_defn([AC_Symbol])[ symbol.])])
 ])
+
+m4_ifdef([m4_foreach_w_is_compatibility], [m4_undefine([m4_foreach_w])])
