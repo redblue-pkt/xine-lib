@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
- * $Id: demux_ts.c,v 1.127 2007/04/02 09:51:53 dgp85 Exp $
+ * $Id: demux_ts.c,v 1.128 2007/04/02 10:13:02 dgp85 Exp $
  *
  * Demultiplexer for MPEG2 Transport Streams.
  *
@@ -254,7 +254,7 @@ typedef struct {
 } demux_ts_media;
 
 /* DVBSUB */
-#define MAX_NO_SPU_LANGS 16
+#define MAX_SPU_LANGS 16
 
 typedef struct {
   spu_dvb_descriptor_t desc;
@@ -327,8 +327,8 @@ typedef struct {
   /* DVBSUB */
   unsigned int      spu_pid;
   unsigned int      spu_media;
-  demux_ts_spu_lang spu_langs[MAX_NO_SPU_LANGS];
-  int               no_spu_langs;
+  demux_ts_spu_lang spu_langs[MAX_SPU_LANGS];
+  int               spu_langs_count;
   int               current_spu_channel;
 
   /* dvb */
@@ -465,7 +465,7 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
   buf->size = 0;
     
   if (this->current_spu_channel >= 0
-      && this->current_spu_channel < this->no_spu_langs)
+      && this->current_spu_channel < this->spu_langs_count)
     {
       demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
 
@@ -1220,7 +1220,7 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
   /*
    * Extract the elementary streams.
    */
-  this->no_spu_langs = 0;
+  this->spu_langs_count = 0;
   while (section_length > 0) {
     unsigned int stream_info_length;
 
@@ -1347,13 +1347,13 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
 	    int pos;
             for (pos = i + 2;
 		 pos + 8 <= i + 2 + stream[i + 1]
-		   && this->no_spu_langs < MAX_NO_SPU_LANGS;
+		   && this->spu_langs_count < MAX_SPU_LANGS;
 		 pos += 8)
 	      {
-		int no = this->no_spu_langs;
+		int no = this->spu_langs_count;
 		demux_ts_spu_lang *lang = &this->spu_langs[no];
 		
-		this->no_spu_langs++;
+		this->spu_langs_count++;
 	
 		memcpy(lang->desc.lang, &stream[pos], 3);
 		lang->desc.lang[3] = 0;
@@ -1899,7 +1899,7 @@ static void demux_ts_event_handler (demux_ts_t *this) {
       this->send_newpts = 1;
       this->spu_pid     = INVALID_PID;
       this->spu_media   = 0;
-      this->no_spu_langs= 0;
+      this->spu_langs_count= 0;
       _x_demux_control_start (this->stream);
       break;
       
@@ -1991,7 +1991,7 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
   
   /* DVBSUB */
   this->spu_pid = INVALID_PID;
-  this->no_spu_langs = 0;
+  this->spu_langs_count = 0;
   this->current_spu_channel = this->stream->spu_channel;
   
   /* FIXME ? */
@@ -2093,7 +2093,7 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 
     case DEMUX_OPTIONAL_DATA_SPULANG:
       if (this->current_spu_channel >= 0
-	  && this->current_spu_channel < this->no_spu_langs)
+	  && this->current_spu_channel < this->spu_langs_count)
 	{
 	  memcpy(str, this->spu_langs[this->current_spu_channel].desc.lang, 3);
 	  str[3] = 0;
@@ -2243,7 +2243,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   /* DVBSUB */
   this->spu_pid = INVALID_PID;
-  this->no_spu_langs = 0;
+  this->spu_langs_count = 0;
   this->current_spu_channel = this->stream->spu_channel;
 
   /* dvb */
