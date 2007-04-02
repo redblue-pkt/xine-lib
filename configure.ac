@@ -9,7 +9,7 @@ AC_CONFIG_LIBOBJ_DIR([lib])
 dnl
 dnl Require autoconf version 2.60
 dnl
-AC_PREREQ(2.60)
+AC_PREREQ(2.59)
 
 dnl Making releases:
 dnl   XINE_SUB += 1; continue with XINE_LT_* values below
