@@ -1,3 +1,6 @@
+syntax: glob
+*~
+
 Makefile
 Makefile.in
 aclocal.m4
@@ -20,3 +23,6 @@ mkinstalldirs
 stamp-h1
 post-install.sh
 autom4te.cache
+
+po/POTFILES
+po/*.gmo
