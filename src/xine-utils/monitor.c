@@ -33,7 +33,7 @@
 
 #define MAX_ID 10
 
-#ifdef DEBUG
+#ifndef NDEBUG
 
 static long long int profiler_times[MAX_ID] ;
 static long long int profiler_start[MAX_ID] ;
