@@ -104,7 +104,7 @@
     <para>
      Other modules in CVS are: <filename>xine-plugin</filename> a mozilla browser plugin
      for streaming media playback using xine, 
-     <filename>xine-www</filename> the
+     <filename>xine_www</filename> the
      xine project website sources.
     </para>
    </sect2>
@@ -113,23 +113,45 @@
     <title>Where and how do I get the latest development version?</title>
     <para>
      Be advised that end-users should stick to the official xine releases.
-     CVS is only intended for developers and for others who know why they use it.
+     The CVS and Mercurial repositories are only intended for developers and for others who know why they use it.
     </para>
-    <para>
-     To check out xine-modules from CVS, first do this:
-     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@xine.cvs.sourceforge.net:/cvsroot/xine login</command></screen>
-     The password is empty, just press Enter.
-    </para>
-    <para>
-     Then, to check out individual modules (e.g. <filename>xine-lib</filename> or <filename>xine-ui</filename>):
-     <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@xine.cvs.sourceforge.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
-    </para>
-    <para>
-     gxine's primary repository is at <ulink url="http://zap.tartarus.org/~ds/hg/gxine/">http://zap.tartarus.org/~ds/hg/gxine/</ulink>.
-     Its CVS module is updated from this from time to time.
-     To check out the source:
-     <screen>&nbsp;&nbsp;&nbsp;<command>hg clone http://zap.tartarus.org/~ds/hg/gxine/ gxine</command></screen>
-    </para>
+    <sect3>
+     <title>Checking out xine modules from Mercurial</title>
+     <para>
+      The repositories are listed at <ulink url="http://hg.debian.org/hg/">http://hg.debian.org/hg/</ulink>;
+      however, this is a list of all repositories which are kept there, not just the
+      xine project's (which are the ones which begin with <filename>xine-lib/</filename>). To check one out:
+      <screen>&nbsp;&nbsp;&nbsp;<command>hg clone http://hg.debian.org/hg/<filename>repository</filename> <filename>local_copy</filename></command></screen>
+      e.g.
+      <screen>&nbsp;&nbsp;&nbsp;<command>hg clone http://hg.debian.org/hg/xine-lib/xine-lib xine-lib</command></screen>
+     </para>
+     <para>
+      Currently, only xine-lib and gxine are present here.
+     </para>
+     <para>
+      If you have patches for a module which is maintained using mercurial,
+      you can make them available as diffs - use <command>hg
+      export</command> for this - or via HTTP by using <command>hg
+      serve</command>. In the latter case, you'll need to post a URL from
+      which a developer can pull the changes. We prefer these methods since
+      we get proper attribution this way.
+     </para>
+    </sect3>
+    <sect3>
+     <title>Checking out xine modules from CVS</title>
+     <para>
+      To check out xine modules from CVS, first do this:
+      <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@xine.cvs.sourceforge.net:/cvsroot/xine login</command></screen>
+      The password is empty, just press Enter.
+     </para>
+     <para>
+      Then, to check out individual modules (e.g. <filename>xine-lib</filename> or <filename>xine-ui</filename>):
+      <screen>&nbsp;&nbsp;&nbsp;<command>cvs -d :pserver:anonymous@xine.cvs.sourceforge.net:/cvsroot/xine co &lt;modulename&gt;</command></screen>
+     </para>
+     <para>
+      If you want xine-lib or gxine, you should use Mercurial instead.
+     </para>
+    </sect3>
    </sect2>
 
    <sect2 id="gnome-xine">

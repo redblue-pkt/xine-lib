@@ -29,5 +29,21 @@ stamp-h1
 post-install.sh
 autom4te.cache
 
+doc/faq/faq.html
+doc/faq/faq.txt
+doc/hackersguide/*.png
+doc/hackersguide/hackersguide.html
+
+include/xine.h
+
+misc/SlackBuild
+misc/build_rpms.sh
+misc/libxine.pc
+misc/relchk.sh
+misc/xine-config
+misc/xine-lib.spec
+
 po/POTFILES
 po/*.gmo
+
+src/libffmpeg/ffmpeg_config.h
