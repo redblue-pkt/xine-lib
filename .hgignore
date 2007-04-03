@@ -5,9 +5,9 @@ syntax: glob
 *.la
 .libs/*
 .deps/*
-
 Makefile
 Makefile.in
+
 aclocal.m4
 compile
 configure
