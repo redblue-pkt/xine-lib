@@ -1,6 +1,11 @@
 syntax: glob
 *~
 
+*.lo
+*.la
+.libs/*
+.deps/*
+
 Makefile
 Makefile.in
 aclocal.m4
