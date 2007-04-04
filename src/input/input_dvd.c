@@ -71,14 +71,10 @@
 #include <sys/cdio.h> /* CDIOCALLOW etc... */
 #elif defined(HAVE_SYS_CDIO_H)
 #include <sys/cdio.h>
-#else
-
-#ifdef WIN32
+#elif defined(WIN32)
 #include <io.h>                                                 /* read() */
 #else
 #warning "This might not compile due to missing cdrom ioctls"
-#endif /* WIN32 */
-
 #endif
 
 /* DVDNAV includes */
