@@ -2647,7 +2647,6 @@ src/libspucc/Makefile
 src/libspucmml/Makefile
 src/libspudvb/Makefile
 src/libsputext/Makefile
-src/libvorbis/Makefile
 src/libtheora/Makefile
 src/libspeex/Makefile
 src/libw32dll/Makefile

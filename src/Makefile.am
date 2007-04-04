@@ -22,7 +22,6 @@ SUBDIRS = \
 	libw32dll \
 	libxinevdec \
 	libxineadec \
-	libvorbis \
 	libtheora \
 	libspeex \
 	libreal \
