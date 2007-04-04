@@ -807,7 +807,7 @@ static int ao_sun_get_property (ao_driver_t *this_gen, int property) {
       this->mixer_volume = info.play.gain * 100 / AUDIO_MAX_GAIN;
     }
     return this->mixer_volume;
-#if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
+#ifdef HAVE_AUDIO_INFO_T_OUTPUT_MUTED
   case AO_PROP_MUTE_VOL:
     if (ioctl(this->audio_fd, AUDIO_GETINFO, &info) < 0)
       return 0;
@@ -836,7 +836,7 @@ static int ao_sun_set_property (ao_driver_t *this_gen, int property, int value) 
     if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
       return ~value;
     return value;
-#if !defined(__NetBSD__)    /* audio_info.output_muted is missing on NetBSD */
+#ifdef HAVE_AUDIO_INFO_T_OUTPUT_MUTED
   case AO_PROP_MUTE_VOL:
     info.output_muted = value != 0;
     if (ioctl(this->audio_fd, AUDIO_SETINFO, &info) < 0)
