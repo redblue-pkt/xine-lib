@@ -22,7 +22,6 @@ SUBDIRS = \
 	libw32dll \
 	libxinevdec \
 	libxineadec \
-	libspeex \
 	libreal \
 	libfaad \
         libmusepack \

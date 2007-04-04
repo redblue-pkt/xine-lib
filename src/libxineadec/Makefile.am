@@ -10,11 +10,16 @@ if HAVE_VORBIS
 vorbis_module = xineplug_decode_vorbis.la
 endif
 
+if HAVE_SPEEX
+speex_module = xineplug_decode_speex.la
+endif
+
 xineplug_LTLIBRARIES = \
 	xineplug_decode_gsm610.la \
 	xineplug_decode_nsf.la \
 	xineplug_decode_lpcm.la \
-	$(vorbis_module)
+	$(vorbis_module) \
+	$(speex_module)
 
 xineplug_decode_gsm610_la_SOURCES = gsm610.c
 xineplug_decode_gsm610_la_CFLAGS = $(VISIBILITY_FLAG)
@@ -31,3 +36,7 @@ xineplug_decode_lpcm_la_LIBADD = $(XINE_LIB)
 xineplug_decode_vorbis_la_SOURCES = xine_vorbis_decoder.c
 xineplug_decode_vorbis_la_LIBADD = $(XINE_LIB) $(VORBIS_LIBS) $(OGG_LIBS)
 xineplug_decode_vorbis_la_CFLAGS = $(VISIBILITY_FLAG) $(VORBIS_CFLAGS)
+
+xineplug_decode_speex_la_SOURCES = xine_speex_decoder.c
+xineplug_decode_speex_la_LIBADD = $(XINE_LIB) $(SPEEX_LIBS)
+xineplug_decode_speex_la_CFLAGS = $(VISIBILITY_FLAGS) $(SPEEX_CFLAGS)
