@@ -28,7 +28,6 @@ SUBDIRS = \
 	libspeex \
 	libreal \
 	libfaad \
-	libflac \
         libmusepack \
 	post \
 	combined
