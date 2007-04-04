@@ -2874,9 +2874,6 @@ if test "x$enable_libmad" = "xyes"; then
     echo "   - MAD (MPG 1/2/3) (internal library)"
   fi
 fi
-if test "x$have_wavpack" = "xyes"; then
-  echo "   - wavpack"
-fi
 if test "x$enable_libdts" = "xyes"; then
   if test "x$have_dts" = "xyes"; then
     echo "   - DTS (external library)"
