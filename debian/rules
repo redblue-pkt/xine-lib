@@ -62,13 +62,10 @@ endif
 CONFIGURE_FLAGS := --prefix=/usr \
 	--mandir=\$${prefix}/share/man \
 	--with-external-libmad \
-	--with-external-ffmpeg \
 	--with-external-a52dec \
 	--with-external-libdts \
 	--disable-cacatest \
 	$(DEB_BUILD_CONFIG_OPTIONS) \
-	FFMPEG_CFLAGS="`pkg-config --cflags libavcodec`" \
-	FFMPEG_LIBS="`pkg-config --libs libavcodec`" \
 	CFLAGS="$(CFLAGS)"
 
 configure: configure-stamp
