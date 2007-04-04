@@ -64,11 +64,11 @@
 #endif /* WIN32 */
 
 
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
+#if defined(HAVE_LINUX_CDROM_H)
+#include <linux/cdrom.h>
+#elif defined(HAVE_SYS_DVDIO_H)
 #include <sys/dvdio.h>
 #include <sys/cdio.h> /* CDIOCALLOW etc... */
-#elif defined(HAVE_LINUX_CDROM_H)
-#include <linux/cdrom.h>
 #elif defined(HAVE_SYS_CDIO_H)
 #include <sys/cdio.h>
 #else
