@@ -49,7 +49,7 @@ dnl    are platform dependent
 dnl  * in Linux, the library will be named
 dnl    libname.so.(XINE_LT_CURRENT - XINE_LT_AGE).XINE_LT_AGE.XINE_LT_REVISION
 
-XINE_LT_CURRENT=18
+XINE_LT_CURRENT=19
 XINE_LT_REVISION=0
 XINE_LT_AGE=17
 
