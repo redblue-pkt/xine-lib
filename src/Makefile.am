@@ -20,7 +20,6 @@ SUBDIRS = \
 	libdts \
 	libmad \
 	libw32dll \
-	liblpcm \
 	libxinevdec \
 	libxineadec \
 	libvorbis \
