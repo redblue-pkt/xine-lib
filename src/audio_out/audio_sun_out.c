@@ -126,10 +126,10 @@ typedef struct sun_driver_s {
 #ifdef __svr4__
 #if	SW_SAMPLE_COUNT
   struct timeval tv0;
-  uint_t	 sample0;
+  size_t	 sample0;
 #endif
 
-  uint_t	 last_samplecnt;
+  size_t	 last_samplecnt;
 #endif
 } sun_driver_t;
 
@@ -604,8 +604,8 @@ static int ao_sun_delay(ao_driver_t *this_gen)
     /* compute "current sample" based on real time */
     {
       struct timeval tv1;
-      uint_t cur_sample;
-      uint_t msec;
+      size_t cur_sample;
+      size_t msec;
 
       gettimeofday(&tv1, NULL);
 
