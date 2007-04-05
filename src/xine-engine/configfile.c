@@ -455,6 +455,8 @@ static void config_reset_value(cfg_entry_t *entry) {
   entry->num_value = 0;
 }
 
+static void config_shallow_copy(xine_cfg_entry_t *dest, cfg_entry_t *src);
+
 static cfg_entry_t *config_register_key (config_values_t *this,
 					 const char *key,
 					 int exp_level,
@@ -486,6 +488,14 @@ static cfg_entry_t *config_register_key (config_values_t *this,
     }
     entry->callback = changed_cb;
     entry->callback_data = cb_data;
+  }
+
+  /* we created a new entry, call the callback */
+  if (this->new_entry_cb) {
+    xine_cfg_entry_t cb_entry;
+
+    config_shallow_copy(&cb_entry, entry);
+    this->new_entry_cb(this->new_entry_cbdata, &cb_entry);
   }
 
   return entry;
@@ -1186,6 +1196,19 @@ static void config_unregister_cb (config_values_t *this, const char *key) {
   }
 }
 
+static void config_set_new_entry_callback (config_values_t *this, xine_config_cb_t new_entry_cb, void* cbdata) {
+  pthread_mutex_lock(&this->config_lock);
+  this->new_entry_cb = new_entry_cb;
+  this->new_entry_cbdata = cbdata;
+  pthread_mutex_unlock(&this->config_lock);
+}
+
+static void config_unset_new_entry_callback (config_values_t *this) {
+  pthread_mutex_lock(&this->config_lock);
+  this->new_entry_cb = NULL;
+  this->new_entry_cbdata = NULL;
+  pthread_mutex_unlock(&this->config_lock);
+}
 
 config_values_t *_x_config_init (void) {
 
@@ -1212,18 +1235,20 @@ config_values_t *_x_config_init (void) {
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
   pthread_mutex_init(&this->config_lock, &attr);
 
-  this->register_string     = config_register_string;
-  this->register_filename   = config_register_filename;
-  this->register_range      = config_register_range;
-  this->register_enum       = config_register_enum;
-  this->register_num        = config_register_num;
-  this->register_bool       = config_register_bool;
-  this->update_num          = config_update_num;
-  this->update_string       = config_update_string;
-  this->parse_enum          = config_parse_enum;
-  this->lookup_entry        = config_lookup_entry;
-  this->unregister_callback = config_unregister_cb;
-  this->dispose             = config_dispose;
+  this->register_string          = config_register_string;
+  this->register_filename        = config_register_filename;
+  this->register_range           = config_register_range;
+  this->register_enum            = config_register_enum;
+  this->register_num             = config_register_num;
+  this->register_bool            = config_register_bool;
+  this->update_num               = config_update_num;
+  this->update_string            = config_update_string;
+  this->parse_enum               = config_parse_enum;
+  this->lookup_entry             = config_lookup_entry;
+  this->unregister_callback      = config_unregister_cb;
+  this->dispose                  = config_dispose;
+  this->set_new_entry_callback   = config_set_new_entry_callback;
+  this->unset_new_entry_callback = config_unset_new_entry_callback;
 
   return this;
 }

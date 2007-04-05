@@ -50,6 +50,7 @@ extern "C" {
 typedef struct cfg_entry_s cfg_entry_t;
 typedef struct config_values_s config_values_t;
 
+
 struct cfg_entry_s {
   cfg_entry_t     *next;
   config_values_t *config;
@@ -175,7 +176,7 @@ struct config_values_s {
   cfg_entry_t* (*lookup_entry) (config_values_t *self, const char *key);
 
   /*
-   * unregister callback function
+   * unregister entry callback function
    */
   void (*unregister_callback) (config_values_t *self, const char *key);
 
@@ -185,9 +186,25 @@ struct config_values_s {
   void (*dispose) (config_values_t *self);
 
   /*
+   * callback called when a new config entry is registered 
+   */
+  void (*set_new_entry_callback) (config_values_t *self, xine_config_cb_t new_entry_cb, void *cb_data);
+
+  /*
+   * unregister the callback
+   */
+  void (*unset_new_entry_callback) (config_values_t *self);
+
+  /*
    * config values are stored here:
    */
   cfg_entry_t         *first, *last, *cur;
+
+  /*
+   * new entry callback
+   */
+  xine_config_cb_t    new_entry_cb;
+  void                *new_entry_cbdata;
 
   /*
    * mutex for modification to the config
