@@ -236,7 +236,7 @@ static void remember_metainfo (mpeg2dec_t *mpeg2dec) {
 }
 
 static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
-			       uint8_t * buffer)
+			       uint8_t * buffer, int next_code)
 {
     picture_t * picture;
     int is_frame_done;
@@ -393,6 +393,11 @@ static inline int parse_chunk (mpeg2dec_t * mpeg2dec, int code,
 	    /* abort(); */
 	    break;
 	}
+
+        /* according to ISO/IEC 13818-2, an extension start code will follow.
+         * Otherwise the stream follows ISO/IEC 11172-2 which means MPEG1 */ 
+        picture->mpeg1 = (next_code != 0xb5);
+
 	if (mpeg2dec->force_aspect) picture->aspect_ratio_information = mpeg2dec->force_aspect;
 
 	if (mpeg2dec->is_sequence_needed ) {
@@ -638,7 +643,7 @@ int mpeg2_decode_data (mpeg2dec_t * mpeg2dec, uint8_t * current, uint8_t * end,
 	current = copy_chunk (mpeg2dec, current, end);
 	if (current == NULL) 
 	    break;
-	ret += parse_chunk (mpeg2dec, code, mpeg2dec->chunk_buffer);
+	ret += parse_chunk (mpeg2dec, code, mpeg2dec->chunk_buffer, mpeg2dec->code);
     }
 
     libmpeg2_accel_frame_completion(&mpeg2dec->accel, mpeg2dec->frame_format, 
@@ -805,7 +810,7 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
 void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 				 uint8_t * current, uint8_t * end){
 
-  uint8_t code;
+  uint8_t code, next_code;
   picture_t *picture = mpeg2dec->picture;
 
   mpeg2dec->seek_mode = 1;
@@ -815,6 +820,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
     current = copy_chunk (mpeg2dec, current, end);
     if (current == NULL)
       return ;
+    next_code = mpeg2dec->code;
 
     /* printf ("looking for sequence header... %02x\n", code);  */
 
@@ -825,6 +831,11 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 	printf ("libmpeg2: bad sequence header\n");
 	continue;
       }
+
+      /* according to ISO/IEC 13818-2, an extension start code will follow.
+       * Otherwise the stream follows ISO/IEC 11172-2 which means MPEG1 */ 
+      picture->mpeg1 = (next_code != 0xb5);
+
       if (mpeg2dec->force_aspect) picture->aspect_ratio_information = mpeg2dec->force_aspect;
 	  
       if (mpeg2dec->is_sequence_needed) {
