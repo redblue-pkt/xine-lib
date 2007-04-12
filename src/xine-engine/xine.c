@@ -127,23 +127,42 @@ void _x_extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
   }
 }
 
-static void ticket_acquire(xine_ticket_t *this, int irrevocable) {
+static int ticket_acquire_internal(xine_ticket_t *this, int irrevocable, int nonblocking) {
+  int must_wait = 0;
 
   pthread_mutex_lock(&this->lock);
   
   if (this->ticket_revoked && !this->irrevocable_tickets)
-    pthread_cond_wait(&this->issued, &this->lock);
+    must_wait = !nonblocking;
   else if (this->atomic_revoke && !pthread_equal(this->atomic_revoker_thread, pthread_self()))
+    must_wait = 1;
+
+  if (must_wait) {
+    if (nonblocking) {
+      pthread_mutex_unlock(&this->lock);
+      return 0;
+    }
+
     pthread_cond_wait(&this->issued, &this->lock);
+  }
   
   this->tickets_granted++;
   if (irrevocable)
     this->irrevocable_tickets++;
   
   pthread_mutex_unlock(&this->lock);  
+  return 1;
 }
 
-static void ticket_release(xine_ticket_t *this, int irrevocable) {
+static int ticket_acquire_nonblocking(xine_ticket_t *this, int irrevocable) {
+  return ticket_acquire_internal(this, irrevocable, 1);
+}
+
+static void ticket_acquire(xine_ticket_t *this, int irrevocable) {
+  ticket_acquire_internal(this, irrevocable, 0);
+}
+
+static void ticket_release_internal(xine_ticket_t *this, int irrevocable, int nonblocking) {
 
   pthread_mutex_lock(&this->lock);
   
@@ -153,10 +172,18 @@ static void ticket_release(xine_ticket_t *this, int irrevocable) {
   
   if (this->ticket_revoked && !this->tickets_granted)
     pthread_cond_broadcast(&this->revoked);
-  if (this->ticket_revoked && !this->irrevocable_tickets)
+  if (this->ticket_revoked && !this->irrevocable_tickets && !nonblocking)
     pthread_cond_wait(&this->issued, &this->lock);
   
   pthread_mutex_unlock(&this->lock);
+}
+
+static void ticket_release_nonblocking(xine_ticket_t *this, int irrevocable) {
+  ticket_release_internal(this, irrevocable, 1);
+}
+
+static void ticket_release(xine_ticket_t *this, int irrevocable) {
+  ticket_release_internal(this, irrevocable, 0);
 }
 
 static void ticket_renew(xine_ticket_t *this, int irrevocable) {
@@ -227,12 +254,14 @@ static xine_ticket_t *ticket_init(void) {
   
   port_ticket = (xine_ticket_t *) xine_xmalloc(sizeof(xine_ticket_t));
   
-  port_ticket->acquire = ticket_acquire;
-  port_ticket->release = ticket_release;
-  port_ticket->renew   = ticket_renew;
-  port_ticket->issue   = ticket_issue;
-  port_ticket->revoke  = ticket_revoke;
-  port_ticket->dispose = ticket_dispose;
+  port_ticket->acquire_nonblocking  = ticket_acquire_nonblocking;
+  port_ticket->acquire              = ticket_acquire;
+  port_ticket->release_nonblocking  = ticket_release_nonblocking;
+  port_ticket->release              = ticket_release;
+  port_ticket->renew                = ticket_renew;
+  port_ticket->issue                = ticket_issue;
+  port_ticket->revoke               = ticket_revoke;
+  port_ticket->dispose              = ticket_dispose;
   
   pthread_mutex_init(&port_ticket->lock, NULL);
   pthread_mutex_init(&port_ticket->revoke_lock, NULL);
