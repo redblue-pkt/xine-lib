@@ -977,7 +977,7 @@ static void xvmc_check_colorkey_properties(xxmc_driver_t *driver)
 
 
 static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame,
-				    uint32_t width, uint32_t height) 
+				    uint32_t width, uint32_t height, int frame_format_xxmc) 
 {
   xine_xxmc_t *xxmc = &frame->xxmc_data;
 
@@ -991,8 +991,12 @@ static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame,
 
   xprintf(driver->xine, XINE_VERBOSITY_LOG,
 	  "video_out_xxmc: New format. Need to change XvMC Context.\n"
-	  "width: %d height: %d mpeg: %d acceleration: %d\n", width, height,
-	    xxmc->mpeg, xxmc->acceleration);
+	  "width: %d height: %d", width, height);
+  if (frame_format_xxmc) {
+    xprintf(driver->xine, XINE_VERBOSITY_LOG,
+	  " mpeg: %d acceleration: %d", xxmc->mpeg, xxmc->acceleration);
+  }
+  xprintf(driver->xine, XINE_VERBOSITY_LOG, "\n");
   
   if (frame->xvmc_surf)
     xxmc_xvmc_free_surface( driver , frame->xvmc_surf);
@@ -1000,7 +1004,7 @@ static int xxmc_xvmc_update_context(xxmc_driver_t *driver, xxmc_frame_t *frame,
 
   xxmc_dispose_context( driver );
   
-  if (xxmc_find_context( driver, xxmc, width, height )) {
+  if (frame_format_xxmc && xxmc_find_context( driver, xxmc, width, height )) {
     xxmc_create_context( driver, width, height);
     xvmc_check_colorkey_properties( driver );
     xxmc_setup_subpictures(driver, width, height);
@@ -1231,7 +1235,7 @@ static void xxmc_do_update_frame(vo_driver_t *this_gen,
 	(this->xvmc_width != width) ||
 	(this->xvmc_height != height)) {
       this->last_accel_request = xxmc->acceleration;
-      xxmc_xvmc_update_context(this, frame, width, height);
+      xxmc_xvmc_update_context(this, frame, width, height, 1);
     } else {
       this->last_accel_request = xxmc->acceleration;
     }
@@ -1254,6 +1258,11 @@ static void xxmc_do_update_frame(vo_driver_t *this_gen,
     xvmc_context_writer_unlock( &this->xvmc_lock);
     
   } else {
+    /* switch back to an unaccelerated context */
+    if (this->last_accel_request != 0xFFFFFFFF) {
+      this->last_accel_request = 0xFFFFFFFF;
+      xxmc_xvmc_update_context(this, frame, width, height, 0);
+    }
     frame->vo_frame.proc_duplicate_frame_data = NULL;
     xxmc_do_update_frame_xv(this_gen, frame_gen, width, height, ratio, 
 			    format, flags);
