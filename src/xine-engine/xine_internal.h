@@ -168,6 +168,9 @@ struct xine_ticket_s {
    * be used in combination with acquire_nonblocking() */
   void (*release_nonblocking)(xine_ticket_t *self, int irrevocable);
 
+  int (*lock_port_rewiring)(xine_ticket_t *self, int ms_timeout);
+  void (*unlock_port_rewiring)(xine_ticket_t *self);
+
   void (*dispose)(xine_ticket_t *self);
   
   pthread_mutex_t lock;
@@ -179,6 +182,7 @@ struct xine_ticket_s {
   int             pending_revocations;
   int             atomic_revoke;
   pthread_t       atomic_revoker_thread;
+  pthread_mutex_t port_rewiring_lock;
 #endif
 };
 
