@@ -239,8 +239,37 @@ static void ticket_revoke(xine_ticket_t *this, int atomic) {
     pthread_mutex_unlock(&this->revoke_lock);
 }
 
+static int ticket_lock_port_rewiring(xine_ticket_t *this, int ms_timeout) {
+
+  if (ms_timeout >= 0) {
+    struct timespec abstime;
+
+    struct timeval now;
+    gettimeofday(&now, 0);
+
+    abstime.tv_sec = now.tv_sec + ms_timeout / 1000;
+    abstime.tv_nsec = now.tv_usec * 1000 + (ms_timeout % 1000) * 1e6;
+
+    if (abstime.tv_nsec > 1e9) {
+      abstime.tv_nsec -= 1e9;
+      abstime.tv_sec++;
+    }
+
+    return (0 == pthread_mutex_timedlock(&this->port_rewiring_lock, &abstime));
+  }
+
+  pthread_mutex_lock(&this->port_rewiring_lock);
+  return 1;
+}
+
+static void ticket_unlock_port_rewiring(xine_ticket_t *this) {
+
+  pthread_mutex_unlock(&this->port_rewiring_lock);
+}
+
 static void ticket_dispose(xine_ticket_t *this) {
 
+  pthread_mutex_destroy(&this->port_rewiring_lock);
   pthread_mutex_destroy(&this->lock);
   pthread_mutex_destroy(&this->revoke_lock);
   pthread_cond_destroy(&this->issued);
@@ -261,10 +290,13 @@ static xine_ticket_t *ticket_init(void) {
   port_ticket->renew                = ticket_renew;
   port_ticket->issue                = ticket_issue;
   port_ticket->revoke               = ticket_revoke;
+  port_ticket->lock_port_rewiring   = ticket_lock_port_rewiring;
+  port_ticket->unlock_port_rewiring = ticket_unlock_port_rewiring;
   port_ticket->dispose              = ticket_dispose;
   
   pthread_mutex_init(&port_ticket->lock, NULL);
   pthread_mutex_init(&port_ticket->revoke_lock, NULL);
+  pthread_mutex_init(&port_ticket->port_rewiring_lock, NULL);
   pthread_cond_init(&port_ticket->issued, NULL);
   pthread_cond_init(&port_ticket->revoked, NULL);
   
@@ -458,6 +490,7 @@ static int stream_rewire_audio(xine_post_out_t *output, void *data)
   if (!data)
     return 0;
 
+  stream->xine->port_ticket->lock_port_rewiring(stream->xine->port_ticket, -1);
   stream->xine->port_ticket->revoke(stream->xine->port_ticket, 1);
   
   if (stream->audio_out->status(stream->audio_out, stream, &bits, &rate, &mode)) {
@@ -468,6 +501,7 @@ static int stream_rewire_audio(xine_post_out_t *output, void *data)
   stream->audio_out = new_port;
   
   stream->xine->port_ticket->issue(stream->xine->port_ticket, 1);
+  stream->xine->port_ticket->unlock_port_rewiring(stream->xine->port_ticket);
 
   return 1;
 }
@@ -482,6 +516,7 @@ static int stream_rewire_video(xine_post_out_t *output, void *data)
   if (!data)
     return 0;
 
+  stream->xine->port_ticket->lock_port_rewiring(stream->xine->port_ticket, -1);
   stream->xine->port_ticket->revoke(stream->xine->port_ticket, 1);
   
   if (stream->video_out->status(stream->video_out, stream, &width, &height, &img_duration)) {
@@ -492,6 +527,7 @@ static int stream_rewire_video(xine_post_out_t *output, void *data)
   stream->video_out = new_port;
   
   stream->xine->port_ticket->issue(stream->xine->port_ticket, 1);
+  stream->xine->port_ticket->unlock_port_rewiring(stream->xine->port_ticket);
 
   return 1;
 }

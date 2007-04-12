@@ -192,6 +192,7 @@ static int post_video_rewire(xine_post_out_t *output_gen, void *data) {
   if (!new_port)
     return 0;
   
+  this->running_ticket->lock_port_rewiring(this->running_ticket, -1);
   this->running_ticket->revoke(this->running_ticket, 1);
   
   if (input_port->original_port->status(input_port->original_port, input_port->stream,
@@ -202,6 +203,7 @@ static int post_video_rewire(xine_post_out_t *output_gen, void *data) {
   input_port->original_port = new_port;
   
   this->running_ticket->issue(this->running_ticket, 1);
+  this->running_ticket->unlock_port_rewiring(this->running_ticket);
   
   return 1;
 }
@@ -680,6 +682,7 @@ static int post_audio_rewire(xine_post_out_t *output_gen, void *data) {
   if (!new_port)
     return 0;
   
+  this->running_ticket->lock_port_rewiring(this->running_ticket, -1);
   this->running_ticket->revoke(this->running_ticket, 1);
   
   if (input_port->original_port->status(input_port->original_port, input_port->stream,
@@ -690,6 +693,7 @@ static int post_audio_rewire(xine_post_out_t *output_gen, void *data) {
   input_port->original_port = new_port;
   
   this->running_ticket->issue(this->running_ticket, 1);
+  this->running_ticket->unlock_port_rewiring(this->running_ticket);
   
   return 1;
 }
