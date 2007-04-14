@@ -929,12 +929,11 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
       /* allocate space for each of the properties unions */
       trak->stsd_atoms_count = BE_32(&trak_atom[i + 8]);
-      trak->stsd_atoms = xine_xmalloc(trak->stsd_atoms_count * sizeof(properties_t));
+      trak->stsd_atoms = xine_xcalloc(trak->stsd_atoms_count, sizeof(properties_t));
       if (!trak->stsd_atoms) {
         last_error = QT_NO_MEMORY;
         goto free_trak;
       }
-      memset(trak->stsd_atoms, 0, trak->stsd_atoms_count * sizeof(properties_t));
 
       atom_pos = i + 0x10;
       properties_offset = 0x0C;
