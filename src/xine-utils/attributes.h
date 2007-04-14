@@ -69,4 +69,16 @@
 # define XINE_FORMAT_PRINTF_ARG(fmt)
 #endif
 
+#ifdef SUPPORT_ATTRIBUTE_PACKED
+# define XINE_PACKED __attribute__((packed))
+#else
+# define XINE_PACKED
+#endif
+
+#ifdef SUPPORT_ATTRIBUTE_MALLOC
+# define XINE_MALLOC __attribute__((__malloc__))
+#else
+# define XINE_MALLOC
+#endif
+
 #endif /* ATTRIBUTE_H_ */

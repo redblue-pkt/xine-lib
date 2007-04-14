@@ -374,9 +374,6 @@ use internal ffmpeg.
 *********************************************************************])
 else
   AC_MSG_RESULT([using included ffmpeg])
-  LIBFFMPEG_CPPFLAGS="-DHAVE_AV_CONFIG_H -DRUNTIME_CPUDETECT -DXINE_MPEG_ENCODER -D_ISOC9X_SOURCE -DCONFIG_DECODERS"
-  AC_CHECK_TYPES(int_fast8_t, [], [LIBFFMPEG_CPPFLAGS="$LIBFFMPEG_CPPFLAGS -DEMULATE_FAST_INT"])
-  AC_SUBST([LIBFFMPEG_CPPFLAGS])
 fi
 AM_CONDITIONAL(HAVE_FFMPEG, test "x$with_external_ffmpeg" = "xyes")
 
@@ -2130,6 +2127,8 @@ CC_ATTRIBUTE_PACKED(
    AC_DEFINE([XINE_PACKED], [], [Dummy mark a structure as being packed])]
 )
 
+CC_ATTRIBUTE_MALLOC
+
 CC_ATTRIBUTE_VISIBILITY([protected], [visibility_export="protected"],
   [CC_ATTRIBUTE_VISIBILITY([default], [visibility_export="default"])]
 )
@@ -2560,13 +2559,14 @@ esac
 AC_SUBST([NOUNDEF])
 
 dnl Common cflags for all platforms
-CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE \$(MULTIPASS_CFLAGS) $warnflags $CFLAGS"
-DEBUG_CFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $DEBUG_CFLAGS"
+CPPFLAGS="-D_REENTRANT -D_FILE_OFFSET_BITS=64 -DXINE_COMPILE $CPPFLAGS"
+CFLAGS="\$(MULTIPASS_CFLAGS) $warnflags $CFLAGS"
+DEBUG_CFLAGS="$warnflags $DEBUG_CFLAGS"
 
 if test "x$enable_debug" = "xyes"; then
-   CFLAGS="$CFLAGS -DDEBUG"
+   CPPFLAGS="$CPPFLAGS -DDEBUG"
 else
-   CFLAGS="$CFLAGS -DNDEBUG"
+   CPPFLAGS="$CPPFLAGS -DNDEBUG"
 fi
 
 dnl ---------------------------------------------
