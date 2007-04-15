@@ -127,23 +127,42 @@ void _x_extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
   }
 }
 
-static void ticket_acquire(xine_ticket_t *this, int irrevocable) {
+static int ticket_acquire_internal(xine_ticket_t *this, int irrevocable, int nonblocking) {
+  int must_wait = 0;
 
   pthread_mutex_lock(&this->lock);
   
   if (this->ticket_revoked && !this->irrevocable_tickets)
-    pthread_cond_wait(&this->issued, &this->lock);
+    must_wait = !nonblocking;
   else if (this->atomic_revoke && !pthread_equal(this->atomic_revoker_thread, pthread_self()))
+    must_wait = 1;
+
+  if (must_wait) {
+    if (nonblocking) {
+      pthread_mutex_unlock(&this->lock);
+      return 0;
+    }
+
     pthread_cond_wait(&this->issued, &this->lock);
+  }
   
   this->tickets_granted++;
   if (irrevocable)
     this->irrevocable_tickets++;
   
   pthread_mutex_unlock(&this->lock);  
+  return 1;
 }
 
-static void ticket_release(xine_ticket_t *this, int irrevocable) {
+static int ticket_acquire_nonblocking(xine_ticket_t *this, int irrevocable) {
+  return ticket_acquire_internal(this, irrevocable, 1);
+}
+
+static void ticket_acquire(xine_ticket_t *this, int irrevocable) {
+  ticket_acquire_internal(this, irrevocable, 0);
+}
+
+static void ticket_release_internal(xine_ticket_t *this, int irrevocable, int nonblocking) {
 
   pthread_mutex_lock(&this->lock);
   
@@ -153,10 +172,18 @@ static void ticket_release(xine_ticket_t *this, int irrevocable) {
   
   if (this->ticket_revoked && !this->tickets_granted)
     pthread_cond_broadcast(&this->revoked);
-  if (this->ticket_revoked && !this->irrevocable_tickets)
+  if (this->ticket_revoked && !this->irrevocable_tickets && !nonblocking)
     pthread_cond_wait(&this->issued, &this->lock);
   
   pthread_mutex_unlock(&this->lock);
+}
+
+static void ticket_release_nonblocking(xine_ticket_t *this, int irrevocable) {
+  ticket_release_internal(this, irrevocable, 1);
+}
+
+static void ticket_release(xine_ticket_t *this, int irrevocable) {
+  ticket_release_internal(this, irrevocable, 0);
 }
 
 static void ticket_renew(xine_ticket_t *this, int irrevocable) {
@@ -212,8 +239,37 @@ static void ticket_revoke(xine_ticket_t *this, int atomic) {
     pthread_mutex_unlock(&this->revoke_lock);
 }
 
+static int ticket_lock_port_rewiring(xine_ticket_t *this, int ms_timeout) {
+
+  if (ms_timeout >= 0) {
+    struct timespec abstime;
+
+    struct timeval now;
+    gettimeofday(&now, 0);
+
+    abstime.tv_sec = now.tv_sec + ms_timeout / 1000;
+    abstime.tv_nsec = now.tv_usec * 1000 + (ms_timeout % 1000) * 1e6;
+
+    if (abstime.tv_nsec > 1e9) {
+      abstime.tv_nsec -= 1e9;
+      abstime.tv_sec++;
+    }
+
+    return (0 == pthread_mutex_timedlock(&this->port_rewiring_lock, &abstime));
+  }
+
+  pthread_mutex_lock(&this->port_rewiring_lock);
+  return 1;
+}
+
+static void ticket_unlock_port_rewiring(xine_ticket_t *this) {
+
+  pthread_mutex_unlock(&this->port_rewiring_lock);
+}
+
 static void ticket_dispose(xine_ticket_t *this) {
 
+  pthread_mutex_destroy(&this->port_rewiring_lock);
   pthread_mutex_destroy(&this->lock);
   pthread_mutex_destroy(&this->revoke_lock);
   pthread_cond_destroy(&this->issued);
@@ -227,15 +283,20 @@ static xine_ticket_t *ticket_init(void) {
   
   port_ticket = (xine_ticket_t *) xine_xmalloc(sizeof(xine_ticket_t));
   
-  port_ticket->acquire = ticket_acquire;
-  port_ticket->release = ticket_release;
-  port_ticket->renew   = ticket_renew;
-  port_ticket->issue   = ticket_issue;
-  port_ticket->revoke  = ticket_revoke;
-  port_ticket->dispose = ticket_dispose;
+  port_ticket->acquire_nonblocking  = ticket_acquire_nonblocking;
+  port_ticket->acquire              = ticket_acquire;
+  port_ticket->release_nonblocking  = ticket_release_nonblocking;
+  port_ticket->release              = ticket_release;
+  port_ticket->renew                = ticket_renew;
+  port_ticket->issue                = ticket_issue;
+  port_ticket->revoke               = ticket_revoke;
+  port_ticket->lock_port_rewiring   = ticket_lock_port_rewiring;
+  port_ticket->unlock_port_rewiring = ticket_unlock_port_rewiring;
+  port_ticket->dispose              = ticket_dispose;
   
   pthread_mutex_init(&port_ticket->lock, NULL);
   pthread_mutex_init(&port_ticket->revoke_lock, NULL);
+  pthread_mutex_init(&port_ticket->port_rewiring_lock, NULL);
   pthread_cond_init(&port_ticket->issued, NULL);
   pthread_cond_init(&port_ticket->revoked, NULL);
   
@@ -429,6 +490,7 @@ static int stream_rewire_audio(xine_post_out_t *output, void *data)
   if (!data)
     return 0;
 
+  stream->xine->port_ticket->lock_port_rewiring(stream->xine->port_ticket, -1);
   stream->xine->port_ticket->revoke(stream->xine->port_ticket, 1);
   
   if (stream->audio_out->status(stream->audio_out, stream, &bits, &rate, &mode)) {
@@ -439,6 +501,7 @@ static int stream_rewire_audio(xine_post_out_t *output, void *data)
   stream->audio_out = new_port;
   
   stream->xine->port_ticket->issue(stream->xine->port_ticket, 1);
+  stream->xine->port_ticket->unlock_port_rewiring(stream->xine->port_ticket);
 
   return 1;
 }
@@ -453,6 +516,7 @@ static int stream_rewire_video(xine_post_out_t *output, void *data)
   if (!data)
     return 0;
 
+  stream->xine->port_ticket->lock_port_rewiring(stream->xine->port_ticket, -1);
   stream->xine->port_ticket->revoke(stream->xine->port_ticket, 1);
   
   if (stream->video_out->status(stream->video_out, stream, &width, &height, &img_duration)) {
@@ -463,6 +527,7 @@ static int stream_rewire_video(xine_post_out_t *output, void *data)
   stream->video_out = new_port;
   
   stream->xine->port_ticket->issue(stream->xine->port_ticket, 1);
+  stream->xine->port_ticket->unlock_port_rewiring(stream->xine->port_ticket);
 
   return 1;
 }
@@ -2039,4 +2104,89 @@ int xine_stream_master_slave(xine_stream_t *master, xine_stream_t *slave,
    * standalone stream, its master pointer will point to itself */
   slave->master = master->master;
   return 1;
+}
+
+int _x_query_buffer_usage(xine_stream_t *stream, int *num_video_buffers, int *num_audio_buffers, int *num_video_frames, int *num_audio_frames)
+{
+  int ticket_acquired = -1;
+
+  if (num_video_buffers)
+    *num_video_buffers = (stream->video_fifo ? stream->video_fifo->size(stream->video_fifo) : 0);
+ 
+  if (num_audio_buffers)
+    *num_audio_buffers = (stream->audio_fifo ? stream->audio_fifo->size(stream->audio_fifo) : 0);
+ 
+  if ((num_video_frames && stream->video_out)
+    || (num_audio_frames && stream->audio_out)) {
+  
+    ticket_acquired = stream->xine->port_ticket->acquire_nonblocking(stream->xine->port_ticket, 1);
+  }
+
+  if (num_video_frames)
+    *num_video_frames = ((ticket_acquired && stream->video_out) ? stream->video_out->get_property(stream->video_out, VO_PROP_BUFS_IN_FIFO) : 0);
+
+  if (num_audio_frames)
+    *num_audio_frames = ((ticket_acquired && stream->audio_out) ? stream->audio_out->get_property(stream->audio_out, AO_PROP_BUFS_IN_FIFO) : 0);
+
+  if (ticket_acquired > 0)
+    stream->xine->port_ticket->release_nonblocking(stream->xine->port_ticket, 1);
+
+  return ticket_acquired != 0;
+}
+
+int _x_lock_port_rewiring(xine_t *xine, int ms_timeout)
+{
+  return xine->port_ticket->lock_port_rewiring(xine->port_ticket, ms_timeout);
+}
+
+void _x_unlock_port_rewiring(xine_t *xine)
+{
+  xine->port_ticket->unlock_port_rewiring(xine->port_ticket);
+}
+
+int _x_lock_frontend(xine_stream_t *stream, int ms_to_time_out)
+{
+  if (ms_to_time_out >= 0) {
+    struct timespec abstime;
+
+    struct timeval now;
+    gettimeofday(&now, 0);
+
+    abstime.tv_sec = now.tv_sec + ms_to_time_out / 1000;
+    abstime.tv_nsec = now.tv_usec * 1000 + (ms_to_time_out % 1000) * 1e6;
+
+    if (abstime.tv_nsec > 1e9) {
+      abstime.tv_nsec -= 1e9;
+      abstime.tv_sec++;
+    }
+
+    return (0 == pthread_mutex_timedlock(&stream->frontend_lock, &abstime));
+  }
+
+  pthread_mutex_lock(&stream->frontend_lock);
+  return 1;
+}
+
+void _x_unlock_frontend(xine_stream_t *stream)
+{
+  pthread_mutex_unlock(&stream->frontend_lock);
+}
+
+int _x_query_unprocessed_osd_events(xine_stream_t *stream)
+{
+  video_overlay_manager_t *ovl;
+  int redraw_needed;
+  
+  if (!stream->xine->port_ticket->acquire_nonblocking(stream->xine->port_ticket, 1))
+    return -1;
+
+  ovl = stream->video_out->get_overlay_manager(stream->video_out);
+  redraw_needed = ovl->redraw_needed(ovl, 0);
+ 
+  if (redraw_needed) 
+    stream->video_out->trigger_drawing(stream->video_out);
+
+  stream->xine->port_ticket->release_nonblocking(stream->xine->port_ticket, 1);
+
+  return redraw_needed;
 }

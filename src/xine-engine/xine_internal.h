@@ -159,6 +159,18 @@ struct xine_ticket_s {
    * revocation or by other threads acquiring tickets */
   void (*revoke)(xine_ticket_t *self, int atomic);
   
+  /* behaves like acquire() but doesn't block the calling thread; when
+   * the thread would have been blocked, 0 is returned otherwise 1 
+   * this function acquires a ticket even if ticket revocation is active */
+  int (*acquire_nonblocking)(xine_ticket_t *self, int irrevocable);
+
+  /* behaves like release() but doesn't block the calling thread; should
+   * be used in combination with acquire_nonblocking() */
+  void (*release_nonblocking)(xine_ticket_t *self, int irrevocable);
+
+  int (*lock_port_rewiring)(xine_ticket_t *self, int ms_timeout);
+  void (*unlock_port_rewiring)(xine_ticket_t *self);
+
   void (*dispose)(xine_ticket_t *self);
   
   pthread_mutex_t lock;
@@ -170,6 +182,7 @@ struct xine_ticket_s {
   int             pending_revocations;
   int             atomic_revoke;
   pthread_t       atomic_revoker_thread;
+  pthread_mutex_t port_rewiring_lock;
 #endif
 };
 
@@ -356,6 +369,13 @@ struct xine_stream_s {
 /*
  * private function prototypes:
  */
+
+int _x_query_buffer_usage(xine_stream_t *stream, int *num_video_buffers, int *num_audio_buffers, int *num_video_frames, int *num_audio_frames) XINE_PROTECTED;
+int _x_lock_port_rewiring(xine_t *xine, int ms_to_time_out) XINE_PROTECTED;
+void _x_unlock_port_rewiring(xine_t *xine) XINE_PROTECTED;
+int _x_lock_frontend(xine_stream_t *stream, int ms_to_time_out) XINE_PROTECTED;
+void _x_unlock_frontend(xine_stream_t *stream) XINE_PROTECTED;
+int _x_query_unprocessed_osd_events(xine_stream_t *stream) XINE_PROTECTED;
 
 void _x_handle_stream_end      (xine_stream_t *stream, int non_user) XINE_PROTECTED;
 
