@@ -2,12 +2,17 @@ syntax: glob
 *~
 *.orig
 
+xine-lib-*.tar.gz
+xine-lib-*.tar.bz2
+
 *.o
 *.a
 *.lo
 *.la
-.libs/*
+*.so
+.libs
 .deps/*
+.depend
 Makefile
 Makefile.in
 
@@ -45,6 +50,9 @@ debian/*.substvars
 contrib/ffmpeg/*.pc
 contrib/ffmpeg/config.err
 contrib/ffmpeg/config.mak
+contrib/ffmpeg/doc/*.1
+contrib/ffmpeg/doc/*.html
+contrib/ffmpeg/version.h
 
 doc/faq/faq.html
 doc/faq/faq.txt
