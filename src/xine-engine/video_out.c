@@ -131,6 +131,9 @@ typedef struct {
   int                       frame_drop_limit;
   int                       frame_drop_cpt;
   int                       crop_left, crop_right, crop_top, crop_bottom;
+  pthread_mutex_t           trigger_drawing_mutex;
+  pthread_cond_t            trigger_drawing_cond;
+  int                       trigger_drawing;
 } vos_t;
 
 
