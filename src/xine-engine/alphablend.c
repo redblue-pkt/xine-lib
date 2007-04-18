@@ -1062,46 +1062,37 @@ static void blend_yuv_exact(uint8_t *dst_cr, uint8_t *dst_cb,
     /* get opacity of the 4 pixels that share chroma */
     int o00 = (*blend_yuv_data)[ 0 ][ 0 ][ x + 0 ];
     int o01 = (*blend_yuv_data)[ 0 ][ 0 ][ x + 1 ];
+    int o = o00 + o01;
     int o10 = (*blend_yuv_data)[ 0 ][ 1 ][ x + 0 ];
+    o += o10;
     int o11 = (*blend_yuv_data)[ 0 ][ 1 ][ x + 1 ];
+    o += o11;
 
     /* are there any pixels a little bit opaque? */
-    if (o00 || o01 || o10 || o11) {
+    if (o) {
       /* get the chroma components of the 4 pixels */
-      int cr00 = -128 + (*blend_yuv_data)[ 1 ][ 0 ][ x + 0 ];
-      int cr01 = -128 + (*blend_yuv_data)[ 1 ][ 0 ][ x + 1 ];
-      int cr10 = -128 + (*blend_yuv_data)[ 1 ][ 1 ][ x + 0 ];
-      int cr11 = -128 + (*blend_yuv_data)[ 1 ][ 1 ][ x + 1 ];
+      int cr00 = (*blend_yuv_data)[ 1 ][ 0 ][ x + 0 ];
+      int cr01 = (*blend_yuv_data)[ 1 ][ 0 ][ x + 1 ];
+      int cr10 = (*blend_yuv_data)[ 1 ][ 1 ][ x + 0 ];
+      int cr11 = (*blend_yuv_data)[ 1 ][ 1 ][ x + 1 ];
           
-      int cb00 = -128 + (*blend_yuv_data)[ 2 ][ 0 ][ x + 0 ];
-      int cb01 = -128 + (*blend_yuv_data)[ 2 ][ 0 ][ x + 1 ];
-      int cb10 = -128 + (*blend_yuv_data)[ 2 ][ 1 ][ x + 0 ];
-      int cb11 = -128 + (*blend_yuv_data)[ 2 ][ 1 ][ x + 1 ];
+      int cb00 = (*blend_yuv_data)[ 2 ][ 0 ][ x + 0 ];
+      int cb01 = (*blend_yuv_data)[ 2 ][ 0 ][ x + 1 ];
+      int cb10 = (*blend_yuv_data)[ 2 ][ 1 ][ x + 0 ];
+      int cb11 = (*blend_yuv_data)[ 2 ][ 1 ][ x + 1 ];
 
       /* are all pixels completely opaque? */
-      if (o00 >= 0xf && o01 >= 0xf && o10 >= 0xf && o11 >= 0xf) {
+      if (o >= 4*0xf) {
         /* set the output chroma to the average of the four pixels */
-        *dst_cr = 128 + (cr00 + cr01 + cr10 + cr11) / 4;
-        *dst_cb = 128 + (cb00 + cb01 + cb10 + cb11) / 4;
+        *dst_cr = (cr00 + cr01 + cr10 + cr11) / 4;
+        *dst_cb = (cb00 + cb01 + cb10 + cb11) / 4;
       } else {
-        int t4, cr, cb;
-        
-        /* blending required, so clamp opacity values to allowed range */
-        if (o00 > 0xf) o00 = 0xf;
-        if (o01 > 0xf) o01 = 0xf;
-        if (o10 > 0xf) o10 = 0xf;
-        if (o11 > 0xf) o11 = 0xf;
-
         /* calculate transparency of background over the four pixels */
-        t4 = (0xf - o00) + (0xf - o01) + (0xf - o10) + (0xf - o11);
-
-        /* get background chroma */
-        cr = -128 + *dst_cr;
-        cb = -128 + *dst_cb;
+        int t4 = 4*0xf - o;
 
         /* blend the output chroma to the average of the four pixels */
-        *dst_cr = 128 + (cr * t4 + cr00 * o00 + cr01 * o01 + cr10 * o10 + cr11 * o11) / (4 * 0xf);
-        *dst_cb = 128 + (cb * t4 + cb00 * o00 + cb01 * o01 + cb10 * o10 + cb11 * o11) / (4 * 0xf);
+        *dst_cr = ((*dst_cr * t4 + cr00 * o00 + cr01 * o01 + cr10 * o10 + cr11 * o11) * (0x1111+1)) >> 18;
+        *dst_cb = ((*dst_cb * t4 + cb00 * o00 + cb01 * o01 + cb10 * o10 + cb11 * o11) * (0x1111+1)) >> 18;
       }
     }
 
@@ -1480,38 +1471,29 @@ static void blend_yuy2_exact(uint8_t *dst_cr, uint8_t *dst_cb,
     /* get opacity of the 2 pixels that share chroma */
     int o0 = (*blend_yuy2_data)[ 0 ][ x + 0 ];
     int o1 = (*blend_yuy2_data)[ 0 ][ x + 1 ];
+    int o = o0 + o1;
 
     /* are there any pixels a little bit opaque? */
-    if (o0 || o1) {
+    if (o) {
       /* get the chroma components of the 2 pixels */
-      int cr0 = -128 + (*blend_yuy2_data)[ 1 ][ x + 0 ];
-      int cr1 = -128 + (*blend_yuy2_data)[ 1 ][ x + 1 ];
+      int cr0 = (*blend_yuy2_data)[ 1 ][ x + 0 ];
+      int cr1 = (*blend_yuy2_data)[ 1 ][ x + 1 ];
           
-      int cb0 = -128 + (*blend_yuy2_data)[ 2 ][ x + 0 ];
-      int cb1 = -128 + (*blend_yuy2_data)[ 2 ][ x + 1 ];
+      int cb0 = (*blend_yuy2_data)[ 2 ][ x + 0 ];
+      int cb1 = (*blend_yuy2_data)[ 2 ][ x + 1 ];
 
       /* are all pixels completely opaque? */
-      if (o0 >= 0xf && o1 >= 0xf) {
+      if (o >= 2*0xf) {
         /* set the output chroma to the average of the two pixels */
-        *dst_cr = 128 + (cr0 + cr1) / 2;
-        *dst_cb = 128 + (cb0 + cb1) / 2;
+        *dst_cr = (cr0 + cr1) / 2;
+        *dst_cb = (cb0 + cb1) / 2;
       } else {
-        int t2, cr, cb;
-        
-        /* blending required, so clamp opacity values to allowed range */
-        if (o0 > 0xf) o0 = 0xf;
-        if (o1 > 0xf) o1 = 0xf;
-
         /* calculate transparency of background over the two pixels */
-        t2 = (0xf - o0) + (0xf - o1);
-
-        /* get background chroma */
-        cr = -128 + *dst_cr;
-        cb = -128 + *dst_cb;
+        int t2 = 2*0xf - o;
 
         /* blend the output chroma to the average of the two pixels */
-        *dst_cr = 128 + (cr * t2 + cr0 * o0 + cr1 * o1) / (2 * 0xf);
-        *dst_cb = 128 + (cb * t2 + cb0 * o0 + cb1 * o1) / (2 * 0xf);
+        *dst_cr = ((*dst_cr * t2 + cr0 * o0 + cr1 * o1) * (0x1111+1)) >> 17;
+        *dst_cb = ((*dst_cb * t2 + cb0 * o0 + cb1 * o1) * (0x1111+1)) >> 17;
       }
     }
 
