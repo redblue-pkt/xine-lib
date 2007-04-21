@@ -162,6 +162,7 @@ typedef enum {
   STATE_TAG_TERM,
   STATE_ATTRIBUTE_EQUALS,
   STATE_STRING,
+  STATE_TAG_TERM_IGNORE,
   /* <?foo ...?> */
   STATE_Q_NODE,
   STATE_Q_ATTRIBUTE,
@@ -176,7 +177,8 @@ typedef enum {
 
 #define Q_STATE(CURRENT,NEW) (STATE_##NEW + state - STATE_##CURRENT)
 
-static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int rec) {
+static int xml_parser_get_node_internal (xml_node_t *current_node, char *root_names[], int rec, int relaxed)
+{
   char tok[TOKEN_SIZE];
   char property_name[TOKEN_SIZE];
   char node_name[TOKEN_SIZE];
@@ -184,6 +186,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
   int res = 0;
   int parse_res;
   int bypass_get_token = 0;
+  int retval = 0; /* used when state==4; non-0 if there are missing </...> */
   xml_node_t *subtree = NULL;
   xml_node_t *current_subtree = NULL;
   xml_property_t *current_property = NULL;
@@ -203,7 +206,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  /* do nothing */
 	  break;
 	case (T_EOF):
-	  return 0; /* normal end */
+	  return retval; /* normal end */
 	  break;
 	case (T_M_START_1):
 	  state = STATE_NODE;
@@ -279,8 +282,9 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  /* set node propertys */
 	  subtree->props = properties;
 	  lprintf("info: rec %d new subtree %s\n", rec, node_name);
-	  parse_res = xml_parser_get_node(subtree, node_name, rec + 1);
-	  if (parse_res != 0) {
+	  root_names[rec + 1] = node_name;
+	  parse_res = xml_parser_get_node_internal(subtree, root_names, rec + 1, relaxed);
+	  if (parse_res == -1 || parse_res > 0) {
 	    return parse_res;
 	  }
 	  if (current_subtree == NULL) {
@@ -289,6 +293,10 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  } else {
 	    current_subtree->next = subtree;
 	    current_subtree = subtree;
+	  }
+	  if (parse_res < -1) {
+	    /* badly-formed XML (missing close tag) */
+	    return parse_res + 1 + (parse_res == -2);
 	  }
 	  state = STATE_IDLE;
 	  break;
@@ -356,10 +364,26 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	  if (xml_parser_mode == XML_PARSER_CASE_INSENSITIVE) {
 	    strtoupper(tok);
 	  }
-	  if (strcmp(tok, root_name) == 0) {
+	  if (strcmp(tok, root_names[rec]) == 0) {
 	    state = STATE_TAG_TERM;
-	  } else {
-	    lprintf("error: xml struct, tok=%s, waited_tok=%s\n", tok, root_name);
+	  } else if (relaxed) {
+	    int r = rec;
+	    while (--r >= 0)
+	      if (strcmp(tok, root_names[r]) == 0) {
+		lprintf("warning: wanted %s, got %s - assuming missing close tags\n", root_names[rec], tok);
+		retval = r - rec - 1; /* -1 - (no. of implied close tags) */
+		state = STATE_TAG_TERM;
+		break;
+	      }
+	    /* relaxed parsing, ignoring extra close tag (but we don't handle out-of-order) */
+	    if (r < 0) {
+	      lprintf("warning: extra close tag %s - ignoring\n", tok);
+	      state = STATE_TAG_TERM_IGNORE;
+	    }
+	  }
+	  else
+	  {
+	    lprintf("error: xml struct, tok=%s, waited_tok=%s\n", tok, root_names[rec]);
 	    return -1;
 	  }
 	  break;
@@ -374,7 +398,7 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
       case STATE_TAG_TERM:
 	switch (res) {
 	case (T_M_STOP_1):
-	  return 0;
+	  return retval;
 	  break;
 	default:
 	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
@@ -505,6 +529,19 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
 	}
 	break;
 
+				/* > expected (following unmatched "</...") */
+      case STATE_TAG_TERM_IGNORE:
+	switch (res) {
+	case (T_M_STOP_1):
+	  state = STATE_IDLE;
+	  break;
+	default:
+	  lprintf("error: unexpected token \"%s\", state %d\n", tok, state);
+	  return -1;
+	  break;
+	}
+	break;
+
 
       default:
 	lprintf("error: unknown parser state, state=%d\n", state);
@@ -521,12 +558,19 @@ static int xml_parser_get_node (xml_node_t *current_node, char *root_name, int r
   }
 }
 
-int xml_parser_build_tree(xml_node_t **root_node) {
-  xml_node_t *tmp_node, *pri_node, *q_node = NULL;
+static int xml_parser_get_node (xml_node_t *current_node, int relaxed)
+{
+  char *root_names[MAX_RECURSION + 1];
+  root_names[0] = "";
+  return xml_parser_get_node_internal (current_node, root_names, 0, relaxed);
+}
+
+int xml_parser_build_tree_relaxed(xml_node_t **root_node, int relaxed) {
+  xml_node_t *tmp_node, *pri_node, *q_node;
   int res;
 
   tmp_node = new_xml_node();
-  res = xml_parser_get_node(tmp_node, "", 0);
+  res = xml_parser_get_node(tmp_node, relaxed);
 
   /* find first non-<?...?> node */;
   for (pri_node = tmp_node->child;
@@ -549,6 +593,10 @@ int xml_parser_build_tree(xml_node_t **root_node) {
     res = -1;
   }
   return res;
+}
+
+int xml_parser_build_tree(xml_node_t **root_node) {
+  return xml_parser_build_tree_relaxed (root_node, 0);
 }
 
 const char *xml_parser_get_property (const xml_node_t *node, const char *name) {
