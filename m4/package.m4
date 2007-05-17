@@ -1,7 +1,7 @@
 dnl _ACX_VERSION_PARSE(version)
 AC_DEFUN([_ACX_VERSION_PARSE], [`echo $1 | perl -e 'my $v = <>; chomp $v;
-my @v = split(" ", $v); $v = $v[$#v]; $v =~ s/[^0-9.].*$//; @v = split (/\./, $v);
-push @v, 0 while $#v < 2; print $v[0] * 10000 + $v[1] * 100 + $v[2], "\n"'`])
+my @v = split(" ", $v); $v = $v[[@S|@#v]]; $v =~ s/[[^0-9.]].*$//; @v = split (/\./, $v);
+push @v, 0 while $[#v] < 2; print $v[[0]] * 10000 + $v[[1]] * 100 + $v[[2]], "\n"'`])
 
 dnl ACX_VERSION_CHECK(required, actual)
 AC_DEFUN([ACX_VERSION_CHECK], [
