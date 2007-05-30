@@ -832,11 +832,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 		                        httpcode, httpstatus);
 	  return -7;
 	} else if (httpcode == 401) {
-          _x_message(this->stream, XINE_MSG_AUTHENTICATION_NEEDED, this->mrl, NULL);
 	  xine_log (this->stream->xine, XINE_LOG_MSG,
 		    _("input_http: http status not 2xx: >%d %s<\n"),
 		    httpcode, httpstatus);
-	  return -8;
+          /* don't return - there may be a WWW-Authenticate header... */
 	} else if (httpcode == 403) {
           _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
 	  xine_log (this->stream->xine, XINE_LOG_MSG,
@@ -873,6 +872,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
           this->mrl = href;
           return http_plugin_open(this_gen);
         }
+
+        if (!strncasecmp (this->buf, "WWW-Authenticate: ", 18))
+          strcpy (this->preview, this->buf + 18);
+
 
         /* Icecast / ShoutCast Stuff */
         if (!strncasecmp(this->buf, TAG_ICY_NAME, sizeof(TAG_ICY_NAME) - 1)) {
@@ -932,6 +935,10 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   }
 
   lprintf ("end of headers\n");
+
+  if (httpcode == 401)
+    _x_message(this->stream, XINE_MSG_AUTHENTICATION_NEEDED,
+               this->mrl, *this->preview ? this->preview : NULL, NULL);
 
   /*
    * fill preview buffer
