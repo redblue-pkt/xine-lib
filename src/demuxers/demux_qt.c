@@ -729,50 +729,53 @@ static int is_qt_file(input_plugin_t *qt_file) {
 
 /* parse out a meta data atom */
 static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
-  int i;
-  unsigned int meta_atom_size = BE_32(&meta_atom[0]);
-  qt_atom current_atom;
-  int string_size;
+  uint32_t i = 4;
+  uint32_t meta_atom_size = BE_32(&meta_atom[0]);
 
-  for (i = 0; i < meta_atom_size - 4; i++) {
-    current_atom = BE_32(&meta_atom[i]);
-
-    if (current_atom == ART_ATOM) {
-      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+  while ( i < meta_atom_size ) {
+    qt_atom current_atom = BE_32(&meta_atom[i]);
+    uint32_t sub_atom_size = BE_32(&meta_atom[i + 4]);
+    uint32_t string_size = sub_atom_size - 16 + 1;
+    
+    switch (current_atom) {
+    case ART_ATOM:
       info->artist = xine_xmalloc(string_size);
       strncpy(info->artist, &meta_atom[i + 20], string_size - 1);
       info->artist[string_size - 1] = 0;
-    } else if (current_atom == NAM_ATOM) {
-      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      break;
+    case NAM_ATOM:
       info->name = xine_xmalloc(string_size);
       strncpy(info->name, &meta_atom[i + 20], string_size - 1);
       info->name[string_size - 1] = 0;
-    } else if (current_atom == ALB_ATOM) {
-      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      break;
+    case ALB_ATOM:
       info->album = xine_xmalloc(string_size);
       strncpy(info->album, &meta_atom[i + 20], string_size - 1);
       info->album[string_size - 1] = 0;
-    } else if (current_atom == GEN_ATOM) {
-      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      break;
+    case GEN_ATOM:
       info->genre = xine_xmalloc(string_size);
       strncpy(info->genre, &meta_atom[i + 20], string_size - 1);
       info->genre[string_size - 1] = 0;
-    } else if (current_atom == TOO_ATOM) {
-      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      break;
+    case TOO_ATOM:
       info->comment = xine_xmalloc(string_size);
       strncpy(info->comment, &meta_atom[i + 20], string_size - 1);
       info->comment[string_size - 1] = 0;
-    } else if (current_atom == WRT_ATOM) {
-      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      break;
+    case WRT_ATOM:
       info->composer = xine_xmalloc(string_size);
       strncpy(info->composer, &meta_atom[i + 20], string_size - 1);
       info->composer[string_size - 1] = 0;
-    } else if (current_atom == DAY_ATOM) {
-      string_size = BE_32(&meta_atom[i + 4]) - 16 + 1;
+      break;
+    case DAY_ATOM:
       info->year = xine_xmalloc(string_size);
       strncpy(info->year, &meta_atom[i + 20], string_size - 1);
       info->year[string_size - 1] = 0;
+      break;
     }
+
+    i += sub_atom_size;
   }
 
 }
