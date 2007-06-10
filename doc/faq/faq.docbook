@@ -1,4 +1,6 @@
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V4.1//EN">
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+  "/usr/share/sgml/docbook/xml-dtd-4.4/docbookx.dtd" >
 
 <book>
 
@@ -6,7 +8,7 @@
   <title>The xine engine FAQ</title>
   <titleabbrev>xine FAQ</titleabbrev>
   <copyright>
-   <year>2001-2003</year>
+   <year>2001-2007</year>
    <holder>the xine project team</holder>
   </copyright>
  </bookinfo>
@@ -331,7 +333,7 @@
      In case that you have a fresh CVS checkout, you will need to do the
      following first in order to get a tarball release out of it which you
      can later use with the <command>rpmbuild -ta</command> command above:
-     <screen>&nbsp;&nbsp;&nbsp;<command>./autogen.sh &amp;&amp; make clean && make dist</command></screen>
+     <screen>&nbsp;&nbsp;&nbsp;<command>./autogen.sh &amp;&amp; make clean &amp;&amp; make dist</command></screen>
     </para>
     <para>
      In any case, please keep in mind that you have to build and install
@@ -362,7 +364,7 @@
      <screen>
 &nbsp;&nbsp;&nbsp;<command>cd ..</command>
 &nbsp;&nbsp;&nbsp;<command>ls *.deb</command>
-&nbsp;&nbsp;&nbsp;<command>su - -c 'cd '"`pwd`"' && dpkg -i &lt;DEB_PACKAGES&gt;'</command>
+&nbsp;&nbsp;&nbsp;<command>su - -c 'cd '"`pwd`"' &amp;&amp; dpkg -i &lt;DEB_PACKAGES&gt;'</command>
      </screen>
      Ubuntu users will probably want to use this instead of that <command>su</command>:
      <screen>
@@ -423,7 +425,7 @@
    </sect2>
 
    <sect2 id="athlonflags">
-    <title>Are there binaries for my AMD K7 (Athlon&trade;) available? Can I build them?</title>
+    <title>Are there binaries for my AMD K7 (Athlon™) available? Can I build them?</title>
     <para>
      If you have a recent gcc you can try to compile "more" k7 support in (esp.
      better instruction scheduling). If the configure script should fail to
@@ -1149,6 +1151,10 @@
         </ulink>
        </para>
        <para>
+	 For recent kernels (2.6.x series) the raw devices are neither
+	 needed nor supported anymore, so don't bother.
+       </para>
+       <para>
         To use raw devices, first connect a free raw device to your dvd
         device, use something like:
         <screen>&nbsp;&nbsp;&nbsp;<command>raw /dev/raw1 /dev/dvd</command></screen>
@@ -1243,10 +1249,13 @@
    <sect2 id="audiodrivers">
     <title>What audio drivers does xine support? OSS? Alsa? Arts? Esd?</title>
     <para>
-     Currently xine support audio output via OSS (kernel audio drivers),
-     ALSA 0.9.x (ALSA 0.5.x is no longer supported), arts (KDE's sound daemon)
-     and esound (esd, gnome's sound daemon - not recommended because it has
-     serious issues with a/v sync).
+     Currently xine support audio output via OSS (Linux 2.4 and most
+     *BSD audio drivers), 
+     ALSA 0.9 and 1.0 (ALSA 0.5.x is no longer supported), aRTs (KDE
+     3's sound daemon), ESounD (esd, gnome's sound daemon not
+     recommended because it has serious issues with a/v sync), JACK,
+     PulseAudio, plus platform-specific output through Sun devices for
+     Solaris and NetBSD and Irix output.
     </para>
    </sect2>
 

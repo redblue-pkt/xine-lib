@@ -170,14 +170,6 @@ AC_CHECK_TOOL([STRINGS], [strings], [false])
 
 PKG_PROG_PKG_CONFIG
 
-dnl Check for documentation formatting tools
-AC_CHECK_PROG([SGMLTOOLS], [sgmltools], [sgmltools], [no])
-AM_CONDITIONAL([HAVE_SGMLTOOLS], [test x"$SGMLTOOLS" != x"no"])
-
-AC_CHECK_PROG([FIG2DEV], [fig2dev], [fig2dev], [no])
-AM_CONDITIONAL([HAVE_FIG2DEV], [test x"$FIG2DEV" != x"no"])
-
-
 dnl libtool
 m4_undefine([AC_PROG_F77])
 m4_defun([AC_PROG_F77],[])
@@ -1097,6 +1089,16 @@ AC_SUBST(XINE_BUILD_CC)
 AC_SUBST(XINE_BUILD_OS)
 AC_SUBST(XINE_BUILD_DATE)
 
+
+dnl ---------------------------------------------
+dnl Check for documentation formatting tool
+dnl ---------------------------------------------
+
+AC_CHECK_PROG(XMLTO, xmlto, xmlto, no)
+AM_CONDITIONAL([HAVE_XMLTO], [test "$XMLTO" != "no"])
+
+AC_CHECK_PROG(RSVG, rsvg, rsvg, no)
+AM_CONDITIONAL([HAVE_RSVG], [test "$RSVG" != "no"])
 
 dnl ---------------------------------------------
 dnl Output configuration files
