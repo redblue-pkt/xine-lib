@@ -330,8 +330,6 @@ typedef struct {
   osd_object_t	     *background;
   
   xine_event_queue_t *event_queue;
-  /* CRC table for PAT rebuilding */
-  unsigned long       crc32_table[256];
   
   /* scratch buffer for forward seeking */
   char                seek_buf[BUFSIZE];
@@ -449,28 +447,6 @@ static void print_info(const char* estring) {
     printf("input_dvb: %s\n", estring);
 }
 #endif
-
-static void ts_build_crc32_table(dvb_input_plugin_t *this) {
-  uint32_t  i, j, k;
-
-  for( i = 0 ; i < 256 ; i++ ) {
-    k = 0;
-    for (j = (i << 24) | 0x800000 ; j != 0x80000000 ; j <<= 1) {
-      k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
-    }
-    this->crc32_table[i] = k;
-  }
-}
-
-static uint32_t ts_compute_crc32(dvb_input_plugin_t *this, uint8_t *data, 
-				       uint32_t length, uint32_t crc32) {
-  uint32_t i;
-
-  for(i = 0; i < length; i++) {
-    crc32 = (crc32 << 8) ^ this->crc32_table[(crc32 >> 24) ^ data[i]];
-  }
-  return crc32;
-}
 
 
 static unsigned int getbits(unsigned char *buffer, unsigned int bitpos, unsigned int bitcount)
@@ -2480,7 +2456,7 @@ static void ts_rewrite_packets (dvb_input_plugin_t *this, unsigned char * origin
       originalPkt[11]=(this->channels[this->channel].pmtpid >> 8) & 0xff;
       originalPkt[12]=this->channels[this->channel].pmtpid & 0xff;
 
-      crc= ts_compute_crc32 (this, originalPkt+1, 12, 0xffffffff);
+      crc= _x_compute_crc32 (originalPkt+1, 12, 0xffffffff);
       
       originalPkt[13]=(crc>>24) & 0xff;
       originalPkt[14]=(crc>>16) & 0xff;
@@ -3095,8 +3071,6 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     snprintf(str, 256, "%s", this->channels[this->channel].name);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, str);
-    /* compute CRC table for rebuilding pat */
-    ts_build_crc32_table(this);
 
     /* Clear all pids, the pmt will tell us which to use */
     for (x = 0; x < MAX_FILTERS; x++){
@@ -3198,26 +3172,38 @@ static char **dvb_class_get_autoplay_list(input_class_t * this_gen,
     dvb_input_class_t *class = (dvb_input_class_t *) this_gen;
     channel_t *channels=NULL;
     char foobuffer[BUFSIZE];
-    int ch, apch, num_channels;
+    int ch, apch, num_channels = 0;
     int default_channel = -1;
     xine_cfg_entry_t lastchannel_enable = {0};
     xine_cfg_entry_t lastchannel;
 
-    num_channels = 0;
+    /* need to probe card here to get fe_type to read in channels.conf */
+    tuner_t *tuner;
+    xine_cfg_entry_t adapter;
 
-    if (!(channels = load_channels(class->xine, NULL, &num_channels, 0))) {
-       static char *placefile = NULL;
+    xine_config_lookup_entry(class->xine, "media.dvb.adapter", &adapter);
+
+    if (!(tuner = tuner_init(class->xine,adapter.num_value))) {
+       xprintf(class->xine, XINE_VERBOSITY_LOG, _("input_dvb: cannot open dvb device\n"));
+       class->mrls[0]="Sorry, No DVB input device found.";
+       *num_files=1;
+       return class->mrls;
+    }
+
+    if (!(channels = load_channels(class->xine, NULL, &num_channels, tuner->feinfo.type))) {
        /* channels.conf not found in .xine */
-       class->mrls[0]="Sorry, no channels.conf found.";
-       class->mrls[1]="Please run the scan utility from the DVB";
-       class->mrls[2]="drivers apps package and place the file in";
-       if (!placefile)
-         asprintf (&placefile, "%s/"PACKAGE"/", xdgConfigHome(class->xine->basedir_handle));
-       class->mrls[3]=placefile;
-       *num_files=4;
+       class->mrls[0]="Sorry, No valid channels.conf found";
+       class->mrls[1]="for the selected DVB device.";
+       class->mrls[2]="Please run the dvbscan utility";
+       class->mrls[3]="from the dvb drivers apps package";
+       class->mrls[4]="and place the file in ~/.xine/";
+       *num_files=5;
+       tuner_dispose(tuner);
        return class->mrls;
     }
    
+    tuner_dispose(tuner);
+
     if (xine_config_lookup_entry(class->xine, "media.dvb.remember_channel", &lastchannel_enable)
         && lastchannel_enable.num_value
         && xine_config_lookup_entry(class->xine, "media.dvb.last_channel", &lastchannel))
