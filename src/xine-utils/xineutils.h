@@ -16,9 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
- *
- * $Id: xineutils.h,v 1.107 2006/12/25 15:16:33 dgp85 Exp $
- *
  */
 #ifndef XINEUTILS_H
 #define XINEUTILS_H
@@ -972,6 +969,11 @@ const char *xine_guess_spu_encoding(void) XINE_PROTECTED;
  * note: it will be a monotonic clock, if available.
  */
 int xine_monotonic_clock(struct timeval *tv, struct timezone *tz) XINE_PROTECTED;
+
+/**
+ * CRC functions
+ */
+uint32_t _x_compute_crc32 (const uint8_t * data, int32_t length, uint32_t crc32) XINE_PROTECTED;
 
 /* don't harm following code */
 #ifdef extern
