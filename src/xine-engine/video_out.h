@@ -369,16 +369,17 @@ struct video_driver_class_s {
    */
   vo_driver_t* (*open_plugin) (video_driver_class_t *self, const void *visual);
   
-  /*
-   * return short, human readable identifier for this plugin class
+  /**
+   * @brief short human readable identifier for this plugin class
    */
-  char* (*get_identifier) (video_driver_class_t *self);
+  const char *identifier;
 
-  /*
-   * return human readable (verbose = 1 line) description for 
-   * this plugin class
+  /**
+   * @brief human readable (verbose = 1 line) description for this plugin class
+   *
+   * The description is passed to gettext() to internationalise.
    */
-  char* (*get_description) (video_driver_class_t *self);
+  const char *description;
 
   /*
    * free all class-related resources

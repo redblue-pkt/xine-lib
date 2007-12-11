@@ -47,16 +47,17 @@ struct audio_decoder_class_s {
    */
   audio_decoder_t* (*open_plugin) (audio_decoder_class_t *this, xine_stream_t *stream);
   
-  /*
-   * return short, human readable identifier for this plugin class
+  /**
+   * @brief short human readable identifier for this plugin class
    */
-  char* (*get_identifier) (audio_decoder_class_t *this);
+  const char *identifier;
 
-  /*
-   * return human readable (verbose = 1 line) description for 
-   * this plugin class
+  /**
+   * @brief human readable (verbose = 1 line) description for this plugin class
+   *
+   * The description is passed to gettext() to internationalise.
    */
-  char* (*get_description) (audio_decoder_class_t *this);
+  const char *description;
 
   /*
    * free all class-related resources
