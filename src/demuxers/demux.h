@@ -53,16 +53,17 @@ struct demux_class_s {
    */
   demux_plugin_t* (*open_plugin) (demux_class_t *this, xine_stream_t *stream, input_plugin_t *input);
 
-  /*
-   * return human readable (verbose = 1 line) description for this plugin
+  /**
+   * @brief short human readable identifier for this plugin class
    */
-  const char* (*get_description) (demux_class_t *this);
+  const char *identifier;
 
-  /*
-   * return human readable identifier for this plugin
+  /**
+   * @brief human readable (verbose = 1 line) description for this plugin class
+   *
+   * The description is passed to gettext() to internationalise.
    */
-
-  const char* (*get_identifier) (demux_class_t *this);
+  const char *description;
   
   /*
    * return MIME types supported for this plugin

@@ -35,7 +35,7 @@
 #  include <xine/configfile.h>
 #endif
 
-#define INPUT_PLUGIN_IFACE_VERSION   17
+#define INPUT_PLUGIN_IFACE_VERSION   18
  
 typedef struct input_class_s input_class_t ;
 typedef struct input_plugin_s input_plugin_t;
@@ -48,17 +48,17 @@ struct input_class_s {
    */
   input_plugin_t* (*get_instance) (input_class_t *this, xine_stream_t *stream, const char *mrl);
 
-  /*
-   * return short, human readable identifier for this plugin class
-   * The returned string should not be malloc'd as it is not freed.
+  /**
+   * @brief short human readable identifier for this plugin class
    */
-  const char* (*get_identifier) (input_class_t *this);
+  const char *identifier;
 
-  /*
-   * return human readable (verbose = 1 line) description for 
-   * this plugin class
+  /**
+   * @brief human readable (verbose = 1 line) description for this plugin class
+   *
+   * The description is passed to gettext() to internationalise.
    */
-  const char* (*get_description) (input_class_t *this);
+  const char *description;
 
   /*
    * ls function, optional: may be NULL
