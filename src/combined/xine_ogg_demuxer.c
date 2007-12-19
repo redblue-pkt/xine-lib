@@ -1960,8 +1960,8 @@ static int detect_anx_content (int detection_method, demux_class_t *class_gen,
     case METHOD_BY_CONTENT: {
       uint8_t buf[ANNODEX_SIGNATURE_SEARCH];
       int found_annodex_signature = 0;
-      const char *annodex_signature = "Annodex";
-      int annodex_signature_length = 7; /* = strlen(annodex_signature) */
+      static const char annodex_signature[] = "Annodex";
+      static const int annodex_signature_length = 7; /* = strlen(annodex_signature) */
       int i, j;
 
       if (_x_demux_read_header(input, buf, ANNODEX_SIGNATURE_SEARCH) !=
