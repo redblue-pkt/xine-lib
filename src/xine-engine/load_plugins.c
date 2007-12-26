@@ -42,6 +42,8 @@
 
 #include <basedir.h>
 
+#include "load_plugins.h"
+
 #define LOG_MODULE "load_plugins"
 #define LOG_VERBOSE
 
@@ -1258,7 +1260,7 @@ void _x_free_input_plugin (xine_stream_t *stream, input_plugin_t *input) {
   input->dispose(input);
   if (input->node) {
     pthread_mutex_lock(&catalog->lock);
-    dec_node_ref(node);
+    dec_node_ref(input->node);
     pthread_mutex_unlock(&catalog->lock);
   }
 }
@@ -1479,7 +1481,7 @@ void _x_free_demux_plugin (xine_stream_t *stream, demux_plugin_t *demux) {
   demux->dispose(demux);
   if (demux->node) {
     pthread_mutex_lock(&catalog->lock);
-    dec_node_ref(node);
+    dec_node_ref(demux->node);
     pthread_mutex_unlock(&catalog->lock);
   }
 }
@@ -1974,7 +1976,7 @@ void _x_free_video_decoder (xine_stream_t *stream, video_decoder_t *vd) {
 
   if (vd->node) {
     pthread_mutex_lock (&catalog->lock);
-    dec_node_ref(node);
+    dec_node_ref(vd->node);
     pthread_mutex_unlock (&catalog->lock);
   }
 }
