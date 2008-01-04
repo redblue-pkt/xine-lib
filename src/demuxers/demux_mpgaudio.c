@@ -65,11 +65,13 @@
 /* Xing header stuff */
 #define XING_TAG FOURCC_TAG('X', 'i', 'n', 'g')
 #define INFO_TAG FOURCC_TAG('I', 'n', 'f', 'o')
+#define LAME_TAG FOURCC_TAG('L', 'A', 'M', 'E')
 #define XING_FRAMES_FLAG     0x0001
 #define XING_BYTES_FLAG      0x0002
 #define XING_TOC_FLAG        0x0004
 #define XING_VBR_SCALE_FLAG  0x0008
 #define XING_TOC_LENGTH      100
+#define LAME_HEADER_LENGTH   0xC0
 
 /* Xing header stuff */
 #define VBRI_TAG FOURCC_TAG('V', 'B', 'R', 'I')
@@ -96,6 +98,10 @@ typedef struct {
   uint32_t             stream_size;
   uint8_t              toc[XING_TOC_LENGTH];
   uint32_t             vbr_scale;
+  
+  /* Lame extension */
+  uint16_t             start_delay;
+  uint16_t             end_delay;
 } xing_header_t;
 
 /* Vbri Vbr Header struct */
@@ -380,9 +386,21 @@ static xing_header_t* parse_xing_header(mpg_audio_frame_t *frame,
     xing->vbr_scale = -1;
     if (xing->flags & XING_VBR_SCALE_FLAG) {
       if (ptr >= (buf + bufsize - 4)) goto exit_error;
-      xing->vbr_scale = _X_BE_32(ptr);
+      xing->vbr_scale = _X_BE_32(ptr); ptr += 4;
       lprintf("vbr_scale: %d\n", xing->vbr_scale);
     }
+
+    /* LAME extension */
+    /* see http://gabriel.mp3-tech.org/mp3infotag.html */
+    ptr -= 0x9C; /* move offset to match LAME header specs */
+    if (ptr + LAME_HEADER_LENGTH >= (buf + bufsize - 4)) goto exit_error;
+      if (_X_BE_32(&ptr[0x9C]) == LAME_TAG) {
+        lprintf("Lame header found\n");
+        xing->start_delay = (ptr[0xb1] << 4) | (ptr[0xb2] >> 4);
+        xing->end_delay = ((ptr[0xb2] & 0x0f) << 4) | ptr[0xb3];
+        lprintf("start delay : %d samples\n", xing->start_delay);
+        lprintf("end delay : %d samples\n", xing->end_delay);
+      }
   } else {
     lprintf("Xing header not found\n");
   }
