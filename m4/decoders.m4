@@ -181,7 +181,7 @@ use internal ffmpeg.
         fi
     fi
     AM_CONDITIONAL([ENABLE_DTS], [test x"$enable_dts" != x"no"])
-    AM_CONDITIONAL([WITH_EXTERNAL_LIBDTS], [test x"$have_external_libdts" = x"yes"])
+    AM_CONDITIONAL([WITH_EXTERNAL_LIBDTS], [test x"$have_external_dts" = x"yes"])
 
 
     dnl libFLAC (optional; disabled by default)
