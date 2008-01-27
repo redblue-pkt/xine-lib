@@ -1201,8 +1201,7 @@ src/video_out/Makefile
 src/xine-utils/Makefile
 src/xine-engine/Makefile
 src/vdr/Makefile
-win32/Makefile
-win32/include/Makefile])
+win32/Makefile])
 AC_CONFIG_COMMANDS([default],[[chmod +x ./misc/SlackBuild ./misc/build_rpms.sh ./misc/relchk.sh]],[[]])
 AC_OUTPUT
 
