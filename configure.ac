@@ -2399,7 +2399,7 @@ AC_SUBST(xinelibdir)
 AC_SUBST(xinedatadir)
 AC_SUBST(pkgconfigdir)
 
-XINE_PLUGINDIR="\${xinelibdir}/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB$XINE_PATCH"
+XINE_PLUGINDIR="\${xinelibdir}/plugins/$XINE_MAJOR.$XINE_MINOR.$XINE_SUB"
 XINE_FONTDIR="\${xinedatadir}/libxine$XINE_MAJOR/fonts"
 XINE_LOCALEDIR='${datadir}/locale'
 XINE_REL_PLUGINDIR="`makeexpand "$XINE_PLUGINDIR"`"
