@@ -1659,7 +1659,7 @@ static void render_text_area(osd_renderer_t* renderer, osd_object_t* osd, char* 
   /* The line to be printed next. */
   char text_line[512];
   int text_width, text_height;
-  int old_line_length, line_cursor;
+  size_t old_line_length, line_cursor;
   char* bound, *old_bound;
   
   *height = 0;
