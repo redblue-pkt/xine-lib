@@ -371,7 +371,7 @@ static void _insert_node (xine_t *this,
       size_t supported_types_size;
       for (supported_types_size=0; decoder_old->supported_types[supported_types_size] != 0; ++supported_types_size);
       types = calloc((supported_types_size+1), sizeof(uint32_t));
-      memcpy(types, decoder_old->supported_types, supported_types_size);
+      memcpy(types, decoder_old->supported_types, supported_types_size*sizeof(uint32_t));
       decoder_new->supported_types = types;
     }
     entry->priority = decoder_new->priority = decoder_old->priority;
