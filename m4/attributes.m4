@@ -71,9 +71,11 @@ dnl Other compilers don't support -Werror per se, but they support
 dnl an equivalent flag:
 dnl  - Sun Studio compiler supports -errwarn=%all
 AC_DEFUN([CC_CHECK_WERROR], [
-  AC_CACHE_VAL([cc_cv_werror],
-    [CC_CHECK_CFLAGS([-Werror], [cc_cv_werror=-Werror],
-      [CC_CHECK_CFLAGS([-errwarn=%all], [cc_cv_werror=-errwarn=%all])])
+  AC_CACHE_CHECK(
+    [for $CC way to treat warnings as errors],
+    [cc_cv_werror],
+    [CC_CHECK_CFLAGS_SILENT([-Werror], [cc_cv_werror=-Werror],
+      [CC_CHECK_CFLAGS_SILENT([-errwarn=%all], [cc_cv_werror=-errwarn=%all])])
     ])
 ])
 
