@@ -16,7 +16,7 @@ dnl   XINE_SUB += 1; XINE_PATCH = ''; continue with XINE_LT_* values below
 dnl
 XINE_MAJOR=1
 XINE_MINOR=1
-XINE_SUB=12
+XINE_SUB=13
 dnl XINE_PATCH should be left empty or set to ".1" or ".2" or something similar
 XINE_PATCH=
 dnl Release series number (usually $XINE_MAJOR.$XINE_MINOR)
