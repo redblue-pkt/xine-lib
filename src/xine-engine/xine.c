@@ -2229,7 +2229,10 @@ void xine_log (xine_t *this, int buf, const char *format, ...) {
     vsnprintf(buffer, SCRATCH_LINE_LEN_MAX, format, argp);
     printf("%s", buffer);
     va_end (argp);
-  }  
+  }
+
+  if (this->log_cb)
+    this->log_cb (this->log_cb_user_data, buf);
 }
 
 void xine_vlog(xine_t *this, int buf, const char *format, 
@@ -2238,6 +2241,9 @@ void xine_vlog(xine_t *this, int buf, const char *format,
   check_log_alloc (this, buf);
 
   this->log_buffers[buf]->scratch_printf(this->log_buffers[buf], format, args);
+
+  if (this->log_cb)
+    this->log_cb (this->log_cb_user_data, buf);
 }
 
 char *const *xine_get_log (xine_t *this, int buf) {
@@ -2252,11 +2258,9 @@ char *const *xine_get_log (xine_t *this, int buf) {
 }
 
 void xine_register_log_cb (xine_t *this, xine_log_cb_t cb, void *user_data) {
-
-  printf ("xine: xine_register_log_cb: not implemented yet.\n");
-  _x_abort();
+  this->log_cb = cb;
+  this->log_cb_user_data = user_data;
 }
-
 
 int xine_get_error (xine_stream_t *stream) {
   return stream->err;
