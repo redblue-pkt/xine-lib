@@ -969,6 +969,13 @@ const char *xine_guess_spu_encoding(void) XINE_PROTECTED;
  */
 int xine_monotonic_clock(struct timeval *tv, struct timezone *tz) XINE_PROTECTED;
 
+/**
+ * append to a string, reallocating
+ * normally, updates & returns *dest
+ * on error, *dest is unchanged & NULL is returned.
+ */
+char *xine_strcat_realloc (char **dest, char *append) XINE_PROTECTED;
+
 /* don't harm following code */
 #ifdef extern
 #  undef extern
