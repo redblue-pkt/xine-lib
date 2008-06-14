@@ -3095,7 +3095,9 @@ static const char *get_mimetypes (demux_class_t *this_gen) {
   return "video/quicktime: mov,qt: Quicktime animation;"
          "video/x-quicktime: mov,qt: Quicktime animation;"
          "audio/x-m4a: m4a,m4b: MPEG-4 audio;"
-         "application/x-quicktimeplayer: qtl: Quicktime list;";
+         "application/x-quicktimeplayer: qtl: Quicktime list;"
+         "video/mp4: mp4,mpg4: MPEG-4 video;"
+         "audio/mp4: mp4,mpg4: MPEG-4 audio;";
 }
 
 static void class_dispose (demux_class_t *this_gen) {
