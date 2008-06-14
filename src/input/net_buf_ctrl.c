@@ -113,6 +113,10 @@ static void nbc_set_speed_normal (nbc_t *this) {
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 }
 
+void nbc_check_buffers (nbc_t *this) {
+  /* Deprecated */
+}
+
 static void display_stats (nbc_t *this) {
   const char buffering[2][4] = {"   ", "buf"};
   const char enabled[2][4]   = {"off", "on "};
@@ -559,4 +563,23 @@ void nbc_close (nbc_t *this) {
   pthread_mutex_destroy(&this->mutex);
   free (this);
   xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close: done\n");
+}
+
+
+void nbc_set_high_water_mark(nbc_t *this, int value) {
+/*
+  Deprecated
+  this->high_water_mark = value;
+*/
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
+}
+
+void nbc_set_low_water_mark(nbc_t *this, int value) {
+/*
+  Deprecated
+  this->low_water_mark = value;
+*/
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+	  "\nnet_buf_ctrl: this method is deprecated, please fix the input plugin\n");
 }
