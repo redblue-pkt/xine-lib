@@ -8,9 +8,6 @@ xine-lib (1.1.90) (Unreleased)
   * Remove the buttons array from video_overlay, as the feature linked to that
     was never implemented. This change reduces by 10MB the memory usage of
     xine-lib during playback (1/3 of the memory used while playing an mp3).
-  * Use FFmpeg's own build system rather than wrapping automake around its
-    sources; this allows easy enabling or disabling of FFmpeg features and
-    proper support for --disable-ffmpeg-(uncommon|popular)-codecs.
   * Update libmpcdec (formerly libmusepack) to version 1.2.6 (newer than the
     previous Subversion snapshot) and contextually move it to
     contrib/libmpcdec to separate from xine's own code.
@@ -52,6 +49,13 @@ xine-lib (1.1.90) (Unreleased)
     for specific input protocols.
   * Check for supported extensions before opening the plugin and remove
     redundant core from plugins.
+  * Use libavutil-provided implementations for CRC, SHA1 and BASE64 algorithms,
+    this makes use of libavutil even outside the FFmpeg decoding plugin,
+    but avoid duplication of algorithms between different plugins.
+  * Use av_mallocz() when xine_xmalloc_aligned() wouldn't be needed.
+  * FFmpeg is now required as an external dependency; if you want to build
+    xine-lib from source, please download a copy of FFmpeg from their SVN
+    server.
   * Remove SyncFB video output plugin, the kernel module needed is no more
     active and thus it's no more usable. If you were using SyncFB somehow,
     please use DirectFB or VIDIX instead.

@@ -100,6 +100,8 @@
 #endif
 #include <ctype.h>
 
+#include <crc.h>
+
 /* XDG */
 #include <basedir.h>
 
@@ -295,6 +297,8 @@ typedef struct {
   int 		    numchannels;
 
   char		   *autoplaylist[MAX_AUTOCHANNELS];
+
+  const AVCRC      *av_crc;
 } dvb_input_class_t;
 
 typedef struct {
@@ -2459,7 +2463,7 @@ static void ts_rewrite_packets (dvb_input_plugin_t *this, unsigned char * origin
       originalPkt[11]=(this->channels[this->channel].pmtpid >> 8) & 0xff;
       originalPkt[12]=this->channels[this->channel].pmtpid & 0xff;
 
-      crc= _x_compute_crc32 (originalPkt+1, 12, 0xffffffff);
+      crc = av_crc(this->class->av_crc, 0xffffffff, originalPkt+1, 12);
       
       originalPkt[13]=(crc>>24) & 0xff;
       originalPkt[14]=(crc>>16) & 0xff;
@@ -3254,6 +3258,8 @@ static void *init_class (xine_t *xine, void *data) {
   this->mrls[3] = "dvbt://";
   this->mrls[4] = "dvba://";
   this->mrls[5] = 0;
+
+  this->av_crc = av_crc_get_table(AV_CRC_32_IEEE);
 
   xprintf(this->xine,XINE_VERBOSITY_DEBUG,"init class succeeded\n");
 

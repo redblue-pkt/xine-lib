@@ -608,13 +608,6 @@ void *xine_xmalloc(size_t size) XINE_MALLOC XINE_DEPRECATED XINE_PROTECTED;
 void *xine_xcalloc(size_t nmemb, size_t size) XINE_MALLOC XINE_PROTECTED;
 
 /*
- * Same as above, but memory is aligned to 'alignement'.
- * **base is used to return pointer to un-aligned memory, use
- * this to free the mem chunk
- */
-void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) XINE_PROTECTED;
-
-/*
  * Copy blocks of memory.
  */
 void *xine_memdup (const void *src, size_t length) XINE_MALLOC XINE_PROTECTED;
@@ -950,11 +943,6 @@ const char *xine_guess_spu_encoding(void) XINE_PROTECTED;
  * note: it will be a monotonic clock, if available.
  */
 int xine_monotonic_clock(struct timeval *tv, struct timezone *tz) XINE_PROTECTED;
-
-/**
- * CRC functions
- */
-uint32_t _x_compute_crc32 (const uint8_t * data, int32_t length, uint32_t crc32) XINE_PROTECTED;
 
 /**
  * Unknown FourCC reporting functions

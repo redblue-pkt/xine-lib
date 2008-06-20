@@ -31,6 +31,8 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include <mem.h>
+
 #include "yuv2rgb.h"
 #include <xine/xineutils.h>
 
@@ -70,7 +72,7 @@ void mmx_yuv2rgb_set_csc_levels(yuv2rgb_factory_t *this,
 
   /* 'table_mmx' is 64bit aligned for better performance */
   if (this->table_mmx == NULL) {
-    this->table_mmx = xine_xmalloc_aligned (8, sizeof(mmx_csc_t), &this->table_mmx_base);
+    this->table_mmx = av_mallocz(sizeof(mmx_csc_t));
   }
 
   if( brightness <= 16 ) {
