@@ -292,18 +292,6 @@ void *xine_xcalloc(size_t nmemb, size_t size) {
   return ptr;
 }
 
-void *xine_xmalloc_aligned(size_t alignment, size_t size, void **base) {
-
-  char *ptr;
-  
-  *base = ptr = calloc(1, size+alignment);
-  
-  while ((size_t) ptr % alignment)
-    ptr++;
-    
-  return ptr;
-}
-
 void *xine_memdup (const void *src, size_t length)
 {
   void *dst = malloc (length);

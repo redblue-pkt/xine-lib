@@ -35,6 +35,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <mem.h>
+
 #define LOG_MODULE "demux_mpeg_pes"
 #define LOG_VERBOSE
 /*
@@ -73,7 +75,6 @@ typedef struct demux_mpeg_pes_s {
   char                  cur_mrl[256];
 
   uint8_t              *scratch;
-  void                 *scratch_base;
 
   int64_t               nav_last_end_pts;
   int64_t               nav_last_start_pts;
@@ -1440,7 +1441,7 @@ static void demux_mpeg_pes_dispose (demux_plugin_t *this_gen) {
 
   demux_mpeg_pes_t *this = (demux_mpeg_pes_t *) this_gen;
   
-  free (this->scratch_base);
+  av_free (this->scratch);
   free (this);
 }
 
@@ -1626,7 +1627,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_optional_data = demux_mpeg_pes_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
-  this->scratch    = xine_xmalloc_aligned (512, 4096, &this->scratch_base);
+  this->scratch    = av_mallocz(4096);
   this->status     = DEMUX_FINISHED;
   /* Don't start demuxing stream until we see a program_stream_pack_header */
   /* We need to system header in order to identify is the stream is mpeg1 or mpeg2. */
@@ -1645,7 +1646,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     /* use demux_mpeg_block for block devices */
     if ((input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
-      free (this->scratch_base);
+      av_free (this->scratch);
       free (this);
       return NULL;
     }
@@ -1661,7 +1662,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
             || (this->preview_data[2] != 0x01) ) {
 	  lprintf("open_plugin:preview_data failed\n");
 
-          free (this->scratch_base);
+          av_free (this->scratch);
           free (this);
           return NULL;
         }
@@ -1672,7 +1673,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         case 0xbd ... 0xbe:
           break;
         default:
-          free (this->scratch_base);
+          av_free (this->scratch);
           free (this);
           return NULL;
         }
@@ -1694,7 +1695,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
             || (this->scratch[2] != 0x01) ) {
 	  lprintf("open_plugin:scratch failed\n");
 
-          free (this->scratch_base);
+          av_free (this->scratch);
           free (this);
           return NULL;
         }
@@ -1705,7 +1706,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         case 0xbd ... 0xbe:
           break;
         default:
-          free (this->scratch_base);
+          av_free (this->scratch);
           free (this);
           return NULL;
         }
@@ -1719,7 +1720,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       }
     }
 
-    free (this->scratch_base);
+    av_free (this->scratch);
     free (this);
     return NULL;
   }
@@ -1735,7 +1736,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   break;
 
   default:
-    free (this->scratch_base);
+    av_free (this->scratch);
     free (this);
     return NULL;
   }
