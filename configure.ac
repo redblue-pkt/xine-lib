@@ -154,10 +154,11 @@ dnl ---------------------------------------------
 dnl Libtool
 dnl ---------------------------------------------
 
-AC_PROG_LIBTOOL
 AC_LIBTOOL_DLOPEN
 AC_DISABLE_STATIC
 AC_LIBTOOL_WIN32_DLL
+AC_PROG_LIBTOOL
+AC_PROG_LIBTOOL_SANITYCHECK
 AC_SUBST(LIBTOOL_DEPS)
 if ${CONFIG_SHELL} ./libtool --features | grep "enable static" >/dev/null; then
   STATIC="-static"
