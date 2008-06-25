@@ -581,6 +581,9 @@ static int asf_header_parse_content_description(asf_header_t *header_pub, uint8_
   if (!content)
     return 0;
 
+  if ( (iconv_cd = iconv_open("UTF-8", "UCS-2LE")) == (iconv_t)-1 )
+    return 0;
+
   asf_reader_init(&reader, buffer, buffer_len);
   asf_reader_get_16(&reader, &title_length);
   asf_reader_get_16(&reader, &author_length);
