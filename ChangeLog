@@ -3,6 +3,9 @@ xine-lib (1.1.15) 2008-??-??
   * V4L: Don't segfault if asked for an input that doesn't exist
   * Recognise AMR audio (normally found in 3GP files).
   * Recognise Snow video.
+  * Xv deinterlacing didn't take the size of the deinterlaced image into
+    account; on some chipsets, this would cause image corruption, while on
+    others, there would be no problem.
 
 xine-lib (1.1.14) 2008-06-29
   * DVB changes:
