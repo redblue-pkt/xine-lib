@@ -892,10 +892,6 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
   
-  /* Pre-allocate some frames for audio and video so it doesn't have to be 
-   * done during capture */
-  allocate_frames(this, 1);
-  
   /* Unmute audio off video capture device */
   unmute_audio(this);
   
@@ -1004,7 +1000,11 @@ static int open_video_capture_device(v4l_input_plugin_t *this)
   
   xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_X, 103);
   xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_Y, 103);
-  
+
+  /* Pre-allocate some frames for audio and video so it doesn't have to be 
+   * done during capture */
+  allocate_frames(this, 1);
+
   /* If we made it here, everything went ok */ 
   this->audio_only = 0;
   if (tuner_found)

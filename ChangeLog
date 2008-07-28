@@ -6,6 +6,8 @@ xine-lib (1.1.15) 2008-??-??
   * Xv deinterlacing didn't take the size of the deinterlaced image into
     account; on some chipsets, this would cause image corruption, while on
     others, there would be no problem.
+  * V4L changes:
+    - Delay preallocating video frames until we know how large they'll be
 
 xine-lib (1.1.14) 2008-06-29
   * DVB changes:
