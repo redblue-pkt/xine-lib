@@ -549,6 +549,12 @@ static int set_frequency(v4l_input_plugin_t *this, unsigned long frequency)
     fd = this->radio_fd;
   
   if (frequency != 0) {
+    /* FIXME: Don't assume tuner 0 ? */
+    this->tuner = 0;
+    ret = ioctl(fd, VIDIOCSTUNER, &this->tuner);
+    lprintf("(%d) Response on set tuner to %d\n", ret, this->tuner);
+    this->video_tuner.tuner = this->tuner;
+
     if (this->video_tuner.flags & VIDEO_TUNER_LOW) {
       this->calc_frequency = frequency * 16;
     } else {
@@ -683,16 +689,6 @@ static int search_by_channel(v4l_input_plugin_t *this, char *input_source)
         ret = ioctl(fd, VIDIOCSCHAN, &this->input);
     
     lprintf("(%d) Set channel to %d\n", ret, this->input);
-    
-    /* FIXME: Don't assume tuner 0 ? */
-    
-    this->tuner = 0;
-    
-    ret = ioctl(fd, VIDIOCSTUNER, &this->tuner);
-    
-    lprintf("(%d) Response on set tuner to %d\n", ret, this->tuner);
-    
-    this->video_tuner.tuner = this->tuner;
   } else {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
             "input_v4l: Not setting video source. No source given\n");
