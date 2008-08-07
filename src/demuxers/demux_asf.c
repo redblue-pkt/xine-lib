@@ -444,13 +444,16 @@ static int asf_read_header (demux_asf_t *this) {
     asf_stream_t *asf_stream = this->asf_header->streams[i];
     asf_demux_stream_t *demux_stream = &this->streams[i];
 
-    if (!asf_stream && this->mode != ASF_MODE_NO_CONTENT) {
+    if (!asf_stream) {
+      if (this->mode != ASF_MODE_NO_CONTENT) {
 	xine_log(this->stream->xine, XINE_LOG_MSG,
-		 _("demux_asf: warning: The stream id=%d appears to be missing.\n"), asf_stream->stream_number);
+		 _("demux_asf: warning: A stream appears to be missing.\n"));
 	_x_message(this->stream, XINE_MSG_READ_ERROR,
 		   _("Media stream missing?"), NULL);
 	this->mode = ASF_MODE_NO_CONTENT;
       }
+      return 0;
+    }
 
     if (asf_stream->encrypted_flag) {
       if (this->mode != ASF_MODE_ENCRYPTED_CONTENT) {
