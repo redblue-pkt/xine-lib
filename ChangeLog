@@ -1,19 +1,18 @@
 xine-lib (1.1.15) 2008-??-??
   * Security fixes:
     - Fix crashes with corrupted Ogg files. (CVE-2008-3231)
+    - Fix crashes with fuzzed Windows Media files.
+    - Delay V4L video frame preallocation until we know how large they'll be.
   * Use external ffmpeg by default.
-  * V4L: Don't segfault if asked for an input that doesn't exist
+  * V4L: Don't segfault if asked for an input that doesn't exist.
   * Recognise AMR audio (normally found in 3GP files).
   * Recognise Snow video.
   * Xv deinterlacing didn't take the size of the deinterlaced image into
     account; on some chipsets, this would cause image corruption, while on
     others, there would be no problem.
-  * V4L changes:
-    - Delay preallocating video frames until we know how large they'll be
-    - Only try and set the tuner if we're going to use it. Setting the tuner
-      when using baseband video (CVBS, S-Video) breaks the input.
+  * V4L: only try and set the tuner if we're going to use it. Setting the tuner
+    when using baseband video (CVBS, S-Video) breaks the input.
   * Fix crashes with MP3 files with metadata consisting only of separators.
-  * Fix crashes with fuzzed Windows Media files.
 
 xine-lib (1.1.14) 2008-06-29
   * DVB changes:
