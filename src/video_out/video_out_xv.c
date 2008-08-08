@@ -524,7 +524,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     for( i = 0; i < VO_NUM_RECENT_FRAMES; i++ )
       if( this->recent_frames[i] && this->recent_frames[i]->width == frame->width &&
           this->recent_frames[i]->height == frame->height )
-        recent_bitmaps[i] = this->recent_frames[i]->image->data + frame->width*frame->height;
+        recent_bitmaps[i] = this->recent_frames[i]->image->data + this->deinterlace_frame.image->width*frame->height;
       else
         recent_bitmaps[i] = NULL;
 
