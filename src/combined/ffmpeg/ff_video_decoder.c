@@ -606,6 +606,10 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
   su = this->av_frame->data[1];
   sv = this->av_frame->data[2];
 
+  /* Some segfaults & heap corruption have been observed with img->height,
+   * so we use this->bih.biHeight instead (which is the displayed height)
+   */
+
   if (this->context->pix_fmt == PIX_FMT_YUV410P) {
 
     yuv9_to_yv12(
@@ -626,7 +630,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       img->pitches[2],
      /* width x height */
       img->width,
-      img->height);
+      this->bih.biHeight);
 
   } else if (this->context->pix_fmt == PIX_FMT_YUV411P) {
 
@@ -648,7 +652,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       img->pitches[2],
      /* width x height */
       img->width,
-      img->height);
+      this->bih.biHeight);
 
   } else if (this->context->pix_fmt == PIX_FMT_RGBA32) {
           
@@ -656,7 +660,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     uint32_t *argb_pixels;
     uint32_t argb;
 
-    for(y = 0; y < img->height; y++) {
+    for(y = 0; y < this->bih.biHeight; y++) {
       argb_pixels = (uint32_t *)sy;
       for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
@@ -684,7 +688,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     uint8_t *src;
     uint16_t pixel16;
 
-    for(y = 0; y < img->height; y++) {
+    for(y = 0; y < this->bih.biHeight; y++) {
       src = sy;
       for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
@@ -713,7 +717,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     uint8_t *src;
     uint16_t pixel16;
             
-    for(y = 0; y < img->height; y++) {
+    for(y = 0; y < this->bih.biHeight; y++) {
       src = sy;
       for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
@@ -741,7 +745,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     int x, plane_ptr = 0;
     uint8_t *src;
 
-    for(y = 0; y < img->height; y++) {
+    for(y = 0; y < this->bih.biHeight; y++) {
       src = sy;
       for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
@@ -765,7 +769,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
     int x, plane_ptr = 0;
     uint8_t *src;
 
-    for(y = 0; y < img->height; y++) {
+    for(y = 0; y < this->bih.biHeight; y++) {
       src = sy;
       for(x = 0; x < img->width; x++) {
         uint8_t r, g, b;
@@ -808,7 +812,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       v_palette[x] = COMPUTE_V(r, g, b);
     }
 
-    for(y = 0; y < img->height; y++) {
+    for(y = 0; y < this->bih.biHeight; y++) {
       src = sy;
       for(x = 0; x < img->width; x++) {
         pixel = *src++;
@@ -825,7 +829,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
           
   } else {
           
-    for (y=0; y<img->height; y++) {
+    for (y = 0; y < this->bih.biHeight; y++) {
       xine_fast_memcpy (dy, sy, img->width);
   
       dy += img->pitches[0];
@@ -833,7 +837,7 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img) {
       sy += this->av_frame->linesize[0];
     }
 
-    for (y=0; y<(img->height/2); y++) {
+    for (y = 0; y < this->bih.biHeight / 2; y++) {
       
       if (this->context->pix_fmt != PIX_FMT_YUV444P) {
         
