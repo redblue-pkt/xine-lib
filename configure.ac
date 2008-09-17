@@ -263,6 +263,7 @@ case "$host" in
       WIN32_CPPFLAGS='-I$(top_srcdir)/win32/include'
       LIBS="-lwinmm -lwsock32 $LIBS"
       GOOM_LIBS="-liberty"
+      LDFLAGS="-Wl,--enable-stdcall-fixup $LDFLAGS"
     fi
     LDFLAGS="-no-undefined $LDFLAGS"
     ;;
