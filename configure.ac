@@ -2449,11 +2449,6 @@ XINE_REL_FONTDIR="`makeexpand "$XINE_FONTDIR" | sed -e "s,^${prefix}/,,"`"
 XINE_REL_LOCALEDIR="`makeexpand "$XINE_LOCALEDIR" | sed -e "s,^${prefix}/,,"`"
 XINE_PKGCONFIG_DIR="`makeexpand "$pkgconfigdir"`"
 if test "x$SYS" = "xmingw32" -o "x$SYS" = "xcygwin"; then
-  dnl polish paths (MinGW runtime accepts both \ and / anyway)
-  XINE_REL_PLUGINROOT="`echo "$XINE_REL_PLUGINROOT" | sed -e 's/\\//\\\\\\\\/g'`"
-  XINE_REL_PLUGINDIR="$XINE_REL_PLUGINROOT.$XINE_LT_AGE"
-  XINE_REL_FONTDIR="`echo "$XINE_REL_FONTDIR" | sed -e 's/\\//\\\\\\\\/g'`"
-  XINE_REL_LOCALEDIR="`echo "$XINE_REL_LOCALEDIR" | sed -e 's/\\//\\\\\\\\/g'`"
   dnl prefix in xine-config
   XINE_CONFIG_PREFIX="\$(cd \$(dirname \$0)/..; pwd)"
   dnl installation directories (in xine-config)
