@@ -1093,6 +1093,8 @@ if test "x$with_pulseaudio" != "xno"; then
    fi
 fi
 AM_CONDITIONAL(HAVE_PULSEAUDIO, [test "x$have_pulseaudio" = x"yes"])
+AC_SUBST([PULSEAUDIO_CFLAGS])
+AC_SUBST([PULSEAUDIO_LIBS])
 
 dnl ---------------------------------------------
 dnl check for DirectX
