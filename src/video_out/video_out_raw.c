@@ -473,7 +473,7 @@ static int raw_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *da
 
 static uint32_t raw_get_capabilities (vo_driver_t *this_gen)
 {
-  uint32_t capabilities = VO_CAP_YV12 | VO_CAP_YUY2;
+  uint32_t capabilities = VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CROP;
   return capabilities;
 }
 
