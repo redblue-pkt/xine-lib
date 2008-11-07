@@ -232,6 +232,9 @@ static int open_flac_file(demux_flac_t *flac) {
             } else if ((strncasecmp ("ARTIST=", comment, 7) == 0)
                 && (length - 7 > 0)) {
               _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_ARTIST, comment + 7);
+            } else if ((strncasecmp ("COMPOSER=", comment, 9) == 0)
+                && (length - 9 > 0)) {
+              _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_COMPOSER, comment + 9);
             } else if ((strncasecmp ("ALBUM=", comment, 6) == 0)
                 && (length - 6 > 0)) {
               _x_meta_info_set_utf8 (flac->stream, XINE_META_INFO_ALBUM, comment + 6);

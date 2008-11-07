@@ -5,6 +5,7 @@ xine-lib (1.1.16) 2008-??-??
   * Support H.264 and AAC streams within FLV.
   * Fix timing issues (broken audio) on mingw.
   * Add ID3 tag TDRC to replace/complement the deprecated tag TYER.
+  * Add a new meta-tag, "Composer", and use it in the FLAC demuxer.
 
 xine-lib (1.1.15) 2008-08-14
   * Security fixes:
