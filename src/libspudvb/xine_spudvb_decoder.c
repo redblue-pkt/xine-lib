@@ -48,6 +48,7 @@ typedef struct {
 } page_t;
 
 typedef struct {
+  int                   version_number;
   int 			width, height;
   int                   empty;
   int 			depth;
@@ -166,20 +167,18 @@ static void update_region (dvb_spu_decoder_t * this, int region_id, int region_w
       lprintf( "can't allocate mem for region %d\n", region_id );
       return;
     }
-    fill_color = 15;
     fill = 1;
   }
-
+  
   if ( fill ) {
     memset( reg->img, fill_color, region_width*region_height );
     reg->empty = 1;
 #ifdef LOG
-  printf("SPUDVB : FILL REGION %d\n", region_id);
+    printf("SPUDVB : FILL REGION %d\n", region_id);
 #endif
   }
   reg->width = region_width;
   reg->height = region_height;
-  page->regions[region_id].is_visible = 1;
 }
 
 
@@ -409,17 +408,18 @@ static void process_page_composition_segment (dvb_spu_decoder_t * this)
   const int j = dvbsub->i + segment_length;
 
   dvbsub->page.page_time_out = dvbsub->buf[dvbsub->i++];
+  if ( dvbsub->page.page_time_out>6 ) /* some timeout are insane, e.g. 65s ! */
+    dvbsub->page.page_time_out = 6;
 
-  dvbsub->page.page_version_number = (dvbsub->buf[dvbsub->i] & 0xf0) >> 4;
+  int version = (dvbsub->buf[dvbsub->i] & 0xf0) >> 4;
+  if ( version == dvbsub->page.page_version_number )
+    return;
+  dvbsub->page.page_version_number = version;
   dvbsub->page.page_state = (dvbsub->buf[dvbsub->i] & 0x0c) >> 2;
   dvbsub->i++;
-  if (dvbsub->page.page_state==2) {
-    int r;
-    for (r=0; r<MAX_REGIONS; r++)
-      dvbsub->page.regions[r].is_visible = 0;
-  }
-  else if ( dvbsub->page.page_state!=0 && dvbsub->page.page_state!=1 ) {
-    return;
+  int r;
+  for (r=0; r<MAX_REGIONS; r++) { /* reset */
+    dvbsub->page.regions[r].is_visible = 0;
   }
 
   while (dvbsub->i < j) {
@@ -432,6 +432,7 @@ static void process_page_composition_segment (dvb_spu_decoder_t * this)
 
     dvbsub->page.regions[region_id].x = region_x;
     dvbsub->page.regions[region_id].y = region_y;
+    dvbsub->page.regions[region_id].is_visible = 1;
   }
 }
 
@@ -465,6 +466,11 @@ static void process_region_composition_segment (dvb_spu_decoder_t * this)
 
   if(region_id>=MAX_REGIONS)
     return;
+
+  if ( dvbsub->regions[region_id].version_number == region_version_number )
+    return;
+
+  dvbsub->regions[region_id].version_number = region_version_number;
     
   /* Check if region size has changed and fill background. */
   update_region (this, region_id, region_width, region_height, region_fill_flag, region_4_bit_pixel_code);
@@ -673,6 +679,9 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
   printf("SPUDVB: this->vpts=%llu\n",this->vpts);
 #endif
   for ( r=0; r<MAX_REGIONS; r++ ) {
+#ifdef LOG
+    printf("SPUDVB : region=%d, visible=%d, osd=%d, empty=%d\n", r, this->dvbsub->page.regions[r].is_visible, this->dvbsub->regions[r].osd?1:0, this->dvbsub->regions[r].empty );
+#endif
     if ( this->dvbsub->page.regions[r].is_visible && this->dvbsub->regions[r].osd && !this->dvbsub->regions[r].empty ) {
       this->stream->osd_renderer->set_position( this->dvbsub->regions[r].osd, this->dvbsub->page.regions[r].x, this->dvbsub->page.regions[r].y );
       this->stream->osd_renderer->show( this->dvbsub->regions[r].osd, this->vpts );
@@ -761,6 +770,9 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       this->vpts = vpts;
   }
 
+  /* completely ignore pts since it makes a lot of problems with various providers */
+  this->vpts = 0;
+
   /* process the pes section */
      
   const int PES_packet_length = this->pes_pkt_size;
@@ -791,10 +803,10 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       /* SEGMENT_DATA_FIELD */
       switch (segment_type) {
       case 0x10:
-	process_page_composition_segment (this);
+	process_page_composition_segment(this);
 	break;
       case 0x11:
-	process_region_composition_segment (this);
+	process_region_composition_segment(this);
 	break;
       case 0x12: 
 	process_CLUT_definition_segment(this);
@@ -802,8 +814,8 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       case 0x13:
 	process_object_data_segment (this);
 	break;
-      case 0x80:		/* Page is now completely rendered */
-	draw_subtitles( this );
+      case 0x80:		
+	draw_subtitles( this ); /* Page is now completely rendered */
 	break;
       default:
 	return;  
@@ -824,7 +836,9 @@ static void spudec_reset (spu_decoder_t * this_gen)
   for ( i=0; i<MAX_REGIONS; i++ ) {
     if ( this->dvbsub->regions[i].osd )
       this->stream->osd_renderer->hide(this->dvbsub->regions[i].osd, 0);
+    this->dvbsub->regions[i].version_number = -1;
   }
+  this->dvbsub->page.page_version_number = -1;
   pthread_mutex_unlock(&this->dvbsub_osd_mutex);
 
 }
