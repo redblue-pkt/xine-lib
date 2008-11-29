@@ -1370,8 +1370,11 @@ AC_ARG_WITH([imagemagick],
 
 if test "x$with_imagemagick" != "xno"; then
    PKG_CHECK_MODULES([WAND], [Wand], [have_imagemagick=yes], [have_imagemagick=no])
+   if test "x$with_imagemagick" = 'xno'; then
+      PKG_CHECK_MODULES([WAND], [MagickWand], [have_imagemagick=yes], [have_imagemagick=no])
+   fi
    if test "x$with_imagemagick" = "xyes" && test "x$have_imagemagick" = "xno"; then
-      AC_MSG_ERROR([ImageMagick support requested, but Wand not found])
+      AC_MSG_ERROR([ImageMagick support requested, but neither Wand nor MagickWand were found])
    elif test "x$have_imagemagick" = "xyes"; then
       AC_DEFINE([HAVE_WAND], [1], [Define this if you have ImageMagick installed])
    fi
