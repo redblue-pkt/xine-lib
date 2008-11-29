@@ -97,7 +97,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   
   if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
     int                width, height, i;
-    MagickBooleanType  status;
+    int                status;
     MagickWand        *wand;
     uint8_t           *img_buf, *img_buf_ptr;
     yuv_planes_t       yuv_planes;
@@ -110,7 +110,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     status = MagickReadImageBlob(wand, this->image, this->index);
     this->index = 0;
 
-    if (status == MagickFalse) {
+    if (!status) {
       DestroyMagickWand(wand);
       lprintf("error loading image\n");
       return;
