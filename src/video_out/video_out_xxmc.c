@@ -46,6 +46,7 @@ static void dispose_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
 			    XvImage *myimage);
 
 static const char *const prefer_types[] = VIDEO_DEVICE_XV_PREFER_TYPES;
+static const char *const bicubic_types[] = VIDEO_DEVICE_XV_BICUBIC_TYPES;
 
 /*
  * Acceleration level priority. Static for now. It may well turn out that IDCT
@@ -2152,6 +2153,11 @@ static void xxmc_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry
   xxmc_update_attr (this_gen, entry, "XV_DOUBLE_BUFFER", "double buffering mode");
 }
 
+static void xxmc_update_XV_BICUBIC(void *this_gen, xine_cfg_entry_t *entry)
+{
+  xxmc_update_attr (this_gen, entry, "XV_BICUBIC", "bicubic filtering mode");
+}
+
 static void xxmc_update_xv_pitch_alignment(void *this_gen, xine_cfg_entry_t *entry) {
   xxmc_driver_t *this = (xxmc_driver_t *) this_gen;
 
@@ -2593,6 +2599,12 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 				   VIDEO_DEVICE_XV_DOUBLE_BUFFER_HELP,
 				   20, xxmc_update_XV_DOUBLE_BUFFER, this);
 	  config->update_num(config,"video.device.xv_double_buffer",xv_double_buffer);
+	} else if(!strcmp(name, "XV_BICUBIC")) {
+	  int xv_bicubic =
+	    config->register_enum (config, "video.device.xv_bicubic", 2,
+				   bicubic_types, VIDEO_DEVICE_XV_BICUBIC_HELP,
+				   20, xxmc_update_XV_BICUBIC, this);
+	  config->update_num(config,"video.device.xv_bicubic",xv_bicubic);
 	}
       }
     }

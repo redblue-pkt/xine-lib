@@ -70,3 +70,10 @@ typedef enum {
 	_("Selects which video output method is preferred. " \
 	  "Detection is done using the reported Xv adaptor names.\n" \
 	  "(Only applies when auto-detecting which Xv port to use.)")
+
+#define VIDEO_DEVICE_XV_BICUBIC_TYPES \
+	{ "Off", "On", "Auto", NULL }
+#define VIDEO_DEVICE_XV_BICUBIC_HELP \
+	_("bicubic filtering"), \
+	_("This option controls bicubic filtering of the video image. " \
+	  "It may be used instead of, or as well as, xine's deinterlacers.")
