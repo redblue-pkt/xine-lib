@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib-1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-12-27 22:31+0000\n"
+"POT-Creation-Date: 2008-12-27 22:46+0000\n"
 "PO-Revision-Date: 2005-02-17 14:29+0100\n"
 "Last-Translator: Piarres Beobide <pi@beobide.net>\n"
 "Language-Team: lubrezale <librezale@librezale.org>\n"
@@ -5526,64 +5526,3 @@ msgstr ""
 #: src/xine-utils/memcpy.c:507
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr "memcpy metodoak frogatzen (txeikiena obea da)\n"
-
-#~ msgid "demux_asf: Wrong ASX version: %s\n"
-#~ msgstr "demux_asf: Okerreko ASX bertsioa: %s\n"
-
-#, fuzzy
-#~ msgid "dvbsub: cannot create timer thread\n"
-#~ msgstr "input_rtp: Ezin da hari berria sortu (%s)\n"
-
-#~ msgid "avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) failed.\n"
-#~ msgstr "avcodec_find_decoder (CODEC_ID_MPEG1VIDEO) hutsa.\n"
-
-#~ msgid "video brightness"
-#~ msgstr "bideo distira"
-
-#~ msgid "The brightness of the video image."
-#~ msgstr "Bideo imagenaren distira."
-
-#~ msgid "The saturation of the video image."
-#~ msgstr "Bideo irudiaren saturazioa"
-
-#~ msgid "brightness correction"
-#~ msgstr "distira zuzentzea"
-
-#~ msgid ""
-#~ "The brightness correction can be used to lighten or darken the image. It "
-#~ "changes the blacklevel without modifying the contrast, but it limits the "
-#~ "tonal range."
-#~ msgstr ""
-#~ "Distira zuzenketa irudia argitu edo iluntzeko erabili daiteke. Berauk "
-#~ "kontrastea aldatu gabe beltz maila aldatzen du, baina tonalitate eremua "
-#~ "murrizten du."
-
-#~ msgid "Do we use read-ahead caching?"
-#~ msgstr "Irakurketa-goiburu katxea erabili nahi al duzu?"
-
-#~ msgid "audio_oss_out: open() %s failed: %s\n"
-#~ msgstr "audio_oss_out: open() %s huts egin du: %s\n"
-
-#~ msgid ""
-#~ "This will display the current channel name in xine's on-screen-display. "
-#~ "Menu button 7 will disable this temporarily."
-#~ msgstr ""
-#~ "Honek erreproduzitzen aru den kanal izen xine leihoan bistaratuko du. "
-#~ "Menuko 7 botoiak hau denbora batez ezgaituko du."
-
-#~ msgid ""
-#~ "A Comma separated list of domain names, where the proxy is to be ignored."
-#~ msgstr ""
-#~ "Domeinu izenen gakoz bereizitako zarrenda, non proxy zerbitzaria ez den "
-#~ "erabiliko."
-
-#~ msgid "selection has no DEFAULT entry"
-#~ msgstr "Aukerak ez du LEHENETSIRIKO sarrerarik"
-
-#~ msgid ""
-#~ "You can disable video scaling globally. The image will then no longer "
-#~ "adapt to the size of the video window, which can dramatically reduce CPU "
-#~ "usage."
-#~ msgstr ""
-#~ "Bideo eskalatzea orokorrean ezgaitu dezakezu. Irudia ez da gehiago bideo "
-#~ "leihoaren tamainaren arabera aldatuko, CPU erabilera asko murriztuz."

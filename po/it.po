@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-12-27 22:31+0000\n"
+"POT-Creation-Date: 2008-12-27 22:46+0000\n"
 "PO-Revision-Date: 2007-12-24 16:09+0100\n"
 "Last-Translator: Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>\n"
 "Language-Team: Italian\n"
@@ -6153,21 +6153,3 @@ msgstr ""
 #: src/xine-utils/memcpy.c:507
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr "Test di velocità dei metodi memcpy (più piccolo è migliore):\n"
-
-#~ msgid "Unable to create buffer position events."
-#~ msgstr "Impossibile creare gli eventi di posizione del buffer."
-
-#~ msgid "Unable to get notification interface"
-#~ msgstr "Impossibile leggere l'interfaccia di notifica."
-
-#~ msgid "Unable to set notification positions"
-#~ msgstr "Impossibile impostare le posizioni di notifica"
-
-#~ msgid ": delayed by %ld msec\n"
-#~ msgstr ": ritardato di %ld msec\n"
-
-#~ msgid "demux_asf: Wrong ASX version: %s\n"
-#~ msgstr "demux_asf: versione ASX errata: %s\n"
-
-#~ msgid "dvbsub: cannot create timer thread\n"
-#~ msgstr "dvbsub: impossibile creare thread timer\n"

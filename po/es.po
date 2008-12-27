@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib.hg\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-12-27 22:31+0000\n"
+"POT-Creation-Date: 2008-12-27 22:46+0000\n"
 "PO-Revision-Date: 2008-04-02 01:05+0200\n"
 "Last-Translator: Carlos E. R. M. <carloser@users.sourceforge.net>\n"
 "Language-Team: Spanish <none>\n"
@@ -6319,15 +6319,3 @@ msgstr ""
 #: src/xine-utils/memcpy.c:507
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr "Evaluando métodos \"memcpy\" (menor es mejor):\n"
-
-#~ msgid "Unable to create buffer position events."
-#~ msgstr "Incapaz de crear eventos posicionales de búfer."
-
-#~ msgid "Unable to get notification interface"
-#~ msgstr "Incapaz de conseguir interfase de notificación"
-
-#~ msgid "Unable to set notification positions"
-#~ msgstr "Incapaz de poner posiciones de notificación"
-
-#~ msgid ": delayed by %ld msec\n"
-#~ msgstr ": retrasado en %ld msec\n"

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libxine1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-12-27 22:31+0000\n"
+"POT-Creation-Date: 2008-12-27 22:46+0000\n"
 "PO-Revision-Date: 2008-01-05 18:22+0200\n"
 "Last-Translator: Server Acim <sacim@kde.org.tr>\n"
 "Language-Team: Türkçe <yerellestirme@kde.org.tr>\n"
@@ -6117,24 +6117,3 @@ msgstr ""
 #: src/xine-utils/memcpy.c:507
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr "Memcpy karşılaştırma yöntemleri (daha küçük olan daha iyidir):\n"
-
-#~ msgid "Unable to create buffer position events."
-#~ msgstr "Önbellek konum olayları oluşturulamadı."
-
-#~ msgid "Unable to get notification interface"
-#~ msgstr "Bildirim arayüzü alınamadı"
-
-#~ msgid "Unable to set notification positions"
-#~ msgstr "Bildirim konumları ayarlanamadı"
-
-#~ msgid ": delayed by %ld msec\n"
-#~ msgstr ":  %ld tarafından milisaniye geciktirildi\n"
-
-#~ msgid ""
-#~ "The color key is used to tell the graphics card where to overlay the "
-#~ "video image. Try different values, if you experience windows becoming "
-#~ "transparent."
-#~ msgstr ""
-#~ "Renk anahtarı, video görüntüsünün nerede ekranı kaplayacağını ekran "
-#~ "kartına bildirmek için kullanılır. Eğer pencereleriniz şeffaf hale "
-#~ "geliyorsa değişik değerler deneyin."

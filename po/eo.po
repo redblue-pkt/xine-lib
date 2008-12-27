@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: eo\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-12-27 22:31+0000\n"
+"POT-Creation-Date: 2008-12-27 22:46+0000\n"
 "PO-Revision-Date: 2007-05-24 17:57+0200\n"
 "Last-Translator: Antonio C. Codazzi <f_sophia@libero.it>\n"
 "Language-Team:  <it@li.org>\n"
@@ -5337,21 +5337,3 @@ msgstr ""
 #: src/xine-utils/memcpy.c:507
 msgid "Benchmarking memcpy methods (smaller is better):\n"
 msgstr "Testo de rapideco por medoto de memorkopio (pli eta estas pli bona):\n"
-
-#~ msgid "Unable to create buffer position events."
-#~ msgstr "Mi estas nekapabla krei eventojn de bufrolokado"
-
-#~ msgid "Unable to get notification interface"
-#~ msgstr "Mi estas nekapabla havigi interfacon de komuniko"
-
-#~ msgid "Unable to set notification positions"
-#~ msgstr "Mi estas nekapabla agordi lokojn de komuniko"
-
-#~ msgid ": delayed by %ld msec\n"
-#~ msgstr ": malfruita je %ld msek\n"
-
-#~ msgid "demux_asf: Wrong ASX version: %s\n"
-#~ msgstr "demux_asf: Erara versio de ASX: %s\n"
-
-#~ msgid "dvbsub: cannot create timer thread\n"
-#~ msgstr "dvbsub: estas neeble krei fadenon de komuna aliro\n"
