@@ -159,6 +159,7 @@ typedef struct {
 } xv_class_t;
 
 static const char *const prefer_types[] = VIDEO_DEVICE_XV_PREFER_TYPES;
+static const char *const bicubic_types[] = VIDEO_DEVICE_XV_BICUBIC_TYPES;
 static const char *const sync_atoms[] = VIDEO_DEVICE_XV_VSYNC_ATOMS;
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
@@ -1248,6 +1249,11 @@ static void xv_update_XV_SYNC_TO_VBLANK(void *this_gen, xine_cfg_entry_t *entry)
 		  "sync to vblank");
 }
 
+static void xv_update_XV_BICUBIC(void *this_gen, xine_cfg_entry_t *entry)
+{
+  xv_update_attr (this_gen, entry, "XV_BICUBIC", "bicubic filtering mode");
+}
+
 static void xv_update_xv_pitch_alignment(void *this_gen, xine_cfg_entry_t *entry) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
 
@@ -1522,6 +1528,12 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
 		"sync to under the XVideo Settings tab"),
 	      20, xv_update_XV_SYNC_TO_VBLANK, this);
 	  config->update_num(config,"video.device.xv_sync_to_vblank",xv_sync_to_vblank);
+	} else if(!strcmp(name, "XV_BICUBIC")) {
+	  int xv_bicubic =
+	    config->register_enum (config, "video.device.xv_bicubic", 2,
+				   bicubic_types, VIDEO_DEVICE_XV_BICUBIC_HELP,
+				   20, xv_update_XV_BICUBIC, this);
+	  config->update_num(config,"video.device.xv_bicubic",xv_bicubic);
 	}
       }
     }
