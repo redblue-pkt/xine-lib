@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-11-10 15:29+0100\n"
+"POT-Creation-Date: 2008-12-27 22:31+0000\n"
 "PO-Revision-Date: 2008-11-10 16:33+0200\n"
 "Last-Translator: František Dvořák <valtri@civ.zcu.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -4714,7 +4714,12 @@ msgstr ""
 msgid "video_out_xv: Xv extension not present.\n"
 msgstr "video_out_xv: Rozšíření Xv není přítomno.\n"
 
-#: src/video_out/video_out_xv.c:1465
+#: src/video_out/video_out_xv.c:1428
+#, fuzzy, c-format
+msgid "%s: could not open Xv port %<PRId32> - autodetecting\n"
+msgstr "%s: nepodařilo se otevřít Xv port %d - najde se automaticky\n"
+
+#: src/video_out/video_out_xv.c:1441
 msgid ""
 "video_out_xv: Xv extension is present but I couldn't find a usable yuv12 "
 "port.\n"
@@ -5016,6 +5021,17 @@ msgstr ""
 "Vybírá, která metoda zobrazení videa je upřednostňována. Detekce se provádí "
 "použitím oznámených jmen adaptérů Xv.\n"
 "(Platí jen při použití autodetekce portů Xv.)"
+
+#: src/video_out/xv_common.h:77
+#, fuzzy
+msgid "bicubic filtering"
+msgstr "filtr mihotání"
+
+#: src/video_out/xv_common.h:78
+msgid ""
+"This option controls bicubic filtering of the video image. It may be used "
+"instead of, or as well as, xine's deinterlacers."
+msgstr ""
 
 #: src/xine-engine/alphablend.c:2146
 msgid "disable exact alpha blending of overlays"

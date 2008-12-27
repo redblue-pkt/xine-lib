@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib.hg\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-11-10 15:29+0100\n"
+"POT-Creation-Date: 2008-12-27 22:31+0000\n"
 "PO-Revision-Date: 2008-04-02 01:05+0200\n"
 "Last-Translator: Carlos E. R. M. <carloser@users.sourceforge.net>\n"
 "Language-Team: Spanish <none>\n"
@@ -959,11 +959,11 @@ msgid ""
 msgstr ""
 "Puede ajustar el número de hilos decodificadores que pueda usar FFmpeg.\n"
 "Valores más altos deben acelerar la decodificación, pero depende del códec "
-"usado si se soporta procesado en paralelo. Una regla general es tener un "
-"hilo decodificador por cada CPU lógica (típicamente de 1 a 4).\n"
-"Un cambio de este ajuste hará efecto cuando se reproduzca el siguiente flujo."
+"si se soporta procesado en paralelo. Una regla general es tener un hilo "
+"decodificador por cada CPU lógica (típicamente de 1 a 4). Un cambio hará "
+"efecto cuando se reproduzca el siguiente flujo."
 
-#: src/combined/ffmpeg/ff_video_decoder.c:1655
+#: src/combined/ffmpeg/ff_video_decoder.c:1653
 msgid "Skip loop filter"
 msgstr "Saltarse filtro de bucle"
 
@@ -1857,9 +1857,9 @@ msgstr "input_dvb: falló tuner_set_channel\n"
 #: src/input/input_dvb.c:2778
 #, c-format
 msgid "input_dvb: DVB GUI %s\n"
-msgstr ""
+msgstr "input_dvb: IGU de DVB %s\n"
 
-#: src/input/input_dvb.c:2783 src/input/input_dvb.c:3212
+#: src/input/input_dvb.c:2783 src/input/input_dvb.c:3211
 msgid "input_dvb: cannot open dvb device\n"
 msgstr "input_dvb: no puedo abrir dispositivo DVB\n"
 
@@ -2005,15 +2005,16 @@ msgstr ""
 "Dejar esto a cero a menos que realmemte tenga más de 1 tarjeta en sus "
 "sistema."
 
-#: src/input/input_dvb.c:3331
+#: src/input/input_dvb.c:3330
 msgid "Enable the DVB GUI"
-msgstr ""
+msgstr "Activar el IGU de DVB"
 
-#: src/input/input_dvb.c:3332
+#: src/input/input_dvb.c:3331
 msgid "Enable the DVB GUI, mouse controlled recording and channel switching."
 msgstr ""
+"Activar el IGU de DVB, grabación y cambio de canal controlados por ratón."
 
-#: src/input/input_dvb.c:3338
+#: src/input/input_dvb.c:3337
 msgid "DVB Channels config file"
 msgstr ""
 
@@ -2609,11 +2610,11 @@ msgstr "dispositivo vídeo v4l"
 msgid "The path to your Video4Linux video device."
 msgstr "El camino a su dispositivo de vídeo Video4Linux."
 
-#: src/input/input_v4l.c:1916
+#: src/input/input_v4l.c:1912
 msgid "v4l ALSA audio input device"
-msgstr "dispositivo entrada audio ALSA v4l"
+msgstr "dispositivo audio de entrada ALSA v4l"
 
-#: src/input/input_v4l.c:1917
+#: src/input/input_v4l.c:1913
 msgid ""
 "The name of the audio device which corresponds to your Video4Linux video "
 "device."
@@ -2621,17 +2622,20 @@ msgstr ""
 "El nombre del dispositivo de audio que corresponde a su dispositivo de vídeo "
 "Video4Linux."
 
-#: src/input/input_v4l.c:1922
+#: src/input/input_v4l.c:1918
 msgid "v4l TV standard"
-msgstr ""
+msgstr "Estandar v4l de TV"
 
-#: src/input/input_v4l.c:1923
+#: src/input/input_v4l.c:1919
+#, fuzzy
 msgid ""
 "Selects the TV standard of the input signals. Either: AUTO, PAL, NTSC or "
 "SECAM. "
 msgstr ""
+"Selecciona el estandar de TV de las señales de entrada. Ha de ser una de: "
+"PAL, NTSC o SECAM. "
 
-#: src/input/input_v4l.c:1948
+#: src/input/input_v4l.c:1944
 msgid "v4l radio device"
 msgstr "dispositivo audio v4l"
 
@@ -3704,7 +3708,7 @@ msgstr ""
 "\n"
 "Parámetros\n"
 "  Radius (radio): tamaño del filtro\n"
-"  Power (potencia): qué a menudo debería ser aplicado el filtro\n"
+"  Power (potencia): cuan a menudo debería ser aplicado el filtro\n"
 "\n"
 "* mplayer's boxblur (C) 2002 Michael Niedermayer\n"
 
@@ -3914,7 +3918,7 @@ msgid ""
 "\n"
 "* mplayer's unsharp (C) 2002 Remi Guyomarch\n"
 msgstr ""
-"Unsharp mask / gaussian blur (Máscara de des-nitidez / borrosidad "
+"Unsharp mask / gaussian blur (máscara de des-nitidez / borrosidad "
 "gaussiana)\n"
 "Es posible ajustar el ancho y altura de la matriz, tamaño impar en ambas "
 "direcciones (min = 3x3, máx = 13x11 o 11x13, usualmente algo entre 3x3 y "
@@ -4684,13 +4688,12 @@ msgstr ""
 msgid "video_out_xcbxv: Xv extension not present.\n"
 msgstr "video_out_xcbxv: la extensión Xv  no está presente.\n"
 
-#: src/video_out/video_out_xcbxv.c:1402 src/video_out/video_out_xv.c:1452
-#: src/video_out/video_out_xxmc.c:2461
+#: src/video_out/video_out_xcbxv.c:1381 src/video_out/video_out_xxmc.c:2457
 #, c-format
 msgid "%s: could not open Xv port %d - autodetecting\n"
-msgstr ""
+msgstr "%s: no se pudo abrir el puerto Xv %d - autodetectando\n"
 
-#: src/video_out/video_out_xcbxv.c:1415
+#: src/video_out/video_out_xcbxv.c:1394
 msgid ""
 "video_out_xcbxv: Xv extension is present but I couldn't find a usable yuv12 "
 "port.\n"
@@ -4911,7 +4914,12 @@ msgstr ""
 msgid "video_out_xv: Xv extension not present.\n"
 msgstr "video_out_xv: la extensión Xv  no está presente.\n"
 
-#: src/video_out/video_out_xv.c:1465
+#: src/video_out/video_out_xv.c:1428
+#, fuzzy, c-format
+msgid "%s: could not open Xv port %<PRId32> - autodetecting\n"
+msgstr "%s: no se pudo abrir el puerto Xv %d - autodetectando\n"
+
+#: src/video_out/video_out_xv.c:1441
 msgid ""
 "video_out_xv: Xv extension is present but I couldn't find a usable yuv12 "
 "port.\n"
@@ -5100,11 +5108,11 @@ msgid ""
 "When interlacing is enabled for hardware accelerated frames,\n"
 "alternate between top and bottom field at double the frame rate.\n"
 msgstr ""
-"Cuando el entrelazado está activado para cuadros acelerados \n"
-"en hardware, alterna entre el campo superior e inferior \n"
+"Cuando el entrelazado está activado para cuadros acelerados\n"
+"en hardware, alterna entre el campo superior e inferior\n"
 "al doble de la frecuencia de cuadro.\n"
 
-#: src/video_out/video_out_xxmc.c:2701
+#: src/video_out/video_out_xxmc.c:2703
 msgid "Don't use bob deinterlacing for progressive frames."
 msgstr "No usar desentrelazado «bob» para cuadros progresivos."
 
@@ -5192,13 +5200,12 @@ msgstr ""
 "2 - sactivar filtrado bilineal completo"
 
 #: src/video_out/xv_common.h:53
-#, fuzzy
 msgid "Xv port number"
-msgstr "mal número de entrada"
+msgstr "puerto Xv número"
 
 #: src/video_out/xv_common.h:54
 msgid "Selects the Xv port number to use (0 to autodetect)."
-msgstr ""
+msgstr "Selecciona el número de puerto Xv a usar (0 para autodetectar)."
 
 #: src/video_out/xv_common.h:57
 msgid "pitch alignment workaround"
@@ -5210,15 +5217,29 @@ msgstr ""
 "Algunos drivers de vídeo con errores necesitan un rodeo para que funcionen "
 "adecuadamente."
 
-#: src/video_out/xv_common.h:66
+#: src/video_out/xv_common.h:69
 msgid "video display method preference"
-msgstr ""
+msgstr "preferencia de método de visualización de vídeo (display)"
 
-#: src/video_out/xv_common.h:67
+#: src/video_out/xv_common.h:70
 msgid ""
 "Selects which video output method is preferred. Detection is done using the "
 "reported Xv adaptor names.\n"
 "(Only applies when auto-detecting which Xv port to use.)"
+msgstr ""
+"Selecciona que método de salida de vídeo se prefiere. La detección se hace "
+"usando los nombres reportados del adaptador Xv.\n"
+"(Sólo aplica al detectar qué puerto Xv a usar.)"
+
+#: src/video_out/xv_common.h:77
+#, fuzzy
+msgid "bicubic filtering"
+msgstr "filtro de parpadeo"
+
+#: src/video_out/xv_common.h:78
+msgid ""
+"This option controls bicubic filtering of the video image. It may be used "
+"instead of, or as well as, xine's deinterlacers."
 msgstr ""
 
 #: src/xine-engine/alphablend.c:2146
@@ -5393,8 +5414,8 @@ msgid ""
 msgstr ""
 "Si activa esta opción, el audio se escuchará incluso cuando la velocidad de "
 "reproducción no sea 1X. Por supuesto, sonará distorsionado (tono más agudo o "
-"grave). Si desea experimentar preservando el tono, puede probar el "
-"postcomplemento de sonido  'stretch' en su lugar."
+"grave). Si desea experimentar preservando el tono, puede probar el post-"
+"complemento de sonido  'stretch' en su lugar."
 
 #: src/xine-engine/audio_out.c:2229
 msgid "startup audio volume"
@@ -5506,7 +5527,7 @@ msgstr "input_rip: error escribiendo al fichero %<PRIdMAX> bytes: %s\n"
 #: src/xine-engine/input_rip.c:182
 #, c-format
 msgid "input_rip: open() function should never be called\n"
-msgstr "input_rip: la función open() no debería ser llamada nunca\n"
+msgstr "input_rip: la función open() no debiera ser nunca llamada\n"
 
 #: src/xine-engine/input_rip.c:313 src/xine-engine/input_rip.c:418
 #, c-format

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 0.9.13\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2008-11-10 15:29+0100\n"
+"POT-Creation-Date: 2008-12-27 22:31+0000\n"
 "PO-Revision-Date: 2002-01-22 18:31GMT-3\n"
 "Last-Translator: Marcelo Roberto Jimenez <mroberto@cetuc.puc-rio.br>\n"
 "Language-Team: Portuguese (Brazilian) <pt_BR@li.org>\n"
@@ -3883,7 +3883,12 @@ msgstr ""
 msgid "video_out_xv: Xv extension not present.\n"
 msgstr ""
 
-#: src/video_out/video_out_xv.c:1465
+#: src/video_out/video_out_xv.c:1428
+#, c-format
+msgid "%s: could not open Xv port %<PRId32> - autodetecting\n"
+msgstr ""
+
+#: src/video_out/video_out_xv.c:1441
 msgid ""
 "video_out_xv: Xv extension is present but I couldn't find a usable yuv12 "
 "port.\n"
@@ -4126,6 +4131,16 @@ msgid ""
 "Selects which video output method is preferred. Detection is done using the "
 "reported Xv adaptor names.\n"
 "(Only applies when auto-detecting which Xv port to use.)"
+msgstr ""
+
+#: src/video_out/xv_common.h:77
+msgid "bicubic filtering"
+msgstr ""
+
+#: src/video_out/xv_common.h:78
+msgid ""
+"This option controls bicubic filtering of the video image. It may be used "
+"instead of, or as well as, xine's deinterlacers."
 msgstr ""
 
 #: src/xine-engine/alphablend.c:2146
