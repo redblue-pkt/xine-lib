@@ -57,6 +57,9 @@
 	_("pitch alignment workaround"), \
 	_("Some buggy video drivers need a workaround to function properly.")
 
+#define VIDEO_DEVICE_XV_VSYNC_ATOMS \
+	{ "XV_SYNC_TO_VBLANK", "XV_VSYNC" }
+
 typedef enum {
   xv_prefer_none, xv_prefer_overlay, xv_prefer_textured
 } xv_prefertype;
