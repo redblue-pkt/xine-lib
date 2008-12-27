@@ -2129,36 +2129,27 @@ static void xxmc_check_capability (xxmc_driver_t *this,
     this->props[property].value  = int_default;
 }
 
-static void xxmc_update_XV_FILTER(void *this_gen, xine_cfg_entry_t *entry) {
+static void xxmc_update_attr (void *this_gen, xine_cfg_entry_t *entry,
+			    const char *atomstr, const char *debugstr)
+{
   xxmc_driver_t *this = (xxmc_driver_t *) this_gen;
   Atom atom;
-  int xv_filter;
-
-  xv_filter = entry->num_value;
 
   XLockDisplay(this->display);
-  atom = XInternAtom (this->display, "XV_FILTER", False);
-  XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
+  atom = XInternAtom (this->display, atomstr, False);
+  XvSetPortAttribute (this->display, this->xv_port, atom, entry->num_value);
   XUnlockDisplay(this->display);
 
   xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-	  "video_out_xxmc: bilinear scaling mode (XV_FILTER) = %d\n",xv_filter);
+	  LOG_MODULE ": %s = %d\n", debugstr, entry->num_value);
+}
+
+static void xxmc_update_XV_FILTER(void *this_gen, xine_cfg_entry_t *entry) {
+  xxmc_update_attr (this_gen, entry, "XV_FILTER", "bilinear scaling mode");
 }
 
 static void xxmc_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) {
-  xxmc_driver_t *this = (xxmc_driver_t *) this_gen;
-  Atom         atom;
-  int          xv_double_buffer;
-
-  xv_double_buffer = entry->num_value;
-
-  XLockDisplay(this->display);
-  atom = XInternAtom (this->display, "XV_DOUBLE_BUFFER", False);
-  XvSetPortAttribute (this->display, this->xv_port, atom, xv_double_buffer);
-  XUnlockDisplay(this->display);
-
-  xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-	  "video_out_xxmc: double buffering mode = %d\n", xv_double_buffer);
+  xxmc_update_attr (this_gen, entry, "XV_DOUBLE_BUFFER", "double buffering mode");
 }
 
 static void xxmc_update_xv_pitch_alignment(void *this_gen, xine_cfg_entry_t *entry) {

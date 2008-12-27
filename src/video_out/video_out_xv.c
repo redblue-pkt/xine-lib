@@ -1269,52 +1269,31 @@ static void xv_update_deinterlace(void *this_gen, xine_cfg_entry_t *entry) {
   this->deinterlace_method = entry->num_value;
 }
 
-static void xv_update_XV_FILTER(void *this_gen, xine_cfg_entry_t *entry) {
+static void xv_update_attr (void *this_gen, xine_cfg_entry_t *entry,
+			    const char *atomstr, const char *debugstr)
+{
   xv_driver_t *this = (xv_driver_t *) this_gen;
   Atom atom;
-  int xv_filter;
-
-  xv_filter = entry->num_value;
 
   LOCK_DISPLAY(this);
-  atom = XInternAtom (this->display, "XV_FILTER", False);
-  XvSetPortAttribute (this->display, this->xv_port, atom, xv_filter);
+  atom = XInternAtom (this->display, atomstr, False);
+  XvSetPortAttribute (this->display, this->xv_port, atom, entry->num_value);
   UNLOCK_DISPLAY(this);
 
   xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-	  "video_out_xv: bilinear scaling mode (XV_FILTER) = %d\n",xv_filter);
+	  LOG_MODULE ": %s = %d\n", debugstr, entry->num_value);
+}
+
+static void xv_update_XV_FILTER(void *this_gen, xine_cfg_entry_t *entry) {
+  xv_update_attr (this_gen, entry, "XV_FILTER", "bilinear scaling mode");
 }
 
 static void xv_update_XV_DOUBLE_BUFFER(void *this_gen, xine_cfg_entry_t *entry) {
-  xv_driver_t *this = (xv_driver_t *) this_gen;
-  Atom         atom;
-  int          xv_double_buffer;
-
-  xv_double_buffer = entry->num_value;
-
-  LOCK_DISPLAY(this);
-  atom = XInternAtom (this->display, "XV_DOUBLE_BUFFER", False);
-  XvSetPortAttribute (this->display, this->xv_port, atom, xv_double_buffer);
-  UNLOCK_DISPLAY(this);
-
-  xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-	  "video_out_xv: double buffering mode = %d\n", xv_double_buffer);
+  xv_update_attr (this_gen, entry, "XV_DOUBLE_BUFFER", "double buffering mode");
 }
 
 static void xv_update_XV_SYNC_TO_VBLANK(void *this_gen, xine_cfg_entry_t *entry) {
-  xv_driver_t *this = (xv_driver_t *) this_gen;
-  Atom         atom;
-  int          xv_sync_to_vblank;
-
-  xv_sync_to_vblank = entry->num_value;
-
-  LOCK_DISPLAY(this);
-  atom = XInternAtom (this->display, "XV_SYNC_TO_VBLANK", False);
-  XvSetPortAttribute (this->display, this->xv_port, atom, xv_sync_to_vblank);
-  UNLOCK_DISPLAY(this);
-
-  xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-	  "video_out_xv: sync to vblank = %d\n", xv_sync_to_vblank);
+  xv_update_attr (this_gen, entry, "XV_SYNC_TO_VBLANK", "sync to vblank");
 }
 
 static void xv_update_xv_pitch_alignment(void *this_gen, xine_cfg_entry_t *entry) {
