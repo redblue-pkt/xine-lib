@@ -158,9 +158,9 @@ typedef struct {
   xine_t              *xine;
 } xv_class_t;
 
-static const char *const prefer_types[] = VIDEO_DEVICE_XV_PREFER_TYPES;
-static const char *const bicubic_types[] = VIDEO_DEVICE_XV_BICUBIC_TYPES;
-static const char *const sync_atoms[] = VIDEO_DEVICE_XV_VSYNC_ATOMS;
+VIDEO_DEVICE_XV_DECL_BICUBIC_TYPES;
+VIDEO_DEVICE_XV_DECL_PREFER_TYPES;
+VIDEO_DEVICE_XV_DECL_SYNC_ATOMS;
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
