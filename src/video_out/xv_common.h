@@ -65,8 +65,10 @@
 	typedef enum { \
 	  xv_prefer_none, xv_prefer_overlay, xv_prefer_textured, \
 	} xv_prefertype; \
-	static const char *const prefer_types[] = \
-		{ "Any", "Overlay", "Textured Video", NULL };
+	static const char *const prefer_labels[] = \
+		{ "Any", "Overlay", "Textured Video", NULL }; \
+	static const char prefer_substrings[][8] = \
+		{ "", "Overlay", "Texture" };
 #define VIDEO_DEVICE_XV_PREFER_TYPE_HELP \
 	_("video display method preference"), \
 	_("Selects which video output method is preferred. " \

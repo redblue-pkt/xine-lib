@@ -1347,7 +1347,7 @@ static XvPortID xv_autodetect_port(xv_driver_t *this,
   for (an = 0; an < adaptors; an++)
     if (adaptor_info[an].type & XvImageMask &&
         (prefer_type == xv_prefer_none ||
-         strcasestr (adaptor_info[an].name, prefer_types[prefer_type])))
+         strcasestr (adaptor_info[an].name, prefer_substrings[prefer_type])))
       for (j = 0; j < adaptor_info[an].num_ports; j++) {
 	XvPortID port = adaptor_info[an].base_id + j;
 	if (port >= base && xv_open_port(this, port)) {
@@ -1419,7 +1419,7 @@ static vo_driver_t *open_plugin_2 (video_driver_class_t *class_gen, const void *
 				  VIDEO_DEVICE_XV_PORT_HELP,
 				  20, NULL, NULL);
   prefer_type = config->register_enum (config, "video.device.xv_preferred_method", 0,
-				       prefer_types, VIDEO_DEVICE_XV_PREFER_TYPE_HELP,
+				       prefer_labels, VIDEO_DEVICE_XV_PREFER_TYPE_HELP,
 				       10, NULL, NULL);
 
   if (xv_port != 0) {
