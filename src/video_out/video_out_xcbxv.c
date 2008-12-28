@@ -1329,7 +1329,7 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
   xcb_xv_list_image_formats_cookie_t list_formats_cookie;
   xcb_xv_list_image_formats_reply_t *list_formats_reply;
 
-  xcb_xv_adaptor_info_iterator_t adaptor_it;
+  xcb_xv_adaptor_info_iterator_t adaptor_it, adaptor_first;
   xcb_xv_image_format_info_iterator_t format_it;
 
   this = (xv_driver_t *) calloc(1, sizeof(xv_driver_t));
@@ -1367,7 +1367,7 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
     return NULL;
   }
 
-  adaptor_it = xcb_xv_query_adaptors_info_iterator(query_adaptors_reply);
+  adaptor_first = xcb_xv_query_adaptors_info_iterator(query_adaptors_reply);
   xv_port = config->register_num (config, "video.device.xv_port", 0,
 				  VIDEO_DEVICE_XV_PORT_HELP,
 				  20, NULL, NULL);
@@ -1380,14 +1380,21 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
       xprintf(class->xine, XINE_VERBOSITY_NONE,
 	      _("%s: could not open Xv port %d - autodetecting\n"),
 	      LOG_MODULE, xv_port);
+      adaptor_it = adaptor_first;
       xv_port = xv_autodetect_port (this, &adaptor_it, xv_port, prefer_type);
     } else
       xv_find_adaptor_by_port (xv_port, &adaptor_it);
   }
   if (!xv_port)
+  {
+    adaptor_it = adaptor_first;
     xv_port = xv_autodetect_port (this, &adaptor_it, 0, prefer_type);
+  }
   if (!xv_port)
+  {
+    adaptor_it = adaptor_first;
     xv_port = xv_autodetect_port (this, &adaptor_it, 0, xv_prefer_none);
+  }
 
   if (!xv_port) {
     xprintf(class->xine, XINE_VERBOSITY_LOG,
