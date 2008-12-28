@@ -63,12 +63,12 @@
 
 #define VIDEO_DEVICE_XV_DECL_PREFER_TYPES \
 	typedef enum { \
-	  xv_prefer_none, xv_prefer_overlay, xv_prefer_textured, \
+	  xv_prefer_none, xv_prefer_overlay, xv_prefer_textured, xv_prefer_blitter, \
 	} xv_prefertype; \
 	static const char *const prefer_labels[] = \
-		{ "Any", "Overlay", "Textured Video", NULL }; \
+		{ "Any", "Overlay", "Textured Video", "Blitter", NULL }; \
 	static const char prefer_substrings[][8] = \
-		{ "", "Overlay", "Texture" };
+		{ "", "Overlay", "Texture", "Blitter" };
 #define VIDEO_DEVICE_XV_PREFER_TYPE_HELP \
 	_("video display method preference"), \
 	_("Selects which video output method is preferred. " \
