@@ -1392,6 +1392,10 @@ static vo_driver_t *open_plugin(video_driver_class_t *class_gen, const void *vis
   }
   if (!xv_port)
   {
+    if (prefer_type)
+      xprintf(class->xine, XINE_VERBOSITY_NONE,
+	      _("%s: no available ports of type \"%s\", defaulting...\n"),
+	      LOG_MODULE, prefer_labels[prefer_type]);
     adaptor_it = adaptor_first;
     xv_port = xv_autodetect_port (this, &adaptor_it, 0, xv_prefer_none);
   }
