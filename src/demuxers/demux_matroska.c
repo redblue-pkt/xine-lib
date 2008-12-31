@@ -1302,6 +1302,9 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       xine_bmiheader *bih;
       
       lprintf("MATROSKA_CODEC_ID_V_MPEG4_*\n");
+      if (track->codec_private_len > 0x7fffffff - sizeof(xine_bmiheader))
+        track->codec_private_len = 0x7fffffff - sizeof(xine_bmiheader);
+      
       /* create a bitmap info header struct for MPEG 4 */
       bih = malloc(sizeof(xine_bmiheader) + track->codec_private_len);
       bih->biSize = sizeof(xine_bmiheader) + track->codec_private_len;
@@ -1323,6 +1326,9 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       xine_bmiheader *bih;
       
       lprintf("MATROSKA_CODEC_ID_V_MPEG4_AVC\n");
+      if (track->codec_private_len > 0x7fffffff - sizeof(xine_bmiheader))
+        track->codec_private_len = 0x7fffffff - sizeof(xine_bmiheader);
+      
       /* create a bitmap info header struct for h264 */
       bih = malloc(sizeof(xine_bmiheader) + track->codec_private_len);
       bih->biSize = sizeof(xine_bmiheader) + track->codec_private_len;
