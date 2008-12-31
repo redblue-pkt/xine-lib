@@ -920,7 +920,7 @@ static void demux_mpeg_resync (demux_mpeg_t *this, uint32_t buf) {
       if (pos == len) {
 	len = this->input->read(this->input, dummy_buf, sizeof(dummy_buf));
         pos = 0;
-        if (len == 0) {
+        if (len <= 0) {
           this->status = DEMUX_FINISHED;
 	  break;
 	}
