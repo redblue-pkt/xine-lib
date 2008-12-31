@@ -1823,6 +1823,11 @@ static int read_block_data (demux_matroska_t *this, size_t len) {
   alloc_block_data(this, len);
 
   /* block datas */
+  if (! this->block_data) {
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+            "demux_matroska: memory allocation error\n");
+    return 0;
+  }
   if (this->input->read(this->input, this->block_data, len) != len) {
     off_t pos = this->input->get_current_pos(this->input);
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
