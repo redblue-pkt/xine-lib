@@ -104,7 +104,12 @@ static mng_bool mymng_close_stream(mng_handle mngh){
 static mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 size, mng_uint32 *bytesread){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
-  *bytesread = this->input->read(this->input, buffer, size);
+  off_t n = this->input->read(this->input, buffer, size);
+  if (n < 0) {
+	*bytesread = 0;
+	return MNG_FALSE;
+  }
+  *bytesread = n;
 
   return MNG_TRUE;
 }
