@@ -2208,7 +2208,7 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input,
   }
 
   /* check if moov is compressed */
-  if (_X_BE_32(&moov_atom[12]) == CMOV_ATOM) {
+  if (_X_BE_32(&moov_atom[12]) == CMOV_ATOM && moov_atom_size >= 0x28) {
 
     info->compressed_header = 1;
 
