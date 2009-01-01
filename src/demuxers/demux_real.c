@@ -318,9 +318,15 @@ static void real_free_mdpr (mdpr_t *mdpr) {
 }
 
 static void real_parse_audio_specific_data (demux_real_t *this,
-					    real_stream_t * stream,
-					    uint8_t * data)
+					    real_stream_t * stream)
 {
+  if (stream->mdpr->type_specific_len < 46) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+	     "demux_real: audio data size smaller than header length!\n");
+    return;
+  }
+
+  uint8_t * data = stream->mdpr->type_specific_data;
   const uint32_t coded_frame_size  = _X_BE_32 (data+24);
   const uint16_t codec_data_length = _X_BE_16 (data+40);
   const uint16_t coded_frame_size2 = _X_BE_16 (data+42);
@@ -543,11 +549,11 @@ static void real_parse_headers (demux_real_t *this) {
 	    this->audio_streams[this->num_audio_streams].mdpr = mdpr;
 
 	    real_parse_audio_specific_data (this,
-					    &this->audio_streams[this->num_audio_streams], 
-					    mdpr->type_specific_data);
+					    &this->audio_streams[this->num_audio_streams]);
 	    this->num_audio_streams++;
 
-	  } else if(_X_BE_32(mdpr->type_specific_data + 4) == VIDO_TAG) {
+	  } else if(_X_BE_32(mdpr->type_specific_data + 4) == VIDO_TAG &&
+		    mdpr->type_specific_len >= 34) {
 
 	    if(this->num_video_streams == MAX_VIDEO_STREAMS) {
 	      xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
