@@ -1704,7 +1704,13 @@ static inline const char *mrl_to_host (const char *mrl)
 static int vdr_plugin_open_fifo_mrl(input_plugin_t *this_gen)
 {
   vdr_input_plugin_t *this = (vdr_input_plugin_t *)this_gen;
-  char *filename = strdup (mrl_to_fifo (this->mrl));
+  char *filename = mrl_to_fifo (this->mrl);
+
+  if(!strcmp(filename, "/")) {
+	  filename = VDR_ABS_FIFO_DIR "/stream";
+  }
+
+  filename = strdup(filename);
 
   _x_mrl_unescape (filename);
   this->fh = open(filename, O_RDONLY | O_NONBLOCK);
