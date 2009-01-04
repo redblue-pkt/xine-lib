@@ -1559,7 +1559,7 @@ static off_t vdr_plugin_get_length(input_plugin_t *this_gen)
 
 static uint32_t vdr_plugin_get_capabilities(input_plugin_t *this_gen)
 {
-  return INPUT_CAP_NOCAP; /* INPUT_CAP_PREVIEW; */
+  return INPUT_CAP_PREVIEW;
 }
 
 static uint32_t vdr_plugin_get_blocksize(input_plugin_t *this_gen)
@@ -1676,16 +1676,13 @@ static int vdr_plugin_get_optional_data(input_plugin_t *this_gen,
                                         void *data, int data_type)
 {
   vdr_input_plugin_t *this = (vdr_input_plugin_t *)this_gen;
-  int preview_size = (this->preview_size > MAX_PREVIEW_SIZE) ? MAX_PREVIEW_SIZE : this->preview_size;
-  (void)preview_size;
-/*
   switch (data_type)
   {
   case INPUT_OPTIONAL_DATA_PREVIEW:
-    memcpy (data, this->preview, preview_size);
-    return preview_size;
+    /* just fake what mpeg_pes demuxer expects */
+    memcpy (data, "\x00\x00\x01\xe0\x00\x00", 6);
+    return 6;
   }
-*/  
   return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
