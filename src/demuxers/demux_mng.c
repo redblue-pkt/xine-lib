@@ -112,6 +112,9 @@ static mng_bool mymng_read_stream(mng_handle mngh, mng_ptr buffer, mng_uint32 si
 static mng_bool mymng_process_header(mng_handle mngh, mng_uint32 width, mng_uint32 height){
   demux_mng_t *this = (demux_mng_t*)mng_get_userdata(mngh);
 
+  if (width > 0x8000 || height > 0x8000)
+      return MNG_FALSE;
+
   this->bih.biWidth = (width + 7) & ~7;
   this->bih.biHeight = height;
   this->left_edge = (this->bih.biWidth - width) / 2;

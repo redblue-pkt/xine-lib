@@ -1597,13 +1597,16 @@ static qt_error parse_reference_atom (reference_t *ref,
   qt_atom current_atom;
   unsigned int current_atom_size;
 
+  if (ref_atom_size >= 0x80000000)
+    return QT_NOT_A_VALID_FILE;
+
   /* initialize reference atom */
   ref->url = NULL;
   ref->data_rate = 0;
   ref->qtim_version = 0;
 
   /* traverse through the atom looking for the key atoms */
-  for (i = ATOM_PREAMBLE_SIZE; i < ref_atom_size - 4; i++) {
+  for (i = ATOM_PREAMBLE_SIZE; i + 4 < ref_atom_size; i++) {
 
     current_atom_size = _X_BE_32(&ref_atom[i - 4]);
     current_atom = _X_BE_32(&ref_atom[i]);
@@ -1612,7 +1615,7 @@ static qt_error parse_reference_atom (reference_t *ref,
       size_t string_size = _X_BE_32(&ref_atom[i + 12]);
       size_t url_offset = 0;
 
-      if (string_size >= current_atom_size || i + string_size >= ref_atom_size)
+      if (string_size >= current_atom_size || string_size >= ref_atom_size - i)
         return QT_NOT_A_VALID_FILE;
 
       /* if the URL starts with "http://", copy it */
@@ -1620,6 +1623,8 @@ static qt_error parse_reference_atom (reference_t *ref,
 	   memcmp(&ref_atom[i + 16], "rtsp://", 7) &&
 	   base_mrl )
 	url_offset = strlen(base_mrl);
+      if (url_offset >= 0x80000000)
+        return QT_NOT_A_VALID_FILE;
 
       /* otherwise, append relative URL to base MRL */
       string_size += url_offset;
