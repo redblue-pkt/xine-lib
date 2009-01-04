@@ -359,9 +359,14 @@ static void real_parse_audio_specific_data (demux_real_t *this,
    *   stream->frame_size      = stream->w / stream->sps * stream->h * stream->sps;
    * but it looks pointless? the compiler will probably optimise it away, I suppose?
    */
-  stream->frame_size = stream->w * stream->h;
+  if (stream->w < 32768 && stream->h < 32768) {
+    stream->frame_size = stream->w * stream->h;
+    stream->frame_buffer = calloc(stream->frame_size, 1);
+  } else {
+    stream->frame_size = 0;
+    stream->frame_buffer = NULL;
+  }
 
-  stream->frame_buffer = calloc(stream->frame_size, 1);
   stream->frame_num_bytes = 0;
   stream->sub_packet_cnt = 0;
 
