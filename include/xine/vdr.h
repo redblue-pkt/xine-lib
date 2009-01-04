@@ -22,7 +22,7 @@
 #define __VDR_H
 
 
-#define XINE_VDR_VERSION 802
+#define XINE_VDR_VERSION 900
 
 
 enum funcs
@@ -60,6 +60,8 @@ enum funcs
   , func_select_audio
   , func_trick_speed_mode
   , func_get_version
+  , func_discontinuity
+  , func_query_capabilities
 };
 
 enum keys
@@ -154,6 +156,8 @@ typedef struct __attribute__((packed)) data_osd_new_s
   int16_t  y;
   uint16_t width;
   uint16_t height;
+  uint16_t w_ref;
+  uint16_t h_ref;
 }
 data_osd_new_t;
 
@@ -226,6 +230,7 @@ typedef struct __attribute__((packed)) data_osd_draw_bitmap_s
   int16_t  y;
   uint16_t width;
   uint16_t height;
+  uint8_t  argb;
 }
 data_osd_draw_bitmap_t;
 
@@ -422,6 +427,11 @@ typedef struct __attribute__((packed)) result_grab_image_s
   int32_t height;
   int32_t ratio;
   int32_t format;
+  int32_t interlaced;
+  int32_t crop_left;
+  int32_t crop_right;
+  int32_t crop_top;
+  int32_t crop_bottom;
 }
 result_grab_image_t;
 
@@ -550,39 +560,72 @@ data_trick_speed_mode_t;
 
 
 
+typedef struct __attribute__((packed)) event_discontinuity_s
+{
+  event_header_t header;
+  
+  int32_t type;
+}
+event_discontinuity_t;
+
+
+
+typedef struct __attribute__((packed)) data_query_capabilities_s
+{
+  data_header_t header;
+}
+data_query_capabilities_t;
+
+
+
+typedef struct __attribute__((packed)) result_query_capabilities_s
+{
+  result_header_t header;
+
+  uint8_t osd_max_num_windows;
+  uint8_t osd_palette_max_depth;
+  uint8_t osd_palette_is_shared;
+  uint8_t osd_supports_argb_layer;
+  uint8_t osd_supports_custom_extent;
+}
+result_query_capabilities_t;
+
+
+
 typedef union __attribute__((packed)) data_union_u
 {
-  data_header_t           header;
-  data_nop_t              nop;
-  data_osd_new_t          osd_new;
-  data_osd_free_t         osd_free;
-  data_osd_show_t         osd_show;
-  data_osd_hide_t         osd_hide;
-  data_osd_set_position_t osd_set_position;
-  data_osd_draw_bitmap_t  osd_draw_bitmap;
-  data_set_color_t        set_color;
-  data_flush_t            flush;
-  data_clear_t            clear;
-  data_mute_t             mute;
-  data_set_volume_t       set_volume;
-  data_set_speed_t        set_speed;
-  data_set_prebuffer_t    set_prebuffer;
-  data_metronom_t         metronom;
-  data_start_t            start;
-  data_wait_t             wait;
-  data_setup_t            setup;
-  data_grab_image_t       grab_image;
-  data_get_pts_t          get_pts;
-  data_first_frame_t      first_frame;
-  data_still_frame_t      still_frame;
-  data_video_size_t       video_size;
-  data_set_video_window_t set_video_window;
-  data_osd_flush_t        osd_flush;
-  data_play_external_t    play_external;
-  data_reset_audio_t      reset_audio;
-  data_select_audio_t     select_audio;
-  data_trick_speed_mode_t trick_speed_mode;
-  data_get_version_t      get_version;
+  data_header_t             header;
+  data_nop_t                nop;
+  data_osd_new_t            osd_new;
+  data_osd_free_t           osd_free;
+  data_osd_show_t           osd_show;
+  data_osd_hide_t           osd_hide;
+  data_osd_set_position_t   osd_set_position;
+  data_osd_draw_bitmap_t    osd_draw_bitmap;
+  data_set_color_t          set_color;
+  data_flush_t              flush;
+  data_clear_t              clear;
+  data_mute_t               mute;
+  data_set_volume_t         set_volume;
+  data_set_speed_t          set_speed;
+  data_set_prebuffer_t      set_prebuffer;
+  data_metronom_t           metronom;
+  data_start_t              start;
+  data_wait_t               wait;
+  data_setup_t              setup;
+  data_grab_image_t         grab_image;
+  data_get_pts_t            get_pts;
+  data_first_frame_t        first_frame;
+  data_still_frame_t        still_frame;
+  data_video_size_t         video_size;
+  data_set_video_window_t   set_video_window;
+  data_osd_flush_t          osd_flush;
+  data_play_external_t      play_external;
+  data_reset_audio_t        reset_audio;
+  data_select_audio_t       select_audio;
+  data_trick_speed_mode_t   trick_speed_mode;
+  data_get_version_t        get_version;
+  data_query_capabilities_t query_capabilities;
 }
 data_union_t;
 
@@ -590,13 +633,14 @@ data_union_t;
 
 typedef union __attribute__((packed)) result_union_u
 {
-  result_header_t         header;
-  result_grab_image_t     grab_image;
-  result_get_pts_t        get_pts;
-  result_flush_t          flush;
-  result_video_size_t     video_size;
-  result_get_version_t    get_version;
-  result_wait_t           wait;
+  result_header_t             header;
+  result_grab_image_t         grab_image;
+  result_get_pts_t            get_pts;
+  result_flush_t              flush;
+  result_video_size_t         video_size;
+  result_get_version_t        get_version;
+  result_wait_t               wait;
+  result_query_capabilities_t query_capabilities;
 }
 result_union_t;
 
@@ -608,6 +652,7 @@ typedef union __attribute__((packed)) event_union_u
   event_key_t             key;
   event_frame_size_t      frame_size;
   event_play_external_t   play_external;
+  event_discontinuity_t   discontinuity;
 }
 event_union_t;
 

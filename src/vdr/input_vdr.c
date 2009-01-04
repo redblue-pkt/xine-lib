@@ -72,6 +72,16 @@ typedef struct
 vdr_metronom_t;
 
 
+typedef struct vdr_osd_s
+{
+  xine_osd_t *window;
+  uint8_t    *argb_buffer;  
+  int         width;
+  int         height;
+}
+vdr_osd_t;
+
+
 struct vdr_input_plugin_s
 {
   input_plugin_t      input_plugin;
@@ -96,10 +106,12 @@ struct vdr_input_plugin_s
   off_t               cur_size;
   off_t               cur_done;
 
-  xine_osd_t         *osd_window[ VDR_MAX_NUM_WINDOWS ];
+  vdr_osd_t           osd[ VDR_MAX_NUM_WINDOWS ];
   uint8_t            *osd_buffer;
   uint32_t            osd_buffer_size;
   uint8_t             osd_unscaled_blending;
+  uint8_t             osd_supports_custom_extent;
+  uint8_t             osd_supports_argb_layer;
 
   uint8_t             audio_channels;
   uint8_t             trick_speed_mode;
@@ -336,24 +348,30 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
     {
       READ_DATA_OR_FAIL(osd_new, LOG_OSD(lprintf("got OSDNEW\n")));
 /*
-      LOG_OSD(lprintf("... (%d,%d)-(%d,%d)\n", data->x, data->y, data->width, data->height));
+      LOG_OSD(lprintf("... (%d,%d)-(%d,%d)@(%d,%d)\n", data->x, data->y, data->width, data->height, data->w_ref, data->h_ref));
 
       fprintf(stderr, "vdr: osdnew %d\n", data->window);
 */    
       if (data->window >= VDR_MAX_NUM_WINDOWS)
         return -1;
       
-      if (0 != this->osd_window[ data->window ])
+      if (0 != this->osd[ data->window ].window)
         return -1;
-      
-      this->osd_window[ data->window ] = xine_osd_new(this->stream
+
+      this->osd[ data->window ].window = xine_osd_new(this->stream
                                                      , data->x
                                                      , data->y
                                                      , data->width
                                                      , data->height);
+
+      this->osd[ data->window ].width  = data->width;
+      this->osd[ data->window ].height = data->height;
       
-      if (0 == this->osd_window[ data->window ])
+      if (0 == this->osd[ data->window ].window)
         return -1;
+
+      if (this->osd_supports_custom_extent && data->w_ref > 0 && data->h_ref > 0)
+        xine_osd_set_extent(this->osd[ data->window ].window, data->w_ref, data->h_ref);
     }
     break;
 
@@ -366,10 +384,13 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
       if (data->window >= VDR_MAX_NUM_WINDOWS)
         return -1;
       
-      if (0 != this->osd_window[ data->window ])
-        xine_osd_free(this->osd_window[ data->window ]);
-      
-      this->osd_window[ data->window ] = 0;
+      if (0 != this->osd[ data->window ].window)
+        xine_osd_free(this->osd[ data->window ].window);
+
+      this->osd[ data->window ].window = 0;
+
+      free(this->osd[ data->window ].argb_buffer);
+      this->osd[ data->window ].argb_buffer = 0;
     }
     break;
     
@@ -382,12 +403,12 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
       if (data->window >= VDR_MAX_NUM_WINDOWS)
         return -1;
       
-      if (0 != this->osd_window[ data->window ])
+      if (0 != this->osd[ data->window ].window)
       {
         if (this->osd_unscaled_blending)
-          xine_osd_show_unscaled(this->osd_window[ data->window ], 0);
+          xine_osd_show_unscaled(this->osd[ data->window ].window, 0);
         else
-          xine_osd_show(this->osd_window[ data->window ], 0);
+          xine_osd_show(this->osd[ data->window ].window, 0);
       }
     }
     break;
@@ -401,12 +422,12 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
       if (data->window >= VDR_MAX_NUM_WINDOWS)
         return -1;
       
-      if (0 != this->osd_window[ data->window ])
+      if (0 != this->osd[ data->window ].window)
       {
         if (this->osd_unscaled_blending)
-          xine_osd_show_unscaled(this->osd_window[ data->window ], 0);
+          xine_osd_show_unscaled(this->osd[ data->window ].window, 0);
         else
-          xine_osd_show(this->osd_window[ data->window ], 0);
+          xine_osd_show(this->osd[ data->window ].window, 0);
       }
     }
     break;
@@ -458,8 +479,8 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
       if (data->window >= VDR_MAX_NUM_WINDOWS)
         return -1;
       
-      if (0 != this->osd_window[ data->window ])
-        xine_osd_set_position(this->osd_window[ data->window ], data->x, data->y);
+      if (0 != this->osd[ data->window ].window)
+        xine_osd_set_position(this->osd[ data->window ].window, data->x, data->y);
     }
     break;
   
@@ -492,8 +513,41 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
       if (data->window >= VDR_MAX_NUM_WINDOWS)
         return -1;
       
-      if (0 != this->osd_window[ data->window ])
-        xine_osd_draw_bitmap(this->osd_window[ data->window ], this->osd_buffer, data->x, data->y, data->width, data->height, 0);
+      if (0 != this->osd[ data->window ].window)
+      {
+        vdr_osd_t *osd = &this->osd[ data->window ];
+
+        if (data->argb)
+        {
+          if (!osd->argb_buffer)
+            osd->argb_buffer = calloc(4 * osd->width, osd->height);
+
+          {
+            int src_stride = 4 * data->width;
+            int dst_stride = 4 * osd->width;
+
+            uint8_t *src = this->osd_buffer;
+            uint8_t *dst = osd->argb_buffer + data->y * dst_stride + data->x * 4;
+            int y;
+
+            if (src_stride == dst_stride)
+              xine_fast_memcpy(dst, src, src_stride * data->height);
+            else
+            {
+              for (y = 0; y < data->height; y++)
+              {
+                xine_fast_memcpy(dst, src, src_stride);
+                dst += dst_stride;
+                src += src_stride;
+              }
+            }
+          }
+         
+          xine_osd_set_argb_buffer(osd->window, (uint32_t *)osd->argb_buffer, data->x, data->y, data->width, data->height);
+        }
+        else
+          xine_osd_draw_bitmap(osd->window, this->osd_buffer, data->x, data->y, data->width, data->height, 0);
+      }
     }
     break;
     
@@ -515,12 +569,12 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
       if (data->window >= VDR_MAX_NUM_WINDOWS)
         return -1;
       
-      if (0 != this->osd_window[ data->window ])
+      if (0 != this->osd[ data->window ].window)
       {
         uint32_t color[ 256 ];
         uint8_t trans[ 256 ];
         
-        xine_osd_get_palette(this->osd_window[ data->window ], color, trans);
+        xine_osd_get_palette(this->osd[ data->window ].window, color, trans);
         
         {
           int i;
@@ -546,7 +600,7 @@ static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
           }
         }
         
-        xine_osd_set_palette(this->osd_window[ data->window ], color, trans);
+        xine_osd_set_palette(this->osd[ data->window ].window, color, trans);
       }
     }
     break;
@@ -964,46 +1018,48 @@ fprintf(stderr, "--- CLEAR(%d%c)\n", data->n, data->s ? 'b' : 'a');
 
       {
         off_t ret_val   = -1;
-        xine_current_frame_data_t frame;
- 
-        if (xine_get_current_frame_data(this->stream, &frame, XINE_FRAME_DATA_ALLOCATE_IMG))
+
+        xine_current_frame_data_t frame_data;
+        memset(&frame_data, 0, sizeof (frame_data));
+        
+        if (xine_get_current_frame_data(this->stream, &frame_data, XINE_FRAME_DATA_ALLOCATE_IMG))
         {
-          if (frame.ratio_code == XINE_VO_ASPECT_SQUARE)
-            frame.ratio_code = 10000;
-          else if (frame.ratio_code == XINE_VO_ASPECT_4_3)
-            frame.ratio_code = 13333;
-          else if (frame.ratio_code == XINE_VO_ASPECT_ANAMORPHIC)
-            frame.ratio_code = 17778;
-          else if (frame.ratio_code == XINE_VO_ASPECT_DVB)
-            frame.ratio_code = 21100;
+          if (frame_data.ratio_code == XINE_VO_ASPECT_SQUARE)
+            frame_data.ratio_code = 10000;
+          else if (frame_data.ratio_code == XINE_VO_ASPECT_4_3)
+            frame_data.ratio_code = 13333;
+          else if (frame_data.ratio_code == XINE_VO_ASPECT_ANAMORPHIC)
+            frame_data.ratio_code = 17778;
+          else if (frame_data.ratio_code == XINE_VO_ASPECT_DVB)
+            frame_data.ratio_code = 21100;
         }
 
-        if (!frame.img)
-        {
-          frame.img_size   = 0,
-          frame.width      = 0;
-          frame.height     = 0;
-          frame.ratio_code = 0;
-        }          
-        
+        if (!frame_data.img)
+          memset(&frame_data, 0, sizeof (frame_data));
+       
         {
           result_grab_image_t result_grab_image;
           result_grab_image.header.func = data->header.func;
-          result_grab_image.header.len = sizeof (result_grab_image) + frame.img_size;
+          result_grab_image.header.len = sizeof (result_grab_image) + frame_data.img_size;
           
-          result_grab_image.width  = frame.width;
-          result_grab_image.height = frame.height;
-          result_grab_image.ratio  = frame.ratio_code;
-          result_grab_image.format = frame.format;
+          result_grab_image.width       = frame_data.width;
+          result_grab_image.height      = frame_data.height;
+          result_grab_image.ratio       = frame_data.ratio_code;
+          result_grab_image.format      = frame_data.format;
+          result_grab_image.interlaced  = frame_data.interlaced;
+          result_grab_image.crop_left   = frame_data.crop_left;
+          result_grab_image.crop_right  = frame_data.crop_right;
+          result_grab_image.crop_top    = frame_data.crop_top;
+          result_grab_image.crop_bottom = frame_data.crop_bottom;
           
           if (sizeof (result_grab_image) == vdr_write(this->fh_result, &result_grab_image, sizeof (result_grab_image)))
           {
-            if (!frame.img_size || (frame.img_size == vdr_write(this->fh_result, frame.img, frame.img_size)))
+            if (!frame_data.img_size || (frame_data.img_size == vdr_write(this->fh_result, frame_data.img, frame_data.img_size)))
               ret_val = 0;
           }
         }
         
-        free(frame.img);
+        free(frame_data.img);
         
         if (ret_val != 0)
           return ret_val;
@@ -1146,6 +1202,27 @@ fprintf(stderr, "--- CLEAR(%d%c)\n", data->n, data->s ? 'b' : 'a');
     }
     break;
     
+  case func_query_capabilities:
+    {
+      READ_DATA_OR_FAIL(query_capabilities, lprintf("got QUERYCAPABILITIES\n"));
+      
+      {
+        result_query_capabilities_t result_query_capabilities;
+        result_query_capabilities.header.func = data->header.func;
+        result_query_capabilities.header.len = sizeof (result_query_capabilities);
+        
+        result_query_capabilities.osd_max_num_windows = MAX_SHOWING;
+        result_query_capabilities.osd_palette_max_depth = 8;
+        result_query_capabilities.osd_palette_is_shared = 0;
+        result_query_capabilities.osd_supports_argb_layer = this->osd_supports_argb_layer;
+        result_query_capabilities.osd_supports_custom_extent = this->osd_supports_custom_extent;
+        
+        if (sizeof (result_query_capabilities) != vdr_write(this->fh_result, &result_query_capabilities, sizeof (result_query_capabilities)))
+          return -1;
+      }
+    }
+    break;
+
   default:
     lprintf("unknown function: %d\n", this->cur_func);
   }
@@ -1285,6 +1362,20 @@ static int internal_write_event_play_external(vdr_input_plugin_t *this, uint32_t
   event.header.len = sizeof (event);
 
   event.key = key;
+
+  if (sizeof (event) != vdr_write(this->fh_event, &event, sizeof (event)))
+    return -1;
+  
+  return 0;
+}
+
+static int internal_write_event_discontinuity(vdr_input_plugin_t *this, int32_t type)
+{
+  event_discontinuity_t event;
+  event.header.func = func_discontinuity;
+  event.header.len = sizeof (event);
+
+  event.type = type;
 
   if (sizeof (event) != vdr_write(this->fh_event, &event, sizeof (event)))
     return -1;
@@ -1558,11 +1649,13 @@ static void vdr_plugin_dispose(input_plugin_t *this_gen)
   
   for (i = 0; i < VDR_MAX_NUM_WINDOWS; i++)
   {
-    if (0 == this->osd_window[ i ])
+    if (0 == this->osd[ i ].window)
       continue;
 
-    xine_osd_hide(this->osd_window[ i ], 0);
-    xine_osd_free(this->osd_window[ i ]);
+    xine_osd_hide(this->osd[ i ].window, 0);
+    xine_osd_free(this->osd[ i ].window);
+
+    free(this->osd[ i ].argb_buffer);
   }
 
   if (this->osd_buffer)
@@ -1893,7 +1986,17 @@ static void event_handler(void *user_data, const xine_event_t *event)
     adjust_zoom(this);
     return;
   }
-  else if (XINE_EVENT_VDR_PLUGINSTARTED == event->type)
+
+  if (XINE_EVENT_VDR_DISCONTINUITY == event->type)
+  {
+    if (0 != internal_write_event_discontinuity(this, event->data_length))
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, 
+              _("%s: input event write: %s.\n"), LOG_MODULE, strerror(errno));
+
+    return;
+  }
+
+  if (XINE_EVENT_VDR_PLUGINSTARTED == event->type)
   {
     if (0 == event->data_length) /* vdr_video */
     {
@@ -1922,6 +2025,8 @@ static void event_handler(void *user_data, const xine_event_t *event)
     {
       fprintf(stderr, "input_vdr: illegal XINE_EVENT_VDR_PLUGINSTARTED: %d\n", event->data_length);
     }
+
+    return;
   }
 
   switch (event->type)
@@ -2014,18 +2119,33 @@ static int64_t vdr_metronom_got_spu_packet(metronom_t *self, int64_t pts)
   return this->stream_metronom->got_spu_packet(this->stream_metronom, pts);
 }
 
+static void vdr_handle_discontinuity(vdr_input_plugin_t *this, int type)
+{
+  this->last_disc_type = type;
+
+  {
+    xine_event_t event;
+        
+    event.type = XINE_EVENT_VDR_DISCONTINUITY;
+    event.data = 0;
+    event.data_length = type;
+
+    xine_event_send(this->stream, &event);
+  }
+}
+
 static void vdr_metronom_handle_audio_discontinuity(metronom_t *self, int type, int64_t disc_off)
 {
   vdr_metronom_t *this = (vdr_metronom_t *)self;
   this->stream_metronom->handle_audio_discontinuity(this->stream_metronom, type, disc_off);
-  this->input->last_disc_type = type;
+  vdr_handle_discontinuity(this->input, type);
 }
 
 static void vdr_metronom_handle_video_discontinuity(metronom_t *self, int type, int64_t disc_off)
 {
   vdr_metronom_t *this = (vdr_metronom_t *)self;
   this->stream_metronom->handle_video_discontinuity(this->stream_metronom, type, disc_off);
-  this->input->last_disc_type = type;
+  vdr_handle_discontinuity(this->input, type);
 }
 
 static void vdr_metronom_set_option(metronom_t *self, int option, int64_t value)
@@ -2101,7 +2221,16 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   this->cur_size = 0;
   this->cur_done = 0;
 
-  memset(this->osd_window, 0, sizeof (this->osd_window));
+  memset(this->osd, 0, sizeof (this->osd));
+
+  {
+    xine_osd_t *osd = xine_osd_new(this->stream, 0, 0, 16, 16);
+    uint32_t caps = xine_osd_get_capabilities(osd);
+    xine_osd_free(osd);
+
+    this->osd_supports_argb_layer    = !!(caps & XINE_OSD_CAP_ARGB_LAYER);
+    this->osd_supports_custom_extent = !!(caps & XINE_OSD_CAP_CUSTOM_EXTENT);
+  }
 
   this->osd_buffer              = 0;
   this->osd_buffer_size         = 0;
