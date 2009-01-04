@@ -738,6 +738,8 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
 
     if (current_atom == ART_ATOM) {
       string_size = _X_BE_32(&meta_atom[i + 4]) - 16 + 1;
+      if (string_size <= 0)
+        continue;
       info->artist = xine_xmalloc(string_size);
       if (info->artist) {
         strncpy(info->artist, &meta_atom[i + 20], string_size - 1);
@@ -745,6 +747,8 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
       }
     } else if (current_atom == NAM_ATOM) {
       string_size = _X_BE_32(&meta_atom[i + 4]) - 16 + 1;
+      if (string_size <= 0)
+        continue;
       info->name = xine_xmalloc(string_size);
       if (info->name) {
         strncpy(info->name, &meta_atom[i + 20], string_size - 1);
@@ -752,6 +756,8 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
       }
     } else if (current_atom == ALB_ATOM) {
       string_size = _X_BE_32(&meta_atom[i + 4]) - 16 + 1;
+      if (string_size <= 0)
+        continue;
       info->album = xine_xmalloc(string_size);
       if (info->album) {
         strncpy(info->album, &meta_atom[i + 20], string_size - 1);
@@ -759,6 +765,8 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
       }
     } else if (current_atom == GEN_ATOM) {
       string_size = _X_BE_32(&meta_atom[i + 4]) - 16 + 1;
+      if (string_size <= 0)
+        continue;
       info->genre = xine_xmalloc(string_size);
       if (info->genre) {
         strncpy(info->genre, &meta_atom[i + 20], string_size - 1);
@@ -766,6 +774,8 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
       }
     } else if (current_atom == TOO_ATOM) {
       string_size = _X_BE_32(&meta_atom[i + 4]) - 16 + 1;
+      if (string_size <= 0)
+        continue;
       info->comment = xine_xmalloc(string_size);
       if (info->comment) {
         strncpy(info->comment, &meta_atom[i + 20], string_size - 1);
@@ -773,6 +783,8 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
       }
     } else if (current_atom == WRT_ATOM) {
       string_size = _X_BE_32(&meta_atom[i + 4]) - 16 + 1;
+      if (string_size <= 0)
+        continue;
       info->composer = xine_xmalloc(string_size);
       if (info->composer) {
         strncpy(info->composer, &meta_atom[i + 20], string_size - 1);
@@ -780,6 +792,8 @@ static void parse_meta_atom(qt_info *info, unsigned char *meta_atom) {
       }
     } else if (current_atom == DAY_ATOM) {
       string_size = _X_BE_32(&meta_atom[i + 4]) - 16 + 1;
+      if (string_size <= 0)
+        continue;
       info->year = xine_xmalloc(string_size);
       if (info->year) {
         strncpy(info->year, &meta_atom[i + 20], string_size - 1);
@@ -947,6 +961,10 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
       /* allocate space for each of the properties unions */
       trak->stsd_atoms_count = _X_BE_32(&trak_atom[i + 8]);
+      if (trak->stsd_atoms_count <= 0) {
+        last_error = QT_HEADER_TROUBLE;
+        goto free_trak;
+      }
       trak->stsd_atoms = calloc(trak->stsd_atoms_count, sizeof(properties_t));
       if (!trak->stsd_atoms) {
         last_error = QT_NO_MEMORY;
@@ -958,6 +976,10 @@ static qt_error parse_trak_atom (qt_trak *trak,
       for (k = 0; k < trak->stsd_atoms_count; k++) {
 
         current_stsd_atom_size = _X_BE_32(&trak_atom[atom_pos - 4]);      
+        if (current_stsd_atom_size < 4) {
+          last_error = QT_HEADER_TROUBLE;
+          goto free_trak;
+        }
 
         if (trak->type == MEDIA_VIDEO) {
 
