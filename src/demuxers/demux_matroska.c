@@ -1484,9 +1484,14 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
           break;
       }
 
-      if (init_codec)
+      if (init_codec) {
+	if (! track->fifo) {
+	  xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+		  "demux_matroska: Error: fifo not set up for track of type type %" PRIu32 "\n", track->track_type);
+	  return 0;
+        }
         init_codec(this, track);
-      
+      }
     }
   }
   
