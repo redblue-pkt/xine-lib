@@ -435,9 +435,14 @@ static void real_parse_headers (demux_real_t *this) {
     case MDPR_TAG:
     case CONT_TAG:
       {
+	if (chunk_size < PREAMBLE_SIZE+1) {
+	  this->status = DEMUX_FINISHED;
+	  return;
+	}
 	chunk_size -= PREAMBLE_SIZE;
 	uint8_t *const chunk_buffer = malloc(chunk_size);
-	if (this->input->read(this->input, chunk_buffer, chunk_size) !=
+	if (! chunk_buffer ||
+	    this->input->read(this->input, chunk_buffer, chunk_size) !=
 	    chunk_size) {
 	  free (chunk_buffer);
 	  this->status = DEMUX_FINISHED;
