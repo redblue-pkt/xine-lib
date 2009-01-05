@@ -1,7 +1,15 @@
 xine-lib (1.1.16) 2008-??-??
   * Security fixes:
+    - Heap overflow in Quicktime atom parsing.                 (CVE-2008-5234)
+    - Multiple buffer overflows.                               (CVE-2008-5236)
+    - Multiple integer overflows.                              (CVE-2008-5237)
+    - Unchecked or incompletely-checked read function results. (CVE-2008-5239)
+    - Unchecked malloc using untrusted values.                 (CVE-2008-5240)
+    - Buffer indexing using untrusted or unchecked values.     (CVE-2008-5243)
     - Integer overflows in the ffmpeg audio decoder and the CDDA server.
     - Heap buffer overflow in the ffmpeg video decoder.
+    - Avoid segfault on invalid track type in Matroska files.
+    - Avoid underflow (compressed atoms) in the Qt demuxer.
   * Fix reported compilation failures (with C++ programs).
   * Fix CDDB access in 64-bit builds.
 
