@@ -806,6 +806,32 @@
    working on other parts of the code or are simply busy at
    the moment).
   </para>
+  <para>
+   We prefer to receive patches in a format which is immediately
+   committable. This normally means that we want your name and email address
+   (we're not keen on pseudonyms), a subject line which provides a
+   convenient summary of your changes, and body text which provides a longer
+   description (if needed). Patches must be generated using <command>hg
+   diff</command> or <command>cvs -z9 diff</command>, depending on which is
+   used for the repository, and always from within the top level of the
+   checked-out source.
+  </para>
+  <para>
+   If your patch is intended for a Mercurial-format repository, then
+   committing it locally and using
+   <command>hg export <parameter>.</parameter> &gt;<filename>foo.patch</filename></command>
+   to create the file to be attached is acceptable (but note that the first
+   line - up to the first line feed - of the commit message is regarded as
+   the patch summary; if you're not sure, check with
+   <command>hg log -r<parameter>.</parameter></command>.
+   Alternatively, use <token>From:</token> and <token>Subject:</token> lines
+   in the patch file itself; this is useful when forwarding.
+  </para>
+  <para>
+   Patches should normally be included as attachments. Some mail clients and
+   webmail services are known to mangle whitespace or wrap lines, either of
+   which is enough to render a patch potentially useless.
+  </para>
  </sect1>
 
 </chapter>
