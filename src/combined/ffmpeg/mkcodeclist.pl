@@ -79,7 +79,7 @@ if ($w) {
       print LIST "  #ifdef CONFIG_${a}_DECODER\n  BUF_${Type}_$line->[0],\n  #endif\n" or die $!;
     }
   }
-  print LIST "};\n" or die $!;
+  print LIST "  0,\n};\n" or die $!;
   close LIST or die $!;
 }
 else {
