@@ -17,9 +17,9 @@ dnl   XINE_SUB += 1; XINE_PATCH = ''; continue with XINE_LT_* values below
 dnl
 XINE_MAJOR=1
 XINE_MINOR=1
-XINE_SUB=16
+XINE_SUB=17
 dnl XINE_PATCH should be left empty or set to ".1" or ".2" or something similar
-XINE_PATCH=.1
+XINE_PATCH=
 dnl Release series number (usually $XINE_MAJOR.$XINE_MINOR)
 XINE_SERIES=1.1
 
@@ -54,9 +54,9 @@ dnl    are platform dependent
 dnl  * in Linux, the library will be named
 dnl    libname.so.(XINE_LT_CURRENT - XINE_LT_AGE).XINE_LT_AGE.XINE_LT_REVISION
 
-XINE_LT_CURRENT=26
+XINE_LT_CURRENT=27
 XINE_LT_REVISION=0
-XINE_LT_AGE=25
+XINE_LT_AGE=26
 
 dnl for a release tarball do "rm .cvsversion" before "make dist"
 if test -f "${srcdir-.}/.cvsversion"; then
@@ -148,6 +148,12 @@ AC_PROG_LN_S
 AC_PROG_AWK
 AC_C_INLINE
 
+AC_PATH_PROG([PERL], [perl], [no])
+if test "$PERL" = no; then
+  AC_MSG_ERROR([perl not found])
+fi
+AC_SUBST([PERL])
+     
 AC_CHECK_TOOL([STRINGS], [strings], [false])
 
 dnl ---------------------------------------------
@@ -1370,8 +1376,11 @@ AC_ARG_WITH([imagemagick],
 
 if test "x$with_imagemagick" != "xno"; then
    PKG_CHECK_MODULES([WAND], [Wand], [have_imagemagick=yes], [have_imagemagick=no])
+   if test "x$with_imagemagick" = 'xno'; then
+      PKG_CHECK_MODULES([WAND], [MagickWand], [have_imagemagick=yes], [have_imagemagick=no])
+   fi
    if test "x$with_imagemagick" = "xyes" && test "x$have_imagemagick" = "xno"; then
-      AC_MSG_ERROR([ImageMagick support requested, but Wand not found])
+      AC_MSG_ERROR([ImageMagick support requested, but neither Wand nor MagickWand were found])
    elif test "x$have_imagemagick" = "xyes"; then
       AC_DEFINE([HAVE_WAND], [1], [Define this if you have ImageMagick installed])
    fi
