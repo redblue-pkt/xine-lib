@@ -1284,7 +1284,15 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
       }
 
       /* use externally provided video_step or fall back to stream's time_base otherwise */
-      video_step_to_use = (this->video_step || !this->context->time_base.den) ? this->video_step : (int)(90000ll * this->context->ticks_per_frame * this->context->time_base.num / this->context->time_base.den);
+      video_step_to_use = (this->video_step || !this->context->time_base.den)
+                        ? this->video_step
+                        : (int)(90000ll
+#if LIBAVCODEC_VERSION_INT >= 0x341400
+                                * this->context->ticks_per_frame
+#elif LIBAVCODEC_VERSION_INT >= 0x340000
+# warning Building without avcodec ticks_per_frame support; you should upgrade your libavcodec and recompile
+#endif
+                                * this->context->time_base.num / this->context->time_base.den);
 
       /* aspect ratio provided by ffmpeg, override previous setting */
       if ((this->aspect_ratio_prio < 2) &&
