@@ -2783,6 +2783,7 @@ src/libspudec/Makefile
 src/libspucc/Makefile
 src/libspucmml/Makefile
 src/libspudvb/Makefile
+src/libspuhdmv/Makefile
 src/libsputext/Makefile
 src/libw32dll/Makefile
 src/libw32dll/wine/Makefile
