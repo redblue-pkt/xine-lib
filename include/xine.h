@@ -342,11 +342,12 @@ int  xine_get_param (xine_stream_t *stream, int param) XINE_PROTECTED;
 #define XINE_PARAM_VO_TVMODE               0x0100000a /* ???                */
 #define XINE_PARAM_VO_WINDOW_WIDTH         0x0100000f /* readonly           */
 #define XINE_PARAM_VO_WINDOW_HEIGHT        0x01000010 /* readonly           */
+#define XINE_PARAM_VO_SHARPNESS            0x01000018 /* 0..65535           */
+#define XINE_PARAM_VO_NOISE_REDUCTION      0x01000019 /* 0..65535           */
 #define XINE_PARAM_VO_CROP_LEFT            0x01000020 /* crop frame pixels  */
 #define XINE_PARAM_VO_CROP_RIGHT           0x01000021 /* crop frame pixels  */
 #define XINE_PARAM_VO_CROP_TOP             0x01000022 /* crop frame pixels  */
 #define XINE_PARAM_VO_CROP_BOTTOM          0x01000023 /* crop frame pixels  */
-
 
 #define XINE_VO_ZOOM_STEP                  100
 #define XINE_VO_ZOOM_MAX                   400
@@ -449,6 +450,7 @@ int  xine_get_current_frame_data (xine_stream_t *stream,
 #define XINE_IMGFMT_YUY2 (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')
 #define XINE_IMGFMT_XVMC (('C'<<24)|('M'<<16)|('v'<<8)|'X')
 #define XINE_IMGFMT_XXMC (('C'<<24)|('M'<<16)|('x'<<8)|'X')
+#define XINE_IMGFMT_VDPAU (('A'<<24)|('P'<<16)|('D'<<8)|'V')
 
 /* get current xine's virtual presentation timestamp (1/90000 sec)
  * note: this is mostly internal data.
@@ -2080,9 +2082,9 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) XINE_PRO
 
 #define XINE_OSD_CAP_FREETYPE2     0x0001 /* freetype2 support compiled in     */
 #define XINE_OSD_CAP_UNSCALED      0x0002 /* unscaled overlays supp. by vo drv */
-#define XINE_OSD_CAP_CUSTOM_EXTENT 0x0004 /* hardware scaled to match video output window */ 
+#define XINE_OSD_CAP_CUSTOM_EXTENT 0x0004 /* hardware scaled to match video output window */
 #define XINE_OSD_CAP_ARGB_LAYER    0x0008 /* supports separate true color layer */
-#define XINE_OSD_CAP_VIDEO_WINDOW  0x0010 /* can scale video to an area within osd extent */ 
+#define XINE_OSD_CAP_VIDEO_WINDOW  0x0010 /* can scale video to an area within osd extent */
 
 typedef struct xine_osd_s xine_osd_t;
 
@@ -2147,7 +2149,7 @@ void        xine_osd_get_palette   (xine_osd_t *self, uint32_t *color,
 void        xine_osd_set_palette   (xine_osd_t *self,
 				    const uint32_t *const color,
 				    const uint8_t *const trans ) XINE_PROTECTED;
-				    
+
 /*
  * set an argb buffer to be blended into video
  * the buffer must exactly match the osd dimensions
