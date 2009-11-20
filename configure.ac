@@ -890,6 +890,20 @@ AC_SUBST(XVMC_LIBS)
 
 
 dnl ---------------------------------------------
+dnl Check for VDPAU
+dnl ---------------------------------------------
+AC_ARG_WITH([vdpau], AS_HELP_STRING([--without-vdpau], [Doesn't build VDPAU plugins]))
+if test "x$with_vdpau" != "xno"; then
+  AC_CHECK_HEADERS([vdpau/vdpau_x11.h], [have_vdpau=yes], [have_vdpau=no])
+  if test "x$have_vdpau" = "xyes"; then
+    AC_CHECK_LIB(vdpau, vdp_device_create_x11, have_vdpau="yes", [have_vdpau="no"], [$X_LIBS $X_PRE_LIBS -lXext $X_EXTRA_LIBS])
+  fi
+fi
+
+AM_CONDITIONAL(HAVE_VDPAU, test "x$have_vdpau" = "xyes" )
+
+
+dnl ---------------------------------------------
 dnl Check for xcb
 dnl ---------------------------------------------
 AC_ARG_WITH([xcb], AS_HELP_STRING([--without-xcb], [Doesn't build XCB video out plugins]))
@@ -2779,6 +2793,7 @@ src/libmpeg2new/libmpeg2/Makefile
 src/libmpeg2new/include/Makefile
 src/libmusepack/Makefile
 src/libmusepack/musepack/Makefile
+src/libvdpau/Makefile
 src/libspudec/Makefile
 src/libspucc/Makefile
 src/libspucmml/Makefile
@@ -3117,6 +3132,9 @@ if test "x$have_xcb" = "xyes"; then
   if test "x$have_xcbxv" = "xyes"; then
     echo "   - xcb-xv (XVideo using XCB)"
   fi
+fi
+if test "x$have_vdpau" = "xyes"; then
+  echo "   - vdpau (X11 VDPAU)"
 fi
 if test "x$no_aalib" != "xyes"; then
   echo "   - aa (Ascii ART)"

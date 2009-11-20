@@ -27,5 +27,6 @@ SUBDIRS = \
 	libreal \
 	libfaad \
         libmusepack \
+	libvdpau \
 	post \
 	combined

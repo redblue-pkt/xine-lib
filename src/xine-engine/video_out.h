@@ -64,6 +64,14 @@ struct vo_frame_s {
    * member functions
    */
 
+  /* Provide a copy of the frame's image in an image format already known to xine. data's member */
+  /* have already been intialized to frame's content on entry, so it's usually only necessary to */
+  /* change format and img_size. In case img is set, it will point to a memory block of suitable */
+  /* size (size has been determined by a previous call with img == NULL). img content and img_size */
+  /* must adhere to the specification of _x_get_current_frame_data(). */
+  /* Currently this is needed for all image formats except XINE_IMGFMT_YV12 and XINE_IMGFMT_YUY2. */
+  void (*proc_provide_standard_frame_data) (vo_frame_t *vo_img, xine_current_frame_data_t *data);
+
   /* Duplicate picture data and acceleration specific data of a frame. */
   /* if the image format isn't already known by Xine. Currently this is needed */
   /* For all image formats except XINE_IMGFMT_YV12 and XINE_IMGFMT_YUY2 */
@@ -145,6 +153,9 @@ struct vo_frame_s {
   
   /* displacement for overlays */
   int                       overlay_offset_x, overlay_offset_y;
+
+  /* pointer to the next frame in display order, used by some vo deint */
+  struct vo_frame_s         *future_frame;
   
   /* 
    * that part is used only by video_out.c for frame management
@@ -245,7 +256,9 @@ struct xine_video_port_s {
 #define VO_PROP_OUTPUT_HEIGHT         20 /* read-only */
 #define VO_PROP_OUTPUT_XOFFSET        21 /* read-only */
 #define VO_PROP_OUTPUT_YOFFSET        22 /* read-only */
-#define VO_NUM_PROPERTIES             23
+#define VO_PROP_SHARPNESS             24
+#define VO_PROP_NOISE_REDUCTION       25
+#define VO_NUM_PROPERTIES             26
 
 /* number of colors in the overlay palette. Currently limited to 256
    at most, because some alphablend functions use an 8-bit index into
@@ -267,6 +280,7 @@ struct xine_video_port_s {
 #define VO_PAN_SCAN_FLAG     4
 #define VO_INTERLACED_FLAG   8
 #define VO_NEW_SEQUENCE_FLAG 16 /* set after MPEG2 Sequence Header Code (used by XvMC) */
+#define VO_CHROMA_422        32 /* used by VDPAU, default is chroma_420 */
 
 /* video driver capabilities */
 #define VO_CAP_YV12                   0x00000001 /* driver can handle YUV 4:2:0 pictures */
@@ -276,6 +290,12 @@ struct xine_video_port_s {
 #define VO_CAP_UNSCALED_OVERLAY       0x00000010 /* driver can blend overlay at output resolution */
 #define VO_CAP_CROP                   0x00000020 /* driver can crop */
 #define VO_CAP_XXMC                   0x00000040 /* driver can use extended XvMC */
+#define VO_CAP_VDPAU_H264             0x00000080 /* driver can use VDPAU for H264 */
+#define VO_CAP_VDPAU_MPEG12           0x00000100 /* driver can use VDPAU for mpeg1/2 */
+#define VO_CAP_VDPAU_VC1              0x00000200 /* driver can use VDPAU for mpeg1/2 */
+#define VO_CAP_CUSTOM_EXTENT_OVERLAY  0x01000000 /* driver can blend custom extent overlay to output extent */
+#define VO_CAP_ARGB_LAYER_OVERLAY     0x02000000 /* driver supports true color overlay */
+#define VO_CAP_VIDEO_WINDOW_OVERLAY   0x04000000 /* driver can scale video to an area within overlay */
 
 
 /*
@@ -388,6 +408,14 @@ typedef struct rle_elem_s {
   uint16_t color;
 } rle_elem_t;
 
+typedef struct argb_layer_s {
+  pthread_mutex_t  mutex;
+  uint32_t        *buffer;
+  /* dirty area */
+  int x1, y1;
+  int x2, y2;
+} argb_layer_t;
+
 struct vo_overlay_s {
 
   rle_elem_t       *rle;           /* rle code buffer                  */
@@ -398,6 +426,16 @@ struct vo_overlay_s {
   int               width;         /* width of subpicture area         */
   int               height;        /* height of subpicture area        */
   
+  /* area within osd extent to scale video to */
+  int               video_window_x;
+  int               video_window_y;
+  int               video_window_width;
+  int               video_window_height;
+
+  /* extent of reference coordinate system */
+  int               extent_width;
+  int               extent_height;
+
   uint32_t          color[OVL_PALETTE_SIZE];  /* color lookup table     */
   uint8_t           trans[OVL_PALETTE_SIZE];  /* mixer key table        */
   int               rgb_clut;      /* true if clut was converted to rgb */
@@ -412,6 +450,8 @@ struct vo_overlay_s {
   int               hili_rgb_clut; /* true if clut was converted to rgb */
   
   int               unscaled;      /* true if it should be blended unscaled */
+
+  argb_layer_t     *argb_layer;
 };
 
 

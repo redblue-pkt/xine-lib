@@ -37,6 +37,10 @@ endif
 endif
 endif
 
+if HAVE_VDPAU
+vdpau_module = xineplug_vo_out_vdpau.la
+endif
+
 if HAVE_XCB
 XCBOSD = xcbosd.c
 if HAVE_XCBSHM
@@ -101,8 +105,13 @@ xineplug_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
 		  $(xxmc_module) \
 		  $(xcbshm_module) \
 		  $(xcbxv_module) \
+		  $(vdpau_module) \
                   xineplug_vo_out_raw.la \
                   xineplug_vo_out_none.la
+
+xineplug_vo_out_vdpau_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c video_out_vdpau.c
+xineplug_vo_out_vdpau_la_LIBADD = $(XINE_LIB) $(MLIB_LIBS) $(PTHREAD_LIBS) $(X_LIBS) $(LTLIBINTL) -lvdpau
+xineplug_vo_out_vdpau_la_CFLAGS = $(VISIBILITY_FLAG) $(MLIB_CFLAGS) $(X_CFLAGS)
 
 xineplug_vo_out_xcbshm_la_SOURCES = yuv2rgb.c yuv2rgb_mmx.c yuv2rgb_mlib.c video_out_xcbshm.c $(XCBOSD)
 xineplug_vo_out_xcbshm_la_LIBADD = $(XINE_LIB) $(MLIB_LIBS) $(PTHREAD_LIBS) $(XCB_LIBS) $(XCBSHM_LIBS) $(LTLIBINTL)

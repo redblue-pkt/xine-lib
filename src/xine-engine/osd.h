@@ -47,8 +47,16 @@ struct osd_object_s {
 
   int width, height;    /* work area dimentions */
   uint8_t *area;        /* work area */
+  int area_touched;     /* work area was used for painting */
   int display_x,display_y;  /* where to display it in screen */
   
+  /* video output area within osd extent */
+  int video_window_x, video_window_y;
+  int video_window_width, video_window_height;
+
+  /* extent of reference coordinate system */
+  int extent_width, extent_height;
+
   /* clipping box inside work area */
   int x1, y1;
   int x2, y2;
@@ -65,6 +73,13 @@ struct osd_object_s {
   
   osd_font_t *font;
   osd_ft2context_t *ft2;
+
+
+  /* this holds an optional ARGB overlay, which
+   * is only be used by supported video_out modules.
+   * right now this is only vdpau */
+  argb_layer_t argb_layer;
+
 };
 
 /* this one is public */
@@ -211,6 +226,35 @@ struct osd_renderer_s {
    */
   uint32_t (*get_capabilities) (osd_object_t *osd);
   
+  /*
+   * define extent of reference coordinate system for video
+   * resolution independent osds. both sizes must be > 0 to
+   * take effect. otherwise, video resolution will be used.
+   */
+  void (*set_extent) (osd_object_t *osd, int extent_width, int extent_height);
+
+  /*
+   * set an argb buffer to be blended into video
+   * the buffer must exactly match the osd dimensions
+   * and stay valid while the osd is on screen. pass
+   * a NULL pointer to safely remove the buffer from
+   * the osd layer. only the dirty area  will be
+   * updated on screen. for convinience the whole
+   * osd object will be considered dirty when setting
+   * a different buffer pointer.
+   * see also XINE_OSD_CAP_ARGB_LAYER
+   */
+  void (*set_argb_buffer) (osd_object_t *osd, uint32_t *argb_buffer,
+                           int dirty_x, int dirty_y, int dirty_width, int dirty_height);
+
+  /*
+   * osd video window defines an area withing osd extent where the
+   * video shall be scaled to while an osd is displayed on screen.
+   * both width and height must be > 0 to take effect.
+   */
+  void (*set_video_window) (osd_object_t *osd,
+                            int window_x, int window_y, int window_width, int window_height);
+
   /* private stuff */
 
   pthread_mutex_t             osd_mutex;
