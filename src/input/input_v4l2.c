@@ -1,4 +1,32 @@
+/*
+* Copyright (C) 2010 the xine project
+* Copyright (C) 2010 Trever Fischer <tdfischer@fedoraproject.org>
+*
+* This file is part of xine, a free video player.
+*
+* xine is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* xine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
+*
+* v4l2 input plugin
+*/
+
 #define LOG_MODULE "v4l2"
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define LOG
 
 #include <xine/input_plugin.h>
@@ -12,9 +40,13 @@
 #include <linux/videodev2.h>
 #include <sys/mman.h>
 #include <stdio.h>
-#include <libv4l2.h>
 #include <errno.h>
 
+#ifdef HAVE_LIBV4L2_H
+#include <libv4l2.h>
+#else
+#include <sys/ioctl.h>
+#endif
 typedef struct  {
     void *start;
     size_t length;
@@ -58,10 +90,19 @@ int v4l2_input_setup_video_streaming(v4l2_input_plugin_t *this);
 int v4l2_input_open(input_plugin_t *this_gen) {
     v4l2_input_plugin_t *this = (v4l2_input_plugin_t*) this_gen;
     lprintf("Opening %s\n", this->mrl);
-    if ((this->fd = v4l2_open(this->mrl, O_RDWR))) {
+#ifdef HAVE_LIBV4L2_H
+	this->fd = v4l2_open(this->mrl, O_RDWR);
+#else
+	this->fd = open(this->mrl, O_RDWR);
+#endif
+	if (this->fd) {
         /* TODO: Clean up this mess */
         this->events = xine_event_new_queue(this->stream);
+#ifdef HAVE_LIBV4L2_H
         v4l2_ioctl(this->fd, VIDIOC_QUERYCAP, &(this->cap));
+#else
+		ioctl(this->fd, VIDIOC_QUERYCAP, &(this->cap));
+#endif
         if (this->cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) {
             this->video = malloc(sizeof(v4l2_video_t));
             this->video->headerSent = 0;
@@ -101,7 +142,11 @@ int v4l2_input_setup_video_streaming(v4l2_input_plugin_t *this) {
     reqbuf.memory = V4L2_MEMORY_MMAP;
     reqbuf.count = 25;
 
+#ifdef HAVE_LIBV4L2_H
     if (-1 == v4l2_ioctl(this->fd, VIDIOC_REQBUFS, &reqbuf)) {
+#else
+	if (-1 == ioctl(this->fd, VIDIOC_REQBUFS, &reqbuf)) {
+#endif
         lprintf("Buffer request failed. Is streaming supported?\n");
         return 0;
     }
@@ -118,21 +163,36 @@ int v4l2_input_setup_video_streaming(v4l2_input_plugin_t *this) {
         buffer.memory = reqbuf.memory;
         buffer.index = i;
         
+#ifdef HAVE_LIBV4L2_H
         if (-1 == v4l2_ioctl(this->fd, VIDIOC_QUERYBUF, &buffer)) {
+#else
+		if (-1 == ioctl(this->fd, VIDIOC_QUERYBUF, &buffer)) {
+#endif
             lprintf("Couldn't allocate buffer %i\n", i);
             return 0;
         }
         
         this->video->buffers[i].length = buffer.length;
+#ifdef HAVE_LIBV4L2_H
         this->video->buffers[i].start = (void*)v4l2_mmap(NULL, buffer.length,
                                             PROT_READ | PROT_WRITE,
                                             MAP_SHARED,
                                             this->fd, buffer.m.offset);
+#else
+        this->video->buffers[i].start = (void*)mmap(NULL, buffer.length,
+                                            PROT_READ | PROT_WRITE,
+                                            MAP_SHARED,
+                                            this->fd, buffer.m.offset);
+#endif
         if (MAP_FAILED == this->video->buffers[i].start) {
             lprintf("Couldn't mmap buffer %i\n", i);
             int j;
             for(j = 0;j<i;j++) {
+#ifdef HAVE_LIBV4L2_H
                 v4l2_munmap(this->video->buffers[i].start, this->video->buffers[i].length);
+#else
+				munmap(this->video->buffers[i].start, this->video->buffers[i].length);
+#endif
             }
             free(this->video->buffers);
             this->video->bufcount = 0;
@@ -146,10 +206,18 @@ int v4l2_input_setup_video_streaming(v4l2_input_plugin_t *this) {
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     /* TODO: Other formats? MPEG support? */
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+#ifdef HAVE_LIBV4L2_H
     v4l2_ioctl(this->fd, VIDIOC_S_FMT, &fmt);
+#else
+	ioctl(this->fd, VIDIOC_S_FMT, &fmt);
+#endif
     this->video->resolution.width = fmt.fmt.pix.width;
     this->video->resolution.height = fmt.fmt.pix.height;
+#ifdef HAVE_LIBV4L2_H
     if (-1 == v4l2_ioctl(this->fd, VIDIOC_STREAMON, &reqbuf.type)) {
+#else
+	if (-1 == ioctl(this->fd, VIDIOC_STREAMON, &reqbuf.type)) {
+#endif
         lprintf("Couldn't start streaming: %s\n", strerror(errno));
         return 0;
     }
@@ -167,6 +235,7 @@ buf_element_t* v4l2_input_read_block(input_plugin_t *this_gen, fifo_buffer_t *fi
         lprintf("Sending video header\n");
         xine_bmiheader bih;
         bih.biSize = sizeof(xine_bmiheader);
+		/* HACK: Why do I need to do this and why is it magic? */
         bih.biWidth = this->video->resolution.width*2;
         bih.biHeight = this->video->resolution.height*2;
         lprintf("Getting size of %ix%i\n", this->video->resolution.width, this->video->resolution.height);
@@ -203,7 +272,11 @@ void v4l2_input_dequeue_video_buffer(v4l2_input_plugin_t *this, buf_element_t *o
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
     output->content = output->mem;
+#ifdef HAVE_LIBV4L2_H
     v4l2_ioctl(this->fd, VIDIOC_DQBUF, &buf);
+#else
+	ioctl(this->fd, VIDIOC_DQBUF, &buf);
+#endif
     output->decoder_flags = BUF_FLAG_FRAME_START|BUF_FLAG_FRAME_END;
     xine_fast_memcpy(output->content, this->video->buffers[buf.index].start, this->video->buffers[buf.index].length);
     output->type = BUF_VIDEO_YUY2;
@@ -216,7 +289,11 @@ void v4l2_input_enqueue_video_buffer(v4l2_input_plugin_t *this, int idx) {
     buf.index = idx;
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
+#ifdef HAVE_LIBV4L2_H
     v4l2_ioctl(this->fd, VIDIOC_QBUF, &buf);
+#else
+	ioctl(this->fd, VIDIOC_QBUF, &buf);
+#endif
 }
 
 void v4l2_input_dispose(input_plugin_t *this_gen) {
@@ -225,19 +302,31 @@ void v4l2_input_dispose(input_plugin_t *this_gen) {
     
     if (this->video != NULL) {
         int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+#ifdef HAVE_LIBV4L2_H
         if (-1 == v4l2_ioctl(this->fd, VIDIOC_STREAMOFF, &type)) {
+#else
+		if (-1 == ioctl(this->fd, VIDIOC_STREAMOFF, &type)) {
+#endif
             lprintf("Couldn't stop streaming. Uh oh.\n");
         }
         if (this->video->bufcount > 0) {
             int i;
             for(i = 0;i<this->video->bufcount;i++) {
+#ifdef HAVE_LIBV4L2_H
                 v4l2_munmap(this->video->buffers[i].start, this->video->buffers[i].length);
+#else
+				munmap(this->video->buffers[i].start, this->video->buffers[i].length);
+#endif
             }
             free(this->video->buffers);
         }
         free(this->video);
     }
+#ifdef HAVE_LIBV4L2_H
     v4l2_close(this->fd);
+#else
+	close(this->fd);
+#endif
     free(this->mrl);
     free(this);
 }
