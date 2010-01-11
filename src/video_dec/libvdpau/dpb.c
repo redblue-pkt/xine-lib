@@ -24,31 +24,72 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cpb.h"
 #include "dpb.h"
 #include "nal.h"
+
 #include <xine/video_out.h>
 
-struct decoded_picture* init_decoded_picture(struct nal_unit *src_nal,
+struct decoded_picture* init_decoded_picture(struct coded_picture *cpic,
     VdpVideoSurface surface, vo_frame_t *img)
 {
   struct decoded_picture *pic = calloc(1, sizeof(struct decoded_picture));
-  pic->nal = init_nal_unit();
-  copy_nal_unit(pic->nal, src_nal);
-  pic->top_is_reference = pic->nal->slc->field_pic_flag
-        ? (pic->nal->slc->bottom_field_flag ? 0 : 1) : 1;
-  pic->bottom_is_reference = pic->nal->slc->field_pic_flag
-        ? (pic->nal->slc->bottom_field_flag ? 1 : 0) : 1;
+
+  pic->coded_pic[0] = cpic;
+  pic->top_is_reference = cpic->slc_nal->slc.field_pic_flag
+        ? (cpic->slc_nal->slc.bottom_field_flag ? 0 : 1) : 1;
+  pic->bottom_is_reference = cpic->slc_nal->slc.field_pic_flag
+        ? (cpic->slc_nal->slc.bottom_field_flag ? 1 : 0) : 1;
   pic->surface = surface;
   pic->img = img;
+  pic->delayed_output = 1;
 
   return pic;
+}
+
+void dpb_add_coded_picture(struct decoded_picture *pic,
+    struct coded_picture *cpic)
+{
+  pic->coded_pic[1] = cpic;
+
+  if(cpic->flag_mask & REFERENCE) {
+    if(cpic->slc_nal->slc.field_pic_flag &&
+        cpic->slc_nal->slc.bottom_field_flag) {
+      pic->bottom_is_reference = 1;
+    } else if(cpic->slc_nal->slc.field_pic_flag &&
+        !cpic->slc_nal->slc.bottom_field_flag) {
+      pic->top_is_reference = 1;
+    }
+
+  }
 }
 
 void free_decoded_picture(struct decoded_picture *pic)
 {
   pic->img->free(pic->img);
-  free_nal_unit(pic->nal);
+  free_coded_picture(pic->coded_pic[0]);
+  pic->coded_pic[0] = NULL;
+  free_coded_picture(pic->coded_pic[1]);
+  pic->coded_pic[1] = NULL;
   free(pic);
+}
+
+struct decoded_picture* dpb_get_next_ref_pic(struct dpb *dpb,
+    struct decoded_picture *pic)
+{
+  if (pic == NULL) {
+    pic = dpb->pictures;
+  } else {
+    pic = pic->next;
+  }
+
+  while (pic != NULL) {
+    if (pic->used_for_reference) {
+      return pic;
+    }
+
+    pic = pic->next;
+  }
 }
 
 struct decoded_picture* dpb_get_next_out_picture(struct dpb *dpb, int do_flush)
@@ -59,17 +100,39 @@ struct decoded_picture* dpb_get_next_out_picture(struct dpb *dpb, int do_flush)
   if(!do_flush && dpb->used < MAX_DPB_SIZE)
     return NULL;
 
-  if (pic != NULL)
+  if (pic != NULL) {
     do {
-      if (pic->delayed_output &&
-          (outpic == NULL ||
-              (pic->nal->top_field_order_cnt <= outpic->nal->top_field_order_cnt &&
-                  pic->nal->bottom_field_order_cnt <= outpic->nal->bottom_field_order_cnt)||
-              (outpic->nal->top_field_order_cnt < 0 && pic->nal->top_field_order_cnt > 0 &&
-                  outpic->nal->bottom_field_order_cnt < 0 && pic->nal->bottom_field_order_cnt > 0)||
-              outpic->nal->nal_unit_type == NAL_SLICE_IDR))
-        outpic = pic;
+      if (pic->delayed_output) {
+        int32_t out_top_field_order_cnt = outpic != NULL ?
+            outpic->coded_pic[0]->top_field_order_cnt : 0;
+        int32_t top_field_order_cnt = pic->coded_pic[0]->top_field_order_cnt;
+
+        int32_t out_bottom_field_order_cnt = outpic != NULL ?
+            (outpic->coded_pic[1] != NULL ?
+              outpic->coded_pic[1]->bottom_field_order_cnt :
+              outpic->coded_pic[0]->top_field_order_cnt) : 0;
+        int32_t bottom_field_order_cnt = pic->coded_pic[1] != NULL ?
+                  pic->coded_pic[1]->bottom_field_order_cnt :
+                  pic->coded_pic[0]->top_field_order_cnt;
+
+        if (outpic == NULL ||
+                (top_field_order_cnt <= out_top_field_order_cnt &&
+                    bottom_field_order_cnt <= out_bottom_field_order_cnt) ||
+                (out_top_field_order_cnt <= 0 && top_field_order_cnt > 0 &&
+                   out_bottom_field_order_cnt <= 0 && bottom_field_order_cnt > 0) ||
+                outpic->coded_pic[0]->flag_mask & IDR_PIC) {
+          outpic = pic;
+        }
+      }
     } while ((pic = pic->next) != NULL);
+  }
+
+  int32_t out_top_field_order_cnt = outpic != NULL ?
+              outpic->coded_pic[0]->top_field_order_cnt : 0;
+  int32_t out_bottom_field_order_cnt = outpic != NULL ?
+              (outpic->coded_pic[1] != NULL ?
+                outpic->coded_pic[1]->bottom_field_order_cnt :
+                outpic->coded_pic[0]->top_field_order_cnt) : 0;
 
   return outpic;
 }
@@ -80,8 +143,12 @@ struct decoded_picture* dpb_get_picture(struct dpb *dpb, uint32_t picnum)
 
   if (pic != NULL)
     do {
-      if (pic->nal->curr_pic_num == picnum)
+      if (pic->used_for_reference &&
+          (pic->coded_pic[0]->pic_num == picnum ||
+          (pic->coded_pic[1] != NULL &&
+              pic->coded_pic[1]->pic_num == picnum))) {
         return pic;
+      }
     } while ((pic = pic->next) != NULL);
 
   return NULL;
@@ -94,8 +161,11 @@ struct decoded_picture* dpb_get_picture_by_ltpn(struct dpb *dpb,
 
   if (pic != NULL)
     do {
-      if (pic->nal->long_term_pic_num == longterm_picnum)
+      if (pic->coded_pic[0]->long_term_pic_num == longterm_picnum ||
+          (pic->coded_pic[1] != NULL &&
+              pic->coded_pic[1]->long_term_pic_num == longterm_picnum)) {
         return pic;
+      }
     } while ((pic = pic->next) != NULL);
 
   return NULL;
@@ -108,8 +178,11 @@ struct decoded_picture* dpb_get_picture_by_ltidx(struct dpb *dpb,
 
   if (pic != NULL)
     do {
-      if (pic->nal->long_term_frame_idx == longterm_idx)
+      if (pic->coded_pic[0]->long_term_frame_idx == longterm_idx ||
+          (pic->coded_pic[1] != NULL &&
+              pic->coded_pic[1]->long_term_frame_idx == longterm_idx)) {
         return pic;
+      }
     } while ((pic = pic->next) != NULL);
 
   return NULL;
@@ -136,7 +209,9 @@ int dpb_set_unused_ref_picture(struct dpb *dpb, uint32_t picnum)
   struct decoded_picture *pic = dpb->pictures;
   if (pic != NULL)
     do {
-      if (pic->nal->curr_pic_num == picnum) {
+      if (pic->coded_pic[0]->pic_num == picnum ||
+          (pic->coded_pic[1] != NULL &&
+              pic->coded_pic[1]->pic_num == picnum)) {
         pic->used_for_reference = 0;
         if(!pic->delayed_output)
           dpb_remove_picture(dpb, pic);
@@ -152,12 +227,30 @@ int dpb_set_unused_ref_picture_byltpn(struct dpb *dpb, uint32_t longterm_picnum)
   struct decoded_picture *pic = dpb->pictures;
   if (pic != NULL)
     do {
-      if (pic->nal->long_term_pic_num == longterm_picnum) {
+      uint8_t found = 0;
+
+      if (pic->coded_pic[0]->long_term_pic_num == longterm_picnum) {
+        pic->coded_pic[0]->used_for_long_term_ref = 0;
+        found = 1;
+      }
+
+      if ((pic->coded_pic[1] != NULL &&
+            pic->coded_pic[1]->long_term_pic_num == longterm_picnum)) {
+        pic->coded_pic[1]->used_for_long_term_ref = 0;
+        found = 1;
+      }
+
+      if(found && !pic->coded_pic[0]->used_for_long_term_ref &&
+          (pic->coded_pic[1] == NULL ||
+              !pic->coded_pic[1]->used_for_long_term_ref)) {
         pic->used_for_reference = 0;
         if(!pic->delayed_output)
           dpb_remove_picture(dpb, pic);
-        return 0;
       }
+
+      if (found)
+        return 0;
+
     } while ((pic = pic->next) != NULL);
 
   return -1;
@@ -168,24 +261,56 @@ int dpb_set_unused_ref_picture_bylidx(struct dpb *dpb, uint32_t longterm_idx)
   struct decoded_picture *pic = dpb->pictures;
   if (pic != NULL)
     do {
-      if (pic->nal->long_term_frame_idx == longterm_idx) {
-        pic->nal->used_for_long_term_ref = 0;
+      uint8_t found = 0;
+
+      if (pic->coded_pic[0]->long_term_frame_idx == longterm_idx) {
+        pic->coded_pic[0]->used_for_long_term_ref = 0;
+        found = 1;
+      }
+
+      if ((pic->coded_pic[1] != NULL &&
+            pic->coded_pic[1]->long_term_frame_idx == longterm_idx)) {
+        pic->coded_pic[1]->used_for_long_term_ref = 0;
+        found = 1;
+      }
+
+      if(found && !pic->coded_pic[0]->used_for_long_term_ref &&
+          (pic->coded_pic[1] == NULL ||
+              !pic->coded_pic[1]->used_for_long_term_ref)) {
         pic->used_for_reference = 0;
         if(!pic->delayed_output)
           dpb_remove_picture(dpb, pic);
-        return 0;
       }
+
+      if (found)
+        return 0;
+
     } while ((pic = pic->next) != NULL);
 
   return -1;
 }
 
-int dpb_set_unused_ref_picture_lidx_gt(struct dpb *dpb, uint32_t longterm_idx)
+int dpb_set_unused_ref_picture_lidx_gt(struct dpb *dpb, int32_t longterm_idx)
 {
   struct decoded_picture *pic = dpb->pictures;
   if (pic != NULL)
     do {
-      if (pic->nal->long_term_frame_idx >= longterm_idx) {
+      uint8_t found = 0;
+
+      if (pic->coded_pic[0]->long_term_frame_idx >= longterm_idx) {
+        pic->coded_pic[0]->used_for_long_term_ref = 0;
+        found = 1;
+      }
+
+      if ((pic->coded_pic[1] != NULL &&
+            pic->coded_pic[1]->long_term_frame_idx >= longterm_idx)) {
+        pic->coded_pic[1]->used_for_long_term_ref = 0;
+        found = 1;
+      }
+
+      if(found && !pic->coded_pic[0]->used_for_long_term_ref &&
+          (pic->coded_pic[1] == NULL ||
+              !pic->coded_pic[1]->used_for_long_term_ref)) {
         pic->used_for_reference = 0;
         if(!pic->delayed_output) {
           struct decoded_picture *next_pic = pic->next;
@@ -224,8 +349,6 @@ int dpb_remove_picture(struct dpb *dpb, struct decoded_picture *rempic)
   if (pic != NULL)
     do {
       if (pic == rempic) {
-        // FIXME: free the picture....
-
         if (last_pic != NULL)
           last_pic->next = pic->next;
         else
@@ -249,8 +372,6 @@ static int dpb_remove_picture_by_img(struct dpb *dpb, vo_frame_t *remimg)
   if (pic != NULL)
     do {
       if (pic->img == remimg) {
-        // FIXME: free the picture....
-
         if (last_pic != NULL)
           last_pic->next = pic->next;
         else
@@ -266,22 +387,6 @@ static int dpb_remove_picture_by_img(struct dpb *dpb, vo_frame_t *remimg)
   return -1;
 }
 
-int dpb_remove_picture_by_picnum(struct dpb *dpb, uint32_t picnum)
-{
-  struct decoded_picture *pic = dpb->pictures;
-  struct decoded_picture *last_pic = NULL;
-
-  if (pic != NULL)
-    do {
-      if (pic->nal->curr_pic_num == picnum) {
-        dpb_remove_picture(dpb, pic);
-      }
-
-      last_pic = pic;
-    } while ((pic = pic->next) != NULL);
-
-  return -1;
-}
 
 int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_t num_ref_frames)
 {
@@ -293,6 +398,8 @@ int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_t num_r
 
   int i = 0;
   struct decoded_picture *last_pic = dpb->pictures;
+
+  struct decoded_picture *discard_ref = NULL;
 
   pic->next = dpb->pictures;
   dpb->pictures = pic;
@@ -309,7 +416,12 @@ int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_t num_r
             last_pic = pic->next;
 
           if(!pic->delayed_output) {
-            dpb_remove_picture(dpb, pic);
+            if(discard_ref == NULL ||
+                discard_ref->frame_num_wrap > pic->frame_num_wrap) {
+              discard_ref = pic;
+            }
+          } else {
+              num_ref_frames++;
           }
           pic = last_pic;
           if(pic == dpb->pictures)
@@ -318,6 +430,10 @@ int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_t num_r
         last_pic = pic;
       }
     } while (pic != NULL && (pic = pic->next) != NULL);
+  }
+
+  if(discard_ref != NULL) {
+    dpb_remove_picture(dpb, pic);
   }
 
   return 0;
@@ -377,15 +493,16 @@ int fill_vdpau_reference_list(struct dpb *dpb, VdpReferenceFrameH264 *reflist)
     do {
       if (pic->used_for_reference) {
         reflist[i].surface = pic->surface;
-        reflist[i].is_long_term = pic->nal->used_for_long_term_ref;
-        if(reflist[i].is_long_term)
-          reflist[i].frame_idx = pic->nal->slc->frame_num;
-        else
-          reflist[i].frame_idx = pic->nal->slc->frame_num;
+        reflist[i].is_long_term = pic->coded_pic[0]->used_for_long_term_ref ||
+            (pic->coded_pic[1] != NULL && pic->coded_pic[1]->used_for_long_term_ref);
+
+        reflist[i].frame_idx = pic->coded_pic[0]->slc_nal->slc.frame_num;
         reflist[i].top_is_reference = pic->top_is_reference;
         reflist[i].bottom_is_reference = pic->bottom_is_reference;
-        reflist[i].field_order_cnt[0] = pic->nal->top_field_order_cnt;
-        reflist[i].field_order_cnt[1] = pic->nal->bottom_field_order_cnt;
+        reflist[i].field_order_cnt[0] = pic->coded_pic[0]->top_field_order_cnt;
+        reflist[i].field_order_cnt[1] = pic->coded_pic[1] != NULL ?
+            pic->coded_pic[1]->bottom_field_order_cnt :
+            pic->coded_pic[0]->bottom_field_order_cnt;
         i++;
       }
       last_pic = pic;

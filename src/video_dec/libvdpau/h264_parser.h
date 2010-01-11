@@ -31,7 +31,21 @@
 
 #define MAX_FRAME_SIZE  1024*1024
 
-struct nal_parser {
+/* specifies wether the parser last parsed
+ * non-vcl or vcl nal units. depending on
+ * this the access unit boundaries are detected
+ */
+enum parser_position {
+    NON_VCL,
+    VCL
+};
+
+enum parser_flags {
+    CPB_DPB_DELAYS_PRESENT = 0x01,
+    PIC_STRUCT_PRESENT = 0x02
+};
+
+struct h264_parser {
     uint8_t buf[MAX_FRAME_SIZE];
     uint32_t buf_len;
 
@@ -40,38 +54,31 @@ struct nal_parser {
     uint8_t prebuf[MAX_FRAME_SIZE];
     uint32_t prebuf_len;
     uint32_t next_nal_position;
-    uint8_t incomplete_nal;
 
-    uint8_t found_sps;
-    uint8_t found_pps;
     uint8_t last_nal_res;
-
-    uint8_t is_idr;
-
-    int field; /* 0=top, 1=bottom, -1=both */
-    int slice;
-    int slice_cnt;
-
-    uint8_t have_top;
-    uint8_t have_frame;
 
     uint8_t nal_size_length;
     uint32_t next_nal_size;
     uint8_t *nal_size_length_buf;
     uint8_t have_nal_size_length_buf;
 
-    struct nal_unit *nal0;
-    struct nal_unit *nal1;
-    struct nal_unit *current_nal;
-    struct nal_unit *last_nal;
+    enum parser_position position;
 
-    uint8_t cpb_dpb_delays_present_flag;
+    struct coded_picture *pic;
 
-    uint32_t pic_order_cnt_lsb;
-    uint32_t pic_order_cnt_msb;
+    struct nal_unit *last_vcl_nal;
+    struct nal_buffer *sps_buffer;
+    struct nal_buffer *pps_buffer;
+
     uint32_t prev_pic_order_cnt_lsb;
     uint32_t prev_pic_order_cnt_msb;
     uint32_t frame_num_offset;
+
+    int32_t prev_top_field_order_cnt;
+
+    uint32_t curr_pic_num;
+
+    uint16_t flag_mask;
 
     /* this is dpb used for reference frame
      * heading to vdpau + unordered frames
@@ -79,20 +86,22 @@ struct nal_parser {
     struct dpb dpb;
 };
 
-int parse_nal(uint8_t *buf, int buf_len, struct nal_parser *parser);
+int parse_nal(uint8_t *buf, int buf_len, struct h264_parser *parser,
+    struct coded_picture **completed_picture);
 
-int seek_for_nal(uint8_t *buf, int buf_len, struct nal_parser *parser);
+int seek_for_nal(uint8_t *buf, int buf_len, struct h264_parser *parser);
 
-struct nal_parser* init_parser();
-void free_parser(struct nal_parser *parser);
-int parse_frame(struct nal_parser *parser, uint8_t *inbuf, int inbuf_len,
-                uint8_t **ret_buf, uint32_t *ret_len, uint32_t *ret_slice_cnt);
+struct h264_parser* init_parser();
+void free_parser(struct h264_parser *parser);
+int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
+    int64_t pts,
+    uint8_t **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic);
 
 /* this has to be called after decoding the frame delivered by parse_frame,
  * but before adding a decoded frame to the dpb.
  */
-void process_mmc_operations(struct nal_parser *parser);
+void process_mmc_operations(struct h264_parser *parser, struct coded_picture *picture);
 
-void parse_codec_private(struct nal_parser *parser, uint8_t *inbuf, int inbuf_len);
+void parse_codec_private(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len);
 
 #endif
