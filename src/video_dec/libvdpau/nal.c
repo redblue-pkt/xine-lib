@@ -27,49 +27,183 @@
 #include "nal.h"
 #include <xine/xine_internal.h>
 
-struct nal_unit* init_nal_unit()
+struct nal_buffer* create_nal_buffer(uint8_t max_size)
+{
+    struct nal_buffer *nal_buffer = calloc(1, sizeof(struct nal_buffer));
+    nal_buffer->max_size = max_size;
+
+    return nal_buffer;
+}
+
+/**
+ * destroys a nal buffer. all referenced nals are released
+ */
+void free_nal_buffer(struct nal_buffer *nal_buffer)
+{
+  struct nal_unit *nal = nal_buffer->first;
+
+  do {
+    struct nal_unit *delete = nal;
+    nal = nal->next;
+    release_nal_unit(delete);
+  } while(nal != NULL);
+
+  free(nal_buffer);
+}
+
+/**
+ * appends a nal unit to the end of the buffer
+ */
+void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *nal)
+{
+  if(nal_buffer->used == nal_buffer->max_size) {
+    nal_buffer_remove(nal_buffer, nal_buffer->first);
+  }
+
+  if (nal_buffer->first == NULL) {
+    nal_buffer->first = nal_buffer->last = nal;
+    nal->prev = nal->next = NULL;
+
+    lock_nal_unit(nal);
+    nal_buffer->used++;
+  } else if (nal_buffer->last != NULL) {
+    nal_buffer->last->next = nal;
+    nal->prev = nal_buffer->last;
+    nal_buffer->last = nal;
+
+    lock_nal_unit(nal);
+    nal_buffer->used++;
+  } else {
+    printf("ERR: nal_buffer is in a broken state\n");
+  }
+}
+
+void nal_buffer_remove(struct nal_buffer *nal_buffer, struct nal_unit *nal)
+{
+  if (nal == nal_buffer->first && nal == nal_buffer->last) {
+    nal_buffer->first = nal_buffer->last = NULL;
+  } else {
+    if (nal == nal_buffer->first) {
+      nal_buffer->first = nal->next;
+      nal_buffer->first->prev = NULL;
+    } else {
+      nal->prev->next = nal->next;
+    }
+
+    if (nal == nal_buffer->last) {
+      nal_buffer->last = nal->prev;
+      nal_buffer->last->next = NULL;
+    } else {
+      nal->next->prev = nal->prev;
+    }
+  }
+
+  nal->next = nal->prev = NULL;
+  release_nal_unit(nal);
+
+  nal_buffer->used--;
+}
+
+void nal_buffer_flush(struct nal_buffer *nal_buffer)
+{
+  while(nal_buffer->used > 0) {
+    nal_buffer_remove(nal_buffer, nal_buffer->first);
+  }
+}
+
+/**
+ * returns the last element in the buffer
+ */
+struct nal_unit *nal_buffer_get_last(struct nal_buffer *nal_buffer)
+{
+  return nal_buffer->last;
+}
+
+/**
+ * get a nal unit from a nal_buffer from it's
+ * seq parameter_set_id
+ */
+struct nal_unit* nal_buffer_get_by_sps_id(struct nal_buffer *nal_buffer,
+    uint32_t seq_parameter_set_id)
+{
+  struct nal_unit *nal = nal_buffer->last;
+
+  if (nal != NULL) {
+    do {
+      if(nal->nal_unit_type == NAL_SPS) {
+        if(nal->sps.seq_parameter_set_id == seq_parameter_set_id) {
+          return nal;
+        }
+      }
+
+      nal = nal->prev;
+    } while(nal != NULL);
+  }
+
+  return NULL;
+}
+
+/**
+ * get a nal unit from a nal_buffer from it's
+ * pic parameter_set_id
+ */
+struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
+    uint32_t pic_parameter_set_id)
+{
+  struct nal_unit *nal = nal_buffer->last;
+
+  if (nal != NULL) {
+    do {
+      if(nal->nal_unit_type == NAL_PPS) {
+        if(nal->pps.pic_parameter_set_id == pic_parameter_set_id) {
+          return nal;
+        }
+      }
+
+      nal = nal->prev;
+    } while(nal != NULL);
+  }
+
+  return NULL;
+}
+
+/**
+ * create a new nal unit, with a lock_counter of 1
+ */
+struct nal_unit* create_nal_unit()
 {
   struct nal_unit *nal = calloc(1, sizeof(struct nal_unit));
-
-  /*nal->sps = calloc(1, sizeof(struct seq_parameter_set_rbsp));
-  nal->pps = calloc(1, sizeof(struct pic_parameter_set_rbsp));
-  nal->slc = calloc(1, sizeof(struct slice_header));*/
+  nal->lock_counter = 1;
 
   return nal;
 }
 
-void free_nal_unit(struct nal_unit *nal)
+void lock_nal_unit(struct nal_unit *nal)
+{
+  nal->lock_counter++;
+}
+
+void release_nal_unit(struct nal_unit *nal)
 {
   if(!nal)
     return;
 
-  free(nal->sps);
-  free(nal->pps);
-  free(nal->slc);
-  free(nal);
+  nal->lock_counter--;
+
+  if(nal->lock_counter <= 0) {
+    free(nal);
+  }
 }
 
+/**
+ * creates a copy of a nal unit with a single lock
+ */
 void copy_nal_unit(struct nal_unit *dest, struct nal_unit *src)
 {
   /* size without pps, sps and slc units: */
-  int size = sizeof(struct nal_unit) - sizeof(struct seq_parameter_set_rbsp*)
-      - sizeof(struct pic_parameter_set_rbsp*) - sizeof(struct slice_header*);
+  int size = sizeof(struct nal_unit);
 
   xine_fast_memcpy(dest, src, size);
-
-  if(!dest->sps)
-    dest->sps = calloc(1, sizeof(struct seq_parameter_set_rbsp));
-
-  if(!dest->pps)
-    dest->pps = calloc(1, sizeof(struct pic_parameter_set_rbsp));
-
-  if(!dest->slc)
-    dest->slc = calloc(1, sizeof(struct slice_header));
-
-  if(src->sps)
-    xine_fast_memcpy(dest->sps, src->sps, sizeof(struct seq_parameter_set_rbsp));
-  if(src->pps)
-    xine_fast_memcpy(dest->pps, src->pps, sizeof(struct pic_parameter_set_rbsp));
-  if(src->slc)
-    xine_fast_memcpy(dest->slc, src->slc, sizeof(struct slice_header));
+  dest->lock_counter = 1;
+  dest->prev = dest->next = NULL;
 }

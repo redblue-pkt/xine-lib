@@ -118,6 +118,7 @@ static inline uint32_t slice_type(uint32_t slice_type)
   return (slice_type < 10 ? slice_type % 5 : slice_type);
 }
 
+#if 0
 static inline void print_slice_type(uint32_t slice_type)
 {
   switch(slice_type) {
@@ -140,6 +141,7 @@ static inline void print_slice_type(uint32_t slice_type)
       printf("Unknown SLICE\n");
   }
 }
+#endif
 
 struct hrd_parameters
 {
@@ -178,6 +180,7 @@ struct seq_parameter_set_rbsp
   /* endif */
 
   uint32_t log2_max_frame_num_minus4;
+  uint32_t max_frame_num;
   uint32_t pic_order_cnt_type;
   // if pic_order_cnt_type==0
   uint32_t log2_max_pic_order_cnt_lsb_minus4;
@@ -341,7 +344,19 @@ struct sei_message
     uint8_t dpb_output_delay;
 
     uint8_t pic_struct;
-    //uint8_t clock_timestamp_flag[3];
+    uint8_t ct_type : 1;
+    uint8_t nuit_field_based_flag : 1;
+    uint8_t counting_type : 5;
+    uint8_t full_timestamp_flag : 1;
+    uint8_t discontinuity_flag : 1;
+    uint8_t cnt_dropped_flag : 1;
+    uint8_t n_frames;
+
+    uint8_t seconds_value : 6;
+    uint8_t minutes_value : 6;
+    uint8_t hours_value : 5;
+
+    int32_t time_offset;
   } pic_timing;
 };
 
@@ -435,32 +450,46 @@ struct slice_header
   uint32_t dec_ref_pic_marking_count;
 };
 
-struct nal_unit
-{
-  uint8_t nal_ref_idc; // 0x03
-  uint8_t nal_unit_type; // 0x1f
+struct nal_unit {
+    uint8_t nal_ref_idc; // 0x03
+    enum nal_unit_types nal_unit_type; // 0x1f
 
-  uint32_t max_pic_num;
-  uint32_t curr_pic_num;
-  uint8_t used_for_long_term_ref;
-  uint32_t long_term_pic_num;
-  uint32_t long_term_frame_idx;
+    //union {
+      struct sei_message sei;
+      struct seq_parameter_set_rbsp sps;
+      struct pic_parameter_set_rbsp pps;
+      struct slice_header slc;
+    //};
 
-  int32_t top_field_order_cnt;
-  int32_t bottom_field_order_cnt;
+    struct nal_unit *prev;
+    struct nal_unit *next;
 
-  uint8_t interlaced;
-  uint8_t repeat_pic;
-
-  struct sei_message sei;
-
-  struct seq_parameter_set_rbsp *sps;
-  struct pic_parameter_set_rbsp *pps;
-  struct slice_header *slc;
+    uint32_t lock_counter;
 };
 
-struct nal_unit* init_nal_unit();
-void free_nal_unit(struct nal_unit *nal);
+struct nal_buffer {
+    struct nal_unit *first;
+    struct nal_unit *last;
+
+    uint8_t max_size;
+    uint8_t used;
+};
+
+struct nal_buffer* create_nal_buffer(uint8_t max_size);
+void free_nal_buffer(struct nal_buffer *nal_buffer);
+void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *nal);
+void nal_buffer_remove(struct nal_buffer *nal_buffer, struct nal_unit *nal);
+void nal_buffer_flush(struct nal_buffer *nal_buffer);
+
+struct nal_unit* nal_buffer_get_by_sps_id(struct nal_buffer *nal_buffer,
+    uint32_t seq_parameter_set_id);
+struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
+    uint32_t pic_parameter_set_id);
+struct nal_unit* nal_buffer_get_last(struct nal_buffer *nal_buffer);
+
+struct nal_unit* create_nal_unit();
+void lock_nal_unit(struct nal_unit *nal);
+void release_nal_unit(struct nal_unit *nal);
 void copy_nal_unit(struct nal_unit *dest, struct nal_unit *src);
 
 #endif /* NAL_H_ */
