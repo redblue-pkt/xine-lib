@@ -715,7 +715,7 @@ static void vdpau_h264_reset (video_decoder_t *this_gen) {
   this->wait_for_bottom_field = 0;
   this->video_step = 0;
 
-  this->nal_parser = init_parser();
+  this->nal_parser = init_parser(this->stream->xine);
   if(this->codec_private_len > 0) {
     parse_codec_private(this->nal_parser, this->codec_private, this->codec_private_len);
 
@@ -815,7 +815,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   this->reset = VO_NEW_SEQUENCE_FLAG;
 
-  this->nal_parser = init_parser();
+  this->nal_parser = init_parser(stream->xine);
 
   (this->stream->video_out->open) (this->stream->video_out, this->stream);
 

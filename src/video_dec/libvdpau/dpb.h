@@ -99,9 +99,7 @@ static int dp_top_field_first(struct decoded_picture *decoded_pic)
 {
   int top_field_first = 0;
 
-  if (decoded_pic->coded_pic[0] == NULL) {
-    printf("SOMETHINGS VERY WRONG!\n");
-  }
+
   if (decoded_pic->coded_pic[0]->slc_nal->slc.field_pic_flag == 0) {
     top_field_first = 1;
   } else {

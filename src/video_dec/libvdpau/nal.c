@@ -74,7 +74,7 @@ void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *nal)
     lock_nal_unit(nal);
     nal_buffer->used++;
   } else {
-    printf("ERR: nal_buffer is in a broken state\n");
+    lprintf("ERR: nal_buffer is in a broken state\n");
   }
 }
 

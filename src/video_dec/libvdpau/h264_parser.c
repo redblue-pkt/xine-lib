@@ -207,7 +207,7 @@ static inline int rbsp_trailing_bits(uint8_t *buf, int buf_len)
     cur_buf--;
   }
 
-  fprintf(stderr, "rbsp trailing bits could not be found\n");
+  lprintf("rbsp trailing bits could not be found\n");
   return 0;
 }
 
@@ -248,7 +248,7 @@ struct nal_unit* parse_nal_header(struct buf_reader *buf,
   nal->nal_unit_type = buf->buf[0] & 0x1f;
 
   buf->cur_pos = buf->buf + 1;
-  //printf("NAL: %d\n", nal->nal_unit_type);
+  //lprintf("NAL: %d\n", nal->nal_unit_type);
 
   struct buf_reader ibuf;
   ibuf.cur_offset = 8;
@@ -294,9 +294,10 @@ void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
       nal_buffer_get_by_pps_id(parser->pps_buffer, slc->pic_parameter_set_id);
 
   if (pps_nal == NULL) {
-    fprintf(stderr, "ERR: calculate_pic_order: pic_parameter_set_id %d not found in buffers\n",
-            slc->pic_parameter_set_id);
-        return;
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "ERR: calculate_pic_order: pic_parameter_set_id %d not found in buffers\n",
+        slc->pic_parameter_set_id);
+    return;
   }
 
   struct pic_parameter_set_rbsp *pps = &pps_nal->pps;
@@ -305,7 +306,8 @@ void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
       nal_buffer_get_by_sps_id(parser->sps_buffer, pps->seq_parameter_set_id);
 
   if (sps_nal == NULL) {
-    fprintf(stderr, "ERR: calculate_pic_order: seq_parameter_set_id %d not found in buffers\n",
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "ERR: calculate_pic_order: seq_parameter_set_id %d not found in buffers\n",
         pps->seq_parameter_set_id);
     return;
   }
@@ -384,7 +386,8 @@ void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
       pic->top_field_order_cnt = temp_pic_order_cnt;
 
   } else {
-    fprintf(stderr, "FIXME: Unsupported poc_type: %d\n", sps->pic_order_cnt_type);
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "FIXME: Unsupported poc_type: %d\n", sps->pic_order_cnt_type);
   }
 }
 
@@ -619,7 +622,8 @@ uint8_t parse_sps(struct buf_reader *buf, struct seq_parameter_set_rbsp *sps)
 void interpret_sps(struct coded_picture *pic, struct h264_parser *parser)
 {
   if(pic->sps_nal == NULL) {
-    fprintf(stderr, "WARNING: Picture contains no seq_parameter_set\n");
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "WARNING: Picture contains no seq_parameter_set\n");
     return;
   }
 
@@ -661,7 +665,8 @@ void parse_sei(struct buf_reader *buf, struct sei_message *sei,
       nal_buffer_get_last(parser->sps_buffer);
 
   if (sps_nal == NULL) {
-    fprintf(stderr, "ERR: parse_sei: seq_parameter_set_id not found in buffers\n");
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "ERR: parse_sei: seq_parameter_set_id not found in buffers\n");
     return;
   }
 
@@ -713,7 +718,6 @@ void parse_sei(struct buf_reader *buf, struct sei_message *sei,
       int i;
       for(i = 0; i < NumClockTs; i++) {
         if(read_bits(buf, 1)) { /* clock_timestamp_flag == 1 */
-          printf("parse clock timestamp!\n");
           sei->pic_timing.ct_type = read_bits(buf, 2);
           sei->pic_timing.nuit_field_based_flag = read_bits(buf, 1);
           sei->pic_timing.counting_type = read_bits(buf, 5);
@@ -897,7 +901,7 @@ uint8_t parse_pps(struct buf_reader *buf, struct pic_parameter_set_rbsp *pps)
         if (i_group < 64)
           pps->run_length_minus1[i_group] = read_exp_golomb(buf);
         else { // FIXME: skips if more than 64 groups exist
-          fprintf(stderr, "Error: Only 64 slice_groups are supported\n");
+          lprintf("Error: Only 64 slice_groups are supported\n");
           read_exp_golomb(buf);
         }
       }
@@ -963,10 +967,10 @@ uint8_t parse_pps(struct buf_reader *buf, struct pic_parameter_set_rbsp *pps)
 void interpret_pps(struct coded_picture *pic)
 {
   if(pic->sps_nal == NULL) {
-    fprintf(stderr, "WARNING: Picture contains no seq_parameter_set\n");
+    lprintf("WARNING: Picture contains no seq_parameter_set\n");
     return;
   } else if(pic->pps_nal == NULL) {
-    fprintf(stderr, "WARNING: Picture contains no pic_parameter_set\n");
+    lprintf("WARNING: Picture contains no pic_parameter_set\n");
     return;
   }
 
@@ -1005,9 +1009,10 @@ uint8_t parse_slice_header(struct buf_reader *buf, struct nal_unit *slc_nal,
       nal_buffer_get_by_pps_id(parser->pps_buffer, slc->pic_parameter_set_id);
 
   if (pps_nal == NULL) {
-    fprintf(stderr, "ERR: parse_slice_header: pic_parameter_set_id %d not found in buffers\n",
-            slc->pic_parameter_set_id);
-        return -1;
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "ERR: parse_slice_header: pic_parameter_set_id %d not found in buffers\n",
+        slc->pic_parameter_set_id);
+    return -1;
   }
 
   struct pic_parameter_set_rbsp *pps = &pps_nal->pps;
@@ -1016,7 +1021,8 @@ uint8_t parse_slice_header(struct buf_reader *buf, struct nal_unit *slc_nal,
       nal_buffer_get_by_sps_id(parser->sps_buffer, pps->seq_parameter_set_id);
 
   if (sps_nal == NULL) {
-    fprintf(stderr, "ERR: parse_slice_header: seq_parameter_set_id %d not found in buffers\n",
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "ERR: parse_slice_header: seq_parameter_set_id %d not found in buffers\n",
         pps->seq_parameter_set_id);
     return -1;
   }
@@ -1108,16 +1114,18 @@ void interpret_slice_header(struct h264_parser *parser, struct nal_unit *slc_nal
       nal_buffer_get_by_pps_id(parser->pps_buffer, slc->pic_parameter_set_id);
 
   if (pps_nal == NULL) {
-    fprintf(stderr, "ERR: interpret_slice_header: pic_parameter_set_id %d not found in buffers\n",
-            slc->pic_parameter_set_id);
-        return;
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "ERR: interpret_slice_header: pic_parameter_set_id %d not found in buffers\n",
+        slc->pic_parameter_set_id);
+    return;
   }
 
   struct nal_unit *sps_nal =
       nal_buffer_get_by_sps_id(parser->sps_buffer, pps_nal->pps.seq_parameter_set_id);
 
   if (sps_nal == NULL) {
-    fprintf(stderr, "ERR: interpret_slice_header: seq_parameter_set_id %d not found in buffers\n",
+    xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+        "ERR: interpret_slice_header: seq_parameter_set_id %d not found in buffers\n",
         pps_nal->pps.seq_parameter_set_id);
     return;
   }
@@ -1354,7 +1362,9 @@ void execute_ref_pic_marking(struct coded_picture *cpic,
         }
       }
     } else {
-        fprintf(stderr, "H264: mmc 1 failed: %d not existent - curr_pic: %d\n", pic_num_x, parser->curr_pic_num);
+        xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+            "H264: mmc 1 failed: %d not existent - curr_pic: %d\n",
+            pic_num_x, parser->curr_pic_num);
     }
   } else if (memory_management_control_operation == 2) {
     // long-term -> unused for reference
@@ -1413,25 +1423,25 @@ void execute_ref_pic_marking(struct coded_picture *cpic,
               = slc->dec_ref_pic_marking[marking_nr].long_term_frame_idx;
           pic->coded_pic[1]->long_term_pic_num = pic->coded_pic[1]->long_term_frame_idx * 2 + 1;
         }
-        printf("FIXME: B Set frame %d to long-term ref\n", pic_num_x);
       }
     }
     else {
-      fprintf(stderr, "memory_management_control_operation: 3 failed. No such picture.\n");
+      xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
+          "memory_management_control_operation: 3 failed. No such picture.\n");
     }
 
   } else if (memory_management_control_operation == 4) {
-    // set max-long-term frame index,
-    // mark all long-term pictures with long-term frame idx
-    // greater max-long-term farme idx as unused for ref
+    /* set max-long-term frame index,
+     * mark all long-term pictures with long-term frame idx
+     * greater max-long-term farme idx as unused for ref */
     if (slc->dec_ref_pic_marking[marking_nr].max_long_term_frame_idx_plus1 == 0)
       dpb_set_unused_ref_picture_lidx_gt(dpb, 0);
     else
       dpb_set_unused_ref_picture_lidx_gt(dpb,
           slc->dec_ref_pic_marking[marking_nr].max_long_term_frame_idx_plus1 - 1);
   } else if (memory_management_control_operation == 5) {
-    // mark all ref pics as unused for reference,
-    // set max-long-term frame index = no long-term frame idxs
+    /* mark all ref pics as unused for reference,
+     * set max-long-term frame index = no long-term frame idxs */
     dpb_flush(dpb);
 
     if (!slc->bottom_field_flag) {
@@ -1442,8 +1452,8 @@ void execute_ref_pic_marking(struct coded_picture *cpic,
       parser->prev_pic_order_cnt_msb = 0;
     }
   } else if (memory_management_control_operation == 6) {
-    // mark current picture as used for long-term ref,
-    // assing long-term frame idx to it
+    /* mark current picture as used for long-term ref,
+     * assing long-term frame idx to it */
     struct decoded_picture* pic = dpb_get_picture_by_ltidx(dpb,
         slc->dec_ref_pic_marking[marking_nr].long_term_frame_idx);
     if (pic != NULL)
@@ -1507,7 +1517,7 @@ void parse_dec_ref_pic_marking(struct buf_reader *buf,
 
         i++;
         if(i >= 10) {
-          fprintf(stderr, "Error: Not more than 10 MMC operations supported per slice. Dropping some.\n");
+          lprintf("Error: Not more than 10 MMC operations supported per slice. Dropping some.\n");
           i = 0;
         }
       } while (slc->dec_ref_pic_marking[i-1].memory_management_control_operation
@@ -1520,7 +1530,7 @@ void parse_dec_ref_pic_marking(struct buf_reader *buf,
 
 /* ----------------- NAL parser ----------------- */
 
-struct h264_parser* init_parser()
+struct h264_parser* init_parser(xine_t *xine)
 {
   struct h264_parser *parser = calloc(1, sizeof(struct h264_parser));
   parser->pic = create_coded_picture();
@@ -1528,6 +1538,7 @@ struct h264_parser* init_parser()
   parser->last_vcl_nal = NULL;
   parser->sps_buffer = create_nal_buffer(32);
   parser->pps_buffer = create_nal_buffer(32);
+  parser->xine = xine;
   memset(&parser->dpb, 0x00, sizeof(struct dpb));
 
   /* no idea why we do that. inspired by libavcodec,
@@ -1636,7 +1647,7 @@ int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
     start_seq_len = offset = parser->nal_size_length;
 
   if (parser->prebuf_len + inbuf_len > MAX_FRAME_SIZE) {
-    fprintf(stderr, "h264_parser: prebuf underrung\n");
+    xprintf(parser->xine, XINE_VERBOSITY_LOG,"h264_parser: prebuf underrun\n");
     *ret_len = 0;
     *ret_buf = NULL;
     parser->prebuf_len = 0;
@@ -1658,7 +1669,7 @@ int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
     if(!parser->nal_size_length &&
         (parser->prebuf[0] != 0x00 || parser->prebuf[1] != 0x00 ||
             parser->prebuf[2] != 0x01)) {
-      fprintf(stderr, "Broken NAL, skip it.\n");
+      xprintf(parser->xine, XINE_VERBOSITY_LOG, "Broken NAL, skip it.\n");
       parser->last_nal_res = 2;
     } else {
       parser->last_nal_res = parse_nal(parser->prebuf+start_seq_len,
@@ -1669,7 +1680,7 @@ int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
         completed_pic->slice_cnt > 0 &&
         parser->buf_len > 0) {
 
-      //printf("Frame complete: %d bytes\n", parser->buf_len);
+      //lprintf("Frame complete: %d bytes\n", parser->buf_len);
       *ret_len = parser->buf_len;
       *ret_buf = malloc(parser->buf_len);
       xine_fast_memcpy(*ret_buf, parser->buf, parser->buf_len);
@@ -1709,7 +1720,7 @@ int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
      */
     if (parser->last_nal_res < 2) {
       if (parser->buf_len + next_nal+start_seq_len-offset > MAX_FRAME_SIZE) {
-        fprintf(stderr, "h264_parser: buf underrun!\n");
+        xprintf(parser->xine, XINE_VERBOSITY_LOG, "h264_parser: buf underrun!\n");
         parser->buf_len = 0;
         *ret_len = 0;
         *ret_buf = NULL;
@@ -1960,7 +1971,7 @@ int seek_for_nal(uint8_t *buf, int buf_len, struct h264_parser *parser)
   int i;
   for (i = 0; i < buf_len - 2; i++) {
     if (buf[i] == 0x00 && buf[i + 1] == 0x00 && buf[i + 2] == 0x01) {
-      //printf("found nal at: %d\n", i);
+      //lprintf("found nal at: %d\n", i);
       return i;
     }
   }
