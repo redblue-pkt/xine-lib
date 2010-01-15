@@ -392,7 +392,7 @@ int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_t num_r
 {
   pic->img->lock(pic->img);
   if (0 == dpb_remove_picture_by_img(dpb, pic->img))
-    fprintf(stderr, "broken stream: current img was already in dpb -- freed it\n");
+    lprintf("broken stream: current img was already in dpb -- freed it\n");
   else
     pic->img->free(pic->img);
 
@@ -450,8 +450,6 @@ int dpb_flush(struct dpb *dpb)
       pic = next_pic;
     } while (pic != NULL);
 
-  //printf("Flushed, used: %d\n", dpb->used);
-
   return 0;
 }
 
@@ -467,7 +465,6 @@ void dpb_free_all( struct dpb *dpb )
       pic = next_pic;
     } while (pic != NULL);
 
-  printf("dpb_free_all, used: %d\n", dpb->used);
   dpb->pictures = NULL;
 }
 
