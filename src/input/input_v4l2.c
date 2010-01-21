@@ -333,9 +333,14 @@ typedef struct {
 
 static input_plugin_t *v4l2_class_get_instance(input_class_t *gen_cls, xine_stream_t *stream, const char *mrl) {
     v4l2_input_plugin_t *this;
+    if (strncasecmp (mrl, "v4l2:/", 6))
+	return NULL;
+    mrl += 5;
+    while (*++mrl == '/') /**/;
+    --mrl; /* point at the last slash */
     /* TODO: Radio devices */
     /* FIXME: Don't require devices to be of /dev/videoXXX */
-    if (strncmp(mrl, "/dev/video", strlen("/dev/video")) != 0)
+    if (strncmp(mrl, "/dev/video", 10) != 0)
         return NULL;
     lprintf("We can handle %s!\n", mrl);
 
