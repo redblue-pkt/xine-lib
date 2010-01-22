@@ -68,6 +68,8 @@ typedef struct {
     buffer_data *buffers;
     int bufcount;
     resolution_t resolution;
+    struct v4l2_buffer inbuf;
+    off_t index;
     int headerSent;
 } v4l2_video_t;
 
@@ -90,7 +92,7 @@ typedef struct {
 } v4l2_input_plugin_t;
 
 static void v4l2_input_enqueue_video_buffer(v4l2_input_plugin_t *this, int idx);
-static void v4l2_input_dequeue_video_buffer(v4l2_input_plugin_t *this, buf_element_t *input);
+static int v4l2_input_dequeue_video_buffer(v4l2_input_plugin_t *this, buf_element_t *input);
 static int v4l2_input_setup_video_streaming(v4l2_input_plugin_t *this);
 
 
@@ -208,10 +210,11 @@ static buf_element_t* v4l2_input_read_block(input_plugin_t *this_gen, fifo_buffe
     lprintf("Reading block\n");
     v4l2_input_plugin_t *this = (v4l2_input_plugin_t*)this_gen;
     buf_element_t *buf = fifo->buffer_pool_alloc(fifo);
-    struct timeval tv;
-    xine_monotonic_clock(&tv, NULL);
-    buf->pts = (int64_t) tv.tv_sec * 90000 + (int64_t) tv.tv_usec * 9 / 100;
     if (!this->video->headerSent) {
+        struct timeval tv;
+        xine_monotonic_clock(&tv, NULL);
+        buf->pts = (int64_t) tv.tv_sec * 90000 + (int64_t) tv.tv_usec * 9 / 100;
+
         lprintf("Sending video header\n");
         xine_bmiheader bih;
         bih.biSize = sizeof(xine_bmiheader);
@@ -223,12 +226,12 @@ static buf_element_t* v4l2_input_read_block(input_plugin_t *this_gen, fifo_buffe
         buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_START;
         memcpy(buf->content, &bih, sizeof(xine_bmiheader));
         this->video->headerSent = 1;
+        this->video->index = 0;
         buf->type = BUF_VIDEO_YUY2;
     } else {
-        lprintf("Sending video frame\n");
+        lprintf("Sending video frame (sent %d of %d)\n", this->video->index, this->video->buffers[this->video->inbuf.index].length);
         /* TODO: Add audio support */
-        v4l2_input_dequeue_video_buffer(this, buf);
-        this->video->headerSent = 0;
+        this->video->headerSent = v4l2_input_dequeue_video_buffer(this, buf);
     }
     return buf;
 }
@@ -246,17 +249,37 @@ static uint32_t v4l2_input_blocksize(input_plugin_t *this_gen) {
     }
 }
 
-static void v4l2_input_dequeue_video_buffer(v4l2_input_plugin_t *this, buf_element_t *output) {
-    struct v4l2_buffer buf;
-    memset(&buf, 0, sizeof(buf));
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
+static int v4l2_input_dequeue_video_buffer(v4l2_input_plugin_t *this, buf_element_t *output)
+{
+    if (!this->video->index)
+    {
+	memset (&this->video->inbuf, 0, sizeof (this->video->inbuf));
+	this->video->inbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	this->video->inbuf.memory = V4L2_MEMORY_MMAP;
+	v4l2_ioctl(this->fd, VIDIOC_DQBUF, &this->video->inbuf);
+	output->decoder_flags = BUF_FLAG_FRAME_START;
+    }
+    else
+	output->decoder_flags = 0;
+
     output->content = output->mem;
-    v4l2_ioctl(this->fd, VIDIOC_DQBUF, &buf);
-    output->decoder_flags = BUF_FLAG_FRAME_START|BUF_FLAG_FRAME_END;
-    xine_fast_memcpy(output->content, this->video->buffers[buf.index].start, this->video->buffers[buf.index].length);
     output->type = BUF_VIDEO_YUY2;
-    v4l2_input_enqueue_video_buffer(this, buf.index);
+
+    output->size = this->video->buffers[this->video->inbuf.index].length - this->video->index;
+    if (output->size > output->max_size)
+	output->size = output->max_size;
+
+    xine_fast_memcpy (output->content, this->video->buffers[this->video->inbuf.index].start + this->video->index, output->size);
+
+    this->video->index += output->size;
+    if (this->video->index == this->video->buffers[this->video->inbuf.index].length)
+    {
+	output->decoder_flags |= BUF_FLAG_FRAME_END;
+	v4l2_input_enqueue_video_buffer(this, this->video->inbuf.index);
+	return 0;
+    }
+
+    return 1;
 }
 
 static void v4l2_input_enqueue_video_buffer(v4l2_input_plugin_t *this, int idx) {
