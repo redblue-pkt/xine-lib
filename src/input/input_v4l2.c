@@ -186,15 +186,23 @@ static int v4l2_input_setup_video_streaming(v4l2_input_plugin_t *this) {
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     /* TODO: Other formats? MPEG support? */
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-    v4l2_ioctl(this->fd, VIDIOC_S_FMT, &fmt);
+    if (-1 == v4l2_ioctl(this->fd, VIDIOC_S_FMT, &fmt))
+	goto fail;
     this->video->resolution.width = fmt.fmt.pix.width;
     this->video->resolution.height = fmt.fmt.pix.height;
-    if (-1 == v4l2_ioctl(this->fd, VIDIOC_STREAMON, &reqbuf.type)) {
-        lprintf("Couldn't start streaming: %s\n", strerror(errno));
-        return 0;
-    }
+    if (-1 == v4l2_ioctl(this->fd, VIDIOC_STREAMON, &reqbuf.type))
+	goto fail;
+
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+
     return 1;
+
+  fail:
+    lprintf("Couldn't start streaming: %s\n", strerror(errno));
+    return 0;
 }
+
 
 static buf_element_t* v4l2_input_read_block(input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t len) {
     lprintf("Reading block\n");
