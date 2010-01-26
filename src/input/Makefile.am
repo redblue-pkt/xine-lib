@@ -21,6 +21,7 @@ endif
 
 if HAVE_V4L
 in_v4l = xineplug_inp_v4l.la
+in_v4l2 = xineplug_inp_v4l2.la
 in_pvr = xineplug_inp_pvr.la
 endif
 
@@ -60,6 +61,7 @@ xineplug_LTLIBRARIES = \
 	$(in_dvd) \
 	$(in_vcd) \
 	$(in_v4l) \
+	$(in_v4l2) \
 	$(in_gnome_vfs) \
 	$(in_smb) \
 	xineplug_inp_mms.la \
@@ -137,6 +139,11 @@ xineplug_inp_v4l_la_SOURCES = input_v4l.c
 xineplug_inp_v4l_la_LIBADD = $(XINE_LIB) $(ALSA_LIBS) $(LTLIBINTL)
 xineplug_inp_v4l_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
 xineplug_inp_v4l_la_LDFLAGS = -avoid-version -module
+
+xineplug_inp_v4l2_la_SOURCES = input_v4l2.c
+xineplug_inp_v4l2_la_LIBADD = $(XINE_LIB) $(ALSA_LIBS)
+xineplug_inp_v4l2_la_CFLAGS = $(VISIBILITY_FLAG) $(AM_CFLAGS)
+xineplug_inp_v4l2_la_LDFLAGS = -avoid-version -module
 
 xineplug_inp_gnome_vfs_la_SOURCES = input_gnome_vfs.c net_buf_ctrl.c
 xineplug_inp_gnome_vfs_la_LIBADD = $(XINE_LIB) $(GNOME_VFS_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL)
