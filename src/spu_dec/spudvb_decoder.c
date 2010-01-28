@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 the xine project
+ * Copyright (C) 2010 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -72,12 +72,14 @@ typedef struct {
   unsigned int		curr_reg[64];
   uint8_t	       *buf;
   int			i;
-  int			nibble_flag;
+  int			i_bits;
   int			in_scanline;
+  int			compat_depth;
   page_t		page;
   region_t		regions[MAX_REGIONS];
   clut_t		colours[MAX_REGIONS*256];
   unsigned char		trans[MAX_REGIONS*256];
+  unsigned char		lut24[4], lut28[4], lut48[16];
 } dvbsub_func_t;
 
 typedef struct		dvb_spu_class_s {
@@ -112,6 +114,9 @@ typedef struct dvb_spu_decoder_s {
   int			show;
 } dvb_spu_decoder_t;
 
+static clut_t default_clut[256];
+static unsigned char default_trans[256];
+static int default_colours_init = 0;
 
 static void update_osd(dvb_spu_decoder_t *this, int region_id)
 {
@@ -210,106 +215,221 @@ static void plot (dvb_spu_decoder_t * this, int r, int run_length, unsigned char
   }
 }
 
-static unsigned char next_nibble (dvb_spu_decoder_t * this)
+static const uint8_t *lookup_lut (const dvbsub_func_t *dvbsub)
 {
-  unsigned char x;
-  dvbsub_func_t *dvbsub = this->dvbsub;
+  static const uint8_t identity_lut[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-  if (dvbsub->nibble_flag == 0) {
-    x = (dvbsub->buf[dvbsub->i] & 0xf0) >> 4;
-    dvbsub->nibble_flag = 1;
+  switch (dvbsub->compat_depth)
+  {
+  case 012: return dvbsub->lut24;
+  case 013: return dvbsub->lut28;
+  case 023: return dvbsub->lut48;
+  default:  return identity_lut;
   }
-  else {
-    x = (dvbsub->buf[dvbsub->i++] & 0x0f);
-    dvbsub->nibble_flag = 0;
+}
+
+static unsigned char next_datum (dvb_spu_decoder_t * this, int width)
+{
+  dvbsub_func_t *dvbsub = this->dvbsub;
+  unsigned char x = 0;
+
+  if (!dvbsub->i_bits)
+    dvbsub->i_bits = 8;
+
+  if (dvbsub->i_bits < width)
+  {
+    /* need to read from more than one byte; split it up */
+    width -= dvbsub->i_bits;
+    x = dvbsub->buf[dvbsub->i++] & ((1 << dvbsub->i_bits) - 1);
+    dvbsub->i_bits = 8;
+    return x << width | next_datum (this, width);
   }
-  return (x);
+
+  dvbsub->i_bits = (dvbsub->i_bits - width) & 7;
+  x = (dvbsub->buf[dvbsub->i] >> dvbsub->i_bits) & ((1 << width) - 1);
+
+  if (!dvbsub->i_bits)
+    ++dvbsub->i;
+
+  return x;
+}
+
+static void decode_2bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int object_id, int ofs, int n)
+{
+  dvbsub_func_t *dvbsub = this->dvbsub;
+  int j;
+  const uint8_t *lut = lookup_lut (dvbsub);
+
+  if (dvbsub->in_scanline == 0)
+    dvbsub->in_scanline = 1;
+
+  dvbsub->i_bits = 0;
+  j = dvbsub->i + n;
+
+  while (dvbsub->i < j)
+  {
+    int next_bits = next_datum (this, 2);
+    int run_length;
+
+    if (next_bits)
+    {
+      /* single pixel */
+      plot (this, r, 1, lut[next_bits]);
+      continue;
+    }
+
+    /* switch 1 */
+    if (next_datum (this, 1) == 0)
+    {
+      /* run length, 3 to 10 pixels, colour given */
+      run_length = next_datum (this, 3);
+      plot (this, r, run_length + 3, lut[next_datum (this, 2)]);
+      continue;
+    }
+
+    /* switch 2 */
+    if (next_datum (this, 1) == 1)
+    {
+      /* single pixel, colour 0 */
+      plot (this, r, 1, lut[0]);
+      continue;
+    }
+
+    /* switch 3 */
+    switch (next_datum (this, 2))
+    {
+    case 0: /* end-of-string */
+      j = dvbsub->i; /* set the while cause FALSE */
+      break;
+    case 1: /* two pixels, colour 0 */
+      plot (this, r, 2, lut[0]);
+      break;
+    case 2: /* run length, 12 to 27 pixels (4-bit), colour given */
+      run_length = next_datum (this, 4);
+      plot (this, r, run_length + 12, lut[next_datum (this, 2)]);
+      break;
+    case 3: /* run length, 29 to 284 pixels (8-bit), colour given */
+      run_length = next_datum (this, 8);
+      plot (this, r, run_length + 29, lut[next_datum (this, 2)]);
+    }
+  }
+
+  if (dvbsub->i_bits) {
+    dvbsub->i++;
+    dvbsub->i_bits = 0;
+  }
 }
 
 static void decode_4bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int object_id, int ofs, int n)
 {
-  int next_bits, switch_1, switch_2, switch_3, run_length, pixel_code;
-
   dvbsub_func_t *dvbsub = this->dvbsub;
+  int j;
+  const uint8_t *lut = lookup_lut (dvbsub);
 
-  int bits;
-  unsigned int data;
+  if (dvbsub->in_scanline == 0)
+    dvbsub->in_scanline = 1;
+
+  dvbsub->i_bits = 0;
+  j = dvbsub->i + n;
+
+  while (dvbsub->i < j)
+  {
+    int next_bits = next_datum (this, 4);
+    int run_length;
+
+    if (next_bits)
+    {
+      /* single pixel */
+      plot (this, r, 1, lut[next_bits]);
+      continue;
+    }
+
+    /* switch 1 */
+    if (next_datum (this, 1) == 0)
+    {
+      run_length = next_datum (this, 3);
+      if (!run_length)
+	/* end-of-string */
+	break;
+
+      /* run length, 3 to 9 pixels, colour 0 */
+      plot (this, r, run_length + 2, lut[0]);
+      continue;
+    }
+
+    /* switch 2 */
+    if (next_datum (this, 1) == 0)
+    {
+      /* run length, 4 to 7 pixels, colour given */
+      run_length = next_datum (this, 2);
+      plot (this, r, run_length + 4, lut[next_datum (this, 4)]);
+      continue;
+    }
+
+    /* switch 3 */
+    switch (next_datum (this, 2))
+    {
+    case 0: /* single pixel, colour 0 */
+      plot (this, r, 1, lut[0]);
+      break;
+    case 1: /* two pixels, colour 0 */
+      plot (this, r, 2, lut[0]);
+      break;
+    case 2: /* run length, 9 to 24 pixels (4-bit), colour given */
+      run_length = next_datum (this, 4);
+      plot (this, r, run_length + 9, lut[next_datum (this, 4)]);
+      break;
+    case 3: /* run length, 25 to 280 pixels (8-bit), colour given */
+      run_length = next_datum (this, 8);
+      plot (this, r, run_length + 25, lut[next_datum (this, 4)]);
+    }
+  }
+
+  if (dvbsub->i_bits) {
+    dvbsub->i++;
+    dvbsub->i_bits = 0;
+  }
+}
+
+static void decode_8bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int object_id, int ofs, int n)
+{
+  dvbsub_func_t *dvbsub = this->dvbsub;
   int j;
 
-  if (dvbsub->in_scanline == 0) {
+  if (dvbsub->in_scanline == 0)
     dvbsub->in_scanline = 1;
-  }
-  dvbsub->nibble_flag = 0;
+
   j = dvbsub->i + n;
-  while (dvbsub->i < j) {
 
-    bits = 0;
-    pixel_code = 0;
-    next_bits = next_nibble (this);
+  while (dvbsub->i < j)
+  {
+    int next_bits = dvbsub->buf[dvbsub->i++];
+    int run_length;
 
-    if (next_bits != 0) {
-      pixel_code = next_bits;
-      plot (this, r, 1, pixel_code);
-      bits += 4;
-    }
-    else {
-      bits += 4;
-      data = next_nibble (this);
-      switch_1 = (data & 0x08) >> 3;
-      bits++;
-      if (switch_1 == 0) {
-	run_length = (data & 0x07);
-	bits += 3;
-	if (run_length != 0) {
-	  plot (this, r, run_length + 2, pixel_code);
-	}
-	else {
-	  break;
-	}
-      }
-      else {
-	switch_2 = (data & 0x04) >> 2;
-	bits++;
-	if (switch_2 == 0) {
-	  run_length = (data & 0x03);
-	  bits += 2;
-	  pixel_code = next_nibble (this);
-	  bits += 4;
-	  plot (this, r, run_length + 4, pixel_code);
-	}
-	else {
-	  switch_3 = (data & 0x03);
-	  bits += 2;
-	  switch (switch_3) {
-	  case 0:
-	    plot (this, r, 1, pixel_code);
-	    break;
-	  case 1:
-	    plot (this, r, 2, pixel_code);
-	    break;
-	  case 2:
-	    run_length = next_nibble (this);
-	    bits += 4;
-	    pixel_code = next_nibble (this);
-	    bits += 4;
-	    plot (this, r, run_length + 9, pixel_code);
-	    break;
-	  case 3:
-	    run_length = next_nibble (this);
-	    run_length = (run_length << 4) | next_nibble (this);
-	    bits += 8;
-	    pixel_code = next_nibble (this);
-	    bits += 4;
-	    plot (this, r, run_length + 25, pixel_code);
-	  }
-	}
-      }
+    if (next_bits)
+    {
+      /* single pixel */
+      plot (this, r, 1, next_bits);
+      continue;
     }
 
-  }
-  if (dvbsub->nibble_flag == 1) {
-    dvbsub->i++;
-    dvbsub->nibble_flag = 0;
+    /* switch 1 */
+    run_length = dvbsub->buf[dvbsub->i] & 127;
+
+    if (dvbsub->buf[dvbsub->i++] & 128)
+    {
+      /* run length, 3 to 127 pixels, colour given */
+      if (run_length > 2)
+	plot (this, r, run_length + 4, dvbsub->buf[dvbsub->i++]);
+      continue;
+    }
+
+    if (!run_length)
+      /* end-of-string */
+      break;
+
+    /* run length, 1 to 127 pixels, colour 0 */
+    plot (this, r, run_length + 2, 0);
   }
 }
 
@@ -415,8 +535,30 @@ static void process_pixel_data_sub_block (dvb_spu_decoder_t * this, int r, int o
     switch (data_type) {
     case 0:
       dvbsub->i++;
+    case 0x10:
+      decode_2bit_pixel_code_string (this, r, o, ofs, n - 1);
+      break;
     case 0x11:
       decode_4bit_pixel_code_string (this, r, o, ofs, n - 1);
+      break;
+    case 0x12:
+      decode_8bit_pixel_code_string (this, r, o, ofs, n - 1);
+      break;
+    case 0x20: /* 2-to-4bit colour index map */
+      /* should this be implemented since we have an 8-bit overlay? */
+      dvbsub->lut24[0] = dvbsub->buf[dvbsub->i    ] >> 4;
+      dvbsub->lut24[1] = dvbsub->buf[dvbsub->i    ] & 0x0f;
+      dvbsub->lut24[2] = dvbsub->buf[dvbsub->i + 1] >> 4;
+      dvbsub->lut24[3] = dvbsub->buf[dvbsub->i + 1] & 0x0f;
+      dvbsub->i += 2;
+      break;
+    case 0x21: /* 2-to-8bit colour index map */
+      memcpy (dvbsub->lut28, dvbsub->buf + dvbsub->i, 4);
+      dvbsub->i += 4;
+      break;
+    case 0x22:
+      memcpy (dvbsub->lut48, dvbsub->buf + dvbsub->i, 16);
+      dvbsub->i += 16;
       break;
     case 0xf0:
       dvbsub->in_scanline = 0;
@@ -502,6 +644,7 @@ static void process_region_composition_segment (dvb_spu_decoder_t * this)
   dvbsub->i += 2;
   region_level_of_compatibility = (dvbsub->buf[dvbsub->i] & 0xe0) >> 5;
   region_depth = (dvbsub->buf[dvbsub->i] & 0x1c) >> 2;
+  dvbsub->compat_depth = region_level_of_compatibility << 3 | region_depth;
   dvbsub->i++;
   CLUT_id = dvbsub->buf[dvbsub->i++];
   region_8_bit_pixel_code = dvbsub->buf[dvbsub->i++];
@@ -589,11 +732,23 @@ static void process_object_data_segment (dvb_spu_decoder_t * this)
 
 	  process_pixel_data_sub_block (this, r, object_id, 0, top_field_data_block_length);
 
+	  if (bottom_field_data_block_length == 0)
+	  {
+	    /* handle bottom field == top field */
+	    bottom_field_data_block_length = top_field_data_block_length;
+	    dvbsub->i =  old_i + 4;
+	  }
+
 	  process_pixel_data_sub_block (this, r, object_id, 1, bottom_field_data_block_length);
 	}
       }
     }
   }
+}
+
+static void process_display_definition_segment(dvb_spu_decoder_t *this)
+{
+  /* FIXME: not implemented. */
 }
 
 static void unlock_mutex_cancellation_func(void *mutex_gen)
@@ -804,6 +959,25 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
   /* completely ignore pts since it makes a lot of problems with various providers */
   this->vpts = 0;
 
+  /* Reset the colour LUTs */
+  for (i = 0; i < MAX_REGIONS; ++i)
+  {
+    memcpy (this->dvbsub->colours + i * 256, default_clut, sizeof (default_clut));
+    memcpy (this->dvbsub->trans + i * 256, default_trans, sizeof (default_trans));
+  }
+
+  /* Reset the colour index LUTs */
+  this->dvbsub->lut24[0] = 0x0;
+  this->dvbsub->lut24[1] = 0x7;
+  this->dvbsub->lut24[2] = 0x8;
+  this->dvbsub->lut24[3] = 0xF;
+  this->dvbsub->lut28[0] = 0x00;
+  this->dvbsub->lut28[1] = 0x77;
+  this->dvbsub->lut28[2] = 0x88;
+  this->dvbsub->lut28[3] = 0xFF;
+  for (i = 0; i < 16; ++i)
+    this->dvbsub->lut48[i] = i | i << 4;
+
   /* process the pes section */
 
       PES_packet_length = this->pes_pkt_size;
@@ -843,9 +1017,14 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
             case 0x13:
               process_object_data_segment (this);
               break;
+            case 0x14:
+              process_display_definition_segment(this);
+              break;
             case 0x80:		/* Page is now completely rendered */
               recalculate_trans(this);
 	      draw_subtitles( this );
+              break;
+            case 0xFF:		/* stuffing */
               break;
             default:
               return;
@@ -854,32 +1033,6 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 	}
 	this->dvbsub->i = new_i;
       }
-
-      /* verify we've the right segment */
-      if(this->dvbsub->page.page_id==this->spu_descriptor->comp_page_id) {
-	/* SEGMENT_DATA_FIELD */
-	switch (segment_type) {
-	case 0x10:
-	  process_page_composition_segment(this);
-	  break;
-	case 0x11:
-	  process_region_composition_segment(this);
-	  break;
-	case 0x12:
-	  process_CLUT_definition_segment(this);
-	  break;
-	case 0x13:
-	  process_object_data_segment (this);
-	  break;
-	case 0x80:
-	  draw_subtitles( this ); /* Page is now completely rendered */
-	  break;
-	default:
-	  return;
-	  break;
-	}
-      }
-      this->dvbsub->i = new_i;
 }
 
 static void spudec_reset (spu_decoder_t * this_gen)
@@ -939,6 +1092,34 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
 {
   dvb_spu_decoder_t *this = calloc(1, sizeof (dvb_spu_decoder_t));
   dvb_spu_class_t *class = (dvb_spu_class_t *)class_gen;
+
+#define YUVA(r, g, b, a) (clut_t) { COMPUTE_V(r, g, b), COMPUTE_U(r, g, b), COMPUTE_V(r, g, b), a }
+#define GETBIT(s, v1, v2, tr) \
+    r = s + ((i & 1) ? v1 : 0) + ((i & 0x10) ? v2 : 0); \
+    g = s + ((i & 2) ? v1 : 0) + ((i & 0x20) ? v2 : 0); \
+    b = s + ((i & 4) ? v1 : 0) + ((i & 0x40) ? v2 : 0); \
+    a = tr
+
+  if (!default_colours_init)
+  {
+    int i;
+    default_clut[0] = YUVA(0, 0, 0, 0);
+    for (i = 1; i < 256; i++) {
+      uint8_t r, g, b, a;
+      if (i < 8) {
+        GETBIT(0, 255, 0, 63);
+      } else switch (i & 0x88) {
+      case 0x00: GETBIT(  0, 85, 170, 255); break;
+      case 0x08: GETBIT(  0, 85, 170, 127); break;
+      case 0x80: GETBIT(127, 43,  85, 255); break;
+      default  : GETBIT(  0, 43,  85, 255); break;
+      }
+      default_trans[i] = a;
+      default_clut[i] = YUVA(r, g, b, a);
+    }
+    default_colours_init = 1;
+  }
+
 
   this->spu_decoder.decode_data = spudec_decode_data;
   this->spu_decoder.reset = spudec_reset;
