@@ -270,6 +270,7 @@ typedef struct {
   int64_t          pts;
   buf_element_t   *buf;
   unsigned int     counter;
+  unsigned int     numPreview;
   uint16_t         descriptor_tag; /* +0x100 for PES stream IDs (no available TS descriptor tag?) */
   int64_t          packet_count;
   int              corrupted_pes;
@@ -368,8 +369,6 @@ typedef struct {
   int32_t npkt_read;
 
   uint8_t buf[BUF_SIZE]; /* == PKT_SIZE * NPKT_PER_READ */
-
-  int numPreview;
 
 } demux_ts_t;
 
@@ -945,6 +944,14 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
 
 
 /*
+ * Track how many of these types of packets we have seen in this stream.
+ */
+static inline unsigned get_preview_frame_number(unsigned *numPreview, unsigned limit) {
+  unsigned preview = *numPreview;
+  return (preview < limit) ? ++(*numPreview) : preview;
+}
+
+/*
  *  buffer arriving pes data
  */
 static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
@@ -974,26 +981,47 @@ static void demux_ts_buffer_pes(demux_ts_t*this, unsigned char *ts,
   m->counter++;
 
   if (pus) { /* new PES packet */
-
     if (m->buffered_bytes) {
+      unsigned previewLimit = 0;
+
       m->buf->content = m->buf->mem;
       m->buf->size = m->buffered_bytes;
       m->buf->type = m->type;
-      if( (m->buf->type & 0xffff0000) == BUF_SPU_DVD ) {
-        m->buf->decoder_flags |= BUF_FLAG_SPECIAL;
-        m->buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
-        m->buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
+
+      switch (m->type & BUF_MAJOR_MASK) {
+      case BUF_SPU_BASE:
+        if( (m->buf->type & 0xffff0000) == BUF_SPU_DVD ) {
+          m->buf->decoder_flags |= BUF_FLAG_SPECIAL;
+          m->buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
+          m->buf->decoder_info[2] = SPU_DVD_SUBTYPE_PACKAGE;
+        }
+        break;
+
+      case BUF_VIDEO_BASE:
+        previewLimit = 5;
+        break;
+
+      case BUF_AUDIO_BASE:
+        previewLimit = 2;
+        break;
+
+      default:
+        break;
       }
-      else {
-        if (this->numPreview<5)
-	  ++this->numPreview;
-	if ( this->numPreview==1 )
-	  m->buf->decoder_flags=BUF_FLAG_HEADER | BUF_FLAG_FRAME_END;
-	else if ( this->numPreview<5 )
-	  m->buf->decoder_flags=BUF_FLAG_PREVIEW;
-	else
-	  m->buf->decoder_flags |= BUF_FLAG_FRAME_END;
+
+      if (previewLimit != 0) {
+        unsigned numPreview;
+
+        numPreview = get_preview_frame_number(&m->numPreview, previewLimit);
+
+        if (numPreview == 1)
+          m->buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_FRAME_END;
+        else if (numPreview < previewLimit)
+          m->buf->decoder_flags = BUF_FLAG_PREVIEW;
+        else
+          m->buf->decoder_flags |= BUF_FLAG_FRAME_END;
       }
+
       m->buf->pts = m->pts;
       m->buf->decoder_info[0] = 1;
 
@@ -1074,6 +1102,7 @@ static void demux_ts_pes_new(demux_ts_t*this,
   if (m->buf != NULL) m->buf->free_buffer(m->buf);
   m->buf = NULL;
   m->counter = INVALID_CC;
+  m->numPreview = 0;
   m->descriptor_tag = descriptor;
   m->corrupted_pes = 1;
   m->buffered_bytes = 0;
@@ -2413,8 +2442,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->hdmv       = hdmv;
   this->pkt_offset = (hdmv > 0) ? 4 : 0;
   this->pkt_size   = PKT_SIZE + this->pkt_offset;
-
-  this->numPreview=0;
 
   return &this->demux_plugin;
 }
