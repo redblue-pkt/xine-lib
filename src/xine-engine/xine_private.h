@@ -94,4 +94,11 @@ void _x_audio_decoder_shutdown      (xine_stream_t *stream) INTERNAL;
  */
 void xine_probe_fast_memcpy(xine_t *xine) INTERNAL;
 
+/**
+ * @brief make file descriptors and sockets uninheritable
+ */
+int _x_set_file_close_on_exec(int fd) XINE_INTERNAL;
+
+int _x_set_socket_close_on_exec(int s) XINE_INTERNAL;
+
 #endif
