@@ -329,6 +329,7 @@ typedef struct {
    * and audio PIDs, we keep the index of the corresponding entry
    * inthe media[] array.
    */
+  unsigned int     pcr_pid;
   unsigned int     videoPid;
   unsigned int     videoMedia;
 
@@ -666,6 +667,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
       this->last_pmt_crc = 0;
       this->videoPid = INVALID_PID;
       this->spu_pid = INVALID_PID;
+      this->pcr_pid = INVALID_PID;
 
       if (this->pmt[program_count] != NULL) {
 	free(this->pmt[program_count]);
@@ -1581,23 +1583,21 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
     section_length -= coded_length;
   }
 
-#if 0
   /*
    * Get the current PCR PID.
    */
   pid = ((this->pmt[program_count][8] << 8)
          | this->pmt[program_count][9]) & 0x1fff;
-  if (this->pcrPid != pid) {
+  if (this->pcr_pid != pid) {
 #ifdef TS_PMT_LOG
-    if (this->pcrPid == INVALID_PID) {
+    if (this->pcr_pid == INVALID_PID) {
       printf ("demux_ts: PMT pcr pid 0x%.4x\n", pid);
     } else {
       printf ("demux_ts: PMT pcr pid changed 0x%.4x\n", pid);
     }
 #endif
-    this->pcrPid = pid;
+    this->pcr_pid = pid;
   }
-#endif
 
   if ( this->stream->spu_channel>=0 && this->spu_langs_count>0 )
     demux_ts_update_spu_channel( this );
@@ -2045,6 +2045,7 @@ static void demux_ts_event_handler (demux_ts_t *this) {
     case XINE_EVENT_PIDS_CHANGE:
 
       this->videoPid    = INVALID_PID;
+      this->pcr_pid     = INVALID_PID;
       this->audio_tracks_count = 0;
       this->media_num   = 0;
       this->send_newpts = 1;
@@ -2125,6 +2126,7 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
    */
 
   this->videoPid = INVALID_PID;
+  this->pcr_pid = INVALID_PID;
   this->audio_tracks_count = 0;
   this->media_num= 0;
   this->last_pmt_crc = 0;
@@ -2383,6 +2385,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   this->scrambled_npids = 0;
   this->videoPid = INVALID_PID;
+  this->pcr_pid = INVALID_PID;
   this->audio_tracks_count = 0;
   this->last_pmt_crc = 0;
 
