@@ -250,6 +250,9 @@
       HDMV_SPU_INTERACTIVE = 0x91,
       HDMV_SPU_TEXT        = 0x92,
 
+      /* pseudo tags */
+      STREAM_AUDIO_EAC3    = (DESCRIPTOR_EAC3 << 8),
+
     } streamType;
 
 #define WRAP_THRESHOLD       270000
@@ -1059,7 +1062,8 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
      * these "raw" streams may begin with a byte that looks like a stream type.
      * For audio streams, m->type already contains the stream no.
      */
-    if(m->descriptor_tag == HDMV_AUDIO_84_EAC3) {
+    if(m->descriptor_tag == HDMV_AUDIO_84_EAC3 ||
+       m->descriptor_tag == STREAM_AUDIO_EAC3) {
       m->size = packet_len;
       m->type |= BUF_AUDIO_EAC3;
       return 1;
@@ -1651,7 +1655,7 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
 
         if ((stream[i] == DESCRIPTOR_AC3) || (stream[i] == DESCRIPTOR_EAC3)) {
           mi = demux_ts_dynamic_pmt_find (this, pid, BUF_AUDIO_BASE,
-            stream[i] == DESCRIPTOR_AC3 ? STREAM_AUDIO_AC3 : HDMV_AUDIO_84_EAC3);
+            stream[i] == DESCRIPTOR_AC3 ? STREAM_AUDIO_AC3 : STREAM_AUDIO_EAC3);
           if (mi >= 0) {
 #ifdef TS_PMT_LOG
             printf ("demux_ts: PMT AC3 audio pid 0x%.4x type %2.2x\n", pid, stream[0]);
