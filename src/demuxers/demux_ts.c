@@ -1788,10 +1788,13 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
                 demux_ts_get_lang_desc (this,
                   this->audio_tracks[this->media[mi].type & 0xff].lang,
                   stream + 5, stream_info_length);
+#ifdef TS_PMT_LOG
+		printf ("demux_ts: PMT audio pid 0x%.4x type %2.2x\n", pid, stream[0]);
+#endif
                 break;
             }
         }
-      } else {
+      }
 #ifdef TS_PMT_LOG
         printf ("demux_ts: PMT unknown stream_type: 0x%.2x pid: 0x%.4x\n",
                 stream[0], pid);
@@ -1800,7 +1803,6 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
           printf ("%.2x ", stream[i]);
         printf ("\n");
 #endif
-      }
       break;
     }
     stream += coded_length;
