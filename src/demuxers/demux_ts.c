@@ -1775,8 +1775,6 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
  */
       if ((this->audio_tracks_count < MAX_AUDIO_TRACKS) && (stream[0] >= 0x80) ) {
 
-        mi = demux_ts_dynamic_pmt_find (this, pid, BUF_AUDIO_BASE, stream[0]);
-        if (mi >= 0) {
             uint32_t format_identifier=0;
             demux_ts_get_reg_desc(this, &format_identifier,
                     stream + 5, stream_info_length);
@@ -1785,6 +1783,8 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
                 ( format_identifier == 0) ||
                 ((format_identifier == 0x48444d56 || this->hdmv>0) && stream[0] == HDMV_AUDIO_80_PCM) /* BluRay PCM */) {
 
+        mi = demux_ts_dynamic_pmt_find (this, pid, BUF_AUDIO_BASE, stream[0]);
+        if (mi >= 0) {
                 demux_ts_get_lang_desc (this,
                   this->audio_tracks[this->media[mi].type & 0xff].lang,
                   stream + 5, stream_info_length);
