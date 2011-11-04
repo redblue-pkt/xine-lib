@@ -252,6 +252,7 @@
 
       /* pseudo tags */
       STREAM_AUDIO_EAC3    = (DESCRIPTOR_EAC3 << 8),
+      STREAM_AUDIO_DTS     = (DESCRIPTOR_DTS  << 8),
 
     } streamType;
 
@@ -1079,7 +1080,8 @@ static int demux_ts_parse_pes_header (xine_t *xine, demux_ts_media *m,
       m->type |= BUF_AUDIO_A52;
       return 1;
 
-    } else if (m->descriptor_tag == HDMV_AUDIO_82_DTS ||
+    } else if (m->descriptor_tag == STREAM_AUDIO_DTS ||
+               m->descriptor_tag == HDMV_AUDIO_82_DTS ||
                m->descriptor_tag == HDMV_AUDIO_86_DTS_HD_MA ) {
       m->size = packet_len;
       m->type |= BUF_AUDIO_DTS;
@@ -1653,9 +1655,11 @@ printf("Program Number is %i, looking for %i\n",program_number,this->program_num
     case ISO_13818_PES_PRIVATE:
       for (i = 5; i < coded_length; i += stream[i+1] + 2) {
 
-        if ((stream[i] == DESCRIPTOR_AC3) || (stream[i] == DESCRIPTOR_EAC3)) {
+        if ((stream[i] == DESCRIPTOR_AC3) || (stream[i] == DESCRIPTOR_EAC3) || (stream[i] == DESCRIPTOR_DTS)) {
           mi = demux_ts_dynamic_pmt_find (this, pid, BUF_AUDIO_BASE,
-            stream[i] == DESCRIPTOR_AC3 ? STREAM_AUDIO_AC3 : STREAM_AUDIO_EAC3);
+            stream[i] == DESCRIPTOR_AC3 ? STREAM_AUDIO_AC3 :
+            stream[i] == DESCRIPTOR_DTS ? STREAM_AUDIO_DTS :
+            STREAM_AUDIO_EAC3);
           if (mi >= 0) {
 #ifdef TS_PMT_LOG
             printf ("demux_ts: PMT AC3 audio pid 0x%.4x type %2.2x\n", pid, stream[0]);
