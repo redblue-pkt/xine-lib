@@ -1708,7 +1708,7 @@ static int demux_avi_next_streaming (demux_avi_t *this, int decoder_flags) {
   int64_t        audio_pts, video_pts;
   off_t          current_pos;
   int            left;
-  int            header, chunk_len, audio_stream;
+  int            header, chunk_len = 0, audio_stream;
   avi_audio_t   *audio;
 
   current_pos = this->input->get_current_pos(this->input);
