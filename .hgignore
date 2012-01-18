@@ -2,8 +2,7 @@ syntax: glob
 *~
 *.orig
 
-xine-lib-*.tar.gz
-xine-lib-*.tar.bz2
+xine-lib-*.tar.{gz,bz2,xz}
 
 *.o
 *.a
