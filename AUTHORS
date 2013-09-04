@@ -578,4 +578,11 @@ Christoph Pfister <christophpfister@gmail.com>
 Albert Lee <trisk+xine@acm.jhu.edu>
   Solaris portability fixes (and other miscellaneous fixes)
 
+Christophe Thommeret <hftom@free.fr>
+  OpenGL 2.0 video out plugin, new VDPAU h264 decoder,
+  VDPAU bugfixes
+
+Edgar Hucek <gimli|@dark-green.com>
+   VAAPI Support
+
 (let us know if we've forgotten anyone)
