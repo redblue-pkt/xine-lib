@@ -29,14 +29,14 @@
 
 
 typedef struct {
-  uint8_t *buffer, *start;
+  const uint8_t *buffer, *start;
   int offbits, length, oflow;
 } bits_reader_t;
 
 
 
 static void
-bits_reader_set (bits_reader_t * br, uint8_t * buf, int len)
+bits_reader_set (bits_reader_t * br, const uint8_t * buf, int len)
 {
   br->buffer = br->start = buf;
   br->offbits = 0;
@@ -50,7 +50,7 @@ static inline uint32_t
 more_rbsp_data (bits_reader_t * br)
 {
   uint8_t val[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-  uint8_t *buf = br->start + br->length;
+  const uint8_t *buf = br->start + br->length;
   int bit;
 
   while (--buf >= br->buffer)

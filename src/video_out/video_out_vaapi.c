@@ -3051,7 +3051,7 @@ static void yuy2_to_nv12(const uint8_t *src_yuy2_map, int yuy2_pitch,
   int width   = (src_width > dst_width) ? dst_width : src_width;
 
   int y, x;
-  int uv_dst_size = dst_height * uv_dst_pitch / 2;
+  /*int uv_dst_size = dst_height * uv_dst_pitch / 2;*/
 
   const uint8_t *yuy2_map = src_yuy2_map;
   for(y = 0; y < height; y++) {
@@ -3071,8 +3071,8 @@ static void yuy2_to_nv12(const uint8_t *src_yuy2_map, int yuy2_pitch,
   uint8_t *uv_dst_tmp = uv_dst;
   for(y = 0; y < height; y++) {
     for(x = 0; x < width; x++) {
-      *(uv_dst_tmp + (height*width/4) ) = (yuy2_map + (height*width/2));
-      *(uv_dst_tmp + (height*width/4) + 2 ) = (yuy2_map + (height*width/2) + 2);
+      *(uv_dst_tmp + (height*width/4) ) = *(yuy2_map + (height*width/2));
+      *(uv_dst_tmp + (height*width/4) + 2 ) = *(yuy2_map + (height*width/2) + 2);
     }
     uv_dst += uv_dst_pitch / 2;
     yuy2_map += yuy2_pitch;
