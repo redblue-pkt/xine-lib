@@ -1438,7 +1438,15 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       init_codec = init_codec_audio;
 
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_PCM_INT_BE)) {
+      lprintf("MATROSKA_CODEC_ID_A_PCM_INT_BE");
+      track->buf_type = BUF_AUDIO_LPCM_BE;
+      init_codec = init_codec_audio;
+
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_PCM_INT_LE)) {
+      lprintf("MATROSKA_CODEC_ID_A_PCM_INT_LE");
+      track->buf_type = BUF_AUDIO_LPCM_LE;
+      init_codec = init_codec_audio;
+
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_PCM_FLOAT)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_A_AC3)) {
       lprintf("MATROSKA_CODEC_ID_A_AC3\n");
