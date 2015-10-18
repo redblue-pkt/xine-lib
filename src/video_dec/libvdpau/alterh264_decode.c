@@ -2244,7 +2244,7 @@ vdpau_h264_alter_flush (video_decoder_t * this_gen)
 {
   vdpau_h264_alter_decoder_t *this = (vdpau_h264_alter_decoder_t *) this_gen;
 
-  printf ("vdpau_h264_alter_flush\n");
+  lprintf ("vdpau_h264_alter_flush\n");
   dpb_draw_frames (this, MAX_POC, DPB_DRAW_REFS);
 }
 
@@ -2269,7 +2269,7 @@ static void
 vdpau_h264_alter_discontinuity (video_decoder_t * this_gen)
 {
   vdpau_h264_alter_decoder_t *this = (vdpau_h264_alter_decoder_t *) this_gen;
-  printf ("vdpau_h264_alter_discontinuity\n");
+  lprintf ("vdpau_h264_alter_discontinuity\n");
 
   dpb_clear_all_pts (&this->sequence);
   this->sequence.reset = VO_NEW_SEQUENCE_FLAG;

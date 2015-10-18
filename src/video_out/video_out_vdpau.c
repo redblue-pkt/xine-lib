@@ -1384,29 +1384,29 @@ static void vdpau_set_deinterlace( vo_driver_t *this_gen )
     switch ( this->deinterlacers_method[deinterlace_method] ) {
       case DEINT_BOB:
         feature_enables[0] = feature_enables[1] = 0;
-        fprintf(stderr, "vo_vdpau: deinterlace: bob\n" );
+        lprintf("vo_vdpau: deinterlace: bob\n" );
         break;
       case DEINT_HALF_TEMPORAL:
         feature_enables[0] = 1; feature_enables[1] = 0;
-        fprintf(stderr, "vo_vdpau: deinterlace: half_temporal\n" );
+        lprintf("vo_vdpau: deinterlace: half_temporal\n" );
         break;
       case DEINT_TEMPORAL:
         feature_enables[0] = 1; feature_enables[1] = 0;
-        fprintf(stderr, "vo_vdpau: deinterlace: temporal\n" );
+        lprintf("vo_vdpau: deinterlace: temporal\n" );
         break;
       case DEINT_HALF_TEMPORAL_SPATIAL:
         feature_enables[0] = feature_enables[1] = 1;
-        fprintf(stderr, "vo_vdpau: deinterlace: half_temporal_spatial\n" );
+        lprintf("vo_vdpau: deinterlace: half_temporal_spatial\n" );
         break;
       case DEINT_TEMPORAL_SPATIAL:
         feature_enables[0] = feature_enables[1] = 1;
-        fprintf(stderr, "vo_vdpau: deinterlace: temporal_spatial\n" );
+        lprintf("vo_vdpau: deinterlace: temporal_spatial\n" );
         break;
     }
   }
   else {
     feature_enables[0] = feature_enables[1] = 0;
-    fprintf(stderr, "vo_vdpau: deinterlace: none\n" );
+    lprintf("vo_vdpau: deinterlace: none\n" );
   }
 
   vdp_video_mixer_set_feature_enables( this->video_mixer, features_count, features, feature_enables );
@@ -1430,7 +1430,7 @@ static void vdpau_set_inverse_telecine( vo_driver_t *this_gen )
 
   vdp_video_mixer_set_feature_enables( this->video_mixer, 1, features, feature_enables );
   vdp_video_mixer_get_feature_enables( this->video_mixer, 1, features, feature_enables );
-  fprintf(stderr, "vo_vdpau: enabled features: inverse_telecine=%d\n", feature_enables[0] );
+  lprintf("vo_vdpau: enabled features: inverse_telecine=%d\n", feature_enables[0] );
 }
 
 
@@ -1440,7 +1440,7 @@ static void vdpau_update_deinterlace_method_sd( void *this_gen, xine_cfg_entry_t
   vdpau_driver_t  *this  = (vdpau_driver_t *) this_gen;
 
   this->deinterlace_method_sd = entry->num_value;
-  fprintf(stderr,  "vo_vdpau: deinterlace_method_sd=%d\n", this->deinterlace_method_sd );
+  lprintf("vo_vdpau: deinterlace_method_sd=%d\n", this->deinterlace_method_sd );
   vdpau_set_deinterlace( (vo_driver_t*)this_gen );
 }
 
@@ -1451,7 +1451,7 @@ static void vdpau_update_deinterlace_method_hd( void *this_gen, xine_cfg_entry_t
   vdpau_driver_t  *this  = (vdpau_driver_t *) this_gen;
 
   this->deinterlace_method_hd = entry->num_value;
-  fprintf(stderr,  "vo_vdpau: deinterlace_method_hd=%d\n", this->deinterlace_method_hd );
+  lprintf("vo_vdpau: deinterlace_method_hd=%d\n", this->deinterlace_method_hd );
   vdpau_set_deinterlace( (vo_driver_t*)this_gen );
 }
 
@@ -1476,7 +1476,7 @@ static void vdpau_set_scaling_level( vo_driver_t *this_gen )
     vdp_video_mixer_set_feature_enables( this->video_mixer, 1, features, feature_enables );
   }
 
-  fprintf(stderr,  "vo_vdpau: set_scaling_level=%d\n", this->scaling_level_current );
+  lprintf("vo_vdpau: set_scaling_level=%d\n", this->scaling_level_current );
 #endif
 }
 
@@ -1487,7 +1487,7 @@ static void vdpau_update_scaling_level( void *this_gen, xine_cfg_entry_t *entry 
   vdpau_driver_t  *this  = (vdpau_driver_t *) this_gen;
 
   this->scaling_level_current = entry->num_value;
-  fprintf(stderr,  "vo_vdpau: scaling_quality=%d\n", this->scaling_level_current );
+  lprintf("vo_vdpau: scaling_quality=%d\n", this->scaling_level_current );
   vdpau_set_scaling_level( (vo_driver_t*)this_gen );
 }
 
@@ -1498,7 +1498,7 @@ static void vdpau_update_enable_inverse_telecine( void *this_gen, xine_cfg_entry
   vdpau_driver_t  *this  = (vdpau_driver_t *) this_gen;
 
   this->enable_inverse_telecine = entry->num_value;
-  fprintf(stderr, "vo_vdpau: enable inverse_telecine=%d\n", this->enable_inverse_telecine );
+  lprintf("vo_vdpau: enable inverse_telecine=%d\n", this->enable_inverse_telecine );
   vdpau_set_inverse_telecine( (vo_driver_t*)this_gen );
 }
 
@@ -1509,7 +1509,7 @@ static void vdpau_honor_progressive_flag( void *this_gen, xine_cfg_entry_t *entr
   vdpau_driver_t  *this  = (vdpau_driver_t *) this_gen;
 
   this->honor_progressive = entry->num_value;
-  fprintf(stderr, "vo_vdpau: honor_progressive=%d\n", this->honor_progressive );
+  lprintf("vo_vdpau: honor_progressive=%d\n", this->honor_progressive );
 }
 
 
@@ -1524,14 +1524,14 @@ static void vdpau_update_noise( vdpau_driver_t *this_gen )
     VdpVideoMixerFeature features[] = { VDP_VIDEO_MIXER_FEATURE_NOISE_REDUCTION };
     VdpBool feature_enables[] = { 0 };
     vdp_video_mixer_set_feature_enables( this_gen->video_mixer, 1, features, feature_enables );
-    fprintf(stderr, "vo_vdpau: disable noise reduction.\n" );
+    lprintf("vo_vdpau: disable noise reduction.\n" );
     return;
   }
   else {
     VdpVideoMixerFeature features[] = { VDP_VIDEO_MIXER_FEATURE_NOISE_REDUCTION };
     VdpBool feature_enables[] = { 1 };
     vdp_video_mixer_set_feature_enables( this_gen->video_mixer, 1, features, feature_enables );
-    fprintf(stderr, "vo_vdpau: enable noise reduction.\n" );
+    lprintf("vo_vdpau: enable noise reduction.\n" );
   }
 
   const VdpVideoMixerAttribute attributes [] = { VDP_VIDEO_MIXER_ATTRIBUTE_NOISE_REDUCTION_LEVEL };
@@ -1553,14 +1553,14 @@ static void vdpau_update_sharpness( vdpau_driver_t *this_gen )
     VdpVideoMixerFeature features[] = { VDP_VIDEO_MIXER_FEATURE_SHARPNESS  };
     VdpBool feature_enables[] = { 0 };
     vdp_video_mixer_set_feature_enables( this_gen->video_mixer, 1, features, feature_enables );
-    fprintf(stderr, "vo_vdpau: disable sharpness.\n" );
+    lprintf("vo_vdpau: disable sharpness.\n" );
     return;
   }
   else {
     VdpVideoMixerFeature features[] = { VDP_VIDEO_MIXER_FEATURE_SHARPNESS  };
     VdpBool feature_enables[] = { 1 };
     vdp_video_mixer_set_feature_enables( this_gen->video_mixer, 1, features, feature_enables );
-    fprintf(stderr, "vo_vdpau: enable sharpness.\n" );
+    lprintf("vo_vdpau: enable sharpness.\n" );
   }
 
   const VdpVideoMixerAttribute attributes [] = { VDP_VIDEO_MIXER_ATTRIBUTE_SHARPNESS_LEVEL };
@@ -1577,7 +1577,7 @@ static void vdpau_update_sd_only_properties( void *this_gen, xine_cfg_entry_t *e
   vdpau_driver_t  *this  = (vdpau_driver_t *) this_gen;
 
   this->sd_only_properties = entry->num_value;
-  printf( "vo_vdpau: enable sd only noise=%d, sd only sharpness %d\n", ((this->sd_only_properties & 1) != 0), (this->sd_only_properties >= 2) );
+  lprintf( "vo_vdpau: enable sd only noise=%d, sd only sharpness %d\n", ((this->sd_only_properties & 1) != 0), (this->sd_only_properties >= 2) );
   vdpau_update_noise(this);
   vdpau_update_sharpness(this);
 }
@@ -1686,7 +1686,7 @@ static void vdpau_update_skip_chroma( vdpau_driver_t *this_gen )
   if ( st != VDP_STATUS_OK )
     fprintf(stderr, "vo_vdpau: error, can't set skip_chroma !!\n" );
   else
-    fprintf(stderr, "vo_vdpau: skip_chroma = %d\n", this_gen->skip_chroma );
+    lprintf(stderr, "vo_vdpau: skip_chroma = %d\n", this_gen->skip_chroma );
 }
 
 
@@ -1710,9 +1710,9 @@ static void vdpau_update_background( vdpau_driver_t *this_gen )
   const void* attribute_values[] = { &bg };
   VdpStatus st = vdp_video_mixer_set_attribute_values( this_gen->video_mixer, 1, attributes, attribute_values );
   if ( st != VDP_STATUS_OK )
-    printf( "vo_vdpau: error, can't set background_color !!\n" );
+    fprintf(stderr, "vo_vdpau: error, can't set background_color !!\n" );
   else
-    printf( "vo_vdpau: background_color = %d\n", this_gen->background );
+    lprintf( "vo_vdpau: background_color = %d\n", this_gen->background );
 }
 
 
@@ -2167,7 +2167,7 @@ static int vdpau_set_property (vo_driver_t *this_gen, int property, int value)
 {
   vdpau_driver_t *this = (vdpau_driver_t*)this_gen;
 
-  fprintf(stderr,"vdpau_set_property: property=%d, value=%d\n", property, value );
+  lprintf("vdpau_set_property: property=%d, value=%d\n", property, value );
 
   switch (property) {
     case VO_PROP_INTERLACED:
@@ -2731,13 +2731,13 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
     return NULL;
   uint32_t tmp;
   vdp_get_api_version( &tmp );
-  fprintf(stderr, "vo_vdpau: vdpau API version : %d\n", tmp );
+  xprintf(class->xine, XINE_VERBOSITY_LOG, "vo_vdpau: vdpau API version : %d\n", tmp );
   st = vdp_get_proc_address( vdp_device, VDP_FUNC_ID_GET_INFORMATION_STRING , (void*)&vdp_get_information_string );
   if ( vdpau_init_error( st, "Can't get GET_INFORMATION_STRING proc address !!", &this->vo_driver, 1 ) )
     return NULL;
   const char *s;
   st = vdp_get_information_string( &s );
-  fprintf(stderr, "vo_vdpau: vdpau implementation description : %s\n", s );
+  xprintf(class->xine, XINE_VERBOSITY_LOG, "vo_vdpau: vdpau implementation description : %s\n", s );
   VdpBool ok;
   uint32_t max_surface_width, max_surface_height;
   st = vdp_get_proc_address( vdp_device, VDP_FUNC_ID_VIDEO_SURFACE_QUERY_CAPABILITIES , (void*)&vdp_video_surface_query_capabilities );
@@ -2751,7 +2751,7 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
     vdpau_dispose( &this->vo_driver );
     return NULL;
   }
-  fprintf(stderr, "vo_vdpau: maximum video surface size for chroma type 4:2:2 is %dx%d\n", (int)max_surface_width, (int)max_surface_height );
+  xprintf(class->xine, XINE_VERBOSITY_LOG, "vo_vdpau: maximum video surface size for chroma type 4:2:2 is %dx%d\n", (int)max_surface_width, (int)max_surface_height );
   st = vdp_video_surface_query_capabilities( vdp_device, VDP_CHROMA_TYPE_420, &ok, &max_surface_width, &max_surface_height );
   if ( vdpau_init_error( st, "Failed to check vdpau chroma type 4:2:0 capability", &this->vo_driver, 1 ) )
     return NULL;
@@ -2760,7 +2760,7 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
     vdpau_dispose( &this->vo_driver );
     return NULL;
   }
-  fprintf(stderr, "vo_vdpau: maximum video surface size for chroma type 4:2:0 is %dx%d\n", (int)max_surface_width, (int)max_surface_height );
+  xprintf(class->xine, XINE_VERBOSITY_LOG, "vo_vdpau: maximum video surface size for chroma type 4:2:0 is %dx%d\n", (int)max_surface_width, (int)max_surface_height );
   st = vdp_get_proc_address( vdp_device, VDP_FUNC_ID_VIDEO_SURFACE_QUERY_GET_PUT_BITS_Y_CB_CR_CAPABILITIES , (void*)&vdp_video_surface_query_get_put_bits_ycbcr_capabilities );
   if ( vdpau_init_error( st, "Can't get VIDEO_SURFACE_QUERY_GET_PUT_BITS_Y_CB_CR_CAPABILITIES proc address !!", &this->vo_driver, 1 ) )
     return NULL;
@@ -2791,7 +2791,7 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
     vdpau_dispose( &this->vo_driver );
     return NULL;
   }
-  fprintf(stderr, "vo_vdpau: maximum output surface size is %dx%d\n", (int)max_surface_width, (int)max_surface_height );
+  xprintf(class->xine, XINE_VERBOSITY_LOG, "vo_vdpau: maximum output surface size is %dx%d\n", (int)max_surface_width, (int)max_surface_height );
   st = vdp_get_proc_address( vdp_device, VDP_FUNC_ID_OUTPUT_SURFACE_QUERY_GET_PUT_BITS_NATIVE_CAPABILITIES , (void*)&vdp_output_surface_query_get_put_bits_native_capabilities );
   if ( vdpau_init_error( st, "Can't get OUTPUT_SURFACE_QUERY_GET_PUT_BITS_NATIVE_CAPABILITIES proc address !!", &this->vo_driver, 1 ) )
     return NULL;
@@ -2963,7 +2963,7 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
     this->output_surface_buffer_size = 2;
   if (this->output_surface_buffer_size > NOUTPUTSURFACEBUFFER)
     this->output_surface_buffer_size = NOUTPUTSURFACEBUFFER;
-  fprintf(stderr, "vo_vdpau: hold a maximum of %d video output surfaces for reuse\n", this->output_surface_buffer_size);
+  xprintf(class->xine, XINE_VERBOSITY_LOG, "vo_vdpau: hold a maximum of %d video output surfaces for reuse\n", this->output_surface_buffer_size);
 
   this->num_big_output_surfaces_created = 0;
   for (i = 0; i < this->output_surface_buffer_size; ++i)
@@ -2979,7 +2979,7 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
     this->queue_length = 2;
   if (this->queue_length > NOUTPUTSURFACE)
     this->queue_length = NOUTPUTSURFACE;
-  fprintf(stderr, "vo_vdpau: using %d output surfaces of size %dx%d for display queue\n", this->queue_length, this->display_width, this->display_height);
+  xprintf(class->xine, XINE_VERBOSITY_LOG, "vo_vdpau: using %d output surfaces of size %dx%d for display queue\n", this->queue_length, this->display_width, this->display_height);
 
   this->current_output_surface = 0;
   this->init_queue = 0;
