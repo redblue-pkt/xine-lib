@@ -1133,6 +1133,95 @@ static void handle_hdmv_pgs (demux_plugin_t *this_gen, matroska_track_t *track,
   free(new_data);
 }
 
+static void handle_hdmv_textst (demux_plugin_t *this_gen, matroska_track_t *track,
+                                int decoder_flags,
+                                uint8_t *data, size_t data_len,
+                                int64_t data_pts, int data_duration,
+                                int input_normpos, int input_time) {
+  buf_element_t *buf;
+  uint32_t *val;
+  char *dest;
+  int dest_len;
+  int dest_pos;
+  int i, j;
+  uint8_t *ptr;
+  int palette_update_flag;
+  int num_regions;
+
+  ptr = data;
+  if (*ptr != 0x82) {
+    lprintf("Not a dialog presentation segment\n");
+    return;
+  }
+  ++ptr;
+
+  // Skip length and start/end pts values
+  ptr += 12;
+
+  palette_update_flag = *ptr++;
+  if (palette_update_flag) {
+    lprintf("Dunno what to do with palette updates\n");
+    return;
+  }
+
+  buf = track->fifo->buffer_pool_alloc(track->fifo);
+  buf->type = track->buf_type;
+  buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL;
+  buf->decoder_info[1] = BUF_SPECIAL_CHARSET_ENCODING;
+  buf->decoder_info_ptr[2] = "utf-8";
+  buf->decoder_info[2] = strlen(buf->decoder_info_ptr[2]);
+
+  val = (uint32_t *)buf->content;
+  *val++ = data_pts / 90;                    /* start time */
+  *val++ = (data_pts + data_duration) / 90;  /* end time   */
+
+  dest = buf->content + 8;
+  dest_len = buf->max_size - 8;
+  dest_pos = 0;
+
+  num_regions = *ptr++;
+  for (i = 0; i < num_regions; ++i) {
+    int length;
+    uint8_t *end;
+
+    // skip flags and style id reference
+    ptr += 2;
+
+    length = (ptr[0]<<8) | ptr[1];
+    ptr += 2;
+
+    end = ptr + length;
+    while (ptr < end) {
+      int marker;
+      int type;
+      int length;
+
+      marker = *ptr++;
+      if (marker != 0x1B)
+        continue;
+
+      type = *ptr++;
+      length = *ptr++;
+
+      if (type == 0x01) {
+        int k;
+        for (k = 0; k < length; ++k)
+          dest[dest_pos++] = ptr[k];
+      } else if (type == 0x0A) {
+        dest[dest_pos++] = '\n';
+      } else {
+        lprintf("Unknown TextST data %02X\n", type);
+      }
+
+      ptr += length;
+    }
+  }
+
+  dest[dest_pos] = 0;
+
+  track->fifo->put(track->fifo, buf);
+}
+
 static void fill_extra_data(matroska_track_t *track, uint32_t fourcc) {
 
   xine_bmiheader *bih;
@@ -1548,6 +1637,11 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       lprintf("MATROSKA_CODEC_ID_S_HDMV_PGS\n");
       track->buf_type = BUF_SPU_HDMV;
       track->handle_content = handle_hdmv_pgs;
+      init_codec = init_codec_spu;
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_S_HDMV_TEXTST)) {
+      lprintf("MATROSKA_CODEC_ID_S_HDMV_TEXTST\n");
+      track->buf_type = BUF_SPU_OGM;
+      track->handle_content = handle_hdmv_textst;
       init_codec = init_codec_spu;
     } else {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "unknown codec %s\n", track->codec_id);

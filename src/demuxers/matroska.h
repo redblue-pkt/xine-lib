@@ -348,6 +348,7 @@ struct matroska_track_s {
 #define MATROSKA_CODEC_ID_S_ASS          "S_ASS"         /* deprecated */
 #define MATROSKA_CODEC_ID_S_VOBSUB       "S_VOBSUB"
 #define MATROSKA_CODEC_ID_S_HDMV_PGS     "S_HDMV/PGS"
+#define MATROSKA_CODEC_ID_S_HDMV_TEXTST  "S_HDMV/TEXTST"
 
 /* block lacing */
 #define MATROSKA_NO_LACING               0x0
