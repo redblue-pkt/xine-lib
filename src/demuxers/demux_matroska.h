@@ -46,7 +46,7 @@
 #define NUM_PREVIEW_BUFFERS      10
 
 #define MAX_STREAMS             128
-#define MAX_FRAMES               32
+#define MAX_FRAMES              128
 
 #define WRAP_THRESHOLD        90000
 
