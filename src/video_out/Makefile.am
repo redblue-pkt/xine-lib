@@ -149,7 +149,7 @@ xineplug_vo_out_xcbshm_la_LIBADD = $(YUV_LIBS) $(PTHREAD_LIBS) $(XCB_LIBS) $(XCB
 xineplug_vo_out_xcbshm_la_CFLAGS = $(AM_CFLAGS) $(XCB_CFLAGS) $(XCBSHM_CFLAGS)
 
 xineplug_vo_out_xcbxv_la_SOURCES = video_out_xcbxv.c $(XCBOSD)
-xineplug_vo_out_xcbxv_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(LTLIBINTL) $(XCBXV_LIBS) $(XCB_LIBS)
+xineplug_vo_out_xcbxv_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(LTLIBINTL) $(XCBXV_LIBS) $(XCB_LIBS) $(XCBSHM_LIBS)
 xineplug_vo_out_xcbxv_la_CFLAGS = $(AM_CFLAGS) $(XCB_CFLAGS) $(XCBXV_CFLAGS)
 
 xineplug_vo_out_xshm_la_SOURCES = video_out_xshm.c $(X11OSD)
