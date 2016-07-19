@@ -305,7 +305,7 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
     dnl xcb
     XINE_ARG_WITH([xcb], [Enable support for XCB video out plugins])
     if test x"$with_xcb" != x"no"; then
-        PKG_CHECK_MODULES([XCB], [xcb-shape >= 1.0], [have_xcb=yes], [have_xcb=no])
+        PKG_CHECK_MODULES([XCB], [xcb xcb-shape >= 1.0], [have_xcb=yes], [have_xcb=no])
         if test x"$hard_enable_xcb" = x"yes" && test x"$have_xcb" != x"yes"; then
             AC_MSG_ERROR([XCB support requested, but XCB not found])
         elif test x"$have_xcb" = x"yes"; then
