@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2009 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -35,12 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
 
 /********** logging **********/
 #define LOG_MODULE "buffer"
@@ -364,7 +358,7 @@ static void fifo_buffer_dispose (fifo_buffer_t *this) {
     received++;
   }
 
-  av_free (this->buffer_pool_base);
+  xine_free_aligned (this->buffer_pool_base);
   pthread_mutex_destroy(&this->mutex);
   pthread_cond_destroy(&this->not_empty);
   pthread_mutex_destroy(&this->buffer_pool_mutex);
@@ -536,7 +530,7 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   printf ("Allocating %d buffers of %ld bytes in one chunk\n",
 	  num_buffers, (long int) buf_size);
 	  */
-  multi_buffer = this->buffer_pool_base = av_mallocz (num_buffers * buf_size);
+  multi_buffer = this->buffer_pool_base = xine_mallocz_aligned (num_buffers * buf_size);
 
   this->buffer_pool_top = NULL;
 

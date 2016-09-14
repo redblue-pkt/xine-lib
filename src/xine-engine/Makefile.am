@@ -3,7 +3,7 @@ include $(top_srcdir)/misc/Makefile.common
 include $(top_srcdir)/lib/Makefile.common
 
 AM_CFLAGS   = -I$(top_srcdir)/src/video_out $(DEFAULT_OCFLAGS) $(X_CFLAGS) $(FT2_CFLAGS) $(FONTCONFIG_CFLAGS) \
-              $(AVUTIL_CFLAGS) $(VISIBILITY_FLAG)
+              $(VISIBILITY_FLAG)
 AM_CPPFLAGS = $(XDG_BASEDIR_CPPFLAGS) $(ZLIB_CPPFLAGS) -DXINE_LIBRARY_COMPILE
 
 XINEUTILS_LIB = $(top_builddir)/src/xine-utils/libxineutils.la
@@ -42,7 +42,7 @@ libxine_la_DEPENDENCIES = $(XINEUTILS_LIB) $(YUV_LIB) $(XDG_BASEDIR_DEPS) \
 libxine_la_LIBADD = $(PTHREAD_LIBS) $(DYNAMIC_LD_LIBS) $(LTLIBINTL) $(ZLIB_LIBS) \
 		    -lm $(XINEUTILS_LIB) $(YUV_LIB) $(LTLIBICONV) $(FT2_LIBS) $(FONTCONFIG_LIBS) \
                     $(LIBXINEPOSIX) $(RT_LIBS) $(NET_LIBS) $(XDG_BASEDIR_LIBS) \
-                    $(AVUTIL_LIBS) $(MLIB_LIBS)
+                    $(MLIB_LIBS)
 
 libxine_la_LDFLAGS = $(LDFLAGS_NOUNDEFINED) $(AM_LDFLAGS) $(def_ldflags) $(GCSECTIONS) \
 	-weak libxine-interface.la \
