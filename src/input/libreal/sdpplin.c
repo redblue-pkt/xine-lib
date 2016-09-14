@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002-2009 the xine project
+ * Copyright (C) 2002-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -34,12 +34,6 @@
 #include "rtsp.h"
 #include "sdpplin.h"
 #include <xine/xineutils.h>
-
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <base64.h>
-#else
-#  include <libavutil/base64.h>
-#endif
 
 static char *nl(char *data) {
 
@@ -88,6 +82,7 @@ static sdpplin_stream_t *XINE_MALLOC sdpplin_parse_stream(char **data) {
   *data=nl(*data);
 
   while (*data && **data && *data[0]!='m') {
+    int dlen;
 
     handled=0;
 
@@ -152,14 +147,17 @@ static sdpplin_stream_t *XINE_MALLOC sdpplin_parse_stream(char **data) {
       *data=nl(*data);
     }
 
-    if(filter(*data,"a=OpaqueData:buffer;",&buf)) {
-      uint8_t decoded[32];
-      desc->mlti_data_size = av_base64_decode(decoded, buf, 32);
+    if((dlen=filter(*data,"a=OpaqueData:buffer;",&buf))!=0) {
+      desc->mlti_data = malloc((dlen + 2) * 3 / 4 + 4);
+      desc->mlti_data_size = xine_base64_decode(buf, desc->mlti_data);
+      desc->mlti_data[desc->mlti_data_size] = 0;
       if ( desc->mlti_data_size > 0 ) {
-	desc->mlti_data = xine_memdup(decoded, desc->mlti_data_size);
 	handled=1;
 	*data=nl(*data);
 	lprintf("mlti_data_size: %i\n", desc->mlti_data_size);
+      } else {
+	free(desc->mlti_data);
+	desc->mlti_data = NULL;
       }
     }
 
@@ -192,11 +190,11 @@ sdpplin_t *sdpplin_parse(char *data) {
   char             *buf=xine_buffer_init(32);
   int              handled;
   int              len;
-  uint8_t          decoded[32];
 
   desc->stream = NULL;
 
   while (data && *data) {
+    int dlen;
 
     handled=0;
 
@@ -214,39 +212,55 @@ sdpplin_t *sdpplin_parse(char *data) {
       continue;
     }
 
-    if(filter(data,"a=Title:buffer;",&buf)) {
-      len = av_base64_decode(decoded, buf, 32);
+    if((dlen=filter(data,"a=Title:buffer;",&buf))!=0) {
+      desc->title = malloc((dlen + 2) * 3 / 4 + 4);
+      len = xine_base64_decode(buf, desc->title);
+      desc->title[len] = 0;
       if ( len > 0 ) {
-	desc->title=strdup(decoded);
 	handled=1;
 	data=nl(data);
+      } else {
+	free(desc->title);
+	desc->title = NULL;
       }
     }
 
-    if(filter(data,"a=Author:buffer;",&buf)) {
-      len = av_base64_decode(decoded, buf, 32);
+    if((dlen=filter(data,"a=Author:buffer;",&buf))!=0) {
+      desc->author = malloc((dlen + 2) * 3 / 4 + 4);
+      len = xine_base64_decode(buf, desc->author);
+      desc->author[len] = 0;
       if ( len > 0 ) {
-	desc->author=strdup(decoded);
 	handled=1;
 	data=nl(data);
+      } else {
+	free(desc->author);
+	desc->author = NULL;
       }
     }
 
-    if(filter(data,"a=Copyright:buffer;",&buf)) {
-      len = av_base64_decode(decoded, buf, 32);
+    if((dlen=filter(data,"a=Copyright:buffer;",&buf))!=0) {
+      desc->copyright = malloc((dlen + 2) * 3 / 4 + 4);
+      len = xine_base64_decode(buf, desc->copyright);
+      desc->copyright[len] = 0;
       if ( len > 0 ) {
-	desc->copyright=strdup(decoded);
 	handled=1;
 	data=nl(data);
+      } else {
+	free(desc->copyright);
+	desc->copyright = NULL;
       }
     }
 
-    if(filter(data,"a=Abstract:buffer;",&buf)) {
-      len = av_base64_decode(decoded, buf, 32);
+    if((dlen=filter(data,"a=Abstract:buffer;",&buf))!=0) {
+      desc->abstract = malloc ((dlen + 2) * 3 / 4 + 4);
+      len = xine_base64_decode(buf, desc->abstract);
+      desc->abstract[len] = 0;
       if ( len > 0 ) {
-	desc->abstract=strdup(decoded);
 	handled=1;
 	data=nl(data);
+      } else {
+	free(desc->abstract);
+	desc->abstract = NULL;
       }
     }
 
