@@ -37,12 +37,6 @@
 #define LOG
 */
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
-
 #include <xine/xine_internal.h>
 #include <xine/video_out.h>
 
@@ -76,9 +70,9 @@ void mpeg2_init (mpeg2dec_t * mpeg2dec,
     }
 
     if( !mpeg2dec->chunk_buffer )
-      mpeg2dec->chunk_buffer = av_mallocz(BUFFER_SIZE + 4);
+      mpeg2dec->chunk_buffer = xine_mallocz_aligned(BUFFER_SIZE + 4);
     if( !mpeg2dec->picture )
-      mpeg2dec->picture = av_mallocz(sizeof(picture_t));
+      mpeg2dec->picture = xine_mallocz_aligned(sizeof(picture_t));
 
     mpeg2dec->shift = 0xffffff00;
     mpeg2dec->new_sequence = 0;
@@ -870,8 +864,8 @@ void mpeg2_close (mpeg2dec_t * mpeg2dec)
       picture->backward_reference_frame = NULL;
     }
 
-    av_freep(&mpeg2dec->chunk_buffer);
-    av_freep(&mpeg2dec->picture_base);
+    xine_freep_aligned(&mpeg2dec->chunk_buffer);
+    xine_freep_aligned(&mpeg2dec->picture_base);
    
     if ( mpeg2dec->cc_dec) {
       /* dispose the closed caption decoder */
