@@ -848,7 +848,7 @@ static void decode_render( vdpau_mpeg4_decoder_t *vd, vdpau_accel_t *accel, uint
   vbit.struct_version = VDP_BITSTREAM_BUFFER_VERSION;
   vbit.bitstream = buf;
   vbit.bitstream_bytes = len;
-  st = accel->vdp_decoder_render( vd->decoder, accel->surface, (VdpPictureInfo*)&pic->vdp_infos, 1, &vbit );
+  st = accel->vdp_decoder_render( vd->decoder, accel->surface, CAST_VdpPictureInfo_PTR &pic->vdp_infos, 1, &vbit );
   if ( st!=VDP_STATUS_OK )
     fprintf(stderr, "vdpau_mpeg4: decoder failed : %d!! %s\n", st, accel->vdp_get_error_string( st ) );
   else {

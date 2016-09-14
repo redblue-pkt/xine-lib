@@ -1803,7 +1803,7 @@ decode_render (vdpau_h264_alter_decoder_t * vd, int bad_frame)
   }
   st =
     accel->vdp_decoder_render (vd->decoder, accel->surface,
-			       (VdpPictureInfo *) & info,
+			       CAST_VdpPictureInfo_PTR &info,
 			       seq->slices_count * 2, vbits);
   if (st != VDP_STATUS_OK)
     lprintf ("**********************DECODING failed! - surface = %d - %s\n",

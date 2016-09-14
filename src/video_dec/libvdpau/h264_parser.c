@@ -1683,9 +1683,9 @@ static void process_mmc_operations(struct h264_parser *parser, struct coded_pict
   }
 }
 
-static int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
+static int parse_frame(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len,
     int64_t pts,
-    uint8_t **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic)
+    const void **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic)
 {
   int32_t next_nal = 0;
   int32_t offset = 0;
@@ -1734,9 +1734,11 @@ static int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len
 
       //lprintf("Frame complete: %d bytes\n", parser->buf_len);
       *ret_len = parser->buf_len;
-      *ret_buf = malloc(parser->buf_len);
-      xine_fast_memcpy(*ret_buf, parser->buf, parser->buf_len);
-
+      {
+        uint8_t *rbuf = malloc(parser->buf_len);
+        *ret_buf = rbuf;
+        if (rbuf) xine_fast_memcpy(rbuf, parser->buf, parser->buf_len);
+      }
       *ret_pic = completed_pic;
 
       parser->buf_len = 0;

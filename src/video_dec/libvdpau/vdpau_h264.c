@@ -597,7 +597,7 @@ static int vdpau_decoder_render(video_decoder_t *this_gen, VdpBitstreamBuffer *v
   /*xprintf(this->xine, XINE_VERBOSITY_DEBUG,
       "Decode: NUM: %d, REF: %d, BYTES: %d, PTS: %lld\n", pic.frame_num, pic.is_reference, vdp_buffer->bitstream_bytes, this->completed_pic->pts);*/
   VdpStatus status = this->vdpau_accel->vdp_decoder_render(this->decoder,
-      surface, (VdpPictureInfo*)&pic, 1, vdp_buffer);
+      surface, CAST_VdpPictureInfo_PTR &pic, 1, vdp_buffer);
 
   /* free the image data */
   if(((uint8_t*)vdp_buffer->bitstream) != NULL) {
@@ -747,7 +747,7 @@ static void vdpau_h264_decode_data (video_decoder_t *this_gen,
       this->wait_for_frame_start = 0;
       len += parse_frame(this->nal_parser, buf->content + len, buf->size - len,
           buf->pts,
-          (uint8_t**)&vdp_buffer.bitstream, &vdp_buffer.bitstream_bytes, &this->completed_pic);
+          &vdp_buffer.bitstream, &vdp_buffer.bitstream_bytes, &this->completed_pic);
 
       if(this->decoder == VDP_INVALID_HANDLE &&
           this->completed_pic &&

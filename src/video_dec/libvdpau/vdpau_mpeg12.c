@@ -712,7 +712,7 @@ static void decode_render( vdpau_mpeg12_decoder_t *vd, vdpau_accel_t *accel )
   vbit.struct_version = VDP_BITSTREAM_BUFFER_VERSION;
   vbit.bitstream = pic->slices;
   vbit.bitstream_bytes = (pic->vdp_infos.picture_structure==PICTURE_FRAME)? pic->slices_pos : pic->slices_pos_top;
-  st = accel->vdp_decoder_render( vd->decoder, accel->surface, (VdpPictureInfo*)&pic->vdp_infos, 1, &vbit );
+  st = accel->vdp_decoder_render( vd->decoder, accel->surface, CAST_VdpPictureInfo_PTR &pic->vdp_infos, 1, &vbit );
 #ifdef LOG
   if ( st!=VDP_STATUS_OK )
     lprintf( "decoder failed : %d!! %s\n", st, accel->vdp_get_error_string( st ) );
@@ -742,7 +742,7 @@ static void decode_render( vdpau_mpeg12_decoder_t *vd, vdpau_accel_t *accel )
     vbit.struct_version = VDP_BITSTREAM_BUFFER_VERSION;
     vbit.bitstream = pic->slices+pic->slices_pos_top;
     vbit.bitstream_bytes = pic->slices_pos-pic->slices_pos_top;
-    st = accel->vdp_decoder_render( vd->decoder, accel->surface, (VdpPictureInfo*)&pic->vdp_infos2, 1, &vbit );
+    st = accel->vdp_decoder_render( vd->decoder, accel->surface, CAST_VdpPictureInfo_PTR &pic->vdp_infos2, 1, &vbit );
     if ( st!=VDP_STATUS_OK )
       lprintf( "decoder failed : %d!! %s\n", st, accel->vdp_get_error_string( st ) );
     else
