@@ -8,8 +8,8 @@ AM_LDFLAGS  =
 
 noinst_LTLIBRARIES = libpost_planar_asm.la
 libpost_planar_asm_la_SOURCES = eq.c eq2.c noise.c
-libpost_planar_asm_la_CFLAGS  = $(O1_CFLAGS) -fomit-frame-pointer $(AM_CFLAGS) $(AVUTIL_CFLAGS)
-libpost_planar_asm_la_LIBADD  = $(AVUTIL_LIBS)
+libpost_planar_asm_la_CFLAGS  = $(O1_CFLAGS) -fomit-frame-pointer $(AM_CFLAGS)
+libpost_planar_asm_la_LIBADD  = 
 
 xinepost_LTLIBRARIES = xineplug_post_planar.la
 xineplug_post_planar_la_SOURCES = planar.c invert.c expand.c fill.c boxblur.c \

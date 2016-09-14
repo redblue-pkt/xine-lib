@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -30,12 +30,6 @@
 #include <xine/xineutils.h>
 #include <math.h>
 #include <pthread.h>
-
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
 
 #ifdef ARCH_X86_64
 #  define REG_a  "rax"
@@ -83,7 +77,7 @@ static int8_t *initNoise(noise_param_t *fp){
     int8_t *noise;
     int i, j;
 
-    noise = av_mallocz(MAX_NOISE*sizeof(int8_t));
+    noise = xine_mallocz_aligned(MAX_NOISE*sizeof(int8_t));
     srand(123457);
 
     for(i=0,j=0; i<MAX_NOISE; i++,j++)
@@ -526,8 +520,8 @@ static void noise_dispose(post_plugin_t *this_gen)
 
     if (_x_post_dispose(this_gen)) {
         pthread_mutex_destroy(&this->lock);
-	av_free(this->params[0].noise);
-	av_free(this->params[1].noise);
+	xine_free_aligned(this->params[0].noise);
+	xine_free_aligned(this->params[1].noise);
         free(this);
     }
 }
