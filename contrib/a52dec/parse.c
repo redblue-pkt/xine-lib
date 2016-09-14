@@ -32,11 +32,6 @@
 #include "bitstream.h"
 #include "tables.h"
 #include <xine/xineutils.h>
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
 
 typedef struct {
     sample_t q1[2];
@@ -57,7 +52,7 @@ a52_state_t * a52_init (uint32_t mm_accel)
     if (state == NULL)
 	return NULL;
 
-    state->samples_base = state->samples = av_mallocz (256 * 12 * sizeof (sample_t));
+    state->samples_base = state->samples = xine_mallocz_aligned (256 * 12 * sizeof (sample_t));
 
     if (state->samples == NULL) {
 	free (state);
@@ -891,6 +886,6 @@ int a52_block (a52_state_t * state)
 
 void a52_free (a52_state_t * state)
 {
-    free (state->samples_base);
+    xine_free_aligned (state->samples_base);
     free (state);
 }

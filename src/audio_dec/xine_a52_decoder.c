@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -56,12 +56,6 @@
 #include <xine/buffer.h>
 #include <xine/xineutils.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <crc.h>
-#else
-#  include <libavutil/crc.h>
-#endif
-
 #undef DEBUG_A52
 #ifdef DEBUG_A52
 int a52file;
@@ -76,8 +70,6 @@ typedef struct {
   int              enable_surround_downmix;
 
   sample_t         lfe_level;
-
-  const AVCRC     *av_crc;
 } a52dec_class_t;
 
 typedef struct a52dec_decoder_s {
@@ -623,7 +615,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           } else break;
 
     case 3:  { /* Ready for decode */
-      if (av_crc(this->class->av_crc, 0, &this->frame_buffer[2], this->frame_length - 2) != 0) { /* CRC16 failed */
+      if (xine_crc16_ansi (0, &this->frame_buffer[2], this->frame_length - 2) != 0) { /* CRC16 failed */
 	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52:a52 frame failed crc16 checksum.\n");
 	current = sync_start;
 	this->pts = 0;
@@ -827,8 +819,6 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->decoder_class.identifier      = "a/52dec";
   this->decoder_class.description     = N_("liba52 based a52 audio decoder plugin");
   this->decoder_class.dispose         = default_audio_decoder_class_dispose;
-
-  this->av_crc = av_crc_get_table(AV_CRC_16_ANSI);
 
   cfg = this->config = xine->config;
 
