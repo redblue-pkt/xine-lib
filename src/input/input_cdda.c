@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2012 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -59,18 +59,6 @@
 
 #include <basedir.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <base64.h>
-#  include <sha1.h>
-#else
-#  include <libavutil/base64.h>
-#  ifdef HAVE_LIBAVUTIL_SHA_H
-#    include <libavutil/sha.h>
-#  else
-#    include <libavutil/sha1.h>
-#  endif
-#endif
-
 #define LOG_MODULE "input_cdda"
 #define LOG_VERBOSE
 /*
@@ -80,6 +68,7 @@
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
 #include <xine/input_plugin.h>
+#include "../xine-engine/bswap.h"
 #include "media_helper.h"
 
 #if defined(__sun)
@@ -104,15 +93,6 @@
 #define CD_LEADOUT_TRACK        0xAA
 #define CD_BLOCK_OFFSET         150
 
-#if !defined(HAVE_LIBAVUTIL_SHA_H)
-/* old libavutil/sha1.h was found... */
-#define AVSHA AVSHA1
-#  define av_sha_init(c,b) 	av_sha1_init(c)
-#  define av_sha_update		av_sha1_update
-#  define av_sha_final		av_sha1_final
-#  define av_sha_size		av_sha1_size
-#endif
-
 typedef struct _cdrom_toc_entry {
   int   track_mode;
   int   first_frame;
@@ -131,6 +111,144 @@ typedef struct _cdrom_toc {
   cdrom_toc_entry *toc_entries;
   cdrom_toc_entry leadout_track;  /* need to know where last track ends */
 } cdrom_toc;
+
+/*
+ * Quick and dirty sha160 implementation.
+ * We only will hash a few bytes per disc, so there is
+ * no need for high end optimization.
+ */
+
+#define sha160_digest_len 20
+
+typedef struct {
+  uint8_t buf[64];
+  uint32_t state[5];
+  uint32_t n;
+} sha160_t;
+
+static void sha160_init (sha160_t *s) {
+  s->state[0] = 0x67452301;
+  s->state[1] = 0xefcdab89;
+  s->state[2] = 0x98badcfe;
+  s->state[3] = 0x10325476;
+  s->state[4] = 0xc3d2e1f0;
+  s->n = 0;
+}
+
+static void sha160_trans (sha160_t *s) {
+  uint32_t l[80], a, b, c, d, e, i;
+  a = s->state[0];
+  b = s->state[1];
+  c = s->state[2];
+  d = s->state[3];
+  e = s->state[4];
+  for (i = 0; i < 16; i++) {
+    uint32_t t;
+    l[i] = t = _X_BE_32 (s->buf + i * 4);
+    t += e + ((a << 5) | (a >> 27));
+    t += ((b & (c ^ d)) ^ d) + 0x5a827999;
+    e = d;
+    d = c;
+    c = (b << 30) | (b >> 2);
+    b = a;
+    a = t;
+  }
+  for (; i < 20; i++) {
+    uint32_t t;
+    t = l[i - 3] ^ l[i - 8] ^ l[i - 14] ^ l[i - 16];
+    l[i] = t = (t << 1) | (t >> 31);
+    t += e + ((a << 5) | (a >> 27));
+    t += ((b & (c ^ d)) ^ d) + 0x5a827999;
+    e = d;
+    d = c;
+    c = (b << 30) | (b >> 2);
+    b = a;
+    a = t;
+  }
+  for (; i < 40; i++) {
+    uint32_t t;
+    t = l[i - 3] ^ l[i - 8] ^ l[i - 14] ^ l[i - 16];
+    l[i] = t = (t << 1) | (t >> 31);
+    t += e + ((a << 5) | (a >> 27));
+    t += (b ^ c ^ d) + 0x6ed9eba1;
+    e = d;
+    d = c;
+    c = (b << 30) | (b >> 2);
+    b = a;
+    a = t;
+  }
+  for (; i < 60; i++) {
+    uint32_t t;
+    t = l[i - 3] ^ l[i - 8] ^ l[i - 14] ^ l[i - 16];
+    l[i] = t = (t << 1) | (t >> 31);
+    t += e + ((a << 5) | (a >> 27));
+    t += (((b | c) & d) | (b & c)) + 0x8f1bbcdc;
+    e = d;
+    d = c;
+    c = (b << 30) | (b >> 2);
+    b = a;
+    a = t;
+  }
+  for (; i < 80; i++) {
+    uint32_t t;
+    t = l[i - 3] ^ l[i - 8] ^ l[i - 14] ^ l[i - 16];
+    l[i] = t = (t << 1) | (t >> 31);
+    t += e + ((a << 5) | (a >> 27));
+    t += (b ^ c ^ d) + 0xca62c1d6;
+    e = d;
+    d = c;
+    c = (b << 30) | (b >> 2);
+    b = a;
+    a = t;
+  }
+  s->state[0] += a;
+  s->state[1] += b;
+  s->state[2] += c;
+  s->state[3] += d;
+  s->state[4] += e;
+}
+
+static void sha160_update (sha160_t *s, const uint8_t *data, size_t len) {
+  while (len) {
+    size_t part = 64 - (s->n & 63);
+    if (part > len)
+      part = len;
+    memcpy (s->buf + (s->n & 63), data, part);
+    data += part;
+    s->n += part;
+    if (!(s->n & 63))
+      sha160_trans (s);
+    len -= part;
+  }
+}
+
+static void sha160_final (sha160_t *s, uint8_t *dest) {
+  uint32_t p = s->n & 63;
+  s->buf[p++] = 128;
+  if (p == 64) {
+    sha160_trans (s);
+    p = 0;
+  }
+  memset (s->buf + p, 0, 64 - p);
+  if (p >= 57) {
+    sha160_trans (s);
+    p = 0;
+    memset (s->buf, 0, 64);
+  }
+  p = s->n << 3;
+  s->buf[60] = p >> 24;
+  s->buf[61] = p >> 16;
+  s->buf[62] = p >> 8;
+  s->buf[63] = p;
+  sha160_trans (s);
+  for (p = 0; p < 5; p++) {
+    uint32_t v = s->state[p];
+    dest[4 * p] = v >> 24;
+    dest[4 * p + 1] = v >> 16;
+    dest[4 * p + 2] = v >> 8;
+    dest[4 * p + 3] = v;
+  }
+}
 
 /**************************************************************************
  * xine interface functions
@@ -1849,43 +1967,32 @@ static uint32_t _cdda_calc_cddb_id(cdda_input_plugin_t *this) {
  * Compute Musicbrainz CDIndex ID
  */
 static void _cdda_cdindex(cdda_input_plugin_t *this, cdrom_toc *toc) {
-  char temp[10];
-  struct AVSHA *sha_ctx = malloc(av_sha_size);
-  unsigned char digest[20];
-  /* We're going to encode 20 bytes in base64, which will become
-   * 6 * 32 / 8 = 24 bytes.
-   * libavutil's base64 encoding functions, though, wants the size to
-   * be at least len * 4 / 3 + 12, so let's use 39.
-   */
-  char base64[39];
+  sha160_t sha;
+  unsigned char temp[40], digest[24];
   int i;
 
-  av_sha_init(sha_ctx, 160);
+  sha160_init (&sha);
 
-  sprintf(temp, "%02X", toc->first_track);
-  av_sha_update(sha_ctx, (unsigned char*) temp, strlen(temp));
-
-  sprintf(temp, "%02X", toc->last_track - toc->ignore_last_track);
-  av_sha_update(sha_ctx, (unsigned char*) temp, strlen(temp));
-
-  sprintf (temp, "%08X", toc->leadout_track.first_frame);// + 150);
-  av_sha_update(sha_ctx, (unsigned char*) temp, strlen(temp));
+  sprintf (temp, "%02X%02X%08X",
+    toc->first_track,
+    toc->last_track - toc->ignore_last_track,
+    toc->leadout_track.first_frame); /* + 150 */
+  sha160_update (&sha, temp, 12);
 
   for (i = toc->first_track; i <= toc->last_track - toc->ignore_last_track; i++) {
-    sprintf(temp, "%08X", toc->toc_entries[i - 1].first_frame);
-    av_sha_update(sha_ctx, (unsigned char*) temp, strlen(temp));
+    sprintf (temp, "%08X", toc->toc_entries[i - 1].first_frame);
+    sha160_update (&sha, temp, 8);
   }
 
   for (i = toc->last_track - toc->ignore_last_track + 1; i < 100; i++) {
-    av_sha_update(sha_ctx, (unsigned char*) temp, strlen(temp));
+    sha160_update (&sha, temp, 8);
   }
 
-  av_sha_final(sha_ctx, digest);
-  free(sha_ctx);
+  sha160_final (&sha, digest);
 
-  av_base64_encode(base64, 39, digest, 20);
+  xine_base64_encode (digest, temp, 20);
 
-  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_CDINDEX_DISCID, base64);
+  _x_meta_info_set_utf8 (this->stream, XINE_META_INFO_CDINDEX_DISCID, temp);
 }
 
 /*
