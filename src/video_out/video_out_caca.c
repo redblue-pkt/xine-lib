@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2014 the xine project
+ * Copyright (C) 2003-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -39,11 +39,7 @@
 #endif
 #include <caca.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
+
 
 #include "xine.h"
 #include <xine/video_out.h>
@@ -101,9 +97,9 @@ static uint32_t caca_get_capabilities (vo_driver_t *this) {
 static void caca_dispose_frame (vo_frame_t *vo_img) {
   caca_frame_t *frame = (caca_frame_t *)vo_img;
 
-  av_free (frame->vo_frame.base[0]);
-  av_free (frame->vo_frame.base[1]);
-  av_free (frame->vo_frame.base[2]);
+  xine_free_aligned (frame->vo_frame.base[0]);
+  xine_free_aligned (frame->vo_frame.base[1]);
+  xine_free_aligned (frame->vo_frame.base[2]);
 
   free (frame->pixmap_d);
   if (frame->pixmap_s)
@@ -151,9 +147,9 @@ static void caca_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
   if ((frame->width != width) || (frame->height != height)
       || (frame->format != format)) {
 
-    av_freep (&frame->vo_frame.base[0]);
-    av_freep (&frame->vo_frame.base[1]);
-    av_freep (&frame->vo_frame.base[2]);
+    xine_freep_aligned (&frame->vo_frame.base[0]);
+    xine_freep_aligned (&frame->vo_frame.base[1]);
+    xine_freep_aligned (&frame->vo_frame.base[2]);
 
     free (frame->pixmap_d); frame->pixmap_d = NULL;
 
@@ -174,15 +170,15 @@ static void caca_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-      frame->vo_frame.base[0] = av_mallocz(frame->vo_frame.pitches[0] * height);
-      frame->vo_frame.base[1] = av_mallocz(frame->vo_frame.pitches[1] * ((height+1)/2));
-      frame->vo_frame.base[2] = av_mallocz(frame->vo_frame.pitches[2] * ((height+1)/2));
+      frame->vo_frame.base[0] = xine_mallocz_aligned(frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[1] = xine_mallocz_aligned(frame->vo_frame.pitches[1] * ((height+1)/2));
+      frame->vo_frame.base[2] = xine_mallocz_aligned(frame->vo_frame.pitches[2] * ((height+1)/2));
       frame->yuv2rgb->configure (frame->yuv2rgb,
         width, height, frame->vo_frame.pitches[0], frame->vo_frame.pitches[1],
         width, height, width * 4);
     } else if (format == XINE_IMGFMT_YUY2) {
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = av_mallocz(frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[0] = xine_mallocz_aligned(frame->vo_frame.pitches[0] * height);
       frame->yuv2rgb->configure (frame->yuv2rgb,
         width, height, frame->vo_frame.pitches[0], frame->vo_frame.pitches[0],
         width, height, width * 4);

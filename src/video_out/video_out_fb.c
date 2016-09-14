@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project and Fredrik Noring
+ * Copyright (C) 2000-2016 the xine project and Fredrik Noring
  *
  * This file is part of xine, a free video player.
  *
@@ -65,11 +65,7 @@
 #include <pthread.h>
 #include <netinet/in.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
+
 
 #include <linux/fb.h>
 #include <linux/kd.h>
@@ -327,9 +323,9 @@ static void setup_colorspace_converter(fb_frame_t *frame, int flags)
 static void frame_reallocate(fb_driver_t *this, fb_frame_t *frame,
 			     uint32_t width, uint32_t height, int format)
 {
-  av_freep(&frame->vo_frame.base[0]);
-  av_freep(&frame->vo_frame.base[1]);
-  av_freep(&frame->vo_frame.base[2]);
+  xine_freep_aligned(&frame->vo_frame.base[0]);
+  xine_freep_aligned(&frame->vo_frame.base[1]);
+  xine_freep_aligned(&frame->vo_frame.base[2]);
 
   if(this->use_zero_copy)
   {
@@ -351,15 +347,15 @@ static void frame_reallocate(fb_driver_t *this, fb_frame_t *frame,
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
 
-      frame->vo_frame.base[0] = av_mallocz(frame->vo_frame.pitches[0] * height);
-      frame->vo_frame.base[1] = av_mallocz(frame->vo_frame.pitches[1] * ((height+1)/2));
-      frame->vo_frame.base[2] = av_mallocz(frame->vo_frame.pitches[2] * ((height+1)/2));
+      frame->vo_frame.base[0] = xine_mallocz_aligned(frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[1] = xine_mallocz_aligned(frame->vo_frame.pitches[1] * ((height+1)/2));
+      frame->vo_frame.base[2] = xine_mallocz_aligned(frame->vo_frame.pitches[2] * ((height+1)/2));
   }
   else
   {
     frame->vo_frame.pitches[0] = 8 * ((width + 3) / 4);
 
-    frame->vo_frame.base[0] = av_mallocz(frame->vo_frame.pitches[0] * height);
+    frame->vo_frame.base[0] = xine_mallocz_aligned(frame->vo_frame.pitches[0] * height);
   }
 }
 

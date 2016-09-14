@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2007-2014 the xine project
+ * Copyright (C) 2007-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -55,11 +55,7 @@
 #include "yuv2rgb.h"
 #include <xine/xineutils.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
+
 
 typedef struct {
   vo_frame_t         vo_frame;
@@ -220,10 +216,10 @@ static void raw_frame_dispose (vo_frame_t *vo_img)
 
   frame->yuv2rgb->dispose (frame->yuv2rgb);
 
-  av_free (frame->vo_frame.base[0]);
-  av_free (frame->vo_frame.base[1]);
-  av_free (frame->vo_frame.base[2]);
-  av_free (frame->rgb);
+  xine_free_aligned (frame->vo_frame.base[0]);
+  xine_free_aligned (frame->vo_frame.base[1]);
+  xine_free_aligned (frame->vo_frame.base[2]);
+  xine_free_aligned (frame->rgb);
   free (frame);
 }
 
@@ -276,25 +272,25 @@ static void raw_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_ge
 /*     lprintf ("updating frame to %d x %d (ratio=%g, format=%08x)\n", width, height, ratio, format); */
 
     /* (re-) allocate render space */
-    av_free (frame->vo_frame.base[0]);
-    av_free (frame->vo_frame.base[1]);
-    av_free (frame->vo_frame.base[2]);
-    av_free (frame->rgb);
+    xine_free_aligned (frame->vo_frame.base[0]);
+    xine_free_aligned (frame->vo_frame.base[1]);
+    xine_free_aligned (frame->vo_frame.base[2]);
+    xine_free_aligned (frame->rgb);
 
     if (format == XINE_IMGFMT_YV12) {
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-      frame->vo_frame.base[0] = av_mallocz (frame->vo_frame.pitches[0] * height);
-      frame->vo_frame.base[1] = av_mallocz (frame->vo_frame.pitches[1] * ((height+1)/2));
-      frame->vo_frame.base[2] = av_mallocz (frame->vo_frame.pitches[2] * ((height+1)/2));
+      frame->vo_frame.base[0] = xine_mallocz_aligned (frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[1] = xine_mallocz_aligned (frame->vo_frame.pitches[1] * ((height+1)/2));
+      frame->vo_frame.base[2] = xine_mallocz_aligned (frame->vo_frame.pitches[2] * ((height+1)/2));
     } else {
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = av_mallocz (frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[0] = xine_mallocz_aligned (frame->vo_frame.pitches[0] * height);
       frame->vo_frame.base[1] = NULL;
       frame->vo_frame.base[2] = NULL;
     }
-    frame->rgb = av_mallocz (BYTES_PER_PIXEL*width*height);
+    frame->rgb = xine_mallocz_aligned (BYTES_PER_PIXEL*width*height);
 
     /* set up colorspace converter */
     switch (flags & VO_BOTH_FIELDS) {

@@ -31,11 +31,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
+
 
 #include "yuv2rgb.h"
 
@@ -3294,7 +3290,7 @@ static yuv2rgb_t *yuv2rgb_create_converter (yuv2rgb_factory_t *factory) {
 static void yuv2rgb_factory_dispose (yuv2rgb_factory_t *this) {
 
   free (this->table_base);
-  av_free(this->table_mmx);
+  xine_free_aligned(this->table_mmx);
   free (this);
 }
 

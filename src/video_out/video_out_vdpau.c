@@ -1,6 +1,6 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2008-2014 the xine project
+ * Copyright (C) 2008-2016 the xine project
  * Copyright (C) 2008 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -51,11 +51,7 @@
 #include <vdpau/vdpau_x11.h>
 #include "accel_vdpau.h"
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
+
 
 #define NUM_FRAMES_BACK 1
 
@@ -1002,9 +998,9 @@ static void vdpau_frame_dispose (vo_frame_t *vo_img)
 {
   vdpau_frame_t  *frame = (vdpau_frame_t *) vo_img ;
 
-  av_free (frame->vo_frame.base[0]);
-  av_free (frame->vo_frame.base[1]);
-  av_free (frame->vo_frame.base[2]);
+  xine_free_aligned (frame->vo_frame.base[0]);
+  xine_free_aligned (frame->vo_frame.base[1]);
+  xine_free_aligned (frame->vo_frame.base[2]);
   if ( frame->vdpau_accel_data.surface != VDP_INVALID_HANDLE )
     vdp_video_surface_destroy( frame->vdpau_accel_data.surface );
   free (frame);
@@ -1134,13 +1130,13 @@ static void vdpau_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
     this->vo_frame.pitches[0] = 8*((orig->vo_frame.width + 7) / 8);
     this->vo_frame.pitches[1] = 8*((orig->vo_frame.width + 15) / 16);
     this->vo_frame.pitches[2] = 8*((orig->vo_frame.width + 15) / 16);
-    this->vo_frame.base[0] = av_mallocz(this->vo_frame.pitches[0] * orig->vo_frame.height);
-    this->vo_frame.base[1] = av_mallocz(this->vo_frame.pitches[1] * ((orig->vo_frame.height+1)/2));
-    this->vo_frame.base[2] = av_mallocz(this->vo_frame.pitches[2] * ((orig->vo_frame.height+1)/2));
+    this->vo_frame.base[0] = xine_mallocz_aligned(this->vo_frame.pitches[0] * orig->vo_frame.height);
+    this->vo_frame.base[1] = xine_mallocz_aligned(this->vo_frame.pitches[1] * ((orig->vo_frame.height+1)/2));
+    this->vo_frame.base[2] = xine_mallocz_aligned(this->vo_frame.pitches[2] * ((orig->vo_frame.height+1)/2));
     format = VDP_YCBCR_FORMAT_YV12;
   } else {
     this->vo_frame.pitches[0] = 8*((orig->vo_frame.width + 3) / 4);
-    this->vo_frame.base[0] = av_mallocz(this->vo_frame.pitches[0] * orig->vo_frame.height);
+    this->vo_frame.base[0] = xine_mallocz_aligned(this->vo_frame.pitches[0] * orig->vo_frame.height);
     format = VDP_YCBCR_FORMAT_YUYV;
   }
 
@@ -1153,9 +1149,9 @@ static void vdpau_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
   if (st != VDP_STATUS_OK)
     fprintf(stderr, "vo_vdpau: failed to put surface bits !! %s\n", vdp_get_error_string(st));
 
-  av_freep (&this->vo_frame.base[0]);
-  av_freep (&this->vo_frame.base[1]);
-  av_freep (&this->vo_frame.base[2]);
+  xine_freep_aligned (&this->vo_frame.base[0]);
+  xine_freep_aligned (&this->vo_frame.base[1]);
+  xine_freep_aligned (&this->vo_frame.base[2]);
 }
 
 
@@ -1189,21 +1185,21 @@ static void vdpau_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_
         (frame->vdpau_accel_data.vdp_runtime_nr != this->vdp_runtime_nr)) {
 
     /* (re-) allocate render space */
-    av_freep (&frame->vo_frame.base[0]);
-    av_freep (&frame->vo_frame.base[1]);
-    av_freep (&frame->vo_frame.base[2]);
+    xine_freep_aligned (&frame->vo_frame.base[0]);
+    xine_freep_aligned (&frame->vo_frame.base[1]);
+    xine_freep_aligned (&frame->vo_frame.base[2]);
 
     if (format == XINE_IMGFMT_YV12) {
       frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
       frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
       frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-      frame->vo_frame.base[0] = av_mallocz (frame->vo_frame.pitches[0] * height);
-      frame->vo_frame.base[1] = av_malloc  (frame->vo_frame.pitches[1] * ((height+1)/2));
-      frame->vo_frame.base[2] = av_malloc  (frame->vo_frame.pitches[2] * ((height+1)/2));
+      frame->vo_frame.base[0] = xine_mallocz_aligned (frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[1] = xine_malloc_aligned  (frame->vo_frame.pitches[1] * ((height+1)/2));
+      frame->vo_frame.base[2] = xine_malloc_aligned  (frame->vo_frame.pitches[2] * ((height+1)/2));
       if (!frame->vo_frame.base[0] || !frame->vo_frame.base[1] || !frame->vo_frame.base[2]) {
-        av_freep (&frame->vo_frame.base[0]);
-        av_freep (&frame->vo_frame.base[1]);
-        av_freep (&frame->vo_frame.base[2]);
+        xine_freep_aligned (&frame->vo_frame.base[0]);
+        xine_freep_aligned (&frame->vo_frame.base[1]);
+        xine_freep_aligned (&frame->vo_frame.base[2]);
         frame->width = 0;
         frame->vo_frame.width = 0; /* tell vo_get_frame () to retry later */
         return;
@@ -1212,7 +1208,7 @@ static void vdpau_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_
       memset (frame->vo_frame.base[2], 128, frame->vo_frame.pitches[2] * ((height+1)/2));
     } else if (format == XINE_IMGFMT_YUY2){
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = av_malloc (frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[0] = xine_malloc_aligned (frame->vo_frame.pitches[0] * height);
       if (frame->vo_frame.base[0]) {
         const union {uint8_t bytes[4]; uint32_t word;} black = {{0, 128, 0, 128}};
         uint32_t *q = (uint32_t *)frame->vo_frame.base[0];
