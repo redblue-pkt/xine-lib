@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2013 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -33,6 +33,7 @@
 #include <xine/xine_internal.h>
 #endif
 #include "xine_private.h"
+#include "../xine-engine/bswap.h"
 
 #include <errno.h>
 #include <pwd.h>
@@ -385,10 +386,11 @@ const char *xine_get_homedir(void) {
   static char homedir[BUFSIZ] = {0,};
 
 #ifdef HAVE_GETPWUID_R
-  if(getpwuid_r(getuid(), &pwd, homedir, sizeof(homedir), &pw) != 0 || pw == NULL) {
+  if(getpwuid_r(getuid(), &pwd, homedir, sizeof(homedir), &pw) != 0 || pw == NULL)
 #else
-  if((pw = getpwuid(getuid())) == NULL) {
+  if((pw = getpwuid(getuid())) == NULL)
 #endif
+  {
     char *tmp = getenv("HOME");
     if(tmp) {
       strncpy(homedir, tmp, sizeof(homedir));
@@ -789,5 +791,267 @@ int xine_socket_cloexec(int domain, int type, int protocol)
   }
 
   return s;
+}
+
+/* get/resize/free aligned memory */
+
+#ifndef XINE_MEM_ALIGN
+#  define XINE_MEM_ALIGN 32
+#endif
+#define XINE_MEM_ADD (sizeof (size_t) + XINE_MEM_ALIGN)
+#define XINE_MEM_MASK ((unsigned long int)XINE_MEM_ALIGN - 1)
+
+void *xine_mallocz_aligned (size_t size) {
+  uint8_t *new;
+  size_t *sp;
+  new = calloc (1, size + XINE_MEM_ADD);
+  if (!new)
+    return NULL;
+  sp = (size_t *)new;
+  *sp = size;
+  new = (uint8_t *)(((unsigned long int)new + XINE_MEM_ADD) & ~XINE_MEM_MASK);
+  new[-1] = new - (uint8_t *)sp;
+  return new;
+}
+
+void *xine_malloc_aligned (size_t size) {
+  uint8_t *new;
+  size_t *sp;
+  new = malloc (size + XINE_MEM_ADD);
+  if (!new)
+    return NULL;
+  sp = (size_t *)new;
+  *sp = size;
+  new = (uint8_t *)(((unsigned long int)new + XINE_MEM_ADD) & ~XINE_MEM_MASK);
+  new[-1] = new - (uint8_t *)sp;
+  return new;
+}
+
+void xine_free_aligned (void *ptr) {
+  uint8_t *old = (uint8_t *)ptr;
+  if (!old)
+    return;
+  old -= old[-1];
+  free (old);
+}
+
+void *xine_realloc_aligned (void *ptr, size_t size) {
+  uint8_t *old = (uint8_t *)ptr, *new;
+  size_t *sp, s;
+  if (!size) {
+    if (old)
+      free (old - old[-1]);
+    return NULL;
+  }
+  new = malloc (size + XINE_MEM_ADD);
+  if (!new)
+    return NULL;
+  sp = (size_t *)new;
+  *sp = size;
+  new = (uint8_t *)(((unsigned long int)new + XINE_MEM_ADD) & ~XINE_MEM_MASK);
+  new[-1] = new - (uint8_t *)sp;
+  /* realloc () may break the alignment, requiring a slow memmove () afterwards */
+  if (old) {
+    sp = (size_t *)(old - old[-1]);
+    s = *sp;
+    if (size < s)
+      s = size;
+    xine_fast_memcpy (new, old, s);
+    free (sp);
+  }
+  return new;
+}
+
+/* Base64 transcoder, adapted from TJtools. */
+size_t xine_base64_encode (uint8_t *from, char *to, size_t size) {
+  static const uint8_t tab[64] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const uint8_t *p = from;
+  uint8_t *q = (uint8_t *)to;
+  int l = size;
+  from[size] = 0;
+  while (l > 0) {
+    uint32_t v = _X_BE_24 (p);
+    p += 3;
+    *q++ = tab[v >> 18];
+    *q++ = tab[(v >> 12) & 63];
+    *q++ = tab[(v >> 6) & 63];
+    *q++ = tab[v & 63];
+    l -= 3;
+  }
+  if (l < 0) {
+    q[-1] = '=';
+    if (l == -2) q[-2] = '=';
+  }
+  *q = 0;
+  return q - (uint8_t *)to;
+}
+
+size_t xine_base64_decode (const char *from, uint8_t *to) {
+  /* certain peopble use - _ instead of + /, lets support both ;-) */
+#define rr 128 /* repeat */
+#define ss 64  /* stop */
+  static const uint8_t tab_unbase64[256] = {
+    ss,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,
+    rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,
+    rr,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,62,ss,62,ss,63,
+    52,53,54,55,56,57,58,59,60,61,ss,ss,ss,ss,ss,ss,
+    ss, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,
+    15,16,17,18,19,20,21,22,23,24,25,ss,ss,ss,ss,63,
+    ss,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
+    41,42,43,44,45,46,47,48,49,50,51,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,
+    ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss,ss
+  };
+  const uint8_t *p = (const uint8_t *)from;
+  uint8_t *q = to;
+  while (1) {
+    uint32_t v, b;
+    do b = tab_unbase64[*p++]; while (b & rr);
+    if (b & ss) break;
+    v = b << 18;
+    do b = tab_unbase64[*p++]; while (b & rr);
+    if (b & ss) break;
+    v |= b << 12;
+    *q++ = v >> 16;
+    do b = tab_unbase64[*p++]; while (b & rr);
+    if (b & ss) break;
+    v |= b << 6;
+    *q++ = v >> 8;
+    do b = tab_unbase64[*p++]; while (b & rr);
+    if (b & ss) break;
+    v |= b;
+    *q++ = v;
+  }
+#undef rr
+#undef ss
+  return q - to;
+}
+
+/* XXX precalculate 4k instead? */
+static uint32_t tab_crc32_ieee[1024] = {0, 0,};
+static uint16_t tab_crc16_ansi[512] = {0, 0,};
+
+uint32_t xine_crc32_ieee (uint32_t crc, const uint8_t *data, size_t len) {
+  uint32_t *t = tab_crc32_ieee;
+  if (!t[1]) {
+    uint32_t i;
+    for (i = 0; i < 256; i++) {
+      uint32_t j, u = i << 24;
+      for (j = 0; j < 8; j++)
+        u = (u << 1) ^ (((int32_t)u >> 31) & 0x4c11db7);
+      t[i] = (u << 24) | ((u << 8) & 0xff0000) | ((u >> 8) & 0xff00) | (u >> 24);
+    }
+    for (i = 0; i < 256; i++) {
+      uint32_t v = t[i];
+      t[i + 256] = v = (v >> 8) ^ t[v & 255];
+      t[i + 512] = v = (v >> 8) ^ t[v & 255];
+      t[i + 768] = (v >> 8) ^ t[v & 255];
+    }
+  }
+  {
+    unsigned long int u;
+    const uint32_t *d32;
+    u = (~3ul - (unsigned long int)data) & 3;
+    if (u > len)
+      u = len;
+    len -= u;
+    while (u) {
+      crc = t[(uint8_t)crc ^ *data] ^ (crc >> 8);
+      data++;
+      u--;
+    }
+    d32 = (const uint32_t *)data;
+    u = len / 4;
+    while (u) {
+      crc ^= *d32++;
+#ifdef WORDS_BIGENDIAN
+      crc = t[crc & 0xff]
+          ^ t[((crc >> 8) & 0xff) + 256]
+          ^ t[((crc >> 16) & 0xff) + 512]
+          ^ t[(crc >> 24) + 768];
+#else
+      crc = t[(crc & 0xff) + 768]
+          ^ t[((crc >> 8) & 0xff) + 512]
+          ^ t[((crc >> 16) & 0xff) + 256]
+          ^ t[crc >> 24];
+#endif
+      u--;
+    }
+    data = (const uint8_t *)d32;
+    u = len & 3;
+    while (u) {
+      crc = t[(uint8_t)crc ^ *data] ^ (crc >> 8);
+      data++;
+      u--;
+    }
+    return crc;
+  }
+}
+
+uint32_t xine_crc16_ansi (uint32_t crc, const uint8_t *data, size_t len) {
+  uint16_t *t = tab_crc16_ansi;
+  if (!t[1]) {
+    uint32_t i;
+    for (i = 0; i < 256; i++) {
+      uint32_t j, u = i << 24;
+      for (j = 0; j < 8; j++)
+        u = (u << 1) ^ (((int32_t)u >> 31) & 0x80050000);
+      t[i] = ((u >> 8) & 0xff00) | (u >> 24);
+    }
+    for (i = 0; i < 256; i++) {
+      uint16_t v = t[i];
+      t[i + 256] = (v >> 8) ^ t[v & 255];
+    }
+  }
+  {
+    unsigned long int u;
+    const uint32_t *d32;
+    crc &= 0xffff;
+    u = (~3ul - (unsigned long int)data) & 3;
+    if (u > len)
+      u = len;
+    len -= u;
+    while (u) {
+      crc = t[(uint8_t)crc ^ *data] ^ (crc >> 8);
+      data++;
+      u--;
+    }
+    d32 = (const uint32_t *)data;
+    u = len / 4;
+    while (u) {
+      uint32_t v = *d32++;
+#ifdef WORDS_BIGENDIAN
+      crc ^= v >> 16;
+      crc = t[crc & 255]
+          ^ t[(crc >> 8) + 256];
+      crc ^= v & 0xffff;
+      crc = t[crc & 255]
+          ^ t[(crc >> 8) + 256];
+#else
+      crc ^= v & 0xffff;
+      crc = t[(crc & 255) + 256]
+          ^ t[crc >> 8];
+      crc ^= v >> 16;
+      crc = t[(crc & 255) + 256]
+          ^ t[crc >> 8];
+#endif
+      u--;
+    }
+    data = (const uint8_t *)d32;
+    u = len & 3;
+    while (u) {
+      crc = t[(uint8_t)crc ^ *data] ^ (crc >> 8);
+      data++;
+      u--;
+    }
+    return crc;
+  }
 }
 

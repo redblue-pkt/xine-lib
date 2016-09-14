@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2013 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -157,6 +157,43 @@ static inline void _x_freep(void *ptr) {
  */
 void *xine_memdup (const void *src, size_t length) XINE_MALLOC XINE_PROTECTED;
 void *xine_memdup0 (const void *src, size_t length) XINE_MALLOC XINE_PROTECTED;
+
+/**
+ * Get/resize/free aligned memory.
+ */
+
+#ifndef XINE_MEM_ALIGN
+#  define XINE_MEM_ALIGN 32
+#endif
+
+void *xine_mallocz_aligned (size_t size)            XINE_PROTECTED XINE_MALLOC;
+void *xine_malloc_aligned  (size_t size)            XINE_PROTECTED XINE_MALLOC;
+void  xine_free_aligned    (void *ptr)              XINE_PROTECTED;
+void *xine_realloc_aligned (void *ptr, size_t size) XINE_PROTECTED;
+#define xine_freep_aligned(xinefreepptr) do {xine_free_aligned (*(xinefreepptr)); *(xinefreepptr) = NULL; } while (0)
+
+/**
+ * Base64 encoder.
+ * from: pointer to binary input.
+ * to:   pointer to output string buffer.
+ * size: byte length of input.
+ * ret:  length of output string (without \0).
+ * Note that both buffers need 4 writable padding bytes.
+ */
+size_t xine_base64_encode (uint8_t *from, char *to, size_t size) XINE_PROTECTED;
+/**
+ * Base64 decoder.
+ * from: pointer to input string or line formatted / indented, null terminated text.
+ * to:   pointer to output buffer.
+ * ret:  length of output in bytes.
+ */
+size_t xine_base64_decode (const char *from, uint8_t *to) XINE_PROTECTED;
+
+/**
+ * Checksum calculator.
+ */
+uint32_t xine_crc32_ieee (uint32_t crc, const uint8_t *data, size_t len) XINE_PROTECTED;
+uint32_t xine_crc16_ansi (uint32_t crc, const uint8_t *data, size_t len) XINE_PROTECTED;
 
 /*
  * Get user home directory.

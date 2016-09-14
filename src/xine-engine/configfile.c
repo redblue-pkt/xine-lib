@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2013 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -34,11 +34,6 @@
 #include <unistd.h>
 #include <xine/configfile.h>
 #include "bswap.h"
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <base64.h>
-#else
-#  include <libavutil/base64.h>
-#endif
 
 #define LOG_MODULE "configfile"
 #define LOG_VERBOSE
@@ -1331,7 +1326,7 @@ static char* config_get_serialized_entry (config_values_t *this, const char *key
     }
 
     /* Now we have the length needed to serialize the entry and the length of each string */
-    uint8_t *buffer = malloc (total_len);
+    uint8_t *buffer = malloc (total_len + 4);
     if (!buffer) return NULL;
 
     /* Let's go */
@@ -1360,12 +1355,9 @@ static char* config_get_serialized_entry (config_values_t *this, const char *key
     }
 
     /* and now the output encoding */
-    /* We're going to encode total_len bytes in base64
-     * libavutil's base64 encoding functions want the size to
-     * be at least len * 4 / 3 + 12, so let's use that!
-     */
-    output = malloc(total_len * 4 / 3 + 12);
-    av_base64_encode(output, total_len * 4 / 3 + 12, buffer, total_len);
+    /* We're going to encode total_len bytes in base64 */
+    output = malloc((total_len * 4 + 2) / 3 + 4);
+    xine_base64_encode (buffer, output, total_len);
 
     free(buffer);
   }
@@ -1437,9 +1429,12 @@ static char* config_register_serialized_entry (config_values_t *this, const char
   int    value_count = 0;
   int    i;
 
-  output_len = strlen(value) * 3 / 4 + 1;
-  output = malloc(output_len);
-  av_base64_decode(output, value, output_len);
+  output = malloc ((strlen (value) * 3 + 3) / 4 + 1);
+  output_len = xine_base64_decode (value, output);
+  {
+    uint8_t *q = output;
+    q[output_len] = 0;
+  }
 
   pos = 0;
   pos += bytes = get_int(output, output_len, pos, &type);
