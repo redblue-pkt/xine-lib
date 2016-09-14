@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2014 the xine project
+ * Copyright (C) 2001-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -112,34 +112,6 @@ typedef struct ff_audio_decoder_s {
 
 #include "ff_audio_list.h"
 
-#define malloc16(s) realloc16(NULL,s)
-#define free16(p) realloc16(p,0)
-
-static void *realloc16 (void *m, size_t s) {
-  unsigned long diff, diff2;
-  unsigned char *p = m, *q;
-  if (p) {
-    diff = p[-1];
-    if (s == 0) {
-      free (p - diff);
-      return (NULL);
-    }
-    q = realloc (p - diff, s + 16);
-    if (!q) return (q);
-    diff2 = 16 - ((unsigned long)q & 15);
-    if (diff2 != diff) memmove (q + diff2, q + diff, s);
-  } else {
-    if (s == 0) return (NULL);
-    q = malloc (s + 16);
-    if (!q) return (q);
-    diff2 = 16 - ((unsigned long)q & 15);
-  }
-  q += diff2;
-  q[-1] = diff2;
-  return (q);
-}
-
-
 static void ff_aac_mode_set (ff_audio_decoder_t *this, int reset) {
   if ((this->buftype == BUF_AUDIO_AAC) || (this->buftype == BUF_AUDIO_AAC_LATM)) {
     if (reset) {
@@ -249,7 +221,7 @@ static void ff_audio_ensure_buffer_size(ff_audio_decoder_t *this, int size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
             _("ffmpeg_audio_dec: increasing buffer to %d to avoid overflow.\n"),
             this->bufsize);
-    this->buf = realloc16 (this->buf, this->bufsize + FF_INPUT_BUFFER_PADDING_SIZE);
+    this->buf = xine_realloc_aligned (this->buf, this->bufsize + FF_INPUT_BUFFER_PADDING_SIZE);
   }
 }
 
@@ -1244,8 +1216,8 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
   ff_audio_output_close(this);
 
-  free16 (this->buf);
-  free16 (this->decode_buffer);
+  xine_free_aligned (this->buf);
+  xine_free_aligned (this->decode_buffer);
 
   if (this->context) {
     _x_freep (&this->context->extradata);
@@ -1280,7 +1252,7 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
   ff_audio_ensure_buffer_size(this, AUDIOBUFSIZE);
 
   this->context = avcodec_alloc_context();
-  this->decode_buffer = malloc16 (AVCODEC_MAX_AUDIO_FRAME_SIZE);
+  this->decode_buffer = xine_malloc_aligned (AVCODEC_MAX_AUDIO_FRAME_SIZE);
 #if AVAUDIO > 3
   this->av_frame = NULL;
 #endif
