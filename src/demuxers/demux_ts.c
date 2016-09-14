@@ -148,12 +148,6 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <crc.h>
-#else
-#  include <libavutil/crc.h>
-#endif
-
 #define LOG_MODULE "demux_ts"
 #define LOG_VERBOSE
 /*
@@ -342,7 +336,6 @@ typedef struct {
   xine_t           *xine;
   config_values_t  *config;
 
-  const AVCRC      *av_crc;
 } demux_ts_class_t;
 
 typedef struct {
@@ -940,7 +933,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, unsigned char *original_pkt,
   crc32 |= (uint32_t) pkt[section_length - 2] << 8;
   crc32 |= (uint32_t) pkt[section_length - 1];
 
-  calc_crc32 = htonl (av_crc (this->class->av_crc, 0xffffffff, pkt, section_length - 4));
+  calc_crc32 = htonl (xine_crc32_ieee (0xffffffff, pkt, section_length - 4));
   if (crc32 != calc_crc32) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
 	     "demux_ts: demux error! PAT with invalid CRC32: packet_crc32: %.8x calc_crc32: %.8x\n",
@@ -1590,7 +1583,7 @@ static void demux_ts_parse_pmt (demux_ts_t     *this,
   crc32 |= (uint32_t) pkt[section_length - 2] << 8;
   crc32 |= (uint32_t) pkt[section_length - 1];
 
-  calc_crc32 = htonl (av_crc (this->class->av_crc, 0xffffffff, pkt, section_length - 4));
+  calc_crc32 = htonl (xine_crc32_ieee (0xffffffff, pkt, section_length - 4));
   if (crc32 != calc_crc32) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
       "demux_ts: demux error! PMT with invalid CRC32: packet_crc32: %#.8x calc_crc32: %#.8x\n",
@@ -2769,8 +2762,6 @@ void *demux_ts_init_class (xine_t *xine, void *data) {
    */
   this->demux_class.extensions      = "ts m2t trp m2ts mts dvb:// dvbs:// dvbc:// dvbt://";
   this->demux_class.dispose         = default_demux_class_dispose;
-
-  this->av_crc = av_crc_get_table(AV_CRC_32_IEEE);
 
   return this;
 }
