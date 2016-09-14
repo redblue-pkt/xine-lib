@@ -42,12 +42,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <base64.h>
-#else
-#  include <libavutil/base64.h>
-#endif
-
 #define LOG_MODULE "rtsp"
 #define LOG_VERBOSE
 /*
@@ -441,12 +435,12 @@ int rtsp_read_data(rtsp_t *s, void *buffer_gen, unsigned int size) {
 static void rtsp_basicauth (const char *user, const char *password, char** dest) {
   const size_t totlen = strlen(user) + (password ? strlen(password) : 0) + 1;
   const size_t enclen = ((totlen + 2) * 4 ) / 3 + 12;
-  char         tmp[totlen + 1];
+  char         tmp[totlen + 4];
 
   snprintf(tmp, totlen + 1, "%s:%s", user, password ? : "");
 
   *dest = malloc(enclen);
-  av_base64_encode(*dest, enclen, tmp, totlen);
+  xine_base64_encode ((unsigned char *)tmp, *dest, totlen);
 }
 
 rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_agent) {
