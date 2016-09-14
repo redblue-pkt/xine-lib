@@ -136,8 +136,8 @@ xineplug_inp_rtsp_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(LTLIBINTL) libreal/l
 
 xineplug_inp_cdda_la_SOURCES = input_cdda.c media_helper.c
 xineplug_inp_cdda_la_DEPS = $(XDG_BASEDIR_DEPS)
-xineplug_inp_cdda_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(XDG_BASEDIR_LIBS) $(AVUTIL_LIBS)
-xineplug_inp_cdda_la_CPPFLAGS = $(AM_CPPFLAGS) $(XDG_BASEDIR_CPPFLAGS) $(AVUTIL_CFLAGS)
+xineplug_inp_cdda_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(XDG_BASEDIR_LIBS)
+xineplug_inp_cdda_la_CPPFLAGS = $(AM_CPPFLAGS) $(XDG_BASEDIR_CPPFLAGS)
 
 xineplug_inp_v4l_la_SOURCES = input_v4l.c
 xineplug_inp_v4l_la_LIBADD = $(XINE_LIB) $(ALSA_LIBS) $(LTLIBINTL)
