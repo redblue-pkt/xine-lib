@@ -6,6 +6,9 @@ AM_CFLAGS   = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
 AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
 AM_LDFLAGS  = $(xineplug_ldflags)
 
+if ENABLE_FFMPEG
+if ENABLE_POSTPROC
+
 xineplug_LTLIBRARIES = xineplug_decode_ff.la
 
 ff_generated = \
@@ -24,9 +27,9 @@ xineplug_decode_ff_la_SOURCES = ffmpeg_decoder.c ff_audio_decoder.c ff_video_dec
 
 nodist_xineplug_decode_ff_la_SOURCES = ffmpeg_config.h
 
-xineplug_decode_ff_la_CFLAGS = $(AM_CFLAGS) $(FFMPEG_CFLAGS) $(FFMPEG_POSTPROC_CFLAGS)
+xineplug_decode_ff_la_CFLAGS = $(AM_CFLAGS) $(FFMPEG_CFLAGS) $(POSTPROC_CFLAGS)
 xineplug_decode_ff_la_LIBADD = $(XINE_LIB) $(MLIB_LIBS) -lm $(ZLIB_LIBS) \
-	$(FFMPEG_LIBS) $(AVUTIL_LIBS) $(FFMPEG_POSTPROC_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL)
+	$(FFMPEG_LIBS) $(AVUTIL_LIBS) $(POSTPROC_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL)
 xineplug_decode_ff_la_LDFLAGS = $(AM_LDFLAGS) $(IMPURE_TEXT_LDFLAGS)
 
 if ENABLE_AVFORMAT
@@ -63,3 +66,6 @@ report: avcodec_audio.list avcodec_video.list
 	@$(top_srcdir)/src/combined/ffmpeg/mkcodeclist.pl avcodec_video.list xine_video.list - video
 
 .PHONY: report
+
+endif
+endif

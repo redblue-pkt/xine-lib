@@ -84,26 +84,47 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
     AM_CONDITIONAL([ENABLE_FAAD], [test x"$enable_faad" != x"no"])
     AM_CONDITIONAL([WITH_EXTERNAL_FAAD], [test x"$have_external_faad" = x"yes"])
 
-    dnl ffmpeg external version required
-    PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.68.0])
-    PKG_CHECK_MODULES([AVUTIL], [libavutil >= 49.6.0])
-    PKG_CHECK_MODULES([FFMPEG_POSTPROC], [libpostproc])
-    AC_DEFINE([HAVE_FFMPEG], 1, [Define this if you have ffmpeg library])
+    dnl ffmpeg (optional, enabled by default)
+    dnl this also affects dxr3 and vaapi
+    AC_ARG_ENABLE([ffmpeg],
+        [AS_HELP_STRING([--disable-ffmpeg], [Disable support for FFmpeg decoders (default: enabled)])])
+    if test x"$enable_ffmpeg" != x"no" ; then
+        PKG_CHECK_MODULES([FFMPEG], [libavcodec >= 51.68.0], [], [enable_ffmpeg=no])
+        PKG_CHECK_MODULES([AVUTIL], [libavutil >= 49.6.0], [], [enable_ffmpeg=no])
+        if test x"$enable_ffmpeg" != x"no" ; then
+            AC_DEFINE([HAVE_FFMPEG], 1, [Define this if you have the ffmpeg library])
+            dnl Check presence of ffmpeg/avutil.h to see if it's old or new
+            dnl style for headers. The new style would be preferred actually...
+            ac_save_CFLAGS="$CFLAGS" CFLAGS="$CFLAGS $FFMPEG_CFLAGS"
+            ac_save_CPPFLAGS="$CPPFLAGS"
+            CPPFLAGS="$CFLAGS $FFMPEG_CFLAGS $AVUTIL_CFLAGS"
+            AC_CHECK_HEADERS([ffmpeg/avutil.h])
+            AC_CHECK_HEADERS([libavutil/avutil.h])
+            AC_CHECK_HEADERS([libavutil/sha1.h])
+            AC_CHECK_HEADERS([libavutil/sha.h])
+            if test "$ac_cv_header_ffmpeg_avutil_h" = "yes" && test "$ac_cv_header_libavutil_avutil_h" = "yes"; then
+                AC_MSG_ERROR([old & new ffmpeg headers found - you need to clean up!])
+            fi
+            CPPFLAGS="$ac_save_CPPFLAGS"
+            CFLAGS="$ac_save_CFLAGS"
+        else
+            AC_MSG_WARN([*** no suitable FFmpeg found, disabling ffmpeg / vaapi / dxr3 ***])
+        fi
+    fi
+    AM_CONDITIONAL([ENABLE_FFMPEG], [test x"$enable_ffmpeg" != x"no"])
 
-	dnl Check presence of ffmpeg/avutil.h to see if it's old or new
-	dnl style for headers. The new style would be preferred actually...
-	ac_save_CFLAGS="$CFLAGS" CFLAGS="$CFLAGS $FFMPEG_CFLAGS"
-	ac_save_CPPFLAGS="$CPPFLAGS"
-	CPPFLAGS="$CFLAGS $FFMPEG_CFLAGS $AVUTIL_CFLAGS"
-	AC_CHECK_HEADERS([ffmpeg/avutil.h])
-	AC_CHECK_HEADERS([libavutil/avutil.h])
-	AC_CHECK_HEADERS([libavutil/sha1.h])
-	AC_CHECK_HEADERS([libavutil/sha.h])
-	if test "$ac_cv_header_ffmpeg_avutil_h" = "yes" && test "$ac_cv_header_libavutil_avutil_h" = "yes"; then
-	    AC_MSG_ERROR([old & new ffmpeg headers found - you need to clean up!])
-	fi
-	CPPFLAGS="$ac_save_CPPFLAGS"
-        CFLAGS="$ac_save_CFLAGS"
+    dnl postproc (optional, enabled by default)
+    AC_ARG_ENABLE([postproc],
+        [AS_HELP_STRING([--disable-postproc], [Disable support for libpostproc video filtering (default: enabled)])])
+    if test x"$enable_postproc" != x"no" ; then
+        PKG_CHECK_MODULES([POSTPROC], [libpostproc >= 51.2.0], [], [enable_postproc=no])
+        if test x"$enable_postproc" != x"no" ; then
+            AC_DEFINE([HAVE_POSTPROC], 1, [Define this if you have the postproc library])
+        else
+            AC_MSG_WARN([*** no suitable libpostproc found, disabling ffmpeg / vaapi / post:pp ***])
+        fi
+    fi
+    AM_CONDITIONAL([ENABLE_POSTPROC], [test x"$enable_postproc" != x"no"])
 
     dnl gdk-pixbuf (optional; enabled by default)
     AC_ARG_ENABLE([gdkpixbuf],

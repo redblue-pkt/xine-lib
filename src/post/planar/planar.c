@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2009 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -52,8 +52,10 @@ static const post_info_t eq2_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 extern void *unsharp_init_plugin(xine_t *xine, void *);
 static const post_info_t unsharp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
 
+#ifdef HAVE_POSTPROC
 extern void *pp_init_plugin(xine_t *xine, void *);
 static const post_info_t pp_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
+#endif
 
 extern void *noise_init_plugin(xine_t *xine, void *);
 static const post_info_t noise_special_info = { XINE_POST_TYPE_VIDEO_FILTER };
@@ -68,7 +70,9 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_POST, 10, "boxblur", XINE_VERSION_CODE, &boxblur_special_info, &boxblur_init_plugin },
   { PLUGIN_POST, 10, "eq2", XINE_VERSION_CODE, &eq2_special_info, &eq2_init_plugin },
   { PLUGIN_POST, 10, "unsharp", XINE_VERSION_CODE, &unsharp_special_info, &unsharp_init_plugin },
+#ifdef HAVE_POSTPROC
   { PLUGIN_POST, 10, "pp", XINE_VERSION_CODE, &pp_special_info, &pp_init_plugin },
+#endif
   { PLUGIN_POST, 10, "noise", XINE_VERSION_CODE, &noise_special_info, &noise_init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
