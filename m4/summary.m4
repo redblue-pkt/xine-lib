@@ -182,6 +182,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "  * SFX:"
     echo "   - goom            - oscope"
     echo "   - fftscope        - mosaico"
+    echo "   - tdaudioanalyzer"
     echo ""
 
     dnl Video plugins
