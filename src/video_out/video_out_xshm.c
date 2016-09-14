@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -50,11 +50,7 @@
 #include <pthread.h>
 #include <netinet/in.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
+
 
 #define LOG_MODULE "video_out_xshm"
 #define LOG_VERBOSE
@@ -583,9 +579,9 @@ static void xshm_frame_dispose (vo_frame_t *vo_img) {
 
   frame->yuv2rgb->dispose (frame->yuv2rgb);
 
-  av_free (frame->vo_frame.base[0]);
-  av_free (frame->vo_frame.base[1]);
-  av_free (frame->vo_frame.base[2]);
+  xine_free_aligned (frame->vo_frame.base[0]);
+  xine_free_aligned (frame->vo_frame.base[1]);
+  xine_free_aligned (frame->vo_frame.base[2]);
   free (frame);
 }
 
@@ -639,24 +635,24 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     frame->sc.delivered_height   = height;
     frame->format                = format;
 
-    av_freep (&frame->vo_frame.base[0]);
-    av_freep (&frame->vo_frame.base[1]);
-    av_freep (&frame->vo_frame.base[2]);
+    xine_freep_aligned (&frame->vo_frame.base[0]);
+    xine_freep_aligned (&frame->vo_frame.base[1]);
+    xine_freep_aligned (&frame->vo_frame.base[2]);
 
     /* bottom black pad for certain crop_top > crop_bottom cases */
     if (format == XINE_IMGFMT_YV12) {
       y_pitch = (width + 7) & ~7;
       frame->vo_frame.pitches[0] = y_pitch;
-      frame->vo_frame.base[0] = av_malloc (y_pitch * (height + 16));
+      frame->vo_frame.base[0] = xine_malloc_aligned (y_pitch * (height + 16));
       uv_pitch = ((width + 15) & ~15) >> 1;
       frame->vo_frame.pitches[1] = uv_pitch;
       frame->vo_frame.pitches[2] = uv_pitch;
-      frame->vo_frame.base[1] = av_malloc (uv_pitch * ((height + 17) / 2));
-      frame->vo_frame.base[2] = av_malloc (uv_pitch * ((height + 17) / 2));
+      frame->vo_frame.base[1] = xine_malloc_aligned (uv_pitch * ((height + 17) / 2));
+      frame->vo_frame.base[2] = xine_malloc_aligned (uv_pitch * ((height + 17) / 2));
       if (!frame->vo_frame.base[0] || !frame->vo_frame.base[1] || !frame->vo_frame.base[2]) {
-        av_freep (&frame->vo_frame.base[0]);
-        av_freep (&frame->vo_frame.base[1]);
-        av_freep (&frame->vo_frame.base[2]);
+        xine_freep_aligned (&frame->vo_frame.base[0]);
+        xine_freep_aligned (&frame->vo_frame.base[1]);
+        xine_freep_aligned (&frame->vo_frame.base[2]);
         frame->sc.delivered_width = 0;
         frame->vo_frame.width = 0;
       } else {
@@ -667,7 +663,7 @@ static void xshm_update_frame_format (vo_driver_t *this_gen,
     } else {
       y_pitch = ((width + 3) & ~3) << 1;
       frame->vo_frame.pitches[0] = y_pitch;
-      frame->vo_frame.base[0] = av_malloc (y_pitch * (height + 16));
+      frame->vo_frame.base[0] = xine_malloc_aligned (y_pitch * (height + 16));
       if (frame->vo_frame.base[0]) {
         const union {uint8_t bytes[4]; uint32_t word;} black = {{0, 128, 0, 128}};
         uint32_t *q = (uint32_t *)frame->vo_frame.base[0];

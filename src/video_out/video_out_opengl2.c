@@ -1,6 +1,6 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2012-2015 the xine project
+ * Copyright (C) 2012-2016 the xine project
  * Copyright (C) 2012 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -47,11 +47,7 @@
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <mem.h>
-#else
-#  include <libavutil/mem.h>
-#endif
+
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
@@ -734,7 +730,7 @@ static void opengl2_frame_dispose( vo_frame_t *vo_img )
 {
   opengl2_frame_t  *frame = (opengl2_frame_t *) vo_img ;
 
-  av_free (frame->vo_frame.base[0]);
+  xine_free_aligned (frame->vo_frame.base[0]);
   free (frame);
 }
 
@@ -777,7 +773,7 @@ static void opengl2_update_frame_format( vo_driver_t *this_gen, vo_frame_t *fram
   if ( (frame->width != width) || (frame->height != height) || (frame->format != format) ) {
 
     /* (re-) allocate render space */
-    av_freep (&frame->vo_frame.base[0]);
+    xine_freep_aligned (&frame->vo_frame.base[0]);
     frame->vo_frame.base[1] = NULL;
     frame->vo_frame.base[2] = NULL;
 
@@ -788,7 +784,7 @@ static void opengl2_update_frame_format( vo_driver_t *this_gen, vo_frame_t *fram
       frame->vo_frame.pitches[0] = w;
       frame->vo_frame.pitches[1] = w >> 1;
       frame->vo_frame.pitches[2] = w >> 1;
-      frame->vo_frame.base[0] = av_malloc (ysize + 2 * uvsize);
+      frame->vo_frame.base[0] = xine_malloc_aligned (ysize + 2 * uvsize);
       if (!frame->vo_frame.base[0]) {
         frame->width = 0;
         frame->vo_frame.width = 0; /* tell vo_get_frame () to retry later */
@@ -800,7 +796,7 @@ static void opengl2_update_frame_format( vo_driver_t *this_gen, vo_frame_t *fram
       frame->vo_frame.base[2] = frame->vo_frame.base[1] + uvsize;
     } else if (format == XINE_IMGFMT_YUY2){
       frame->vo_frame.pitches[0] = ((width + 15) & ~15) << 1;
-      frame->vo_frame.base[0] = av_malloc (frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[0] = xine_malloc_aligned (frame->vo_frame.pitches[0] * height);
       if (frame->vo_frame.base[0]) {
         const union {uint8_t bytes[4]; uint32_t word;} black = {{0, 128, 0, 128}};
         uint32_t *q = (uint32_t *)frame->vo_frame.base[0];
