@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -99,12 +99,6 @@
 #include <dirent.h>
 #endif
 #include <ctype.h>
-
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <crc.h>
-#else
-#  include <libavutil/crc.h>
-#endif
 
 /* XDG */
 #include <basedir.h>
@@ -305,8 +299,6 @@ typedef struct {
   int		    numchannels;
 
   char		   *autoplaylist[MAX_AUTOCHANNELS];
-
-  const AVCRC      *av_crc;
 } dvb_input_class_t;
 
 typedef struct {
@@ -2484,7 +2476,7 @@ static void ts_rewrite_packets (dvb_input_plugin_t *this, unsigned char * origin
       originalPkt[11]=(this->channels[this->channel].pmtpid >> 8) & 0xff;
       originalPkt[12]=this->channels[this->channel].pmtpid & 0xff;
 
-      crc = av_crc(this->class->av_crc, 0xffffffff, originalPkt+1, 12);
+      crc = xine_crc32_ieee(0xffffffff, originalPkt+1, 12);
 
       originalPkt[13]=(crc    ) & 0xff;
       originalPkt[14]=(crc>> 8) & 0xff;
@@ -3292,8 +3284,6 @@ static void *init_class (xine_t *xine, void *data) {
   this->mrls[3] = "dvbt://";
   this->mrls[4] = "dvba://";
   this->mrls[5] = 0;
-
-  this->av_crc = av_crc_get_table(AV_CRC_32_IEEE);
 
   xprintf(this->xine,XINE_VERBOSITY_DEBUG,"init class succeeded\n");
 
