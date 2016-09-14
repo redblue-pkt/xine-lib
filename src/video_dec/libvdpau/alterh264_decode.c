@@ -1,5 +1,5 @@
 /* kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2008-2013 the xine project
+ * Copyright (C) 2008-2016 the xine project
  * Copyright (C) 2008 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -23,6 +23,7 @@
  */
 
 #include "alterh264_decode.h"
+#include "group_vdpau.h"
 
 
 #define MAX_DPB_SIZE 16
@@ -2399,8 +2400,8 @@ open_plugin (video_decoder_class_t * class_gen, xine_stream_t * stream)
  * This function allocates a private video decoder class and initializes
  * the class's member functions.
  */
-static void *
-init_plugin (xine_t * xine, void *data)
+void *
+h264_alter_init_plugin (xine_t * xine, void *data)
 {
 
   vdpau_h264_alter_class_t *this;
@@ -2420,38 +2421,3 @@ init_plugin (xine_t * xine, void *data)
   return this;
 }
 
-
-/*
- * This is a list of all of the internal xine video buffer types that
- * this decoder is able to handle. Check src/xine-engine/buffer.h for a
- * list of valid buffer types (and add a new one if the one you need does
- * not exist). Terminate the list with a 0.
- */
-static const uint32_t video_types[] = {
-  BUF_VIDEO_H264,
-  0
-};
-
-
-/*
- * This data structure combines the list of supported xine buffer types and
- * the priority that the plugin should be given with respect to other
- * plugins that handle the same buffer type. A plugin with priority (n+1)
- * will be used instead of a plugin with priority (n).
- */
-static const decoder_info_t dec_info_video = {
-  video_types,			/* supported types */
-  9				/* priority        */
-};
-
-
-/*
- * The plugin catalog entry. This is the only information that this plugin
- * will export to the public.
- */
-const plugin_info_t xine_plugin_info[] EXPORTED = {
-  /* { type, API, "name", version, special_info, init_function } */
-  {PLUGIN_VIDEO_DECODER, 19, "vdpau_h264_alter", XINE_VERSION_CODE,
-   &dec_info_video, init_plugin},
-  {PLUGIN_NONE, 0, "", 0, NULL, NULL}
-};

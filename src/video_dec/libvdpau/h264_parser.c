@@ -33,18 +33,18 @@
 #include "cpb.h"
 
 /* default scaling_lists according to Table 7-2 */
-uint8_t default_4x4_intra[16] = { 6, 13, 13, 20, 20, 20, 28, 28, 28, 28, 32,
+static const uint8_t default_4x4_intra[16] = { 6, 13, 13, 20, 20, 20, 28, 28, 28, 28, 32,
     32, 32, 37, 37, 42 };
 
-uint8_t default_4x4_inter[16] = { 10, 14, 14, 20, 20, 20, 24, 24, 24, 24, 27,
+static const uint8_t default_4x4_inter[16] = { 10, 14, 14, 20, 20, 20, 24, 24, 24, 24, 27,
     27, 27, 30, 30, 34 };
 
-uint8_t default_8x8_intra[64] = { 6, 10, 10, 13, 11, 13, 16, 16, 16, 16, 18,
+static const uint8_t default_8x8_intra[64] = { 6, 10, 10, 13, 11, 13, 16, 16, 16, 16, 18,
     18, 18, 18, 18, 23, 23, 23, 23, 23, 23, 25, 25, 25, 25, 25, 25, 25, 27, 27,
     27, 27, 27, 27, 27, 27, 29, 29, 29, 29, 29, 29, 29, 31, 31, 31, 31, 31, 31,
     33, 33, 33, 33, 33, 36, 36, 36, 36, 38, 38, 38, 40, 40, 42 };
 
-uint8_t default_8x8_inter[64] = { 9, 13, 13, 15, 13, 15, 17, 17, 17, 17, 19,
+static const uint8_t default_8x8_inter[64] = { 9, 13, 13, 15, 13, 15, 17, 17, 17, 17, 19,
     19, 19, 19, 19, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 24, 24,
     24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 27, 27, 27, 27, 27, 27,
     28, 28, 28, 28, 28, 30, 30, 30, 30, 32, 32, 32, 33, 33, 35 };
@@ -57,54 +57,56 @@ struct buf_reader
   int cur_offset;
 };
 
-struct h264_parser* init_parser();
+static struct h264_parser* init_parser();
 
 static inline uint32_t read_bits(struct buf_reader *buf, int len);
-uint32_t read_exp_golomb(struct buf_reader *buf);
-int32_t read_exp_golomb_s(struct buf_reader *buf);
+static uint32_t read_exp_golomb(struct buf_reader *buf);
+static int32_t read_exp_golomb_s(struct buf_reader *buf);
 
-void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
+static void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
     struct slice_header *slc);
-void skip_scaling_list(struct buf_reader *buf, int size);
-void parse_scaling_list(struct buf_reader *buf, uint8_t *scaling_list,
+#if 0
+static void skip_scaling_list(struct buf_reader *buf, int size);
+#endif
+static void parse_scaling_list(struct buf_reader *buf, uint8_t *scaling_list,
     int length, int index);
 
-struct nal_unit* parse_nal_header(struct buf_reader *buf,
+static struct nal_unit* parse_nal_header(struct buf_reader *buf,
     struct coded_picture *pic, struct h264_parser *parser);
 static void sps_scaling_list_fallback(struct seq_parameter_set_rbsp *sps,
     int i);
 static void pps_scaling_list_fallback(struct seq_parameter_set_rbsp *sps,
     struct pic_parameter_set_rbsp *pps, int i);
 
-uint8_t parse_sps(struct buf_reader *buf, struct seq_parameter_set_rbsp *sps);
-void interpret_sps(struct coded_picture *pic, struct h264_parser *parser);
+static uint8_t parse_sps(struct buf_reader *buf, struct seq_parameter_set_rbsp *sps);
+static void interpret_sps(struct coded_picture *pic, struct h264_parser *parser);
 
-void parse_vui_parameters(struct buf_reader *buf,
+static void parse_vui_parameters(struct buf_reader *buf,
     struct seq_parameter_set_rbsp *sps);
-void parse_hrd_parameters(struct buf_reader *buf, struct hrd_parameters *hrd);
+static void parse_hrd_parameters(struct buf_reader *buf, struct hrd_parameters *hrd);
 
-uint8_t parse_pps(struct buf_reader *buf, struct pic_parameter_set_rbsp *pps);
-void interpret_pps(struct coded_picture *pic);
+static uint8_t parse_pps(struct buf_reader *buf, struct pic_parameter_set_rbsp *pps);
+static void interpret_pps(struct coded_picture *pic);
 
-void parse_sei(struct buf_reader *buf, struct sei_message *sei,
+static void parse_sei(struct buf_reader *buf, struct sei_message *sei,
     struct h264_parser *parser);
-void interpret_sei(struct coded_picture *pic);
+static void interpret_sei(struct coded_picture *pic);
 
-uint8_t parse_slice_header(struct buf_reader *buf, struct nal_unit *slc_nal,
+static uint8_t parse_slice_header(struct buf_reader *buf, struct nal_unit *slc_nal,
     struct h264_parser *parser);
-void interpret_slice_header(struct h264_parser *parser, struct nal_unit *slc_nal);
+static void interpret_slice_header(struct h264_parser *parser, struct nal_unit *slc_nal);
 
-void parse_ref_pic_list_reordering(struct buf_reader *buf,
+static void parse_ref_pic_list_reordering(struct buf_reader *buf,
     struct slice_header *slc);
 
-void calculate_pic_nums(struct h264_parser *parser, struct coded_picture *cpic);
-void execute_ref_pic_marking(struct coded_picture *cpic,
+static void calculate_pic_nums(struct h264_parser *parser, struct coded_picture *cpic);
+static void execute_ref_pic_marking(struct coded_picture *cpic,
     uint32_t memory_management_control_operation,
     uint32_t marking_nr,
     struct h264_parser *parser);
-void parse_pred_weight_table(struct buf_reader *buf, struct slice_header *slc,
+static void parse_pred_weight_table(struct buf_reader *buf, struct slice_header *slc,
     struct h264_parser *parser);
-void parse_dec_ref_pic_marking(struct buf_reader *buf,
+static void parse_dec_ref_pic_marking(struct buf_reader *buf,
     struct nal_unit *slc_nal);
 
 /* here goes the parser implementation */
@@ -232,7 +234,7 @@ static inline int rbsp_trailing_bits(const uint8_t *buf, int buf_len)
   return 0;
 }
 
-uint32_t read_exp_golomb(struct buf_reader *buf)
+static uint32_t read_exp_golomb(struct buf_reader *buf)
 {
   int leading_zero_bits = 0;
 
@@ -244,7 +246,7 @@ uint32_t read_exp_golomb(struct buf_reader *buf)
   return code;
 }
 
-int32_t read_exp_golomb_s(struct buf_reader *buf)
+static int32_t read_exp_golomb_s(struct buf_reader *buf)
 {
   uint32_t ue = read_exp_golomb(buf);
   int32_t code = ue & 0x01 ? (ue + 1) / 2 : -(ue / 2);
@@ -256,7 +258,7 @@ int32_t read_exp_golomb_s(struct buf_reader *buf)
  * parses the NAL header data and calls the subsequent
  * parser methods that handle specific NAL units
  */
-struct nal_unit* parse_nal_header(struct buf_reader *buf,
+static struct nal_unit* parse_nal_header(struct buf_reader *buf,
     struct coded_picture *pic, struct h264_parser *parser)
 {
   if (buf->len < 1)
@@ -303,7 +305,7 @@ struct nal_unit* parse_nal_header(struct buf_reader *buf,
  * calculates the picture order count according to ITU-T Rec. H.264 (11/2007)
  * chapter 8.2.1, p104f
  */
-void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
+static void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
     struct slice_header *slc)
 {
   /* retrieve sps and pps from the buffers */
@@ -408,15 +410,17 @@ void calculate_pic_order(struct h264_parser *parser, struct coded_picture *pic,
   }
 }
 
-void skip_scaling_list(struct buf_reader *buf, int size)
+#if 0
+static void skip_scaling_list(struct buf_reader *buf, int size)
 {
   int i;
   for (i = 0; i < size; i++) {
     read_exp_golomb_s(buf);
   }
 }
+#endif
 
-void parse_scaling_list(struct buf_reader *buf, uint8_t *scaling_list,
+static void parse_scaling_list(struct buf_reader *buf, uint8_t *scaling_list,
     int length, int index)
 {
   int last_scale = 8;
@@ -541,7 +545,7 @@ static void pps_scaling_list_fallback(struct seq_parameter_set_rbsp *sps, struct
 }
 
 
-uint8_t parse_sps(struct buf_reader *buf, struct seq_parameter_set_rbsp *sps)
+static uint8_t parse_sps(struct buf_reader *buf, struct seq_parameter_set_rbsp *sps)
 {
   sps->profile_idc = read_bits(buf, 8);
   sps->constraint_setN_flag = read_bits(buf, 4);
@@ -636,7 +640,7 @@ uint8_t parse_sps(struct buf_reader *buf, struct seq_parameter_set_rbsp *sps)
 /* evaluates values parsed by sps and modifies the current
  * picture according to them
  */
-void interpret_sps(struct coded_picture *pic, struct h264_parser *parser)
+static void interpret_sps(struct coded_picture *pic, struct h264_parser *parser)
 {
   if(pic->sps_nal == NULL) {
     xprintf(parser->xine, XINE_VERBOSITY_DEBUG,
@@ -673,7 +677,7 @@ void interpret_sps(struct coded_picture *pic, struct h264_parser *parser)
   }
 }
 
-void parse_sei(struct buf_reader *buf, struct sei_message *sei,
+static void parse_sei(struct buf_reader *buf, struct sei_message *sei,
     struct h264_parser *parser)
 {
   uint8_t tmp;
@@ -775,7 +779,7 @@ void parse_sei(struct buf_reader *buf, struct sei_message *sei,
 
 }
 
-void interpret_sei(struct coded_picture *pic)
+static void interpret_sei(struct coded_picture *pic)
 {
   if(!pic->sps_nal || !pic->sei_nal)
     return;
@@ -812,7 +816,7 @@ void interpret_sei(struct coded_picture *pic)
   }
 }
 
-void parse_vui_parameters(struct buf_reader *buf,
+static void parse_vui_parameters(struct buf_reader *buf,
     struct seq_parameter_set_rbsp *sps)
 {
   sps->vui_parameters.aspect_ration_info_present_flag = read_bits(buf, 1);
@@ -883,7 +887,7 @@ void parse_vui_parameters(struct buf_reader *buf,
   }
 }
 
-void parse_hrd_parameters(struct buf_reader *buf, struct hrd_parameters *hrd)
+static void parse_hrd_parameters(struct buf_reader *buf, struct hrd_parameters *hrd)
 {
   hrd->cpb_cnt_minus1 = read_exp_golomb(buf);
   hrd->bit_rate_scale = read_bits(buf, 4);
@@ -902,7 +906,7 @@ void parse_hrd_parameters(struct buf_reader *buf, struct hrd_parameters *hrd)
   hrd->time_offset_length = read_bits(buf, 5);
 }
 
-uint8_t parse_pps(struct buf_reader *buf, struct pic_parameter_set_rbsp *pps)
+static uint8_t parse_pps(struct buf_reader *buf, struct pic_parameter_set_rbsp *pps)
 {
   pps->pic_parameter_set_id = read_exp_golomb(buf);
   pps->seq_parameter_set_id = read_exp_golomb(buf);
@@ -981,7 +985,7 @@ uint8_t parse_pps(struct buf_reader *buf, struct pic_parameter_set_rbsp *pps)
   return 0;
 }
 
-void interpret_pps(struct coded_picture *pic)
+static void interpret_pps(struct coded_picture *pic)
 {
   if(pic->sps_nal == NULL) {
     lprintf("WARNING: Picture contains no seq_parameter_set\n");
@@ -1009,7 +1013,7 @@ void interpret_pps(struct coded_picture *pic)
   }
 }
 
-uint8_t parse_slice_header(struct buf_reader *buf, struct nal_unit *slc_nal,
+static uint8_t parse_slice_header(struct buf_reader *buf, struct nal_unit *slc_nal,
     struct h264_parser *parser)
 {
   struct slice_header *slc = &slc_nal->slc;
@@ -1121,7 +1125,7 @@ uint8_t parse_slice_header(struct buf_reader *buf, struct nal_unit *slc_nal,
   return 0;
 }
 
-void interpret_slice_header(struct h264_parser *parser, struct nal_unit *slc_nal)
+static void interpret_slice_header(struct h264_parser *parser, struct nal_unit *slc_nal)
 {
   struct coded_picture *pic = parser->pic;
   struct slice_header *slc = &slc_nal->slc;
@@ -1159,7 +1163,7 @@ void interpret_slice_header(struct h264_parser *parser, struct nal_unit *slc_nal
   pic->pps_nal = pps_nal;
 }
 
-void parse_ref_pic_list_reordering(struct buf_reader *buf, struct slice_header *slc)
+static void parse_ref_pic_list_reordering(struct buf_reader *buf, struct slice_header *slc)
 {
   if (slc->slice_type != SLICE_I && slc->slice_type != SLICE_SI) {
     slc->ref_pic_list_reordering.ref_pic_list_reordering_flag_l0 = read_bits(
@@ -1204,7 +1208,7 @@ void parse_ref_pic_list_reordering(struct buf_reader *buf, struct slice_header *
   }
 }
 
-void parse_pred_weight_table(struct buf_reader *buf, struct slice_header *slc,
+static void parse_pred_weight_table(struct buf_reader *buf, struct slice_header *slc,
     struct h264_parser *parser)
 {
   /* retrieve sps and pps from the buffers */
@@ -1282,7 +1286,7 @@ void parse_pred_weight_table(struct buf_reader *buf, struct slice_header *slc,
  * PicNum calculation following ITU-T H264 11/2007
  * 8.2.4.1 p112f
  */
-void calculate_pic_nums(struct h264_parser *parser, struct coded_picture *cpic)
+static void calculate_pic_nums(struct h264_parser *parser, struct coded_picture *cpic)
 {
   struct decoded_picture *pic = NULL;
   struct slice_header *cslc = &cpic->slc_nal->slc;
@@ -1330,7 +1334,7 @@ void calculate_pic_nums(struct h264_parser *parser, struct coded_picture *cpic)
   }
 }
 
-void execute_ref_pic_marking(struct coded_picture *cpic,
+static void execute_ref_pic_marking(struct coded_picture *cpic,
     uint32_t memory_management_control_operation,
     uint32_t marking_nr,
     struct h264_parser *parser)
@@ -1495,7 +1499,7 @@ void execute_ref_pic_marking(struct coded_picture *cpic,
   }
 }
 
-void parse_dec_ref_pic_marking(struct buf_reader *buf,
+static void parse_dec_ref_pic_marking(struct buf_reader *buf,
     struct nal_unit *slc_nal)
 {
   struct slice_header *slc = &slc_nal->slc;
@@ -1552,7 +1556,7 @@ void parse_dec_ref_pic_marking(struct buf_reader *buf,
 
 /* ----------------- NAL parser ----------------- */
 
-struct h264_parser* init_parser(xine_t *xine)
+static struct h264_parser* init_parser(xine_t *xine)
 {
   struct h264_parser *parser = calloc(1, sizeof(struct h264_parser));
   parser->pic = create_coded_picture();
@@ -1566,7 +1570,8 @@ struct h264_parser* init_parser(xine_t *xine)
   return parser;
 }
 
-void reset_parser(struct h264_parser *parser)
+#if 0
+static void reset_parser(struct h264_parser *parser)
 {
   parser->position = NON_VCL;
   parser->buf_len = parser->prebuf_len = 0;
@@ -1590,8 +1595,9 @@ void reset_parser(struct h264_parser *parser)
     parser->pic = create_coded_picture();
   }
 }
+#endif
 
-void free_parser(struct h264_parser *parser)
+static void free_parser(struct h264_parser *parser)
 {
   dpb_free_all(parser->dpb);
   release_dpb(parser->dpb);
@@ -1600,7 +1606,7 @@ void free_parser(struct h264_parser *parser)
   free(parser);
 }
 
-void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len)
+static void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len)
 {
   struct buf_reader bufr;
 
@@ -1658,7 +1664,7 @@ void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int i
   nal_buffer_append(parser->sps_buffer, nal);
 }
 
-void process_mmc_operations(struct h264_parser *parser, struct coded_picture *picture)
+static void process_mmc_operations(struct h264_parser *parser, struct coded_picture *picture)
 {
   if (picture->flag_mask & REFERENCE) {
     parser->prev_pic_order_cnt_lsb
@@ -1677,7 +1683,7 @@ void process_mmc_operations(struct h264_parser *parser, struct coded_picture *pi
   }
 }
 
-int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
+static int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
     int64_t pts,
     uint8_t **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic)
 {
@@ -1807,7 +1813,7 @@ int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
  *         1: NAL is the beginning of a new coded picture
  *         3: NAL is marked as END_OF_SEQUENCE
  */
-int parse_nal(const uint8_t *buf, int buf_len, struct h264_parser *parser,
+static int parse_nal(const uint8_t *buf, int buf_len, struct h264_parser *parser,
     struct coded_picture **completed_picture)
 {
   int ret = 0;
@@ -1992,7 +1998,7 @@ int parse_nal(const uint8_t *buf, int buf_len, struct h264_parser *parser,
   return ret;
 }
 
-int seek_for_nal(uint8_t *buf, int buf_len, struct h264_parser *parser)
+static int seek_for_nal(uint8_t *buf, int buf_len, struct h264_parser *parser)
 {
   if(buf_len <= 0)
     return -1;

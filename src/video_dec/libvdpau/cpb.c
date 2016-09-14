@@ -34,7 +34,7 @@ struct coded_picture* create_coded_picture()
   return pic;
 }
 
-void free_coded_picture(struct coded_picture *pic)
+static void free_coded_picture(struct coded_picture *pic)
 {
   if(!pic)
     return;

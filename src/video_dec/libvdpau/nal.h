@@ -481,21 +481,25 @@ struct nal_buffer {
     uint8_t used;
 };
 
-struct nal_buffer* create_nal_buffer(uint8_t max_size);
-void free_nal_buffer(struct nal_buffer *nal_buffer);
-void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *nal);
-void nal_buffer_remove(struct nal_buffer *nal_buffer, struct nal_unit *nal);
-void nal_buffer_flush(struct nal_buffer *nal_buffer);
+static struct nal_buffer* create_nal_buffer(uint8_t max_size);
+static void free_nal_buffer(struct nal_buffer *nal_buffer);
+static void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *nal);
+static void nal_buffer_remove(struct nal_buffer *nal_buffer, struct nal_unit *nal);
+#if 0
+static void nal_buffer_flush(struct nal_buffer *nal_buffer);
+#endif
 
-struct nal_unit* nal_buffer_get_by_sps_id(struct nal_buffer *nal_buffer,
+static struct nal_unit* nal_buffer_get_by_sps_id(struct nal_buffer *nal_buffer,
     uint32_t seq_parameter_set_id);
-struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
+static struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
     uint32_t pic_parameter_set_id);
-struct nal_unit* nal_buffer_get_last(struct nal_buffer *nal_buffer);
+static struct nal_unit* nal_buffer_get_last(struct nal_buffer *nal_buffer);
 
-struct nal_unit* create_nal_unit(void);
-void lock_nal_unit(struct nal_unit *nal);
-void release_nal_unit(struct nal_unit *nal);
-void copy_nal_unit(struct nal_unit *dest, struct nal_unit *src);
+static struct nal_unit* create_nal_unit(void);
+static void lock_nal_unit(struct nal_unit *nal);
+static void release_nal_unit(struct nal_unit *nal);
+#if 0
+static void copy_nal_unit(struct nal_unit *dest, struct nal_unit *src);
+#endif
 
 #endif /* NAL_H_ */
