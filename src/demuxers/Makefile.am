@@ -51,9 +51,9 @@ xineplug_dmx_video_la_SOURCES = group_video.c \
 				demux_vc1es.c demux_qt.c demux_real.c demux_flv.c \
 				demux_rawdv.c demux_yuv_frames.c demux_yuv4mpeg2.c \
 				demux_matroska.c demux_matroska-chapters.c ebml.c
-xineplug_dmx_video_la_CFLAGS = $(AM_CFLAGS) $(AVUTIL_CFLAGS)
+xineplug_dmx_video_la_CFLAGS = $(AM_CFLAGS)
 xineplug_dmx_video_la_CPPFLAGS = $(AM_CPPFLAGS) $(ZLIB_CPPFLAGS)
-xineplug_dmx_video_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(AVUTIL_LIBS) $(ZLIB_LIBS)
+xineplug_dmx_video_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(ZLIB_LIBS)
 
 # note: asfheader.c also used from ../input
 # is safe given same compiler options
