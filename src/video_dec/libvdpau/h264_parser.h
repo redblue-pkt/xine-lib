@@ -98,9 +98,9 @@ static struct h264_parser* init_parser(xine_t *xine);
 static void reset_parser(struct h264_parser *parser);
 #endif
 static void free_parser(struct h264_parser *parser);
-static int parse_frame(struct h264_parser *parser, uint8_t *inbuf, int inbuf_len,
+static int parse_frame(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len,
     int64_t pts,
-    uint8_t **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic);
+    const void **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic);
 
 /* this has to be called after decoding the frame delivered by parse_frame,
  * but before adding a decoded frame to the dpb.
