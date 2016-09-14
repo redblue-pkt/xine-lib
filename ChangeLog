@@ -5,6 +5,7 @@ xine-lib (1.2.7) ????-??-??
   * Add simple deep color (9/10bit) support via ffmpeg.
   * Join 15 video demuxers into a single multiplugin lib.
   * Join 5 vdpau decoders into a single multiplugin lib.
+  * Join 3 raw video decoders into a single multiplugin lib.
   * Log individual items when loading multiplugin libs.
   * Improved qt/mp4 edit list handling.
   * Detect mp3 files with large id3v2 tags.
