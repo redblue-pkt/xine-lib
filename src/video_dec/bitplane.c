@@ -44,6 +44,7 @@
 #include <xine/buffer.h>
 #include <xine/xineutils.h>
 #include "bswap.h"
+#include "group_raw.h"
 
 #include "demuxers/iff.h"
 
@@ -1514,7 +1515,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   return &this->video_decoder;
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *decode_bitplane_init_class (xine_t *xine, void *data) {
 
   bitplane_class_t *this                = (bitplane_class_t *) calloc(1, sizeof(bitplane_class_t));
 
@@ -1526,23 +1527,3 @@ static void *init_plugin (xine_t *xine, void *data) {
   return this;
 }
 
-/*
- * exported plugin catalog entry
- */
-
-static const uint32_t video_types[] = {
-  BUF_VIDEO_BITPLANE,
-  BUF_VIDEO_BITPLANE_BR1,
-  0
-};
-
-static const decoder_info_t dec_info_video = {
-  video_types,         /* supported types */
-  1                    /* priority        */
-};
-
-const plugin_info_t xine_plugin_info[] EXPORTED = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_DECODER, 19, "bitplane", XINE_VERSION_CODE, &dec_info_video, init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};

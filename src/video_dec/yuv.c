@@ -37,6 +37,7 @@
 #include <xine/buffer.h>
 #include <xine/xineutils.h>
 #include "bswap.h"
+#include "group_raw.h"
 
 #define VIDEOBUFSIZE 128*1024
 
@@ -358,7 +359,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   return &this->video_decoder;
 }
 
-static void *init_plugin (xine_t *xine, void *data) {
+void *decode_yuv_init_class (xine_t *xine, void *data) {
 
   yuv_class_t *this;
 
@@ -372,26 +373,3 @@ static void *init_plugin (xine_t *xine, void *data) {
   return this;
 }
 
-/*
- * exported plugin catalog entry
- */
-
-static const uint32_t video_types[] = {
-  BUF_VIDEO_YUY2,
-  BUF_VIDEO_YV12,
-  BUF_VIDEO_YVU9,
-  BUF_VIDEO_GREY,
-  BUF_VIDEO_I420,
-  0
- };
-
-static const decoder_info_t dec_info_video = {
-  video_types,         /* supported types */
-  1                    /* priority        */
-};
-
-const plugin_info_t xine_plugin_info[] EXPORTED = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_DECODER, 19, "yuv", XINE_VERSION_CODE, &dec_info_video, init_plugin },
-  { PLUGIN_NONE, 0, "", 0, NULL, NULL }
-};

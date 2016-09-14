@@ -38,18 +38,10 @@ xineplug_LTLIBRARIES = $(image_module) \
 	$(theora_module) \
 	$(libvpx_module) \
 	$(libmmal_module) \
-	xineplug_decode_bitplane.la \
-	xineplug_decode_rgb.la \
-	xineplug_decode_yuv.la
+	xineplug_decode_rawvideo.la
 
-xineplug_decode_bitplane_la_SOURCES = bitplane.c
-xineplug_decode_bitplane_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
-
-xineplug_decode_rgb_la_SOURCES = rgb.c
-xineplug_decode_rgb_la_LIBADD = $(XINE_LIB)
-
-xineplug_decode_yuv_la_SOURCES = yuv.c
-xineplug_decode_yuv_la_LIBADD = $(XINE_LIB)
+xineplug_decode_rawvideo_la_SOURCES = group_raw.c bitplane.c rgb.c yuv.c
+xineplug_decode_rawvideo_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
 xineplug_decode_image_la_SOURCES = image.c
 xineplug_decode_image_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) $(WAND_LIBS)
@@ -71,3 +63,5 @@ xineplug_decode_libmmal_la_SOURCES = mmal.c
 xineplug_decode_libmmal_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(MMAL_LIBS)
 xineplug_decode_libmmal_la_CFLAGS = $(AM_CFLAGS) $(MMAL_CFLAGS)
 xineplug_decode_libmmal_la_LDFLAGS = $(AM_LDFLAGS) $(MMAL_LDFLAGS)
+
+
