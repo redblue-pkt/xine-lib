@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -63,7 +63,7 @@ typedef struct {
 
 static void free_framedata(none_frame_t* frame) {
   if(frame->vo_frame.base[0]) {
-    free(frame->vo_frame.base[0]);
+    xine_free_aligned(frame->vo_frame.base[0]);
     frame->vo_frame.base[0] = NULL;
     frame->vo_frame.base[1] = NULL;
     frame->vo_frame.base[2] = NULL;
@@ -134,7 +134,7 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
 	y_size  = frame->vo_frame.pitches[0] * height;
 	uv_size = frame->vo_frame.pitches[1] * ((height+1)/2);
 
-	frame->vo_frame.base[0] = malloc (y_size + 2*uv_size);
+	frame->vo_frame.base[0] = xine_malloc_aligned (y_size + 2*uv_size);
         if (frame->vo_frame.base[0]) {
           frame->vo_frame.base[1] = frame->vo_frame.base[0] + y_size;
           frame->vo_frame.base[2] = frame->vo_frame.base[0] + y_size + uv_size;
@@ -151,7 +151,7 @@ static void none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_fram
 
     case XINE_IMGFMT_YUY2:
       frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = malloc(frame->vo_frame.pitches[0] * height);
+      frame->vo_frame.base[0] = xine_malloc_aligned(frame->vo_frame.pitches[0] * height);
       frame->vo_frame.base[1] = NULL;
       frame->vo_frame.base[2] = NULL;
       if (!frame->vo_frame.base[0]) {
