@@ -23,9 +23,11 @@ EXTRA_DIST = compat.c
 noinst_HEADERS = em8300.h dxr3.h dxr3_scr.h video_out_dxr3.h
 
 if ENABLE_DXR3
+if ENABLE_FFMPEG
 xineplug_LTLIBRARIES =	xineplug_decode_dxr3_video.la \
 			xineplug_decode_dxr3_spu.la \
 			xineplug_vo_out_dxr3.la
+endif
 endif
 
 xineplug_decode_dxr3_video_la_SOURCES = dxr3_decode_video.c

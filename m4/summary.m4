@@ -32,7 +32,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_v4l2" = x"yes"     && echo "   - v4l2"
     echo "   - cdda"
     test x"$have_libbluray" = x"yes" && echo "   - bluray"
-    test x"$have_avformat" = x"yes"  && echo "   - avio (libavformat)"
+    test x"$enable_ffmpeg" != x"no" -a x"$have_avformat" = x"yes" && echo "   - avio (libavformat)"
     echo "   - test"
     echo ""
 
@@ -71,7 +71,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_libflac" = x"yes"   && echo "   - FLAC (with libFLAC)"
     test x"$have_vorbis" = x"yes"    && echo "   - ogg"
     test x"$have_wavpack" = x"yes"   && echo "   - WavPack"
-    test x"$have_avformat" = x"yes"  && echo "   - avformat (with libavformat)"
+    test x"$enable_ffmpeg" != x"no" -a x"$have_avformat" = x"yes" && echo "   - avformat (with libavformat)"
     echo ""
 
     dnl video decoders
@@ -87,28 +87,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_vdpau" = x"yes"       && echo "   - vdpau"
     test x"$have_mmal" = x"yes"        && echo "   - mmal (Broadcom HW)"
     test x"$have_vpx" = x"yes"         && echo "   - libvpx (VP8/VP9)"
-    if test x"$with_external_ffmpeg" != x"no"; then
-        echo "   - ffmpeg (external library)"
-    else
-        echo "   - ffmpeg (*INTERNAL* library):"
-        echo "     - MPEG-4 (ISO, Microsoft, DivX*, XviD)"
-        echo "     - Creative YUV    - Motion JPEG"
-        echo "     - Cinepak         - MS Video-1"
-        echo "     - FLI/FLC         - MS RLE"
-        echo "     - Id RoQ          - Id Cin"
-        echo "     - Apple Graphics  - Apple Video"
-        echo "     - Apple Animation - Interplay Video"
-        echo "     - Westwood VQA    - Origin Xan"
-        echo "     - H.263           - Intel Indeo 3"
-        echo "     - SVQ1            - SVQ3"
-        echo "     - Real Video 1.0  - Real Video 2.0"
-        echo "     - 4X Video        - Sierra Video"
-        echo "     - Asus v1/v2      - HuffYUV"
-        echo "     - On2 VP3         - DV"
-        echo "     - 8BPS            - Duck TrueMotion v1"
-        echo "     - ATI VCR1        - Flash Video"
-        echo "     - ZLIB            - MSZH"
-    fi
+    test x"$enable_ffmpeg" != x"no"    && echo "   - ffmpeg"
     echo ""
 
     dnl audio decoders
@@ -149,18 +128,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
             echo "   - Musepack (*INTERNAL* library)"
         fi
     fi
-    if test x"$with_external_ffmpeg" != x"no"; then
-        echo "   - ffmpeg (external library)"
-    else
-        echo "   - ffmpeg (*INTERNAL* library):"
-        echo "     - Windows Media Audio v1/v2/Pro"
-        echo "     - DV            - logarithmic PCM"
-        echo "     - 14k4          - 28k8"
-        echo "     - MS ADPCM      - IMA ADPCM"
-        echo "     - XA ADPCM      - Game DPCM/ADPCM"
-        echo "     - Mace 3:13     - Mace 6:1"
-        echo "     - FLAC"
-    fi
+    test x"$enable_ffmpeg" != x"no" && echo "   - ffmpeg"
     echo ""
 
     dnl spu decoders
@@ -178,7 +146,8 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "   - eq              - eq2"
     echo "   - boxblur         - denoise3d"
     echo "   - unsharp         - tvtime"
-    test x"$have_dvb" = x"yes"      && echo "   - vdr"
+    test x"$enable_postproc" != x"no" && echo "   - postproc"
+    test x"$have_dvb" = x"yes"        && echo "   - vdr"
     echo "  * SFX:"
     echo "   - goom            - oscope"
     echo "   - fftscope        - mosaico"
@@ -216,7 +185,9 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         if test x"$have_opengl2" = x"yes"; then
             echo "   - OpenGL 2.0 (with bicubic scaling)"
         fi
-        test x"$have_vaapi" = x"yes"       && echo "   - vaapi (Video Acceleration (VA) API for Linux)"
+        if test x"$have_vaapi" = x"yes" -a x"$enable_ffmpeg" != x"no" ; then
+            echo "   - vaapi (Video Acceleration (VA) API for Linux)"
+        fi
         test x"$have_vdpau" = x"yes"       && echo "   - vdpau (X11 Video Decode and Presentation API for Unix)"
         if test x"$have_sunfb" = x"yes"; then
             if test x"$have_sundga" = x"yes"; then
