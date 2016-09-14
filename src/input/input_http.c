@@ -40,12 +40,6 @@
 
 #include <sys/time.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <base64.h>
-#else
-#  include <libavutil/base64.h>
-#endif
-
 #define LOG_MODULE "input_http"
 #define LOG_VERBOSE
 /*
@@ -238,12 +232,12 @@ static int _x_use_proxy(http_input_class_t *this, const char *host) {
 static void http_plugin_basicauth (const char *user, const char *password, char** dest) {
   const size_t totlen = strlen(user) + (password ? strlen(password) : 0) + 1;
   const size_t enclen = ((totlen + 2) * 4 ) / 3 + 12;
-  char         tmp[totlen + 1];
+  char         tmp[totlen + 5];
 
   snprintf(tmp, totlen + 1, "%s:%s", user, password ? : "");
 
   *dest = malloc(enclen);
-  av_base64_encode(*dest, enclen, tmp, totlen);
+  xine_base64_encode(tmp, *dest, totlen);
 }
 
 static int http_plugin_read_metainf (http_input_plugin_t *this) {
