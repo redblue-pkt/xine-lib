@@ -934,9 +934,13 @@ size_t xine_base64_decode (const char *from, uint8_t *to) {
   return q - to;
 }
 
-/* XXX precalculate 4k instead? */
-static uint32_t tab_crc32_ieee[1024] = {0, 0,};
-static uint16_t tab_crc16_ansi[512] = {0, 0,};
+/* XXX precalculate 5k instead? */
+static uint32_t tab_crc32_ieee[1280] = {0, 0,};
+static uint16_t tab_crc16_ansi[768] = {0, 0,};
+
+/* gcc -O3 recognizes this as bswap32 () */
+#define rev32(n) (((n) << 24) | (((n) << 8) & 0xff0000) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+#define rev16(n) ((((n) << 8) | ((n) >> 8)) & 0xffff)
 
 uint32_t xine_crc32_ieee (uint32_t crc, const uint8_t *data, size_t len) {
   uint32_t *t = tab_crc32_ieee;
@@ -946,13 +950,23 @@ uint32_t xine_crc32_ieee (uint32_t crc, const uint8_t *data, size_t len) {
       uint32_t j, u = i << 24;
       for (j = 0; j < 8; j++)
         u = (u << 1) ^ (((int32_t)u >> 31) & 0x4c11db7);
-      t[i] = (u << 24) | ((u << 8) & 0xff0000) | ((u >> 8) & 0xff00) | (u >> 24);
+      t[i] = rev32 (u);
     }
     for (i = 0; i < 256; i++) {
       uint32_t v = t[i];
+#ifdef WORDS_BIGENDIAN
+      t[i + 256] = rev32 (v);
+      v = (v >> 8) ^ t[v & 255];
+      t[i + 512] = rev32 (v);
+      v = (v >> 8) ^ t[v & 255];
+      t[i + 768] = rev32 (v);
+      v = (v >> 8) ^ t[v & 255];
+      t[i + 1024] = rev32 (v);
+#else
       t[i + 256] = v = (v >> 8) ^ t[v & 255];
       t[i + 512] = v = (v >> 8) ^ t[v & 255];
       t[i + 768] = (v >> 8) ^ t[v & 255];
+#endif
     }
   }
   {
@@ -969,21 +983,27 @@ uint32_t xine_crc32_ieee (uint32_t crc, const uint8_t *data, size_t len) {
     }
     d32 = (const uint32_t *)data;
     u = len / 4;
+#ifdef WORDS_BIGENDIAN
+    crc = rev32 (crc);
     while (u) {
       crc ^= *d32++;
-#ifdef WORDS_BIGENDIAN
-      crc = t[crc & 0xff]
-          ^ t[((crc >> 8) & 0xff) + 256]
-          ^ t[((crc >> 16) & 0xff) + 512]
-          ^ t[(crc >> 24) + 768];
+      crc = t[(crc >> 24) + 1024]
+          ^ t[((crc >> 16) & 0xff) + 768]
+          ^ t[((crc >> 8) & 0xff) + 512]
+          ^ t[(crc & 0xff) + 256];
+      u--;
+    }
+    crc = rev32 (crc);
 #else
+    while (u) {
+      crc ^= *d32++;
       crc = t[(crc & 0xff) + 768]
           ^ t[((crc >> 8) & 0xff) + 512]
           ^ t[((crc >> 16) & 0xff) + 256]
           ^ t[crc >> 24];
-#endif
       u--;
     }
+#endif
     data = (const uint8_t *)d32;
     u = len & 3;
     while (u) {
@@ -1007,7 +1027,13 @@ uint32_t xine_crc16_ansi (uint32_t crc, const uint8_t *data, size_t len) {
     }
     for (i = 0; i < 256; i++) {
       uint16_t v = t[i];
+#ifdef WORDS_BIGENDIAN
+      t[i + 256] = rev16 (v);
+      v = (v >> 8) ^ t[v & 255];
+      t[i + 512] = rev16 (v);
+#else
       t[i + 256] = (v >> 8) ^ t[v & 255];
+#endif
     }
   }
   {
@@ -1025,25 +1051,31 @@ uint32_t xine_crc16_ansi (uint32_t crc, const uint8_t *data, size_t len) {
     }
     d32 = (const uint32_t *)data;
     u = len / 4;
+#ifdef WORDS_BIGENDIAN
+    crc = rev16 (crc);
     while (u) {
       uint32_t v = *d32++;
-#ifdef WORDS_BIGENDIAN
       crc ^= v >> 16;
-      crc = t[crc & 255]
-          ^ t[(crc >> 8) + 256];
+      crc = t[(crc >> 8) + 512]
+          ^ t[(crc & 0xff) + 256];
       crc ^= v & 0xffff;
-      crc = t[crc & 255]
-          ^ t[(crc >> 8) + 256];
-#else
-      crc ^= v & 0xffff;
-      crc = t[(crc & 255) + 256]
-          ^ t[crc >> 8];
-      crc ^= v >> 16;
-      crc = t[(crc & 255) + 256]
-          ^ t[crc >> 8];
-#endif
+      crc = t[(crc >> 8) + 512]
+          ^ t[(crc & 0xff) + 256];
       u--;
     }
+    crc = rev16 (crc);
+#else
+    while (u) {
+      uint32_t v = *d32++;
+      crc ^= v & 0xffff;
+      crc = t[(crc & 255) + 256]
+          ^ t[crc >> 8];
+      crc ^= v >> 16;
+      crc = t[(crc & 255) + 256]
+          ^ t[crc >> 8];
+      u--;
+    }
+#endif
     data = (const uint8_t *)d32;
     u = len & 3;
     while (u) {
