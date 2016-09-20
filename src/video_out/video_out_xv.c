@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -208,7 +208,7 @@ static void xv_frame_dispose (vo_frame_t *vo_img) {
     }
     else {
       LOCK_DISPLAY(this);
-      free (frame->image->data);
+      xine_free_aligned (frame->image->data);
       XFree (frame->image);
       UNLOCK_DISPLAY(this);
     }
@@ -399,29 +399,17 @@ static XvImage *create_ximage (xv_driver_t *this, XShmSegmentInfo *shminfo,
    */
 
   if (!this->use_shm) {
-    char *data;
-
-    switch (format) {
-    case XINE_IMGFMT_YV12:
-      data = malloc (width * height * 3/2);
-      break;
-    case XINE_IMGFMT_YUY2:
-      data = malloc (width * height * 2);
-      break;
-    default:
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
-      _x_abort();
+    image = XvCreateImage (this->display, this->xv_port, xv_format, NULL, width, height);
+    if (image) {
+      image->data = xine_malloc_aligned (image->data_size);
+      if (!image->data) {
+        XFree (image);
+        image = NULL;
+      }
     }
-
-    if (data) {
-      image = XvCreateImage (this->display, this->xv_port, xv_format, data, width, height);
-      if (!image)
-        free (data);
-    } else
-      image = NULL;
-
     shminfo->shmaddr = 0;
   }
+
   return image;
 }
 
@@ -442,7 +430,7 @@ static void dispose_ximage (xv_driver_t *this,
 
   }
   else {
-    free (myimage->data);
+    xine_free_aligned (myimage->data);
 
     XFree (myimage);
   }
