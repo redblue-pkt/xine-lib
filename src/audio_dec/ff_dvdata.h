@@ -27,10 +27,16 @@
 #ifndef FFMPEG_DVDATA_H
 #define FFMPEG_DVDATA_H
 
+#if 0
 #ifdef HAVE_FFMPEG_AVUTIL_H
 #  include <rational.h>
 #else
 #  include <libavutil/rational.h>
+#endif
+#else
+typedef struct {
+  int num, den;
+} AVRational;
 #endif
 
 /* TJ. This is a fairly old snapshot. Dont mess it up by including
@@ -2551,7 +2557,7 @@ static const uint8_t dv_audio_shuffle625[12][9] = {
   {  31,  67, 103,  21,  57,  93,  11,  47,  83},
 };
 
-static const av_unused int dv_audio_frequency[3] = {
+static const int dv_audio_frequency[3] = {
     48000, 44100, 32000,
 };
 
