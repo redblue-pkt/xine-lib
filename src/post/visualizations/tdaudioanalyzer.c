@@ -81,7 +81,7 @@ typedef struct {
   int                samples_per_frame;
 
   int                ring_put, ring_get;
-  int16_t            ringbuf[RING_SIZE * 2 * sizeof (int16_t)];
+  int16_t            ringbuf[RING_SIZE * 2];
 } post_plugin_tdaan_t;
 
 typedef union {
@@ -637,10 +637,10 @@ static void tdaan_levels_reset (post_plugin_tdaan_t *this) {
   this->rbar.peak = 0;
 }
 
-static void tdaan_levels_get (tdaan_leveller_t *v, int16_t *data, int len) {
+static void tdaan_levels_get (tdaan_leveller_t *v, const int16_t *data, int len) {
   uint64_t s = v->squaresum;
   int p = v->peak;
-  int16_t *q = data;
+  const int16_t *q = data;
   if (len) {
     int n = len;
     do {
@@ -698,13 +698,14 @@ static void tdaan_phaser_start (post_plugin_tdaan_t *this, vo_frame_t *frame) {
   tdaan_draw_text (frame, this->phaser_x + this->phaser_width - 10, this->phaser_y + 12, "R");
 }
 
-static void tdaan_phaser_draw (post_plugin_tdaan_t *this, vo_frame_t *frame, uint16_t *data, int len, uint32_t gray) {
+static void tdaan_phaser_draw (post_plugin_tdaan_t *this, vo_frame_t *frame,
+  const uint16_t *data, int len, uint32_t gray) {
   int lx = this->phaser_last_x;
   int ly = this->phaser_last_y;
   int mx = this->phaser_x + (this->phaser_width  >> 1);
   int my = this->phaser_y + (this->phaser_height >> 1);
   int sx, sy;
-  int16_t *p = data;
+  const int16_t *p = data;
   /* size */
   {
     int amax = this->amax;
@@ -737,6 +738,43 @@ static void tdaan_phaser_draw (post_plugin_tdaan_t *this, vo_frame_t *frame, uin
   }
   this->phaser_last_x = lx;
   this->phaser_last_y = ly;
+}
+
+/**************************************************************************
+ * downmixing (display use only, no high end quality needed)              *
+ * 0.75 * (center + lfe) to both sides                                    *
+ * 0.5 * rear to same side                                                *
+ * finally, 0.75 * result as saturation headroom                          *
+ *************************************************************************/
+
+#define sat16(v) (((v) + 0x8000) & ~0xffff ? ((v) >> 31) ^ 0x7fff : v)
+
+static void tdaan_downmix16_4 (const int16_t *p, int16_t *q, int n) {
+  /* L R RL RR */
+  while (n--) {
+    int32_t v;
+    v = (int32_t)p[0] * 6 + (int32_t)p[2] * 3;
+    v >>= 3;
+    *q++ = sat16 (v);
+    v = (int32_t)p[1] * 6 + (int32_t)p[3] * 3;
+    v >>= 3;
+    *q++ = sat16 (v);
+    p += 4;
+  }
+}
+
+static void tdaan_downmix16_6 (const int16_t *p, int16_t *q, int n) {
+  /* L R RL RR C LFE */
+  while (n--) {
+    int32_t l = ((int32_t)p[4] + (int32_t)p[5]) * 9, r = l;
+    l += (int32_t)p[0] * 12 + (int32_t)p[2] * 6;
+    l >>= 4;
+    *q++ = sat16 (l);
+    r += (int32_t)p[1] * 12 + (int32_t)p[3] * 6;
+    r >>= 4;
+    *q++ = sat16 (r);
+    p += 6;
+  }
 }
 
 /**************************************************************************
@@ -805,10 +843,6 @@ static void tdaan_port_put_buffer (
   post_audio_port_t *port = (post_audio_port_t *)port_gen;
   post_plugin_tdaan_t *this = (post_plugin_tdaan_t *)port->post;
 
-  int16_t *put = this->ringbuf + this->ring_put * 2;
-  int n2 = buf->num_frames;
-  int n1 = RING_SIZE - this->ring_put;
-
   int64_t pts = buf->vpts;
   /* let video pts refer to the midle of the audio it is showing */
   if (pts) {
@@ -816,88 +850,109 @@ static void tdaan_port_put_buffer (
     offs    -= this->samples_per_frame >> 1;
     pts     -= 90000 * offs / (int)port->rate;
   }
-
-  if (n1 > n2) {
-    n1 = n2;
-    n2 = 0;
-  } else {
-    n2 -= n1;
-    n2 &= RING_MASK;
-  }
-  this->ring_put += n1 + n2;
-  this->ring_put &= RING_MASK;
-
-  if (port->bits == 8) {
-    uint8_t *in = (uint8_t *)buf->mem;
-    if (this->channels == 1) {
-      while (n1) {
-        put[0] = put[1] = ((int)(*in++) << 8) ^ 0x8000;
-        put += 2;
-        n1--;
-      }
-      put = this->ringbuf;
-      while (n2) {
-        put[0] = put[1] = ((int)(*in++) << 8) ^ 0x8000;
-        put += 2;
-        n2--;
-      }
-    } else if (this->channels == 2) {
-      while (n1) {
-        *put++ = ((int)(*in++) << 8) ^ 0x8000;
-        *put++ = ((int)(*in++) << 8) ^ 0x8000;
-        n1--;
-      }
-      put = this->ringbuf;
-      while (n2) {
-        *put++ = ((int)(*in++) << 8) ^ 0x8000;
-        *put++ = ((int)(*in++) << 8) ^ 0x8000;
-        n2--;
-      }
+  /* buffer incoming audio */
+  do {
+    int16_t *put = this->ringbuf + this->ring_put * 2;
+    int n1 = buf->num_frames;
+    int n2 = this->ring_put + n1;
+    if (n1 <= 0)
+      break;
+    if (n2 & ~RING_MASK) {
+      n1 -= n2 - RING_SIZE;
+      n2 &= RING_MASK;
+      this->ring_put = n2;
+    } else {
+      this->ring_put = n2;
+      n2 = 0;
     }
-  } else if (port->bits == 16) {
-    int16_t *in = buf->mem;
-    if (this->channels == 1) {
-      while (n1) {
-        put[0] = put[1] = *in++;
-        put += 2;
-        n1--;
-      }
-      put = this->ringbuf;
-      while (n2) {
-        put[0] = put[1] = *in++;
-        put += 2;
-        n2--;
-      }
-    } else if (this->channels == 2) {
-      if (n1) {
-        memcpy (put, in, n1 * 4);
-        put += n1;
-      }
-      if (n2) {
+
+    if (port->bits == 8) {
+      const uint8_t *in = (uint8_t *)buf->mem;
+      if (this->channels == 1) {
+        do {
+          put[0] = put[1] = ((int)(*in++) << 8) ^ 0x8000;
+          put += 2;
+          n1--;
+        } while (n1);
         put = this->ringbuf;
-        memcpy (put, in, n2 * 4);
-        put += 2;
+        while (n2) {
+          put[0] = put[1] = ((int)(*in++) << 8) ^ 0x8000;
+          put += 2;
+          n2--;
+        }
+      } else if (this->channels == 2) {
+        do {
+          *put++ = ((int)(*in++) << 8) ^ 0x8000;
+          *put++ = ((int)(*in++) << 8) ^ 0x8000;
+          n1--;
+        } while (n1);
+        put = this->ringbuf;
+        while (n2) {
+          *put++ = ((int)(*in++) << 8) ^ 0x8000;
+          *put++ = ((int)(*in++) << 8) ^ 0x8000;
+          n2--;
+        }
+      }
+    } else if (port->bits == 16) {
+      const int16_t *in = (int16_t *)buf->mem;
+      if (this->channels == 1) {
+        do {
+          put[0] = put[1] = *in++;
+          put += 2;
+          n1--;
+        } while (n1);
+        put = this->ringbuf;
+        while (n2) {
+          put[0] = put[1] = *in++;
+          put += 2;
+          n2--;
+        }
+      } else if (this->channels == 2) {
+        memcpy (put, in, n1 * 4);
+        if (n2) {
+          in += n1 * 2;
+          put = this->ringbuf;
+          memcpy (put, in, n2 * 4);
+        }
+      } else if (this->channels <= 4) {
+        tdaan_downmix16_4 (in, put, n1);
+        if (n2) {
+          in += n1 * 4;
+          put = this->ringbuf;
+          tdaan_downmix16_4 (in, put, n2);
+        }
+      } else if (this->channels <= 6) {
+        tdaan_downmix16_6 (in, put, n1);
+        if (n2) {
+          in += n1 * 6;
+          put = this->ringbuf;
+          tdaan_downmix16_6 (in, put, n2);
+        }
       }
     }
-  }
+  } while (0);
   /* pass data to original port */
   port->original_port->put_buffer (port->original_port, buf, stream);
   /* output some gfx */
   while (((this->ring_put - this->ring_get) & RING_MASK) >= this->samples_per_frame) {
     vo_frame_t *frame;
+    const int16_t *get = this->ringbuf + this->ring_get * 2;
     int oldamax = this->amax;
-    n2 = this->samples_per_frame;
-    n1 = RING_SIZE - this->ring_get;
-    if (n1 < n2) {
-      n2 -= n1;
+    int n1 = this->samples_per_frame;
+    int p2 = this->ring_get;
+    int n2 = p2 + n1;
+    if (n2 & ~RING_MASK) {
+      n2 &= RING_MASK;
+      this->ring_get = n2;
+      n1 -= n2;
     } else {
-      n1 = n2;
+      this->ring_get = n2;
       n2 = 0;
     }
     /* gather level stats */
     tdaan_levels_reset (this);
-    tdaan_levels_get (&this->lbar, this->ringbuf + this->ring_get * 2, n1);
-    tdaan_levels_get (&this->rbar, this->ringbuf + this->ring_get * 2 + 1, n1);
+    tdaan_levels_get (&this->lbar, get, n1);
+    tdaan_levels_get (&this->rbar, get + 1, n1);
     if (n2) {
       tdaan_levels_get (&this->lbar, this->ringbuf, n2);
       tdaan_levels_get (&this->rbar, this->ringbuf + 1, n2);
@@ -920,31 +975,27 @@ static void tdaan_port_put_buffer (
     /* repeat last half of previous frame in half bright. */
     /* this old CRT style fadeout makes more pleasant viewing. */
     {
-      int p1 = this->ring_get - (this->samples_per_frame >> 1);
-      int p2 = 0;
-      int newamax = this->amax;
-      if (p1 < 0) {
-        p2 = RING_SIZE + p1;
-        p1 = 0;
-      }
+      int newamax = this->amax, p1;
       this->phaser_last_x = 0;
       this->phaser_last_y = 0;
       this->amax = oldamax;
-      if (p2)
-        tdaan_phaser_draw (this, frame, this->ringbuf + p2 * 2, RING_SIZE - p2, tdaan_LIGHT_GRAY.bytes[0]);
-      tdaan_phaser_draw (this, frame, this->ringbuf + p1 * 2, this->ring_get - p1, tdaan_LIGHT_GRAY.bytes[0]);
+      p1 = this->samples_per_frame >> 1;
+      p2 -= p1;
+      if (p2 < 0) {
+        p1 += p2;
+        tdaan_phaser_draw (this, frame, this->ringbuf + (RING_SIZE + p2) * 2, -p2, tdaan_LIGHT_GRAY.bytes[0]);
+      }
+      if (p1)
+        tdaan_phaser_draw (this, frame, get - p1 * 2, p1, tdaan_LIGHT_GRAY.bytes[0]);
       this->amax = newamax;
     }
     /* now, this frame */
-    tdaan_phaser_draw (this, frame, this->ringbuf + this->ring_get * 2, n1, tdaan_WHITE.bytes[0]);
+    tdaan_phaser_draw (this, frame, get, n1, tdaan_WHITE.bytes[0]);
     if (n2)
       tdaan_phaser_draw (this, frame, this->ringbuf, n2, tdaan_WHITE.bytes[0]);
     /* pass to video out */
     frame->draw (frame, XINE_ANON_STREAM);
     frame->free (frame);
-    /* update ring pos */
-    this->ring_get += n1 + n2;
-    this->ring_get &= RING_MASK;
   }
 }
 
