@@ -1,4 +1,4 @@
-xine-lib (1.2.7) ????-??-??
+xine-lib (1.2.7) 2016-10-12
   * Add "Time Domain Audio Analyzer" Visualization Post Plugin.
   * Add support for compressed HDMV PGS subtitles in Matroska.
   * Add HW accelerated OSD for Raspberry Pi.
