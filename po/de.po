@@ -1,12 +1,12 @@
 # German xine-lib.po file.
-# Copyright (C) 2002-2014 Free Software Foundation, Inc.
+# Copyright (C) 2002-2016 Free Software Foundation, Inc.
 # Jens Gutzeit <jens.gutzeit@web.de>, 2002.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2016-07-31 16:43+0200\n"
+"POT-Creation-Date: 2016-10-23 20:19+0200\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
@@ -141,6 +141,19 @@ msgstr "libfaad: libfaad NeAACDecInit schlug fehl.\n"
 #: src/audio_dec/xine_faad_decoder.c:489
 msgid "Freeware Advanced Audio Decoder"
 msgstr "Freeware Advanced Audio Dekoder"
+
+#: src/audio_dec/xine_faad_decoder.c:803
+msgid "FAAD audio gain (dB)"
+msgstr "FAAD Tonpegel anpassen (in dB)"
+
+#: src/audio_dec/xine_faad_decoder.c:804
+msgid ""
+"Some AAC tracks are encoded too loud and thus play distorted.\n"
+"This cannot be fixed by volume control, but by this setting."
+msgstr ""
+"Manche AAC Tonspuren sind zu laut aufgenommen und klingen deshalb verzerrt.\n"
+"Die Lautstärkeeinstellung kann das nicht korrigieren, wohl aber diese "
+"Einstellung."
 
 #: src/audio_dec/xine_musepack_decoder.c:301
 #, c-format
