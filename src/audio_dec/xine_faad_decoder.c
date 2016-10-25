@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -52,10 +52,22 @@
 
 typedef struct {
   audio_decoder_class_t   decoder_class;
+
+  xine_t                 *xine;
+
+  int                     gain_db;
+  /* fixed point scalers (v * gain?_i) >> 32 */
+  int32_t                 gain_i, gain3_i, gain6_i, gain9_i, gain12_i;
+  /* floating point scalers */
+  float                   gain_f, gain3_f, gain6_f, gain9_f, gain12_f;
+  /* look here for fixed or float mode */
+  int                     caps;
 } faad_class_t;
 
 typedef struct faad_decoder_s {
   audio_decoder_t  audio_decoder;
+
+  faad_class_t     *class;
 
   xine_stream_t    *stream;
 
@@ -85,7 +97,65 @@ typedef struct faad_decoder_s {
 
   unsigned long    total_time;
   unsigned long    total_data;
+
+  int              in_channels, out_channels, out_used;
+  int              in_mode, out_mode, out_flags;
 } faad_decoder_t;
+
+
+static int faad_map_channels (faad_decoder_t *this) {
+  static const char *input_names[4] = { "mono", "stereo", "5.1", "7.1" };
+  static const uint8_t input_modes[16] = {
+    255, 0, 1, 255, 255, 255, 2, 255, 3, 255, 255, 255, 255, 255, 255, 255
+  };
+  /* the audio out modes we use. */
+  static const char *out_names[6] = { "mono", "stereo", "4.0", "4.1", "5.0", "5.1" };
+  static const int  out_modes[6] = {
+    AO_CAP_MODE_MONO, AO_CAP_MODE_STEREO,
+    AO_CAP_MODE_4CHANNEL, AO_CAP_MODE_4_1CHANNEL,
+    AO_CAP_MODE_5CHANNEL, AO_CAP_MODE_5_1CHANNEL
+  };
+  /* how many channels are sent to audio out. */
+  static const uint8_t out_chan[6] = { 1, 2, 4, 6, 6, 6 };
+  /* how many of them contain audible data. */
+  static const uint8_t out_used[6] = { 1, 2, 4, 5, 5, 6 };
+  /* what out modes we prefer in what order for a given input. */
+  static const uint8_t wishlist[4 * 6] = {
+    0, 1, 2, 3, 4, 5,
+    1, 2, 3, 4, 5, 0,
+    5, 4, 3, 2, 1, 0,
+    5, 4, 3, 2, 1, 0
+  };
+  /**/
+  int out_caps = 0;
+  int in_mode = input_modes[this->num_channels & 15];
+  const uint8_t *p;
+  int i;
+  if (!this->stream->audio_out)
+    return 0;
+  if (in_mode == 255)
+    return 0;
+  this->in_mode = in_mode;
+  out_caps = this->stream->audio_out->get_capabilities (this->stream->audio_out);
+  p = wishlist + in_mode * 6;
+  for (i = 0; i < 6; i++) {
+    int out_flags = out_modes[p[i]];
+    if (out_caps & out_flags) {
+      this->out_flags = out_flags;
+      this->out_mode = p[i];
+      break;
+    }
+  }
+  if (i == 6)
+    return 0;
+  this->in_channels  = this->num_channels;
+  this->out_channels = out_chan[this->out_mode];
+  this->out_used     = out_used[this->out_mode];
+  xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+    "faad_audio_decoder: channel layout: %s -> %s\n",
+    input_names[this->in_mode], out_names[this->out_mode]);
+  return 1;
+};
 
 
 static void faad_reset (audio_decoder_t *this_gen) {
@@ -135,6 +205,8 @@ static int faad_open_dec( faad_decoder_t *this ) {
              _("libfaad: libfaad NeAACDecOpen() failed.\n"));
     this->faac_failed++;
   } else {
+    this->class->caps = NeAACDecGetCapabilities ();
+
     if( this->dec_config ) {
       used = NeAACDecInit2(this->faac_dec, this->dec_config, this->dec_config_size,
                           &this->rate, &this->num_channels);
@@ -181,10 +253,16 @@ static int faad_open_dec( faad_decoder_t *this ) {
 }
 
 static int faad_open_output( faad_decoder_t *this ) {
+#if 0
   int ao_cap_mode;
+#endif
 
   this->rec_audio_src_size = this->num_channels * FAAD_MIN_STREAMSIZE;
 
+  this->faac_cfg = NeAACDecGetCurrentConfiguration (this->faac_dec);
+  this->faac_cfg->outputFormat = FAAD_FMT_FLOAT;
+  NeAACDecSetConfiguration (this->faac_dec, this->faac_cfg);
+#if 0
   switch( this->num_channels ) {
     case 1:
       ao_cap_mode=AO_CAP_MODE_MONO;
@@ -206,20 +284,23 @@ static int faad_open_output( faad_decoder_t *this ) {
   default:
     return 0;
   }
+#endif
+  if (!faad_map_channels (this))
+    return 0;
 
   this->output_open = (this->stream->audio_out->open) (this->stream->audio_out,
                                              this->stream,
                                              this->bits_per_sample,
                                              this->rate,
-                                             ao_cap_mode) ;
+                                             this->out_flags) ;
+
   return this->output_open;
 }
 
 static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
-  int used, decoded, outsize;
-  uint8_t *sample_buffer;
+  int used, decoded;
+  const uint8_t *sample_buffer;
   uint8_t *inbuf;
-  audio_buffer_t *audio_buffer;
   int sample_size = this->size;
 
   if( !this->faac_dec )
@@ -278,7 +359,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
                            1000*(this->total_data/this->total_time));
 
-      decoded = this->faac_finfo.samples * 2; /* 1 sample = 2 bytes */
+      decoded = this->faac_finfo.samples / this->num_channels;
 
       lprintf("decoded %d/%d output %ld\n",
               used, this->size, this->faac_finfo.samples );
@@ -292,40 +373,212 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
        * Reordering is only necessary for 5.0 and above. Currently only 5.0
        * and 5.1 is being taken care of, the rest will stay in the wrong order
        * for now.
-       *
-       * WARNING: the following needs a output format of 16 bits per sample.
-       *    TODO: - reorder while copying (in the while() loop) and optimizing
        */
-      if(this->num_channels == 5 || this->num_channels == 6)
-      {
-        int i         = 0;
-        uint16_t* buf = (uint16_t*)(sample_buffer);
 
-        for(; i < this->faac_finfo.samples; i += this->num_channels) {
-          uint16_t center         = buf[i];
-          *((uint64_t*)(buf + i)) = *((uint64_t*)(buf + i + 1));
-          buf[i + 4]              = center;
-        }
-      }
+#define sat16(v) (((v + 0x8000) & ~0xffff) ? ((v) >> 31) ^ 0x7fff : (v))
 
-      while( decoded ) {
-        audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
-
-        if( decoded < audio_buffer->mem_size )
-          outsize = decoded;
-        else
-          outsize = audio_buffer->mem_size;
-
-        xine_fast_memcpy( audio_buffer->mem, sample_buffer, outsize );
-
-        audio_buffer->num_frames = outsize / (this->num_channels*2);
+      while (decoded) {
+        audio_buffer_t *audio_buffer = this->stream->audio_out->get_buffer (this->stream->audio_out);
+        int done = this->out_channels;
+        done = audio_buffer->mem_size / done / 2;
+        if (done > decoded)
+          done = decoded;
+        audio_buffer->num_frames = done;
         audio_buffer->vpts = this->pts;
+
+        if ((this->in_channels <= 2) && (this->out_channels > this->in_channels))
+          memset (audio_buffer->mem, 0, this->out_channels * done * 2);
+
+        if (this->class->caps & FIXED_POINT_CAP) {
+          /* hint compiler to use 32 to 64 bit multiply instruction where available. */
+          /* also, that shift optimizes to almost nothing at 32bit system.           */
+#define GET1(i,j)    v = ((int64_t)g1 * (int64_t)p[i]) >> 32; q[j] = sat16 (v)
+#define GET2(i,j)    v = ((int64_t)g1 * (int64_t)(p[i] + p[i + 1])) >> 32; q[j] = sat16 (v)
+#define GET1M(i,j)   v = (m + (int64_t)g1 * (int64_t)p[i]) >> 32; q[j] = sat16 (v)
+#define GET2M(i,j,l) v = ((int64_t)g1 * (int64_t)p[i] + (int64_t)g2 * (int64_t)(m + p[j])) >> 32; q[l] = sat16 (v)
+          const int32_t *p = (const int32_t *)sample_buffer;
+          int16_t *q = (int16_t *)audio_buffer->mem;
+          int n = done;
+          if (this->in_channels < 6) {
+            if (this->in_channels < 2) {
+              if (this->out_used <= 1) { /* M -> M */
+                int32_t g1 = this->class->gain_i;
+                do { int32_t v; GET1 (0, 0); p++; q++; } while (--n);
+              } else { /* M -> M M ... */
+                int32_t g1 = this->class->gain_i;
+                do { int32_t v; GET1 (0, 0); q[1] = q[0]; p++; q += this->out_channels; } while (--n);
+              }
+            } else {
+              if (this->out_used < 2) { /* L R -> M */
+                int32_t g1 = this->class->gain6_i;
+                do { int32_t v; GET2 (0, 0); p += 2; q++; } while (--n);
+              } else { /* L R -> L R ... */
+                int32_t g1 = this->class->gain_i;
+                do { int32_t v; GET1 (0, 0); GET1 (1, 1); p += 2; q += this->out_channels; } while (--n);
+              }
+            }
+          } else {
+            /* if (this->in_channels < 8) */ {
+              switch (this->out_mode) {
+                case 0: /* C L R SL SR B -> M */
+                  do {
+                    int32_t v;
+                    v = ((int64_t)this->class->gain9_i * (int64_t)(p[1] + p[2])
+                      +  (int64_t)this->class->gain6_i * (int64_t)(p[0] + p[5])
+                      +  (int64_t)this->class->gain12_i * (int64_t)(p[3] + p[4])) >> 32;
+                    *q++ = sat16 (v); p += this->in_channels;
+                  } while (--n);
+                break;
+                case 1: { /* C L R SL SR B -> L R */
+                  int32_t g1 = this->class->gain3_i;
+                  int32_t g2 = this->class->gain6_i;
+                  do {
+                    int32_t m = p[0] + p[5];
+                    int32_t v;
+                    GET2M (1, 3, 0); GET2M (2, 4, 1);
+                    p += this->in_channels; q += 2;
+                  } while (--n);
+                } break;
+                case 2: { /* C L R SL SR B -> L R SL SR */
+                  int32_t g1 = this->class->gain3_i;
+                  do {
+                    int64_t m = (int64_t)this->class->gain6_i * (int64_t)(p[0] + p[5]);
+                    int32_t v;
+                    GET1M (1, 0); GET1M (2, 1); GET1 (3, 2); GET1 (4, 3);
+                    p += this->in_channels; q += 4;
+                  } while (--n);
+                } break;
+                case 3: { /* C L R SL SR B -> L R SL SR 0 B */
+                  int32_t g1 = this->class->gain3_i;
+                  do {
+                    int64_t m = (int64_t)this->class->gain6_i * (int64_t)p[0];
+                    int32_t v;
+                    GET1M (1, 0); GET1M (2, 1); GET1 (3, 2); GET1 (4, 3); q[4] = 0; GET1 (5, 5);
+                    p += this->in_channels; q += 6;
+                  } while (--n);
+                } break;
+                case 4: { /* C L R SL SR B -> L R SL SR C 0 */
+                  int32_t g1 = this->class->gain3_i;
+                  do {
+                    int64_t m = (int64_t)this->class->gain6_i * (int64_t)p[5];
+                    int32_t v;
+                    GET1M (1, 0); GET1M (2, 1); GET1 (3, 2); GET1 (4, 3); GET1 (0, 4); q[5] = 0;
+                    p += this->in_channels; q += 6;
+                  } while (--n);
+                } break;
+                case 5: { /* C L R SL SR B -> L R SL SR C B */
+                  int32_t g1 = this->class->gain_i;
+                  do {
+                    int32_t v;
+                    GET1 (1, 0); GET1 (2, 1); GET1 (3, 2); GET1 (4, 3); GET1 (0, 4); GET1 (5, 5);
+                    p += this->in_channels; q += 6;
+                  } while (--n);
+                } break;
+              }
+            }
+          }
+          sample_buffer = (const uint8_t *)p;
+#undef GET1
+#undef GET2
+#undef GET1M
+#undef GET2M
+        } else {
+#define GET1(i,j)    v = g1 * p[i]; q[j] = sat16 (v)
+#define GET2(i,j)    v = g1 * (p[i] + p[i + 1]); q[j] = sat16 (v)
+#define GET1M(i,j)   v = m + g1 * p[i]; q[j] = sat16 (v)
+#define GET2M(i,j,l) v = g1 * p[i] + g2 * (m + p[j]); q[l] = sat16 (v)
+          const float *p = (const float *)sample_buffer;
+          int16_t *q = (int16_t *)audio_buffer->mem;
+          int n = done;
+          if (this->in_channels < 6) {
+            if (this->in_channels < 2) {
+              if (this->out_used <= 1) { /* M -> M */
+                float g1 = this->class->gain_f;
+                do { int32_t v; GET1 (0, 0); p++; q++; } while (--n);
+              } else { /* M -> M M ... */
+                float g1 = this->class->gain_f;
+                do { int32_t v; GET1 (0, 0); q[1] = q[0]; p++; q += this->out_channels; } while (--n);
+              }
+            } else {
+              if (this->out_used < 2) { /* L R -> M */
+                float g1 = this->class->gain6_f;
+                do { int32_t v; GET2 (0, 0); p += 2; q++; } while (--n);
+              } else { /* L R -> L R ... */
+                float g1 = this->class->gain_f;
+                do { int32_t v; GET1 (0, 0); GET1 (1, 1); p += 2; q += this->out_channels; } while (--n);
+              }
+            }
+          } else {
+            /* if (this->in_channels < 8) */ {
+              switch (this->out_mode) {
+                case 0: /* C L R SL SR B -> M */
+                  do {
+                    int32_t v;
+                    v = this->class->gain9_f * (p[1] + p[2])
+                      + this->class->gain6_f * (p[0] + p[5])
+                      + this->class->gain12_f * (p[3] + p[4]);
+                    *q++ = sat16 (v); p += this->in_channels;
+                  } while (--n);
+                break;
+                case 1: { /* C L R SL SR B -> L R */
+                  float g1 = this->class->gain3_f;
+                  float g2 = this->class->gain6_f;
+                  do {
+                    float m = p[0] + p[5];
+                    int32_t v;
+                    GET2M (1, 3, 0); GET2M (2, 4, 1);
+                    p += this->in_channels; q += 2;
+                  } while (--n);
+                } break;
+                case 2: { /* C L R SL SR B -> L R SL SR */
+                  float g1 = this->class->gain3_f;
+                  do {
+                    float m = this->class->gain6_f * (p[0] + p[5]);
+                    int32_t v;
+                    GET1M (1, 0); GET1M (2, 1); GET1 (3, 2); GET1 (4, 3);
+                    p += this->in_channels; q += 4;
+                  } while (--n);
+                } break;
+                case 3: { /* C L R SL SR B -> L R SL SR 0 B */
+                  float g1 = this->class->gain3_f;
+                  do {
+                    float m = this->class->gain6_f * p[0];
+                    int32_t v;
+                    GET1M (1, 0); GET1M (2, 1); GET1 (3, 2); GET1 (4, 3); q[4] = 0; GET1 (5, 5);
+                    p += this->in_channels; q += 6;
+                  } while (--n);
+                } break;
+                case 4: { /* C L R SL SR B -> L R SL SR C 0 */
+                  float g1 = this->class->gain3_f;
+                  do {
+                    float m = this->class->gain6_f * p[5];
+                    int32_t v;
+                    GET1M (1, 0); GET1M (2, 1); GET1 (3, 2); GET1 (4, 3); GET1 (0, 4); q[5] = 0;
+                    p += this->in_channels; q += 6;
+                  } while (--n);
+                } break;
+                case 5: { /* C L R SL SR B -> L R SL SR C B */
+                  float g1 = this->class->gain_f;
+                  do {
+                    int32_t v;
+                    GET1 (1, 0); GET1 (2, 1); GET1 (3, 2); GET1 (4, 3); GET1 (0, 4); GET1 (5, 5);
+                    p += this->in_channels; q += 6;
+                  } while (--n);
+                } break;
+              }
+            }
+          }
+          sample_buffer = (const uint8_t *)p;
+#undef GET1
+#undef GET2
+#undef GET1M
+#undef GET2M
+        }
 
         this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
         this->pts = 0;
-        decoded -= outsize;
-        sample_buffer += outsize;
+        decoded -= done;
       }
     }
 
@@ -454,6 +707,10 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   faad_decoder_t *this ;
 
   this = calloc(1, sizeof (faad_decoder_t));
+  if (!this)
+    return NULL;
+
+  this->class = (faad_class_t *)class_gen;
 
   this->audio_decoder.decode_data         = faad_decode_data;
   this->audio_decoder.reset               = faad_reset;
@@ -478,6 +735,56 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   return &this->audio_decoder;
 }
 
+/*
+ * TJ. The default -3dB preamp gain fixes stereo streams done with
+ * buggy encoders. FFmpeg used to have that bug, and even today (2016)
+ * certain people keep publishing such material.
+ * Multichannel downmixing stategy:
+ * - Downmix center and bass to front left and right. As that doubles
+ *   their power (1 -> 2 playback channels), compensate by -3dB.
+ * - Downmix sides to front by -3dB as well, this time to reduce fx.
+ * - Downmix to mono by simply averaging (l + r -6dB).
+ * To be absolutely clip safe, we would need to attenuate the result
+ * by up to 1 / (1 + 3 * sqrt (1 / 2)), or -9.9 dB. However, this is
+ * hardly ever needed. So lets use another -3dB instead, and - hey -
+ * we got gain control now ;-)
+ * Note these are binary (6 * ld (v)) not decimal (20 * log (v)) dB,
+ * as they are easier to handle in fixed point mode.
+ */
+static void gain_update (faad_class_t *this) {
+  /* XXX: assuming 30bit fixed point math. If it is not, simply adjust your gain ;-) */
+  static const int32_t gi[6] = { 262144, 294247, 330281, 370728, 416128, 467088 };
+  static const float   gf[6] = { 32768.0000, 36780.8364, 41285.0930, 46340.9500, 52015.9577, 58385.9384 };
+  int exp = this->gain_db, mant = exp;
+  /* main channel scaling */
+  if (exp < 0) {
+    exp = (5 - exp) / 6;
+    mant = (6000 + mant) % 6;
+    this->gain_i  = gi[mant] >> exp;
+    this->gain_f  = gf[mant] / (float)(1 << exp);
+  } else {
+    exp = exp / 6;
+    mant = mant % 6;
+    this->gain_i = gi[mant] << exp;
+    this->gain_f = gf[mant] * (float)(1 << exp);
+  }
+  /* sub channel downmixing */
+  this->gain3_i  = (this->gain_i * 11) >> 4;
+  this->gain9_i  = this->gain3_i >> 1;
+  this->gain6_i  = this->gain_i >> 1;
+  this->gain12_i = this->gain_i >> 2;
+  this->gain3_f  = this->gain_f * 0.7071;
+  this->gain6_f  = this->gain_f * 0.5;
+  this->gain9_f  = this->gain_f * 0.3535;
+  this->gain12_f = this->gain_f * 0.25;
+}
+
+static void gain_cb (void *user_data, xine_cfg_entry_t *entry) {
+  faad_class_t *class = (faad_class_t *)user_data;
+  class->gain_db = entry->num_value;
+  gain_update (class);
+}
+
 static void *init_plugin (xine_t *xine, void *data) {
 
   faad_class_t *this ;
@@ -488,6 +795,16 @@ static void *init_plugin (xine_t *xine, void *data) {
   this->decoder_class.identifier      = "FAAD";
   this->decoder_class.description     = N_("Freeware Advanced Audio Decoder");
   this->decoder_class.dispose         = default_audio_decoder_class_dispose;
+
+  this->xine = xine;
+
+  this->gain_db = xine->config->register_num (xine->config,
+    "audio.processing.faad_gain_dB", -3,
+    _("FAAD audio gain (dB)"),
+    _("Some AAC tracks are encoded too loud and thus play distorted.\n"
+      "This cannot be fixed by volume control, but by this setting."),
+    10, gain_cb, this);
+  gain_update (this);
 
   return this;
 }
@@ -506,3 +823,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_AUDIO_DECODER, 16, "faad", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
 };
+
