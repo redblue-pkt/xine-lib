@@ -14,6 +14,7 @@ xine-lib (1.2.7) 2016-10-25
   * Auto recover from temporary DVB signal loss.
   * Fix demuxing low framerate mp4.
   * DVB AAC sound compatibility fix.
+  * ffmpeg audio downmix level fix and optimization.
   * ffmpeg multithreading fixes.
   * ffmpeg compatibility fixes.
   * BluRay subtitle fixes.
