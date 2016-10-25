@@ -717,80 +717,90 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
       channels = 2;
     gain /= (float)(1 << shift);
     switch (this->context->sample_fmt) {
-#define MIX_AUDIO(stype,planar,idx,num,dindx) {\
-    stype *p1, *p2, *p3, *p4;\
+      /* "* 0.75" serves same purpose as "gain3" below. */
+#define MIX_AUDIO(stype,planar,idx,num,dindx) do {\
+    const stype *p1, *p2, *p3, *p4;\
     int i, sstep;\
     int8_t *x = idx;\
     int16_t *dptr = (int16_t *)decode_buffer + dindx;\
     if (planar) {\
       p1 = (stype *)this->av_frame->extended_data[x[0]];\
+      if (!p1) break;\
       sstep = 1;\
     } else {\
-      p1 = (stype *)this->av_frame->extended_data[0] + x[0];\
+      p1 = (stype *)this->av_frame->extended_data[0];\
+      if (!p1) break;\
+      p1 += x[0];\
       sstep = this->ff_channels;\
     }\
     if (num == 1) {\
-      if (p1) for (i = 0; i < samples; i++) {\
+      for (i = 0; i < samples; i++) {\
         int32_t v = MIX_FIX(*p1);\
         p1       += sstep;\
         v       >>= shift;\
         *dptr     = (v);\
         dptr     += channels;\
       }\
-    } else {\
-      if (planar)\
-        p2 = (stype *)this->av_frame->extended_data[x[1]];\
-      else\
-        p2 = (stype *)this->av_frame->extended_data[0] + x[1];\
-      if (num == 2) {\
-        if (p1 && p2) for (i = 0; i < samples; i++) {\
-          int32_t v = MIX_FIX(*p1);\
-          p1       += sstep;\
-          v        += MIX_FIX(*p2);\
-          p2       += sstep;\
-          v       >>= shift;\
-          *dptr     = CLIP_16(v);\
-          dptr     += channels;\
-        }\
-      } else {\
-        if (planar)\
-          p3 = (stype *)this->av_frame->extended_data[x[2]];\
-        else\
-          p3 = (stype *)this->av_frame->extended_data[0] + x[2];\
-        if (num == 3) {\
-          if (p1 && p2 && p3) for (i = 0; i < samples; i++) {\
-            int32_t v = MIX_FIX(*p1);\
-            p1       += sstep;\
-            v        += MIX_FIX(*p2);\
-            p2       += sstep;\
-            v        += MIX_FIX(*p3);\
-            p3       += sstep;\
-            v       >>= shift;\
-            *dptr     = CLIP_16(v);\
-            dptr     += channels;\
-          }\
-        } else {\
-          if (planar)\
-            p4 = (stype *)this->av_frame->extended_data[x[3]];\
-          else\
-            p4 = (stype *)this->av_frame->extended_data[0] + x[3];\
-          if (p1 && p2 && p3 && p4) for (i = 0; i < samples; i++) {\
-            int32_t v = MIX_FIX(*p1);\
-            p1       += sstep;\
-            v        += MIX_FIX(*p2);\
-            p2       += sstep;\
-            v        += MIX_FIX(*p3);\
-            p3       += sstep;\
-            v        += MIX_FIX(*p4);\
-            p4       += sstep;\
-            v       >>= shift;\
-            *dptr     = CLIP_16(v);\
-            dptr     += channels;\
-          }\
-        }\
-      }\
+      break;\
     }\
-  }
+    if (planar) {\
+      p2 = (stype *)this->av_frame->extended_data[x[1]];\
+      if (!p2) break;\
+    } else\
+      p2 = (stype *)this->av_frame->extended_data[0] + x[1];\
+    if (num == 2) {\
+      for (i = 0; i < samples; i++) {\
+        int32_t v = MIX_FIX(*p2);\
+        p2       += sstep;\
+        v        -= v >> 2;\
+        v        += MIX_FIX(*p1);\
+        p1       += sstep;\
+        v       >>= shift;\
+        *dptr     = CLIP_16(v);\
+        dptr     += channels;\
+      }\
+      break;\
+    }\
+    if (planar) {\
+      p3 = (stype *)this->av_frame->extended_data[x[2]];\
+      if (!p3) break;\
+    } else\
+      p3 = (stype *)this->av_frame->extended_data[0] + x[2];\
+    if (num == 3) {\
+      for (i = 0; i < samples; i++) {\
+        int32_t v = MIX_FIX(*p2);\
+        p2       += sstep;\
+        v        += MIX_FIX(*p3);\
+        p3       += sstep;\
+        v        -= v >> 2;\
+        v        += MIX_FIX(*p1);\
+        p1       += sstep;\
+        v       >>= shift;\
+        *dptr     = CLIP_16(v);\
+        dptr     += channels;\
+      }\
+      break;\
+    }\
+    if (planar) {\
+      p4 = (stype *)this->av_frame->extended_data[x[3]];\
+      if (!p4) break;\
+    } else\
+      p4 = (stype *)this->av_frame->extended_data[0] + x[3];\
+    for (i = 0; i < samples; i++) {\
+      int32_t v = MIX_FIX(*p2);\
+      p2       += sstep;\
+      v        += MIX_FIX(*p3);\
+      p3       += sstep;\
+      v        += MIX_FIX(*p4);\
+      p4       += sstep;\
+      v        -= v >> 2;\
+      v        += MIX_FIX(*p1);\
+      p1       += sstep;\
+      v       >>= shift;\
+      *dptr     = CLIP_16(v);\
+      dptr     += channels;\
+    }\
+  }  while (0);
 #define MIX_FIX(v) (((int16_t)(v)<<8)^0x8000)
       case AV_SAMPLE_FMT_U8P:
         MIX_AUDIO (uint8_t, 1, this->left,  this->front_mixes, 0);
@@ -834,70 +844,83 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
       break;
 #undef MIX_FIX
 #undef MIX_AUDIO
-#define MIX_AUDIO(stype,planar,idx,num,dindx) {\
-    stype *p1, *p2, *p3, *p4;\
+      /* Note on "gain3" below:                                          */
+      /* - center and lfe downmix to both front left and right.          */
+      /*   This effectively doubles their power, so compensate by -3dB.  */
+      /* - surround channels often contain some sound effects that may   */
+      /*   confuse when coming front, so the same -3dB do help here too. */
+#define MIX_AUDIO(stype,planar,idx,num,dindx) do {\
+    const stype *p1, *p2, *p3, *p4;\
     int i, sstep;\
+    float gain3;\
     int8_t *x = idx;\
     int16_t *dptr = (int16_t *)decode_buffer + dindx;\
     if (planar) {\
       p1 = (stype *)this->av_frame->extended_data[x[0]];\
+      if (!p1) break;\
       sstep = 1;\
     } else {\
-      p1 = (stype *)this->av_frame->extended_data[0] + x[0];\
+      p1 = (stype *)this->av_frame->extended_data[0];\
+      if (!p1) break;\
+      p1 += x[0];\
       sstep = this->ff_channels;\
     }\
     if (num == 1) {\
-      if (p1) for (i = 0; i < samples; i++) {\
+      for (i = 0; i < samples; i++) {\
         int32_t v = (*p1) * gain;\
         p1       += sstep;\
         *dptr     = CLIP_16(v);\
         dptr     += channels;\
       }\
-    } else {\
-      if (planar)\
-        p2 = (stype *)this->av_frame->extended_data[x[1]];\
-      else\
-        p2 = (stype *)this->av_frame->extended_data[0] + x[1];\
-      if (num == 2) {\
-        if (p1 && p2) for (i = 0; i < samples; i++) {\
-          int32_t v = (*p1 + *p2) * gain;\
-          p1       += sstep;\
-          p2       += sstep;\
-          *dptr     = CLIP_16(v);\
-          dptr     += channels;\
-        }\
-      } else {\
-        if (planar)\
-          p3 = (stype *)this->av_frame->extended_data[x[2]];\
-        else\
-          p3 = (stype *)this->av_frame->extended_data[0] + x[2];\
-        if (num == 3) {\
-          if (p1 && p2 && p3) for (i = 0; i < samples; i++) {\
-            int32_t v = (*p1 + *p2 + *p3) * gain;\
-            p1       += sstep;\
-            p2       += sstep;\
-            p3       += sstep;\
-            *dptr     = CLIP_16(v);\
-            dptr     += channels;\
-          }\
-        } else {\
-          if (planar)\
-            p4 = (stype *)this->av_frame->extended_data[x[3]];\
-          else\
-            p4 = (stype *)this->av_frame->extended_data[0] + x[3];\
-          if (p1 && p2 && p3 && p4) for (i = 0; i < samples; i++) {\
-            int32_t v = (*p1 + *p2 + *p3 + *p4) * gain;\
-            p1       += sstep;\
-            p2       += sstep;\
-            p3       += sstep;\
-            p4       += sstep;\
-            *dptr     = CLIP_16(v);\
-            dptr     += channels;\
-          }\
-        }\
-      }\
+      break;\
     }\
-  }
+    gain3 = gain * 0.7071;\
+    if (planar) {\
+      p2 = (stype *)this->av_frame->extended_data[x[1]];\
+      if (!p2) break;\
+    } else\
+      p2 = (stype *)this->av_frame->extended_data[0] + x[1];\
+    if (num == 2) {\
+      for (i = 0; i < samples; i++) {\
+        int32_t v = (*p1) * gain + (*p2) * gain3;\
+        p1       += sstep;\
+        p2       += sstep;\
+        *dptr     = CLIP_16(v);\
+        dptr     += channels;\
+      }\
+      break;\
+    }\
+    if (planar) {\
+      p3 = (stype *)this->av_frame->extended_data[x[2]];\
+      if (!p3) break;\
+    } else\
+      p3 = (stype *)this->av_frame->extended_data[0] + x[2];\
+    if (num == 3) {\
+      for (i = 0; i < samples; i++) {\
+        int32_t v = (*p1) * gain + (*p2 + *p3) * gain3;\
+        p1       += sstep;\
+        p2       += sstep;\
+        p3       += sstep;\
+        *dptr     = CLIP_16(v);\
+        dptr     += channels;\
+      }\
+      break;\
+    }\
+    if (planar) {\
+      p4 = (stype *)this->av_frame->extended_data[x[3]];\
+      if (!p4) break;\
+    } else\
+      p4 = (stype *)this->av_frame->extended_data[0] + x[3];\
+    for (i = 0; i < samples; i++) {\
+      int32_t v = (*p1) * gain + (*p2 + *p3 + *p4) * gain3;\
+      p1       += sstep;\
+      p2       += sstep;\
+      p3       += sstep;\
+      p4       += sstep;\
+      *dptr     = CLIP_16(v);\
+      dptr     += channels;\
+    }\
+  } while (0);
       case AV_SAMPLE_FMT_FLTP: /* the most popular one */
         MIX_AUDIO (float, 1, this->left,  this->front_mixes, 0);
         MIX_AUDIO (float, 1, this->right, this->front_mixes, 1);
