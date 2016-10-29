@@ -113,4 +113,4 @@ libfaad_la_SOURCES = \
 	codebook/hcb_11.h \
 	codebook/hcb_sf.h 
 
-libfaad_la_CFLAGS = $(AM_CFLAGS) -fno-strict-aliasing
+libfaad_la_CFLAGS = $(AM_CFLAGS)

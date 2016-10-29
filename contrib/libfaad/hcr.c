@@ -173,7 +173,7 @@ static void concat_bits(bits_t *b, bits_t *a)
     b->len += a->len;
 }
      
-uint8_t is_good_cb(uint8_t this_CB, uint8_t this_sec_CB)
+static uint8_t is_good_cb(uint8_t this_CB, uint8_t this_sec_CB)
 {
     /* only want spectral data CB's */
     if ((this_sec_CB > ZERO_HCB && this_sec_CB <= ESC_HCB) || (this_sec_CB >= VCB11_FIRST && this_sec_CB <= VCB11_LAST))
@@ -191,7 +191,7 @@ uint8_t is_good_cb(uint8_t this_CB, uint8_t this_sec_CB)
     return 0;
 }
                     
-void read_segment(bits_t *segment, uint8_t segwidth, bitfile *ld)
+static void read_segment(bits_t *segment, uint8_t segwidth, bitfile *ld)
 {
     segment->len = segwidth;
 
@@ -206,7 +206,7 @@ void read_segment(bits_t *segment, uint8_t segwidth, bitfile *ld)
     }    
 }
 
-void fill_in_codeword(codeword_t *codeword, uint16_t index, uint16_t sp, uint8_t cb)
+static void fill_in_codeword(codeword_t *codeword, uint16_t index, uint16_t sp, uint8_t cb)
 {
     codeword[index].sp_offset = sp;
     codeword[index].cb = cb;
@@ -225,7 +225,9 @@ uint8_t reordered_spectral_data(NeAACDecHandle hDecoder, ic_stream *ics,
 
     uint16_t sp_offset[8];
     uint16_t g, i, sortloop, set, bitsread;
+#ifdef HCR_CWCOUNT
     uint16_t bitsleft, codewordsleft;
+#endif
     uint8_t w_idx, sfb, this_CB, last_CB, this_sec_CB; 
     
     const uint16_t nshort = hDecoder->frameLength/8;
@@ -408,7 +410,7 @@ uint8_t reordered_spectral_data(NeAACDecHandle hDecoder, ic_stream *ics,
             rewrev_bits(&segment[i]);
     }
 
-#if 0 // Seems to give false errors
+#ifdef HCR_CWCOUNT // Seems to give false errors
     bitsleft = 0;    
         
     for (i = 0; i < numberOfSegments && !bitsleft; i++)

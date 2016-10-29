@@ -1030,7 +1030,7 @@ static void ps_decorrelate(ps_info *ps, qmf_t X_left[38][64], qmf_t X_right[38][
                            qmf_t X_hybrid_left[32][32], qmf_t X_hybrid_right[32][32])
 {
     uint8_t gr, n, m, bk;
-    uint8_t temp_delay;
+    uint8_t temp_delay = 0;
     uint8_t sb, maxsb;
     const complex_t *Phi_Fract_SubQmf;
     uint8_t temp_delay_ser[NO_ALLPASS_LINKS];
@@ -1039,6 +1039,8 @@ static void ps_decorrelate(ps_info *ps, qmf_t X_left[38][64], qmf_t X_right[38][
     real_t G_TransientRatio[32][34] = {{0}};
     complex_t inputLeft;
 
+    /* calm down gcc */
+    memset (temp_delay_ser, 0, sizeof (temp_delay_ser));
 
     /* chose hybrid filterbank: 20 or 34 band case */
     if (ps->use34hybrid_bands)
@@ -1450,9 +1452,10 @@ static void ps_mix_phase(ps_info *ps, qmf_t X_left[38][64], qmf_t X_right[38][64
     uint8_t sb, maxsb;
     uint8_t env;
     uint8_t nr_ipdopd_par;
-    complex_t h11, h12, h21, h22;
-    complex_t H11, H12, H21, H22;
-    complex_t deltaH11, deltaH12, deltaH21, deltaH22;
+    /* calm down gcc */
+    complex_t h11 = {0, 0}, h12 = {0, 0}, h21 = {0, 0}, h22 = {0, 0};
+    complex_t H11 = {0, 0}, H12 = {0, 0}, H21 = {0, 0}, H22 = {0, 0};
+    complex_t deltaH11 = {0, 0}, deltaH12 = {0, 0}, deltaH21 = {0, 0}, deltaH22 = {0, 0};
     complex_t tempLeft;
     complex_t tempRight;
     complex_t phaseLeft;
@@ -1958,8 +1961,13 @@ ps_info *ps_init(uint8_t sr_index)
 /* main Parametric Stereo decoding function */
 uint8_t ps_decode(ps_info *ps, qmf_t X_left[38][64], qmf_t X_right[38][64])
 {
-    qmf_t X_hybrid_left[32][32] = {{0}};
-    qmf_t X_hybrid_right[32][32] = {{0}};
+#ifndef SBR_LOW_POWER
+#  define QMF_ZERO {0,0}
+#else
+#  define QMF_ZERO 0
+#endif
+    qmf_t X_hybrid_left[32][32] = {{QMF_ZERO}};
+    qmf_t X_hybrid_right[32][32] = {{QMF_ZERO}};
 
     /* delta decoding of the bitstream data */
     ps_data_decode(ps);
