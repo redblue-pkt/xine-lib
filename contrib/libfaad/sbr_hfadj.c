@@ -1186,8 +1186,9 @@ static void calculate_gain(sbr_info *sbr, sbr_hfadj_info *adj, uint8_t ch)
             real_t den = 0;
             real_t acc1 = 0;
             real_t acc2 = 0;
+#if 0
             uint8_t current_res_band_size = 0;
-
+#endif
             uint8_t ml1, ml2;
 
             ml1 = sbr->f_table_lim[sbr->bs_limiter_bands][k];

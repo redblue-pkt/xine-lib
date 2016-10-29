@@ -698,7 +698,7 @@ static INLINE void cfftf1pos(uint16_t n, complex_t *c, complex_t *ch,
 {
     uint16_t i;
     uint16_t k1, l1, l2;
-    uint16_t na, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
+    uint16_t na, nf, ip, iw, ix2, ix3, ix4, ido /*, idl1 */;
 
     nf = ifac[1];
     na = 0;
@@ -710,7 +710,7 @@ static INLINE void cfftf1pos(uint16_t n, complex_t *c, complex_t *ch,
         ip = ifac[k1];
         l2 = ip*l1;
         ido = n / l2;
-        idl1 = ido*l1;
+     /* idl1 = ido*l1; */
 
         switch (ip)
         {
@@ -777,7 +777,7 @@ static INLINE void cfftf1neg(uint16_t n, complex_t *c, complex_t *ch,
 {
     uint16_t i;
     uint16_t k1, l1, l2;
-    uint16_t na, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
+    uint16_t na, nf, ip, iw, ix2, ix3, ix4, ido /*, idl1 */;
 
     nf = ifac[1];
     na = 0;
@@ -789,7 +789,7 @@ static INLINE void cfftf1neg(uint16_t n, complex_t *c, complex_t *ch,
         ip = ifac[k1];
         l2 = ip*l1;
         ido = n / l2;
-        idl1 = ido*l1;
+     /* idl1 = ido*l1; */
 
         switch (ip)
         {

@@ -41,43 +41,43 @@
 static void flt_round(float32_t *pf)
 {
     int32_t flg;
-    uint32_t tmp, tmp1, tmp2;
+    union {float32_t f; uint32_t i;} tmp, tmp1, tmp2;
 
-    tmp = *(uint32_t*)pf;
-    flg = tmp & (uint32_t)0x00008000;
-    tmp &= (uint32_t)0xffff0000;
-    tmp1 = tmp;
+    tmp.f = *pf;
+    flg   = tmp.i & (uint32_t)0x00008000;
+    tmp.i &= (uint32_t)0xffff0000;
     /* round 1/2 lsb toward infinity */
     if (flg)
     {
-        tmp &= (uint32_t)0xff800000;       /* extract exponent and sign */
-        tmp |= (uint32_t)0x00010000;       /* insert 1 lsb */
-        tmp2 = tmp;                             /* add 1 lsb and elided one */
-        tmp &= (uint32_t)0xff800000;       /* extract exponent and sign */
+        tmp1   = tmp;
+        tmp.i &= (uint32_t)0xff800000; /* extract exponent and sign */
+        tmp.i |= (uint32_t)0x00010000; /* insert 1 lsb */
+        tmp2   = tmp;                  /* add 1 lsb and elided one */
+        tmp.i &= (uint32_t)0xff800000; /* extract exponent and sign */
         
-        *pf = *(float32_t*)&tmp1 + *(float32_t*)&tmp2 - *(float32_t*)&tmp;
+        *pf = tmp1.f + tmp2.f - tmp.f;
     } else {
-        *pf = *(float32_t*)&tmp;
+        *pf = tmp.f;
     }
 }
 
 static int16_t quant_pred(float32_t x)
 {
     int16_t q;
-    uint32_t *tmp = (uint32_t*)&x;
+    union {float32_t f; uint32_t i;} tmp;
+    tmp.f = x;
 
-    q = (int16_t)(*tmp>>16);
+    q = (int16_t)(tmp.i>>16);
 
     return q;
 }
 
 static float32_t inv_quant_pred(int16_t q)
 {
-    float32_t x;
-    uint32_t *tmp = (uint32_t*)&x;
-    *tmp = ((uint32_t)q)<<16;
+    union {float32_t f; uint32_t i;} tmp;
+    tmp.i = ((uint32_t)q)<<16;
 
-    return x;
+    return tmp.f;
 }
 
 static void ic_predict(pred_state *state, real_t input, real_t *output, uint8_t pred)
