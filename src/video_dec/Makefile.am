@@ -11,6 +11,7 @@ AM_CFLAGS  = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
 AM_LDFLAGS = $(xineplug_ldflags)
 
 EXTRA_DIST = foovideo.c
+noinst_HEADERS = group_raw.h
 
 if ENABLE_IMAGEMAGICK
 image_module = xineplug_decode_image.la
