@@ -6,12 +6,6 @@ unset prefix
 unset exec_prefix
 unset args
 
-PKG_CONFIG_PATH="`cat <<'EOF'
-@XINE_PKGCONFIG_DIR@
-EOF
-`${PKG_CONFIG_PATH:+:}$PKG_CONFIG_PATH"
-export PKG_CONFIG_PATH
-
 usage()
 {
 	cat <<EOF
@@ -78,6 +72,17 @@ while test $# -gt 0; do
 done
 
 echo 'xine-config is DEPRECATED. Use pkg-config instead.' >&2
+
+# Sigh. When installing 32 and 64 bit libxine simultaneously,
+# both will write this script to the same location.
+# Binary package managers like yum only tolerate this when
+# both files are identical. Thus we cannot add a hardcoded
+# (at)XINE_PKGCONFIG_DIR(at) to PKG_CONFIG_PATH here safely.
+# Instead, allow system and/or user to set up correctly,
+# and print some useful error if that fails.
+# That should be good enough for a deprecated feature?
+
+pkg-config --print-errors --exists libxine >&2 || exit
 
 exec pkg-config "${prefix+--define-variable=prefix=}$prefix" \
 		"${exec_prefix+--define-variable=exec_prefix=}$exec_prefix" \
