@@ -6,21 +6,22 @@ AM_CFLAGS   = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
 AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
 AM_LDFLAGS  = $(xineplug_ldflags)
 
+# make clean should always work.
+ff_generated = avcodec_video.list avcodec_audio.list ff_video_list.h ff_audio_list.h
+DISTCLEANFILES = $(ff_generated)
+
+# make dist should get them all, even when ENABLE_FFMPEG is false.
+# XXX: why does automake need these here while foo_SOURCES et al are
+# recognized even within false conditionals?
+EXTRA_DIST = xine_video.list xine_audio.list mkcodeclist.pl
+noinst_HEADERS = ffmpeg_compat.h
+
 if ENABLE_FFMPEG
 if ENABLE_POSTPROC
 
-xineplug_LTLIBRARIES = xineplug_decode_ff.la
-
-ff_generated = \
-	avcodec_video.list avcodec_audio.list \
-	ff_video_list.h ff_audio_list.h
-
 BUILT_SOURCES = $(ff_generated)
-DISTCLEANFILES = $(ff_generated)
 
-EXTRA_DIST = xine_video.list xine_audio.list mkcodeclist.pl
-
-noinst_HEADERS = ffmpeg_compat.h
+xineplug_LTLIBRARIES = xineplug_decode_ff.la
 
 xineplug_decode_ff_la_SOURCES = ffmpeg_decoder.c ff_audio_decoder.c ff_video_decoder.c \
                                 ff_mpeg_parser.c ffmpeg_decoder.h ff_mpeg_parser.h
