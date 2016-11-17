@@ -19,7 +19,8 @@ developers
 ==========
 
 Petri Hintukainen <phintuka@users.sourceforge.net>
-  maintenance, fixes, OpenGL2 output
+  avformat plugin, libvpx and MMAL video decoding, bluray support,
+  matroska demux improvements, maintenance, fixes
 
 Miguel Freitas <miguel@cetuc.puc-rio.br>
   many bug and deadlock fixes, engine maintenance, soft deinterlacer,
@@ -75,9 +76,6 @@ Stephen Torri <storri@users.sourceforge.net>
 Stefan Holst <mail@s-holst.de>
   real media streaming support, input_net fixes, image demuxer/decoder
   frontend programming
-
-Andreas Heinchen <andreas.heinchen@gmx.de>
-  theora support, subtitles in ogm streams
 
 Manfred Tremmel <manfred.tremmel@iiv.de>
   iff support, spec-file
@@ -220,8 +218,9 @@ Luis Silva <luix.silvix@clix.pt>
 Harm van der Heijden <hrm@users.sourceforge.net>
   libdivx4 plugin, dxr3 support and encoding
 
-Chris Rankin <rankinc@pacbell.net>
-  configurable VCD device patch, rv40 support
+Chris Rankin <rankincj@yahoo.com>
+  configurable VCD device patch, rv40 support,
+  build fixes, bugfixes, bug reporting
 
 Andrew Meredith <andrew@anvil.org>
   Snapshot feature
@@ -409,8 +408,9 @@ Dan Dennedy <dan@dennedy.org>
   rawdv demuxer fixes, dvaudio patch, stdin input fixes
 
 Andreas Heinchen <andreas.heinchen@gmx.de>
+  theora support, subtitles in ogm streams,
+  OGM subtitles support,
   xvid/divx/mpeg4 testing, patches and bugfixes
-  OGM subtitles support
 
 Mariusz Pekala <skoot@qi.pl>
   vplayer subtitle format fixes
@@ -575,19 +575,77 @@ Chris Cannam <chris.cannam@ferventsoftware.com>
 Christoph Pfister <christophpfister@gmail.com>
   XCB output plugins
 
+Reinhard Nißl <rnissl@gmx.de>
+  build fix, bugfixes
+
+Christopher Martin <christopher.martin@utoronto.ca>
+  CD and 24bit audio improvements, WMAPro support
+
+Christian Ruppert <idl0r@gentoo.org>
+  build fixes
+
+Lorenzo Desole <lorenzodes@fastwebnet.it>
+  audio fixes
+
+Kevin Kofler <kevin.kofler@chello.at>
+  build fixes
+
+Pino Toscano <pino@debian.org>
+  build fix
+
+Ulrich Müller <ulm@gentoo.org>
+  OSD bugfix
+
+Andreas Auras <yak54@inkennet.de>
+  Continuous video frame grabbing feature, VDPAU out fixes,
+  video out fixes, dvb subtitle fix
+
+Jose Alberto Reguero <jareguero@telefonica.net>
+  EAC3 fixes
+
 Albert Lee <trisk+xine@acm.jhu.edu>
   Solaris portability fixes (and other miscellaneous fixes)
 
+Mikko Rasa <tdb@tdb.fi>
+  HDMV subtitle fix
+
+Roland Scheidegger <rscheidegger_lists@hispeed.ch>
+  MMX(ext), SSE(2) and AVX assembly improvements
+
+Anton Khirnov <anton@khirnov.net>
+  DXR3 fix
+
+Alan Barrett <apb@NetBSD.org>
+  MMX assembly fixes
+
+Thomas Klausner <tk@giga.or.at>
+  BSD port improvements and bugfixes
+
+Carlo Bramini <carlo.bramix@libero.it>
+  cygwin related fixes, ffmpeg compatibility
+
+Brad Smith <brad@comstyle.com>
+  Build fixes, bugfixes
+
 Torsten Jager <t.jager@gmx.de>
-  Test card input plugin, color matrix and fullrange video support,
-  rgb to yuy2 converter, ffmpeg audio channel mixer, demux improvements,
-  german translation, optimizations, bugfixes
+  Test card input plugin, Time Domain Audio Analyzer Plugin,
+  Xshm video crop support, color matrix and fullrange video support,
+  ffmpeg compatibility, rgb to yuy2 converter,
+  faad and ffmpeg audio channel mixer, demux improvements,
+  dependency reduction, plugin joining, german translation,
+  optimizations, bugfixes, build fixes
 
 Christophe Thommeret <hftom@free.fr>
   OpenGL 2.0 video out plugin, new VDPAU h264 decoder,
   VDPAU bugfixes
 
 Edgar Hucek <gimli|@dark-green.com>
-   VAAPI Support
+   VAAPI Support, ffmpeg compatibility
+
+Xavier Bachelot <xavier@bachelot.org>
+  Build fixes, Fedora port, french translation
+
+Dominique Leuenberger <dimstar@opensuse.org>
+  Build fixes
 
 (let us know if we've forgotten anyone)
