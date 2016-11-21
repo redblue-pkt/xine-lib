@@ -56,6 +56,8 @@ int         (*dvdinput_is_encrypted) (dvd_input_t);
 #include "../../msvc/contrib/dlfcn.c"
 #endif
 
+#define DVDCSS_SEEK_KEY        (1 << 1)
+
 /* Copied from css.h */
 #define KEY_SIZE 5
 
@@ -130,6 +132,8 @@ static int           (*DVDcss_seek)  (dvdcss_handle, int, int);
 static int           (*DVDcss_title) (dvdcss_handle, int); 
 static int           (*DVDcss_read)  (dvdcss_handle, void *, int, int);
 static char *        (*DVDcss_error) (dvdcss_handle);
+static int           (*DVDcss_is_scrambled) (dvdcss_handle);
+
 #endif
 
 /* The DVDinput handle, add stuff here for new input methods. */
@@ -189,6 +193,12 @@ static int css_seek(dvd_input_t dev, int blocks)
  */
 static int css_title(dvd_input_t dev, int block)
 {
+#ifndef HAVE_DVDCSS_DVDCSS_H
+  /* DVDcss_title was removed in libdvdcss 1.3.0 */
+  if (!DVDcss_title) {
+    return DVDcss_seek(dev->dvdcss, block, DVDCSS_SEEK_KEY);
+  }
+#endif
   return DVDcss_title(dev->dvdcss, block);
 }
 
@@ -222,6 +232,13 @@ static int css_is_encrypted (dvd_input_t dev)
   if (dev->dvdcss == NULL) {
     return 0;
   }
+#ifndef HAVE_DVDCSS_DVDCSS_H
+  if (DVDcss_is_scrambled) {
+    return DVDcss_is_scrambled(dev->dvdcss);
+  }
+#endif
+
+  /* this won't work with recent libdvdcss versions ... */
   return dev->dvdcss->b_scrambled;
 }
 
@@ -392,6 +409,8 @@ int dvdinput_setup(void)
       dlsym(dvdcss_library, U_S "dvdcss_read");
     DVDcss_error = (char* (*)(dvdcss_handle))
       dlsym(dvdcss_library, U_S "dvdcss_error");
+    DVDcss_is_scrambled = (int (*)(dvdcss_handle))
+      dlsym(dvdcss_library, U_S "dvdcss_is_scrambled");
     
     dvdcss_version = (char **)dlsym(dvdcss_library, U_S "dvdcss_interface_2");
 
@@ -402,8 +421,8 @@ int dvdinput_setup(void)
 	      "http://www.videolan.org/\n" );
       dlclose(dvdcss_library);
       dvdcss_library = NULL;
-    } else if(!DVDcss_open  || !DVDcss_close || !DVDcss_title || !DVDcss_seek
-	      || !DVDcss_read || !DVDcss_error || !dvdcss_version) {
+    } else if(!DVDcss_open  || !DVDcss_close || !DVDcss_seek
+	      || !DVDcss_read || !DVDcss_error) {
       fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss, "
 	      "this shouldn't happen !\n");
       dlclose(dvdcss_library);
@@ -420,7 +439,7 @@ int dvdinput_setup(void)
     fprintf(stderr, "DVDCSS_VERBOSE %s\n", psz_verbose);
     */
     fprintf(stderr, "libdvdread: Using libdvdcss version %s for DVD access\n",
-	    *dvdcss_version);
+	    dvdcss_version ? *dvdcss_version : "?");
     
     /* libdvdcss wrapper functions */
     dvdinput_open  = css_open;
