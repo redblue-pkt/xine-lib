@@ -407,6 +407,7 @@ int dvdinput_setup(void)
       fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss, "
 	      "this shouldn't happen !\n");
       dlclose(dvdcss_library);
+      dvdcss_library = NULL;
     }
   }
 #endif /* HAVE_DVDCSS_DVDCSS_H */
