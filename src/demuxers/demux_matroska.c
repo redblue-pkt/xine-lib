@@ -1143,7 +1143,7 @@ static void handle_hdmv_textst (demux_plugin_t *this_gen, matroska_track_t *trac
   char *dest;
   int dest_len;
   int dest_pos;
-  int i, j;
+  int i;
   uint8_t *ptr;
   int palette_update_flag;
   int num_regions;
