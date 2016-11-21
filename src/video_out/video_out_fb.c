@@ -664,7 +664,7 @@ static void fb_dispose(vo_driver_t *this_gen)
 {
   fb_driver_t *this = (fb_driver_t *)this_gen;
 
-  munmap(0, this->mem_size);
+  munmap(this->video_mem_base, this->mem_size);
   close(this->fd);
 
   _x_alphablend_free(&this->alphablend_extra_data);
