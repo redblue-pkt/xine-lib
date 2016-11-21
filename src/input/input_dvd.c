@@ -1401,14 +1401,16 @@ static int dvd_parse_try_open(dvd_input_plugin_t *this, const char *locator)
     /* we have an alternative dvd_path */
     intended_dvd_device = locator;
     /* do not use the raw device for the alternative */
-    xine_setenv("DVDCSS_RAW_DEVICE", "", 1);
+    /*xine_setenv("DVDCSS_RAW_DEVICE", "", 1);*/
   } else {
     /* use default DVD device */
     dvd_input_class_t *class = (dvd_input_class_t*)this->input_plugin.input_class;
+    /*
     xine_cfg_entry_t raw_device;
     if (xine_config_lookup_entry(this->stream->xine,
 	"media.dvd.raw_device", &raw_device))
       xine_setenv("DVDCSS_RAW_DEVICE", raw_device.str_value, 1);
+    */
     intended_dvd_device = class->dvd_device;
   }
 
@@ -1785,10 +1787,11 @@ static void *init_class (xine_t *xine, void *data) {
 #endif
   {
     /* we have found libdvdcss, enable the specific config options */
-    char *raw_device;
+    /* char *raw_device; */
     static const char *const decrypt_modes[] = { "key", "disc", "title", NULL };
     int mode;
 
+    /*
     raw_device = config->register_filename(config, "media.dvd.raw_device",
 					 RDVD_PATH, XINE_CONFIG_STRING_IS_DEVICE_NAME,
 					 _("raw device set up for DVD access"),
@@ -1803,6 +1806,7 @@ static void *init_class (xine_t *xine, void *data) {
 					   "(man raw) for further information."),
 					 10, NULL, NULL);
     if (raw_device) xine_setenv("DVDCSS_RAW_DEVICE", raw_device, 0);
+    */
 
     mode = config->register_enum(config, "media.dvd.css_decryption_method", 0,
 				 (char **)decrypt_modes, _("CSS decryption method"),
