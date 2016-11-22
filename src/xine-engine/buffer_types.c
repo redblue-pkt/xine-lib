@@ -1239,6 +1239,14 @@ static const audio_db_t audio_db[] = {
   BUF_AUDIO_OPUS,
   "Opus Audio"
 },
+{
+  {
+    ME_FOURCC('t', 'r', 'h', 'd'),
+    0
+  },
+  BUF_AUDIO_TRUEHD,
+  "TrueHD Audio"
+},
 { { 0 }, 0, "last entry" }
 };
 

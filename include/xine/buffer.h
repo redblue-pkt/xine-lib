@@ -273,6 +273,7 @@ extern "C" {
 #define BUF_AUDIO_AAC_LATM	0x03420000
 #define BUF_AUDIO_ADPCM_G726	0x03430000
 #define BUF_AUDIO_OPUS		0x03440000
+#define BUF_AUDIO_TRUEHD        0x03450000
 /*@}*/
 
 /**
