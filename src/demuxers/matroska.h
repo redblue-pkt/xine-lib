@@ -338,6 +338,7 @@ struct matroska_track_s {
 #define MATROSKA_CODEC_ID_A_REAL_ATRC    "A_REAL/ATRC"
 #define MATROSKA_CODEC_ID_A_FLAC         "A_FLAC"
 #define MATROSKA_CODEC_ID_A_OPUS         "A_OPUS"
+#define MATROSKA_CODEC_ID_A_TRUEHD       "A_TRUEHD"
 
 #define MATROSKA_CODEC_ID_S_TEXT_UTF8    "S_TEXT/UTF8"
 #define MATROSKA_CODEC_ID_S_TEXT_SSA     "S_TEXT/SSA"
