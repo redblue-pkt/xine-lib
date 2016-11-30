@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2011 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -59,8 +59,8 @@
 #    include <dvdread/nav_read.h>
 #  endif
 #else
-#  include "nav_types.h"
-#  include "nav_read.h"
+#  include "../input/libdvdnav/nav_types.h"
+#  include "../input/libdvdnav/nav_read.h"
 #endif
 #include "video_out_dxr3.h"
 #include "dxr3.h"

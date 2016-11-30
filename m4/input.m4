@@ -129,11 +129,17 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
     dnl XXX: This could be cleaned up so that code does not have to ifdef so much
     XINE_ARG_WITH([external-dvdnav], [Use external dvdnav library])
     if test x"$with_external_dvdnav" != x"no"; then
-        PKG_CHECK_MODULES([DVDREAD], [dvdread],
-                          [PKG_CHECK_MODULES([DVDNAV], [dvdnav],
-                                             [AC_DEFINE([HAVE_DVDNAV], 1, [Define this if you have a suitable version of libdvdnav])],
-                                             [AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])])],
-                          [AC_MSG_RESULT([*** no usable version of libdvdread found, using internal libdvdnav ***])])
+        PKG_CHECK_MODULES([DVDREAD], [dvdread], [], [with_external_dvdnav=no])
+        if test x"$with_external_dvdnav" != x"no" ; then
+            PKG_CHECK_MODULES([DVDNAV], [dvdnav], [], [with_external_dvdnav=no])
+            if test x"$with_external_dvdnav" != x"no" ; then
+                AC_DEFINE([HAVE_DVDNAV], 1, [Define this if you have a suitable version of libdvdnav])
+            else
+                AC_MSG_RESULT([*** no usable version of libdvdnav found, using internal copy ***])
+            fi
+        else
+            AC_MSG_RESULT([*** no usable version of libdvdread found, using internal libdvdnav ***])
+        fi
     else
         AC_MSG_RESULT([Using included DVDNAV support])
     fi

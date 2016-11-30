@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project,
+ * Copyright (C) 2000-2016 the xine project,
  *                         Rich Wareham <richwareham@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -88,8 +88,8 @@
 #  endif
 #else
 #  define DVDNAV_COMPILE
-#  include "dvdnav.h"
-#  include "nav_read.h"
+#  include "libdvdnav/dvdnav.h"
+#  include "libdvdnav/nav_read.h"
 #endif
 
 /* Xine includes */
