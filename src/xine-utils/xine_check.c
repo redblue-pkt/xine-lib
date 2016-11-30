@@ -55,6 +55,9 @@
 #include <dlfcn.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#ifdef HAVE_SYS_SYSMACROS_H
+#  include <sys/sysmacros.h>
+#endif
 #include <sys/utsname.h>
 #include <linux/major.h>
 #include <linux/hdreg.h>
