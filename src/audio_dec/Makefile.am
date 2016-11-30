@@ -58,7 +58,7 @@ xineplug_LTLIBRARIES = \
 
 xineplug_decode_gsm610_la_SOURCES = gsm610.c
 xineplug_decode_gsm610_la_LIBADD = $(XINE_LIB) $(top_builddir)/contrib/gsm610/libgsm610.la
-xineplug_decode_gsm610_la_CPPFLAGS = -I$(top_srcdir)/contrib/gsm610
+xineplug_decode_gsm610_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/contrib/gsm610
 
 xineplug_decode_lpcm_la_SOURCES = xine_lpcm_decoder.c
 xineplug_decode_lpcm_la_LIBADD = $(XINE_LIB)

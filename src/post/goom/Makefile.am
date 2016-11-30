@@ -7,7 +7,7 @@ AM_CFLAGS  = $(VISIBILITY_FLAG)
 ## doesn't work
 #if ARCH_PPC
 #extra_files = ppc_drawings.s ppc_zoom_ultimate.s
-#AM_CPPFLAGS = -DCPU_POWERPC
+#AM_CPPFLAGS += -DCPU_POWERPC
 #endif
 
 EXTRA_DIST = mmx.c xmmx.c ppc_drawings.s ppc_zoom_ultimate.s diff_against_release.patch \

@@ -4,7 +4,7 @@ include $(top_srcdir)/misc/Makefile.common
 SUBDIRS = drivers
 
 AM_CFLAGS   = $(DEFAULT_OCFLAGS)
-AM_CPPFLAGS = -I$(top_srcdir)/contrib/vidix -I$(top_builddir)/contrib/libdha
+AM_CPPFLAGS += -I$(top_srcdir)/contrib/vidix -I$(top_builddir)/contrib/libdha
 
 EXTRA_DIST = README vidix.txt
 

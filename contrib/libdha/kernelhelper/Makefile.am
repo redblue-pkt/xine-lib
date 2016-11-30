@@ -8,7 +8,7 @@ KCFLAGS = -O2 -Wall -D__KERNEL__ -DMODULE -include `echo $(LINUX_INCLUDE) | sed 
 KVERSION = $(shell $(SHELL) -c 'uname -r')
 moddir = /lib/modules/$(KVERSION)/misc
 
-KCOMPILE = $(CC) $(CFLAGS) $(KCFLAGS) $(INCLUDES) $(LINUX_INCLUDE)
+KCOMPILE = $(CC) $(CFLAGS) $(KCFLAGS) $(AM_CPPFLAGS) $(LINUX_INCLUDE)
 
 if HAVE_LINUX
 KERNEL_MODULE = dhahelper.o

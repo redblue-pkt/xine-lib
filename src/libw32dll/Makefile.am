@@ -3,7 +3,7 @@ include $(top_builddir)/misc/Makefile.plugins
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS   = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
-AM_CPPFLAGS = -I$(srcdir)/wine -DWIN32_PATH=\"$(w32_path)\"
+AM_CPPFLAGS += -I$(srcdir)/wine -DWIN32_PATH=\"$(w32_path)\"
 AM_LDFLAGS  = $(xineplug_ldflags)
 
 SUBDIRS =

@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.quiet
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
-AM_CPPFLAGS = -DDVDNAV_COMPILE -DHAVE_DLFCN_H
+AM_CPPFLAGS += -DDVDNAV_COMPILE -DHAVE_DLFCN_H
 AM_LDFLAGS = $(xineplug_ldflags)
 
 noinst_LTLIBRARIES = libdvdnav.la
