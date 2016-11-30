@@ -3,7 +3,7 @@ include $(top_builddir)/misc/Makefile.plugins
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS   = $(VISIBILITY_FLAG)
-AM_CPPFLAGS =
+AM_CPPFLAGS +=
 AM_LDFLAGS  =
 
 if ENABLE_POSTPROC

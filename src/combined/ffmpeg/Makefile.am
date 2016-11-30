@@ -3,7 +3,7 @@ include $(top_builddir)/misc/Makefile.plugins
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS   = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
-AM_CPPFLAGS = $(ZLIB_CPPFLAGS)
+AM_CPPFLAGS += $(ZLIB_CPPFLAGS)
 AM_LDFLAGS  = $(xineplug_ldflags)
 
 # make clean should always work.
@@ -41,7 +41,7 @@ endif
 
 # Generation of ffmpeg->xine codec mapping lists (see xine_*.list).
 
-AV_CPP = $(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AVUTIL_CFLAGS)
+AV_CPP = $(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AVUTIL_CFLAGS)
 
 # Extract some CODEC_ID_* from avcodec.h. Requires some sed mangling.
 avcodec_audio.list: AV_CODECS:=/CODEC_ID_PCM_S16LE/,/CODEC_ID_DVD_SUBTITLE/

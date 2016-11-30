@@ -1162,8 +1162,8 @@ dnl ---------------------------------------------
 dnl some include paths ( !!! DO NOT REMOVE !!! )
 dnl ---------------------------------------------
 
-INCLUDES='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_INCLUDES) -I$(top_builddir)/lib -I$(top_srcdir)/lib'
-AC_SUBST(INCLUDES)
+AM_CPPFLAGS='-I$(top_srcdir) -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/src -I$(top_builddir)/src/xine-engine -I$(top_srcdir)/src/xine-engine -I$(top_srcdir)/src/xine-utils $(INTLDIR) -I$(top_builddir)/src/input -I$(top_srcdir)/src/input $(WIN32_INCLUDES) -I$(top_builddir)/lib -I$(top_srcdir)/lib'
+AC_SUBST(AM_CPPFLAGS)
 
 dnl We check for warnings here rather than with optimisations since we
 dnl want them to be _always_ enabled, to make sure the code is sane

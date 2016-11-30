@@ -2,7 +2,7 @@ include $(top_srcdir)/misc/Makefile.quiet
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS   = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
-AM_CPPFLAGS = -I$(top_srcdir)/src/input/librtsp
+AM_CPPFLAGS += -I$(top_srcdir)/src/input/librtsp
 
 noinst_HEADERS = real.h asmrp.h rmff.h sdpplin.h
 

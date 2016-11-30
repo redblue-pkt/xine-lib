@@ -19,7 +19,7 @@ libnosefart_la_SOURCES = \
 	vrcvisnd.c	
 
 libnosefart_la_CFLAGS = $(AM_CFLAGS) -fno-strict-aliasing
-libnosefart_la_CPPFLAGS = -DNSF_PLAYER
+libnosefart_la_CPPFLAGS = $(AM_CPPFLAGS) -DNSF_PLAYER
 
 noinst_HEADERS = \
 	dis6502.h \
