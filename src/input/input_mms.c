@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002-2014 the xine project
+ * Copyright (C) 2002-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -48,6 +48,16 @@
 #include "mms.h"
 #include "mmsh.h"
 #include "net_buf_ctrl.h"
+
+/*
+ * not very nice but maybe still better than the previous solution
+ * (rebuild and link demuxers/asfheader.c from here, and let newer
+ * automake disagree about where to store asfheader.o) ...
+ */
+#undef LOG_MODULE
+#include "demuxers/asfheader.c"
+#undef LOG_MODULE
+#define LOG_MODULE "input_mms"
 
 #define PROTOCOL_UNDEFINED 0
 #define PROTOCOL_MMST      1
