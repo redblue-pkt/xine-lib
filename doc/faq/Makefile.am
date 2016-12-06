@@ -8,10 +8,10 @@ EXTRA_DIST = README faq.docbook faq.xsl $(doc_DATA) $(html_DATA)
 
 DISTCLEANFILES = $(doc_DATA) $(html_DATA)
 
-docs: $(hackersguide_DATA)
+docs: $(doc_DATA) $(html_DATA)
 
 clean-docs:
-	rm -f $(hackersguide_DATA)
+	rm -f $(doc_DATA) $(html_DATA)
 
 dist-hook:
 	@if test x"$(distcheck_lax)" = x ; then \
