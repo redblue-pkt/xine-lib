@@ -28,9 +28,9 @@ am__v_FAKE_0 = @echo "  FAKE  " $@;
 
 if HAVE_XMLTO
 faq.html: faq.docbook faq.xsl
-	$(AM_V_GEN)xmlto -m faq.xsl xhtml-nochunks $<
+	$(AM_V_GEN)xmlto -m "$(srcdir)/faq.xsl" xhtml-nochunks $<
 faq.txt: faq.docbook faq.xsl
-	$(AM_V_GEN)xmlto -m faq.xsl txt $<
+	$(AM_V_GEN)xmlto -m "$(srcdir)/faq.xsl" txt $<
 else
 faq.html faq.txt: faq.docbook
 	$(AM_V_FAKE)if test x"$(fail_if_missing)" = x"yes"; then \
