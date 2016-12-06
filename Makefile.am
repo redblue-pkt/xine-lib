@@ -30,7 +30,7 @@ CONFIG_CLEAN_FILES = libtool po/Makevars.extra
 
 dist_doc_DATA = COPYING NEWS README TODO CREDITS ChangeLog
 
-docs:
+docs clean-docs:
 	@cd doc && $(MAKE) $@
 
 distcheck-lax:
