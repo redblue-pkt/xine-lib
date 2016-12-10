@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2013 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -106,14 +106,10 @@ struct xine_s {
 
   xine_log_cb_t              log_cb;
   void                      *log_cb_user_data;
+
+  int                        flags;
 #endif
 };
-
-/* FIXME-ABI Some global flag bits */
-/* See xine_set_flags() */
-#ifdef XINE_ENGINE_INTERNAL
-extern int _x_flags XINE_PROTECTED;
-#endif
 
 /*
  * xine thread tickets

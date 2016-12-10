@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -83,8 +83,6 @@
 
 #include "xine_private.h"
 
-/* FIXME-ABI Global variable. Done this way for ABI & API reasons... */
-int _x_flags = 0;
 
 
 static void mutex_cleanup (void *mutex) {
@@ -1780,8 +1778,7 @@ static void config_save_cb (void *this_gen, xine_cfg_entry_t *entry) {
 
 void xine_set_flags (xine_t *this, int flags)
 {
-  this = this; /* FIXME-ABI: one day, these will be in xine_t...? */
-  _x_flags = flags;
+  this->flags = flags;
 }
 
 void xine_init (xine_t *this) {
