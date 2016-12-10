@@ -1326,7 +1326,7 @@ void _x_scan_plugins (xine_t *this) {
 
   load_required_plugins (this);
 
-  if ((_x_flags & XINE_FLAG_NO_WRITE_CACHE) == 0)
+  if ((this->flags & XINE_FLAG_NO_WRITE_CACHE) == 0)
     XINE_PROFILE(save_catalog (this));
 
   map_decoders (this);
