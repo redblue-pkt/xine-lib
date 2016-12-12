@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2014 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a unix video player.
  *
@@ -47,7 +47,7 @@
 
 #include "../combined/ffmpeg/ffmpeg_compat.h"
 
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
 /* buffer size for encoded mpeg1 stream; will hold one intra frame
  * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */
 #define DEFAULT_BUFFER_SIZE 512*1024
@@ -64,7 +64,7 @@ typedef struct lavc_data_s {
   encoder_data_t     encoder_data;
   AVCodecContext     *context;         /* handle for encoding */
   int                width, height;    /* width and height of the video frame */
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
   uint8_t            *ffmpeg_buffer;   /* lavc buffer */
 #endif
   AVFrame            *picture;         /* picture to be encoded */
@@ -84,7 +84,7 @@ static int dxr3_lavc_close(dxr3_driver_t *drv) {
 int dxr3_lavc_init(dxr3_driver_t *drv, plugin_node_t *plugin)
 {
   lavc_data_t* this;
-  avcodec_init();
+  XFF_AVCODEC_INIT();
 
   avcodec_register_all();
   lprintf("lavc init , version %x\n", avcodec_version());
@@ -155,13 +155,13 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->width  = frame->vo_frame.pitches[0];
   this->height = frame->oheight;
 
-  this->context = avcodec_alloc_context();
+  this->context = XFF_ALLOC_CONTEXT();
   if (!this->context) {
     xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
       "dxr3_mpeg_encoder: Couldn't start the ffmpeg library\n");
     return 0;
   }
-  this->picture = avcodec_alloc_frame();
+  this->picture = XFF_ALLOC_FRAME();
   if (!this->picture) {
     xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
       "dxr3_mpeg_encoder: Couldn't allocate ffmpeg frame\n");
@@ -221,13 +221,13 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->context->strict_std_compliance = -1;
 
   /* open avcodec */
-  if (avcodec_open(this->context, codec) < 0) {
+  if (XFF_AVCODEC_OPEN(this->context, codec) < 0) {
     xprintf(drv->class->xine, XINE_VERBOSITY_LOG, "dxr3_mpeg_encoder: could not open codec\n");
     return 0;
   }
   lprintf("dxr3_mpeg_encoder: lavc MPEG1 codec opened.\n");
 
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
   if (!this->ffmpeg_buffer)
     this->ffmpeg_buffer = (unsigned char *)malloc(DEFAULT_BUFFER_SIZE); /* why allocate more than needed ?! */
   if (!this->ffmpeg_buffer) {
@@ -242,7 +242,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
 static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 {
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
   int size;
 #else /* 2 */
   AVPacket pkt = { 0 };
@@ -263,7 +263,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   lavc_prepare_frame(this, drv, frame);
 
   /* do the encoding */
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
   size = avcodec_encode_video(this->context, this->ffmpeg_buffer, DEFAULT_BUFFER_SIZE, this->picture);
 #else /* 2 */
   ret = avcodec_encode_video2(this->context, &pkt, this->picture, &got_output);
@@ -271,7 +271,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 
   frame->vo_frame.free(&frame->vo_frame);
 
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
   if (size < 0)
 #else /* 2 */
   if (ret < 0)
@@ -281,26 +281,26 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
         "dxr3_mpeg_encoder: encoding failed\n");
       return 0;
   }
-#if AVENCVIDEO == 2
+#if XFF_ENCVIDEO == 2
   else if (!got_output)
       return 1;
 #endif
 
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
   written = write(drv->fd_video, this->ffmpeg_buffer, size);
 #else
   written = write(drv->fd_video, pkt.data, pkt.size);
 #endif
 
   if (written < 0) {
-#if AVENCVIDEO == 2
+#if XFF_ENCVIDEO == 2
       av_packet_unref(&pkt);
 #endif
       xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
         "dxr3_mpeg_encoder: video device write failed (%s)\n", strerror(errno));
       return 0;
     }
-#if AVENCVIDEO == 1
+#if XFF_ENCVIDEO == 1
   if (written != size)
       xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
         "dxr3_mpeg_encoder: Could only write %zd of %d mpeg bytes.\n", written, size);
@@ -319,7 +319,7 @@ static int lavc_on_unneeded(dxr3_driver_t *drv)
   lprintf("flushing buffers\n");
   if (this->context) {
     avcodec_close(this->context);
-    avcodec_free_context (&this->context);
+    XFF_FREE_CONTEXT (this->context);
     free(this->picture);
     this->context = NULL;
     this->picture = NULL;

@@ -72,7 +72,7 @@ typedef struct ff_audio_decoder_s {
   int               decoder_ok;
 
   AVCodecParserContext *parser_context;
-#if AVAUDIO > 3
+#if XFF_AUDIO > 3
   AVFrame          *av_frame;
 #endif
 
@@ -265,7 +265,7 @@ static void ff_audio_init_codec(ff_audio_decoder_t *this, unsigned int codec_typ
     return;
   }
 
-#if AVAUDIO < 4
+#if XFF_AUDIO < 4
   /* Try to make the following true */
   this->context->request_sample_fmt = AV_SAMPLE_FMT_S16;
   /* For lavc v54+, we have our channel mixer that wants default float samples to fix
@@ -289,7 +289,7 @@ static void ff_audio_init_codec(ff_audio_decoder_t *this, unsigned int codec_typ
    *  - DVB streams where multiple AAC LATM frames are packed to single PES
    *  - DVB streams where MPEG audio frames do not follow PES packet boundaries
    */
-#if AVPARSE > 1
+#if XFF_PARSE > 1
   if (codec_type == BUF_AUDIO_AAC_LATM ||
       codec_type == BUF_AUDIO_EAC3 ||
       codec_type == BUF_AUDIO_MPEG) {
@@ -320,7 +320,7 @@ static int ff_audio_open_codec(ff_audio_decoder_t *this, unsigned int codec_type
   }
 
   pthread_mutex_lock (&ffmpeg_lock);
-  if (avcodec_open (this->context, this->codec) < 0) {
+  if (XFF_AVCODEC_OPEN (this->context, this->codec) < 0) {
     pthread_mutex_unlock (&ffmpeg_lock);
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
              _("ffmpeg_audio_dec: couldn't open decoder\n"));
@@ -651,7 +651,7 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
     size = parser_consumed - offs;
   }
 
-#if AVPARSE > 1
+#if XFF_PARSE > 1
   else
   if (this->parser_context) {
     uint8_t *outbuf;
@@ -677,19 +677,19 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
     buf  = outbuf;
     size = outsize;
   }
-#endif /* AVPARSE > 1 */
+#endif /* XFF_PARSE > 1 */
 
-#if AVAUDIO > 2
+#if XFF_AUDIO > 2
   AVPacket avpkt;
   av_init_packet (&avpkt);
   avpkt.data = buf;
   avpkt.size = size;
   avpkt.flags = AV_PKT_FLAG_KEY;
-#  if AVAUDIO > 3
+#  if XFF_AUDIO > 3
   int got_frame;
   float gain = this->class->gain;
   if (!this->av_frame)
-    this->av_frame = avcodec_alloc_frame ();
+    this->av_frame = XFF_ALLOC_FRAME ();
 
   consumed = avcodec_decode_audio4 (this->context, this->av_frame, &got_frame, &avpkt);
   if ((consumed >= 0) && got_frame) {
@@ -1065,7 +1065,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 	  }
 	}
 
-#if AVAUDIO < 4
+#if XFF_AUDIO < 4
         /* Old style postprocessing */
         if (codec_type == BUF_AUDIO_WMAPRO) {
           /* the above codecs output float samples, not 16-bit integers */
@@ -1193,12 +1193,12 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
 
   /* try to reset the wma decoder */
   if( this->decoder_ok ) {
-#if AVAUDIO > 3
-    avcodec_free_frame (&this->av_frame);
+#if XFF_AUDIO > 3
+    XFF_FREE_FRAME (this->av_frame);
 #endif
     pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
-    if (avcodec_open (this->context, this->codec) < 0)
+    if (XFF_AVCODEC_OPEN (this->context, this->codec) < 0)
       this->decoder_ok = 0;
     pthread_mutex_unlock (&ffmpeg_lock);
   }
@@ -1229,8 +1229,8 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
   }
 
   if( this->context && this->decoder_ok ) {
-#if AVAUDIO > 3
-    avcodec_free_frame (&this->av_frame);
+#if XFF_AUDIO > 3
+    XFF_FREE_FRAME (this->av_frame);
 #endif
     pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
@@ -1245,7 +1245,7 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
   if (this->context) {
     _x_freep (&this->context->extradata);
     this->context->extradata_size = 0;
-    avcodec_free_context (&this->context);
+    XFF_FREE_CONTEXT (this->context);
   }
 
   free (this_gen);
@@ -1274,9 +1274,9 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
 
   ff_audio_ensure_buffer_size(this, AUDIOBUFSIZE);
 
-  this->context = avcodec_alloc_context();
+  this->context = XFF_ALLOC_CONTEXT();
   this->decode_buffer = xine_malloc_aligned (AVCODEC_MAX_AUDIO_FRAME_SIZE);
-#if AVAUDIO > 3
+#if XFF_AUDIO > 3
   this->av_frame = NULL;
 #endif
   return &this->audio_decoder;

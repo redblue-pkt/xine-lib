@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Edgar Hucek <gimli|@dark-green.com>
- * Copyright (C) 2012-2013 xine developers
+ * Copyright (C) 2012-2016 xine developers
  *
  * This file is part of xine, a free video player.
  *
@@ -106,7 +106,7 @@ struct vaapi_accel_s {
   unsigned int        index;
   vo_frame_t          *vo_frame;
 
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
   int (*avcodec_decode_video2)(vo_frame_t *frame_gen, AVCodecContext *avctx, AVFrame *picture,
                                int *got_picture_ptr, AVPacket *avpkt);
 #else

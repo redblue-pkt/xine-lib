@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2015 the xine project
+ * Copyright (C) 2000-2016 the xine project
  *
  * This file is part of xine, a unix video player.
  *
@@ -23,11 +23,11 @@
 #ifndef XINE_AVCODEC_COMPAT_H
 #define XINE_AVCODEC_COMPAT_H
 
-#define AV_INT_VERSION(major,minor,micro) ((major<<16)|(minor<<8)|micro)
+#define XFF_INT_VERSION(major,minor,micro) ((major<<16)|(minor<<8)|micro)
 
 #ifndef LIBAVCODEC_VERSION_INT
 #  if defined(LIBAVCODEC_VERSION_MAJOR) && defined(LIBAVCODEC_VERSION_MINOR)
-#    define LIBAVCODEC_VERSION_INT AV_INT_VERSION(LIBAVCODEC_VERSION_MAJOR,LIBAVCODEC_VERSION_MINOR,0)
+#    define LIBAVCODEC_VERSION_INT XFF_INT_VERSION(LIBAVCODEC_VERSION_MAJOR,LIBAVCODEC_VERSION_MINOR,0)
 #  else
 #    error ffmpeg headers must be included first !
 #  endif
@@ -35,117 +35,96 @@
 
 #ifndef LIBAVUTIL_VERSION_INT
 #  if defined(LIBAVUTIL_VERSION_MAJOR) && defined(LIBAVUTIL_VERSION_MINOR)
-#    define LIBAVUTIL_VERSION_INT AV_INT_VERSION(LIBAVUTIL_VERSION_MAJOR,LIBAVUTIL_VERSION_MINOR,0)
+#    define LIBAVUTIL_VERSION_INT XFF_INT_VERSION(LIBAVUTIL_VERSION_MAJOR,LIBAVUTIL_VERSION_MINOR,0)
 #  else
 #    error ffmpeg headers must be included first !
 #  endif
 #endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(52,0,0)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,0,0)
 #  define bits_per_sample bits_per_coded_sample
 #endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(52,32,0)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,32,0)
 #else
 #  define pp_context	pp_context_t
 #  define pp_mode	pp_mode_t
 #endif
 
 /* reordered_opaque appeared in libavcodec 51.68.0 */
-#define AVCODEC_HAS_REORDERED_OPAQUE
-#if LIBAVCODEC_VERSION_INT < AV_INT_VERSION(51,68,0)
-# undef AVCODEC_HAS_REORDERED_OPAQUE
+#define XFF_AVCODEC_REORDERED_OPAQUE
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(51,68,0)
+# undef XFF_AVCODEC_REORDERED_OPAQUE
 #endif
 
 /* colorspace and color_range were added before 52.29.0 */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(52,29,0)
-# define AVCODEC_HAS_COLORSPACE
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,29,0)
+# define XFF_AVCODEC_COLORSPACE
 #endif
 
 /* "unused" as of v54 */
-#if LIBAVCODEC_VERSION_INT < AV_INT_VERSION(54,0,0)
-# define AVCODEC_HAS_SUB_ID
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(54,0,0)
+# define XFF_AVCODEC_SUB_ID
 #endif
 
 /* not 100% sure about this (between 55.19 and 56.56) */
-#if LIBAVCODEC_VERSION_INT < AV_INT_VERSION(56,0,0)
-#  define AVCODEC_HAS_STREAM_CODEC_TAG
-#endif
-
-/**/
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(53,8,0)
-#  define avcodec_init() do {} while(0)
-#endif
-
-/* avcodec_alloc_context() */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(53,6,0)
-#  define AVCONTEXT 3
-#  define avcodec_alloc_context() avcodec_alloc_context3(NULL)
-#else
-#  define AVCONTEXT 1
-#endif
-
-/* avcodec_open() */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(53,6,0)
-#  define AVOPEN 2
-#  define avcodec_open(ctx,codec) avcodec_open2(ctx, codec, NULL)
-#else
-#  define AVOPEN 1
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(56,0,0)
+#  define XFF_AVCODEC_STREAM_CODEC_TAG
 #endif
 
 /* avcodec_thread_init() */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(52,112,0)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,112,0)
 #  define DEPRECATED_AVCODEC_THREAD_INIT 1
 #endif
 
 /* av_parser_parse() */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(52,94,0)
-#  define AVPARSE 2
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,94,0)
+#  define XFF_PARSE 2
 #else
-#  define AVPARSE 1
+#  define XFF_PARSE 1
 #endif
 
 /* avcodec_decode_video() */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(52,32,0)
-#  define AVVIDEO 2
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,32,0)
+#  define XFF_VIDEO 2
 #else
-#  define AVVIDEO 1
+#  define XFF_VIDEO 1
 #endif
 
 /* avcodec_decode_audio() */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(54,0,0)
-#  define AVAUDIO 4
-#elif LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(52,32,0)
-#  define AVAUDIO 3
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(54,0,0)
+#  define XFF_AUDIO 4
+#elif LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,32,0)
+#  define XFF_AUDIO 3
 #else
-#  define AVAUDIO 2
+#  define XFF_AUDIO 2
 #endif
 
 /* avcodec_encode_video(), av_packet_unref */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(55,25,100)
-#  define AVENCVIDEO 2
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(55,25,100)
+#  define XFF_ENCVIDEO 2
 #else
-#  define AVENCVIDEO 1
+#  define XFF_ENCVIDEO 1
 #endif
 
-/* AVFrame.age */
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(53,28,1) && LIBAVCODEC_VERSION_INT < AV_INT_VERSION(54,0,0) // not sure about this - original condition was broken
-#  define AVFRAMEAGE 1
+/* AVFrame.age not sure about this - original condition was broken */
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(53,28,1) && LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(54,0,0)
+#  define XFF_FRAME_AGE 1
 #endif
 
-#if LIBAVCODEC_VERSION_INT < AV_INT_VERSION(53,0,0)
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(53,0,0)
 /* release 0.7.x (libavcodec 52) has deprecated AVCodecContext.palctrl but for backwards compatibility no
    working alternative. */
-#  define AVPALETTE 1
-#elif LIBAVCODEC_VERSION_INT < AV_INT_VERSION(54,92,100)
+#  define XFF_PALETTE 1
+#elif LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(54,92,100)
 /* pass palette as AVPacket side data, free with av_destruct_packet () after NULLing main data pointer */
-#  define AVPALETTE 2
+#  define XFF_PALETTE 2
 #else
 /* dito, free with av_free_packet () after NULLing main data pointer */
-#  define AVPALETTE 3
+#  define XFF_PALETTE 3
 #endif
 
-#if LIBAVUTIL_VERSION_INT >= AV_INT_VERSION(52,0,0)
+#if LIBAVUTIL_VERSION_INT >= XFF_INT_VERSION(52,0,0)
 #  define PIX_FMT_NONE      AV_PIX_FMT_NONE
 #  define PIX_FMT_YUV420P   AV_PIX_FMT_YUV420P
 #  define PIX_FMT_YUVJ420P  AV_PIX_FMT_YUVJ420P
@@ -169,7 +148,7 @@
 #  define PIX_FMT_VAAPI_MOCO AV_PIX_FMT_VAAPI_MOCO
 #endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(54,25,0)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(54,25,0)
 /* dxr3/ffmpeg_encoder */
 #  define CODEC_ID_MPEG1VIDEO AV_CODEC_ID_MPEG1VIDEO
 /* video_out/video_out_vaapi */
@@ -199,26 +178,54 @@
 #  define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000
 #endif
 
-#if LIBAVCODEC_VERSION_INT < AV_INT_VERSION(52,66,0)
-#  define avcodec_get_edge_width() (16)
-#elif LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(55,48,102)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(55,0,100)
+#  define XFF_AV_BUFFER 1
+#endif
+
+/* function aliases */
+
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(52,66,0)
+#  define XFF_EDGE_WIDTH() (16)
+#elif LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(55,48,102)
+#  define XFF_EDGE_WIDTH() avcodec_get_edge_width()
+#else
 /* edges not needed anymore supposedly */
-#  define avcodec_get_edge_width() (0)
+#  define XFF_EDGE_WIDTH() (0)
 #endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(55,0,100)
-#  define AV_BUFFER 1
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(53,8,0)
+#  define XFF_AVCODEC_INIT() avcodec_init()
+#else
+#  define XFF_AVCODEC_INIT() do {} while(0)
 #endif
 
-#if LIBAVCODEC_VERSION_INT < AV_INT_VERSION(55,63,100)
-#  define avcodec_free_context(pp) av_free(*(pp))
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(53,6,0)
+#  define XFF_ALLOC_CONTEXT() avcodec_alloc_context()
+#else
+#  define XFF_ALLOC_CONTEXT() avcodec_alloc_context3(NULL)
 #endif
 
-#if LIBAVCODEC_VERSION_INT < AV_INT_VERSION(54,59,100)
-#  define avcodec_free_frame(pp) av_free(*(pp))
-#elif LIBAVCODEC_VERSION_INT >= AV_INT_VERSION(55,45,101)
-#  define avcodec_alloc_frame() av_frame_alloc()
-#  define avcodec_free_frame(pp) av_frame_free(pp)
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(53,6,0)
+#  define XFF_AVCODEC_OPEN(ctx,codec) avcodec_open(ctx,codec)
+#else
+#  define XFF_AVCODEC_OPEN(ctx,codec) avcodec_open2(ctx, codec, NULL)
+#endif
+
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(55,63,100)
+#  define XFF_FREE_CONTEXT(pp) do {av_free(pp); pp = NULL;} while (0)
+#else
+#  define XFF_FREE_CONTEXT(pp) avcodec_free_context(&(pp))
+#endif
+
+#if LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(54,59,100)
+#  define XFF_ALLOC_FRAME() avcodec_alloc_frame()
+#  define XFF_FREE_FRAME(pp) do {av_free(pp); pp = NULL;} while (0)
+#elif LIBAVCODEC_VERSION_INT < XFF_INT_VERSION(55,45,101)
+#  define XFF_ALLOC_FRAME() avcodec_alloc_frame()
+#  define XFF_FREE_FRAME(pp) avcodec_free_frame(&(pp))
+#else
+#  define XFF_ALLOC_FRAME() av_frame_alloc()
+#  define XFF_FREE_FRAME(pp) av_frame_free(&(pp))
 #endif
 
 #endif /* XINE_AVCODEC_COMPAT_H */

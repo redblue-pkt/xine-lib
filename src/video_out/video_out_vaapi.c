@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Edgar Hucek <gimli|@dark-green.com>
- * Copyright (C) 2012-2014 xine developers
+ * Copyright (C) 2012-2016 xine developers
  *
  * This file is part of xine, a free video player.
  *
@@ -350,7 +350,7 @@ static int vaapi_check_status(vo_driver_t *this_gen, VAStatus vaStatus, const ch
 }
 
 /* Wrapper for ffmpeg avcodec_decode_video2 */
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
 static int guarded_avcodec_decode_video2(vo_frame_t *frame_gen, AVCodecContext *avctx, AVFrame *picture,
                                          int *got_picture_ptr, AVPacket *avpkt) {
 
@@ -2400,7 +2400,7 @@ static vo_frame_t *vaapi_alloc_frame (vo_driver_t *this_gen) {
   frame->vaapi_accel_data.profile_from_imgfmt       = &profile_from_imgfmt;
   frame->vaapi_accel_data.get_context               = &get_context;
 
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
   frame->vaapi_accel_data.avcodec_decode_video2     = &guarded_avcodec_decode_video2;
 #else
   frame->vaapi_accel_data.avcodec_decode_video      = &guarded_avcodec_decode_video;
