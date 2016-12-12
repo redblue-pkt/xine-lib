@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2015 the xine project
+ * Copyright (C) 2001-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -143,9 +143,9 @@ struct ff_video_decoder_s {
 
   xine_list_t       *dr1_frames;
 
-#if AVPALETTE == 1
+#if XFF_PALETTE == 1
   AVPaletteControl  palette_control;
-#elif AVPALETTE == 2 || AVPALETTE == 3
+#elif XFF_PALETTE == 2 || XFF_PALETTE == 3
   uint32_t          palette[256];
   int               palette_changed;
 #endif
@@ -192,7 +192,7 @@ struct ff_video_decoder_s {
 static void ff_check_colorspace (ff_video_decoder_t *this) {
   int i, cm, caps;
 
-#ifdef AVCODEC_HAS_COLORSPACE
+#ifdef XFF_AVCODEC_COLORSPACE
   cm = this->context->colorspace << 1;
 #else
   cm = 0;
@@ -202,7 +202,7 @@ static void ff_check_colorspace (ff_video_decoder_t *this) {
   i = this->context->pix_fmt;
   if (cm && ((i == PIX_FMT_YUVJ420P) || (i == PIX_FMT_YUVJ444P)))
     cm |= 1;
-#ifdef AVCODEC_HAS_COLORSPACE
+#ifdef XFF_AVCODEC_COLORSPACE
   if (this->context->color_range == AVCOL_RANGE_JPEG)
     cm |= 1;
 #endif
@@ -310,7 +310,7 @@ static void set_stream_info(ff_video_decoder_t *this) {
 }
 
 #ifdef ENABLE_DIRECT_RENDERING
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
 typedef struct {
   int                 refs;
   ff_video_decoder_t *this;
@@ -343,7 +343,7 @@ static void release_frame (void *saved_frame, uint8_t *data) {
 #endif
 
 /* called from ffmpeg to do direct rendering method 1 */
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
 static int get_buffer (AVCodecContext *context, AVFrame *av_frame, int flags)
 #else
 static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
@@ -351,7 +351,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
   {
   ff_video_decoder_t *this = (ff_video_decoder_t *)context->opaque;
   vo_frame_t *img;
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
   ff_saved_frame_t *ffsf;
 #endif
   int buf_width  = av_frame->width;
@@ -371,7 +371,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
 #endif
 
   /* multiple threads have individual contexts !! */
-#ifdef AVCODEC_HAS_COLORSPACE
+#ifdef XFF_AVCODEC_COLORSPACE
   if (context != this->context) {
     if (this->context->colorspace == 2) /* undefined */
       this->context->colorspace = context->colorspace;
@@ -412,12 +412,12 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
     av_frame->data[1] = NULL;
     av_frame->data[2] = NULL;
     av_frame->data[3] = NULL;
-#ifdef AVFRAMEAGE
+#ifdef XFF_FRAME_AGE
     av_frame->age = 1;
 #endif
     av_frame->reordered_opaque = context->reordered_opaque;
 
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     ffsf = calloc (1, sizeof (ff_saved_frame_t));
     if (!ffsf)
       return AVERROR (ENOMEM);
@@ -461,7 +461,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
         av_frame->data[0] = (void *)va_surface;//(void *)(uintptr_t)va_surface->va_surface_id;
         av_frame->data[3] = (void *)(uintptr_t)va_surface->va_surface_id;
       }
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
       ffsf->vo_frame = img;
 #endif
     } else {
@@ -471,7 +471,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
         av_frame->data[0] = (void *)va_surface;//(void *)(uintptr_t)va_surface->va_surface_id;
         av_frame->data[3] = (void *)(uintptr_t)va_surface->va_surface_id;
       }
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
       ffsf->va_surface = va_surface;
 #endif
     }
@@ -483,7 +483,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
     av_frame->linesize[2] = 0;
     av_frame->linesize[3] = 0;
 
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     /* Does this really work???? */
     av_frame->buf[0] = av_buffer_create (NULL, 0, release_frame, ffsf, 0);
     if (av_frame->buf[0])
@@ -530,7 +530,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
     av_frame->data[0]= NULL;
     av_frame->data[1]= NULL;
     av_frame->data[2]= NULL;
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     return avcodec_default_get_buffer2(context, av_frame, flags);
 #else
     return avcodec_default_get_buffer(context, av_frame);
@@ -548,7 +548,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
       av_frame->data[0]= NULL;
       av_frame->data[1]= NULL;
       av_frame->data[2]= NULL;
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
       return avcodec_default_get_buffer2(context, av_frame, flags);
 #else
       return avcodec_default_get_buffer(context, av_frame);
@@ -568,7 +568,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
                                             this->output_format,
                                             VO_BOTH_FIELDS|this->frame_flags);
 
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
   /* Sigh. Wrap vo image planes into AVBufferRefs. When ff unref's them, they unref our trigger.
     That one then fires image release. */
   ffsf = calloc (1, sizeof (ff_saved_frame_t));
@@ -627,7 +627,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
   /* We should really keep track of the ages of xine frames (see
    * avcodec_default_get_buffer in libavcodec/utils.c)
    * For the moment tell ffmpeg that every frame is new (age = bignumber) */
-#ifdef AVFRAMEAGE
+#ifdef XFF_FRAME_AGE
   av_frame->age = 256*256*256*64;
 #endif
 
@@ -639,7 +639,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
   return 0;
 }
 
-#ifndef AV_BUFFER
+#ifndef XFF_AV_BUFFER
 static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
   ff_video_decoder_t *this = (ff_video_decoder_t *)context->opaque;
 
@@ -681,7 +681,7 @@ static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
     avcodec_default_release_buffer(context, av_frame);
   }
 }
-#endif /* !AV_BUFFER */
+#endif /* !XFF_AV_BUFFER */
 #endif /* ENABLE_DR1 */
 
 #include "ff_video_list.h"
@@ -793,7 +793,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
 
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
-#ifdef AVCODEC_HAS_STREAM_CODEC_TAG
+#ifdef XFF_AVCODEC_STREAM_CODEC_TAG
   this->context->stream_codec_tag =
 #endif
   this->context->codec_tag =
@@ -808,7 +808,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
       /* We can crop. Fine. Lets allow decoders to paint over the frame edges.
          This will be slightly faster. And it is also a workaround for buggy
          v54 who likes to ignore EMU_EDGE for wmv2 and xvid. */
-      this->edge = avcodec_get_edge_width ();
+      this->edge = XFF_EDGE_WIDTH ();
     } else {
       /* Some codecs (eg rv10) copy flags in init so it's necessary to set
        * this flag here in case we are going to use direct rendering */
@@ -844,7 +844,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
   this->output_format = XINE_IMGFMT_YV12;
 #ifdef ENABLE_DIRECT_RENDERING
   if( this->codec->capabilities & CODEC_CAP_DR1 && this->class->enable_dri ) {
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     this->context->get_buffer2 = get_buffer;
     this->context->thread_safe_callbacks = 1;
     this->context->refcounted_frames = 1;
@@ -861,7 +861,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
   if( this->class->enable_vaapi ) {
     this->class->enable_dri = 1;
     this->output_format = XINE_IMGFMT_VAAPI;
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     this->context->get_buffer2 = get_buffer;
 #else
     this->context->get_buffer = get_buffer;
@@ -875,7 +875,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
 #endif /* ENABLE_VAAPI */
 
   pthread_mutex_lock(&ffmpeg_lock);
-  if (avcodec_open (this->context, this->codec) < 0) {
+  if (XFF_AVCODEC_OPEN (this->context, this->codec) < 0) {
     pthread_mutex_unlock(&ffmpeg_lock);
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
              _("ffmpeg_video_dec: couldn't open decoder\n"));
@@ -891,7 +891,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
     /* VC1 codec must be re-opened with correct width and height. */
     avcodec_close(this->context);
 
-    if (avcodec_open (this->context, this->codec) < 0) {
+    if (XFF_AVCODEC_OPEN (this->context, this->codec) < 0) {
       pthread_mutex_unlock(&ffmpeg_lock);
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
 	       _("ffmpeg_video_dec: couldn't open decoder (pass 2)\n"));
@@ -955,7 +955,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
   }
   }
 
-#ifdef AVCODEC_HAS_REORDERED_OPAQUE
+#ifdef XFF_AVCODEC_REORDERED_OPAQUE
   /* dont want initial AV_NOPTS_VALUE here */
   this->context->reordered_opaque = 0;
 #endif
@@ -1392,7 +1392,7 @@ static int ff_vc1_find_header(ff_video_decoder_t *this, buf_element_t *buf)
 
     lprintf("ff_video_decoder: found VC1 sequence header\n");
 
-#if AVPARSE > 1
+#if XFF_PARSE > 1
     AVCodecParserContext *parser_context;
     uint8_t *outbuf;
     int      outsize;
@@ -1418,7 +1418,7 @@ static int ff_vc1_find_header(ff_video_decoder_t *this, buf_element_t *buf)
     this->bih.biHeight = this->context->height;
 
     av_parser_close(parser_context);
-#endif /* AVPARSE > 1 */
+#endif /* XFF_PARSE > 1 */
 
     return 1;
   }
@@ -1522,7 +1522,7 @@ static void ff_handle_header_buffer (ff_video_decoder_t *this, buf_element_t *bu
       case BUF_VIDEO_RV40:
         this->bih.biWidth  = _X_BE_16(&this->buf[12]);
         this->bih.biHeight = _X_BE_16(&this->buf[14]);
-#ifdef AVCODEC_HAS_SUB_ID
+#ifdef XFF_AVCODEC_SUB_ID
         this->context->sub_id = _X_BE_32(&this->buf[30]);
 #endif
         this->context->extradata_size = this->size - 26;
@@ -1590,7 +1590,7 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
     unsigned int i;
     palette_entry_t *demuxer_palette = (palette_entry_t *)buf->decoder_info_ptr[2];
 
-#if AVPALETTE == 1
+#if XFF_PALETTE == 1
     AVPaletteControl *decoder_palette = &this->palette_control;
 
     lprintf ("BUF_SPECIAL_PALETTE\n");
@@ -1603,7 +1603,7 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
     decoder_palette->palette_changed = 1;
     this->context->palctrl = decoder_palette;
 
-#elif AVPALETTE == 2 || AVPALETTE == 3
+#elif XFF_PALETTE == 2 || XFF_PALETTE == 3
     lprintf ("BUF_SPECIAL_PALETTE\n");
     for (i = 0; i < buf->decoder_info[2]; i++) {
       this->palette[i] =
@@ -1712,7 +1712,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
     uint8_t *current;
     int next_flush;
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     int need_unref = 0;
 #endif
 
@@ -1751,20 +1751,20 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
     }
 
     /* skip decoding b frames if too late */
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
     this->context->skip_frame = (this->skipframes > 0) ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
 #else
     this->context->hurry_up = (this->skipframes > 0);
 #endif
 
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     if (need_unref) {
       av_frame_unref (this->av_frame);
       need_unref = 0;
     }
 #endif
     lprintf("avcodec_decode_video: size=%d\n", this->mpeg_parser->buffer_size);
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
     AVPacket avpkt;
     av_init_packet(&avpkt);
     avpkt.data = (uint8_t *)this->mpeg_parser->chunk_buffer;
@@ -1793,7 +1793,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
                                 this->mpeg_parser->buffer_size);
     }
 #endif
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     need_unref = 1;
 #endif
     lprintf("avcodec_decode_video: decoded_size=%d, got_picture=%d\n",
@@ -1873,7 +1873,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
     } else {
 
       if (
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
 	  this->context->skip_frame != AVDISCARD_DEFAULT
 #else
 	  this->context->hurry_up
@@ -1893,7 +1893,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
         img->free(img);
       }
     }
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     if (need_unref) {
       av_frame_unref (this->av_frame);
       need_unref = 0;
@@ -1905,8 +1905,8 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 static void ff_postprocess (ff_video_decoder_t *this, vo_frame_t *img) {
   int qstride, qtype;
   int8_t *qtable;
-#ifdef AV_BUFFER
-# if LIBAVUTIL_VERSION_INT < AV_INT_VERSION(53,0,0)
+#ifdef XFF_AV_BUFFER
+# if LIBAVUTIL_VERSION_INT < XFF_INT_VERSION(53,0,0)
   qtable = av_frame_get_qp_table (this->av_frame, &qstride, &qtype);
 # else
   /* Why should they keep these long deprecated fields, and remove
@@ -1992,7 +1992,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
     int         offset = 0;
     int         codec_type = buf->type & 0xFFFF0000;
     int         video_step_to_use = this->video_step;
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     int         need_unref = 0;
 #endif
 
@@ -2010,25 +2010,25 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         got_picture = 0;
       } else {
         /* skip decoding b frames if too late */
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
 	this->context->skip_frame = (this->skipframes > 0) ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
 #else
         this->context->hurry_up = (this->skipframes > 0);
 #endif
         lprintf("buffer size: %d\n", this->size);
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
         if (need_unref) {
           av_frame_unref (this->av_frame);
           need_unref = 0;
         }
 #endif
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
 	AVPacket avpkt;
 	av_init_packet(&avpkt);
 	avpkt.data = (uint8_t *)&chunk_buf[offset];
 	avpkt.size = this->size;
 	avpkt.flags = AV_PKT_FLAG_KEY;
-# if AVPALETTE == 2 || AVPALETTE == 3
+# if XFF_PALETTE == 2 || XFF_PALETTE == 3
 	if (this->palette_changed) {
 	  uint8_t *sd = av_packet_new_side_data (&avpkt, AV_PKT_DATA_PALETTE, 256 * 4);
 	  if (sd)
@@ -2045,18 +2045,18 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 	len = avcodec_decode_video2 (this->context, this->av_frame,
 				     &got_picture, &avpkt);
 	}
-# if AVPALETTE == 2 || AVPALETTE == 3
+# if XFF_PALETTE == 2 || XFF_PALETTE == 3
 	if (this->palette_changed) {
 	  /* Prevent freeing our data buffer */
 	  avpkt.data = NULL;
 	  avpkt.size = 0;
-#  if AVPALETTE == 2
+#  if XFF_PALETTE == 2
 	  /* TJ. Oh dear and sigh.
 	      AVPacket side data handling is broken even in ffmpeg 1.1.1 - see avcodec/avpacket.c
 	      The suggested av_free_packet () would leave a memory leak here, and
 	      ff_packet_free_side_data () is private. */
 	  av_destruct_packet (&avpkt);
-#  else /* AVPALETTE == 3 */
+#  else /* XFF_PALETTE == 3 */
 	  av_free_packet (&avpkt);
 #  endif
 	  this->palette_changed = 0;
@@ -2076,7 +2076,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
                                     this->size);
 	}
 #endif
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
         need_unref = 1;
 #endif
         /* reset consumed pts value */
@@ -2284,7 +2284,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 
     this->assume_bad_field_picture = !got_one_picture;
 
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     if (need_unref) {
       av_frame_unref (this->av_frame);
       need_unref = 0;
@@ -2361,7 +2361,7 @@ static void ff_flush_internal (ff_video_decoder_t *this, int display) {
   this->state = STATE_FLUSHED;
 
   while (1) {
-#if AVVIDEO > 1
+#if XFF_VIDEO > 1
     AVPacket avpkt;
     av_init_packet (&avpkt);
     avpkt.data  = NULL;
@@ -2385,7 +2385,7 @@ static void ff_flush_internal (ff_video_decoder_t *this, int display) {
       len = avcodec_decode_video (this->context, this->av_frame2, &got_picture, NULL, 0);
 #endif
     if (len < 0 || !got_picture || !this->av_frame2->data[0]) {
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
       av_frame_unref (this->av_frame2);
 #endif
       break;
@@ -2393,7 +2393,7 @@ static void ff_flush_internal (ff_video_decoder_t *this, int display) {
 
     frames++;
     if (!display) {
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
       av_frame_unref (this->av_frame2);
 #endif
       continue;
@@ -2484,7 +2484,7 @@ static void ff_flush_internal (ff_video_decoder_t *this, int display) {
     if (free_img)
       img->free (img);
 
-#ifdef AV_BUFFER
+#ifdef XFF_AV_BUFFER
     av_frame_unref (this->av_frame2);
 #endif
   }
@@ -2646,13 +2646,13 @@ static void ff_dispose (video_decoder_t *this_gen) {
   if (this->context) {
     _x_freep (&this->context->extradata);
     this->context->extradata_size = 0;
-    avcodec_free_context (&this->context);
+    XFF_FREE_CONTEXT (this->context);
   }
 
   if( this->av_frame )
-    avcodec_free_frame( &this->av_frame );
+    XFF_FREE_FRAME( this->av_frame );
   if (this->av_frame2)
-    avcodec_free_frame (&this->av_frame2);
+    XFF_FREE_FRAME (this->av_frame2);
 
   if (this->buf)
     free(this->buf);
@@ -2694,11 +2694,11 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
   this->stream                            = stream;
   this->class                             = (ff_video_class_t *) class_gen;
 
-  this->av_frame          = avcodec_alloc_frame();
-  this->av_frame2         = avcodec_alloc_frame();
-  this->context           = avcodec_alloc_context();
+  this->av_frame          = XFF_ALLOC_FRAME();
+  this->av_frame2         = XFF_ALLOC_FRAME();
+  this->context           = XFF_ALLOC_CONTEXT();
   this->context->opaque   = this;
-#if AVPALETTE == 1
+#if XFF_PALETTE == 1
   this->context->palctrl  = NULL;
 #endif
 

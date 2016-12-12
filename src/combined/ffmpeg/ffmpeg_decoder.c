@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2013 the xine project
+ * Copyright (C) 2001-2016 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -42,7 +42,7 @@ pthread_mutex_t ffmpeg_lock;
 
 void init_once_routine(void) {
   pthread_mutex_init(&ffmpeg_lock, NULL);
-  avcodec_init();
+  XFF_AVCODEC_INIT();
   avcodec_register_all();
 
 #ifdef HAVE_AVFORMAT
