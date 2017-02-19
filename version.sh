@@ -39,7 +39,13 @@ XINE_LT_CURRENT=9
 XINE_LT_REVISION=0
 XINE_LT_AGE=7
 
-test -f "`dirname $0`/.cvsversion" && XINE_VERSION_SUFFIX="hg"
+if [ -f "`dirname $0`/.cvsversion" ]; then
+    HG_REV="`hg summary | sed -e '1s/^parent: \([0-9]*\):.*$/\1/;1q'`"
+    HG_DATE_UNIX="`hg export -r ${HG_REV} | sed -n '3s/^# Date \([0-9]*\) .*$/\1/p;3q'`"
+    HG_DATE="`date -u +%Y%m%d --date=@${HG_DATE_UNIX}`"
+    HG_DIRTY=`hg out 2>/dev/null | grep -q changeset || hg sum | grep -q 'commit:.*modified' && echo "+dirty"`
+    XINE_VERSION_SUFFIX="-${HG_DATE}hg${HG_REV}${HG_DIRTY}"
+fi
 XINE_VERSION_SPEC="${XINE_VERSION_MAJOR}.${XINE_VERSION_MINOR}.${XINE_VERSION_SUB}${XINE_VERSION_PATCH}${XINE_VERSION_SUFFIX}"
 
 ####
