@@ -37,8 +37,7 @@
 #include <xine/video_out.h>
 #include <xine/video_overlay.h>
 
-#define XINE_HDMV_TRACE(x...) printf(x)
-/*#define XINE_HDMV_TRACE(x...) */
+#define XINE_HDMV_TRACE lprintf
 #define XINE_HDMV_ERROR(x...) fprintf(stderr, "spuhdmv: " x)
 /*#define XINE_HDMV_ERROR(x...) lprintf(x) */
 
