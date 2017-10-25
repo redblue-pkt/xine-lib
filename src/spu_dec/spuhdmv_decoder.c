@@ -31,6 +31,11 @@
 #include <unistd.h>
 #include <string.h>
 
+#define LOG_MODULE "spu_hdmv"
+/*
+#define LOG
+*/
+
 #include <xine/xine_internal.h>
 #include <xine/buffer.h>
 #include <xine/xineutils.h>
@@ -38,8 +43,6 @@
 #include <xine/video_overlay.h>
 
 #define XINE_HDMV_TRACE lprintf
-#define XINE_HDMV_ERROR(x...) fprintf(stderr, "spuhdmv: " x)
-/*#define XINE_HDMV_ERROR(x...) lprintf(x) */
 
 #ifndef MAX
 #  define MAX(a,b) (a>b)?(a):(b)
@@ -257,7 +260,7 @@ static void segbuf_parse_segment_header(segment_buffer_t *buf)
     if ( buf->segment_type < 0x14 ||
          ( buf->segment_type > 0x18 &&
            buf->segment_type != 0x80)) {
-      XINE_HDMV_ERROR("unknown segment type 0x%02x, resetting\n", buf->segment_type);
+      XINE_HDMV_TRACE("unknown segment type 0x%02x, resetting\n", buf->segment_type);
       segbuf_reset(buf);
     }
   } else {
@@ -317,7 +320,7 @@ static uint8_t segbuf_get_u8(segment_buffer_t *buf)
 {
   if (!(buf->error = ++buf->segment_data > buf->segment_end))
     return buf->segment_data[-1];
-  XINE_HDMV_ERROR("segbuf_get_u8: read failed (end of segment reached) !\n");
+  XINE_HDMV_TRACE("segbuf_get_u8: read failed (end of segment reached) !\n");
   return 0;
 }
 
@@ -349,7 +352,7 @@ static subtitle_clut_t *segbuf_decode_palette(segment_buffer_t *buf)
     return NULL;
 
   if (len % 5) {
-    XINE_HDMV_ERROR("  decode_palette: segment size error (%zd ; expected %zd for %zd entries)\n",
+    XINE_HDMV_TRACE("  decode_palette: segment size error (%zd ; expected %zd for %zd entries)\n",
                     len, (5 * entries), entries);
     return NULL;
   }
@@ -520,7 +523,7 @@ static subtitle_object_t *segbuf_decode_object(segment_buffer_t *buf, subtitle_o
 
   /* store partial RLE data in HDMV format */
   if (objects->raw_data_size < objects->raw_data_len + segbuf_data_length(buf)) {
-    XINE_HDMV_ERROR("object larger than object size !\n");
+    XINE_HDMV_TRACE("object larger than object size !\n");
     return NULL;
   }
   memcpy(objects->raw_data + objects->raw_data_len, buf->segment_data, segbuf_data_length(buf));
@@ -911,7 +914,8 @@ static void update_overlays(spuhdmv_decoder_t *this)
 
       for (i = 0; i < pseg->object_number; i++) {
         if (!cobj) {
-          XINE_HDMV_ERROR("show_overlays: composition object %d missing !\n", i);
+          xprintf (this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+                   "Error displaying overlay %d: missing composition object\n", i);
         } else {
           show_overlay(this, cobj, pseg->palette_id_ref, i, pseg->pts, !pseg->shown);
           cobj = cobj->next;
@@ -927,25 +931,27 @@ static void update_overlays(spuhdmv_decoder_t *this)
 
 static void decode_segment(spuhdmv_decoder_t *this)
 {
+  int err = 0;
+
   XINE_HDMV_TRACE("*** new segment, pts %010"PRId64": 0x%02x (%8d bytes)\n",
                   this->pts, this->buf->segment_type, this->buf->segment_len);
 
   switch (segbuf_segment_type(this->buf)) {
   case SEGTYPE_PALETTE:
     XINE_HDMV_TRACE("  segment: PALETTE\n");
-    decode_palette(this);
+    err = decode_palette(this);
     break;
   case SEGTYPE_OBJECT:
     XINE_HDMV_TRACE("  segment: OBJECT\n");
-    decode_object(this);
+    err = decode_object(this);
     break;
   case SEGTYPE_PRESENTATION_SEGMENT:
     XINE_HDMV_TRACE("  segment: PRESENTATION SEGMENT\n");
-    decode_presentation_segment(this);
+    err = decode_presentation_segment(this);
     break;
   case SEGTYPE_WINDOW_DEFINITION:
     XINE_HDMV_TRACE("  segment: WINDOW DEFINITION\n");
-    decode_window_definition(this);
+    err = decode_window_definition(this);
     break;
   case SEGTYPE_INTERACTIVE:
     XINE_HDMV_TRACE("  segment: INTERACTIVE\n");
@@ -958,11 +964,13 @@ static void decode_segment(spuhdmv_decoder_t *this)
 #endif
     break;
   default:
-    XINE_HDMV_ERROR("  segment type 0x%x unknown, skipping\n", segbuf_segment_type(this->buf));
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+             "Unknown segment type 0x%x, skipping\n", segbuf_segment_type(this->buf));
     break;
   }
-  if (this->buf->error) {
-    XINE_HDMV_ERROR("*** DECODE ERROR ***\n");
+  if (err || this->buf->error) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+             "Error decoding segment 0x%x\n", segbuf_segment_type(this->buf));
   }
 
   update_overlays (this);
