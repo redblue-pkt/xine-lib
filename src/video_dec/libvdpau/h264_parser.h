@@ -88,25 +88,23 @@ struct h264_parser {
     xine_t *xine;
 };
 
-static int parse_nal(const uint8_t *buf, int buf_len, struct h264_parser *parser,
+int parse_nal(const uint8_t *buf, int buf_len, struct h264_parser *parser,
     struct coded_picture **completed_picture);
 
-static int seek_for_nal(uint8_t *buf, int buf_len, struct h264_parser *parser);
-
-static struct h264_parser* init_parser(xine_t *xine);
+struct h264_parser* init_parser(xine_t *xine);
 #if 0
-static void reset_parser(struct h264_parser *parser);
+void reset_parser(struct h264_parser *parser);
 #endif
-static void free_parser(struct h264_parser *parser);
-static int parse_frame(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len,
+void free_parser(struct h264_parser *parser);
+int parse_frame(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len,
     int64_t pts,
     const void **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic);
 
 /* this has to be called after decoding the frame delivered by parse_frame,
  * but before adding a decoded frame to the dpb.
  */
-static void process_mmc_operations(struct h264_parser *parser, struct coded_picture *picture);
+void process_mmc_operations(struct h264_parser *parser, struct coded_picture *picture);
 
-static void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len);
+void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len);
 
 #endif

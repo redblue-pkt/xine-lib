@@ -84,7 +84,7 @@ struct buf_reader
   int cur_offset;
 };
 
-static struct h264_parser* init_parser();
+//static struct h264_parser* init_parser();
 
 static inline uint32_t read_bits(struct buf_reader *buf, int len);
 static uint32_t read_exp_golomb(struct buf_reader *buf);
@@ -135,6 +135,9 @@ static void parse_pred_weight_table(struct buf_reader *buf, struct slice_header 
     struct h264_parser *parser);
 static void parse_dec_ref_pic_marking(struct buf_reader *buf,
     struct nal_unit *slc_nal);
+
+static int seek_for_nal(uint8_t *buf, int buf_len, struct h264_parser *parser);
+
 
 /* here goes the parser implementation */
 
@@ -1582,7 +1585,7 @@ static void parse_dec_ref_pic_marking(struct buf_reader *buf,
 
 /* ----------------- NAL parser ----------------- */
 
-static struct h264_parser* init_parser(xine_t *xine)
+struct h264_parser* init_parser(xine_t *xine)
 {
   struct h264_parser *parser = calloc(1, sizeof(struct h264_parser));
   parser->pic = create_coded_picture();
@@ -1623,7 +1626,7 @@ static void reset_parser(struct h264_parser *parser)
 }
 #endif
 
-static void free_parser(struct h264_parser *parser)
+void free_parser(struct h264_parser *parser)
 {
   dpb_free_all(parser->dpb);
   release_dpb(parser->dpb);
@@ -1632,7 +1635,7 @@ static void free_parser(struct h264_parser *parser)
   free(parser);
 }
 
-static void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len)
+void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len)
 {
   struct buf_reader bufr;
 
@@ -1690,7 +1693,7 @@ static void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf
   nal_buffer_append(parser->sps_buffer, nal);
 }
 
-static void process_mmc_operations(struct h264_parser *parser, struct coded_picture *picture)
+void process_mmc_operations(struct h264_parser *parser, struct coded_picture *picture)
 {
   if (picture->flag_mask & REFERENCE) {
     parser->prev_pic_order_cnt_lsb
@@ -1709,7 +1712,7 @@ static void process_mmc_operations(struct h264_parser *parser, struct coded_pict
   }
 }
 
-static int parse_frame(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len,
+int parse_frame(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len,
     int64_t pts,
     const void **ret_buf, uint32_t *ret_len, struct coded_picture **ret_pic)
 {
@@ -1841,7 +1844,7 @@ static int parse_frame(struct h264_parser *parser, const uint8_t *inbuf, int inb
  *         1: NAL is the beginning of a new coded picture
  *         3: NAL is marked as END_OF_SEQUENCE
  */
-static int parse_nal(const uint8_t *buf, int buf_len, struct h264_parser *parser,
+int parse_nal(const uint8_t *buf, int buf_len, struct h264_parser *parser,
     struct coded_picture **completed_picture)
 {
   int ret = 0;

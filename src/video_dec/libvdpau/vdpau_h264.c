@@ -45,9 +45,6 @@
 #include "h264_parser.h"
 #include "dpb.h"
 #include "cpb.h"
-#include "dpb.c"
-#include "nal.c"
-#include "h264_parser.c"
 #include "group_vdpau.h"
 
 //#define DEBUG_H264

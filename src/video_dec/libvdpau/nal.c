@@ -31,7 +31,7 @@
 #include "nal.h"
 #include <xine/xine_internal.h>
 
-static struct nal_buffer* create_nal_buffer(uint8_t max_size)
+struct nal_buffer* create_nal_buffer(uint8_t max_size)
 {
     struct nal_buffer *nal_buffer = calloc(1, sizeof(struct nal_buffer));
     nal_buffer->max_size = max_size;
@@ -42,7 +42,7 @@ static struct nal_buffer* create_nal_buffer(uint8_t max_size)
 /**
  * destroys a nal buffer. all referenced nals are released
  */
-static void free_nal_buffer(struct nal_buffer *nal_buffer)
+void free_nal_buffer(struct nal_buffer *nal_buffer)
 {
   struct nal_unit *nal = nal_buffer->first;
 
@@ -58,7 +58,7 @@ static void free_nal_buffer(struct nal_buffer *nal_buffer)
 /**
  * appends a nal unit to the end of the buffer
  */
-static void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *nal)
+void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *nal)
 {
   if(nal_buffer->used == nal_buffer->max_size) {
     nal_buffer_remove(nal_buffer, nal_buffer->first);
@@ -82,7 +82,7 @@ static void nal_buffer_append(struct nal_buffer *nal_buffer, struct nal_unit *na
   }
 }
 
-static void nal_buffer_remove(struct nal_buffer *nal_buffer, struct nal_unit *nal)
+void nal_buffer_remove(struct nal_buffer *nal_buffer, struct nal_unit *nal)
 {
   if (nal == nal_buffer->first && nal == nal_buffer->last) {
     nal_buffer->first = nal_buffer->last = NULL;
@@ -109,7 +109,7 @@ static void nal_buffer_remove(struct nal_buffer *nal_buffer, struct nal_unit *na
 }
 
 #if 0
-static void nal_buffer_flush(struct nal_buffer *nal_buffer)
+void nal_buffer_flush(struct nal_buffer *nal_buffer)
 {
   while(nal_buffer->used > 0) {
     nal_buffer_remove(nal_buffer, nal_buffer->first);
@@ -120,7 +120,7 @@ static void nal_buffer_flush(struct nal_buffer *nal_buffer)
 /**
  * returns the last element in the buffer
  */
-static struct nal_unit *nal_buffer_get_last(struct nal_buffer *nal_buffer)
+struct nal_unit *nal_buffer_get_last(struct nal_buffer *nal_buffer)
 {
   return nal_buffer->last;
 }
@@ -129,7 +129,7 @@ static struct nal_unit *nal_buffer_get_last(struct nal_buffer *nal_buffer)
  * get a nal unit from a nal_buffer from it's
  * seq parameter_set_id
  */
-static struct nal_unit* nal_buffer_get_by_sps_id(struct nal_buffer *nal_buffer,
+struct nal_unit* nal_buffer_get_by_sps_id(struct nal_buffer *nal_buffer,
     uint32_t seq_parameter_set_id)
 {
   struct nal_unit *nal = nal_buffer->last;
@@ -153,7 +153,7 @@ static struct nal_unit* nal_buffer_get_by_sps_id(struct nal_buffer *nal_buffer,
  * get a nal unit from a nal_buffer from it's
  * pic parameter_set_id
  */
-static struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
+struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
     uint32_t pic_parameter_set_id)
 {
   struct nal_unit *nal = nal_buffer->last;
@@ -176,7 +176,7 @@ static struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
 /**
  * create a new nal unit, with a lock_counter of 1
  */
-static struct nal_unit* create_nal_unit()
+struct nal_unit* create_nal_unit()
 {
   struct nal_unit *nal = calloc(1, sizeof(struct nal_unit));
   nal->lock_counter = 1;
@@ -184,12 +184,12 @@ static struct nal_unit* create_nal_unit()
   return nal;
 }
 
-static void lock_nal_unit(struct nal_unit *nal)
+void lock_nal_unit(struct nal_unit *nal)
 {
   nal->lock_counter++;
 }
 
-static void release_nal_unit(struct nal_unit *nal)
+void release_nal_unit(struct nal_unit *nal)
 {
   if(!nal)
     return;
@@ -205,7 +205,7 @@ static void release_nal_unit(struct nal_unit *nal)
 /**
  * creates a copy of a nal unit with a single lock
  */
-static void copy_nal_unit(struct nal_unit *dest, struct nal_unit *src)
+void copy_nal_unit(struct nal_unit *dest, struct nal_unit *src)
 {
   /* size without pps, sps and slc units: */
   int size = sizeof(struct nal_unit);

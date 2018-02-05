@@ -40,7 +40,7 @@
 
 //#define DEBUG_DPB
 
-static int dp_top_field_first(struct decoded_picture *decoded_pic)
+int dp_top_field_first(struct decoded_picture *decoded_pic)
 {
   int top_field_first = 1;
 
@@ -83,7 +83,7 @@ static int dp_top_field_first(struct decoded_picture *decoded_pic)
 
 static void free_decoded_picture(struct decoded_picture *pic);
 
-static struct decoded_picture* init_decoded_picture(struct coded_picture *cpic, vo_frame_t *img)
+struct decoded_picture* init_decoded_picture(struct coded_picture *cpic, vo_frame_t *img)
 {
   struct decoded_picture *pic = calloc(1, sizeof(struct decoded_picture));
 
@@ -96,7 +96,7 @@ static struct decoded_picture* init_decoded_picture(struct coded_picture *cpic, 
   return pic;
 }
 
-static void decoded_pic_check_reference(struct decoded_picture *pic)
+void decoded_pic_check_reference(struct decoded_picture *pic)
 {
   int i;
   for(i = 0; i < 2; i++) {
@@ -114,7 +114,7 @@ static void decoded_pic_check_reference(struct decoded_picture *pic)
   }
 }
 
-static void decoded_pic_add_field(struct decoded_picture *pic,
+void decoded_pic_add_field(struct decoded_picture *pic,
     struct coded_picture *cpic)
 {
   pic->coded_pic[1] = cpic;
@@ -122,7 +122,7 @@ static void decoded_pic_add_field(struct decoded_picture *pic,
   decoded_pic_check_reference(pic);
 }
 
-static void release_decoded_picture(struct decoded_picture *pic)
+void release_decoded_picture(struct decoded_picture *pic)
 {
   if(!pic)
     return;
@@ -135,7 +135,7 @@ static void release_decoded_picture(struct decoded_picture *pic)
   }
 }
 
-static void lock_decoded_picture(struct decoded_picture *pic)
+void lock_decoded_picture(struct decoded_picture *pic)
 {
   if(!pic)
     return;
@@ -169,7 +169,7 @@ static void free_decoded_picture(struct decoded_picture *pic)
  * ----------------------------------------------------------------------------
  */
 
-static struct dpb* create_dpb(void)
+struct dpb* create_dpb(void)
 {
     struct dpb *dpb = calloc(1, sizeof(struct dpb));
 
@@ -182,7 +182,7 @@ static struct dpb* create_dpb(void)
     return dpb;
 }
 
-static int dpb_total_frames(struct dpb *dpb)
+int dpb_total_frames(struct dpb *dpb)
 {
   int num_frames = xine_list_size(dpb->output_list);
 
@@ -199,7 +199,7 @@ static int dpb_total_frames(struct dpb *dpb)
   return num_frames;
 }
 
-static void release_dpb(struct dpb *dpb)
+void release_dpb(struct dpb *dpb)
 {
   if(!dpb)
     return;
@@ -212,7 +212,7 @@ static void release_dpb(struct dpb *dpb)
   free(dpb);
 }
 
-static struct decoded_picture* dpb_get_next_out_picture(struct dpb *dpb, int do_flush)
+struct decoded_picture* dpb_get_next_out_picture(struct dpb *dpb, int do_flush)
 {
   struct decoded_picture *pic = NULL;;
   struct decoded_picture *outpic = NULL;
@@ -251,7 +251,7 @@ static struct decoded_picture* dpb_get_next_out_picture(struct dpb *dpb, int do_
   return outpic;
 }
 
-static struct decoded_picture* dpb_get_picture(struct dpb *dpb, uint32_t picnum)
+struct decoded_picture* dpb_get_picture(struct dpb *dpb, uint32_t picnum)
 {
   struct decoded_picture *pic = NULL;
 
@@ -271,7 +271,7 @@ static struct decoded_picture* dpb_get_picture(struct dpb *dpb, uint32_t picnum)
   return NULL;
 }
 
-static struct decoded_picture* dpb_get_picture_by_ltpn(struct dpb *dpb,
+struct decoded_picture* dpb_get_picture_by_ltpn(struct dpb *dpb,
     uint32_t longterm_picnum)
 {
   struct decoded_picture *pic = NULL;
@@ -292,7 +292,7 @@ static struct decoded_picture* dpb_get_picture_by_ltpn(struct dpb *dpb,
   return NULL;
 }
 
-static struct decoded_picture* dpb_get_picture_by_ltidx(struct dpb *dpb,
+struct decoded_picture* dpb_get_picture_by_ltidx(struct dpb *dpb,
     uint32_t longterm_idx)
 {
   struct decoded_picture *pic = NULL;
@@ -349,7 +349,7 @@ int dpb_set_unused_ref_picture_byltpn(struct dpb *dpb, uint32_t longterm_picnum)
   return -1;
 }
 
-static int dpb_set_unused_ref_picture_bylidx(struct dpb *dpb, uint32_t longterm_idx)
+int dpb_set_unused_ref_picture_bylidx(struct dpb *dpb, uint32_t longterm_idx)
 {
   struct decoded_picture *pic = NULL;
 
@@ -385,7 +385,7 @@ static int dpb_set_unused_ref_picture_bylidx(struct dpb *dpb, uint32_t longterm_
   return -1;
 }
 
-static int dpb_set_unused_ref_picture_lidx_gt(struct dpb *dpb, int32_t longterm_idx)
+int dpb_set_unused_ref_picture_lidx_gt(struct dpb *dpb, int32_t longterm_idx)
 {
   struct decoded_picture *pic = NULL;
 
@@ -419,7 +419,7 @@ static int dpb_set_unused_ref_picture_lidx_gt(struct dpb *dpb, int32_t longterm_
 }
 
 
-static int dpb_unmark_picture_delayed(struct dpb *dpb, struct decoded_picture *pic)
+int dpb_unmark_picture_delayed(struct dpb *dpb, struct decoded_picture *pic)
 {
   if(!pic)
     return -1;
@@ -435,7 +435,7 @@ static int dpb_unmark_picture_delayed(struct dpb *dpb, struct decoded_picture *p
   return -1;
 }
 
-static int dpb_unmark_reference_picture(struct dpb *dpb, struct decoded_picture *pic)
+int dpb_unmark_reference_picture(struct dpb *dpb, struct decoded_picture *pic)
 {
   if(!pic)
     return -1;
@@ -473,7 +473,7 @@ static int dpb_unmark_reference_picture(struct dpb *dpb, struct decoded_picture 
 }*/
 
 
-static int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_t num_ref_frames)
+int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_t num_ref_frames)
 {
 #if 0
   /* this should never happen */
@@ -522,7 +522,7 @@ static int dpb_add_picture(struct dpb *dpb, struct decoded_picture *pic, uint32_
   return 0;
 }
 
-static int dpb_flush(struct dpb *dpb)
+int dpb_flush(struct dpb *dpb)
 {
   struct decoded_picture *pic = NULL;
 
@@ -541,7 +541,7 @@ static int dpb_flush(struct dpb *dpb)
   return 0;
 }
 
-static void dpb_free_all(struct dpb *dpb)
+void dpb_free_all(struct dpb *dpb)
 {
   xine_list_iterator_t ite = xine_list_front(dpb->output_list);
   while(ite) {
@@ -562,7 +562,7 @@ static void dpb_free_all(struct dpb *dpb)
   }
 }
 
-static void dpb_clear_all_pts(struct dpb *dpb)
+void dpb_clear_all_pts(struct dpb *dpb)
 {
   xine_list_iterator_t ite = xine_list_front(dpb->output_list);
   while(ite) {
@@ -573,7 +573,7 @@ static void dpb_clear_all_pts(struct dpb *dpb)
   }
 }
 
-static int fill_vdpau_reference_list(struct dpb *dpb, VdpReferenceFrameH264 *reflist)
+int fill_vdpau_reference_list(struct dpb *dpb, VdpReferenceFrameH264 *reflist)
 {
   struct decoded_picture *pic = NULL;
 
