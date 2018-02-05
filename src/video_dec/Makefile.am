@@ -9,7 +9,6 @@ AM_CFLAGS  = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
 AM_LDFLAGS = $(xineplug_ldflags)
 
 EXTRA_DIST = foovideo.c
-EXTRA_DIST += libvdpau/nal.c libvdpau/dpb.c libvdpau/h264_parser.c
 
 if ENABLE_IMAGEMAGICK
 image_module = xineplug_decode_image.la
@@ -129,8 +128,11 @@ xineplug_decode_vdpau_la_SOURCES = \
 	libvdpau/bits_reader.h \
 	libvdpau/cpb.h \
 	libvdpau/dpb.h \
+	libvdpau/dpb.c \
 	libvdpau/h264_parser.h \
+	libvdpau/h264_parser.c \
 	libvdpau/nal.h \
+	libvdpau/nal.c \
 	libvdpau/vdpau_h264.c \
 	libvdpau/vdpau_mpeg12.c \
 	libvdpau/vdpau_vc1.c \
