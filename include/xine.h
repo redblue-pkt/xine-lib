@@ -2200,12 +2200,13 @@ void          xine_event_free (xine_event_t *event) XINE_PROTECTED;
  * the specified queue, call your callback on each of them
  * and will then free the event when your callback returns
  *
+ * @return 0 on error
  */
 typedef void (*xine_event_listener_cb_t) (void *user_data,
 					  const xine_event_t *event);
-void xine_event_create_listener_thread (xine_event_queue_t *queue,
-					xine_event_listener_cb_t callback,
-					void *user_data) XINE_PROTECTED;
+int xine_event_create_listener_thread (xine_event_queue_t *queue,
+                                       xine_event_listener_cb_t callback,
+                                       void *user_data) XINE_PROTECTED;
 
 /*
  * send an event to all queues
