@@ -245,19 +245,25 @@ static void *listener_loop (void *queue_gen) {
 }
 
 
-void xine_event_create_listener_thread (xine_event_queue_t *queue,
-					xine_event_listener_cb_t callback,
-					void *user_data) {
+int xine_event_create_listener_thread (xine_event_queue_t *queue,
+                                       xine_event_listener_cb_t callback,
+                                       void *user_data) {
   int err;
 
   queue->listener_thread = malloc (sizeof (pthread_t));
   queue->callback        = callback;
   queue->user_data       = user_data;
 
+  if (!queue->listener_thread)
+    return 0;
+
   if ((err = pthread_create (queue->listener_thread,
 			     NULL, listener_loop, queue)) != 0) {
     xprintf (queue->stream->xine, XINE_VERBOSITY_NONE,
 	     "events: can't create new thread (%s)\n", strerror(err));
-    _x_abort();
+    _x_freep(&queue->listener_thread);
+    return 0;
   }
+
+  return 1;
 }
