@@ -1199,11 +1199,10 @@ static int demux_mpeg_block_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static int demux_mpeg_detect_blocksize(demux_mpeg_block_t *this,
-				       input_plugin_t *input)
+static int demux_mpeg_detect_blocksize(input_plugin_t *input)
 {
   uint8_t scratch[4];
-  (void)this;
+
   if (input->seek(input, 2048, SEEK_SET) != 2048)
     return 0;
   if (input->read(input, scratch, 4) != 4)
@@ -1234,7 +1233,7 @@ static void demux_mpeg_block_send_headers (demux_plugin_t *this_gen) {
 
   if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) != 0) {
     if (!this->blocksize)
-      this->blocksize = demux_mpeg_detect_blocksize( this, this->input );
+      this->blocksize = demux_mpeg_detect_blocksize( this->input );
 
     if (!this->blocksize)
       return;
@@ -1413,7 +1412,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       lprintf("open_plugin:blocksize=%d\n",this->blocksize);
 
       if (!this->blocksize)
-        this->blocksize = demux_mpeg_detect_blocksize( this, input );
+        this->blocksize = demux_mpeg_detect_blocksize( input );
 
       if (!this->blocksize) {
         free (this);
@@ -1466,7 +1465,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
     if (!this->blocksize &&
 	((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0))
-      this->blocksize = demux_mpeg_detect_blocksize( this, input );
+      this->blocksize = demux_mpeg_detect_blocksize( input );
 
     if (!this->blocksize) {
       free (this);
