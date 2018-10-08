@@ -49,6 +49,7 @@ xineplug_dmx_video_la_SOURCES = \
 	demux_elem.c \
 	iff.h \
 	demux_iff.c \
+	demux_ivf.c \
 	demux_matroska.c \
 	demux_matroska.h \
 	demux_matroska-chapters.c \
