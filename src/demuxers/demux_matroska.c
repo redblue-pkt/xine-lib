@@ -1688,6 +1688,11 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
       fill_extra_data(track, ME_FOURCC('h', 'e', 'v', 'c'));
       track->buf_type = BUF_VIDEO_HEVC;
       init_codec = init_codec_video;
+    } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_AV1)) {
+      lprintf("MATROSKA_CODEC_ID_V_AV1\n");
+      fill_extra_data(track, ME_FOURCC('a', 'v', '1', '0'));
+      track->buf_type = BUF_VIDEO_AV1;
+      init_codec = init_codec_video;
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV10)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV20)) {
     } else if (!strcmp(track->codec_id, MATROSKA_CODEC_ID_V_REAL_RV30)) {

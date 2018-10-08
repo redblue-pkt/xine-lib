@@ -318,6 +318,7 @@ struct matroska_track_s {
 #define MATROSKA_CODEC_ID_V_VP8          "V_VP8"
 #define MATROSKA_CODEC_ID_V_VP9          "V_VP9"
 #define MATROSKA_CODEC_ID_V_HEVC         "V_MPEGH/ISO/HEVC"
+#define MATROSKA_CODEC_ID_V_AV1          "V_AV1"
 
 #define MATROSKA_CODEC_ID_A_MPEG1_L1     "A_MPEG/L1"
 #define MATROSKA_CODEC_ID_A_MPEG1_L2     "A_MPEG/L2"
