@@ -102,6 +102,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_mmal" = x"yes"        && echo "   - mmal (Broadcom HW)"
     test x"$have_vpx" = x"yes"         && echo "   - libvpx (VP8/VP9)"
     test x"$have_openhevc" = x"yes"    && echo "   - OpenHEVC"
+    test x"$have_libaom" = x"yes"      && echo "   - libaom (AV1)"
     test x"$enable_ffmpeg" != x"no"    && echo "   - ffmpeg"
     echo ""
 

@@ -636,6 +636,18 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
     fi
     AM_CONDITIONAL([ENABLE_OPENHEVC], [test x"$have_openhevc" = x"yes"])
 
+    dnl libaom AV1 decoder plugin
+    AC_ARG_WITH([libaom],
+                [AS_HELP_STRING([--with-libaom], [Enable libaom AV1 decoder support (default: enabled)])],
+                [test x"$enableval" != x"no" && enable_libaom="yes"])
+    if test x"$enable_libaom" != x"no"; then
+        PKG_CHECK_MODULES([AOM], [aom >= 1.0] , [have_libaom=yes], [have_libaom=no])
+        if test x"$enable_libaom" = x"yes" && test x"$have_libaom" != x"yes"; then
+            AC_MSG_ERROR([libaom AV1 support requested, but libaom not found])
+        fi
+    fi
+    AM_CONDITIONAL([ENABLE_LIBAOM], [test x"$have_libaom" = x"yes"])
+
     dnl Broadcom MMAL (Multi Media Abstraction Layer) decoder plugin for RPi
     AC_ARG_ENABLE([mmal],
                   [AS_HELP_STRING([--enable-mmal], [Enable libmmal HW decoder and video output plugin for Raspberry Pi (default: enabled)])],
