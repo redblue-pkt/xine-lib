@@ -883,30 +883,6 @@ static enum PixelFormat get_format(struct AVCodecContext *context, const enum Pi
 static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type) {
   int thread_count = this->class->thread_count;
   int use_vaapi = 0;
-  size_t i;
-
-  /* find the decoder */
-  this->codec = NULL;
-
-  for(i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++)
-    if(ff_video_lookup[i].type == codec_type) {
-      pthread_mutex_lock(&ffmpeg_lock);
-      this->codec = avcodec_find_decoder(ff_video_lookup[i].id);
-      pthread_mutex_unlock(&ffmpeg_lock);
-      _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC,
-                            ff_video_lookup[i].name);
-      break;
-    }
-
-  if (!this->codec) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
-            _("ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"),
-            codec_type);
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HANDLED, 0);
-    return;
-  }
-
-  lprintf("lavc decoder found\n");
 
   this->context->width = this->bih.biWidth;
   this->context->height = this->bih.biHeight;
@@ -2828,8 +2804,30 @@ static void ff_dispose (video_decoder_t *this_gen) {
 static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   ff_video_decoder_t  *this ;
+  AVCodec             *codec = NULL;
+  uint32_t             video_type;
+  size_t               i;
 
   lprintf ("open_plugin\n");
+
+  /* check for codec support */
+  video_type = BUF_VIDEO_BASE | (_x_get_video_streamtype(stream) << 16);
+  for (i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++) {
+    if(ff_video_lookup[i].type == video_type) {
+      pthread_mutex_lock(&ffmpeg_lock);
+      codec = avcodec_find_decoder(ff_video_lookup[i].id);
+      pthread_mutex_unlock(&ffmpeg_lock);
+      _x_meta_info_set_utf8(stream, XINE_META_INFO_VIDEOCODEC, ff_video_lookup[i].name);
+      break;
+    }
+  }
+  if (!codec) {
+    xprintf (stream->xine, XINE_VERBOSITY_LOG,
+             _("ffmpeg_video_dec: couldn't find ffmpeg decoder for buf type 0x%X\n"),
+             video_type);
+    return NULL;
+  }
+  lprintf("lavc decoder found\n");
 
   this = calloc(1, sizeof (ff_video_decoder_t));
   if (!this)
@@ -2864,6 +2862,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   this->stream = stream;
   this->class  = (ff_video_class_t *)class_gen;
+  this->codec  = codec;
 
   this->bufsize = VIDEOBUFSIZE;
   do {
