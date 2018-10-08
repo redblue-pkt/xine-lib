@@ -30,6 +30,13 @@
 #include <vpx/vpx_decoder.h>
 #include <vpx/vp8dx.h>
 
+#define LOG_MODULE "libvpx_video_decoder"
+#define LOG_VERBOSE
+
+/*
+#define LOG
+*/
+
 #include <xine/xine_internal.h>
 #include <xine/video_out.h>
 #include <xine/buffer.h>
@@ -150,8 +157,8 @@ static void vpx_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
   if (err != VPX_CODEC_OK) {
     const char *error  = vpx_codec_error(ctx);
     const char *detail = vpx_codec_error_detail(ctx);
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            LOG_MODULE": Failed to decode frame: %s (%s)\n",
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+            "Failed to decode frame: %s (%s)\n",
             error, detail ? detail : "");
     free(p_pts);
     return;
@@ -319,15 +326,15 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->frame_flags   = 0;
   VO_SET_FLAGS_CM (4, this->frame_flags); /* undefined, mpeg range */
 
-  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-          LOG_MODULE "VP%d: using libvpx version %s\n",
+  xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+          "VP%d: using libvpx version %s\n",
           vp_version, vpx_codec_version_str());
 
   /* FIXME: ver should be VPX_DECODER_ABI_VERSION not 0. */
   if (vpx_codec_dec_init(&this->ctx, iface, &deccfg, 0) != VPX_CODEC_OK) {
     const char *err = vpx_codec_error(&this->ctx);
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            LOG_MODULE": Failed to initialize VP%d decoder: %s\n",
+    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+            "Failed to initialize VP%d decoder: %s\n",
             vp_version, err);
     free(this);
     return NULL;
