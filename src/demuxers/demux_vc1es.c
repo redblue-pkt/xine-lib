@@ -45,11 +45,7 @@
 #include "config.h"
 #endif
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
 
 /* #define LOG */
 #define LOG_MODULE "demux_vc1es"
