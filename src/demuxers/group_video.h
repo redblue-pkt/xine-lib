@@ -27,6 +27,7 @@ void *demux_avi_init_class         (xine_t *xine, const void *data);
 void *demux_elem_init_class        (xine_t *xine, const void *data);
 void *demux_flv_init_class         (xine_t *xine, const void *data);
 void *demux_iff_init_class         (xine_t *xine, const void *data);
+void *demux_ivf_init_class         (xine_t *xine, const void *data);
 void *demux_matroska_init_class    (xine_t *xine, const void *data);
 void *demux_mpeg_init_class        (xine_t *xine, const void *data);
 void *demux_pes_init_class         (xine_t *xine, const void *data);

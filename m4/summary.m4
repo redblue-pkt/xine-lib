@@ -67,6 +67,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "   - FLAC          - aac"
     echo "   - iff           - matroska"
     echo "   - vmd           - flv"
+    echo "   - ivf"
     if test x"$enable_a52dec" != x"no"; then
         if test x"$have_external_a52dec" = x"yes"; then
             echo "   - ac3 (external library)"
