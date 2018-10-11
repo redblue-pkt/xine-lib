@@ -419,3 +419,80 @@ uint32_t xine_mm_accel (void)
 
   return accel;
 }
+
+/*
+ * xine_cpu_count()
+ */
+
+#ifdef HAVE_SCHED_GETAFFINITY
+#  ifndef _GNU_SOURCE
+#    define _GNU_SOURCE
+#  endif
+#  include <sched.h>
+#endif
+#ifdef _WIN32
+#  include <windows.h>
+#endif
+#ifdef HAVE_SYSCTL
+#  ifdef HAVE_SYS_PARAM_H
+#    include <sys/param.h>
+#  endif
+#  include <sys/types.h>
+#  include <sys/sysctl.h>
+#endif
+#include <unistd.h>
+
+static int _cpu_count()
+{
+  int cpu_count = 1;
+
+#if HAVE_SCHED_GETAFFINITY && defined(CPU_COUNT)
+
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  if (!sched_getaffinity(0, sizeof(cpuset), &cpuset))
+    cpu_count = CPU_COUNT(&cpuset);
+
+#elif defined(HAVE_SYSCTL) && defined(HW_NCPU)
+
+  int mib[2] = { CTL_HW, HW_NCPU };
+  size_t len = sizeof(cpu_count);
+  if (sysctl(mib, 2, &cpu_count, &len, NULL, 0) == -1)
+    cpu_count = 1;
+
+#elif defined(HAVE_SYSCONF) && defined(_SC_NPROC_ONLN)
+
+  cpu_count = sysconf(_SC_NPROC_ONLN);
+
+#elif defined(HAVE_SYSCONF) && defined(_SC_NPROCESSORS_ONLN)
+
+  cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
+
+#elif defined(_WIN32)
+
+  SYSTEM_INFO sysinfo;
+  GetNativeSystemInfo(&sysinfo);
+  cpu_count = sysinfo.dwNumberOfProcessors;
+
+#else
+#  warning CPU count detection missing !
+#endif
+
+  if (cpu_count < 1)
+    cpu_count = 1;
+  else if (cpu_count > 32)
+    cpu_count = 32;
+
+  return cpu_count;
+}
+
+int xine_cpu_count(void)
+{
+  static volatile int cpu_count = -1;
+
+  if (cpu_count < 0) {
+    cpu_count = _cpu_count();
+  }
+
+  return cpu_count;
+}

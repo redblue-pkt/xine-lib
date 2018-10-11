@@ -189,6 +189,7 @@ typedef struct {
 
 uint32_t xine_mm_accel (void) XINE_CONST XINE_PROTECTED;
 
+int xine_cpu_count(void) XINE_CONST XINE_PROTECTED;
 
 
 		     /* Optimized/fast memcpy */
