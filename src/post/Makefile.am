@@ -185,7 +185,7 @@ EXTRA_DIST += goom/gfontrle.c goom/mathtools.c
 # following files are currently unused.
 EXTRA_DIST += \
 	goom/goomsl.c goom/goomsl.h goom/goomsl_hash.c goom/goomsl_hash.h \
-	goom/goomsl_heap.c ggoom/oomsl_heap.h goom/goomsl_private.h \
+	goom/goomsl_heap.c goom/goomsl_heap.h goom/goomsl_private.h \
 	goom/goomsl_lex.c goom/goomsl_yacc.c goom/goomsl_yacc.h goom/default_scripts.h
 
 noinst_LTLIBRARIES += libpost_goom_asm.la
