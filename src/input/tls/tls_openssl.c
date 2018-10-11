@@ -217,7 +217,7 @@ static void _openssl_shutdown(tls_plugin_t *this_gen)
   }
 #if OPENSSL_VERSION_NUMBER >= 0x1010000fL
   if (this->bio_method) {
-    BIO_method_free(this->bio_method);
+    BIO_meth_free(this->bio_method);
     this->bio_method = NULL;
   }
 #endif
