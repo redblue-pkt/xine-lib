@@ -1116,7 +1116,7 @@ if test x"$enable_mmap" = x"yes"; then
     AC_CHECK_FUNCS([mmap])
 fi
 
-AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset readlink strchr va_copy])
+AC_CHECK_FUNCS([vsscanf sigaction sigset getpwuid_r nanosleep lstat memset readlink strchr va_copy sched_getaffinity sysconf])
 AC_CHECK_FUNCS([llabs])
 
 AC_CHECK_FUNCS([snprintf _snprintf], [have_required_function="yes"])
