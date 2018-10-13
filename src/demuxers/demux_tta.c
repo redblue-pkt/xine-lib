@@ -129,17 +129,19 @@ static int demux_tta_send_chunk(demux_plugin_t *this_gen) {
 
   bytes_to_read = le2me_32(this->seektable[this->currentframe]);
 
-  _x_demux_read_send_data(this->audio_fifo,
-                          this->input,
-                          bytes_to_read,
-                          (int64_t)(FRAME_TIME * this->currentframe * 90000),
-                          BUF_AUDIO_TTA,
-                          /*decoder_flags*/ 0,
-                          (int) ((double) this->currentframe * 65535.0 / this->totalframes),
-                          (int)(FRAME_TIME * this->currentframe * 1000),
-                          (int)(le2me_32(this->header.tta.data_length) * 1000.0 /
-                                le2me_32(this->header.tta.samplerate)),
-                          this->currentframe);
+  if (_x_demux_read_send_data(this->audio_fifo,
+                              this->input,
+                              bytes_to_read,
+                              (int64_t)(FRAME_TIME * this->currentframe * 90000),
+                              BUF_AUDIO_TTA,
+                              /*decoder_flags*/ 0,
+                              (int) ((double) this->currentframe * 65535.0 / this->totalframes),
+                              (int)(FRAME_TIME * this->currentframe * 1000),
+                              (int)(le2me_32(this->header.tta.data_length) * 1000.0 /
+                                    le2me_32(this->header.tta.samplerate)),
+                              this->currentframe) < 0) {
+    this->status = DEMUX_FINISHED;
+  }
 
   this->currentframe++;
 
