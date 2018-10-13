@@ -55,10 +55,11 @@ typedef struct {
   char            *mrl_private; /* 'private' mrl with authentication credentials */
   AVIOContext     *pb;
 
-  /* preview support */
-  char             preview[MAX_PREVIEW_SIZE];
-  off_t            preview_size;
   off_t            curpos;
+
+  /* preview support */
+  size_t           preview_size;
+  char             preview[MAX_PREVIEW_SIZE];
 
 } avio_input_plugin_t;
 
@@ -72,10 +73,10 @@ static off_t input_avio_read (input_plugin_t *this_gen, void *buf_gen, off_t len
 
   if (this->curpos < this->preview_size) {
     off_t n = this->preview_size - this->curpos;
-    if (n > (len - total))
-      n = len - total;
+    if (n > len)
+      n = len;
 
-    memcpy (&buf[total], &this->preview[this->curpos], n);
+    memcpy (buf, &this->preview[this->curpos], n);
     this->curpos += n;
     total += n;
     len -= n;
