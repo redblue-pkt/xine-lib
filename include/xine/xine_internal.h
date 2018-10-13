@@ -417,7 +417,7 @@ int _x_demux_read_send_data(fifo_buffer_t *fifo, input_plugin_t *input,
                             int size, int64_t pts, uint32_t type,
                             uint32_t decoder_flags, off_t input_normpos,
                             int input_time, int total_time,
-                            uint32_t frame_number) XINE_PROTECTED;
+                            uint32_t frame_number) XINE_USED XINE_PROTECTED;
 
 void _x_demux_send_mrl_reference (xine_stream_t *stream, int alternative,
 				  const char *mrl, const char *title,
