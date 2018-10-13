@@ -1723,7 +1723,7 @@ static int ao_update_resample_factor(aos_t *this) {
 
   ao_eq_update (this);
 
-  lprintf ("audio_step %" PRId64 " pts per 32768 frames\n", this->audio_step);
+  lprintf ("audio_step %" PRIu32 " pts per 32768 frames\n", this->audio_step);
   return this->output.rate;
 }
 
