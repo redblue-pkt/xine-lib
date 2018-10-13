@@ -40,6 +40,10 @@
 #include <iconv.h>
 #include <locale.h>
 #include <langinfo.h>
+#else
+# ifndef ICONV_CONST
+#   define ICONV_CONST const
+# endif
 #endif
 
 /********** logging **********/
