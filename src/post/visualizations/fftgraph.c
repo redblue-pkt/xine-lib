@@ -37,6 +37,10 @@
 #include "visualizations.h"
 #include "fft.h"
 
+#if defined(__ANDROID__) && __ANDROID_API__ < 18
+#define log2(x) (log(x)/log(2))
+#endif
+
 #define FPS                      20
 
 #define FFTGRAPH_WIDTH          512
