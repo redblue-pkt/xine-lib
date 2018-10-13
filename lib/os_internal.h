@@ -164,6 +164,12 @@ char *xine_private_strcasestr(const char *haystack, const char *needle);
 char *xine_private_strtok_r(char *s, const char *delim, char **ptrptr);
 #endif
 
+#ifndef HAVE_SWAB
+#define HAVE_SWAB
+#define swab(A,B,C) xine_private_swab((A),(B),(C))
+void xine_private_swab(const void *from, void *to, ssize_t n);
+#endif
+
 /* replacement of gettimeofday */
 #ifndef HAVE_GETTIMEOFDAY
 #  define HAVE_GETTIMEOFDAY
