@@ -1076,10 +1076,6 @@ static int osd_lookup_fontconfig( osd_object_t *osd, const char *const fontname,
 static int osd_lookup_xdg( osd_object_t *osd, const char *const fontname ) {
   const char *const *data_dirs = xdgSearchableDataDirectories(&osd->renderer->stream->xine->basedir_handle);
 
-  /* try load font from current directory or from an absolute path */
-  if ( FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face) == FT_Err_Ok )
-    return 1;
-
   if ( data_dirs )
     while( (*data_dirs) && *(*data_dirs) ) {
       FT_Error fte = FT_Err_Ok;
@@ -1118,6 +1114,15 @@ static int osd_set_font_freetype2( osd_object_t *osd, const char *fontname, int 
   }
 
   do { /* while 0 */
+
+    /*
+    try to load font from current directory or from an absolute path
+      we want to do this before trying osd_lookup_fontconfig
+      (which doesn't handle filenames)
+    */
+    if ( FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face) == FT_Err_Ok )
+      break;
+
 #ifdef HAVE_FONTCONFIG
     if ( osd_lookup_fontconfig(osd, fontname, size) )
       break;
