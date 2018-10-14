@@ -52,6 +52,17 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
             default_enable_vdpau=yes
             ;;
 
+        linux-android*)
+            default_enable_aalib=no
+            default_enable_xinerama=no
+            default_enable_xvmc=no
+            default_with_caca=no
+            default_with_libstk=no
+            default_with_sdl=no
+            default_with_xcb=no
+            enable_linux=yes
+            no_x=yes
+            ;;
         linux*)
             default_enable_dxr3=yes
             default_enable_fb=yes
