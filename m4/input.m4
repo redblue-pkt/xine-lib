@@ -43,6 +43,9 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
         netbsd* | openbsd*)
             default_enable_v4l2=yes
             ;;
+        linux-android*)
+            default_enable_gnomevfs=no
+            ;;
         linux*)
             default_enable_dvb=yes
             default_enable_v4l=yes

@@ -50,6 +50,11 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
             default_enable_irixal=yes
             default_enable_oss=no
             ;;
+        linux-android*)
+            default_with_alsa=yes
+            default_enable_oss=no
+            default_enable_esound=no
+            ;;
         linux*)
             default_with_alsa=yes
             default_with_jack=yes
