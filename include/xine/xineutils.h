@@ -508,11 +508,13 @@ void xine_hexdump (const void *buf, int length) XINE_PROTECTED;
   } while(0)
 #endif
 
+XINE_DEPRECATED static inline void _x_abort_is_deprecated(void) {}
 #define _x_abort()                                                    \
   do {                                                                \
     fprintf(stderr, "abort: %s:%d: %s: Aborting.\n",                  \
             __FILE__, __LINE__, __XINE_FUNCTION__);                   \
     abort();                                                          \
+    _x_abort_is_deprecated();                                         \
   } while(0)
 
 
