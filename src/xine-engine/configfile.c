@@ -116,8 +116,8 @@ static int _cfg_cb_clear_report (xine_t *xine, cfg_entry_t *entry) {
 }
 
 static int _cfg_cb_d_rem (cfg_entry_t *entry, xine_config_cb_t callback, void *data, size_t data_size) {
-  void *dend = (uint8_t *)data + (data_size ? data_size - 1 : 0);
   int n = 0;
+  if (!data_size) data_size = 1;
   for (; entry; entry = entry->next) {
     if (entry->callback == _cfg_relay) {
       _cfg_cb_info_t *r, *e;
@@ -129,7 +129,7 @@ static int _cfg_cb_d_rem (cfg_entry_t *entry, xine_config_cb_t callback, void *d
       r = &relay->items[0];
       e = r + relay->used;
       while (r < e) {
-        if ((callback == r->callback) && (r->data >= data) && (r->data <= dend)) *r = *(--e); else r++;
+        if ((callback == r->callback) && PTR_IN_RANGE (r->data, data, data_size)) *r = *(--e); else r++;
       }
       n += relay->used;
       relay->used = r - &relay->items[0];
@@ -142,7 +142,7 @@ static int _cfg_cb_d_rem (cfg_entry_t *entry, xine_config_cb_t callback, void *d
         free (relay);
       }
     } else {
-      if ((callback == entry->callback) && (entry->callback_data >= data) && (entry->callback_data <= dend)) {
+      if ((callback == entry->callback) && PTR_IN_RANGE (entry->callback_data, data, data_size)) {
         n++;
         entry->callback_data = NULL;
         entry->callback = NULL;
@@ -189,8 +189,8 @@ static int _cfg_cb_rem (cfg_entry_t *entry, xine_config_cb_t callback) {
 }
 
 static int _cfg_d_rem (cfg_entry_t *entry, void *data, size_t data_size) {
-  void *dend = (uint8_t *)data + (data_size ? data_size - 1 : 0);
   int n = 0;
+  if (!data_size) data_size = 1;
   for (; entry; entry = entry->next) {
     if (entry->callback == _cfg_relay) {
       _cfg_cb_info_t *r, *e;
@@ -202,7 +202,7 @@ static int _cfg_d_rem (cfg_entry_t *entry, void *data, size_t data_size) {
       r = &relay->items[0];
       e = r + relay->used;
       while (r < e) {
-        if ((r->data >= data) && (r->data <= dend)) *r = *(--e); else r++;
+        if (PTR_IN_RANGE (r->data, data, data_size)) *r = *(--e); else r++;
       }
       n += relay->used;
       relay->used = r - &relay->items[0];
@@ -215,7 +215,7 @@ static int _cfg_d_rem (cfg_entry_t *entry, void *data, size_t data_size) {
         free (relay);
       }
     } else {
-      if ((entry->callback_data >= data) && (entry->callback_data <= dend)) {
+      if (PTR_IN_RANGE (entry->callback_data, data, data_size)) {
         n++;
         entry->callback_data = NULL;
         entry->callback = NULL;
