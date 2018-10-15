@@ -583,6 +583,39 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       return buf;
     }
 
+    /* no more bufs for now... */
+    if (this->driver_open) {
+      int n;
+      xine_rwlock_rdlock (&this->streams_lock);
+      n = this->num_null_streams + this->num_anon_streams + this->num_streams;
+      xine_rwlock_unlock (&this->streams_lock);
+      if (!n) {
+        /* ...and no users. When driver runs idle as well, close it. */
+        struct timespec ts = {0, 0};
+        pthread_mutex_lock (&this->driver_lock);
+        n = this->driver->delay (this->driver);
+        pthread_mutex_unlock (&this->driver_lock);
+        n = (n > 0) && this->output.rate ? (uint32_t)n * 1000u / this->output.rate : 0;
+        xine_gettime (&ts);
+        ts.tv_nsec += (n % 1000) * 1000000;
+        ts.tv_sec  +=  n / 1000;
+        if (ts.tv_nsec >= 1000000000) {
+          ts.tv_sec++;
+          ts.tv_nsec -= 1000000000;
+        }
+        this->out_fifo.num_waiters++;
+        n = pthread_cond_timedwait (&this->out_fifo.not_empty, &this->out_fifo.mutex, &ts);
+        this->out_fifo.num_waiters--;
+        if (n == ETIMEDOUT) {
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: driver idle, closing.\n");
+          pthread_mutex_lock (&this->driver_lock);
+          this->driver->close (this->driver);
+          this->driver_open = 0;
+          pthread_mutex_unlock (&this->driver_lock);
+        }
+        continue;
+      }
+    }
     this->out_fifo.num_waiters++;
     pthread_cond_wait (&this->out_fifo.not_empty, &this->out_fifo.mutex);
     this->out_fifo.num_waiters--;
@@ -1656,6 +1689,16 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   in_buf = ao_fifo_pop_int (&this->out_fifo);
   pthread_mutex_unlock(&this->out_fifo.mutex);
 
+  if  ((in_buf->format.bits != this->input.bits)
+    || (in_buf->format.rate != this->input.rate)
+    || (in_buf->format.mode != this->input.mode)) {
+    pthread_mutex_lock (&this->driver_lock);
+    lprintf ("audio format has changed\n");
+    if (!(in_buf->stream && in_buf->stream->emergency_brake))
+      ao_change_settings (this, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
+    pthread_mutex_unlock (&this->driver_lock);
+  }
+
   out_buf = prepare_samples (this, in_buf);
 
   if (out_buf != in_buf) {
@@ -1817,7 +1860,8 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: ao_open (%p)\n", (void*)stream);
 
-  if( !this->driver_open || bits != this->input.bits || rate != this->input.rate || mode != this->input.mode ) {
+  /* Defer _changing_ settings of an open driver to final output stage, following buf queue status. */
+  if (!this->driver_open) {
     int ret;
 
     if (this->audio_loop_running) {
@@ -1925,6 +1969,9 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   n = ao_streams_unregister (this, stream);
   ao_unref_all (this);
 
+  /* ao_close () simply means that decoder is finished. The remaining buffered frames
+   * will still be played, unless engine flushes them explicitely. */
+#if 0
   /* close driver if no streams left */
   if (!n && !this->grab_only && !stream->keep_ao_driver_open) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: no streams left, closing driver\n");
@@ -1940,12 +1987,11 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
     this->driver_open = 0;
     pthread_mutex_unlock( &this->driver_lock );
   }
+#endif
 }
 
 static void ao_exit(xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
-  int vol;
-  int prop = 0;
 
   this->xine->port_ticket->revoke_cb_unregister (this->xine->port_ticket, ao_ticket_revoked, this);
 
@@ -1962,25 +2008,26 @@ static void ao_exit(xine_audio_port_t *this_gen) {
 
   if (!this->grab_only) {
     ao_driver_t *driver;
+    int vol = 0, prop, caps;
 
-    pthread_mutex_lock( &this->driver_lock );
-
+    pthread_mutex_lock (&this->driver_lock);
     driver = this->driver;
 
-    if ((driver->get_capabilities(driver)) & AO_CAP_MIXER_VOL)
-      prop = AO_PROP_MIXER_VOL;
-    else if ((driver->get_capabilities(driver)) & AO_CAP_PCM_VOL)
-      prop = AO_PROP_PCM_VOL;
+    caps = driver->get_capabilities (driver);
+    prop = (caps & AO_CAP_MIXER_VOL) ? AO_PROP_MIXER_VOL
+         : (caps & AO_CAP_PCM_VOL) ? AO_PROP_PCM_VOL : 0;
+    if (prop)
+      vol = driver->get_property (driver, prop);
 
-    vol = driver->get_property(driver, prop);
-    if (this->driver_open)
-      driver->close(driver);
-
-    this->driver_open = 0;
+    if (this->driver_open) {
+      driver->close (driver);
+      this->driver_open = 0;
+    }
     this->driver = NULL;
-    pthread_mutex_unlock( &this->driver_lock );
+    pthread_mutex_unlock (&this->driver_lock);
 
-    this->xine->config->update_num(this->xine->config, "audio.volume.mixer_volume", vol);
+    if (prop)
+      this->xine->config->update_num (this->xine->config, "audio.volume.mixer_volume", vol);
 
     _x_free_audio_driver(this->xine, &driver);
   }
@@ -2581,9 +2628,10 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 	       _("audio_out: sorry, this should not happen. please restart xine.\n"));
 
       this->audio_loop_running = 0;
-      ao_exit(&this->ao);
+      /* no need to inline ao_exit () here. */
+      this->ao.exit (&this->ao);
       return NULL;
-     }
+    }
 
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: thread created\n");
   }
