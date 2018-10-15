@@ -1,4 +1,4 @@
-dnl Copyright 2007 xine project
+dnl Copyright 2007, 2018 xine project
 dnl Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007
 dnl Free Software Foundation, Inc.
 dnl Originally by Gordon Matzigkeit <gord@gnu.ai.mit.edu>, 1996
@@ -87,21 +87,24 @@ AC_DEFUN([CC_PROG_AS], [
         fi
     fi
 
-    test -z "$AS" && AC_MSG_ERROR([no acceptable as found in \$PATH])
-    AC_CACHE_CHECK([if the assembler ($AS) is GNU as], [cc_cv_prog_gnu_as], [
-        # I'd rather use --version here, but apparently some GNU as's only accept -v.
-        case `"$AS" -v 2>&1 </dev/null` in
-        *Apple*)
-            # Apple's assembler reports itself as GNU as 1.38;
-            # but it doesn't provide the functions we need.
-            cc_cv_prog_gnu_as=no
-            ;;
-        *GNU* | *'with BFD'*)
-            cc_cv_prog_gnu_as=yes
-            ;;
-        *)
-            cc_cv_prog_gnu_as=no
-            ;;
-        esac])
+    if test -z "$AS" ; then
+        AC_MSG_WARN([no acceptable as found in \$PATH])
+    else
+        AC_CACHE_CHECK([if the assembler ($AS) is GNU as], [cc_cv_prog_gnu_as], [
+            # I'd rather use --version here, but apparently some GNU as's only accept -v.
+            case `"$AS" -v 2>&1 </dev/null` in
+            *Apple*)
+                # Apple's assembler reports itself as GNU as 1.38;
+                # but it doesn't provide the functions we need.
+                cc_cv_prog_gnu_as=no
+                ;;
+            *GNU* | *'with BFD'*)
+                cc_cv_prog_gnu_as=yes
+                ;;
+            *)
+                cc_cv_prog_gnu_as=no
+                ;;
+            esac])
+    fi
     with_gnu_as="$cc_cv_prog_gnu_as"
 ])
