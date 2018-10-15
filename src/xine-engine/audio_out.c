@@ -391,7 +391,7 @@ static int ao_streams_unregister (aos_t *this, xine_stream_t *s) {
 
 static int ao_reref (aos_t *this, audio_buffer_t *buf) {
   /* Paranoia? */
-  if ((buf >= this->base_buf) && (buf < this->base_buf + NUM_AUDIO_BUFFERS)) {
+  if (PTR_IN_RANGE (buf, this->base_buf, NUM_AUDIO_BUFFERS * sizeof (*buf))) {
     xine_stream_t **s = this->buf_streams + (buf - this->base_buf);
     if (buf->stream != *s) {
       if (*s)
@@ -407,7 +407,7 @@ static int ao_reref (aos_t *this, audio_buffer_t *buf) {
 
 static int ao_unref_buf (aos_t *this, audio_buffer_t *buf) {
   /* Paranoia? */
-  if ((buf >= this->base_buf) && (buf < this->base_buf + NUM_AUDIO_BUFFERS)) {
+  if (PTR_IN_RANGE (buf, this->base_buf, NUM_AUDIO_BUFFERS * sizeof (*buf))) {
     xine_stream_t **s = this->buf_streams + (buf - this->base_buf);
     buf->stream = NULL;
     if (*s) {

@@ -309,8 +309,15 @@ static inline void xine_uint64_2str (char **s, uint64_t v) {
     xine_uint32_2str (s, v); \
 } while (0)
 
+#if 1 /* XXX: Is this safe everywhere? */
+#  define PTR_IN_RANGE(_ptr,_start,_size) \
+    ((uintptr_t)((uint8_t *)(_ptr) - (uint8_t *)(_start)) < (uintptr_t)(_size))
+#else
+#  define PTR_IN_RANGE(_ptr,_start,_size) \
+    ((uint8_t *)(_ptr) >= (uint8_t *)(_start) && ((uint8_t *)(_ptr) < (uint8_t *)(_start) + (_size)))
+#endif
+
 EXTERN_C_STOP
 
 #endif
-
 
