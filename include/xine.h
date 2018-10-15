@@ -1701,6 +1701,17 @@ int   xine_config_register_bool   (xine_t *self,
 				   xine_config_cb_t changed_cb,
 				   void *cb_data) XINE_PROTECTED;
 
+/**
+ * unregister multiple entry callback functions.
+ * all 3 values need to match unless they are NULL.
+ * if cb_data_size is not zero, data pointers within the range
+ * (cb_data <= ptr < cb_data + cb_data_size) will match.
+ * returns the count of unregistered functions.
+ */
+#define HAVE_XINE_CONFIG_UNREGISTER_CALLBACKS 1
+int xine_config_unregister_callbacks (xine_t *self,
+  const char *key, xine_config_cb_t changed_cb, void *cb_data, size_t cb_data_size) XINE_PROTECTED;
+
 /*
  * the following functions will copy data from the internal xine_config
  * data database to the xine_cfg_entry_t *entry you provide

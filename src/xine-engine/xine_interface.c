@@ -171,6 +171,18 @@ int xine_config_register_bool (xine_t *self,
 				      changed_cb, cb_data);
 }
 
+int xine_config_unregister_callbacks (xine_t *self,
+  const char *key, xine_config_cb_t changed_cb, void *cb_data, size_t cb_data_size) {
+  /* avoid misuse */
+  if (!key && !changed_cb && !cb_data)
+    return 0;
+  if (!self)
+    return 0;
+  if (!self->config)
+    return 0;
+  return self->config->unregister_callbacks (self->config, key, changed_cb, cb_data, cb_data_size);
+}
+
 
 /*
  * helper function:
