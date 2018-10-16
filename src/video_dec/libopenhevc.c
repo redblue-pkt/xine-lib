@@ -250,8 +250,8 @@ static const uint32_t video_types[] = {
 };
 
 static const decoder_info_t dec_info_video = {
-  video_types,         /* supported types */
-  1                    /* priority        */
+  .supported_types = video_types,
+  .priority        = 1,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {

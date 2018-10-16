@@ -39,9 +39,9 @@ static const uint32_t yuv_video_types[]      = {
 };
 static const uint32_t bitplane_video_types[] = { BUF_VIDEO_BITPLANE, BUF_VIDEO_BITPLANE_BR1, 0 };
 
-static const decoder_info_t rgb_info      = { rgb_video_types, 1 }; /* supported types, priority */
-static const decoder_info_t yuv_info      = { yuv_video_types, 1 };
-static const decoder_info_t bitplane_info = { bitplane_video_types, 1 };
+static const decoder_info_t rgb_info      = { .supported_types = rgb_video_types,      .priority = 1 };
+static const decoder_info_t yuv_info      = { .supported_types = yuv_video_types,      .priority = 1 };
+static const decoder_info_t bitplane_info = { .supported_types = bitplane_video_types, .priority = 1 };
 
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {

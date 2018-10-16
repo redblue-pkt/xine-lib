@@ -1211,8 +1211,8 @@ static void *init_spu_decoder_plugin (xine_t *xine, const void *data) {
 static const uint32_t supported_types[] = { BUF_SPU_TEXT, BUF_SPU_OGM, 0 };
 
 static const decoder_info_t spudec_info = {
-  supported_types,     /* supported types */
-  1                    /* priority        */
+  .supported_types = supported_types,
+  .priority        = 1,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {

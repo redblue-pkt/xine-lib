@@ -472,8 +472,8 @@ static void *init_class (xine_t *xine, const void *data) {
 static const uint32_t supported_types[] = { BUF_VIDEO_JPEG, 0 };
 
 static const decoder_info_t dec_info_jpeg = {
-  supported_types,     /* supported types */
-  10,                  /* priority        */
+  .supported_types = supported_types,
+  .priority        = 10,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {

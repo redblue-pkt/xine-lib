@@ -326,8 +326,8 @@ static const uint32_t audio_types[] = {
  * plugins that handle the same buffer type. A plugin with priority (n+1)
  * will be used instead of a plugin with priority (n). */
 static const decoder_info_t dec_info_audio = {
-  audio_types,         /* supported types */
-  5                    /* priority        */
+  .supported_types = audio_types,
+  .priority        = 5,
 };
 
 /* The plugin catalog entry. This is the only information that this plugin
