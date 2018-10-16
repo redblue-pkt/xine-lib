@@ -81,9 +81,6 @@ typedef struct {
 /*                       Private functions                          */
 /* **************************************************************** */
 
-#define LOW_WATER_MARK  50
-#define HIGH_WATER_MARK 100
-
 static off_t net_plugin_read (input_plugin_t *this_gen,
 			      void *buf_gen, off_t len) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
