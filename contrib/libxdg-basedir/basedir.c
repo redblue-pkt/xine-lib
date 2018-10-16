@@ -431,6 +431,7 @@ static char * xdgFindExisting(const char * relativePath, const char * const * di
 		testFile = fopen(fullPath, "r");
 		if (testFile)
 		{
+			fclose(testFile);
 			if (!(tmpString = (char*)realloc(returnString, strLen+strlen(fullPath)+2)))
 			{
 				free(returnString);
@@ -440,7 +441,6 @@ static char * xdgFindExisting(const char * relativePath, const char * const * di
 			returnString = tmpString;
 			strcpy(&returnString[strLen], fullPath);
 			strLen = strLen+strlen(fullPath)+1;
-			fclose(testFile);
 		}
 		free(fullPath);
 	}
