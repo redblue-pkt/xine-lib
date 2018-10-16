@@ -24,6 +24,10 @@
 #ifndef XINE_INPUT_HELPER_H
 #define XINE_INPUT_HELPER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include <sys/types.h>
 
@@ -172,5 +176,9 @@ static inline off_t _x_input_seek_preview(input_plugin_t *input, off_t offset, i
   errno = EINVAL;
   return (off_t)-1;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* XINE_INPUT_HELPER_H */
