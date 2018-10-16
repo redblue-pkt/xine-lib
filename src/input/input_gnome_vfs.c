@@ -287,7 +287,7 @@ gnomevfs_plugin_open (input_plugin_t *this_gen )
 	return 1;
 }
 
-static const char ignore_scheme[][8] = { "cdda", "file", "http" };
+static const char ignore_scheme[][8] = { "cdda", "file", "ftp", "ftpes", "http", "https", "test", };
 
 static input_plugin_t *
 gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
