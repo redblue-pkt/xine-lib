@@ -1074,21 +1074,16 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
 
 static void *init_plugin (xine_t *xine, const void *data)
 {
-  spu_decoder_class_t *this;
-
   (void)xine;
   (void)data;
 
-  this = calloc(1, sizeof (spu_decoder_class_t));
-  if (!this)
-    return NULL;
-
-  this->open_plugin = open_plugin;
-  this->identifier  = "spuhdmv";
-  this->description = "HDMV/BluRay bitmap SPU decoder plugin";
-  this->dispose     = default_spu_decoder_class_dispose;
-
-  return this;
+  static const spu_decoder_class_t decode_spu_hdmv_class = {
+    .open_plugin = open_plugin,
+    .identifier  = "spuhdmv",
+    .description = "HDMV/BluRay bitmap SPU decoder plugin",
+    .dispose     = NULL,
+  };
+  return (void *)&decode_spu_hdmv_class;
 }
 
 /* plugin catalog information */
