@@ -575,7 +575,7 @@ static void *nfs_init_class(xine_t *xine, const void *data)
  * exported plugin catalog entry
  */
 
-const input_info_t input_info_nfs = {
+static const input_info_t input_info_nfs = {
   10,   /* priority */
 };
 
