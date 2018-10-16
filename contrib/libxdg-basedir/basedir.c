@@ -304,35 +304,38 @@ static char** xdgGetPathListEnv(const char* name, const char ** strings)
 static int xdgUpdateHomeDirectories(xdgCachedData* cache)
 {
 	const char* env;
-	char* home, *defVal;
+	char* home, *defVal = NULL;
+        int result = FALSE;
 
 	env = getenv("HOME");
 	if (!env || !env[0])
 		return FALSE;
-	if (!(home = (char*)malloc(strlen(env)+1))) return FALSE;
+	if (!(home = (char*)malloc(strlen(env)+1))) goto out;
 	strcpy(home, env);
 
 	/* Allocate maximum needed for any of the 3 default values */
 	defVal = (char*)malloc(strlen(home)+
 		MAX(MAX(sizeof(DefaultRelativeDataHome), sizeof(DefaultRelativeConfigHome)), sizeof(DefaultRelativeCacheHome)));
-	if (!defVal) return FALSE;
+	if (!defVal) goto out;
 
 	strcpy(defVal, home);
 	strcat(defVal, DefaultRelativeDataHome);
-	if (!(cache->dataHome = xdgGetEnv("XDG_DATA_HOME", defVal))) return FALSE;
+	if (!(cache->dataHome = xdgGetEnv("XDG_DATA_HOME", defVal))) goto out;
 
 	defVal[strlen(home)] = 0;
 	strcat(defVal, DefaultRelativeConfigHome);
-	if (!(cache->configHome = xdgGetEnv("XDG_CONFIG_HOME", defVal))) return FALSE;
+	if (!(cache->configHome = xdgGetEnv("XDG_CONFIG_HOME", defVal))) goto out;
 
 	defVal[strlen(home)] = 0;
 	strcat(defVal, DefaultRelativeCacheHome);
-	if (!(cache->cacheHome = xdgGetEnv("XDG_CACHE_HOME", defVal))) return FALSE;
+	if (!(cache->cacheHome = xdgGetEnv("XDG_CACHE_HOME", defVal))) goto out;
 
+        result = TRUE;
+ out:
 	free(defVal);
 	free(home);
 
-	return TRUE;
+	return result;
 }
 
 /** Update all *Directories variables of cache.
