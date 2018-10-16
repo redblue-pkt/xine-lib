@@ -690,6 +690,7 @@ static void send_ogg_buf (demux_ogg_t *this,
 
     if ((this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_SPEEX ||
         (this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_FLAC ||
+        (this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_OPUS ||
         (this->si[stream_num]->buf_types & 0xFFFF0000) == BUF_AUDIO_VORBIS) {
       data = op->packet;
       size = op->bytes;
@@ -1371,6 +1372,36 @@ static void decode_flac_header (demux_ogg_t *this, const int stream_num, ogg_pac
   op->packet += 9;
 }
 
+static void decode_opus_header (demux_ogg_t *this, const int stream_num, ogg_packet *op) {
+  buf_element_t *buf;
+  xine_waveformatex wave;
+
+  memset(&wave, 0, sizeof(wave));
+
+  this->si[stream_num]->headers = 0;
+
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, _X_BE_32(&op->packet[12]));
+  _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, op->packet[9]);
+
+  this->si[stream_num]->buf_types = BUF_AUDIO_OPUS + this->num_audio_streams++;
+  this->si[stream_num]->factor = 90000;
+
+  buf = this->audio_fifo->buffer_pool_alloc(this->audio_fifo);
+
+  buf->type = this->si[stream_num]->buf_types;
+  buf->decoder_flags = BUF_FLAG_HEADER|BUF_FLAG_STDHEADER|BUF_FLAG_FRAME_END;
+
+  buf->decoder_info[0] = 0;
+  buf->decoder_info[1] = _X_BE_32(&op->packet[12]); /* sample rate */
+  buf->decoder_info[2] = 0;
+  buf->decoder_info[3] = op->packet[9]; /* channel count */
+  buf->size = sizeof(xine_waveformatex);
+  wave.cbSize = 0;
+  memcpy(buf->content, &wave, sizeof(xine_waveformatex));
+
+  this->audio_fifo->put(this->audio_fifo, buf);
+}
+
 static void decode_annodex_header (demux_ogg_t *this, const int stream_num, ogg_packet *op) {
   lprintf ("Annodex stream detected\n");
   this->si[stream_num]->buf_types = BUF_CONTROL_NOP;
@@ -1533,6 +1564,8 @@ static void send_header (demux_ogg_t *this) {
           decode_anxdata_header(this, stream_num, &op);
 	} else if (!memcmp (&op.packet[0], "CMML", 4)) {
 	  decode_cmml_header(this, stream_num, &op);
+        } else if (!memcmp (&op.packet[0], "OpusHead", 8)) {
+          decode_opus_header(this, stream_num, &op);
         } else {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
                   "demux_ogg: unknown stream type (signature >%.8s<). hex dump of bos packet follows:\n",
@@ -2241,10 +2274,11 @@ static void *ogg_init_class (xine_t *xine, const void *data) {
     "application/x-ogm-video: ogv: Ogg Video;"
     "application/x-ogg: ogx: Ogg Stream;"
     "audio/ogg: oga: Ogg Audio;"
+    "audio/opus: opus: Opus Audio;"
     "audio/x-ogg: oga: Ogg Audio;"
     "video/ogg: ogv: Ogg Video;"
     "video/x-ogg: ogv: Ogg Video;";
-  this->demux_class.extensions      = "ogx ogv oga ogg spx ogm";
+  this->demux_class.extensions      = "ogx ogv oga ogg spx ogm opus";
   this->demux_class.dispose         = default_demux_class_dispose;
 
   return this;
