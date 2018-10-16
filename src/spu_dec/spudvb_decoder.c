@@ -241,17 +241,9 @@ typedef struct {
   sparse_array_t	object_pos;
 } dvbsub_func_t;
 
-typedef struct		dvb_spu_class_s {
-  spu_decoder_class_t	class;
-  xine_t	       *xine;
-
-  int                   ignore_pts;
-} dvb_spu_class_t;
-
 typedef struct dvb_spu_decoder_s {
   spu_decoder_t	spu_decoder;
 
-  dvb_spu_class_t      *class;
   xine_stream_t        *stream;
 
   spu_dvb_descriptor_t *spu_descriptor;
@@ -1143,7 +1135,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
   /* don't ask metronom for a vpts but rather do the calculation
    * because buf->pts could be too far in future and metronom won't accept
    * further backwards pts (see metronom_got_spu_packet) */
-  if (!this->class->ignore_pts && buf->pts > 0) {
+  if (buf->pts > 0) {
     metronom_t *metronom = this->stream->metronom;
     int64_t vpts_offset = metronom->get_option( metronom, METRONOM_VPTS_OFFSET );
     int64_t spu_offset = metronom->get_option( metronom, METRONOM_SPU_OFFSET );
@@ -1279,7 +1271,6 @@ static void spudec_dispose (spu_decoder_t * this_gen)
 
 static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen, xine_stream_t * stream)
 {
-  dvb_spu_class_t *class = (dvb_spu_class_t *)class_gen;
   dvb_spu_decoder_t *this;
 
   this = calloc(1, sizeof (dvb_spu_decoder_t));
@@ -1321,7 +1312,6 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   this->spu_decoder.get_interact_info = NULL;
   this->spu_decoder.set_button = NULL;
 
-  this->class = class;
   this->stream = stream;
 
   pthread_mutex_init(&this->dvbsub_osd_mutex, NULL);
@@ -1361,7 +1351,7 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   this->dvbsub_hide_timeout.tv_sec = time(NULL);
 
   if (pthread_create(&this->dvbsub_timer_thread, NULL, dvbsub_timer_func, this)) {
-    xprintf (this->class->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": pthread_create() failed\n");
+    xprintf (stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": pthread_create() failed\n");
     spudec_dispose_internal(this, 0);
     return NULL;
   }
@@ -1369,33 +1359,17 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   return (spu_decoder_t *) this;
 }
 
-static void dvb_spu_decoder_class_dispose (spu_decoder_class_t * this_gen)
-{
-  dvb_spu_class_t *this = (dvb_spu_class_t *) this_gen;
-
-  this->xine->config->unregister_callback(this->xine->config, "subtitles.dvb.ignore_pts");
-
-  free (this);
-}
-
 static void *init_spu_decoder_plugin (xine_t * xine, const void *data)
 {
 
-  dvb_spu_class_t *this;
-
   (void)data;
-  this = calloc(1, sizeof (dvb_spu_class_t));
-  if (!this)
-    return NULL;
-
-  this->class.open_plugin = dvb_spu_class_open_plugin;
-  this->class.identifier  = "spudvb";
-  this->class.description = N_("DVB subtitle decoder plugin");
-  this->class.dispose = dvb_spu_decoder_class_dispose;
-
-  this->xine = xine;
-
-  return &this->class;
+  static const spu_decoder_class_t decode_dvb_spu_class = {
+    .open_plugin = dvb_spu_class_open_plugin,
+    .identifier  = "spudvb",
+    .description = N_("DVB subtitle decoder plugin"),
+    .dispose = NULL,
+  };
+  return (void *)&decode_dvb_spu_class;
 }
 
 
