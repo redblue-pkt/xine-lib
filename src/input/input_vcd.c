@@ -893,21 +893,21 @@ static int vcd_plugin_open (input_plugin_t *this_gen) {
 }
 
 static input_plugin_t *vcd_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
-				    const char *data) {
+                                               const char *mrl) {
 
   vcd_input_class_t  *cls = (vcd_input_class_t *) cls_gen;
   vcd_input_plugin_t *this;
-  char               *mrl = strdup(data);
 
   if (strncasecmp (mrl, "vcdo:/",6)) {
-    free (mrl);
     return 0;
   }
 
   this = calloc(1, sizeof(vcd_input_plugin_t));
+  if (!this)
+    return NULL;
 
   this->stream = stream;
-  this->mrl    = mrl;
+  this->mrl    = strdup(mrl);
   this->fd     = -1;
 
   this->input_plugin.open              = vcd_plugin_open;
