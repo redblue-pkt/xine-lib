@@ -1158,8 +1158,8 @@ static const uint32_t audio_types[] = {
  };
 
 static const decoder_info_t dec_info_audio = {
-  audio_types,         /* supported types */
-  8                    /* priority        */
+  .supported_types = audio_types,
+  .priority        = 8,
 };
 
 static const uint32_t latm_audio_types[] = {
@@ -1167,8 +1167,8 @@ static const uint32_t latm_audio_types[] = {
  };
 
 static const decoder_info_t dec_info_latm_audio = {
-  latm_audio_types,    /* supported types */
-  1                    /* priority        */
+  .supported_types = latm_audio_types,
+  .priority        = 1,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {

@@ -274,8 +274,8 @@ static const uint32_t video_types[] = {
  * will be used instead of a plugin with priority (n).
  */
 static const decoder_info_t dec_info_video = {
-  video_types,         /* supported types */
-  5                    /* priority        */
+  .supported_types = video_types,
+  .priority        = 5,
 };
 
 /*

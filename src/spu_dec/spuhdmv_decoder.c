@@ -1095,8 +1095,8 @@ static void *init_plugin (xine_t *xine, const void *data)
 static const uint32_t supported_types[] = { BUF_SPU_HDMV, 0 };
 
 static const decoder_info_t dec_info_data = {
-  supported_types,     /* supported types */
-  5                    /* priority        */
+  .supported_types = supported_types,
+  .priority        = 5,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {

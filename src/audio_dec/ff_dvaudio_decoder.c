@@ -377,8 +377,8 @@ static uint32_t supported_audio_types[] = {
 };
 
 static const decoder_info_t dec_info_dvaudio = {
-  supported_audio_types,   /* supported types */
-  5                        /* priority        */
+  .supported_types = supported_audio_types,
+  .priority        = 5,
 };
 
 /*

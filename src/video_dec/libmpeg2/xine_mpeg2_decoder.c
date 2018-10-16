@@ -160,8 +160,8 @@ static void *init_plugin (xine_t *xine, const void *data) {
 static const uint32_t supported_types[] = { BUF_VIDEO_MPEG, 0 };
 
 static const decoder_info_t dec_info_mpeg2 = {
-  supported_types,     /* supported types */
-  7                    /* priority        */
+  .supported_types = supported_types,
+  .priority        = 7,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
