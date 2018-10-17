@@ -2077,10 +2077,8 @@ static int demux_ogg_get_optional_data(demux_plugin_t *this_gen,
   }
 }
 
-static int detect_ogg_content (int detection_method, demux_class_t *class_gen,
-                               input_plugin_t *input) {
+static int detect_ogg_content (int detection_method, input_plugin_t *input) {
 
-  (void)class_gen;
   switch (detection_method) {
 
     case METHOD_BY_CONTENT: {
@@ -2101,10 +2099,9 @@ static int detect_ogg_content (int detection_method, demux_class_t *class_gen,
   }
 }
 
-static int detect_anx_content (int detection_method, demux_class_t *class_gen,
-    input_plugin_t *input) {
+static int detect_anx_content (int detection_method, input_plugin_t *input) {
 
-  if (detect_ogg_content(detection_method, class_gen, input) == 0)
+  if (detect_ogg_content(detection_method, input) == 0)
     return 0;
 
   switch (detection_method) {
@@ -2141,7 +2138,7 @@ static demux_plugin_t *anx_open_plugin (demux_class_t *class_gen,
   demux_ogg_t *this;
   int i;
 
-  if (detect_anx_content(stream->content_detection_method, class_gen, input) == 0)
+  if (detect_anx_content(stream->content_detection_method, input) == 0)
     return NULL;
 
   /*
@@ -2188,7 +2185,7 @@ static demux_plugin_t *ogg_open_plugin (demux_class_t *class_gen,
   demux_ogg_t *this;
   int i;
 
-  if (detect_ogg_content(stream->content_detection_method, class_gen, input) == 0)
+  if (detect_ogg_content(stream->content_detection_method, input) == 0)
     return NULL;
 
   /*
@@ -2288,11 +2285,11 @@ static void *ogg_init_class (xine_t *xine, const void *data) {
  * exported plugin catalog entry
  */
 static const demuxer_info_t demux_info_anx = {
-  20                       /* priority */
+  .priority = 20,
 };
 
 static const demuxer_info_t demux_info_ogg = {
-  10                       /* priority */
+  .priority = 10,
 };
 
 extern const decoder_info_t dec_info_vorbis;
