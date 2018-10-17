@@ -1987,6 +1987,8 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
     this->driver_open = 0;
     pthread_mutex_unlock( &this->driver_lock );
   }
+#else
+  (void)n;
 #endif
 }
 
