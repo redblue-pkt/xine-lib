@@ -1561,7 +1561,7 @@ static off_t vdr_plugin_read(input_plugin_t *this_gen,
 #endif
   total=0;
 
-  if( (len-total) > 0 )
+  if( len > 0 )
   {
     int retries = 0;
     do
