@@ -249,7 +249,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 {
 #if XFF_ENCVIDEO == 1
   int size;
-#else /* 2 */
+#else /* 2, 3 */
   AVPacket pkt = {.data = NULL};
   int ret, got_output;
 #endif
@@ -270,15 +270,23 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   /* do the encoding */
 #if XFF_ENCVIDEO == 1
   size = avcodec_encode_video(this->context, this->ffmpeg_buffer, DEFAULT_BUFFER_SIZE, this->picture);
-#else /* 2 */
+#elif XFF_ENCVIDEO == 2
   ret = avcodec_encode_video2(this->context, &pkt, this->picture, &got_output);
+#else /* 3 */
+  got_output = 0;
+  ret = avcodec_send_frame (this->context, this->picture);
+  if ((ret >= 0) || (ret == AVERROR (EAGAIN))) {
+    ret = avcodec_receive_packet (this->context, &pkt);
+    got_output = (ret == 0);
+    ret = (ret == AVERROR (EAGAIN)) ? 0 : ret;
+  }
 #endif
 
   frame->vo_frame.free(&frame->vo_frame);
 
 #if XFF_ENCVIDEO == 1
   if (size < 0)
-#else /* 2 */
+#else /* 2, 3 */
   if (ret < 0)
 #endif
   {
@@ -286,19 +294,19 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
         "dxr3_mpeg_encoder: encoding failed\n");
       return 0;
   }
-#if XFF_ENCVIDEO == 2
+#if XFF_ENCVIDEO >= 2
   else if (!got_output)
       return 1;
 #endif
 
 #if XFF_ENCVIDEO == 1
   written = write(drv->fd_video, this->ffmpeg_buffer, size);
-#else
+#else /* 2, 3 */
   written = write(drv->fd_video, pkt.data, pkt.size);
 #endif
 
   if (written < 0) {
-#if XFF_ENCVIDEO == 2
+#if XFF_ENCVIDEO >= 2
       av_packet_unref(&pkt);
 #endif
       xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
@@ -309,7 +317,7 @@ static int lavc_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   if (written != size)
       xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
         "dxr3_mpeg_encoder: Could only write %zd of %d mpeg bytes.\n", written, size);
-#else /* 2 */
+#else /* 2, 3 */
   if (written != pkt.size)
       xprintf(drv->class->xine, XINE_VERBOSITY_LOG,
         "dxr3_mpeg_encoder: Could only write %zd of %d mpeg bytes.\n", written, pkt.size);
