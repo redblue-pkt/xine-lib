@@ -47,7 +47,7 @@
 
 /* mpeg frame rate table from lavc */
 static const int frame_rate_tab[][2] = {
-    {    0,    0},
+    {    1,    1},
     {24000, 1001},
     {   24,    1},
     {   25,    1},
@@ -63,7 +63,7 @@ static const int frame_rate_tab[][2] = {
     {   10,    1},
     {   12,    1},
     {   15,    1},
-    {    0,    0},
+    {    1,    1},
 };
 
 void mpeg_parser_init (mpeg_parser_t *parser, size_t padding_size)
@@ -153,30 +153,22 @@ static int parse_chunk (mpeg_parser_t *parser, int code, uint8_t *buffer, int le
     }
   }
 
-  is_frame_done = parser->in_slice && ((!next_code)  || (next_code == 0xb7));
-
-  if (is_frame_done)
-    parser->in_slice = 0;
-
   switch (code) {
   case 0x00:        /* picture_start_code */
-
-    parse_header_picture (parser, buffer);
-
-    parser->in_slice = 1;
-
-    switch (parser->picture_coding_type) {
-    case B_TYPE:
-      lprintf ("B-Frame\n");
-      break;
-
-    case P_TYPE:
-      lprintf ("P-Frame\n");
-      break;
-
-    case I_TYPE:
-      lprintf ("I-Frame\n");
-      break;
+    if (len >= 2) {
+      parse_header_picture (parser, buffer);
+      parser->in_slice = 1;
+      switch (parser->picture_coding_type) {
+      case B_TYPE:
+        lprintf ("B-Frame\n");
+        break;
+      case P_TYPE:
+        lprintf ("P-Frame\n");
+        break;
+      case I_TYPE:
+        lprintf ("I-Frame\n");
+        break;
+      }
     }
     break;
 
@@ -185,7 +177,7 @@ static int parse_chunk (mpeg_parser_t *parser, int code, uint8_t *buffer, int le
     break;
 
   case 0xb3:     /* sequence_header_code */
-    {
+    if (len >= 7) {
       int value;
       uint16_t width, height;
 
@@ -232,10 +224,12 @@ static int parse_chunk (mpeg_parser_t *parser, int code, uint8_t *buffer, int le
     break;
 
   case 0xb5:     /* extension_start_code */
-    switch (buffer[0] & 0xf0) {
-    case 0x10:     /* sequence extension */
-      parser->is_mpeg1 = 0;
-      break;
+    if (len >= 1) {
+      switch (buffer[0] & 0xf0) {
+      case 0x10:     /* sequence extension */
+        parser->is_mpeg1 = 0;
+        break;
+      }
     }
     break;
 
@@ -247,6 +241,21 @@ static int parse_chunk (mpeg_parser_t *parser, int code, uint8_t *buffer, int le
     //  break;
     break;
   }
+
+  if (parser->in_slice &&
+      ((next_code == 0x00) /* picture start */
+    || (next_code == 0xb3) /* sequence head */
+//    || (next_code == 0xb5) /* extension start */
+    || (next_code == 0xb7) /* sequence end */
+  )) {
+    is_frame_done = 1;
+    parser->in_slice = 0;
+  } else {
+    is_frame_done = 0;
+  }
+#ifdef DEBUG_MPEG_PARSER
+  printf ("ff_mpeg_parser: nalu 0x%02x, %d bytes%s.\n", (unsigned int)code, len, is_frame_done ? ", frame full" : "");
+#endif
   return is_frame_done;
 }
 
@@ -302,6 +311,9 @@ uint8_t *mpeg_parser_decode_data (mpeg_parser_t *parser,
   int ret;
   uint8_t code;
 
+#ifdef DEBUG_MPEG_PARSER
+  printf ("ff_mpeg_parser: input %d bytes.\n", (int)(end - current));
+#endif
   ret = 0;
   *flush = 0;
 
@@ -341,3 +353,4 @@ uint8_t *mpeg_parser_decode_data (mpeg_parser_t *parser,
 
   return NULL;
 }
+

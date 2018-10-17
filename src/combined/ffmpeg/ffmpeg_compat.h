@@ -85,14 +85,20 @@
 #endif
 
 /* avcodec_decode_video() */
-#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,32,0)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(58,0,0)
+/* FIXME: when did avcodec_send_packet () / avcodec_receive_frame () really start ?? */
+#  define XFF_VIDEO 3
+#elif LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,32,0)
 #  define XFF_VIDEO 2
 #else
 #  define XFF_VIDEO 1
 #endif
 
 /* avcodec_decode_audio() */
-#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(54,0,0)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(58,0,0)
+/* FIXME: when did avcodec_send_packet () / avcodec_receive_frame () really start ?? */
+#  define XFF_AUDIO 5
+#elif LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(54,0,0)
 #  define XFF_AUDIO 4
 #elif LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(52,32,0)
 #  define XFF_AUDIO 3
@@ -101,7 +107,10 @@
 #endif
 
 /* avcodec_encode_video(), av_packet_unref */
-#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(55,25,100)
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(58,0,0)
+/* FIXME: when did avcodec_send_frame () / avcodec_receive_packet () really start ?? */
+#  define XFF_ENCVIDEO 3
+#elif LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(55,25,100)
 #  define XFF_ENCVIDEO 2
 #else
 #  define XFF_ENCVIDEO 1

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2017 the xine project
+ * Copyright (C) 2001-2018 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -22,7 +22,9 @@
  */
 #ifndef HAVE_MPEG_PARSER_H
 #define HAVE_MPEG_PARSER_H
-
+/*
+#define DEBUG_MPEG_PARSER
+*/
 #include <stdint.h>
 #include <stddef.h>
 

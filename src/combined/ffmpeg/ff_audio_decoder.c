@@ -691,8 +691,20 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
   float gain = this->class->gain;
   if (!this->av_frame)
     this->av_frame = XFF_ALLOC_FRAME ();
-
+#   if XFF_AUDIO == 5
+  {
+    int err = avcodec_send_packet (this->context, &avpkt);
+    /* xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "ff_audio_dec: send (%d) = %d.\n", (int)size, err); */
+    /* multiple frames per packet */
+    consumed = (err >= 0) ? size : ((err == AVERROR (EAGAIN)) ? 0 : err);
+    /* that calls av_frame_unref () first. */
+    err = avcodec_receive_frame (this->context, this->av_frame);
+    /* xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "ff_audio_dec: recv () = %d.\n", err); */
+    got_frame = (err == 0);
+  }
+#   else
   consumed = avcodec_decode_audio4 (this->context, this->av_frame, &got_frame, &avpkt);
+#   endif
   if ((consumed >= 0) && got_frame) {
     /* setup may have altered while decoding */
     ff_map_channels (this);
@@ -1011,7 +1023,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
       /* pad input data */
       memset(this->buf + this->size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
 
-      while (this->size>=0) {
+      while (this->size > 0) {
 
         decode_buffer_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
@@ -1195,7 +1207,12 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
   /* try to reset the wma decoder */
   if( this->decoder_ok ) {
 #if XFF_AUDIO > 3
-    XFF_FREE_FRAME (this->av_frame);
+    if (this->av_frame) {
+# if XFF_AUDIO == 5
+      av_frame_unref (this->av_frame);
+# endif
+      XFF_FREE_FRAME (this->av_frame);
+    }
 #endif
     pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
@@ -1231,7 +1248,12 @@ static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
   if( this->decoder_ok ) {
 #if XFF_AUDIO > 3
-    XFF_FREE_FRAME (this->av_frame);
+    if (this->av_frame) {
+# if XFF_AUDIO == 5
+      av_frame_unref (this->av_frame);
+# endif
+      XFF_FREE_FRAME (this->av_frame);
+    }
 #endif
     pthread_mutex_lock (&ffmpeg_lock);
     avcodec_close (this->context);
@@ -1258,6 +1280,7 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
   if (!this)
     return NULL;
 
+#ifndef HAVE_ZERO_SAFE_MEM
   /* Do these first, when compiler still knows stream is all zeroed.
    * Let it optimize away this on most systems where clear mem
    * interpretes as 0, 0f or NULL safely.
@@ -1266,6 +1289,10 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
   this->ff_channels = 0;
   this->size        = 0;
   this->decoder_ok  = 0;
+# if XFF_AUDIO > 3
+  this->av_frame    = NULL;
+# endif
+#endif
 
   this->class  = (ff_audio_class_t *)class_gen;
   this->stream = stream;
@@ -1292,9 +1319,6 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
     return NULL;
   } while (0);
 
-#if XFF_AUDIO > 3
-  this->av_frame = NULL;
-#endif
   return &this->audio_decoder;
 }
 

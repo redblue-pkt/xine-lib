@@ -197,6 +197,9 @@ struct ff_video_decoder_s {
     STATE_FLUSHED
   }                 state;
   int               decode_attempts;
+#if XFF_VIDEO == 3
+  int               flush_packet_sent;
+#endif
 
 #ifdef ENABLE_EMMS
   /* see get_buffer () */
@@ -950,7 +953,9 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
 # ifdef XFF_AV_BUFFER
     this->context->get_buffer2 = get_buffer;
     this->context->thread_safe_callbacks = 1;
+#  if XFF_VIDEO != 3
     this->context->refcounted_frames = 1;
+#  endif
 # else
     this->context->get_buffer = get_buffer;
     this->context->release_buffer = release_buffer;
@@ -1834,9 +1839,10 @@ static void ff_check_pts_tagging(ff_video_decoder_t *this, uint64_t pts)
   }
 }
 
-static int decode_video_wrapper(ff_video_decoder_t *this, AVFrame *av_frame, int *got_picture,
-                                void *buf, size_t buf_size)
-{
+static int decode_video_wrapper (ff_video_decoder_t *this,
+  AVFrame *av_frame, int *err, void *buf, size_t buf_size) {
+  int len;
+
 #if ENABLE_VAAPI
   int locked = 0;
   if (this->accel) {
@@ -1844,7 +1850,6 @@ static int decode_video_wrapper(ff_video_decoder_t *this, AVFrame *av_frame, int
   }
 #endif /* ENABLE_VAAPI */
 
-  int len;
 #if XFF_VIDEO > 1
   AVPacket avpkt;
   av_init_packet(&avpkt);
@@ -1861,8 +1866,30 @@ static int decode_video_wrapper(ff_video_decoder_t *this, AVFrame *av_frame, int
 # endif /* XFF_PALETTE */
 
   this->decode_attempts++;
-  len = avcodec_decode_video2 (this->context, av_frame,
-                               got_picture, &avpkt);
+
+# if XFF_VIDEO == 3
+  {
+    int e = AVERROR (EAGAIN);
+    if (buf || !this->flush_packet_sent) {
+      e = avcodec_send_packet (this->context, &avpkt);
+      this->flush_packet_sent = (buf == NULL);
+    }
+    len = (e == AVERROR (EAGAIN)) ? 0 : buf_size;
+    /* that calls av_frame_unref () again but seems safe. */
+    *err = avcodec_receive_frame (this->context, av_frame);
+  }
+# else
+  {
+    int got_picture = 0;
+    len = avcodec_decode_video2 (this->context, av_frame, &got_picture, &avpkt);
+    if ((len < 0) || (len > (int)buf_size)) {
+      *err = got_picture ? 0 : len;
+      len = buf_size;
+    } else {
+      *err = got_picture ? 0 : AVERROR (EAGAIN);
+    }
+  }
+# endif
 
 # if XFF_PALETTE == 2 || XFF_PALETTE == 3
   if (buf && this->palette_changed) {
@@ -1883,10 +1910,17 @@ static int decode_video_wrapper(ff_video_decoder_t *this, AVFrame *av_frame, int
 # endif /* XFF_PALETTE */
 
 #else /* XFF_VIDEO */
-
   this->decode_attempts++;
-  len = avcodec_decode_video (this->context, av_frame,
-                              got_picture, buf, buf_size);
+  {
+    int got_picture = 0;
+    len = avcodec_decode_video (this->context, av_frame, got_picture, buf, buf_size);
+    if ((len < 0) || (len > (int)buf_size)) {
+      *err = got_picture ? 0 : len;
+      len = buf_size;
+    } else {
+      *err = got_picture ? 0 : AVERROR (EAGAIN);
+    }
+  }
 #endif /* XFF_VIDEO */
 
 #if ENABLE_VAAPI
@@ -1902,7 +1936,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
   vo_frame_t *img;
   int         free_img;
-  int         got_picture, len;
+  int         len;
   int         offset = 0;
   int         flush = 0;
   int         size = buf->size;
@@ -1914,10 +1948,14 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
     ff_init_mpeg12_mode(this);
   }
 
+#ifdef DEBUG_MPEG_PARSER
+  printf ("ff_mpeg_parser: buf %d bytes.\n", size);
+#endif
+
   while ((size > 0) || (flush == 1)) {
 
     uint8_t *current;
-    int next_flush;
+    int next_flush, err;
 #ifdef XFF_AV_BUFFER
     int need_unref = 0;
 #endif
@@ -1929,7 +1967,6 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
       this->pts = 0;
     }
 
-    got_picture = 0;
     if (!flush) {
       current = mpeg_parser_decode_data(this->mpeg_parser,
                                         buf->content + offset, buf->content + offset + size,
@@ -1965,28 +2002,26 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
     lprintf("avcodec_decode_video: size=%d\n", this->mpeg_parser->buffer_size);
 
-    len = decode_video_wrapper(this, this->av_frame, &got_picture,
-                               this->mpeg_parser->chunk_buffer, this->mpeg_parser->buffer_size);
+    err = 1;
+    len = decode_video_wrapper (this, this->av_frame, &err,
+      this->mpeg_parser->chunk_buffer, this->mpeg_parser->buffer_size);
 #ifdef XFF_AV_BUFFER
     need_unref = 1;
 #endif
-    lprintf("avcodec_decode_video: decoded_size=%d, got_picture=%d\n",
-            len, got_picture);
+    lprintf ("avcodec_decode_video: decoded_size=%d, err=%d\n", len, err);
     len = current - buf->content - offset;
     lprintf("avcodec_decode_video: consumed_size=%d\n", len);
 
     flush = next_flush;
 
-    if ((len < 0) || (len > buf->size)) {
+    if ((err < 0) && (err != AVERROR (EAGAIN))) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                "ffmpeg_video_dec: error decompressing frame\n");
-      size = 0; /* draw a bad frame and exit */
-    } else {
-      size -= len;
-      offset += len;
+        "ffmpeg_video_dec: error decompressing frame (%d).\n", err);
     }
+    size -= len;
+    offset += len;
 
-    if (got_picture && this->class->enable_vaapi) {
+    if (!err && this->class->enable_vaapi) {
       this->bih.biWidth = this->context->width;
       this->bih.biHeight = this->context->height;
     }
@@ -1996,7 +2031,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
       this->set_stream_info = 0;
     }
 
-    if (got_picture && this->av_frame->data[0]) {
+    if (!err && this->av_frame->data[0]) {
       /* got a picture, draw it */
       img = NULL;
 #ifdef ENABLE_DIRECT_RENDERING
@@ -2164,7 +2199,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 
     vo_frame_t *img;
     int         free_img;
-    int         got_picture, len;
+    int         err, len;
     int         got_one_picture = 0;
     int         offset = 0;
     int         codec_type = buf->type & 0xFFFF0000;
@@ -2182,9 +2217,9 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
     while (this->size > 0) {
 
       /* DV frames can be completely skipped */
-      if( codec_type == BUF_VIDEO_DV && this->skipframes ) {
+      if ((codec_type == BUF_VIDEO_DV) && this->skipframes) {
         this->size = 0;
-        got_picture = 0;
+        err = 1;
       } else {
         /* skip decoding b frames if too late */
 #if XFF_VIDEO > 1
@@ -2200,8 +2235,8 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         }
 #endif
 
-        len = decode_video_wrapper(this, this->av_frame, &got_picture,
-                                   &chunk_buf[offset], this->size);
+        len = decode_video_wrapper (this, this->av_frame, &err, &chunk_buf[offset], this->size);
+        lprintf ("consumed size: %d, err: %d\n", len, err);
 
 #ifdef XFF_AV_BUFFER
         need_unref = 1;
@@ -2209,10 +2244,15 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         /* reset consumed pts value */
         this->context->reordered_opaque = ff_tag_pts(this, 0);
 
-        lprintf("consumed size: %d, got_picture: %d\n", len, got_picture);
-        if ((len <= 0) || (len > this->size)) {
+        if (err) {
+
+          if (err == AVERROR (EAGAIN)) {
+            offset += len;
+            this->size -= len;
+            continue;
+          }
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-                    "ffmpeg_video_dec: error decompressing frame\n");
+            "ffmpeg_video_dec: error decompressing frame (%d).\n", err);
           this->size = 0;
 
         } else {
@@ -2261,7 +2301,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         this->set_stream_info = 0;
       }
 
-      if (got_picture && this->av_frame->data[0]) {
+      if (!err && this->av_frame->data[0]) {
         /* got a picture, draw it */
         got_one_picture = 1;
         img = NULL;
@@ -2475,7 +2515,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
 static void ff_flush_internal (ff_video_decoder_t *this, int display) {
   vo_frame_t *img;
-  int         free_img, got_picture, len, frames = 0;
+  int         free_img, frames = 0;
   int         video_step_to_use = this->video_step;
   AVRational  avr00 = {0, 1};
 
@@ -2489,9 +2529,9 @@ static void ff_flush_internal (ff_video_decoder_t *this, int display) {
   this->state = STATE_FLUSHED;
 
   while (1) {
-    got_picture = 0;
-    len = decode_video_wrapper(this, this->av_frame2, &got_picture, NULL, 0);
-    if (len < 0 || !got_picture || !this->av_frame2->data[0]) {
+    int err = 1;
+    decode_video_wrapper (this, this->av_frame2, &err, NULL, 0);
+    if (err || !this->av_frame2->data[0]) {
 #ifdef XFF_AV_BUFFER
       av_frame_unref (this->av_frame2);
 #endif
@@ -2771,7 +2811,7 @@ static void ff_dispose (video_decoder_t *this_gen) {
     free(this->buf);
   this->buf = NULL;
 
-#ifdef HAVEPOSTPROC
+#ifdef HAVE_POSTPROC
   if(this->our_context)
     pp_free_context(this->our_context);
 
@@ -2852,6 +2892,9 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 #ifdef ENABLE_VAAPI
   this->accel           = NULL;
   this->accel_img       = NULL;
+#endif
+#if XFF_VIDEO == 3
+  this->flush_packet_sent = 0;
 #endif
 
   this->video_decoder.decode_data   = ff_decode_data;
