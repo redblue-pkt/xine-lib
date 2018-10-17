@@ -3038,6 +3038,19 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     return 1;
 }
 
+static int dvb_plugin_get_optional_data (input_plugin_t *this_gen, void *data, int data_type)
+{
+  (void)this_gen;
+  switch (data_type) {
+    case INPUT_OPTIONAL_DATA_DEMUXER:
+      if (data)
+        *(const char **)data = "mpeg-ts";
+      return INPUT_OPTIONAL_SUCCESS;
+    default:
+      return INPUT_OPTIONAL_UNSUPPORTED;
+    }
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
 
 static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
 				    xine_stream_t *stream,
@@ -3083,7 +3096,7 @@ static input_plugin_t *dvb_class_get_instance (input_class_t *class_gen,
   this->input_plugin.read_block        = _x_input_default_read_block;
   this->input_plugin.get_length        = _x_input_default_get_length;
   this->input_plugin.get_blocksize     = _x_input_default_get_blocksize;
-  this->input_plugin.get_optional_data = _x_input_default_get_optional_data;
+  this->input_plugin.get_optional_data = dvb_plugin_get_optional_data;
   this->input_plugin.dispose           = dvb_plugin_dispose;
   this->input_plugin.input_class       = class_gen;
 
