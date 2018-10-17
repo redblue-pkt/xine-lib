@@ -559,7 +559,10 @@ static void vdpau_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen, v
   if (i >= XINE_VORAW_MAX_OVL)
     return;
 
-  if (voovl->width <= 0 || voovl->height <= 0 || (!voovl->rle && (!voovl->argb_layer || !voovl->argb_layer->buffer)))
+  if (voovl->width <= 0 || voovl->height <= 0 || voovl->width > 32768 || voovl->height > 32768)
+    return;
+
+  if (!voovl->rle && (!voovl->argb_layer || !voovl->argb_layer->buffer))
     return;
 
   if (voovl->rle)
