@@ -654,6 +654,8 @@ static void vdpau_overlay_end (vo_driver_t *this_gen, vo_frame_t *frame_gen)
         this->ovl_pixmap = calloc (pmsize, sizeof (uint32_t));
       }
       pixmap = this->ovl_pixmap;
+      if (!pixmap)
+        continue;
       _x_overlay_to_argb32 (voovl, pixmap, ovl->width, "BGRA");
     } else {
       pthread_mutex_lock(&voovl->argb_layer->mutex);
