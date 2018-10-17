@@ -1641,10 +1641,18 @@ static buf_element_t *vdr_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
                                             off_t todo)
 {
   off_t          total_bytes;
-  buf_element_t *buf = fifo->buffer_pool_alloc(fifo);
+  buf_element_t *buf;
+
+  if (todo < 0)
+    return NULL;
+
+  buf = fifo->buffer_pool_size_alloc(fifo, todo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
+
+  if (todo > buf->max_size)
+    todo = buf->max_size;
 
   total_bytes = vdr_plugin_read(this_gen, (char *)buf->content, todo);
 
