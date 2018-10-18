@@ -177,7 +177,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
   char c;
 
   if (tok) {
-    while ((tok_pos < tok_size) && (lexer->lexbuf_pos < lexer->lexbuf_size)) {
+    while ((tok_pos + 8 < tok_size) && (lexer->lexbuf_pos < lexer->lexbuf_size)) {
       c = lexer->lexbuf[lexer->lexbuf_pos];
       lprintf("c=%c, state=%d, in_comment=%d\n", c, state, lexer->in_comment);
 
@@ -286,7 +286,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
 	  case '/':
 	    tok[tok_pos] = c;
 	    lexer->lexbuf_pos++;
-	    tok_pos++; /* FIXME */
+	    tok_pos++;
 	    tok[tok_pos] = '\0';
 	    return T_M_START_2;
 	    break;
@@ -299,7 +299,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
 	  case '?':
 	    tok[tok_pos] = c;
 	    lexer->lexbuf_pos++;
-	    tok_pos++; /* FIXME */
+	    tok_pos++;
 	    tok[tok_pos] = '\0';
 	    return T_TI_START;
 	    break;
@@ -322,7 +322,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
 	  if (c == '>') {
 	    tok[tok_pos] = c;
 	    lexer->lexbuf_pos++;
-	    tok_pos++; /* FIXME */
+	    tok_pos++;
 	    tok[tok_pos] = '\0';
 	    if (!lexer->in_comment)
 	      lexer->lex_mode = DATA;
@@ -358,7 +358,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
 	    if (lexer->lexbuf[lexer->lexbuf_pos] == '-')
 	      {
 		lexer->lexbuf_pos++;
-		tok[tok_pos++] = '-'; /* FIXME */
+		tok[tok_pos++] = '-'; 
 		tok[tok_pos++] = '-';
 		tok[tok_pos] = '\0';
 		lexer->in_comment = 1;
@@ -397,7 +397,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
 	  if (c == '>') {
 	    tok[tok_pos] = c;
 	    lexer->lexbuf_pos++;
-	    tok_pos++; /* FIXME */
+	    tok_pos++;
 	    tok[tok_pos] = '\0';
 	    if (!lexer->in_comment)
 	      lexer->lex_mode = DATA;
@@ -432,7 +432,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
 	    tok[tok_pos] = c;
 	    tok_pos++;
 	    lexer->lexbuf_pos++;
-	    tok[tok_pos] = '\0'; /* FIX ME */
+	    tok[tok_pos] = '\0'; /* FIXME */
 	    if (strlen(tok) != 3) {
 	      tok[tok_pos - 3] = '\0';
 	      lexer->lexbuf_pos -= 3;
@@ -541,7 +541,7 @@ int lexer_get_token_d_r(struct lexer * lexer, char ** _tok, int * _tok_size, int
 	     tok_pos, tok_size, lexer->lexbuf_pos, lexer->lexbuf_size);
 
     /* pb */
-    if (tok_pos >= tok_size) {
+    if (tok_pos + 8 >= tok_size) {
       if (fixed)
         return T_ERROR;
       *_tok_size *= 2;
