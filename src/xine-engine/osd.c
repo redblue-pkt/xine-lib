@@ -1012,6 +1012,36 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
   return ret;
 }
 
+/*
+ look for a native xine font matching the given name and size and load it
+ into osd->font.
+ return nonzero if a native font is found, zero if not
+*/
+static int osd_lookup_native( osd_object_t *osd, const char *fontname, int size ) {
+    osd_font_t *font;
+    int best = 0;
+    int ret = 0;
+
+    font = osd->renderer->fonts;
+    while( font ) {
+      if( !strcasecmp(font->name, fontname) && (size>=font->size)
+          && (best<font->size)) {
+        ret = 1;
+        osd->font = font;
+        best = font->size;
+        //lprintf ("best: font->name=%s, size=%d\n", font->name, font->size);
+      }
+      font = font->next;
+    }
+    if (ret)
+      lprintf("native match for %s %1d: %s %1d\n",fontname,size,osd->font->name,osd->font->size);
+    else
+      lprintf("no native font matching %s %1d",fontname,size);
+
+    return ret;
+}
+
+
 #ifdef HAVE_FT2
 
 # ifdef HAVE_FONTCONFIG
@@ -1122,6 +1152,16 @@ static int osd_set_font_freetype2( osd_object_t *osd, const char *fontname, int 
     */
     if ( FT_New_Face(osd->ft2->library, fontname, 0, &osd->ft2->face) == FT_Err_Ok )
       break;
+    /*
+	try to find a native xine font and return 0 if it succeeds,
+	  allowing that to load.
+	  this has to happen before calling osd_lookup_fontconfig
+	  so that you don't get the system default font when trying
+	  to load e.g Cetus.
+	*/
+    if (osd_lookup_native(osd,fontname,size))
+	  return 0;
+
 
 #ifdef HAVE_FONTCONFIG
     if ( osd_lookup_fontconfig(osd, fontname, size) )
@@ -1160,31 +1200,17 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
 #ifdef HAVE_FT2
   if ( ! osd_set_font_freetype2(osd, fontname, size) )
 #endif
-    { /* If the FreeType2 loading failed */
-      osd_font_t *font;
-      int best = 0;
+    { /* If the FreeType2 loading failed
+         (which can happen if it finds a native xine font)
+       */
       osd->font = NULL;
-      ret = 0;
-
-      font = osd->renderer->fonts;
-      while( font ) {
-
-	if( !strcasecmp(font->name, fontname) && (size>=font->size)
-	    && (best<font->size)) {
-	  ret = 1;
-	  osd->font = font;
-	  best = font->size;
-	  lprintf ("best: font->name=%s, size=%d\n", font->name, font->size);
-	}
-	font = font->next;
-      }
-
+      ret = osd_lookup_native(osd,fontname,size);
       if( ret ) {
-	/* load font if needed */
-	if( !osd->font->loaded )
-	  ret = osd_renderer_load_font(osd->renderer, osd->font->filename);
-	if(!ret)
-	  osd->font = NULL;
+        /* load font if needed */
+        if( !osd->font->loaded )
+          ret = osd_renderer_load_font(osd->renderer, osd->font->filename);
+        if(!ret)
+          osd->font = NULL;
       }
     }
 
@@ -1344,13 +1370,13 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   uint16_t unicode;
   size_t inbytesleft;
 
+  lprintf("osd=%p (%d,%d) \"%s\"\n", osd, x1, y1, text);
+
 #ifdef HAVE_FT2
   FT_UInt previous = 0;
-  FT_Bool use_kerning = osd->ft2 && FT_HAS_KERNING(osd->ft2->face);
+  FT_Bool use_kerning = osd->ft2 && osd->ft2->face && FT_HAS_KERNING(osd->ft2->face);
   int first = 1;
 #endif
-
-  lprintf("osd=%p (%d,%d) \"%s\"\n", osd, x1, y1, text);
 
   /* some sanity checks for the color indices */
   if( color_base < 0 )
@@ -1365,7 +1391,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
     if ((font = osd->font)) proceed = 1;
 #ifdef HAVE_FT2
-    if (osd->ft2) proceed = 1;
+    if (osd->ft2 && osd->ft2->face) proceed = 1;
 #endif
 
     if (proceed == 0) {
@@ -1394,7 +1420,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 
 
 #ifdef HAVE_FT2
-    if (osd->ft2) {
+    if (osd->ft2 && osd->ft2->face) {
 
       FT_GlyphSlot slot = osd->ft2->face->glyph;
 
@@ -1496,7 +1522,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       }
 
 #ifdef HAVE_FT2
-    } /* !(osd->ft2) */
+    } /* !(osd->ft2 && osd->ft2->face) */
 #endif
 
   }
@@ -1520,7 +1546,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
 #ifdef HAVE_FT2
   /* not all free type fonts provide kerning */
-  FT_Bool use_kerning = osd->ft2 && FT_HAS_KERNING(osd->ft2->face);
+  FT_Bool use_kerning = osd->ft2 && osd->ft2->face && FT_HAS_KERNING(osd->ft2->face);
   FT_UInt previous = 0;
   int first_glyph = 1;
 #endif
@@ -1534,7 +1560,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 
     if ((font = osd->font)) proceed = 1;
 #ifdef HAVE_FT2
-    if (osd->ft2) proceed = 1;
+    if (osd->ft2 && osd->ft2->face) proceed = 1;
 #endif
 
     if (proceed == 0) {
@@ -1561,7 +1587,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
 #endif
 
 #ifdef HAVE_FT2
-    if (osd->ft2) {
+    if (osd->ft2 && osd->ft2->face) {
       FT_GlyphSlot  slot = osd->ft2->face->glyph;
 
       i = FT_Get_Char_Index( osd->ft2->face, unicode);
@@ -1601,12 +1627,12 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
         *width += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
       }
 #ifdef HAVE_FT2
-    } /* !(osd->ft2) */
+    } /* !(osd->ft2 && osd->ft2->face) */
 #endif
   }
 
 #ifdef HAVE_FT2
-  if (osd->ft2) {
+  if (osd->ft2 && osd->ft2->face) {
     /* if we have a true type font we need to do some corrections for the last
      * letter. As this one is still in the gylph slot we can still work with
      * it. For the last letter be must not use advance and width but the real
