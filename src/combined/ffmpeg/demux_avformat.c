@@ -769,6 +769,14 @@ static int pb_input_read_packet(void *opaque, uint8_t *buf, int buf_size) {
 
 static int64_t pb_input_seek(void *opaque, int64_t offset, int whence) {
   input_plugin_t *input = (input_plugin_t *)opaque;
+
+  if (whence == AVSEEK_SIZE) {
+    off_t len = input->get_length(input);
+    if (len > 0)
+      return len;
+    return -1;
+  }
+
   return input->seek(input, offset, whence);
 }
 
