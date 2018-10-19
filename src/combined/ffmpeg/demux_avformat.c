@@ -790,6 +790,11 @@ static AVIOContext *get_io_context(xine_stream_t *stream, input_plugin_t *input)
     /* create AVIO wrapper for native input plugin */
     xprintf (stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE": creating AVIOContext wrapper for input plugin\n");
     pb = avio_alloc_context(av_malloc(4096), 4096, 0/*write_flag*/, input, pb_input_read_packet, NULL, pb_input_seek);
+
+    if (input->get_capabilities(input) & INPUT_CAP_SEEKABLE)
+      pb->seekable = AVIO_SEEKABLE_NORMAL;
+    else
+      pb->seekable = 0;
   }
 
   avio_seek(pb, 0, SEEK_SET);
