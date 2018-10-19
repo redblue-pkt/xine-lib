@@ -1273,6 +1273,7 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
 {
   dvb_spu_decoder_t *this;
 
+  (void)class_gen;
   this = calloc(1, sizeof (dvb_spu_decoder_t));
   if (!this)
     return NULL;
@@ -1361,7 +1362,7 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
 
 static void *init_spu_decoder_plugin (xine_t * xine, const void *data)
 {
-
+  (void)xine;
   (void)data;
   static const spu_decoder_class_t decode_dvb_spu_class = {
     .open_plugin = dvb_spu_class_open_plugin,
