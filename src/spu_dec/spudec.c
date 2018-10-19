@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002-2017 the xine project
+ * Copyright (C) 2002-2018 the xine project
  *
  * Copyright (C) James Courtier-Dutton James@superbug.demon.co.uk - July 2001
  *

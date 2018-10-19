@@ -1,7 +1,7 @@
 /*
  * yuv2rgb_mmx.c
  *
- * Copyright (C) 2001-2017 the xine project
+ * Copyright (C) 2001-2018 the xine project
  * This file is part of xine, a free video player.
  *
  * based on work from mpeg2dec:
