@@ -1,8 +1,29 @@
-  * Add TLS support using gnutls.
+xine-lib (1.2.10) ????-??-??
+  * Add first Android support.
+  * Add (xcb)xv yuy2 emulation.
+  * Add libavcodec v58 compatibility.
+  * Make libpostproc optional.
+  * Add libaom and lavc AV1 video decoders.
+  * Add Opus audio support to ogg demuxer.
+  * Add AV1 video support to matroska demuxer.
+  * Add ivf demuxer.
+  * Add TLS support using gnutls or OpenSSL.
   * Add ftp input plugin (ftp://) with TLS support (ftpes://)
   * Add tls:// input plugin (raw TLS over TCP).
-  * Add seeking support to http input plugin.
+  * Add libnfs NFS input plugin.
+  * Add ftp/http seek support.
+  * Add scp forward seek support.
   * XML parser fixes.
+  * Fix ffmpeg mpeg1/2 video.
+  * Fix C++ build.
+  * Fix build on clang only systems.
+  * Fix/optimize mpeg, mpeg-ts, qt, real and asf demuxers.
+  * Fix network seek.
+  * Security fixes.
+  * Build fixes (C99 mode, vaapi, ImageMagick, libmvec, less warnings).
+  * Many small fixes.
+  * Build optimizations.
+  * Engine optimizations.
 
 xine-lib (1.2.9) 2018-01-11
   * Add LIBXINE_VERBOSITY environment var override.
