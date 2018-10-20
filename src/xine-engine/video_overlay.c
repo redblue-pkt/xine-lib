@@ -556,11 +556,9 @@ static void clut_to_argb(const uint32_t *color, const uint8_t *trans, int num_it
       rle++;                                                            \
       if (rle >= rle_end) {                                             \
         /* fill with transparent */                                     \
-        memset(rgba, 0, (overlay->width - x) * sizeof(uint32_t));       \
-        rgba += stride;                                                 \
-        for (; y < overlay->height; y++, rgba += stride) {              \
-          memset(rgba, 0, stride * sizeof(uint32_t));                   \
-        }                                                               \
+        int n = stride - x + (overlay->height - y - 1) * stride;        \
+        if (n > 0)                                                      \
+          memset (rgba + x, 0, n * sizeof (uint32_t));                  \
         return;                                                         \
       }                                                                 \
       rle_len = rle->len;                                               \
