@@ -63,11 +63,15 @@ typedef struct {
 
 } nfs_input_plugin_t;
 
+#define PLUGIN(ptr) xine_container_of(ptr, nfs_input_plugin_t, input_plugin)
+
 typedef struct {
   input_class_t     input_class;
   xine_t           *xine;
   xine_mrl_t      **mrls;
 } nfs_input_class_t;
+
+#define CLASS(ptr) xine_container_of(ptr, nfs_input_class_t, input_class)
 
 /*
  * util
@@ -124,7 +128,7 @@ static int _mount(nfs_input_plugin_t *this)
 
 static off_t _read (input_plugin_t *this_gen, void *buf_gen, off_t len)
 {
-  nfs_input_plugin_t *this = (nfs_input_plugin_t *) this_gen;
+  nfs_input_plugin_t *this = PLUGIN(this_gen);
   uint8_t *buf = buf_gen;
   off_t got = 0;
   int rc;
@@ -157,7 +161,7 @@ static off_t _read (input_plugin_t *this_gen, void *buf_gen, off_t len)
 
 static off_t _get_length (input_plugin_t *this_gen)
 {
-  nfs_input_plugin_t *this = (nfs_input_plugin_t *) this_gen;
+  nfs_input_plugin_t *this = PLUGIN(this_gen);
   struct nfs_stat_64 st;
 
   if (this->file_size)
@@ -176,14 +180,14 @@ static off_t _get_length (input_plugin_t *this_gen)
 
 static off_t _get_current_pos (input_plugin_t *this_gen)
 {
-  nfs_input_plugin_t *this = (nfs_input_plugin_t *) this_gen;
+  nfs_input_plugin_t *this = PLUGIN(this_gen);
 
   return this->curpos;
 }
 
 static off_t _seek (input_plugin_t *this_gen, off_t offset, int origin)
 {
-  nfs_input_plugin_t *this = (nfs_input_plugin_t *) this_gen;
+  nfs_input_plugin_t *this = PLUGIN(this_gen);
   uint64_t pos = this->curpos;
 
   if (nfs_lseek(this->nfs, this->nfsfh, offset, origin, &pos) < 0) {
@@ -199,14 +203,14 @@ static off_t _seek (input_plugin_t *this_gen, off_t offset, int origin)
 
 static const char *_get_mrl (input_plugin_t *this_gen)
 {
-  nfs_input_plugin_t *this = (nfs_input_plugin_t *) this_gen;
+  nfs_input_plugin_t *this = PLUGIN(this_gen);
 
   return this->mrl;
 }
 
 static void _dispose (input_plugin_t *this_gen)
 {
-  nfs_input_plugin_t *this = (nfs_input_plugin_t *) this_gen;
+  nfs_input_plugin_t *this = PLUGIN(this_gen);
 
   if (this->nfsfh) {
     nfs_close(this->nfs, this->nfsfh);
@@ -223,7 +227,7 @@ static void _dispose (input_plugin_t *this_gen)
 
 static int _open (input_plugin_t *this_gen)
 {
-  nfs_input_plugin_t *this = (nfs_input_plugin_t *)this_gen;
+  nfs_input_plugin_t *this = PLUGIN(this_gen);
 
   this->curpos = 0;
 
@@ -496,7 +500,8 @@ static xine_mrl_t **_get_files(nfs_input_plugin_t *this, int *nFiles)
 
 static xine_mrl_t **_get_dir (input_class_t *this_gen, const char *filename, int *nFiles)
 {
-  nfs_input_class_t *this = (nfs_input_class_t *)this_gen;
+  nfs_input_class_t  *this = CLASS(this_gen);
+  input_plugin_t     *input_gen;
   nfs_input_plugin_t *input = NULL;
 
   *nFiles = 0;
@@ -507,10 +512,11 @@ static xine_mrl_t **_get_dir (input_class_t *this_gen, const char *filename, int
     goto out;
   }
 
-  input = (nfs_input_plugin_t *)_get_instance(this_gen, NULL, filename);
-  if (!input) {
+  input_gen = _get_instance(this_gen, NULL, filename);
+  if (!input_gen) {
     goto fail;
   }
+  input = PLUGIN(input_gen);
 
   if (_parse_url(input, 0) < 0) {
     goto fail;
@@ -539,7 +545,7 @@ static xine_mrl_t **_get_dir (input_class_t *this_gen, const char *filename, int
 
 static void _dispose_class (input_class_t *this_gen)
 {
-  nfs_input_class_t *this = (nfs_input_class_t *)this_gen;
+  nfs_input_class_t *this = CLASS(this_gen);
 
   _x_input_free_mrls(&this->mrls);
 
