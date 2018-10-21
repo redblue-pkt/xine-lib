@@ -1769,20 +1769,12 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
   /* now resume demuxer thread if it is running already */
   pthread_mutex_unlock( &stream->demux_lock );
 
-  if (demux_status != DEMUX_OK) {
-    xine_log (stream->xine, XINE_LOG_MSG, _("xine_play: demux failed to start\n"));
-
-    stream->err = XINE_ERROR_DEMUX_FAILED;
-    pthread_mutex_lock (&stream->first_frame_lock);
-    stream->first_frame_flag = 0;
-    // no need to signal: wait is done only in this function.
-    pthread_mutex_unlock (&stream->first_frame_lock);
-    return 0;
-
-  }
+  if (demux_status != DEMUX_OK)
+    goto demux_failed;
 
   if (!demux_thread_running) {
-    _x_demux_start_thread( stream );
+    if (_x_demux_start_thread( stream ) < 0)
+      goto demux_failed;
     stream->status = XINE_STATUS_PLAY;
   }
   stream->finished_naturally = 0;
@@ -1796,6 +1788,16 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
   xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "play_internal ...done\n");
 
   return 1;
+
+ demux_failed:
+  xine_log (stream->xine, XINE_LOG_MSG, _("xine_play: demux failed to start\n"));
+
+  stream->err = XINE_ERROR_DEMUX_FAILED;
+  pthread_mutex_lock (&stream->first_frame_lock);
+  stream->first_frame_flag = 0;
+  // no need to signal: wait is done only in this function.
+  pthread_mutex_unlock (&stream->first_frame_lock);
+  return 0;
 }
 
 int xine_play (xine_stream_t *stream, int start_pos, int start_time) {

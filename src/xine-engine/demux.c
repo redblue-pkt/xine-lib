@@ -487,8 +487,11 @@ int _x_demux_start_thread (xine_stream_t *stream) {
     stream->demux_thread_created = 1;
     if ((err = pthread_create (&stream->demux_thread,
 			       NULL, demux_loop, (void *)stream)) != 0) {
-      printf ("demux: can't create new thread (%s)\n", strerror(err));
-      _x_abort();
+      xprintf (stream->xine, XINE_VERBOSITY_LOG,
+               "demux: can't create new thread (%s)\n", strerror(err));
+      stream->demux_thread_running = 0;
+      stream->demux_thread_created = 0;
+      return -1;
     }
   }
 
