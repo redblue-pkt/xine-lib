@@ -68,13 +68,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "   - iff           - matroska"
     echo "   - vmd           - flv"
     echo "   - ivf"
-    if test x"$enable_a52dec" != x"no"; then
-        if test x"$have_external_a52dec" = x"yes"; then
-            echo "   - ac3 (external library)"
-        else
-            echo "   - ac3 (*INTERNAL* library)"
-        fi
-    fi
+    echo "   - ac3"
     test x"$enable_asf" != x"no"     && echo "   - asf"
     test x"$enable_nosefart" != xno  && echo "   - Nosefart (NSF)"
     test x"$enable_mng" != x"no"     && echo "   - mng"
