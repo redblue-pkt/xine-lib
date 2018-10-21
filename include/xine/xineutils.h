@@ -27,6 +27,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <pthread.h>
 
 #ifdef WIN32
@@ -207,6 +208,22 @@ int xine_profiler_allocate_slot (const char *label) XINE_PROTECTED;
 void xine_profiler_start_count (int id) XINE_PROTECTED;
 void xine_profiler_stop_count (int id) XINE_PROTECTED;
 void xine_profiler_print_results (void) XINE_PROTECTED;
+
+/*
+ * xine_container_of()
+ * calculate struct pointer from field pointer
+ */
+
+#if defined(__GNUC__)
+#  define xine_container_of(ptr, type, member)           \
+  ({                                                     \
+     const typeof(((type *)0)->member) *__mptr = (ptr);  \
+     (type *)((char *)__mptr - offsetof(type, member));  \
+  })
+#else
+#  define xine_container_of(ptr, type, member) \
+  ((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
+#endif
 
 /*
  * Allocate and clean memory size_t 'size', then return the pointer
