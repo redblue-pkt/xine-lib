@@ -1779,13 +1779,13 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
     pthread_mutex_unlock (&stream->first_frame_lock);
     return 0;
 
-  } else {
-    if (!demux_thread_running) {
-      _x_demux_start_thread( stream );
-      stream->status = XINE_STATUS_PLAY;
-    }
-    stream->finished_naturally = 0;
   }
+
+  if (!demux_thread_running) {
+    _x_demux_start_thread( stream );
+    stream->status = XINE_STATUS_PLAY;
+  }
+  stream->finished_naturally = 0;
 
 
   /* Wait until the first frame produced is displayed
