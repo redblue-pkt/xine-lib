@@ -550,91 +550,100 @@ static void clut_to_argb(const uint32_t *color, const uint8_t *trans, int num_it
 }
 
 #define LUT_SIZE (sizeof(overlay->color)/sizeof(overlay->color[0]))
-#define NEXT_BITE                                                       \
-  do {                                                                  \
-    if (rle_len < 1) {                                                  \
-      rle++;                                                            \
-      if (rle >= rle_end) {                                             \
-        /* fill with transparent */                                     \
-        int n = stride - x + (overlay->height - y - 1) * stride;        \
-        if (n > 0)                                                      \
-          memset (rgba + x, 0, n * sizeof (uint32_t));                  \
-        return;                                                         \
-      }                                                                 \
-      rle_len = rle->len;                                               \
-    }                                                                   \
-  } while (0)
-#define LIMIT_WIDTH                             \
-  do {                                          \
-    x_limit = x + rle_len;                      \
-    if (x_limit > overlay->width) {             \
-      rle_len = x_limit - overlay->width;       \
-      x_limit = overlay->width;                 \
-    } else {                                    \
-      rle_len = 0;                              \
-    }                                           \
-  } while (0)
-#define BLEND_LINE                              \
-  do {                                          \
-    for (x = 0; x < overlay->width; ) {         \
-      NEXT_BITE;                                \
-      LIMIT_WIDTH;                              \
-                                                \
-      while (x < x_limit) {                     \
-        rgba[x++] = colors[rle->color];         \
-      }                                         \
-    }                                           \
-    rgba += stride;                             \
-  } while (0)
+void _x_overlay_to_argb32 (const vo_overlay_t *overlay, uint32_t *rgba_buf, int stride, const char *format) {
+  const rle_elem_t *rle = overlay->rle, *rle_end = rle + overlay->num_rle;
+  int lines1, lines2, lines3;
+  int pixels1, pixels2, pixels3;
+  int prest, pad = stride - overlay->width;
+  uint32_t *rgba = rgba_buf, colors[LUT_SIZE * 2], color;
 
-void _x_overlay_to_argb32(const vo_overlay_t *overlay, uint32_t *rgba, int stride, const char *format)
-{
-  const rle_elem_t *rle_end = overlay->rle + overlay->num_rle;
-  const rle_elem_t *rle = overlay->rle;
-  int x, y, x_limit;
-  int rle_len = rle->len;
-  int no_hili = overlay->hili_bottom < 0 || overlay->hili_bottom < overlay->hili_top ||
-                overlay->hili_right  < 0 || overlay->hili_right  < overlay->hili_left;
+  clut_to_argb (overlay->color, overlay->trans, LUT_SIZE, colors, format);
 
-  if (overlay->num_rle < 1 || !rgba)
-    return;
-
-  if (no_hili) {
-    uint32_t colors[LUT_SIZE];
-    clut_to_argb(overlay->color, overlay->trans, LUT_SIZE, colors, format);
-
-    for (y = 0; y < overlay->height; y++) {
-      BLEND_LINE;
-    }
-
+#define GET_DIM(dest,src,max) dest = src; if (dest < 0) dest = 0; else if (dest > max) dest = max;
+  GET_DIM (lines1, overlay->hili_top, overlay->height);
+  GET_DIM (lines2, overlay->hili_bottom - overlay->hili_top + 1, overlay->height - lines1);
+  lines3 = overlay->height - lines1 - lines2;
+  GET_DIM (pixels1, overlay->hili_left, overlay->width);
+  GET_DIM (pixels2, overlay->hili_right - overlay->hili_left + 1, overlay->width - pixels1);
+  pixels3 = overlay->width - pixels1 - pixels2;
+#undef GET_DIM
+  if ((lines2 > 0) && (pixels2 > 0)) { /* highlight */
+    clut_to_argb (overlay->hili_color, overlay->hili_trans, LUT_SIZE, colors + LUT_SIZE, format);
   } else {
-    uint32_t colors[LUT_SIZE * 2];
-    clut_to_argb(overlay->color,      overlay->trans,      LUT_SIZE, colors,            format);
-    clut_to_argb(overlay->hili_color, overlay->hili_trans, LUT_SIZE, colors + LUT_SIZE, format);
+    lines1 += lines3;
+    lines2 = lines3 = 0;
+    pixels1 += pixels3;
+    pixels2 = pixels3 = 0;
+  }
 
-    for (y = 0; y < overlay->height; y++) {
-      int hili_y = (y >= overlay->hili_top && y <= overlay->hili_bottom);
-      if (!hili_y) {
-        BLEND_LINE;
-      } else {
-        for (x = 0; x < overlay->width; ) {
-          NEXT_BITE;
-          LIMIT_WIDTH;
+#define MAKE_LINE(offs) \
+  while (1) { \
+    int pleft = prest > pixels ? pixels : prest; \
+    pixels -= pleft; \
+    prest -= pleft; \
+    while (pleft > 0) { \
+      *rgba++ = color; \
+      pleft--; \
+    } \
+    if (pixels <= 0) \
+      break; \
+    if (rle >= rle_end) \
+      goto _fill; \
+    color = colors[rle->color + offs]; \
+    prest = rle->len; \
+    rle++; \
+  }
 
-          while (x < x_limit) {
-            int hili = (x >= overlay->hili_left && x <= overlay->hili_right);
-            rgba[x++] = colors[rle->color + hili * LUT_SIZE];
-          }
-        }
-        rgba += stride;
-      }
-    }
+  prest = 0;
+  color = 0;
+  /* top */
+  while (lines1 > 0) {
+    int pixels = overlay->width;
+    MAKE_LINE (0);
+    rgba += pad;
+    lines1--;
+  }
+
+  /* highlight */
+  while (lines2 > 0) {
+    /* left */
+    int pixels = pixels1;
+    MAKE_LINE (0);
+    /* highlighted */
+    if (prest > 0)
+      color = colors[rle[-1].color + LUT_SIZE];
+    pixels = pixels2;
+    MAKE_LINE (LUT_SIZE);
+    /* right */
+    if (prest > 0)
+      color = colors[rle[-1].color];
+    pixels = pixels3;
+    MAKE_LINE (0);
+    rgba += pad;
+    lines2--;
+  }
+
+  /* bottom */
+  while (lines3 > 0) {
+    int pixels = overlay->width;
+    MAKE_LINE (0);
+    rgba += pad;
+    lines3--;
+  }
+
+#undef MAKE_LINE
+
+  return;
+
+  _fill:
+  {
+    int n;
+    n = rgba_buf + stride * overlay->height - rgba;
+    if (n > 0)
+      memset (rgba, 0, n * sizeof (uint32_t));
   }
 }
 #undef LUT_SIZE
-#undef NEXT_BITE
-#undef LIMIT_WIDTH
-#undef BLEND_LINE
 
 /* This is called from video_out.c
  * must call output->overlay_blend for each active overlay.
@@ -739,3 +748,4 @@ video_overlay_manager_t *_x_video_overlay_new_manager (xine_t *xine) {
 
   return (video_overlay_manager_t *) &this->video_overlay;
 }
+
