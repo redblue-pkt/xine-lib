@@ -47,6 +47,11 @@
 
 #include "../combined/ffmpeg/ffmpeg_compat.h"
 
+/* av_opt_set_int (), _after_ ffmpeg_compat.h */
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(56,56,101)
+#  include <libavutil/opt.h>
+#endif
+
 #if XFF_ENCVIDEO == 1
 /* buffer size for encoded mpeg1 stream; will hold one intra frame
  * at 640x480 typical sizes are <50 kB. 512 kB should be plenty */
@@ -210,7 +215,10 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->context->height = frame->oheight;
 
   this->context->gop_size = 0; /*intra frames only */
-#if defined(LIBAVCODEC_VERSION_MAJOR) && LIBAVCODEC_VERSION_MAJOR < 58
+/* TJ. this version is known to have that but maybe its not the first. */
+#if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(56,56,101)
+  av_opt_set_int (codec, "motion_est", 0 /* "zero" */, 0);
+#else
   this->context->me_method = ME_ZERO; /*motion estimation type*/
 #endif
 
