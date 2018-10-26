@@ -157,6 +157,7 @@ void *dxr3_video_init_plugin(xine_t *xine, const void *data)
 {
   dxr3_decoder_class_t *this;
 
+  (void)xine;
   (void)data;
 
   this = calloc(1, sizeof (dxr3_decoder_class_t));
