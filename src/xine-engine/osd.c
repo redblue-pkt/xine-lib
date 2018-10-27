@@ -238,7 +238,7 @@ static inline void osd_free_ft2 (osd_object_t *osd __attr_unused) {}
  * for the sake of simplicity)
  */
 
-static osd_object_t *XINE_MALLOC osd_new_object (osd_renderer_t *this, int width, int height) {
+static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height) {
 
   osd_object_t *osd;
 
