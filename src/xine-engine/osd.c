@@ -581,6 +581,19 @@ static void osd_clear (osd_object_t *osd) {
 }
 
 /*
+ *
+ */
+
+static void _update_clipping(osd_object_t *osd, int x1, int y1, int x2, int y2)
+{
+  osd->x1 = MIN( osd->x1, x1 );
+  osd->y1 = MIN( osd->y1, y1 );
+  osd->x2 = MAX( osd->x2, x2 );
+  osd->y2 = MAX( osd->y2, y2 );
+  osd->area_touched = 1;
+}
+
+/*
  * Draw a point.
  */
 
@@ -594,12 +607,7 @@ static void osd_point (osd_object_t *osd, int x, int y, int color) {
   if (y < 0 || y >= osd->height)
     return;
 
-  /* update clipping area */
-  osd->x1 = MIN(osd->x1, x);
-  osd->x2 = MAX(osd->x2, (x + 1));
-  osd->y1 = MIN(osd->y1, y);
-  osd->y2 = MAX(osd->y2, (y + 1));
-  osd->area_touched = 1;
+  _update_clipping(osd, x, y, x + 1, y + 1);
 
   c = osd->area + y * osd->width + x;
   *c = color;
@@ -662,12 +670,7 @@ static void osd_line (osd_object_t *osd,
   if (x1 >= osd->width || y1 >= osd->height)
     return;
 
-  /* update clipping area */
-  osd->x1 = MIN( osd->x1, x1 );
-  osd->x2 = MAX( osd->x2, x2 );
-  osd->y1 = MIN( osd->y1, y1 );
-  osd->y2 = MAX( osd->y2, y2 );
-  osd->area_touched = 1;
+  _update_clipping(osd, x1, y1, x2, y2);
 
   dx = x2 - x1;
   dy = y2 - y1;
@@ -776,12 +779,7 @@ static void osd_filled_rect (osd_object_t *osd,
   dx = MIN( dx, osd->width );
   dy = MIN( dy, osd->height );
 
-  /* update clipping area */
-  osd->x1 = MIN( osd->x1, x );
-  osd->x2 = MAX( osd->x2, dx );
-  osd->y1 = MIN( osd->y1, y );
-  osd->y2 = MAX( osd->y2, dy );
-  osd->area_touched = 1;
+  _update_clipping(osd, x, y, dx, dy);
 
   dx -= x;
   dy -= y;
@@ -1783,12 +1781,7 @@ static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
 
   lprintf("osd=%p at (%d,%d) %dx%d\n",osd, x1,y1, width,height );
 
-  /* update clipping area */
-  osd->x1 = MIN( osd->x1, x1 );
-  osd->x2 = MAX( osd->x2, x1+width );
-  osd->y1 = MIN( osd->y1, y1 );
-  osd->y2 = MAX( osd->y2, y1+height );
-  osd->area_touched = 1;
+  _update_clipping(osd, x1, y1, x1 + width, y1 + height);
 
   for( y=0; y<height; y++ ) {
     if ( palette_map ) {
