@@ -635,18 +635,26 @@ static void osd_line (osd_object_t *osd,
 
   /* clip line */
   if (x1 < 0) {
+    if (x2 < 0)
+      return;
     y1 = y1 + (y2-y1) * -x1 / (x2-x1);
     x1 = 0;
   }
   if (y1 < 0) {
+    if (y2 < 0)
+      return;
     x1 = x1 + (x2-x1) * -y1 / (y2-y1);
     y1 = 0;
   }
   if (x2 > osd->width) {
+    if (x1 > osd->width)
+      return;
     y2 = y1 + (y2-y1) * (osd->width-x1) / (x2-x1);
     x2 = osd->width;
   }
   if (y2 > osd->height) {
+    if (y1 > osd->height)
+      return;
     x2 = x1 + (x2-x1) * (osd->height-y1) / (y2-y1);
     y2 = osd->height;
   }
