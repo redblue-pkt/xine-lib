@@ -63,8 +63,6 @@
 
 #define FONT_VERSION  2
 
-#define BINARY_SEARCH 1
-
 /* unicode value of alias character,
  * used if conversion fails
  */
@@ -1225,7 +1223,7 @@ static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
  * returns 'n' on error
  */
 static int osd_search(osd_fontchar_t *array, size_t n, uint16_t code) {
-#ifdef BINARY_SEARCH
+
   size_t i, left, right;
 
   if (!n) return 0;
@@ -1242,19 +1240,6 @@ static int osd_search(osd_fontchar_t *array, size_t n, uint16_t code) {
     return right;
   else
     return ALIAS_CHARACTER_FONT < n ? ALIAS_CHARACTER_FONT : n;
-#else
-  size_t i;
-
-  for( i = 0; i < n; i++ ) {
-    if( font->fontchar[i].code == unicode )
-      break;
-  }
-
-  if (i < n)
-    return i;
-  else
-    return ALIAS_CHARACTER_FONT < n ? ALIAS_CHARACTER_FONT : n;
-#endif
 }
 
 
