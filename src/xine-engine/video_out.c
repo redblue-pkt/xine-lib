@@ -3098,7 +3098,10 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
       /* FIXME: how does this happen ? */
       xprintf (this->xine, XINE_VERBOSITY_LOG,
 	       _("video_out: sorry, this should not happen. please restart xine.\n"));
-      _x_abort();
+
+      this->video_loop_running = 0;
+      this->vo.exit(&this->vo);
+      return NULL;
     }
     else
       xprintf(this->xine, XINE_VERBOSITY_DEBUG, "video_out: thread created\n");
