@@ -242,13 +242,8 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
 
   osd_object_t *osd;
 
-  pthread_mutex_lock (&this->osd_mutex);
-
   osd = calloc(1, sizeof(osd_object_t));
   osd->renderer = this;
-  osd->next = this->osds;
-  this->osds = osd;
-
   osd->video_window_x = 0;
   osd->video_window_y = 0;
   osd->video_window_width = 0;
@@ -275,6 +270,10 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
   osd->encoding = NULL;
 #endif
 
+  /* append to renderer list */
+  pthread_mutex_lock (&this->osd_mutex);
+  osd->next = this->osds;
+  this->osds = osd;
   pthread_mutex_unlock (&this->osd_mutex);
 
   lprintf("osd=%p size: %dx%d\n", osd, width, height);
