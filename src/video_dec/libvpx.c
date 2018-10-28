@@ -280,7 +280,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   const struct vpx_codec_iface *iface;
   struct vpx_codec_dec_cfg deccfg = {
-/*  .threads = 0, FIXME: user config? */
+    .threads = xine_cpu_count(),
     .w = 0,
     .h = 0
   };
@@ -303,6 +303,9 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   }
 
   (void)class_gen;
+
+  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+          "using %d CPU cores\n", deccfg.threads);
 
   this = (vpx_decoder_t *) calloc(1, sizeof(vpx_decoder_t));
   if (!this)
