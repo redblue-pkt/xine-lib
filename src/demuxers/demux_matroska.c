@@ -1457,7 +1457,8 @@ static void fill_extra_data(matroska_track_t *track, uint32_t fourcc) {
   /* (no _x_bmiheader_le2me(bih);) */
 
   /* add bih extra data */
-  memcpy(bih + 1, track->codec_private, track->codec_private_len);
+  if (track->codec_private_len > 0)
+    memcpy(bih + 1, track->codec_private, track->codec_private_len);
   free(track->codec_private);
   track->codec_private = (uint8_t *)bih;
   track->codec_private_len = bih->biSize;
