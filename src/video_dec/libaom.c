@@ -257,8 +257,6 @@ static void _aom_flush(video_decoder_t *this_gen)
   aom_decoder_t *this = (aom_decoder_t *) this_gen;
 
   _decode(this, NULL, 0);
-
-  (void)this_gen;
 }
 
 static void _aom_reset(video_decoder_t *this_gen)
