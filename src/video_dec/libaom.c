@@ -53,7 +53,6 @@ typedef struct aom_decoder_s {
   unsigned char    *buf;         /* the accumulated buffer data */
   int               bufsize;     /* the maximum size of buf */
   int               size;        /* the current size of buf */
-  int               frame_flags; /* color matrix and fullrange */
   double            ratio;
 } aom_decoder_t;
 
@@ -86,6 +85,7 @@ static void _draw_image(aom_decoder_t *this, aom_image_t *aom_img)
   vo_frame_t *img;
   int64_t     pts;
   int         width, height;
+  int         frame_flags = 0;
 
   pts = (int64_t)(intptr_t)aom_img->user_priv;
 
@@ -109,12 +109,14 @@ static void _draw_image(aom_decoder_t *this, aom_image_t *aom_img)
     return;
   }
 
+  VO_SET_FLAGS_CM ((aom_img->mc << 1) | (aom_img->range == AOM_CR_FULL_RANGE), frame_flags);
+
   /* get frame */
 
   img = this->stream->video_out->get_frame (this->stream->video_out,
                                             aom_img->d_w, aom_img->d_h, this->ratio,
                                             XINE_IMGFMT_YV12,
-                                            this->frame_flags | VO_BOTH_FIELDS | VO_GET_FRAME_MAY_FAIL);
+                                            frame_flags | VO_BOTH_FIELDS | VO_GET_FRAME_MAY_FAIL);
   if (!img) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
             "get_frame(%dx%d) failed\n", aom_img->d_w, aom_img->d_h);
@@ -151,6 +153,8 @@ static void _draw_image(aom_decoder_t *this, aom_image_t *aom_img)
   }
 
   /* draw */
+
+  VO_SET_FLAGS_CM ((aom_img->mc << 1) | (aom_img->range == AOM_CR_FULL_RANGE), img->flags);
 
   img->pts       = pts;
   img->bad_frame = 0;
@@ -214,11 +218,6 @@ static void _aom_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
     if (buf->decoder_info[2]) {
       this->ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
     }
-  }
-
-  /* optional demux override (matroska/webm) */
-  if (buf->decoder_flags & BUF_FLAG_COLOR_MATRIX) {
-    VO_SET_FLAGS_CM (buf->decoder_info[4], this->frame_flags);
   }
 
   /* save pts */
@@ -323,9 +322,6 @@ static video_decoder_t *_open_plugin(video_decoder_class_t *class_gen, xine_stre
   this->video_decoder.reset         = _aom_reset;
   this->video_decoder.discontinuity = _aom_discontinuity;
   this->video_decoder.dispose       = _aom_dispose;
-
-  this->frame_flags = 0;
-  VO_SET_FLAGS_CM (4, this->frame_flags); /* undefined, mpeg range */
 
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
           "using libaom %s\n", aom_codec_version_str());
