@@ -175,8 +175,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    char header[IMAGE_HEADER_LEN];
-    if (_x_demux_read_header(input, (unsigned char *)header, IMAGE_HEADER_LEN) != IMAGE_HEADER_LEN) {
+    uint8_t header[IMAGE_HEADER_LEN];
+    if (_x_demux_read_header(input, header, IMAGE_HEADER_LEN) != IMAGE_HEADER_LEN) {
       return NULL;
     }
     if (memcmp (header, "GIF", 3) == 0 /* GIF */
