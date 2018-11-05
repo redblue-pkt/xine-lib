@@ -159,7 +159,6 @@ int tvtime_build_deinterlaced_frame( tvtime_t *tvtime, uint8_t *output,
                                              int instride,
                                              int outstride )
 {
-    int i;
 
     if( tvtime->pulldown_alg != PULLDOWN_VEKTOR ) {
         /* If we leave vektor pulldown mode, lose our state. */
@@ -255,106 +254,155 @@ int tvtime_build_deinterlaced_frame( tvtime_t *tvtime, uint8_t *output,
                                       width, frame_height );
 
     } else {
-        int loop_size;
-        int scanline = 0;
+        int loop_size, bytes_left;
+        uint8_t *f3, *f4;
 
-        if( bottom_field ) {
-            /* Advance frame pointers to the next input line. */
-            curframe += instride;
-            lastframe += instride;
-            secondlastframe += instride;
-
-            /* Double the top scanline a scanline. */
-            blit_packed422_scanline( output, curframe, width );
-
-            output += outstride;
-            scanline++;
-        }
-
-        /* Copy a scanline. */
-        blit_packed422_scanline( output, curframe, width );
-
-        output += outstride;
-        scanline++;
-
-        /* Something is wrong here. -Billy */
-        loop_size = ((frame_height - 2) / 2);
-        for( i = loop_size; i; --i ) {
-            deinterlace_scanline_data_t data;
-
-            data.bottom_field = bottom_field;
-
-            data.t0 = curframe;
-            data.b0 = curframe + (instride*2);
-
-            if( second_field ) {
-                data.tt1 = (i < loop_size) ? (curframe - instride) : (curframe + instride);
-                data.m1  = curframe + instride;
-                data.bb1 = (i > 1) ? (curframe + (instride*3)) : (curframe + instride);
-            } else {
-                data.tt1 = (i < loop_size) ? (lastframe - instride) : (lastframe + instride);
-                data.m1  = lastframe + instride;
-                data.bb1 = (i > 1) ? (lastframe + (instride*3)) : (lastframe + instride);
+        if (frame_height < 8) {
+            /* should not happen */
+            while (frame_height-- > 0) {
+                blit_packed422_scanline (output, curframe, width);
+                curframe += instride;
+                output += outstride;
             }
+        } else {
 
-            data.t2 = lastframe;
-            data.b2 = lastframe + (instride*2);
-
-            if( second_field ) {
-                data.tt3 = (i < loop_size) ? (lastframe - instride) : (lastframe + instride);
-                data.m3  = lastframe + instride;
-                data.bb3 = (i > 1) ? (lastframe + (instride*3)) : (lastframe + instride);
-            } else {
-                data.tt3 = (i < loop_size) ? (secondlastframe - instride) : (secondlastframe + instride);
-                data.m3  = secondlastframe + instride;
-                data.bb3 = (i > 1) ? (secondlastframe + (instride*3)) : (secondlastframe + instride);
-            }
-
-            tvtime->curmethod->interpolate_scanline( output, &data, width );
-
-            output += outstride;
-            scanline++;
-
-            data.tt0 = curframe;
-            data.m0  = curframe + (instride*2);
-            data.bb0 = (i > 1) ? (curframe + (instride*4)) : (curframe + (instride*2));
-
-            if( second_field ) {
-                data.t1 = curframe + instride;
-                data.b1 = (i > 1) ? (curframe + (instride*3)) : (curframe + instride);
-            } else {
-                data.t1 = lastframe + instride;
-                data.b1 = (i > 1) ? (lastframe + (instride*3)) : (lastframe + instride);
-            }
-
-            data.tt2 = lastframe;
-            data.m2  = lastframe + (instride*2);
-            data.bb2 = (i > 1) ? (lastframe + (instride*4)) : (lastframe + (instride*2));
-
-            if( second_field ) {
-                data.t2 = lastframe + instride;
-                data.b2 = (i > 1) ? (lastframe + (instride*3)) : (lastframe + instride);
-            } else {
-                data.t2 = secondlastframe + instride;
-                data.b2 = (i > 1) ? (secondlastframe + (instride*3)) : (secondlastframe + instride);
+            if (bottom_field) {
+                /* Advance frame pointers to the next input line. */
+                curframe += instride;
+                lastframe += instride;
+                secondlastframe += instride;
+                /* Double the top scanline a scanline. */
+                blit_packed422_scanline (output, curframe, width);
+                output += outstride;
             }
 
             /* Copy a scanline. */
-            tvtime->curmethod->copy_scanline( output, &data, width );
-            curframe += instride * 2;
-            lastframe += instride * 2;
-            secondlastframe += instride * 2;
-
+            blit_packed422_scanline (output, curframe, width);
             output += outstride;
-            scanline++;
-        }
 
-        if( !bottom_field ) {
-            /* Double the bottom scanline. */
-            blit_packed422_scanline( output, curframe, width );
+            if (second_field) {
+                f3 = curframe;
+                f4 = lastframe;
+            } else {
+                f3 = lastframe;
+                f4 = secondlastframe;
+            }
 
-            output += outstride;
-            scanline++;
+            /* Something is wrong here. -Billy */
+            loop_size = ((frame_height - 6) / 2);
+            bytes_left = (frame_height - 5) * instride;
+
+            {
+                deinterlace_scanline_data_t data;
+
+                data.bottom_field = bottom_field;
+                data.bytes_left = bytes_left;
+                data.t0  = curframe;
+                data.b0  = curframe + instride * 2;
+                data.tt1 =
+                data.m1  = f3 + instride;
+                data.bb1 = f3 + instride * 3;
+                data.t2  = lastframe;
+                data.b2  = lastframe + instride * 2;
+                data.tt3 =
+                data.m3  = f4 + instride;
+                data.bb3 = f4 + instride * 3;
+                tvtime->curmethod->interpolate_scanline (output, &data, width);
+                output += outstride;
+
+                data.tt0 = curframe;
+                data.m0  = curframe + instride * 2;
+                data.bb0 = curframe + instride * 4;
+                data.t1  = f3 + instride;
+                data.b1  = f3 + instride * 3;
+                data.tt2 = lastframe;
+                data.t2  = f4 + instride;
+                data.m2  = lastframe + instride * 2;
+                data.b2  = f4 + instride * 3;
+                data.bb2 = lastframe + instride * 4;
+                tvtime->curmethod->copy_scanline (output, &data, width);
+                curframe += instride * 2;
+                lastframe += instride * 2;
+                f3 += instride * 2;
+                f4 += instride * 2;
+                bytes_left -= instride * 2;
+                output += outstride;
+            }
+
+            while (loop_size-- > 0) {
+                deinterlace_scanline_data_t data;
+
+                data.bottom_field = bottom_field;
+                data.bytes_left = bytes_left;
+                data.t0  = curframe;
+                data.b0  = curframe + instride * 2;
+                data.tt1 = f3 - instride;
+                data.m1  = f3 + instride;
+                data.bb1 = f3 + instride * 3;
+                data.t2  = lastframe;
+                data.b2  = lastframe + instride * 2;
+                data.tt3 = f4 - instride;
+                data.m3  = f4 + instride;
+                data.bb3 = f4 + instride * 3;
+                tvtime->curmethod->interpolate_scanline (output, &data, width);
+                output += outstride;
+
+                data.tt0 = curframe;
+                data.m0  = curframe + instride * 2;
+                data.bb0 = curframe + instride * 4;
+                data.t1  = f3 + instride;
+                data.b1  = f3 + instride * 3;
+                data.tt2 = lastframe;
+                data.t2  = f4 + instride;
+                data.m2  = lastframe + instride * 2;
+                data.b2  = f4 + instride * 3;
+                data.bb2 = lastframe + instride * 4;
+                tvtime->curmethod->copy_scanline (output, &data, width);
+                curframe += instride * 2;
+                lastframe += instride * 2;
+                f3 += instride * 2;
+                f4 += instride * 2;
+                bytes_left -= instride * 2;
+                output += outstride;
+            }
+
+            {
+                deinterlace_scanline_data_t data;
+
+                data.bottom_field = bottom_field;
+                data.bytes_left = bytes_left;
+                data.t0  = curframe;
+                data.b0  = curframe + instride * 2;
+                data.tt1 = f3 - instride;
+                data.m1  =
+                data.bb1 = f3 + instride;
+                data.t2  = lastframe;
+                data.b2  = lastframe + instride * 2;
+                data.tt3 = f4 - instride;
+                data.m3  =
+                data.bb3 = f4 + instride;
+                tvtime->curmethod->interpolate_scanline (output, &data, width);
+                output += outstride;
+
+                data.tt0 = curframe;
+                data.m0  =
+                data.bb0 = curframe + instride * 2;
+                data.t1  =
+                data.b1  = f3 + instride;
+                data.tt2 = lastframe;
+                data.t2  =
+                data.b2  = f4 + instride;
+                data.m2  =
+                data.bb2 = lastframe + instride * 2;
+                tvtime->curmethod->copy_scanline (output, &data, width);
+            }
+
+            if (!bottom_field) {
+                curframe += instride * 2;
+                output += outstride;
+                /* Double the bottom scanline. */
+                blit_packed422_scanline (output, curframe, width);
+            }
         }
     }
 
