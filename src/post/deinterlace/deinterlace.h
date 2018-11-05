@@ -58,6 +58,8 @@ struct deinterlace_scanline_data_s
     uint8_t *tt2, *t2, *m2, *b2, *bb2;
     uint8_t *tt3, *t3, *m3, *b3, *bb3;
     int bottom_field;
+    /* xv frame bufs may have no padding. Dont prefetch over the end. */
+    int bytes_left;
 };
 
 /**

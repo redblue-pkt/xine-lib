@@ -190,9 +190,11 @@ static void deinterlace_scanline_linear_blend_mmxext( uint8_t *output,
     int i;
     static mmx_t high_mask = { .ub = {0xff,0xff,0xff,0xff,0,0,0,0}};
 
-    READ_PREFETCH_2048( t0 );
-    READ_PREFETCH_2048( b0 );
-    READ_PREFETCH_2048( m1 );
+    if (data->bytes_left >= 2048) {
+        READ_PREFETCH_2048 (t0);
+        READ_PREFETCH_2048 (b0);
+        READ_PREFETCH_2048 (m1);
+    }
 
     // Get width in bytes.
     width *= 2;
@@ -256,9 +258,11 @@ static void deinterlace_scanline_linear_blend2_mmxext( uint8_t *output,
 
     int i;
 
-    READ_PREFETCH_2048( t1 );
-    READ_PREFETCH_2048( b1 );
-    READ_PREFETCH_2048( m0 );
+    if (data->bytes_left >= 2048) {
+        READ_PREFETCH_2048 (t1);
+        READ_PREFETCH_2048 (b1);
+        READ_PREFETCH_2048 (m0);
+    }
 
     // Get width in bytes.
     width *= 2;
@@ -313,42 +317,42 @@ static void deinterlace_scanline_linear_blend2_mmxext( uint8_t *output,
 
 static deinterlace_method_t linearblendmethod_mmxext =
 {
-    "Linear Blend (mplayer)",
-    "LinearBlend",
-    2,
-    MM_ACCEL_X86_MMXEXT,
-    0,
-    1,
-    deinterlace_scanline_linear_blend_mmxext,
-    deinterlace_scanline_linear_blend2_mmxext,
-    0,
-    0,
-    linearblendmethod_help
+    .name = "Linear Blend (mplayer)",
+    .short_name = "LinearBlend",
+    .fields_required = 2,
+    .accelrequired = MM_ACCEL_X86_MMXEXT,
+    .doscalerbob = 0,
+    .scanlinemode = 1,
+    .interpolate_scanline = deinterlace_scanline_linear_blend_mmxext,
+    .copy_scanline = deinterlace_scanline_linear_blend2_mmxext,
+    .deinterlace_frame = 0,
+    .delaysfield = 0,
+    .description = linearblendmethod_help
 };
 
 #endif
 
 static const deinterlace_method_t linearblendmethod =
 {
-    "Linear Blend (mplayer)",
-    "LinearBlend",
+    .name = "Linear Blend (mplayer)",
+    .short_name = "LinearBlend",
 /*
     "Blur: Temporal",
     "BlurTemporal",
 */
-    2,
+    .fields_required = 2,
 #if defined(ARCH_X86)
-    MM_ACCEL_X86_MMX,
+    .accelrequired = MM_ACCEL_X86_MMX,
 #else
-    0,
+    .accelrequired = 0,
 #endif
-    0,
-    1,
-    deinterlace_scanline_linear_blend,
-    deinterlace_scanline_linear_blend2,
-    0,
-    0,
-    linearblendmethod_help
+    .doscalerbob = 0,
+    .scanlinemode = 1,
+    .interpolate_scanline = deinterlace_scanline_linear_blend,
+    .copy_scanline = deinterlace_scanline_linear_blend2,
+    .deinterlace_frame = 0,
+    .delaysfield = 0,
+    .description = linearblendmethod_help
 };
 
 const deinterlace_method_t *linearblend_get_method( void )
