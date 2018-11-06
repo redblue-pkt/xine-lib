@@ -305,7 +305,12 @@ static void *init_class (xine_t *xine, const void *data) {
  * exported plugin catalog entry
  */
 
-static const uint32_t supported_types[] = { BUF_VIDEO_IMAGE, BUF_VIDEO_JPEG, 0 };
+static const uint32_t supported_types[] = {
+  BUF_VIDEO_IMAGE,
+  BUF_VIDEO_JPEG,
+  BUF_VIDEO_PNG,
+  0
+};
 
 static const decoder_info_t dec_info_image = {
   .supported_types = supported_types,

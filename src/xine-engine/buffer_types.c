@@ -327,6 +327,7 @@ static const uint32_t sorted_video_4ccs[] = {
   BE_FOURCC('m', 'p', 'g', '4'), BUF_VIDEO_MSMPEG4_V1,
   BE_FOURCC('m', 's', 'v', 'c'), BUF_VIDEO_MSVC,
   BE_FOURCC('m', 'v', 'i', '2'), BUF_VIDEO_MVI2,
+  BE_FOURCC('p', 'n', 'g', ' '), BUF_VIDEO_PNG,
   BE_FOURCC('q', 'd', 'r', 'w'), BUF_VIDEO_QDRW,
   BE_FOURCC('r', 'a', 'w', ' '), BUF_VIDEO_RGB,
   BE_FOURCC('r', 'l', 'e', ' '), BUF_VIDEO_QTRLE,
@@ -504,7 +505,8 @@ static const char * const video_names[] = {
   /* 68 BUF_VIDEO_VP8         */ "On2 VP8",
   /* 69 BUF_VIDEO_VP9         */ "VP9",
   /* 6a BUF_VIDEO_HEVC        */ "HEVC",
-  /* 6b BUF_VIDEO_AV1         */ "AV1"
+  /* 6b BUF_VIDEO_AV1         */ "AV1",
+  /* 6c BUF_VIDEO_PNG         */ "PNG",
 };
 
 const char *_x_buf_video_name (uint32_t buf_type) {

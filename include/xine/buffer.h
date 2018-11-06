@@ -194,6 +194,8 @@ extern "C" {
 #define BUF_VIDEO_VP9		0x02690000
 #define BUF_VIDEO_HEVC		0x026A0000
 #define BUF_VIDEO_AV1		0x026B0000
+#define BUF_VIDEO_PNG		0x026C0000
+
 /*@}*/
 
 /**
