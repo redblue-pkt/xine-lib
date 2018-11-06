@@ -66,7 +66,7 @@ static uint32_t _probe(const uint8_t *header)
     return BUF_VIDEO_IMAGE;
   }
   if (memcmp (header, "\x89PNG", 4) == 0) { /* PNG */
-    return BUF_VIDEO_IMAGE;
+    return BUF_VIDEO_PNG;
   }
   if (memcmp (header, "\377\330\377", 3) == 0 || /* JPEG */
       (_X_BE_16(&header[0]) == 0xffd8) ) { /* another JPEG */
