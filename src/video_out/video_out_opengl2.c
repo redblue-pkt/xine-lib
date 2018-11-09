@@ -1740,17 +1740,61 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   opengl2_driver_t    *this;
   config_values_t     *config  = class->xine->config;
 
-  this = (opengl2_driver_t *) calloc(1, sizeof(opengl2_driver_t));
-
+  this = calloc (1, sizeof (*this));
   if (!this)
     return NULL;
+#ifndef HAVE_ZERO_SAFE_MEM
+  this->hue                            = 0;
+  this->brightness                     = 0;
+  this->sharpness                      = 0;
+  this->sharpness_program.compiled     = 0;
+  this->bicubic_pass1_program.compiled = 0;
+  this->bicubic_pass2_program.compiled = 0;
+  this->bicubic_lut_texture            = 0;
+  this->bicubic_pass1_texture          = 0;
+  this->bicubic_pass1_texture_width    = 0;
+  this->bicubic_pass1_texture_height   = 0;
+  this->bicubic_fbo                    = 0;
+  this->ovl_changed                    = 0;
+  this->num_ovls                       = 0;
+  this->yuvtex.y                       = 0;
+  this->yuvtex.u                       = 0;
+  this->yuvtex.v                       = 0;
+  this->yuvtex.yuv                     = 0;
+  this->yuvtex.width                   = 0;
+  this->yuvtex.height                  = 0;
+  this->fbo                            = 0;
+  this->videoPBO                       = 0;
+  this->videoTex                       = 0;
+  this->videoTex2                      = 0;
+  {
+    int i;
+    for (i = 0; i < XINE_VORAW_MAX_OVL; ++i) {
+      this->overlays[i].ovl_w = this->overlays[i].ovl_h = 0;
+      this->overlays[i].ovl_x = this->overlays[i].ovl_y = 0;
+      this->overlays[i].unscaled = 0;
+      this->overlays[i].tex = 0;
+      this->overlays[i].tex_w = this->overlays[i].tex_h = 0;
+    }
+  }
+#endif
 
   this->gl = _glx_init(class->xine, visual);
   if (!this->gl) {
     goto fail_gl_init;
   }
 
-  pthread_mutex_init(&this->drawable_lock, 0);
+  {
+    /* TJ. If X server link gets lost, our next render attempt will fire the
+     * Xlib fatal error handler -> exit () -> opengl2_exit () with drawable_lock held.
+     * opengl2_display_frame () does quite a lot anyway so the "recursive mutex"
+     * performance drop should not matter. */
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init (&attr);
+    pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init (&this->drawable_lock, &attr);
+    pthread_mutexattr_destroy (&attr);
+  }
 
   _x_vo_scale_init(&this->sc, 1, 0, config);
   this->sc.frame_output_cb  = visual->frame_output_cb;
@@ -1824,9 +1868,6 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
 #define INITWIDTH  720
 #define INITHEIGHT 576
 
-  this->yuvtex.y = this->yuvtex.u = this->yuvtex.v = this->yuvtex.yuv = 0;
-  this->yuvtex.width = this->yuvtex.height = 0;
-  this->fbo = this->videoPBO = this->videoTex = this->videoTex2 = 0;
   if ( !opengl2_check_textures_size( this, INITWIDTH, INITHEIGHT ) ) {
     goto fail;
   }
@@ -1842,44 +1883,25 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
 
   this->gl->release_current(this->gl);
 
-  this->capabilities = VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CROP | VO_CAP_UNSCALED_OVERLAY | VO_CAP_CUSTOM_EXTENT_OVERLAY | VO_CAP_ARGB_LAYER_OVERLAY;// | VO_CAP_VIDEO_WINDOW_OVERLAY;
-
-  this->capabilities |= VO_CAP_COLOR_MATRIX | VO_CAP_FULLRANGE;
-
-  this->capabilities |= VO_CAP_HUE;
-  this->capabilities |= VO_CAP_SATURATION;
-  this->capabilities |= VO_CAP_CONTRAST;
-  this->capabilities |= VO_CAP_BRIGHTNESS;
+  this->capabilities = VO_CAP_YV12
+                     | VO_CAP_YUY2
+                     | VO_CAP_CROP
+                     | VO_CAP_UNSCALED_OVERLAY
+                     | VO_CAP_CUSTOM_EXTENT_OVERLAY
+                     | VO_CAP_ARGB_LAYER_OVERLAY /* | VO_CAP_VIDEO_WINDOW_OVERLAY */
+                     | VO_CAP_COLOR_MATRIX
+                     | VO_CAP_FULLRANGE
+                     | VO_CAP_HUE
+                     | VO_CAP_SATURATION
+                     | VO_CAP_CONTRAST
+                     | VO_CAP_BRIGHTNESS;
 
   this->update_csc = 1;
   this->color_standard = 10;
-  this->hue = 0;
   this->saturation = 128;
   this->contrast = 128;
-  this->brightness = 0;
-  this->sharpness = 0;
-  this->sharpness_program.compiled = 0;
 
   cm_init (this);
-
-  this->bicubic_pass1_program.compiled = 0;
-  this->bicubic_pass2_program.compiled = 0;
-  this->bicubic_lut_texture = 0;
-  this->bicubic_pass1_texture = 0;
-  this->bicubic_pass1_texture_width = 0;
-  this->bicubic_pass1_texture_height = 0;
-  this->bicubic_fbo = 0;
-
-  int i;
-  for ( i=0; i<XINE_VORAW_MAX_OVL; ++i ) {
-    this->overlays[i].ovl_w = this->overlays[i].ovl_h = 0;
-    this->overlays[i].ovl_x = this->overlays[i].ovl_y = 0;
-    this->overlays[i].unscaled = 0;
-    this->overlays[i].tex = 0;
-    this->overlays[i].tex_w = this->overlays[i].tex_h = 0;
-  }
-  this->ovl_changed = 0;
-  this->num_ovls = 0;
 
   if ( this->texture_float ) {
     this->scale_bicubic = config->register_bool( config, "video.output.opengl2_bicubic_scaling", 0,
