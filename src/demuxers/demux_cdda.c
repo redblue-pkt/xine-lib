@@ -69,6 +69,10 @@ static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
   demux_cdda_t *this = (demux_cdda_t *) this_gen;
   buf_element_t *buf = NULL;
   uint32_t blocksize;
+  off_t len, pos;
+
+  pos = this->input->get_current_pos (this->input);
+  len = this->input->get_length (this->input);
 
   blocksize = this->input->get_blocksize(this->input);
   if (!blocksize) blocksize = 2352;
@@ -80,10 +84,9 @@ static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
   }
 
   buf->type = BUF_AUDIO_LPCM_LE;
-  if( this->input->get_length (this->input) )
-    buf->extra_info->input_normpos = (int)( (double) this->input->get_current_pos (this->input) *
-                                     65535 / this->input->get_length (this->input) );
-  buf->pts = this->input->get_current_pos(this->input);
+  if (len > 0)
+    buf->extra_info->input_normpos = (int)((double)pos * 65535 / len);
+  buf->pts = pos;
   buf->pts *= 90000;
   buf->pts /= CD_BYTES_PER_SECOND;
   buf->extra_info->input_time = buf->pts / 90;
