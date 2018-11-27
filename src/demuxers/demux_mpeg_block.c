@@ -1371,13 +1371,79 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   input_plugin_t     *input = (input_plugin_t *) input_gen;
   demux_mpeg_block_t *this;
+  int                 blocksize;
 
-  this = calloc(1, sizeof(demux_mpeg_block_t));
+  lprintf ("open_plugin:detection_method=%d\n",
+	   stream->content_detection_method);
+
+  switch (stream->content_detection_method) {
+
+  case METHOD_BY_CONTENT: {
+    uint8_t scratch[8];
+    int bs;
+    int caps = input->get_capabilities (input);
+    /* use demux_mpeg for non-block devices */
+    if (!(caps & INPUT_CAP_BLOCK))
+      return NULL;
+    blocksize = bs = input->get_blocksize (input);
+    lprintf ("open_plugin:blocksize=%d\n", blocksize);
+    if ((blocksize <= 0) && (caps & INPUT_CAP_SEEKABLE)) {
+      blocksize = demux_mpeg_detect_blocksize (input);
+      if (blocksize <= 0)
+        return NULL;
+    }
+    /* Avoid plugin loader probing us again after all others,
+       especially after that still unstable avformat. */
+    if (input->input_class && input->input_class->identifier
+      && !strcmp (input->input_class->identifier, "DVD"))
+      break;
+    /* Try fallback for alternative input plugin */
+    if (!(caps & INPUT_CAP_SEEKABLE))
+      return NULL;
+    if (input->seek (input, 0, SEEK_SET) != 0)
+      return NULL;
+    /* result of input->read() won't matter */
+    memset (scratch, 0xff, 8);
+    if (input->read (input, scratch, 5) <= 0)
+      return NULL;
+    lprintf ("open_plugin:read worked\n");
+    if (scratch[0] || scratch[1] || (scratch[2] != 0x01) || (scratch[3] != 0xba)) {
+      lprintf ("open_plugin:scratch failed\n");
+      return NULL;
+    }
+    /* if it's a file then make sure it's mpeg-2 */
+    if ((bs <= 0) && ((scratch[4] >> 4) != 4))
+      return NULL;
+    if (input->seek (input, 0, SEEK_SET) != 0)
+      return NULL;
+    lprintf ("open_plugin:Accepting detection_method XINE_DEMUX_CONTENT_STRATEGY blocksize=%d\n",
+      this->blocksize);
+  }
+  break;
+
+  case METHOD_BY_MRL:
+  case METHOD_EXPLICIT: {
+    blocksize = input->get_blocksize (input);
+    lprintf ("open_plugin:blocksize=%d\n", blocksize);
+    if ((blocksize <= 0) && (input->get_capabilities (input) & INPUT_CAP_SEEKABLE)) {
+      blocksize = demux_mpeg_detect_blocksize (input);
+      if (blocksize <= 0)
+        return NULL;
+    }
+  }
+  break;
+
+  default:
+    return NULL;
+  }
+
+  this = calloc (1, sizeof (*this));
   if (!this)
     return NULL;
 
-  this->stream = stream;
-  this->input  = input;
+  this->blocksize = blocksize;
+  this->stream    = stream;
+  this->input     = input;
 
   this->demux_plugin.send_headers      = demux_mpeg_block_send_headers;
   this->demux_plugin.send_chunk        = demux_mpeg_block_send_chunk;
@@ -1390,94 +1456,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.demux_class       = class_gen;
 
   this->status     = DEMUX_FINISHED;
-
-  lprintf ("open_plugin:detection_method=%d\n",
-	   stream->content_detection_method);
-
-  switch (stream->content_detection_method) {
-
-  case METHOD_BY_CONTENT: {
-
-    /* use demux_mpeg for non-block devices */
-    if (!(input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
-      free (this);
-      return NULL;
-    }
-
-    if (((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0) ) {
-
-      uint8_t scratch[5] = {0xff, 0xff, 0xff, 0xff, 0xff}; /* result of input->read() won't matter */
-
-      this->blocksize = input->get_blocksize(input);
-      lprintf("open_plugin:blocksize=%d\n",this->blocksize);
-
-      if (!this->blocksize)
-        this->blocksize = demux_mpeg_detect_blocksize( input );
-
-      if (!this->blocksize) {
-        free (this);
-        return NULL;
-      }
-
-      if (input->seek(input, 0, SEEK_SET) != 0) {
-        free (this);
-        return NULL;
-      }
-      if (input->read(input, scratch, 5)) {
-	lprintf("open_plugin:read worked\n");
-
-        if (scratch[0] || scratch[1]
-            || (scratch[2] != 0x01) || (scratch[3] != 0xba)) {
-	  lprintf("open_plugin:scratch failed\n");
-
-          free (this);
-          return NULL;
-        }
-
-        /* if it's a file then make sure it's mpeg-2 */
-        if ( !input->get_blocksize(input)
-             && ((scratch[4]>>4) != 4) ) {
-          free (this);
-          return NULL;
-        }
-
-        if (input->seek(input, 0, SEEK_SET) != 0) {
-          free (this);
-          return NULL;
-        }
-
-        lprintf("open_plugin:Accepting detection_method XINE_DEMUX_CONTENT_STRATEGY blocksize=%d\n",
-                this->blocksize);
-
-        break;
-      }
-    }
-    free (this);
-    return NULL;
-  }
-  break;
-
-  case METHOD_BY_MRL:
-  case METHOD_EXPLICIT: {
-
-    this->blocksize = input->get_blocksize(input);
-    lprintf("open_plugin:blocksize=%d\n",this->blocksize);
-
-    if (!this->blocksize &&
-	((input->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0))
-      this->blocksize = demux_mpeg_detect_blocksize( input );
-
-    if (!this->blocksize) {
-      free (this);
-      return NULL;
-    }
-  }
-  break;
-
-  default:
-    free (this);
-    return NULL;
-  }
 
   return &this->demux_plugin;
 }
