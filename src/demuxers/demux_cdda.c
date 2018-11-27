@@ -194,6 +194,12 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
       break;
 
     case METHOD_BY_CONTENT:
+      /* Avoid plugin loader probing us again after all others,
+         especially after that still unstable avformat. */
+      if (input && input->input_class && input->input_class->identifier
+        && !strcmp (input->input_class->identifier, "cdda"))
+        break;
+      /* fall through */
     default:
       return NULL;
   }
