@@ -732,9 +732,31 @@ static void video_overlay_dispose(video_overlay_manager_t *this_gen) {
 
 video_overlay_manager_t *_x_video_overlay_new_manager (xine_t *xine) {
 
-  video_overlay_t *this;
+  int i;
+  video_overlay_t *this = calloc (1, sizeof (*this));
+  if (!this)
+    return NULL;
 
-  this = (video_overlay_t *) calloc(1, sizeof(video_overlay_t));
+#ifndef HAVE_ZERO_SAFE_MEM
+  for (i = 0; i < MAX_EVENTS; i++) {
+    this->events[i].event = NULL;
+    this->events[i].next_event = 0;
+  }
+#endif
+
+  for (i = 0; i < MAX_OBJECTS; i++) {
+    this->objects[i].handle = -1;
+#ifndef HAVE_ZERO_SAFE_MEM
+    this->objects[i].object_type = 0;
+    this->objects[i].pts = 0;
+    this->objects[i].overlay = NULL;
+    this->objects[i].palette = NULL;
+    this->objects[i].palette_type = 0;
+#endif
+  }
+  for (i = 0; i < MAX_SHOWING; i++) {
+    this->showing[i].handle = -1;
+  }
 
   this->xine                              = xine;
   this->video_overlay.init                = video_overlay_init;
@@ -746,6 +768,6 @@ video_overlay_manager_t *_x_video_overlay_new_manager (xine_t *xine) {
   this->video_overlay.redraw_needed       = video_overlay_redraw_needed;
   this->video_overlay.multiple_overlay_blend = video_overlay_multiple_overlay_blend;
 
-  return (video_overlay_manager_t *) &this->video_overlay;
+  return &this->video_overlay;
 }
 
