@@ -294,8 +294,9 @@ typedef struct {
   xine_stream_t  *buf_streams[NUM_AUDIO_BUFFERS];
   uint8_t        *base_samp;
 
-  /* extra info ring buffer */
-#define EI_RING_SIZE 32 /* 2^n please */
+  /* extra info ring buffer, compensating for driver delay (not fifo size).
+   * beware of good old audio cd who sends impressive 75 bufs per second. */
+#define EI_RING_SIZE 128 /* 2^n please */
   int             ei_write;
   int             ei_read;
 
