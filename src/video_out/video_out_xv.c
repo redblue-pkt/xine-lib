@@ -75,10 +75,9 @@
 #define XV_PROPS
 #include "xv_common.h"
 
-#define LOCK_DISPLAY(this) {if(this->lock_display) this->lock_display(this->user_data); \
-                            else XLockDisplay(this->display);}
-#define UNLOCK_DISPLAY(this) {if(this->unlock_display) this->unlock_display(this->user_data); \
-                            else XUnlockDisplay(this->display);}
+#define LOCK_DISPLAY(this) this->lock_display (this->ld_user_data)
+#define UNLOCK_DISPLAY(this) this->unlock_display (this->ud_user_data);
+
 typedef struct xv_driver_s xv_driver_t;
 
 typedef struct {
@@ -146,10 +145,10 @@ struct xv_driver_s {
   alphablend_t       alphablend_extra_data;
 
   void             (*lock_display) (void *);
+  void              *ld_user_data;
 
   void             (*unlock_display) (void *);
-
-  void              *user_data;
+  void              *ud_user_data;
 
   int                emu_yuy2;
 
@@ -1408,6 +1407,16 @@ static XvPortID xv_autodetect_port(xv_driver_t *this,
   return 0;
 }
 
+static void xv_default_lock_display (void *user_data) {
+  xv_driver_t *this = user_data;
+  XLockDisplay (this->display);
+}
+
+static void xv_default_unlock_display (void *user_data) {
+  xv_driver_t *this = user_data;
+  XUnlockDisplay (this->display);
+}
+
 /* expects XINE_VISUAL_TYPE_X11_2 with configurable locking */
 static vo_driver_t *open_plugin_2 (video_driver_class_t *class_gen, const void *visual_gen) {
   xv_class_t           *class = (xv_class_t *) class_gen;
@@ -1449,9 +1458,20 @@ static vo_driver_t *open_plugin_2 (video_driver_class_t *class_gen, const void *
   this->capabilities          = VO_CAP_CROP | VO_CAP_ZOOM_X | VO_CAP_ZOOM_Y;
 
   /* configurable X11 locking */
-  this->lock_display      = visual->lock_display;
-  this->unlock_display    = visual->unlock_display;
-  this->user_data         = visual->user_data;
+  if (visual->lock_display) {
+    this->lock_display = visual->lock_display;
+    this->ld_user_data = visual->user_data;
+  } else {
+    this->lock_display = xv_default_lock_display;
+    this->ld_user_data = this;
+  }
+  if (visual->unlock_display) {
+    this->unlock_display = visual->unlock_display;
+    this->ud_user_data   = visual->user_data;
+  } else {
+    this->unlock_display = xv_default_unlock_display;
+    this->ud_user_data   = this;
+  }
 
   LOCK_DISPLAY(this);
 
