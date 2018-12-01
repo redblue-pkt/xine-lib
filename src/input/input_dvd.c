@@ -155,7 +155,19 @@ static const char *const dvdnav_menu_table[] = {
   "Part"
 };
 
-typedef struct {
+typedef struct dvd_input_plugin_s dvd_input_plugin_t;
+
+typedef union dvd_input_saved_buf_u {
+  union dvd_input_saved_buf_u *free_next;
+  struct {
+    dvd_input_plugin_t *this;
+    unsigned char      *block;
+    void               *source;
+    void              (*free_buffer) (buf_element_t *);
+  } used;
+} dvd_input_saved_buf_t;
+
+struct dvd_input_plugin_s {
   input_plugin_t    input_plugin; /* Parent input plugin type        */
 
   xine_stream_t    *stream;
@@ -192,13 +204,12 @@ typedef struct {
 
   /* special buffer handling for libdvdnav caching */
   pthread_mutex_t   buf_mutex;
-  void             *source;
-  void            (*free_buffer)(buf_element_t *);
-  int               mem_stack;
-  int               mem_stack_max;
-  unsigned char   **mem;
+  dvd_input_saved_buf_t *saved_bufs;
+  dvd_input_saved_buf_t *saved_free;
+  unsigned int      saved_used;
+  unsigned int      saved_size;
   int               freeing;
-} dvd_input_plugin_t;
+};
 
 typedef struct {
 
@@ -215,6 +226,46 @@ typedef struct {
   int32_t             play_single_chapter;
 
 } dvd_input_class_t;
+
+static int dvd_input_saved_new (dvd_input_plugin_t *this) {
+  unsigned int n;
+  dvd_input_saved_buf_t *s = malloc (1024 * sizeof (*s));
+  if (!s)
+    return 1;
+  this->saved_bufs =
+  this->saved_free = s;
+  for (n = 1024 - 1; n; n--) {
+    s++;
+    s[-1].free_next = s;
+  }
+  s[0].free_next   = NULL;
+  this->saved_used = 0;
+  this->saved_size = 1024;
+  return 0;
+}
+
+static void dvd_input_saved_delete (dvd_input_plugin_t *this) {
+  _x_freep (&this->saved_bufs);
+}
+
+/* Get this->buf_mutex for the next 2. */
+static dvd_input_saved_buf_t *dvd_input_saved_acquire (dvd_input_plugin_t *this) {
+  dvd_input_saved_buf_t *s = this->saved_free;
+  if (s) {
+    this->saved_free = s->free_next;
+    this->saved_used++;
+    s->used.this = this;
+  }
+  return s;
+}
+
+static int dvd_input_saved_release (dvd_input_plugin_t *this, dvd_input_saved_buf_t *s) {
+  s->free_next = this->saved_free;
+  this->saved_free = s;
+  this->saved_used--;
+  return this->saved_used;
+}
+
 
 static void dvd_handle_events(dvd_input_plugin_t *this);
 static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode);
@@ -418,30 +469,32 @@ static int update_title_display(dvd_input_plugin_t *this) {
 }
 
 static void dvd_plugin_dispose (input_plugin_t *this_gen) {
-  dvd_input_plugin_t *this = (dvd_input_plugin_t*)this_gen;
+  dvd_input_plugin_t *this = (dvd_input_plugin_t *)this_gen;
+  dvd_input_class_t *class = (dvd_input_class_t *)this->input_plugin.input_class;
 
   lprintf("Called\n");
+  class->ip = NULL;
 
   if (this->event_queue)
     xine_event_dispose_queue (this->event_queue);
 
-  ((dvd_input_class_t *)this_gen->input_class)->ip = NULL;
-  if (this->dvdnav)
-    dvdnav_close(this->dvdnav);
-
-  pthread_mutex_lock(&this->buf_mutex);
-  if (this->mem_stack) {
+  pthread_mutex_lock (&this->buf_mutex);
+  if (this->saved_used) {
     /* raise the freeing flag, so that the plugin will be freed as soon
      * as all buffers have returned to the libdvdnav read ahead cache */
     this->freeing = 1;
-    pthread_mutex_unlock(&this->buf_mutex);
+    pthread_mutex_unlock (&this->buf_mutex);
   } else {
-    pthread_mutex_unlock(&this->buf_mutex);
-    pthread_mutex_destroy(&this->buf_mutex);
-    free(this->mem);
-    free(this->device);
-    free(this->mrl);
-    free(this);
+    pthread_mutex_unlock (&this->buf_mutex);
+    pthread_mutex_destroy (&this->buf_mutex);
+    if (this->dvdnav) {
+      dvdnav_close (this->dvdnav);
+      this->dvdnav = NULL;
+    }
+    dvd_input_saved_delete (this);
+    _x_freep (&this->device);
+    _x_freep (&this->mrl);
+    free (this);
   }
 }
 
@@ -528,25 +581,34 @@ static void dvd_build_mrl_list(dvd_input_plugin_t *this) {
 }
 #endif
 
-static void dvd_plugin_free_buffer(buf_element_t *buf) {
-  dvd_input_plugin_t *this = buf->source;
+static void dvd_plugin_free_buffer (buf_element_t *buf) {
+  dvd_input_saved_buf_t *s = buf->source;
+  dvd_input_plugin_t *this = s->used.this;
+  unsigned int n;
 
-  pthread_mutex_lock(&this->buf_mutex);
-  /* give this buffer back to libdvdnav */
-  dvdnav_free_cache_block(this->dvdnav, buf->mem);
+  pthread_mutex_lock (&this->buf_mutex);
   /* reconstruct the original xine buffer */
-  buf->free_buffer = this->free_buffer;
-  buf->source = this->source;
-  buf->mem = this->mem[--this->mem_stack];
-  pthread_mutex_unlock(&this->buf_mutex);
+  buf->free_buffer = s->used.free_buffer;
+  buf->source = s->used.source;
+  /* give this buffer back to libdvdnav */
+  dvdnav_free_cache_block (this->dvdnav, s->used.block);
+  s->used.block = NULL;
+  /* free saved entry */
+  n = dvd_input_saved_release (this, s);
+  pthread_mutex_unlock (&this->buf_mutex);
   /* give this buffer back to xine's pool */
-  buf->free_buffer(buf);
-  if (this->freeing && !this->mem_stack) {
+  buf->free_buffer (buf);
+  if (this->freeing && !n) {
     /* all buffers returned, we can free the plugin now */
-    pthread_mutex_destroy(&this->buf_mutex);
-    _x_freep(&this->mem);
-    _x_freep(&this->mrl);
-    free(this);
+    pthread_mutex_destroy (&this->buf_mutex);
+    if (this->dvdnav) {
+      dvdnav_close (this->dvdnav);
+      this->dvdnav = NULL;
+    }
+    dvd_input_saved_delete (this);
+    _x_freep (&this->device);
+    _x_freep (&this->mrl);
+    free (this);
   }
 }
 
@@ -781,27 +843,15 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     /* we have received a buffer from the libdvdnav cache, store all
      * necessary values to reconstruct xine's buffer and modify it according to
      * our needs. */
-    pthread_mutex_lock(&this->buf_mutex);
-    if (this->mem_stack >= this->mem_stack_max) {
-      void *mem;
-
-      mem = realloc(this->mem, sizeof(unsigned char *) * (this->mem_stack_max + 1024));
-      if (mem) {
-        this->mem_stack_max += 1024;
-        this->mem = mem;
-        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_dvd: Memory stack increased to %d entries.\n", this->mem_stack_max);
-      } else {
-        xprintf(this->stream->xine, XINE_VERBOSITY_NONE, "%s: realloc() failed: %s.\n",
-          __XINE_FUNCTION__, strerror(errno));
-      }
-    }
-    if (this->mem_stack < this->mem_stack_max) {
-      this->mem[this->mem_stack++] = buf->mem;
-      this->free_buffer = buf->free_buffer;
-      this->source = buf->source;
-      buf->mem = block;
+    dvd_input_saved_buf_t *s;
+    pthread_mutex_lock (&this->buf_mutex);
+    s = dvd_input_saved_acquire (this);
+    if (s) {
+      s->used.block = block;
+      s->used.free_buffer = buf->free_buffer;
+      s->used.source = buf->source;
       buf->free_buffer = dvd_plugin_free_buffer;
-      buf->source = this;
+      buf->source = s;
     } else {
       /* the stack for storing the memory chunks from xine is full, we cannot
        * modify the buffer, because we would not be able to reconstruct it.
@@ -1643,7 +1693,6 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
     return NULL;
   }
 #ifndef HAVE_ZERO_SAFE_MEM
-  this->mem_stack     = 0;
   this->dvdnav        = NULL;
   this->opened        = 0;
   this->seekable      = 0;
@@ -1657,9 +1706,7 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->device        = NULL;
   this->freeing       = 0;
 #endif
-  this->mem_stack_max = 1024;
-  this->mem           = calloc(this->mem_stack_max, sizeof(unsigned char *));
-  if (!this->mem) {
+  if (dvd_input_saved_new (this)) {
     free(this);
     return NULL;
   }
