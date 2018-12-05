@@ -75,7 +75,7 @@ static int demux_cdda_send_chunk (demux_plugin_t *this_gen) {
   len = this->input->get_length (this->input);
 
   blocksize = this->input->get_blocksize(this->input);
-  if (!blocksize) blocksize = 2352;
+  if (!blocksize) blocksize = 3 * 2352;
   buf = this->input->read_block(this->input, this->audio_fifo,
     blocksize);
   if (!buf) {

@@ -262,7 +262,7 @@ static void sha160_final (sha160_t *s, uint8_t *dest) {
  *************************************************************************/
 
 #define MAX_TRACKS     99
-#define CACHED_FRAMES  100
+#define CACHED_FRAMES  90 /* be a multiple of 3, see read_block () */
 
 typedef struct {
   int                  start;
@@ -2250,22 +2250,26 @@ static uint32_t cdda_plugin_get_capabilities (input_plugin_t *this_gen) {
 
 
 static off_t cdda_plugin_read (input_plugin_t *this_gen, void *buf, off_t len) {
-
   cdda_input_plugin_t *this = (cdda_input_plugin_t *) this_gen;
-  int err = 0;
+  uint32_t want, have;
 
-  /* only allow reading in block-sized chunks */
-
-  if (len != CD_RAW_FRAME_SIZE)
+  /* Allow reading full raw frames only. This will also short circuit _x_demux_read_header (). */
+  if ((len < 0) || ((uint64_t)len > 0xffffffff))
+    return 0;
+  want = (uint64_t)len;
+  want /= (uint32_t)CD_RAW_FRAME_SIZE;
+  have = want * CD_RAW_FRAME_SIZE;
+  if (have != (uint32_t)len)
     return 0;
 
   if (this->current_frame > this->last_frame)
     return 0;
 
   /* populate frame cache */
-  if( this->cache_first == -1 ||
+  if (this->cache_first == -1 ||
       this->current_frame < this->cache_first ||
-      this->current_frame > this->cache_last ) {
+      this->current_frame > this->cache_last) {
+    int err = -1;
 
     this->cache_first = this->current_frame;
     this->cache_last = this->current_frame + CACHED_FRAMES - 1;
@@ -2273,27 +2277,28 @@ static off_t cdda_plugin_read (input_plugin_t *this_gen, void *buf, off_t len) {
       this->cache_last = this->last_frame;
 
 #ifndef WIN32
-    if ( this->fd != -1 )
+    if (this->fd != -1)
 #else
-	if ( this->h_device_handle )
+    if (this->h_device_handle)
 #endif /* WIN32 */
-
       err = read_cdrom_frames(this, this->cache_first,
                              this->cache_last - this->cache_first + 1,
                              this->cache[0]);
-    else if ( this->net_fd != -1 )
+    else if (this->net_fd != -1)
       err = network_read_cdrom_frames(this->stream, this->net_fd, this->cache_first,
                                       this->cache_last - this->cache_first + 1,
                                       this->cache[0]);
+    if (err < 0)
+      return 0;
   }
 
-  if( err < 0 )
-    return 0;
-
-  memcpy(buf, this->cache[this->current_frame-this->cache_first], CD_RAW_FRAME_SIZE);
-  this->current_frame++;
-
-  return CD_RAW_FRAME_SIZE;
+  have = this->cache_last + 1 - this->current_frame;
+  if (want > have)
+    want = have;
+  have = want * CD_RAW_FRAME_SIZE;
+  memcpy (buf, this->cache [this->current_frame - this->cache_first], have);
+  this->current_frame += want;
+  return have;
 }
 
 static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo,
@@ -2304,6 +2309,10 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
   buf = fifo->buffer_pool_alloc(fifo);
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
+
+  /* Standard bufs are 8kbyte and can hold 3 raw frames. */
+  if (nlen > buf->max_size)
+    nlen = buf->max_size;
 
   buf->size = cdda_plugin_read(this_gen, buf->content, nlen);
   if (buf->size == 0) {
