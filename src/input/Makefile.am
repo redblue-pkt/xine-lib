@@ -227,7 +227,7 @@ xineplug_inp_dvb_la_CPPFLAGS = $(AM_CPPFLAGS) $(XDG_BASEDIR_CPPFLAGS)
 
 xineplug_inp_cdda_la_SOURCES = input_cdda.c
 xineplug_inp_cdda_la_DEPS = $(XDG_BASEDIR_DEPS)
-xineplug_inp_cdda_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(XDG_BASEDIR_LIBS) media_helper.la
+xineplug_inp_cdda_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(XDG_BASEDIR_LIBS) $(PTHREAD_LIBS) media_helper.la
 xineplug_inp_cdda_la_CPPFLAGS = $(AM_CPPFLAGS) $(XDG_BASEDIR_CPPFLAGS)
 
 xineplug_inp_v4l_la_SOURCES = input_v4l.c
