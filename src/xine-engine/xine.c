@@ -1540,6 +1540,29 @@ static int open_internal (xine_stream_t *stream, const char *mrl) {
 
   free (buf);
 
+  /* Nasty xine-ui issue:
+   * 1. User pauses playback, then opens a playlist.
+   * 2. Xine-ui grabs a separate stream tied to our "none" output plugins.
+   * 3. Xine-ui tries to open every playlist item in turn in order to query some info like duration.
+   *    We dont discuss the performance and security implications thereof here.
+   *    But we do find that any such open attempt will freeze inside _x_demux_control_headers_done ()
+   *    below because the engine is still paused.
+   * Workaround:
+   *    If fifo's are (nearly) empty, try that live pause hack.
+   *    If not, unpause for real. */
+  if (_x_get_speed (stream) == XINE_SPEED_PAUSE) {
+    if  (stream->audio_fifo && (stream->audio_fifo->fifo_size < 10)
+      && stream->video_fifo && (stream->video_fifo->fifo_size < 10)) {
+      xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+        "xine_open: switching to live pause mode to avoid freeze.\n");
+      set_speed_internal (stream, XINE_LIVE_PAUSE_ON);
+    } else {
+      xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+        "xine_open: unpauseing to avoid freeze.\n");
+      set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
+    }
+  }
+
   no_cache = no_cache || (stream->input_plugin->get_capabilities(stream->input_plugin) & INPUT_CAP_NO_CACHE);
   if( !no_cache )
     /* enable buffered input plugin (request optimizer) */
