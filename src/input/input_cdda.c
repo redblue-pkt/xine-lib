@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <time.h>
 
 #include <sys/types.h>
 #ifdef HAVE_SYS_PARAM_H
@@ -115,7 +116,7 @@ typedef struct {
   int   last_track;
   int   total_tracks;
   int   ignore_last_track;
-  cdrom_toc_entry_t leadout_track;
+  /* really: first_track, ... , last_track, leadout_track. */
   cdrom_toc_entry_t toc_entries[1];
 } cdrom_toc_t;
 
@@ -302,6 +303,8 @@ typedef struct {
   unsigned char        cache[CACHED_FRAMES][CD_RAW_FRAME_SIZE];
   int                  cache_first;
   int                  cache_last;
+  int                  tripple;
+  time_t               last_read_time;
 
 #ifdef WIN32
   HANDLE  h_device_handle;   /* vcd device descriptor */
@@ -320,6 +323,8 @@ typedef struct {
   config_values_t     *config;
 
   pthread_mutex_t      mutex;
+
+  time_t               last_read_time;
 
   cdrom_toc_t         *last_toc;
   const char          *cdda_device;
@@ -476,30 +481,29 @@ static void print_cdrom_toc (xine_t *xine, cdrom_toc_t *toc) {
     int i;
     xprintf (xine, XINE_VERBOSITY_DEBUG,
       "input_cdda: track  mode  MSF            time    first_frame\n");
-    for (i = toc->first_track; i <= toc->last_track; i++) {
+    for (i = 0; i < toc->total_tracks; i++) {
       int time1, time2, timediff;
-      time1 = e[i-1].first_frame_minute * 60 + e[i-1].first_frame_second;
-      if (i == toc->last_track)
-        time2 = toc->leadout_track.first_frame_minute * 60 + toc->leadout_track.first_frame_second;
-      else
-        time2 = e[i].first_frame_minute * 60 + e[i].first_frame_second;
+      time1 = e[i].first_frame_minute * 60 + e[i].first_frame_second;
+      time2 = e[i + 1].first_frame_minute * 60 + e[i + 1].first_frame_second;
       timediff = time2 - time1;
       xprintf (xine, XINE_VERBOSITY_DEBUG,
         "input_cdda: %5d  %4d  %02d:%02d:%02d       %02d:%02d   %11d\n",
-        i, e[i-1].track_mode, 
-        e[i-1].first_frame_minute,
-        e[i-1].first_frame_second,
-        e[i-1].first_frame_frame,
-        timediff / 60, timediff % 60,
-        e[i-1].first_frame);
+        toc->first_track + i,
+        e[i].track_mode, 
+        e[i].first_frame_minute,
+        e[i].first_frame_second,
+        e[i].first_frame_frame,
+        timediff / 60,
+        timediff % 60,
+        e[i].first_frame);
     }
     xprintf (xine, XINE_VERBOSITY_DEBUG,
       "input_cdda: leadout%4d  %02d:%02d:%02d               %11d\n",
-      toc->leadout_track.track_mode,
-      toc->leadout_track.first_frame_minute,
-      toc->leadout_track.first_frame_second,
-      toc->leadout_track.first_frame_frame,
-      toc->leadout_track.first_frame);
+      e[i].track_mode,
+      e[i].first_frame_minute,
+      e[i].first_frame_second,
+      e[i].first_frame_frame,
+      e[i].first_frame);
   }
 }
 
@@ -539,7 +543,7 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
   ignore_last_track = ms.xa_flag ? 1 : 0;
 
   /* allocate space for the toc entries */
-  toc = calloc (1, sizeof (cdrom_toc_t) + (total_tracks - 1) * sizeof (cdrom_toc_entry_t));
+  toc = calloc (1, sizeof (cdrom_toc_t) + total_tracks * sizeof (cdrom_toc_entry_t));
   if (!toc) {
     perror("calloc");
     return NULL;
@@ -550,22 +554,22 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
   toc->ignore_last_track = ignore_last_track;
 
   /* fetch each toc entry */
-  for (i = toc->first_track; i <= toc->last_track; i++) {
+  for (i = 0; i < toc->total_tracks; i++) {
 
     memset(&tocentry, 0, sizeof(tocentry));
 
-    tocentry.cdte_track = i;
+    tocentry.cdte_track = toc->first_track + i;
     tocentry.cdte_format = CDROM_MSF;
     if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
       perror("CDROMREADTOCENTRY");
       break;
     }
 
-    toc->toc_entries[i-1].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
-    toc->toc_entries[i-1].first_frame_minute = tocentry.cdte_addr.msf.minute;
-    toc->toc_entries[i-1].first_frame_second = tocentry.cdte_addr.msf.second;
-    toc->toc_entries[i-1].first_frame_frame = tocentry.cdte_addr.msf.frame;
-    toc->toc_entries[i-1].first_frame =
+    toc->toc_entries[i].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
+    toc->toc_entries[i].first_frame_minute = tocentry.cdte_addr.msf.minute;
+    toc->toc_entries[i].first_frame_second = tocentry.cdte_addr.msf.second;
+    toc->toc_entries[i].first_frame_frame = tocentry.cdte_addr.msf.frame;
+    toc->toc_entries[i].first_frame =
       (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
       (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
        tocentry.cdte_addr.msf.frame;
@@ -584,17 +588,17 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
 
 #define XA_INTERVAL ((60 + 90 + 2) * CD_FRAMES)
 
-  toc->leadout_track.track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
-  toc->leadout_track.first_frame_minute = tocentry.cdte_addr.msf.minute;
-  toc->leadout_track.first_frame_second = tocentry.cdte_addr.msf.second;
-  toc->leadout_track.first_frame_frame = tocentry.cdte_addr.msf.frame;
+  toc->toc_entries[i].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
+  toc->toc_entries[i].first_frame_minute = tocentry.cdte_addr.msf.minute;
+  toc->toc_entries[i].first_frame_second = tocentry.cdte_addr.msf.second;
+  toc->toc_entries[i].first_frame_frame = tocentry.cdte_addr.msf.frame;
   if (!ms.xa_flag) {
-    toc->leadout_track.first_frame =
+    toc->toc_entries[i].first_frame =
       (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
       (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
        tocentry.cdte_addr.msf.frame;
   } else {
-    toc->leadout_track.first_frame = ms.addr.lba - XA_INTERVAL + 150;
+    toc->toc_entries[i].first_frame = ms.addr.lba - XA_INTERVAL + 150;
   }
 
   return toc;
@@ -657,7 +661,7 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
   total_tracks = last_track - first_track + 1;
 
   /* allocate space for the toc entries */
-  toc = calloc (1, sizeof (cdrom_toc_t) + (total_tracks - 1) * sizeof (cdrom_toc_entry_t));
+  toc = calloc (1, sizeof (cdrom_toc_t) + total_tracks * sizeof (cdrom_toc_entry_t));
   if (!toc) {
     perror("calloc");
     return NULL;
@@ -667,11 +671,11 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
   toc->total_tracks = total_tracks;
 
   /* fetch each toc entry */
-  for (i = toc->first_track; i <= toc->last_track; i++) {
+  for (i = 0; i < toc->total_tracks; i++) {
 
     memset(&tocentry, 0, sizeof(tocentry));
 
-    tocentry.cdte_track = i;
+    tocentry.cdte_track = toc->first_track + i;
     tocentry.cdte_format = CDROM_MSF;
     if (ioctl(fd, CDROMREADTOCENTRY, &tocentry) == -1) {
       perror("CDROMREADTOCENTRY");
@@ -679,11 +683,11 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
       return NULL;
     }
 
-    toc->toc_entries[i-1].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
-    toc->toc_entries[i-1].first_frame_minute = tocentry.cdte_addr.msf.minute;
-    toc->toc_entries[i-1].first_frame_second = tocentry.cdte_addr.msf.second;
-    toc->toc_entries[i-1].first_frame_frame = tocentry.cdte_addr.msf.frame;
-    toc->toc_entries[i-1].first_frame =
+    toc->toc_entries[i].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
+    toc->toc_entries[i].first_frame_minute = tocentry.cdte_addr.msf.minute;
+    toc->toc_entries[i].first_frame_second = tocentry.cdte_addr.msf.second;
+    toc->toc_entries[i].first_frame_frame = tocentry.cdte_addr.msf.frame;
+    toc->toc_entries[i].first_frame =
       (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
       (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
        tocentry.cdte_addr.msf.frame;
@@ -707,11 +711,11 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
     return NULL;
   }
 
-  toc->leadout_track.track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
-  toc->leadout_track.first_frame_minute = tocentry.cdte_addr.msf.minute;
-  toc->leadout_track.first_frame_second = tocentry.cdte_addr.msf.second;
-  toc->leadout_track.first_frame_frame = tocentry.cdte_addr.msf.frame;
-  toc->leadout_track.first_frame =
+  toc->toc_entries[i].track_mode = (tocentry.cdte_ctrl & 0x04) ? 1 : 0;
+  toc->toc_entries[i].first_frame_minute = tocentry.cdte_addr.msf.minute;
+  toc->toc_entries[i].first_frame_second = tocentry.cdte_addr.msf.second;
+  toc->toc_entries[i].first_frame_frame = tocentry.cdte_addr.msf.frame;
+  toc->toc_entries[i].first_frame =
     (tocentry.cdte_addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
     (tocentry.cdte_addr.msf.second * CD_FRAMES_PER_SECOND) +
      tocentry.cdte_addr.msf.frame;
@@ -777,7 +781,7 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
   total_tracks = last_track - first_track + 1;
 
   /* allocate space for the toc entries */
-  toc = calloc (1, sizeof (cdrom_toc_t) + (total_tracks - 1) * sizeof (cdrom_toc_entry_t));
+  toc = calloc (1, sizeof (cdrom_toc_t) + total_tracks * sizeof (cdrom_toc_entry_t));
   if (!toc->toc_entries) {
     perror("calloc");
     return NULL;
@@ -787,12 +791,12 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
   toc->total_tracks = total_tracks;
 
   /* fetch each toc entry */
-  for (i = toc->first_track; i <= toc->last_track; i++) {
+  for (i = 0; i < toc->total_tracks; i++) {
 
     memset(&tocentry, 0, sizeof(tocentry));
 
 #if defined(__FreeBSD_kernel__)
-    tocentry.track = i;
+    tocentry.track = toc->first_track + i;
     tocentry.address_format = CD_MSF_FORMAT;
     if (ioctl(fd, CDIOREADTOCENTRY, &tocentry) == -1) {
       perror("CDIOREADTOCENTRY");
@@ -803,7 +807,7 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
     memset(&data, 0, sizeof(data));
     tocentry.data_len = sizeof(data);
     tocentry.data = &data;
-    tocentry.starting_track = i;
+    tocentry.starting_track = toc->first_track + i;
     tocentry.address_format = CD_MSF_FORMAT;
     if (ioctl(fd, CDIOREADTOCENTRYS, &tocentry) == -1) {
       perror("CDIOREADTOCENTRYS");
@@ -813,20 +817,20 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
 #endif
 
 #if defined(__FreeBSD_kernel__)
-    toc->toc_entries[i-1].track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
-    toc->toc_entries[i-1].first_frame_minute = tocentry.entry.addr.msf.minute;
-    toc->toc_entries[i-1].first_frame_second = tocentry.entry.addr.msf.second;
-    toc->toc_entries[i-1].first_frame_frame = tocentry.entry.addr.msf.frame;
-    toc->toc_entries[i-1].first_frame =
+    toc->toc_entries[i].track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
+    toc->toc_entries[i].first_frame_minute = tocentry.entry.addr.msf.minute;
+    toc->toc_entries[i].first_frame_second = tocentry.entry.addr.msf.second;
+    toc->toc_entries[i].first_frame_frame = tocentry.entry.addr.msf.frame;
+    toc->toc_entries[i].first_frame =
       (tocentry.entry.addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
       (tocentry.entry.addr.msf.second * CD_FRAMES_PER_SECOND) +
        tocentry.entry.addr.msf.frame;
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
-    toc->toc_entries[i-1].track_mode = (tocentry.data->control & 0x04) ? 1 : 0;
-    toc->toc_entries[i-1].first_frame_minute = tocentry.data->addr.msf.minute;
-    toc->toc_entries[i-1].first_frame_second = tocentry.data->addr.msf.second;
-    toc->toc_entries[i-1].first_frame_frame = tocentry.data->addr.msf.frame;
-    toc->toc_entries[i-1].first_frame =
+    toc->toc_entries[i].track_mode = (tocentry.data->control & 0x04) ? 1 : 0;
+    toc->toc_entries[i].first_frame_minute = tocentry.data->addr.msf.minute;
+    toc->toc_entries[i].first_frame_second = tocentry.data->addr.msf.second;
+    toc->toc_entries[i].first_frame_frame = tocentry.data->addr.msf.frame;
+    toc->toc_entries[i].first_frame =
       (tocentry.data->addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
       (tocentry.data->addr.msf.second * CD_FRAMES_PER_SECOND) +
        tocentry.data->addr.msf.frame - CD_BLOCK_OFFSET;
@@ -858,20 +862,20 @@ static cdrom_toc_t *read_cdrom_toc (int fd) {
 #endif
 
 #if defined(__FreeBSD_kernel__)
-  toc->leadout_track.track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
-  toc->leadout_track.first_frame_minute = tocentry.entry.addr.msf.minute;
-  toc->leadout_track.first_frame_second = tocentry.entry.addr.msf.second;
-  toc->leadout_track.first_frame_frame = tocentry.entry.addr.msf.frame;
-  toc->leadout_track.first_frame =
+  toc->toc_entries[i].track_mode = (tocentry.entry.control & 0x04) ? 1 : 0;
+  toc->toc_entries[i].first_frame_minute = tocentry.entry.addr.msf.minute;
+  toc->toc_entries[i].first_frame_second = tocentry.entry.addr.msf.second;
+  toc->toc_entries[i].first_frame_frame = tocentry.entry.addr.msf.frame;
+  toc->toc_entries[i].first_frame =
     (tocentry.entry.addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
     (tocentry.entry.addr.msf.second * CD_FRAMES_PER_SECOND) +
      tocentry.entry.addr.msf.frame;
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
-  toc->leadout_track.track_mode = (tocentry.data->control & 0x04) ? 1 : 0;
-  toc->leadout_track.first_frame_minute = tocentry.data->addr.msf.minute;
-  toc->leadout_track.first_frame_second = tocentry.data->addr.msf.second;
-  toc->leadout_track.first_frame_frame = tocentry.data->addr.msf.frame;
-  toc->leadout_track.first_frame =
+  toc->toc_entries[i].track_mode = (tocentry.data->control & 0x04) ? 1 : 0;
+  toc->toc_entries[i].first_frame_minute = tocentry.data->addr.msf.minute;
+  toc->toc_entries[i].first_frame_second = tocentry.data->addr.msf.second;
+  toc->toc_entries[i]..first_frame_frame = tocentry.data->addr.msf.frame;
+  toc->toc_entries[i].first_frame =
     (tocentry.data->addr.msf.minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
     (tocentry.data->addr.msf.second * CD_FRAMES_PER_SECOND) +
      tocentry.data->addr.msf.frame - CD_BLOCK_OFFSET;
@@ -980,7 +984,7 @@ static cdrom_toc_t *read_cdrom_toc (cdda_input_plugin_t *this_gen) {
 
 
       /* allocate space for the toc entries */
-      toc = calloc (1, sizeof (cdrom_toc_t) + (total_tracks - 1) * sizeof (cdrom_toc_entry_t));
+      toc = calloc (1, sizeof (cdrom_toc_t) + total_tracks * sizeof (cdrom_toc_entry_t));
       if (!toc) {
           perror("calloc");
           return NULL;
@@ -991,29 +995,19 @@ static cdrom_toc_t *read_cdrom_toc (cdda_input_plugin_t *this_gen) {
 
 
       /* fetch each toc entry */
-      for (i = toc->first_track; i <= toc->last_track; i++) {
+      /* Grab the leadout track too! (I think that this is correct?) */
+      for (i = 0; i <= toc->total_tracks; i++) {
 
-          toc->toc_entries[i-1].track_mode = (cdrom_toc.TrackData[i-1].Control & 0x04) ? 1 : 0;
-          toc->toc_entries[i-1].first_frame_minute = cdrom_toc.TrackData[i-1].Address[1];
-          toc->toc_entries[i-1].first_frame_second = cdrom_toc.TrackData[i-1].Address[2];
-          toc->toc_entries[i-1].first_frame_frame = cdrom_toc.TrackData[i-1].Address[3];
+          toc->toc_entries[i].track_mode = (cdrom_toc.TrackData[i].Control & 0x04) ? 1 : 0;
+          toc->toc_entries[i].first_frame_minute = cdrom_toc.TrackData[i].Address[1];
+          toc->toc_entries[i].first_frame_second = cdrom_toc.TrackData[i].Address[2];
+          toc->toc_entries[i].first_frame_frame = cdrom_toc.TrackData[i].Address[3];
 
-          toc->toc_entries[i-1].first_frame =
-              (toc->toc_entries[i-1].first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
-              (toc->toc_entries[i-1].first_frame_second * CD_FRAMES_PER_SECOND) +
-              toc->toc_entries[i-1].first_frame_frame;
+          toc->toc_entries[i].first_frame =
+              (toc->toc_entries[i].first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+              (toc->toc_entries[i].first_frame_second * CD_FRAMES_PER_SECOND) +
+              toc->toc_entries[i].first_frame_frame;
       }
-
-	  /* Grab the leadout track too! (I think that this is correct?) */
-	  i = toc->total_tracks;
-      toc->leadout_track.track_mode = (cdrom_toc.TrackData[i].Control & 0x04) ? 1 : 0;
-      toc->leadout_track.first_frame_minute = cdrom_toc.TrackData[i].Address[1];
-      toc->leadout_track.first_frame_second = cdrom_toc.TrackData[i].Address[2];
-      toc->leadout_track.first_frame_frame = cdrom_toc.TrackData[i].Address[3];
-      toc->leadout_track.first_frame =
-        (toc->leadout_track.first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
-        (toc->leadout_track.first_frame_second * CD_FRAMES_PER_SECOND) +
-         toc->leadout_track.first_frame_frame;
   }
 
   return toc;
@@ -1231,7 +1225,7 @@ static cdrom_toc_t *network_read_cdrom_toc (xine_stream_t *stream, int fd) {
   total_tracks = last_track - first_track + 1;
 
   /* allocate space for the toc entries */
-  toc = calloc (1, sizeof (cdrom_toc_t) + (total_tracks - 1) * sizeof (cdrom_toc_entry_t));
+  toc = calloc (1, sizeof (cdrom_toc_t) + total_tracks * sizeof (cdrom_toc_entry_t));
   if (!toc) {
     perror("calloc");
     return NULL;
@@ -1241,25 +1235,26 @@ static cdrom_toc_t *network_read_cdrom_toc (xine_stream_t *stream, int fd) {
   toc->total_tracks = total_tracks;
 
   /* fetch each toc entry */
-  for (i = toc->first_track; i <= toc->last_track; i++) {
+  for (i = 0; i < toc->total_tracks; i++) {
 
     /* fetch the table of contents */
-    if( network_command( stream, fd, buf, "cdda_tocentry %d", i ) == -1) {
+    if (network_command (stream, fd, buf, "cdda_tocentry %d", toc->first_track + i) == -1) {
       if (stream)
         xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "input_cdda: network CDROMREADTOCENTRY error.\n");
       free (toc);
       return NULL;
     }
 
-    sscanf(buf,"%*s %*s %d %d %d %d", &toc->toc_entries[i-1].track_mode,
-                                      &toc->toc_entries[i-1].first_frame_minute,
-                                      &toc->toc_entries[i-1].first_frame_second,
-                                      &toc->toc_entries[i-1].first_frame_frame);
+    sscanf (buf, "%*s %*s %d %d %d %d",
+      &toc->toc_entries[i].track_mode,
+      &toc->toc_entries[i].first_frame_minute,
+      &toc->toc_entries[i].first_frame_second,
+      &toc->toc_entries[i].first_frame_frame);
 
-    toc->toc_entries[i-1].first_frame =
-      (toc->toc_entries[i-1].first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
-      (toc->toc_entries[i-1].first_frame_second * CD_FRAMES_PER_SECOND) +
-       toc->toc_entries[i-1].first_frame_frame;
+    toc->toc_entries[i].first_frame =
+      (toc->toc_entries[i].first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+      (toc->toc_entries[i].first_frame_second * CD_FRAMES_PER_SECOND) +
+       toc->toc_entries[i].first_frame_frame;
   }
 
   /* fetch the leadout as well */
@@ -1270,14 +1265,16 @@ static cdrom_toc_t *network_read_cdrom_toc (xine_stream_t *stream, int fd) {
     return NULL;
   }
 
-  sscanf(buf,"%*s %*s %d %d %d %d", &toc->leadout_track.track_mode,
-                                    &toc->leadout_track.first_frame_minute,
-                                    &toc->leadout_track.first_frame_second,
-                                    &toc->leadout_track.first_frame_frame);
-  toc->leadout_track.first_frame =
-    (toc->leadout_track.first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
-    (toc->leadout_track.first_frame_second * CD_FRAMES_PER_SECOND) +
-     toc->leadout_track.first_frame_frame;
+  sscanf (buf, "%*s %*s %d %d %d %d",
+    &toc->toc_entries[i].track_mode,
+    &toc->toc_entries[i].first_frame_minute,
+    &toc->toc_entries[i].first_frame_second,
+    &toc->toc_entries[i].first_frame_frame);
+
+  toc->toc_entries[i].first_frame =
+    (toc->toc_entries[i].first_frame_minute * CD_SECONDS_PER_MINUTE * CD_FRAMES_PER_SECOND) +
+    (toc->toc_entries[i].first_frame_second * CD_FRAMES_PER_SECOND) +
+     toc->toc_entries[i].first_frame_frame;
 
   return toc;
 }
@@ -1993,7 +1990,7 @@ static void _cdda_cdindex(cdda_input_plugin_t *this, cdrom_toc_t *toc) {
   snprintf (temp, sizeof(temp), "%02X%02X%08X",
     toc->first_track,
     toc->last_track - toc->ignore_last_track,
-    toc->leadout_track.first_frame); /* + 150 */
+    toc->toc_entries[toc->total_tracks].first_frame); /* + 150 */
   sha160_update (&sha, temp, 12);
 
   for (i = toc->first_track; i <= toc->last_track - toc->ignore_last_track; i++) {
@@ -2284,10 +2281,17 @@ static off_t cdda_plugin_read (input_plugin_t *this_gen, void *buf, off_t len) {
   if (this->cache_first == -1 ||
       this->current_frame < this->cache_first ||
       this->current_frame > this->cache_last) {
-    int err = -1;
+    int len, err = -1;
+
+    if (this->tripple) {
+      len = CACHED_FRAMES / 10;
+      this->tripple--;
+    } else {
+      len = CACHED_FRAMES;
+    }
 
     this->cache_first = this->current_frame;
-    this->cache_last = this->current_frame + CACHED_FRAMES - 1;
+    this->cache_last = this->current_frame + len - 1;
     if( this->cache_last > this->last_frame )
       this->cache_last = this->last_frame;
 
@@ -2305,6 +2309,8 @@ static off_t cdda_plugin_read (input_plugin_t *this_gen, void *buf, off_t len) {
                                       this->cache[0]);
     if (err < 0)
       return 0;
+
+    this->last_read_time = time (NULL);
   }
 
   have = this->cache_last + 1 - this->current_frame;
@@ -2343,16 +2349,25 @@ static off_t cdda_plugin_seek (input_plugin_t *this_gen, off_t offset, int origi
   int seek_to_frame;
 
   /* compute the proposed frame and check if it is within bounds */
+  seek_to_frame = offset / CD_RAW_FRAME_SIZE;
   if (origin == SEEK_SET)
-    seek_to_frame = offset / CD_RAW_FRAME_SIZE + this->first_frame;
+    seek_to_frame += this->first_frame;
   else if (origin == SEEK_CUR)
-    seek_to_frame = offset / CD_RAW_FRAME_SIZE + this->current_frame;
+    seek_to_frame += this->current_frame;
   else
-    seek_to_frame = offset / CD_RAW_FRAME_SIZE + this->last_frame;
+    seek_to_frame += this->last_frame + 1;
 
   if ((seek_to_frame >= this->first_frame) &&
-      (seek_to_frame <= this->last_frame))
+      (seek_to_frame <= this->last_frame + 1)) {
+    if ((seek_to_frame < this->cache_first) ||
+        (seek_to_frame > this->cache_last + 1)) {
+      time_t now = time (NULL);
+      /* read in small steps first to give faster seek response. */
+      if (now <= this->last_read_time + 5)
+        this->tripple = 10;
+    }
     this->current_frame = seek_to_frame;
+  }
 
   return (this->current_frame - this->first_frame) * CD_RAW_FRAME_SIZE;
 }
@@ -2391,6 +2406,9 @@ static int cdda_plugin_get_optional_data (input_plugin_t *this_gen,
 
 static void cdda_plugin_dispose (input_plugin_t *this_gen ) {
   cdda_input_plugin_t *this = (cdda_input_plugin_t *) this_gen;
+  cdda_input_class_t *class = (cdda_input_class_t *) this->input_plugin.input_class;
+
+  class->last_read_time = this->last_read_time;
 
   _cdda_free_cddb_info(this);
 
@@ -2457,14 +2475,22 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     /* set up the frame boundaries for this particular track */
     this->first_frame   =
     this->current_frame = toc->toc_entries[this->track].first_frame;
-    this->last_frame    = (this->track + 1 == toc->last_track)
-                        ? toc->leadout_track.first_frame - 1
-                        : toc->toc_entries[this->track + 1].first_frame - 1;
+    this->last_frame    = toc->toc_entries[this->track + 1].first_frame - 1;
   } else {
     /* no track given = all audio tracks */
     this->first_frame   =
     this->current_frame = toc->toc_entries[0].first_frame;
-    this->last_frame    = toc->leadout_track.first_frame - 1;
+    this->last_frame    = toc->toc_entries[toc->last_track - toc->first_track + 1].first_frame - 1;
+  }
+
+  /* if the last read was just recently, assume the drive still up and spinning,
+   * and use tripple mode for start as well. */
+  {
+    time_t now;
+    this->last_read_time = class->last_read_time;
+    now = time (NULL);
+    if (now <= this->last_read_time + 5)
+      this->tripple = 10;
   }
 
   /* invalidate cache */
@@ -2496,8 +2522,8 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
 
   }
 
-  this->cddb.disc_length = (toc->leadout_track.first_frame_minute * CD_SECONDS_PER_MINUTE +
-			    toc->leadout_track.first_frame_second);
+  this->cddb.disc_length = (toc->toc_entries[toc->total_tracks].first_frame_minute * CD_SECONDS_PER_MINUTE +
+                            toc->toc_entries[toc->total_tracks].first_frame_second);
   this->cddb.disc_id     = _cdda_get_cddb_id(this);
 
   if((this->cddb.have_cddb_info == 0) || (_cdda_is_cd_changed(this) == 1))
@@ -2723,6 +2749,8 @@ static input_plugin_t *cdda_class_get_instance (input_class_t *cls_gen, xine_str
   this->last_frame          = 0;
   this->cache_first         = 0;
   this->cache_last          = 0;
+  this->tripple             = 0;
+  this->last_read_time      = 0;
 #  ifdef WIN32
   this->h_device_handle     = 0;
   this->hASPI               = 0;
@@ -2804,6 +2832,7 @@ static void *init_plugin (xine_t *xine, const void *data) {
 #ifndef HAVE_ZERO_SAFE_MEM
   this->cddb_error          = 0;
   this->input_class.get_dir = NULL;
+  this->last_read_time      = 0;
   this->last_toc            = NULL;
   this->autoplaylist        = NULL;
 #endif
