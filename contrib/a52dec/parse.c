@@ -217,8 +217,10 @@ static int parse_exponents (a52_state_t * state, int expstr, int ngrps,
 	case EXP_D45:
 	    *(dest++) = exponent;
 	    *(dest++) = exponent;
+        /* fall through */
 	case EXP_D25:
 	    *(dest++) = exponent;
+        /* fall through */
 	case EXP_D15:
 	    *(dest++) = exponent;
 	}
@@ -231,8 +233,10 @@ static int parse_exponents (a52_state_t * state, int expstr, int ngrps,
 	case EXP_D45:
 	    *(dest++) = exponent;
 	    *(dest++) = exponent;
+        /* fall through */
 	case EXP_D25:
 	    *(dest++) = exponent;
+        /* fall through */
 	case EXP_D15:
 	    *(dest++) = exponent;
 	}
@@ -245,8 +249,10 @@ static int parse_exponents (a52_state_t * state, int expstr, int ngrps,
 	case EXP_D45:
 	    *(dest++) = exponent;
 	    *(dest++) = exponent;
+        /* fall through */
 	case EXP_D25:
 	    *(dest++) = exponent;
+        /* fall through */
 	case EXP_D15:
 	    *(dest++) = exponent;
 	}
@@ -419,6 +425,9 @@ static void coeff_get_coupling (a52_state_t * state, int nfchans,
 	cplbndstrc >>= 1;
 	for (ch = 0; ch < nfchans; ch++)
 	    cplco[ch] = state->cplco[ch][bnd] * coeff[ch];
+    /* calm down gcc7 */
+	for (; ch < 5; ch++)
+	    cplco[ch] = 0;
 	bnd++;
 
 	while (i < i_end) {
