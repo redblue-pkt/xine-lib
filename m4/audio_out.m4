@@ -115,7 +115,7 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
 
 
     dnl FusionSound support
-    XINE_ARG_WITH([fusionsound], [Build with FunsionSound audio output support])
+    XINE_ARG_WITH([fusionsound], [Build with FusionSound audio output support])
     if test x"$with_fusionsound" != x"no"; then
         PKG_CHECK_MODULES([FUSIONSOUND], [fusionsound >= 0.9.23], [have_fusionsound=yes], [have_fusionsound=no])
         if test x"$hard_with_fusionsound" = x"yes" && test x"$have_fusionsound" != x"yes"; then
