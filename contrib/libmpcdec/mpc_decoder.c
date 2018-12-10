@@ -1227,7 +1227,7 @@ mpc_bool_t mpc_decoder_seek_sample(mpc_decoder *d, mpc_int64_t destsample)
     if (d->seeking_table_frames > d->DecodedFrames || fwd < d->DecodedFrames) {
         d->DecodedFrames = 0;
         if (fwd > d->seeking_window)
-            d->DecodedFrames = (fwd - d->seeking_window) & (-1 << d->seeking_pwr);
+            d->DecodedFrames = (fwd - d->seeking_window) & ((~0u) << d->seeking_pwr);
         if (d->DecodedFrames > d->seeking_table_frames)
             d->DecodedFrames = d->seeking_table_frames;
         fpos = d->seeking_table[d->DecodedFrames >> d->seeking_pwr];
