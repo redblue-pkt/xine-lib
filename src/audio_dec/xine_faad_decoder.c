@@ -201,6 +201,7 @@ static void faad_meta_info_set ( faad_decoder_t *this ) {
                                 "AAC 2.0 (libfaad)");
         break;
       }
+      /* fall through */
     case 6:
       if (this->faac_finfo.sbr == SBR_UPSAMPLED)
         _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC,
