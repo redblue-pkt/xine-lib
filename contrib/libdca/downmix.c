@@ -114,7 +114,7 @@ int dca_downmix_init (int input, int flags, level_t * level,
 	case CONVERT (DCA_3F2R, DCA_2F1R):
 	    if (clev < LEVEL (LEVEL_PLUS3DB - 1))
 		goto level_3db;
-	    /* break thru */
+        /* fall through */
 	case CONVERT (DCA_3F, DCA_STEREO):
 	case CONVERT (DCA_3F1R, DCA_2F1R):
 	case CONVERT (DCA_3F1R, DCA_2F2R):
@@ -508,6 +508,7 @@ void dca_downmix (sample_t * samples, int acmod, int output, sample_t bias,
     case CONVERT (DCA_2F1R, DCA_MONO):
 	if (slev == 0)
 	    goto mix_2to1;
+    /* fall through */
     case CONVERT (DCA_3F, DCA_MONO):
     mix_3to1:
 	mix3to1 (samples, bias);
@@ -516,15 +517,18 @@ void dca_downmix (sample_t * samples, int acmod, int output, sample_t bias,
     case CONVERT (DCA_3F1R, DCA_MONO):
 	if (slev == 0)
 	    goto mix_3to1;
+    /* fall through */
     case CONVERT (DCA_2F2R, DCA_MONO):
 	if (slev == 0)
 	    goto mix_2to1;
+    /* fall through */
 	mix4to1 (samples, bias);
 	break;
 
     case CONVERT (DCA_3F2R, DCA_MONO):
 	if (slev == 0)
 	    goto mix_3to1;
+    /* fall through */
 	mix5to1 (samples, bias);
 	break;
 
@@ -551,6 +555,7 @@ void dca_downmix (sample_t * samples, int acmod, int output, sample_t bias,
     case CONVERT (DCA_3F1R, DCA_STEREO):
 	if (slev == 0)
 	    goto mix_3to2;
+    /* fall through */
 	mix31to2 (samples, bias);
 	break;
 
@@ -572,6 +577,7 @@ void dca_downmix (sample_t * samples, int acmod, int output, sample_t bias,
     case CONVERT (DCA_3F2R, DCA_STEREO):
 	if (slev == 0)
 	    goto mix_3to2;
+    /* fall through */
 	mix32to2 (samples, bias);
 	break;
 
@@ -637,12 +643,15 @@ void dca_upmix (sample_t * samples, int acmod, int output)
 
     case CONVERT (DCA_3F2R, DCA_MONO):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (DCA_3F1R, DCA_MONO):
     case CONVERT (DCA_2F2R, DCA_MONO):
 	zero (samples + 768);
+    /* fall through */
     case CONVERT (DCA_3F, DCA_MONO):
     case CONVERT (DCA_2F1R, DCA_MONO):
 	zero (samples + 512);
+    /* fall through */
     case CONVERT (DCA_CHANNEL, DCA_MONO):
     case CONVERT (DCA_STEREO, DCA_MONO):
 	zero (samples + 256);
@@ -651,9 +660,11 @@ void dca_upmix (sample_t * samples, int acmod, int output)
     case CONVERT (DCA_3F2R, DCA_STEREO):
     case CONVERT (DCA_3F2R, DCA_DOLBY):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (DCA_3F1R, DCA_STEREO):
     case CONVERT (DCA_3F1R, DCA_DOLBY):
 	zero (samples + 768);
+    /* fall through */
     case CONVERT (DCA_3F, DCA_STEREO):
     case CONVERT (DCA_3F, DCA_DOLBY):
     mix_3to2:
@@ -664,6 +675,7 @@ void dca_upmix (sample_t * samples, int acmod, int output)
     case CONVERT (DCA_2F2R, DCA_STEREO):
     case CONVERT (DCA_2F2R, DCA_DOLBY):
 	zero (samples + 768);
+    /* fall through */
     case CONVERT (DCA_2F1R, DCA_STEREO):
     case CONVERT (DCA_2F1R, DCA_DOLBY):
 	zero (samples + 512);
@@ -671,6 +683,7 @@ void dca_upmix (sample_t * samples, int acmod, int output)
 
     case CONVERT (DCA_3F2R, DCA_3F):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (DCA_3F1R, DCA_3F):
     case CONVERT (DCA_2F2R, DCA_2F1R):
 	zero (samples + 768);
@@ -682,6 +695,7 @@ void dca_upmix (sample_t * samples, int acmod, int output)
 
     case CONVERT (DCA_3F2R, DCA_2F1R):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (DCA_3F1R, DCA_2F1R):
     mix_31to21:
 	memcpy (samples + 768, samples + 512, 256 * sizeof (sample_t));
