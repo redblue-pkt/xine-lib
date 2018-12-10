@@ -186,7 +186,7 @@ remap_t* remap_loadmap( char *title) {
     char *home;
     int res;
     FILE *fp;
-    block_t tmp;
+    block_t tmp = {0, 0, 0, 0, 0};
     remap_t *map;
 
     /* Build the map filename */
