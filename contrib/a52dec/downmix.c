@@ -87,7 +87,7 @@ int a52_downmix_init (int input, int flags, sample_t * level,
 	case CONVERT (A52_3F2R, A52_2F1R):
 	    if (clev < LEVEL_PLUS3DB - 1)
 		goto level_3db;
-	    /* break thru */
+        /* fall through */
 	case CONVERT (A52_3F, A52_STEREO):
 	case CONVERT (A52_3F1R, A52_2F1R):
 	case CONVERT (A52_3F1R, A52_2F2R):
@@ -209,6 +209,7 @@ int a52_downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
 
     case CONVERT (A52_3F, A52_DOLBY):
 	clev = LEVEL_3DB;
+    /* fall through */
     case CONVERT (A52_3F, A52_STEREO):
     case CONVERT (A52_3F1R, A52_2F1R):
     case CONVERT (A52_3F2R, A52_2F2R):
@@ -218,6 +219,7 @@ int a52_downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
 
     case CONVERT (A52_2F1R, A52_DOLBY):
 	slev = 1;
+    /* fall through */
     case CONVERT (A52_2F1R, A52_STEREO):
 	coeff[0] = coeff[1] = level;
 	coeff[2] = level * slev * LEVEL_3DB;
@@ -226,6 +228,7 @@ int a52_downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
     case CONVERT (A52_3F1R, A52_DOLBY):
 	clev = LEVEL_3DB;
 	slev = 1;
+    /* fall through */
     case CONVERT (A52_3F1R, A52_STEREO):
 	coeff[0] = coeff[2] = level;
 	coeff[1] = level * clev;
@@ -234,6 +237,7 @@ int a52_downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
 
     case CONVERT (A52_2F2R, A52_DOLBY):
 	slev = LEVEL_3DB;
+    /* fall through */
     case CONVERT (A52_2F2R, A52_STEREO):
 	coeff[0] = coeff[1] = level;
 	coeff[2] = coeff[3] = level * slev;
@@ -241,8 +245,10 @@ int a52_downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
 
     case CONVERT (A52_3F2R, A52_DOLBY):
 	clev = LEVEL_3DB;
+    /* fall through */
     case CONVERT (A52_3F2R, A52_2F1R):
 	slev = LEVEL_3DB;
+    /* fall through */
     case CONVERT (A52_3F2R, A52_STEREO):
 	coeff[0] = coeff[2] = level;
 	coeff[1] = level * clev;
@@ -468,6 +474,7 @@ void a52_downmix (sample_t * samples, int acmod, int output, sample_t bias,
     case CONVERT (A52_2F1R, A52_MONO):
 	if (slev == 0)
 	    goto mix_2to1;
+    /* fall through */
     case CONVERT (A52_3F, A52_MONO):
     mix_3to1:
 	mix3to1 (samples, bias);
@@ -476,15 +483,18 @@ void a52_downmix (sample_t * samples, int acmod, int output, sample_t bias,
     case CONVERT (A52_3F1R, A52_MONO):
 	if (slev == 0)
 	    goto mix_3to1;
+    /* fall through */
     case CONVERT (A52_2F2R, A52_MONO):
 	if (slev == 0)
 	    goto mix_2to1;
+    /* fall through */
 	mix4to1 (samples, bias);
 	break;
 
     case CONVERT (A52_3F2R, A52_MONO):
 	if (slev == 0)
 	    goto mix_3to1;
+    /* fall through */
 	mix5to1 (samples, bias);
 	break;
 
@@ -511,6 +521,7 @@ void a52_downmix (sample_t * samples, int acmod, int output, sample_t bias,
     case CONVERT (A52_3F1R, A52_STEREO):
 	if (slev == 0)
 	    goto mix_3to2;
+    /* fall through */
 	mix31to2 (samples, bias);
 	break;
 
@@ -601,12 +612,15 @@ void a52_upmix (sample_t * samples, int acmod, int output)
 
     case CONVERT (A52_3F2R, A52_MONO):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (A52_3F1R, A52_MONO):
     case CONVERT (A52_2F2R, A52_MONO):
 	zero (samples + 768);
+    /* fall through */
     case CONVERT (A52_3F, A52_MONO):
     case CONVERT (A52_2F1R, A52_MONO):
 	zero (samples + 512);
+    /* fall through */
     case CONVERT (A52_CHANNEL, A52_MONO):
     case CONVERT (A52_STEREO, A52_MONO):
 	zero (samples + 256);
@@ -615,9 +629,11 @@ void a52_upmix (sample_t * samples, int acmod, int output)
     case CONVERT (A52_3F2R, A52_STEREO):
     case CONVERT (A52_3F2R, A52_DOLBY):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (A52_3F1R, A52_STEREO):
     case CONVERT (A52_3F1R, A52_DOLBY):
 	zero (samples + 768);
+    /* fall through */
     case CONVERT (A52_3F, A52_STEREO):
     case CONVERT (A52_3F, A52_DOLBY):
     mix_3to2:
@@ -628,6 +644,7 @@ void a52_upmix (sample_t * samples, int acmod, int output)
     case CONVERT (A52_2F2R, A52_STEREO):
     case CONVERT (A52_2F2R, A52_DOLBY):
 	zero (samples + 768);
+    /* fall through */
     case CONVERT (A52_2F1R, A52_STEREO):
     case CONVERT (A52_2F1R, A52_DOLBY):
 	zero (samples + 512);
@@ -635,6 +652,7 @@ void a52_upmix (sample_t * samples, int acmod, int output)
 
     case CONVERT (A52_3F2R, A52_3F):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (A52_3F1R, A52_3F):
     case CONVERT (A52_2F2R, A52_2F1R):
 	zero (samples + 768);
@@ -646,6 +664,7 @@ void a52_upmix (sample_t * samples, int acmod, int output)
 
     case CONVERT (A52_3F2R, A52_2F1R):
 	zero (samples + 1024);
+    /* fall through */
     case CONVERT (A52_3F1R, A52_2F1R):
     mix_31to21:
 	memcpy (samples + 768, samples + 512, 256 * sizeof (sample_t));
