@@ -249,6 +249,7 @@ guint32 *goom_update (PluginInfo *goomInfo, gint16 data[2][512],
                 case 0:
                 case 10:
                     goomInfo->update.zoomFilterData.hypercosEffect = goom_irand(goomInfo->gRandom,2);
+                    /* fall through */
                 case 13:
                 case 20:
                 case 21:
