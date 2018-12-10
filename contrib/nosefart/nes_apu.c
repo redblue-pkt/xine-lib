@@ -932,7 +932,7 @@ void apu_write(uint32 address, uint8 value)
    case 0x4015:
       /* bodge for timestamp queue */
       apu->dmc.enabled = (value & 0x10) ? TRUE : FALSE;
-
+        /* fall through */
    case 0x4000: case 0x4001: case 0x4002: case 0x4003:
    case 0x4004: case 0x4005: case 0x4006: case 0x4007:
    case 0x4008: case 0x4009: case 0x400A: case 0x400B:
