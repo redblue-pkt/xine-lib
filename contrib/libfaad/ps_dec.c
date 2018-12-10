@@ -254,7 +254,7 @@ static void hybrid_free(hyb_info *hyb)
     if (hyb->temp)
         faad_free(hyb->temp);
 
-	faad_free(hyb);
+    faad_free(hyb);
 }
 
 /* real filter, size 2 */

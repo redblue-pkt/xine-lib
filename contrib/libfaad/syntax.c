@@ -2192,11 +2192,13 @@ static uint16_t extension_payload(bitfile *ld, drc_info *drc, uint16_t count)
             {
                 /* data_element_byte[i] = */ faad_getbits(ld, 8
                     DEBUGVAR(1,402,"extension_payload(): data_element_byte"));
-                return (dataElementLength+loopCounter+1);
             }
+            return (dataElementLength+loopCounter+1);
         default:
             align = 0;
         }
+        /* FIXME */
+        /* fall through */
     case EXT_FIL:
     default:
         faad_getbits(ld, align

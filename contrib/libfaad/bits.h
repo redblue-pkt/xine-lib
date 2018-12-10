@@ -119,10 +119,13 @@ static /*INLINE*/ __attr_unused uint32_t getdword_n(void *mem, int n)
     {
     case 3:
         ((uint8_t*)&tmp)[1] = ((uint8_t*)mem)[2];
+        /* fall through */
     case 2:
         ((uint8_t*)&tmp)[2] = ((uint8_t*)mem)[1];
+        /* fall through */
     case 1:
         ((uint8_t*)&tmp)[3] = ((uint8_t*)mem)[0];
+        /* fall through */
     default:
         break;
     }
@@ -131,10 +134,13 @@ static /*INLINE*/ __attr_unused uint32_t getdword_n(void *mem, int n)
     {
     case 3:
         ((uint8_t*)&tmp)[2] = ((uint8_t*)mem)[2];
+        /* fall through */
     case 2:
         ((uint8_t*)&tmp)[1] = ((uint8_t*)mem)[1];
+        /* fall through */
     case 1:
         ((uint8_t*)&tmp)[0] = ((uint8_t*)mem)[0];
+        /* fall through */
     default:
         break;
     }
