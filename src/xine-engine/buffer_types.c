@@ -38,1298 +38,565 @@
 #include <xine/xine_internal.h>
 #include "bswap.h"
 
-typedef struct video_db_s {
-   uint32_t fourcc[20];
-   uint32_t buf_type;
-   const char *name;
-} video_db_t;
-
-typedef struct audio_db_s {
-   uint32_t formattag[10];
-   uint32_t buf_type;
-   const char *name;
-} audio_db_t;
-
-
-static const video_db_t video_db[] = {
-{
-  {
-    ME_FOURCC('m', 'p', 'e', 'g'),
-    ME_FOURCC('M', 'P', 'E', 'G'),
-    ME_FOURCC('P', 'I', 'M', '1'),
-    ME_FOURCC('m', 'p', 'g', '2'),
-    ME_FOURCC('m', 'p', 'g', '1'),
-    ME_FOURCC(0x02, 0, 0, 0x10),
-    0
-  },
-  BUF_VIDEO_MPEG,
-  "MPEG 1/2"
-},
-{
-  {
-    ME_FOURCC('D', 'I', 'V', 'X'),
-    ME_FOURCC('d', 'i', 'v', 'x'),
-    ME_FOURCC('D', 'i', 'v', 'x'),
-    ME_FOURCC('D', 'i', 'v', 'X'),
-    ME_FOURCC('M', 'P', '4', 'S'),
-    ME_FOURCC('m', 'p', '4', 'v'),
-    ME_FOURCC('M', '4', 'S', '2'),
-    ME_FOURCC('m', '4', 's', '2'),
-    ME_FOURCC('F', 'M', 'P', '4'),
-    0
-  },
-  BUF_VIDEO_MPEG4,
-  "ISO-MPEG4/OpenDivx"
-},
-{
-  {
-    ME_FOURCC('X', 'V', 'I', 'D'),
-    ME_FOURCC('x', 'v', 'i', 'd'),
-    0
-  },
-  BUF_VIDEO_XVID,
-  "XviD"
-},
-{
-  {
-    ME_FOURCC('D', 'X', '5', '0'),
-    0
-  },
-  BUF_VIDEO_DIVX5,
-  "DivX 5"
-},
-{
-  {
-    ME_FOURCC('c', 'v', 'i', 'd'),
-    0
-  },
-  BUF_VIDEO_CINEPAK,
-  "Cinepak"
-},
-{
-  {
-    ME_FOURCC('S', 'V', 'Q', '1'),
-    ME_FOURCC('s', 'v', 'q', '1'),
-    ME_FOURCC('s', 'v', 'q', 'i'),
-    0
-  },
-  BUF_VIDEO_SORENSON_V1,
-  "Sorenson Video 1"
-},
-{
-  {
-    ME_FOURCC('S', 'V', 'Q', '3'),
-    ME_FOURCC('s', 'v', 'q', '3'),
-    0
-  },
-  BUF_VIDEO_SORENSON_V3,
-  "Sorenson Video 3"
-},
-{
-  {
-    ME_FOURCC('M', 'P', '4', '1'),
-    ME_FOURCC('m', 'p', '4', '1'),
-    ME_FOURCC('M', 'P', 'G', '4'),
-    ME_FOURCC('m', 'p', 'g', '4'),
-    0
-  },
-  BUF_VIDEO_MSMPEG4_V1,
-  "Microsoft MPEG-4 v1"
-},
-{
-  {
-    ME_FOURCC('M', 'P', '4', '1'),
-    ME_FOURCC('m', 'p', '4', '1'),
-    ME_FOURCC('M', 'P', '4', '2'),
-    ME_FOURCC('m', 'p', '4', '2'),
-    ME_FOURCC('D', 'I', 'V', '2'),
-    ME_FOURCC('d', 'i', 'v', '2'),
-    0
-  },
-  BUF_VIDEO_MSMPEG4_V2,
-  "Microsoft MPEG-4 v2"
-},
-{
-  {
-    ME_FOURCC('M', 'P', '4', '3'),
-    ME_FOURCC('m', 'p', '4', '3'),
-    ME_FOURCC('D', 'I', 'V', '3'),
-    ME_FOURCC('d', 'i', 'v', '3'),
-    ME_FOURCC('D', 'I', 'V', '4'),
-    ME_FOURCC('d', 'i', 'v', '4'),
-    ME_FOURCC('D', 'I', 'V', '5'),
-    ME_FOURCC('d', 'i', 'v', '5'),
-    ME_FOURCC('D', 'I', 'V', '6'),
-    ME_FOURCC('d', 'i', 'v', '6'),
-    ME_FOURCC('A', 'P', '4', '1'),
-    ME_FOURCC('M', 'P', 'G', '3'),
-    ME_FOURCC('C', 'O', 'L', '1'),
-    ME_FOURCC('3', 'I', 'V', 'D'),
-    0
-  },
-  BUF_VIDEO_MSMPEG4_V3,
-  "Microsoft MPEG-4 v3"
-},
-{
-  {
-    ME_FOURCC('3', 'I', 'V', '1'),
-    ME_FOURCC('3', 'I', 'V', '2'),
-    0
-  },
-  BUF_VIDEO_3IVX,
-  "3ivx MPEG-4"
-},
-{
-  {
-    ME_FOURCC('d', 'm', 'b', '1'),
-    ME_FOURCC('M', 'J', 'P', 'G'),
-    ME_FOURCC('m', 'j', 'p', 'a'),
-    ME_FOURCC('A', 'V', 'R', 'n'),
-    ME_FOURCC('A', 'V', 'D', 'J'),
-    0
-  },
-  BUF_VIDEO_MJPEG,
-  "Motion JPEG"
-},
-{
-  {
-    ME_FOURCC('m', 'j', 'p', 'b'),
-    0
-  },
-  BUF_VIDEO_MJPEG_B,
-  "Motion JPEG B"
-},
-{
-  {
-    ME_FOURCC('I', 'V', '5', '0'),
-    ME_FOURCC('i', 'v', '5', '0'),
-    0
-  },
-  BUF_VIDEO_IV50,
-  "Indeo Video 5.0"
-},
-{
-  {
-    ME_FOURCC('I', 'V', '4', '1'),
-    ME_FOURCC('i', 'v', '4', '1'),
-    0
-  },
-  BUF_VIDEO_IV41,
-  "Indeo Video 4.1"
-},
-{
-  {
-    ME_FOURCC('I', 'V', '3', '2'),
-    ME_FOURCC('i', 'v', '3', '2'),
-    0
-  },
-  BUF_VIDEO_IV32,
-  "Indeo Video 3.2"
-},
-{
-  {
-    ME_FOURCC('I', 'V', '3', '1'),
-    ME_FOURCC('i', 'v', '3', '1'),
-    0
-  },
-  BUF_VIDEO_IV31,
-  "Indeo Video 3.1"
-},
-{
-  {
-    ME_FOURCC('V', 'C', 'R', '1'),
-    0
-  },
-  BUF_VIDEO_ATIVCR1,
-  "ATI VCR1"
-},
-{
-  {
-    ME_FOURCC('V', 'C', 'R', '2'),
-    0
-  },
-  BUF_VIDEO_ATIVCR2,
-  "ATI VCR2"
-},
-{
-  {
-    ME_FOURCC('I', '2', '6', '3'),
-    ME_FOURCC('i', '2', '6', '3'),
-    ME_FOURCC('V', 'I', 'V', 'O'),
-    ME_FOURCC('v', 'i', 'v', 'o'),
-    ME_FOURCC('v', 'i', 'v', '1'),
-    0
-  },
-  BUF_VIDEO_I263,
-  "I263"
-},
-{
-  {
-    ME_FOURCC('D','I','B',' '),  /* device-independent bitmap */
-    ME_FOURCC('r','a','w',' '),
-    0
-  },
-  BUF_VIDEO_RGB,
-  "Raw RGB"
-},
-{
-  {
-    /* is this right? copied from demux_qt:
-    else if (!strncasecmp (video, "yuv2", 4))
-    this->video_type = BUF_VIDEO_YUY2;
-    */
-    ME_FOURCC('y', 'u', 'v', '2'),
-    ME_FOURCC('Y', 'U', 'Y', '2'),
-    0
-  },
-  BUF_VIDEO_YUY2,
-  ""
-},
-{
-  {
-    ME_FOURCC('j','p','e','g'),
-    ME_FOURCC('J','F','I','F'),
-    0
-  },
-  BUF_VIDEO_JPEG,
-  "JPEG"
-},
-{
-  {
-    ME_FOURCC('W','M','V','1'),
-    0
-  },
-  BUF_VIDEO_WMV7,
-  "Windows Media Video 7"
-},
-{
-  {
-    ME_FOURCC('W','M','V','2'),
-    0
-  },
-  BUF_VIDEO_WMV8,
-  "Windows Media Video 8"
-},
-{
-  {
-    ME_FOURCC('W','M','V','3'),
-    ME_FOURCC('W','M','V','P'),
-    0
-  },
-  BUF_VIDEO_WMV9,
-  "Windows Media Video 9"
-},
-{
-  {
-    ME_FOURCC('W','V','C','1'),
-    ME_FOURCC('W','M','V','A'),
-    ME_FOURCC('v','c','-','1'),
-    0
-  },
-  BUF_VIDEO_VC1,
-  "Windows Media Video VC-1"
-},
-{
-  {
-    ME_FOURCC('c','r','a','m'),
-    ME_FOURCC('C','R','A','M'),
-    ME_FOURCC('M','S','V','C'),
-    ME_FOURCC('m','s','v','c'),
-    ME_FOURCC('W','H','A','M'),
-    ME_FOURCC('w','h','a','m'),
-    0
-  },
-  BUF_VIDEO_MSVC,
-  "Microsoft Video 1"
-},
-{
-  {
-    ME_FOURCC('D','V','S','D'),
-    ME_FOURCC('d','v','s','d'),
-    ME_FOURCC('d','v','c','p'),
-    0
-  },
-  BUF_VIDEO_DV,
-  "Sony Digital Video (DV)"
-},
-{
-  {
-    ME_FOURCC('V','P','3',' '),
-    ME_FOURCC('V','P','3','0'),
-    ME_FOURCC('v','p','3','0'),
-    ME_FOURCC('V','P','3','1'),
-    ME_FOURCC('v','p','3','1'),
-    0
-  },
-  BUF_VIDEO_VP31,
-  "On2 VP3.1"
-},
-{
-  {
-    ME_FOURCC('V','P','4','0'),
-    0,
-  },
-  BUF_VIDEO_VP4,
-  "On2 VP4"
-},
-{
-  {
-    ME_FOURCC('H', '2', '6', '3'),
-    ME_FOURCC('h', '2', '6', '3'),
-    ME_FOURCC('U', '2', '6', '3'),
-    ME_FOURCC('s', '2', '6', '3'),
-    0
-  },
-  BUF_VIDEO_H263,
-  "H263"
-},
-{
-  {
-    ME_FOURCC('c', 'y', 'u', 'v'),
-    ME_FOURCC('C', 'Y', 'U', 'V'),
-    0
-  },
-  BUF_VIDEO_CYUV,
-  "Creative YUV"
-},
-{
-  {
-    ME_FOURCC('s', 'm', 'c', ' '),
-    0
-  },
-  BUF_VIDEO_SMC,
-  "Apple Quicktime Graphics (SMC)"
-},
-{
-  {
-    ME_FOURCC('r', 'p', 'z', 'a'),
-    ME_FOURCC('a', 'z', 'p', 'r'),
-    0
-  },
-  BUF_VIDEO_RPZA,
-  "Apple Quicktime (RPZA)"
-},
-{
-  {
-    ME_FOURCC('r', 'l', 'e', ' '),
-    0
-  },
-  BUF_VIDEO_QTRLE,
-  "Apple Quicktime Animation (RLE)"
-},
-{
-  {
-    1, 2, 0  /* MS RLE format identifiers */
-  },
-  BUF_VIDEO_MSRLE,
-  "Microsoft RLE"
-},
-{
-  {
-    ME_FOURCC('D', 'U', 'C', 'K'),
-    0
-  },
-  BUF_VIDEO_DUCKTM1,
-  "Duck Truemotion v1"
-},
-{
-  {
-    ME_FOURCC('M', 'S', 'S', '1'),
-    0
-  },
-  BUF_VIDEO_MSS1,
-  "Windows Screen Video"
-},
-{
-  {
-    ME_FOURCC('P', 'G', 'V', 'V'),
-    0
-  },
-  BUF_VIDEO_PGVV,
-  "Radius Studio"
-},
-{
-  {
-    ME_FOURCC('Z', 'y', 'G', 'o'),
-    0
-  },
-  BUF_VIDEO_ZYGO,
-  "ZyGo Video"
-},
-{
-  {
-    ME_FOURCC('t', 's', 'c', 'c'),
-    0
-  },
-  BUF_VIDEO_TSCC,
-  "TechSmith Screen Capture Codec"
-},
-{
-  {
-    ME_FOURCC('Y', 'V', 'U', '9'),
-    0
-  },
-  BUF_VIDEO_YVU9,
-  "Raw YVU9 Planar Data"
-},
-{
-  {
-    ME_FOURCC('G', 'R', 'E', 'Y'),
-    0
-  },
-  BUF_VIDEO_GREY,
-  "Raw Greyscale"
-},
-{
-  {
-    ME_FOURCC('X', 'x', 'a', 'n'),
-    ME_FOURCC('X', 'X', 'A', 'N'),
-    ME_FOURCC('x', 'x', 'a', 'n'),
-    0
-  },
-  BUF_VIDEO_XXAN,
-  "Wing Commander IV Video Codec"
-},
-{
-  {
-    ME_FOURCC('Y', 'V', '1', '2'),
-    ME_FOURCC('y', 'v', '1', '2'),
-    0
-  },
-  BUF_VIDEO_YV12,
-  "Raw Planar YV12"
-},
-{
-  {
-    ME_FOURCC('I', '4', '2', '0'),
-    ME_FOURCC('I', 'Y', 'U', 'V'),
-    0
-  },
-  BUF_VIDEO_I420,
-  "Raw Planar I420"
-},
-{
-  {
-    ME_FOURCC('S', 'E', 'G', 'A'),
-    ME_FOURCC('s', 'e', 'g', 'a'),
-    0
-  },
-  BUF_VIDEO_SEGA,
-  "Cinepak for Sega"
-},
-{
-  {
-    ME_FOURCC('m', 'v', 'i', '2'),
-    ME_FOURCC('M', 'V', 'I', '2'),
-    0
-  },
-  BUF_VIDEO_MVI2,
-  "Motion Pixels"
-},
-{
-  {
-    ME_FOURCC('u', 'c', 'o', 'd'),
-    ME_FOURCC('U', 'C', 'O', 'D'),
-    0
-  },
-  BUF_VIDEO_UCOD,
-  "ClearVideo"
-},
-{
-  {
-    ME_FOURCC('R', 'V', '1', '0'),
-    0
-  },
-  BUF_VIDEO_RV10,
-  "Real Video 1.0"
-},
-{
-  {
-    ME_FOURCC('R', 'V', '2', '0'),
-    0
-  },
-  BUF_VIDEO_RV20,
-  "Real Video 2.0"
-},
-{
-  {
-    ME_FOURCC('R', 'V', '3', '0'),
-    0
-  },
-  BUF_VIDEO_RV30,
-  "Real Video 3.0"
-},
-{
-  {
-    ME_FOURCC('R', 'V', '4', '0'),
-    0
-  },
-  BUF_VIDEO_RV40,
-  "Real Video 4.0"
-},
-{
-  {
-    ME_FOURCC('H', 'F', 'Y', 'U'),
-    0,
-  },
-  BUF_VIDEO_HUFFYUV,
-  "HuffYUV"
-},
-{
-  {
-    ME_FOURCC('I', 'M', 'G', ' '),
-    ME_FOURCC('g', 'i', 'f', ' '),
-    0,
-  },
-  BUF_VIDEO_IMAGE,
-  "Image"
-},
-{
-  {
-    0,
-  },
-  BUF_VIDEO_THEORA,
-  "Ogg Theora"
-},
-{
-  {
-    ME_FOURCC('V','P','5','0'),
-    0
-  },
-  BUF_VIDEO_VP5,
-  "On2 VP5"
-},
-{
-  {
-    ME_FOURCC('V','P','6','0'),
-    ME_FOURCC('V','P','6','1'),
-    ME_FOURCC('V','P','6','2'),
-    0
-  },
-  BUF_VIDEO_VP6,
-  "On2 VP6"
-},
-{
-  {
-    ME_FOURCC('V','P','6','F'),
-    0
-  },
-  BUF_VIDEO_VP6F,
-  "On2 VP6"
-},
-{
-  {
-    ME_FOURCC('8','B', 'P','S'),
-    0
-  },
-  BUF_VIDEO_8BPS,
-  "Planar RGB"
-},
-{
-  {
-    ME_FOURCC('Z','L','I','B'),
-    0
-  },
-  BUF_VIDEO_ZLIB,
-  "ZLIB Video"
-},
-{
-  {
-    ME_FOURCC('M','S','Z','H'),
-    0
-  },
-  BUF_VIDEO_MSZH,
-  "MSZH Video"
-},
-{
-  {
-    ME_FOURCC('A','S','V','1'),
-    0
-  },
-  BUF_VIDEO_ASV1,
-  "ASV v1 Video"
-},
-{
-  {
-    ME_FOURCC('A','S','V','2'),
-    0
-  },
-  BUF_VIDEO_ASV2,
-  "ASV v2 Video"
-},
-{
-  {
-    ME_FOURCC('a','v','c','1'),
-    ME_FOURCC('h','2','6','4'),
-    ME_FOURCC('H','2','6','4'),
-    ME_FOURCC('x','2','6','4'),
-    ME_FOURCC('X','2','6','4'),
-    0
-  },
-  BUF_VIDEO_H264,
-  "Advanced Video Coding (H264)"
-},
-{
-  {
-    ME_FOURCC('A','A','S','C'),
-    0
-  },
-  BUF_VIDEO_AASC,
-  "Autodesk Animator Studio Codec"
-},
-{
-  {
-    ME_FOURCC('q','d','r','w'),
-    0
-  },
-  BUF_VIDEO_QDRW,
-  "QuickDraw"
-},
-{
-  {
-    ME_FOURCC('L','O','C','O'),
-    0
-  },
-  BUF_VIDEO_LOCO,
-  "LOCO"
-},
-{
-  {
-    ME_FOURCC('U','L','T','I'),
-    0
-  },
-  BUF_VIDEO_ULTI,
-  "IBM UltiMotion"
-},
-{
-  {
-    ME_FOURCC('W','N','V','1'),
-    0
-  },
-  BUF_VIDEO_WNV1,
-  "Winnow Video"
-},
-{
-  {
-    ME_FOURCC('P','I','X','L'),
-    ME_FOURCC('X','I','X','L'),
-    0
-  },
-  BUF_VIDEO_XL,
-  "Miro/Pinnacle VideoXL"
-},
-{
-  {
-    ME_FOURCC('Q','P','E','G'),
-    ME_FOURCC('Q','1','.','0'),
-    ME_FOURCC('Q','1','.','1'),
-    0
-  },
-  BUF_VIDEO_QPEG,
-  "Q-Team QPEG Video"
-},
-{
-  {
-    ME_FOURCC('R','T','2','1'),
-    0
-  },
-  BUF_VIDEO_RT21,
-  "Winnow Video"
-},
-{
-  {
-    ME_FOURCC('F','P','S','1'),
-    0
-  },
-  BUF_VIDEO_FPS1,
-  "Fraps FPS1"
-},
-{
-  {
-    ME_FOURCC('T','M','2','0'),
-    0
-  },
-  BUF_VIDEO_DUCKTM2,
-  "Duck TrueMotion 2"
-},
-{
-  {
-    ME_FOURCC('C','S','C','D'),
-    0
-  },
-  BUF_VIDEO_CSCD,
-  "CamStudio"
-},
-{
-  {
-    ME_FOURCC('Z','M','B','V'),
-    0
-  },
-  BUF_VIDEO_ZMBV,
-  "Zip Motion Blocks Video"
-},
-{
-  {
-    ME_FOURCC('K','M','V','C'),
-    0
-  },
-  BUF_VIDEO_KMVC,
-  "Karl Morton's Video Codec"
-},
-{
-  {
-    ME_FOURCC('V','M','n','c'),
-    0
-  },
-  BUF_VIDEO_VMNC,
-  "VMware Screen Codec"
-},
-{
-  {
-    ME_FOURCC('S','N','O','W'),
-    0
-  },
-  BUF_VIDEO_SNOW,
-  "Snow"
-},
-{
-  {
-    ME_FOURCC('V','P','8','0'),
-    0
-  },
-  BUF_VIDEO_VP8,
-  "On2 VP8"
-},
-
-{
-  {
-    ME_FOURCC('V','P','9','0'),
-    0
-  },
-  BUF_VIDEO_VP9,
-  "VP9"
-},
-{
-  {
-    ME_FOURCC('h','e','v','c'),
-    ME_FOURCC('h','e','v','1'),
-    ME_FOURCC('h','v','c','1'),
-    0
-  },
-  BUF_VIDEO_HEVC,
-  "HEVC"
-},
-{
-  {
-    ME_FOURCC('a','v','0','1'),
-    0
-  },
-  BUF_VIDEO_AV1,
-  "AV1"
-},
-
-
-{ { 0 }, 0, "last entry" }
+static const uint32_t sorted_audio_tags[] = {
+  0x0001, BUF_AUDIO_LPCM_LE,
+  0x0002, BUF_AUDIO_MSADPCM,
+  0x0006, BUF_AUDIO_ALAW,
+  0x0007, BUF_AUDIO_MULAW,
+  0x000A, BUF_AUDIO_WMAV,
+  0x0011, BUF_AUDIO_MSIMAADPCM,
+  0x0022, BUF_AUDIO_TRUESPEECH,
+  0x0031, BUF_AUDIO_MSGSM,
+  0x0032, BUF_AUDIO_MSGSM,
+  0x0050, BUF_AUDIO_MPEG,
+  0x0055, BUF_AUDIO_MPEG,
+  0x0061, BUF_AUDIO_DK4ADPCM,
+  0x0062, BUF_AUDIO_DK3ADPCM,
+  0x0075, BUF_AUDIO_VOXWARE,
+  0x00ff, BUF_AUDIO_AAC,
+  0x0111, BUF_AUDIO_VIVOG723,
+  0x0112, BUF_AUDIO_VIVOG723,
+  0x0130, BUF_AUDIO_ACELPNET,
+  0x0160, BUF_AUDIO_WMAV1,
+  0x0161, BUF_AUDIO_WMAV2,
+  0x0162, BUF_AUDIO_WMAPRO,
+  0x0163, BUF_AUDIO_WMALL,
+  0x0401, BUF_AUDIO_IMC,
+  0x1101, BUF_AUDIO_LH,
+  0x1102, BUF_AUDIO_LH,
+  0x1103, BUF_AUDIO_LH,
+  0x1104, BUF_AUDIO_LH,
+  0x2000, BUF_AUDIO_A52,
+  0x2001, BUF_AUDIO_DTS,
+  /* these formattags are used by Vorbis ACM encoder and
+   * supported by NanDub, a variant of VirtualDub. */
+  0x674f, BUF_AUDIO_VORBIS,
+  0x6750, BUF_AUDIO_VORBIS,
+  0x6751, BUF_AUDIO_VORBIS,
+  0x676f, BUF_AUDIO_VORBIS,
+  0x6770, BUF_AUDIO_VORBIS,
+  0x6771, BUF_AUDIO_VORBIS
 };
 
-
-static const audio_db_t audio_db[] = {
-{
-  {
-    0x2000,
-    ME_FOURCC('m', 's', 0x20, 0x00),
-    ME_FOURCC('a', 'c', '-', '3'),
-    0
-  },
-  BUF_AUDIO_A52,
-  "AC3"
-},
-{
-  {
-    0x50, 0x55,
-    ME_FOURCC('.','m','p','3'),
-    ME_FOURCC('m', 's', 0, 0x55),
-    ME_FOURCC('M','P','3',' '),
-    0
-  },
-  BUF_AUDIO_MPEG,
-  "MPEG layer 2/3"
-},
-{
-  {
-    ME_FOURCC('a', 'd', 'u', 0x55),
-    0
-  },
-  BUF_AUDIO_MP3ADU,
-  "MPEG layer-3 adu"
-},
-{
-  {
-    ME_FOURCC('t','w','o','s'),
-    ME_FOURCC('i','n','2','4'),
-    0
-  },
-  BUF_AUDIO_LPCM_BE,
-  "Uncompressed PCM big endian"
-},
-{
-  {
-    0x01,
-    ME_FOURCC('r','a','w',' '),
-    ME_FOURCC('s','o','w','t'),
-    ME_FOURCC('4','2','n','i'),
-    0
-  },
-  BUF_AUDIO_LPCM_LE,
-  "Uncompressed PCM little endian"
-},
-{
-  {
-    0x160, 0
-  },
-  BUF_AUDIO_WMAV1,
-  "Windows Media Audio v1"
-},
-{
-  {
-    0x161, 0
-  },
-  BUF_AUDIO_WMAV2,
-  "Windows Media Audio v2"
-},
-{
-  {
-    0x162, 0
-  },
-  BUF_AUDIO_WMAPRO,
-  "Windows Media Audio Professional"
-},
-{
-  {
-    0x163, 0
-  },
-  BUF_AUDIO_WMALL,
-  "Windows Media Audio Lossless"
-},
-{
-  {
-    0xA, 0
-  },
-  BUF_AUDIO_WMAV,
-  "Windows Media Audio Voice"
-},
-{
-  {
-    0x2001, 0
-  },
-  BUF_AUDIO_DTS,
-  "DTS"
-},
-{
-  {
-    0x02,
-    ME_FOURCC('m', 's', 0, 0x02),
-    0
-  },
-  BUF_AUDIO_MSADPCM,
-  "MS ADPCM"
-},
-{
-  {
-    0x11,
-    ME_FOURCC('m', 's', 0, 0x11),
-    0
-  },
-  BUF_AUDIO_MSIMAADPCM,
-  "MS IMA ADPCM"
-},
-{
-  {
-    0x31, 0x32, 0
-  },
-  BUF_AUDIO_MSGSM,
-  "MS GSM"
-},
-{
-  {
-    /* these formattags are used by Vorbis ACM encoder and
-       supported by NanDub, a variant of VirtualDub. */
-    0x674f, 0x676f, 0x6750, 0x6770, 0x6751, 0x6771,
-    ME_FOURCC('O','g','g','S'),
-    ME_FOURCC('O','g','g','V'),
-    0
-  },
-  BUF_AUDIO_VORBIS,
-  "OggVorbis Audio"
-},
-{
-  {
-    0x401, 0
-  },
-  BUF_AUDIO_IMC,
-  "Intel Music Coder"
-},
-{
-  {
-    0x1101, 0x1102, 0x1103, 0x1104, 0
-  },
-  BUF_AUDIO_LH,
-  "Lernout & Hauspie"
-},
-{
-  {
-    0x75, 0
-  },
-  BUF_AUDIO_VOXWARE,
-  "Voxware Metasound"
-},
-{
-  {
-    0x130, 0
-  },
-  BUF_AUDIO_ACELPNET,
-  "ACELP.net"
-},
-{
-  {
-    0x111, 0x112, 0
-  },
-  BUF_AUDIO_VIVOG723,
-  "Vivo G.723/Siren Audio Codec"
-},
-{
-  {
-    0x61, 0
-  },
-  BUF_AUDIO_DK4ADPCM,
-  "Duck DK4 ADPCM (rogue format number)"
-},
-{
-  {
-    0x62, 0
-  },
-  BUF_AUDIO_DK3ADPCM,
-  "Duck DK3 ADPCM (rogue format number)"
-},
-{
-  {
-    ME_FOURCC('i', 'm', 'a', '4'),
-    0
-  },
-  BUF_AUDIO_QTIMAADPCM,
-  "QT IMA ADPCM"
-},
-{
-  {
-    ME_FOURCC('m', 'a', 'c', '3'),
-    ME_FOURCC('M', 'A', 'C', '3'),
-    0
-  },
-  BUF_AUDIO_MAC3,
-  "Apple MACE 3:1 Audio"
-},
-{
-  {
-    ME_FOURCC('m', 'a', 'c', '6'),
-    ME_FOURCC('M', 'A', 'C', '6'),
-    0
-  },
-  BUF_AUDIO_MAC6,
-  "Apple MACE 6:1 Audio"
-},
-{
-  {
-    ME_FOURCC('Q', 'D', 'M', 'C'),
-    0
-  },
-  BUF_AUDIO_QDESIGN1,
-  "QDesign Audio v1"
-},
-{
-  {
-    ME_FOURCC('Q', 'D', 'M', '2'),
-    0
-  },
-  BUF_AUDIO_QDESIGN2,
-  "QDesign Audio v2"
-},
-{
-  {
-    0xFF,
-    ME_FOURCC('m', 'p', '4', 'a'),
-    ME_FOURCC('M', 'P', '4', 'A'),
-    ME_FOURCC('r', 'a', 'a', 'c'),
-    ME_FOURCC('r', 'a', 'c', 'p'),
-    ME_FOURCC('A', 'A', 'C', ' '),
-    0
-  },
-  BUF_AUDIO_AAC,
-  "Advanced Audio Coding (MPEG-4 AAC)"
-},
-{
-  {
-    ME_FOURCC('d', 'n', 'e', 't'),
-    0
-  },
-  BUF_AUDIO_DNET,
-  "RealAudio DNET"
-},
-{
-  {
-    ME_FOURCC('s', 'i', 'p', 'r'),
-    0
-  },
-  BUF_AUDIO_SIPRO,
-  "RealAudio SIPRO"
-},
-{
-  {
-    ME_FOURCC('c', 'o', 'o', 'k'),
-    0
-  },
-  BUF_AUDIO_COOK,
-  "RealAudio COOK"
-},
-{
-  {
-    ME_FOURCC('a', 't', 'r', 'c'),
-    0
-  },
-  BUF_AUDIO_ATRK,
-  "RealAudio ATRK"
-},
-{
-  {
-    ME_FOURCC('Q', 'c', 'l', 'p'),
-    0
-  },
-  BUF_AUDIO_QCLP,
-  "Qualcomm PureVoice"
-},
-{
-  {
-    0x7,
-    ME_FOURCC('u', 'l', 'a', 'w'),
-    0
-  },
-  BUF_AUDIO_MULAW,
-  "mu-law logarithmic PCM"
-},
-{
-  {
-    0x6,
-    ME_FOURCC('a', 'l', 'a', 'w'),
-    0
-  },
-  BUF_AUDIO_ALAW,
-  "A-law logarithmic PCM"
-},
-{
-  {
-    ME_FOURCC('a', 'g', 's', 'm'),
-    0
-  },
-  BUF_AUDIO_GSM610,
-  "GSM 6.10"
-},
-{
-  {
-    0
-  },
-  BUF_AUDIO_FLAC,
-  "Free Lossless Audio Codec (FLAC)"
-},
-{
-  {
-    0
-  },
-  BUF_AUDIO_DV,
-  "DV Audio"
-},
-{
-  {
-    ME_FOURCC('l', 'p', 'c', 'J'),
-    0
-  },
-  BUF_AUDIO_14_4,
-  "Real 14.4"
-},
-{
-  {
-    ME_FOURCC('2', '8', '_', '8'),
-    0
-  },
-  BUF_AUDIO_28_8,
-  "Real 28.8"
-},
-{
-  {
-    0
-  },
-  BUF_AUDIO_SPEEX,
-  "Speex"
-},
-{
-  {
-    ME_FOURCC('a', 'l', 'a', 'c'),
-  },
-  BUF_AUDIO_ALAC,
-  "Apple Lossless Audio Codec"
-},
-{
-  {
-    0x22,
-  },
-  BUF_AUDIO_TRUESPEECH,
-  "Truespeech"
-},
-{
-  {
-    0
-  },
-  BUF_AUDIO_MPC,
-  "Musepack"
-},
-{
-  {
-    ME_FOURCC('W', 'V', 'P', 'K'),
-  },
-  BUF_AUDIO_WAVPACK,
-  "Wavpack"
-},
-{
-  {
-    ME_FOURCC('s', 'a', 'm', 'r'),
-  },
-  BUF_AUDIO_AMR_NB,
-  "AMR narrow band"
-},
-{
-  {
-    ME_FOURCC('s', 'a', 'w', 'b'),
-  },
-  BUF_AUDIO_AMR_WB,
-  "AMR wide band"
-},
-{
-  {
-    ME_FOURCC('T', 'T', 'A', '1'),
-  },
-  BUF_AUDIO_TTA,
-  "True Audio Lossless"
-},
-{
-  {
-    ME_FOURCC('E', 'A', 'C', '3'),
-    ME_FOURCC('e', 'c', '-', '3'),
-    0
-  },
-  BUF_AUDIO_EAC3,
-  "E-AC-3"
-},
-{
-  {
-    ME_FOURCC('M', 'P', '4', 'L'),
-    0
-  },
-  BUF_AUDIO_AAC_LATM,
-  "AAC LATM"
-},
-{
-  {
-    0
-  },
-  BUF_AUDIO_ADPCM_G726,
-  "ADPCM G.726"
-},
-{
-  {
-    ME_FOURCC('O', 'p', 'u', 's'),
-    0
-  },
-  BUF_AUDIO_OPUS,
-  "Opus Audio"
-},
-{
-  {
-    ME_FOURCC('t', 'r', 'h', 'd'),
-    0
-  },
-  BUF_AUDIO_TRUEHD,
-  "TrueHD Audio"
-},
-{ { 0 }, 0, "last entry" }
+static const uint32_t sorted_audio_4ccs[] = {
+  BE_FOURCC('.', 'm', 'p', '3'), BUF_AUDIO_MPEG,
+  BE_FOURCC('2', '8', '_', '8'), BUF_AUDIO_28_8,
+  BE_FOURCC('4', '2', 'n', 'i'), BUF_AUDIO_LPCM_LE,
+  BE_FOURCC('A', 'A', 'C', ' '), BUF_AUDIO_AAC,
+  BE_FOURCC('E', 'A', 'C', '3'), BUF_AUDIO_EAC3,
+  BE_FOURCC('M', 'A', 'C', '3'), BUF_AUDIO_MAC3,
+  BE_FOURCC('M', 'A', 'C', '6'), BUF_AUDIO_MAC6,
+  BE_FOURCC('M', 'P', '3', ' '), BUF_AUDIO_MPEG,
+  BE_FOURCC('M', 'P', '4', 'A'), BUF_AUDIO_AAC,
+  BE_FOURCC('M', 'P', '4', 'L'), BUF_AUDIO_AAC_LATM,
+  BE_FOURCC('O', 'g', 'g', 'S'), BUF_AUDIO_VORBIS,
+  BE_FOURCC('O', 'g', 'g', 'V'), BUF_AUDIO_VORBIS,
+  BE_FOURCC('O', 'p', 'u', 's'), BUF_AUDIO_OPUS,
+  BE_FOURCC('Q', 'D', 'M', '2'), BUF_AUDIO_QDESIGN2,
+  BE_FOURCC('Q', 'D', 'M', 'C'), BUF_AUDIO_QDESIGN1,
+  BE_FOURCC('Q', 'c', 'l', 'p'), BUF_AUDIO_QCLP,
+  BE_FOURCC('T', 'T', 'A', '1'), BUF_AUDIO_TTA,
+  BE_FOURCC('W', 'V', 'P', 'K'), BUF_AUDIO_WAVPACK,
+  BE_FOURCC('a', 'c', '-', '3'), BUF_AUDIO_A52,
+  BE_FOURCC('a', 'd', 'u',0x55), BUF_AUDIO_MP3ADU,
+  BE_FOURCC('a', 'g', 's', 'm'), BUF_AUDIO_GSM610,
+  BE_FOURCC('a', 'l', 'a', 'c'), BUF_AUDIO_ALAC,
+  BE_FOURCC('a', 'l', 'a', 'w'), BUF_AUDIO_ALAW,
+  BE_FOURCC('a', 't', 'r', 'c'), BUF_AUDIO_ATRK,
+  BE_FOURCC('c', 'o', 'o', 'k'), BUF_AUDIO_COOK,
+  BE_FOURCC('d', 'n', 'e', 't'), BUF_AUDIO_DNET,
+  BE_FOURCC('e', 'c', '-', '3'), BUF_AUDIO_EAC3,
+  BE_FOURCC('i', 'm', 'a', '4'), BUF_AUDIO_QTIMAADPCM,
+  BE_FOURCC('i', 'n', '2', '4'), BUF_AUDIO_LPCM_BE,
+  BE_FOURCC('l', 'p', 'c', 'J'), BUF_AUDIO_14_4,
+  BE_FOURCC('m', 'a', 'c', '3'), BUF_AUDIO_MAC3,
+  BE_FOURCC('m', 'a', 'c', '6'), BUF_AUDIO_MAC6,
+  BE_FOURCC('m', 'p', '4', 'a'), BUF_AUDIO_AAC,
+  BE_FOURCC('r', 'a', 'a', 'c'), BUF_AUDIO_AAC,
+  BE_FOURCC('r', 'a', 'c', 'p'), BUF_AUDIO_AAC,
+  BE_FOURCC('r', 'a', 'w', ' '), BUF_AUDIO_LPCM_LE,
+  BE_FOURCC('s', 'a', 'm', 'r'), BUF_AUDIO_AMR_NB,
+  BE_FOURCC('s', 'a', 'w', 'b'), BUF_AUDIO_AMR_WB,
+  BE_FOURCC('s', 'i', 'p', 'r'), BUF_AUDIO_SIPRO,
+  BE_FOURCC('s', 'o', 'w', 't'), BUF_AUDIO_LPCM_LE,
+  BE_FOURCC('t', 'r', 'h', 'd'), BUF_AUDIO_TRUEHD,
+  BE_FOURCC('t', 'w', 'o', 's'), BUF_AUDIO_LPCM_BE,
+  BE_FOURCC('u', 'l', 'a', 'w'), BUF_AUDIO_MULAW
 };
 
-
-uint32_t _x_fourcc_to_buf_video( uint32_t fourcc_int ) {
-int i, j;
-static uint32_t cached_fourcc=0;
-static uint32_t cached_buf_type=0;
-
-  if( fourcc_int == cached_fourcc )
-    return cached_buf_type;
-
-  for( i = 0; video_db[i].buf_type; i++ ) {
-    for( j = 0; video_db[i].fourcc[j]; j++ ) {
-      if( fourcc_int == video_db[i].fourcc[j] ) {
-        cached_fourcc = fourcc_int;
-        cached_buf_type = video_db[i].buf_type;
-        return video_db[i].buf_type;
+uint32_t _x_formattag_to_buf_audio (uint32_t formattag) {
+  uint32_t t = formattag;
+  if (t & 0xffff0000) {
+    uint32_t b, e, m;
+#ifndef WORDS_BIGENDIAN
+    t = (t >> 24) | ((t & 0x00ff0000) >> 8) | ((t & 0x0000ff00) << 8) | (t << 24);
+#endif
+    b = 0;
+    e = sizeof (sorted_audio_4ccs) / sizeof (sorted_audio_4ccs[0]) / 2;
+    m = e >> 1;
+    do {
+      uint32_t f = sorted_audio_4ccs[2 * m];
+      if (t == f) {
+        return sorted_audio_4ccs[2 * m + 1];
+      } else if (t < f) {
+        e = m;
+      } else {
+        b = m + 1;
       }
-    }
+      m = (b + e) >> 1;
+    } while (b != e);
+    if ((t & 0xffff0000) != BE_FOURCC('m', 's', 0, 0))
+      return 0;
+    t &= 0xffff;
   }
-  return 0;
-}
-
-const char * _x_buf_video_name( uint32_t buf_type ) {
-int i;
-
-  buf_type &= 0xffff0000;
-
-  for( i = 0; video_db[i].buf_type; i++ ) {
-    if( buf_type == video_db[i].buf_type ) {
-        return video_db[i].name;
-    }
-  }
-
-  return "";
-}
-
-uint32_t _x_formattag_to_buf_audio( uint32_t formattag ) {
-int i, j;
-static uint16_t cached_formattag=0;
-static uint32_t cached_buf_type=0;
-
-  if( formattag == cached_formattag )
-    return cached_buf_type;
-
-  for( i = 0; audio_db[i].buf_type; i++ ) {
-    for( j = 0; audio_db[i].formattag[j]; j++ ) {
-      if( formattag == audio_db[i].formattag[j] ) {
-        cached_formattag = formattag;
-        cached_buf_type = audio_db[i].buf_type;
-        return audio_db[i].buf_type;
+  {
+    uint32_t b, e, m;
+    b = 0;
+    e = sizeof (sorted_audio_tags) / sizeof (sorted_audio_tags[0]) / 2;
+    m = e >> 1;
+    do {
+      uint32_t f = sorted_audio_tags[2 * m];
+      if (t == f) {
+        return sorted_audio_tags[2 * m + 1];
+      } else if (t < f) {
+        e = m;
+      } else {
+        b = m + 1;
       }
-    }
+      m = (b + e) >> 1;
+    } while (b != e);
+    return 0;
   }
-  return 0;
 }
 
-const char * _x_buf_audio_name( uint32_t buf_type ) {
-int i;
+static const uint32_t sorted_video_tags[] = {
+  0x0001, BUF_VIDEO_MSRLE,
+  0x0002, BUF_VIDEO_MSRLE  /* MS RLE format identifiers */
+};
 
-  buf_type &= 0xffff0000;
+static const uint32_t sorted_video_4ccs[] = {
+  BE_FOURCC(0x02, 0, 0, 0x10),   BUF_VIDEO_MPEG,
+  BE_FOURCC('3', 'I', 'V', '1'), BUF_VIDEO_3IVX,
+  BE_FOURCC('3', 'I', 'V', '2'), BUF_VIDEO_3IVX,
+  BE_FOURCC('3', 'I', 'V', 'D'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('8', 'B', 'P', 'S'), BUF_VIDEO_8BPS,
+  BE_FOURCC('A', 'A', 'S', 'C'), BUF_VIDEO_AASC,
+  BE_FOURCC('A', 'P', '4', '1'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('A', 'S', 'V', '1'), BUF_VIDEO_ASV1,
+  BE_FOURCC('A', 'S', 'V', '2'), BUF_VIDEO_ASV2,
+  BE_FOURCC('A', 'V', 'D', 'J'), BUF_VIDEO_MJPEG,
+  BE_FOURCC('A', 'V', 'R', 'n'), BUF_VIDEO_MJPEG,
+  BE_FOURCC('C', 'O', 'L', '1'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('C', 'R', 'A', 'M'), BUF_VIDEO_MSVC,
+  BE_FOURCC('C', 'S', 'C', 'D'), BUF_VIDEO_CSCD,
+  BE_FOURCC('C', 'Y', 'U', 'V'), BUF_VIDEO_CYUV,
+  BE_FOURCC('D', 'I', 'B', ' '), BUF_VIDEO_RGB, /* device-independent bitmap */
+  BE_FOURCC('D', 'I', 'V', '2'), BUF_VIDEO_MSMPEG4_V2,
+  BE_FOURCC('D', 'I', 'V', '3'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('D', 'I', 'V', '4'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('D', 'I', 'V', '5'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('D', 'I', 'V', '6'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('D', 'I', 'V', 'X'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('D', 'U', 'C', 'K'), BUF_VIDEO_DUCKTM1,
+  BE_FOURCC('D', 'V', 'S', 'D'), BUF_VIDEO_DV,
+  BE_FOURCC('D', 'X', '5', '0'), BUF_VIDEO_DIVX5,
+  BE_FOURCC('D', 'i', 'v', 'X'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('D', 'i', 'v', 'x'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('F', 'M', 'P', '4'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('F', 'P', 'S', '1'), BUF_VIDEO_FPS1,
+  BE_FOURCC('G', 'R', 'E', 'Y'), BUF_VIDEO_GREY,
+  BE_FOURCC('H', '2', '6', '3'), BUF_VIDEO_H263,
+  BE_FOURCC('H', '2', '6', '4'), BUF_VIDEO_H264,
+  BE_FOURCC('H', 'F', 'Y', 'U'), BUF_VIDEO_HUFFYUV,
+  BE_FOURCC('I', '2', '6', '3'), BUF_VIDEO_I263,
+  BE_FOURCC('I', '4', '2', '0'), BUF_VIDEO_I420,
+  BE_FOURCC('I', 'M', 'G', ' '), BUF_VIDEO_IMAGE,
+  BE_FOURCC('I', 'V', '3', '1'), BUF_VIDEO_IV31,
+  BE_FOURCC('I', 'V', '3', '2'), BUF_VIDEO_IV32,
+  BE_FOURCC('I', 'V', '4', '1'), BUF_VIDEO_IV41,
+  BE_FOURCC('I', 'V', '5', '0'), BUF_VIDEO_IV50,
+  BE_FOURCC('I', 'Y', 'U', 'V'), BUF_VIDEO_I420,
+  BE_FOURCC('J', 'F', 'I', 'F'), BUF_VIDEO_JPEG,
+  BE_FOURCC('K', 'M', 'V', 'C'), BUF_VIDEO_KMVC,
+  BE_FOURCC('L', 'O', 'C', 'O'), BUF_VIDEO_LOCO,
+  BE_FOURCC('M', '4', 'S', '2'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('M', 'J', 'P', 'G'), BUF_VIDEO_MJPEG,
+  BE_FOURCC('M', 'P', '4', '1'), BUF_VIDEO_MSMPEG4_V1,
+/*BE_FOURCC('M', 'P', '4', '1'), BUF_VIDEO_MSMPEG4_V2,*/
+  BE_FOURCC('M', 'P', '4', '2'), BUF_VIDEO_MSMPEG4_V2,
+  BE_FOURCC('M', 'P', '4', '3'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('M', 'P', '4', 'S'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('M', 'P', 'E', 'G'), BUF_VIDEO_MPEG,
+  BE_FOURCC('M', 'P', 'G', '3'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('M', 'P', 'G', '4'), BUF_VIDEO_MSMPEG4_V1,
+  BE_FOURCC('M', 'S', 'S', '1'), BUF_VIDEO_MSS1,
+  BE_FOURCC('M', 'S', 'V', 'C'), BUF_VIDEO_MSVC,
+  BE_FOURCC('M', 'S', 'Z', 'H'), BUF_VIDEO_MSZH,
+  BE_FOURCC('M', 'V', 'I', '2'), BUF_VIDEO_MVI2,
+  BE_FOURCC('P', 'G', 'V', 'V'), BUF_VIDEO_PGVV,
+  BE_FOURCC('P', 'I', 'M', '1'), BUF_VIDEO_MPEG,
+  BE_FOURCC('P', 'I', 'X', 'L'), BUF_VIDEO_XL,
+  BE_FOURCC('Q', '1', '.', '0'), BUF_VIDEO_QPEG,
+  BE_FOURCC('Q', '1', '.', '1'), BUF_VIDEO_QPEG,
+  BE_FOURCC('Q', 'P', 'E', 'G'), BUF_VIDEO_QPEG,
+  BE_FOURCC('R', 'T', '2', '1'), BUF_VIDEO_RT21,
+  BE_FOURCC('R', 'V', '1', '0'), BUF_VIDEO_RV10,
+  BE_FOURCC('R', 'V', '2', '0'), BUF_VIDEO_RV20,
+  BE_FOURCC('R', 'V', '3', '0'), BUF_VIDEO_RV30,
+  BE_FOURCC('R', 'V', '4', '0'), BUF_VIDEO_RV40,
+  BE_FOURCC('S', 'E', 'G', 'A'), BUF_VIDEO_SEGA,
+  BE_FOURCC('S', 'N', 'O', 'W'), BUF_VIDEO_SNOW,
+  BE_FOURCC('S', 'V', 'Q', '1'), BUF_VIDEO_SORENSON_V1,
+  BE_FOURCC('S', 'V', 'Q', '3'), BUF_VIDEO_SORENSON_V3,
+  BE_FOURCC('T', 'M', '2', '0'), BUF_VIDEO_DUCKTM2,
+  BE_FOURCC('U', '2', '6', '3'), BUF_VIDEO_H263,
+  BE_FOURCC('U', 'C', 'O', 'D'), BUF_VIDEO_UCOD,
+  BE_FOURCC('U', 'L', 'T', 'I'), BUF_VIDEO_ULTI,
+  BE_FOURCC('V', 'C', 'R', '1'), BUF_VIDEO_ATIVCR1,
+  BE_FOURCC('V', 'C', 'R', '2'), BUF_VIDEO_ATIVCR2,
+  BE_FOURCC('V', 'I', 'V', 'O'), BUF_VIDEO_I263,
+  BE_FOURCC('V', 'M', 'n', 'c'), BUF_VIDEO_VMNC,
+  BE_FOURCC('V', 'P', '3', ' '), BUF_VIDEO_VP31,
+  BE_FOURCC('V', 'P', '3', '0'), BUF_VIDEO_VP31,
+  BE_FOURCC('V', 'P', '3', '1'), BUF_VIDEO_VP31,
+  BE_FOURCC('V', 'P', '4', '0'), BUF_VIDEO_VP4,
+  BE_FOURCC('V', 'P', '5', '0'), BUF_VIDEO_VP5,
+  BE_FOURCC('V', 'P', '6', '0'), BUF_VIDEO_VP6,
+  BE_FOURCC('V', 'P', '6', '1'), BUF_VIDEO_VP6,
+  BE_FOURCC('V', 'P', '6', '2'), BUF_VIDEO_VP6,
+  BE_FOURCC('V', 'P', '6', 'F'), BUF_VIDEO_VP6F,
+  BE_FOURCC('V', 'P', '8', '0'), BUF_VIDEO_VP8,
+  BE_FOURCC('V', 'P', '9', '0'), BUF_VIDEO_VP9,
+  BE_FOURCC('W', 'H', 'A', 'M'), BUF_VIDEO_MSVC,
+  BE_FOURCC('W', 'M', 'V', '1'), BUF_VIDEO_WMV7,
+  BE_FOURCC('W', 'M', 'V', '2'), BUF_VIDEO_WMV8,
+  BE_FOURCC('W', 'M', 'V', '3'), BUF_VIDEO_WMV9,
+  BE_FOURCC('W', 'M', 'V', 'A'), BUF_VIDEO_VC1,
+  BE_FOURCC('W', 'M', 'V', 'P'), BUF_VIDEO_WMV9,
+  BE_FOURCC('W', 'N', 'V', '1'), BUF_VIDEO_WNV1,
+  BE_FOURCC('W', 'V', 'C', '1'), BUF_VIDEO_VC1,
+  BE_FOURCC('X', '2', '6', '4'), BUF_VIDEO_H264,
+  BE_FOURCC('X', 'I', 'X', 'L'), BUF_VIDEO_XL,
+  BE_FOURCC('X', 'V', 'I', 'D'), BUF_VIDEO_XVID,
+  BE_FOURCC('X', 'X', 'A', 'N'), BUF_VIDEO_XXAN,
+  BE_FOURCC('X', 'x', 'a', 'n'), BUF_VIDEO_XXAN,
+  BE_FOURCC('Y', 'U', 'Y', '2'), BUF_VIDEO_YUY2,
+  BE_FOURCC('Y', 'V', '1', '2'), BUF_VIDEO_YV12,
+  BE_FOURCC('Y', 'V', 'U', '9'), BUF_VIDEO_YVU9,
+  BE_FOURCC('Z', 'L', 'I', 'B'), BUF_VIDEO_ZLIB,
+  BE_FOURCC('Z', 'M', 'B', 'V'), BUF_VIDEO_ZMBV,
+  BE_FOURCC('Z', 'y', 'G', 'o'), BUF_VIDEO_ZYGO,
+  BE_FOURCC('a', 'v', '0', '1'), BUF_VIDEO_AV1,
+  BE_FOURCC('a', 'v', 'c', '1'), BUF_VIDEO_H264,
+  BE_FOURCC('a', 'z', 'p', 'r'), BUF_VIDEO_RPZA,
+  BE_FOURCC('c', 'r', 'a', 'm'), BUF_VIDEO_MSVC,
+  BE_FOURCC('c', 'v', 'i', 'd'), BUF_VIDEO_CINEPAK,
+  BE_FOURCC('c', 'y', 'u', 'v'), BUF_VIDEO_CYUV,
+  BE_FOURCC('d', 'i', 'v', '2'), BUF_VIDEO_MSMPEG4_V2,
+  BE_FOURCC('d', 'i', 'v', '3'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('d', 'i', 'v', '4'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('d', 'i', 'v', '5'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('d', 'i', 'v', '6'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('d', 'i', 'v', 'x'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('d', 'm', 'b', '1'), BUF_VIDEO_MJPEG,
+  BE_FOURCC('d', 'v', 'c', 'p'), BUF_VIDEO_DV,
+  BE_FOURCC('d', 'v', 's', 'd'), BUF_VIDEO_DV,
+  BE_FOURCC('g', 'i', 'f', ' '), BUF_VIDEO_IMAGE,
+  BE_FOURCC('h', '2', '6', '3'), BUF_VIDEO_H263,
+  BE_FOURCC('h', '2', '6', '4'), BUF_VIDEO_H264,
+  BE_FOURCC('h', 'e', 'v', '1'), BUF_VIDEO_HEVC,
+  BE_FOURCC('h', 'e', 'v', 'c'), BUF_VIDEO_HEVC,
+  BE_FOURCC('h', 'v', 'c', '1'), BUF_VIDEO_HEVC,
+  BE_FOURCC('i', '2', '6', '3'), BUF_VIDEO_I263,
+  BE_FOURCC('i', 'v', '3', '1'), BUF_VIDEO_IV31,
+  BE_FOURCC('i', 'v', '3', '2'), BUF_VIDEO_IV32,
+  BE_FOURCC('i', 'v', '4', '1'), BUF_VIDEO_IV41,
+  BE_FOURCC('i', 'v', '5', '0'), BUF_VIDEO_IV50,
+  BE_FOURCC('j', 'p', 'e', 'g'), BUF_VIDEO_JPEG,
+  BE_FOURCC('m', '4', 's', '2'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('m', 'j', 'p', 'a'), BUF_VIDEO_MJPEG,
+  BE_FOURCC('m', 'j', 'p', 'b'), BUF_VIDEO_MJPEG_B,
+  BE_FOURCC('m', 'p', '4', '1'), BUF_VIDEO_MSMPEG4_V1,
+/*BE_FOURCC('m', 'p', '4', '1'), BUF_VIDEO_MSMPEG4_V2,*/
+  BE_FOURCC('m', 'p', '4', '2'), BUF_VIDEO_MSMPEG4_V2,
+  BE_FOURCC('m', 'p', '4', '3'), BUF_VIDEO_MSMPEG4_V3,
+  BE_FOURCC('m', 'p', '4', 'v'), BUF_VIDEO_MPEG4,
+  BE_FOURCC('m', 'p', 'e', 'g'), BUF_VIDEO_MPEG,
+  BE_FOURCC('m', 'p', 'g', '1'), BUF_VIDEO_MPEG,
+  BE_FOURCC('m', 'p', 'g', '2'), BUF_VIDEO_MPEG,
+  BE_FOURCC('m', 'p', 'g', '4'), BUF_VIDEO_MSMPEG4_V1,
+  BE_FOURCC('m', 's', 'v', 'c'), BUF_VIDEO_MSVC,
+  BE_FOURCC('m', 'v', 'i', '2'), BUF_VIDEO_MVI2,
+  BE_FOURCC('q', 'd', 'r', 'w'), BUF_VIDEO_QDRW,
+  BE_FOURCC('r', 'a', 'w', ' '), BUF_VIDEO_RGB,
+  BE_FOURCC('r', 'l', 'e', ' '), BUF_VIDEO_QTRLE,
+  BE_FOURCC('r', 'p', 'z', 'a'), BUF_VIDEO_RPZA,
+  BE_FOURCC('s', '2', '6', '3'), BUF_VIDEO_H263,
+  BE_FOURCC('s', 'e', 'g', 'a'), BUF_VIDEO_SEGA,
+  BE_FOURCC('s', 'm', 'c', ' '), BUF_VIDEO_SMC,
+  BE_FOURCC('s', 'v', 'q', '1'), BUF_VIDEO_SORENSON_V1,
+  BE_FOURCC('s', 'v', 'q', '3'), BUF_VIDEO_SORENSON_V3,
+  BE_FOURCC('s', 'v', 'q', 'i'), BUF_VIDEO_SORENSON_V1,
+  BE_FOURCC('t', 's', 'c', 'c'), BUF_VIDEO_TSCC,
+  BE_FOURCC('u', 'c', 'o', 'd'), BUF_VIDEO_UCOD,
+  BE_FOURCC('v', 'c', '-', '1'), BUF_VIDEO_VC1,
+  BE_FOURCC('v', 'i', 'v', '1'), BUF_VIDEO_I263,
+  BE_FOURCC('v', 'i', 'v', 'o'), BUF_VIDEO_I263,
+  BE_FOURCC('v', 'p', '3', '0'), BUF_VIDEO_VP31,
+  BE_FOURCC('v', 'p', '3', '1'), BUF_VIDEO_VP31,
+  BE_FOURCC('w', 'h', 'a', 'm'), BUF_VIDEO_MSVC,
+  BE_FOURCC('x', '2', '6', '4'), BUF_VIDEO_H264,
+  BE_FOURCC('x', 'v', 'i', 'd'), BUF_VIDEO_XVID,
+  BE_FOURCC('x', 'x', 'a', 'n'), BUF_VIDEO_XXAN,
+  BE_FOURCC('y', 'u', 'v', '2'), BUF_VIDEO_YUY2,
+  BE_FOURCC('y', 'u', 'y', '2'), BUF_VIDEO_YUY2,
+  BE_FOURCC('y', 'v', '1', '2'), BUF_VIDEO_YV12
+};
 
-  for( i = 0; audio_db[i].buf_type; i++ ) {
-    if( buf_type == audio_db[i].buf_type ) {
-        return audio_db[i].name;
-    }
+uint32_t _x_fourcc_to_buf_video (uint32_t formattag) {
+  uint32_t t = formattag;
+  if (t & 0xffff0000) {
+    uint32_t b, e, m;
+#ifndef WORDS_BIGENDIAN
+    t = (t >> 24) | ((t & 0x00ff0000) >> 8) | ((t & 0x0000ff00) << 8) | (t << 24);
+#endif
+    b = 0;
+    e = sizeof (sorted_video_4ccs) / sizeof (sorted_video_4ccs[0]) / 2;
+    m = e >> 1;
+    do {
+      uint32_t f = sorted_video_4ccs[2 * m];
+      if (t == f) {
+        return sorted_video_4ccs[2 * m + 1];
+      } else if (t < f) {
+        e = m;
+      } else {
+        b = m + 1;
+      }
+      m = (b + e) >> 1;
+    } while (b != e);
+    return 0;
   }
-
-  return "";
+  {
+    uint32_t b, e, m;
+    b = 0;
+    e = sizeof (sorted_video_tags) / sizeof (sorted_video_tags[0]) / 2;
+    m = e >> 1;
+    do {
+      uint32_t f = sorted_video_tags[2 * m];
+      if (t == f) {
+        return sorted_video_tags[2 * m + 1];
+      } else if (t < f) {
+        e = m;
+      } else {
+        b = m + 1;
+      }
+      m = (b + e) >> 1;
+    } while (b != e);
+    return 0;
+  }
 }
 
+static const char * const video_names[] = {
+  /* 00 BUF_VIDEO_MPEG        */ "MPEG 1/2",
+  /* 01 BUF_VIDEO_MPEG4       */ "ISO-MPEG4/OpenDivx",
+  /* 02 BUF_VIDEO_CINEPAK     */ "Cinepak",
+  /* 03 BUF_VIDEO_SORENSON_V1 */ "Sorenson Video 1",
+  /* 04 BUF_VIDEO_MSMPEG4_V2  */ "Microsoft MPEG-4 v2",
+  /* 05 BUF_VIDEO_MSMPEG4_V3  */ "Microsoft MPEG-4 v3",
+  /* 06 BUF_VIDEO_MJPEG       */ "Motion JPEG",
+  /* 07 BUF_VIDEO_IV50        */ "Indeo Video 5.0",
+  /* 08 BUF_VIDEO_IV41        */ "Indeo Video 4.1",
+  /* 09 BUF_VIDEO_IV32        */ "Indeo Video 3.2",
+  /* 0a BUF_VIDEO_IV31        */ "Indeo Video 3.1",
+  /* 0b BUF_VIDEO_ATIVCR1     */ "ATI VCR1",
+  /* 0c BUF_VIDEO_ATIVCR2     */ "ATI VCR2",
+  /* 0d BUF_VIDEO_I263        */ "I263",
+  /* 0e BUF_VIDEO_RV10        */ "Real Video 1.0",
+  /* 0f BUF_VIDEO_??          */ "(unused type 0x0f)",
+  /* 10 BUF_VIDEO_RGB         */ "Raw RGB",
+  /* 11 BUF_VIDEO_YUY2        */ "YUY2",
+  /* 12 BUF_VIDEO_JPEG        */ "JPEG",
+  /* 13 BUF_VIDEO_WMV7        */ "Windows Media Video 7",
+  /* 14 BUF_VIDEO_WMV8        */ "Windows Media Video 8",
+  /* 15 BUF_VIDEO_MSVC        */ "Microsoft Video 1",
+  /* 16 BUF_VIDEO_DV          */ "Sony Digital Video (DV)",
+  /* 17 BUF_VIDEO_REAL        */ "REAL",
+  /* 18 BUF_VIDEO_VP31        */ "On2 VP3.1",
+  /* 19 BUF_VIDEO_H263        */ "H263",
+  /* 1a BUF_VIDEO_3IVX        */ "3ivx MPEG-4",
+  /* 1b BUF_VIDEO_CYUV        */ "Creative YUV",
+  /* 1c BUF_VIDEO_DIVX5       */ "DivX 5",
+  /* 1d BUF_VIDEO_XVID        */ "XviD",
+  /* 1e BUF_VIDEO_SMC         */ "Apple Quicktime Graphics (SMC)",
+  /* 1f BUF_VIDEO_RPZA        */ "Apple Quicktime (RPZA)",
+  /* 20 BUF_VIDEO_QTRLE       */ "Apple Quicktime Animation (RLE)",
+  /* 21 BUF_VIDEO_MSRLE       */ "Microsoft RLE",
+  /* 22 BUF_VIDEO_DUCKTM1     */ "Duck Truemotion v1",
+  /* 23 BUF_VIDEO_FLI         */ "FLI",
+  /* 24 BUF_VIDEO_ROQ         */ "Id Software RoQ",
+  /* 25 BUF_VIDEO_SORENSON_V3 */ "Sorenson Video 3",
+  /* 26 BUF_VIDEO_MSMPEG4_V1  */ "Microsoft MPEG-4 v1",
+  /* 27 BUF_VIDEO_MSS1        */ "Windows Screen Video",
+  /* 28 BUF_VIDEO_IDCIN       */ "Id Software CIN",
+  /* 29 BUF_VIDEO_PGVV        */ "Radius Studio",
+  /* 2a BUF_VIDEO_ZYGO        */ "ZyGo Video",
+  /* 2b BUF_VIDEO_TSCC        */ "TechSmith Screen Capture Codec",
+  /* 2c BUF_VIDEO_YVU9        */ "Raw YVU9 Planar Data",
+  /* 2d BUF_VIDEO_VQA         */ "Westwood Studios VQA",
+  /* 2e BUF_VIDEO_GREY        */ "Raw Greyscale",
+  /* 2f BUF_VIDEO_XXAN        */ "Wing Commander IV Video Codec",
+  /* 30 BUF_VIDEO_WC3         */ "Xan WC3",
+  /* 31 BUF_VIDEO_YV12        */ "Raw Planar YV12",
+  /* 32 BUF_VIDEO_SEGA        */ "Cinepak for Sega",
+  /* 33 BUF_VIDEO_RV20        */ "Real Video 2.0",
+  /* 34 BUF_VIDEO_RV30        */ "Real Video 3.0",
+  /* 35 BUF_VIDEO_MVI2        */ "Motion Pixels",
+  /* 36 BUF_VIDEO_UCOD        */ "ClearVideo",
+  /* 37 BUF_VIDEO_WMV9        */ "Windows Media Video 9",
+  /* 38 BUF_VIDEO_INTERPLAY   */ "Interplay MVE",
+  /* 39 BUF_VIDEO_RV40        */ "Real Video 4.0",
+  /* 3a BUF_VIDEO_PSX_MDEC    */ "PSX MEDC",
+  /* 3b BUF_VIDEO_YUV_FRAMES  */ "Uncompressed YUV",
+  /* 3c BUF_VIDEO_HUFFYUV     */ "HuffYUV",
+  /* 3d BUF_VIDEO_IMAGE       */ "Image",
+  /* 3e BUF_VIDEO_THEORA      */ "Ogg Theora",
+  /* 3f BUF_VIDEO_4XM         */ "4X Video",
+  /* 40 BUF_VIDEO_I420        */ "Raw Planar I420",
+  /* 41 BUF_VIDEO_VP4         */ "On2 VP4",
+  /* 42 BUF_VIDEO_VP5         */ "On2 VP5",
+  /* 43 BUF_VIDEO_VP6         */ "On2 VP6",
+  /* 44 BUF_VIDEO_VMD         */ "Sierra VMD Video",
+  /* 45 BUF_VIDEO_MSZH        */ "MSZH Video",
+  /* 46 BUF_VIDEO_ZLIB        */ "ZLIB Video",
+  /* 47 BUF_VIDEO_8BPS        */ "Planar RGB",
+  /* 48 BUF_VIDEO_ASV1        */ "ASV v1 Video",
+  /* 49 BUF_VIDEO_ASV2        */ "ASV v2 Video",
+  /* 4a BUF_VIDEO_BITPLANE    */ "Amiga picture",
+  /* 4b BUF_VIDEO_BITPLANE_BR1*/ "Amiga picture",
+  /* 4c BUF_VIDEO_FLV1        */ "Flash video 1",
+  /* 4d BUF_VIDEO_H264        */ "Advanced Video Coding (H264)",
+  /* 4e BUF_VIDEO_MJPEG_B     */ "Motion JPEG B",
+  /* 4f BUF_VIDEO_H261        */ "H.261",
+  /* 50 BUF_VIDEO_AASC        */ "Autodesk Animator Studio Codec",
+  /* 51 BUF_VIDEO_LOCO        */ "LOCO",
+  /* 52 BUF_VIDEO_QDRW        */ "QuickDraw",
+  /* 53 BUF_VIDEO_QPEG        */ "Q-Team QPEG Video",
+  /* 54 BUF_VIDEO_ULTI        */ "IBM UltiMotion",
+  /* 55 BUF_VIDEO_WNV1        */ "Winnow Video",
+  /* 56 BUF_VIDEO_XL          */ "Miro/Pinnacle VideoXL",
+  /* 57 BUF_VIDEO_RT21        */ "Indeo/RealTime 2",
+  /* 58 BUF_VIDEO_FPS1        */ "Fraps FPS1",
+  /* 59 BUF_VIDEO_DUCKTM2     */ "Duck TrueMotion 2",
+  /* 5a BUF_VIDEO_CSCD        */ "CamStudio",
+  /* 5b BUF_VIDEO_ALGMM       */ "American Laser Games MM",
+  /* 5c BUF_VIDEO_ZMBV        */ "Zip Motion Blocks Video",
+  /* 5d BUF_VIDEO_AVS         */ "AVS",
+  /* 5e BUF_VIDEO_SMACKER     */ "Smacker",
+  /* 5f BUF_VIDEO_NUV         */ "NullSoft Video",
+  /* 60 BUF_VIDEO_KMVC        */ "Karl Morton's Video Codec",
+  /* 61 BUF_VIDEO_FLASHSV     */ "Flash Screen Video 1",
+  /* 62 BUF_VIDEO_CAVS        */ "Chinese AVS",
+  /* 63 BUF_VIDEO_VP6F        */ "On2 VP6 with alpha channel",
+  /* 64 BUF_VIDEO_THEORA_RAW  */ "Theora",
+  /* 65 BUF_VIDEO_VC1         */ "Windows Media Video VC-1",
+  /* 66 BUF_VIDEO_VMNC        */ "VMware Screen Codec",
+  /* 67 BUF_VIDEO_SNOW        */ "Snow",
+  /* 68 BUF_VIDEO_VP8         */ "On2 VP8",
+  /* 69 BUF_VIDEO_VP9         */ "VP9",
+  /* 6a BUF_VIDEO_HEVC        */ "HEVC",
+  /* 6b BUF_VIDEO_AV1         */ "AV1"
+};
+
+const char *_x_buf_video_name (uint32_t buf_type) {
+  if ((buf_type & 0xff000000) != BUF_VIDEO_BASE)
+    return "";
+  buf_type = (buf_type >> 16) & 0xff;
+  if (buf_type >= sizeof (video_names) / sizeof (video_names[0]))
+    return "";
+  return video_names[buf_type];
+}
+
+static const char * const audio_names[] = {
+  /* 00 BUF_AUDIO_A52         */ "AC3/A52",
+  /* 01 BUF_AUDIO_MPEG        */ "MPEG layer 1/2/3",
+  /* 02 BUF_AUDIO_LPCM_BE     */ "Linear PCM big endian",
+  /* 03 BUF_AUDIO_LPCM_LE     */ "Linear PCM little endian",
+  /* 04 BUF_AUDIO_WMAV1       */ "Windows Media Audio v1",
+  /* 05 BUF_AUDIO_DTS         */ "Digitales TonSystem (DTS)",
+  /* 06 BUF_AUDIO_MSADPCM     */ "MS ADPCM",
+  /* 07 BUF_AUDIO_MSIMAADPCM  */ "MS IMA ADPCM",
+  /* 08 BUF_AUDIO_MSGSM       */ "MS GSM",
+  /* 09 BUF_AUDIO_VORBIS      */ "OggVorbis Audio",
+  /* 0a BUF_AUDIO_IMC         */ "Intel Music Coder",
+  /* 0b BUF_AUDIO_LH          */ "Lernout & Hauspie",
+  /* 0c BUF_AUDIO_VOXWARE     */ "Voxware Metasound",
+  /* 0d BUF_AUDIO_ACELPNET    */ "ACELP.net",
+  /* 0e BUF_AUDIO_AAC         */ "Advanced Audio Coding (MPEG-4 AAC)",
+  /* 0f BUF_AUDIO_DNET        */ "RealAudio DNET",
+  /* 10 BUF_AUDIO_VIVOG723    */ "Vivo G.723/Siren Audio Codec",
+  /* 11 BUF_AUDIO_DK3ADPCM    */ "Duck DK3 ADPCM (rogue format number)",
+  /* 12 BUF_AUDIO_DK4ADPCM    */ "Duck DK4 ADPCM (rogue format number)",
+  /* 13 BUF_AUDIO_ROQ         */ "RoQ DPCM",
+  /* 14 BUF_AUDIO_QTIMAADPCM  */ "QT IMA ADPCM",
+  /* 15 BUF_AUDIO_MAC3        */ "Apple MACE 3:1 Audio",
+  /* 16 BUF_AUDIO_MAC6        */ "Apple MACE 6:1 Audio",
+  /* 17 BUF_AUDIO_QDESIGN1    */ "QDesign Audio v1",
+  /* 18 BUF_AUDIO_QDESIGN2    */ "QDesign Audio v2",
+  /* 19 BUF_AUDIO_QCLP        */ "Qualcomm PureVoice",
+  /* 1a BUF_AUDIO_SMJPEG_IMA  */ "SMJPEG IMA",
+  /* 1b BUF_AUDIO_VQA_IMA     */ "Westwood Studios IMA",
+  /* 1c BUF_AUDIO_MULAW       */ "mu-law logarithmic PCM",
+  /* 1d BUF_AUDIO_ALAW        */ "A-law logarithmic PCM",
+  /* 1e BUF_AUDIO_GSM610      */ "GSM 6.10",
+  /* 1f BUF_AUDIO_EA_ADPCM    */ "EA ADPCM",
+  /* 20 BUF_AUDIO_WMAV2       */ "Windows Media Audio v2",
+  /* 21 BUF_AUDIO_COOK        */ "RealAudio COOK",
+  /* 22 BUF_AUDIO_ATRK        */ "RealAudio ATRK",
+  /* 23 BUF_AUDIO_14_4        */ "RealAudio 14.4",
+  /* 24 BUF_AUDIO_28_8        */ "RealAudio 28.8",
+  /* 25 BUF_AUDIO_SIPRO       */ "RealAudio SIPRO",
+  /* 26 BUF_AUDIO_WMAPRO      */ "Windows Media Audio Professional",
+  /* 27 BUF_AUDIO_INTERPLAY   */ "Interplay DPCM",
+  /* 28 BUF_AUDIO_XA_ADPCM    */ "XA ADPCM",
+  /* 29 BUF_AUDIO_WESTWOOD    */ "Westwood",
+  /* 2a BUF_AUDIO_DIALOGIC_IMA*/ "DIALOGIC IMA",
+  /* 2b BUF_AUDIO_NSF         */ "Nosefart",
+  /* 2c BUF_AUDIO_FLAC        */ "Free Lossless Audio Codec (FLAC)",
+  /* 2d BUF_AUDIO_DV          */ "DV Audio",
+  /* 2e BUF_AUDIO_WMAV        */ "Windows Media Audio Voice",
+  /* 2f BUF_AUDIO_SPEEX       */ "Speex",
+  /* 30 BUF_AUDIO_RAWPCM      */ "Raw PCM",
+  /* 31 BUF_AUDIO_4X_ADPCM    */ "4x ADPCM",
+  /* 32 BUF_AUDIO_VMD         */ "VMD",
+  /* 33 BUF_AUDIO_XAN_DPCM    */ "XAN DPCM",
+  /* 34 BUF_AUDIO_ALAC        */ "Apple Lossless Audio Codec",
+  /* 35 BUF_AUDIO_MPC         */ "Musepack",
+  /* 36 BUF_AUDIO_SHORTEN     */ "Shorten",
+  /* 37 BUF_AUDIO_WESTWOOD_SND1*/ "Westwood",
+  /* 38 BUF_AUDIO_WMALL       */ "Windows Media Audio Lossless",
+  /* 39 BUF_AUDIO_TRUESPEECH  */ "Truespeech",
+  /* 3a BUF_AUDIO_TTA         */ "True Audio Lossless",
+  /* 3b BUF_AUDIO_SMACKER     */ "Smacker",
+  /* 3c BUF_AUDIO_FLVADPCM    */ "FLV ADPCM",
+  /* 3d BUF_AUDIO_WAVPACK     */ "Wavpack",
+  /* 3e BUF_AUDIO_MP3ADU      */ "MPEG layer-3 adu",
+  /* 3f BUF_AUDIO_AMR_NB      */ "AMR narrow band",
+  /* 40 BUF_AUDIO_AMR_WB      */ "AMR wide band",
+  /* 41 BUF_AUDIO_EAC3        */ "E-AC-3",
+  /* 42 BUF_AUDIO_AAC_LATM    */ "AAC LATM",
+  /* 43 BUF_AUDIO_ADPCM_G726  */ "ADPCM G.726",
+  /* 44 BUF_AUDIO_OPUS        */ "Opus Audio",
+  /* 45 BUF_AUDIO_TRUEHD      */ "TrueHD Audio"
+};
+
+const char *_x_buf_audio_name (uint32_t buf_type) {
+  if ((buf_type & 0xff000000) != BUF_AUDIO_BASE)
+    return "";
+  buf_type = (buf_type >> 16) & 0xff;
+  if (buf_type >= sizeof (audio_names) / sizeof (audio_names[0]))
+    return "";
+  return audio_names[buf_type];
+}
 
 static void code_to_text (char ascii[5], uint32_t code)
 {
