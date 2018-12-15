@@ -1296,7 +1296,7 @@ static int resample_rate_adjust(aos_t *this, int64_t gap, audio_buffer_t *buf) {
   return 0;
 }
 
-static int ao_change_settings(aos_t *this, uint32_t bits, uint32_t rate, int mode);
+static int ao_change_settings(aos_t *this, xine_stream_t *stream, uint32_t bits, uint32_t rate, int mode);
 
 /* Audio output loop: -
  * 1) Check for pause.
@@ -1421,8 +1421,8 @@ static void *ao_loop (void *this_gen) {
         pthread_mutex_lock (&this->driver_lock);
         if (!this->driver_open || changed) {
           lprintf ("audio format has changed\n");
-          if (stream && !stream->emergency_brake)
-            ao_change_settings (this, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
+          if (!stream || !stream->emergency_brake)
+            ao_change_settings (this, stream, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
         }
         if (!this->driver_open) {
           xine_stream_t **s;
@@ -1585,20 +1585,20 @@ static void *ao_loop (void *this_gen) {
           /* device unplugged. */
           xprintf (this->xine, XINE_VERBOSITY_LOG, _("write to sound card failed. Assuming the device was unplugged.\n"));
           if (stream)
-            _x_message (in_buf->stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+            _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
           pthread_mutex_lock (&this->driver_lock);
           if (this->driver_open)
             this->driver->close (this->driver);
           this->driver_open = 0;
           _x_free_audio_driver (this->xine, &this->driver);
           this->driver = _x_load_audio_output_plugin (this->xine, "none");
-          if (this->driver && !in_buf->stream->emergency_brake &&
-              ao_change_settings(this,
-                in_buf->format.bits,
-                in_buf->format.rate,
-                in_buf->format.mode) == 0) {
-            in_buf->stream->emergency_brake = 1;
-            _x_message (in_buf->stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+          if (this->driver && (!stream || !stream->emergency_brake)) {
+            if (ao_change_settings (this, stream, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode) == 0) {
+              if (stream)
+                stream->emergency_brake = 1;
+            }
+            if (stream)
+              _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
           }
           pthread_mutex_unlock (&this->driver_lock);
           /* closing the driver will result in XINE_MSG_AUDIO_OUT_UNAVAILABLE to be emitted */
@@ -1696,7 +1696,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
     pthread_mutex_lock (&this->driver_lock);
     lprintf ("audio format has changed\n");
     if (!(in_buf->stream && in_buf->stream->emergency_brake))
-      ao_change_settings (this, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
+      ao_change_settings (this, in_buf->stream, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
     pthread_mutex_unlock (&this->driver_lock);
   }
 
@@ -1763,7 +1763,6 @@ static int ao_update_resample_factor(aos_t *this) {
     this->frame_rate_factor = ( XINE_FINE_SPEED_NORMAL / (double)this->current_speed ) * ((double)(this->output.rate)) / ((double)(this->input.rate));
   this->frames_per_kpts = (this->output.rate * 1024 + 45000) / 90000;
   this->pts_per_kframe  = (90000 * 1024 + (this->output.rate >> 1)) / this->output.rate;
-  this->audio_step = ((uint32_t)90000 * (uint32_t)32768) / this->input.rate;
 
   ao_eq_update (this);
 
@@ -1771,7 +1770,7 @@ static int ao_update_resample_factor(aos_t *this) {
   return this->output.rate;
 }
 
-static int ao_change_settings (aos_t *this, uint32_t bits, uint32_t rate, int mode) {
+static int ao_change_settings (aos_t *this, xine_stream_t *stream, uint32_t bits, uint32_t rate, int mode) {
   int output_sample_rate;
 
   if (this->driver_open && !this->grab_only)
@@ -1811,7 +1810,7 @@ static int ao_change_settings (aos_t *this, uint32_t bits, uint32_t rate, int mo
   }
 
   this->driver_open = 1;
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: output sample rate %d\n", output_sample_rate);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: output sample rate %d.\n", output_sample_rate);
 
   this->last_audio_vpts = 0;
   this->output.mode     = mode;
@@ -1819,6 +1818,12 @@ static int ao_change_settings (aos_t *this, uint32_t bits, uint32_t rate, int mo
   this->output.bits     = bits;
 
   this->ptoffs = (mode == AO_CAP_MODE_A52) || (mode == AO_CAP_MODE_AC5) ? this->passthrough_offset : 0;
+
+  if (this->input.rate) {
+    this->audio_step = ((uint32_t)90000 * (uint32_t)32768) / this->input.rate;
+    if (stream)
+      stream->metronom->set_audio_rate (stream->metronom, this->audio_step);
+  }
 
   return ao_update_resample_factor (this);
 }
@@ -1872,7 +1877,7 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
 
     if( !stream->emergency_brake ) {
       pthread_mutex_lock( &this->driver_lock );
-      ret = ao_change_settings(this, bits, rate, mode);
+      ret = ao_change_settings (this, stream, bits, rate, mode);
       pthread_mutex_unlock( &this->driver_lock );
 
       if( !ret ) {
@@ -1901,7 +1906,6 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
     stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
     pthread_mutex_unlock (&stream->info_mutex);
 
-    stream->metronom->set_audio_rate(stream->metronom, this->audio_step);
   }
 
   ao_streams_register (this, stream);
