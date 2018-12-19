@@ -54,6 +54,7 @@
 #define WRAP_THRESHOLD       120000
 #define MAX_NUM_WRAP_DIFF        10
 #define MAX_SCR_PROVIDERS        10
+#define MAX_SPEED_CHANGE_CALLBACKS 16
 #define VIDEO_DRIFT_TOLERANCE 45000
 #define AUDIO_DRIFT_TOLERANCE 45000
 
@@ -229,7 +230,47 @@ typedef struct {
     SYNC_THREAD_RUNNING           /* self explaining */
   }                sync_thread_state;
   scr_plugin_t    *providers[MAX_SCR_PROVIDERS + 1];
+  int                     speed_change_used;
+  xine_speed_change_cb_t *speed_change_callbacks[MAX_SPEED_CHANGE_CALLBACKS + 1];
+  void                   *speed_change_data[MAX_SPEED_CHANGE_CALLBACKS + 1];
 } metronom_clock_private_t;
+
+static void metronom_register_speed_change_callback (metronom_clock_t *this,
+  xine_speed_change_cb_t *callback, void *user_data) {
+  if (callback) {
+    metronom_clock_private_t *this_priv = (metronom_clock_private_t *)this;
+    pthread_mutex_lock (&this_priv->mct.lock);
+    if (this_priv->speed_change_used < MAX_SPEED_CHANGE_CALLBACKS) {
+      this_priv->speed_change_callbacks[this_priv->speed_change_used] = callback;
+      this_priv->speed_change_data[this_priv->speed_change_used]      = user_data;
+      this_priv->speed_change_used++;
+      this_priv->speed_change_callbacks[this_priv->speed_change_used] = NULL;
+    }
+    pthread_mutex_unlock (&this_priv->mct.lock);
+  }
+}
+
+static void metronom_unregister_speed_change_callback (metronom_clock_t *this,
+  xine_speed_change_cb_t *callback, void *user_data) {
+  if (callback) {
+    metronom_clock_private_t *this_priv = (metronom_clock_private_t *)this;
+    int i;
+    pthread_mutex_lock (&this_priv->mct.lock);
+    for (i = 0; this_priv->speed_change_callbacks[i]; i++) {
+      if ((this_priv->speed_change_callbacks[i] == callback) &&
+          (this_priv->speed_change_data[i]      == user_data)) {
+        this_priv->speed_change_used--;
+        if (i != this_priv->speed_change_used) {
+          this_priv->speed_change_callbacks[i] = this_priv->speed_change_callbacks[this_priv->speed_change_used];
+          this_priv->speed_change_data[i]      = this_priv->speed_change_data[this_priv->speed_change_used];
+        }
+        this_priv->speed_change_callbacks[this_priv->speed_change_used] = NULL;
+        break;
+      }
+    }
+    pthread_mutex_unlock (&this_priv->mct.lock);
+  }
+}
 
 #define START_PTS 0
 #define STOP_PTS ~0
@@ -275,20 +316,26 @@ static int64_t metronom_get_current_time (metronom_clock_t *this) {
 static void metronom_stop_clock(metronom_clock_t *this) {
   metronom_clock_private_t *this_priv = (metronom_clock_private_t *)this;
   scr_plugin_t **r;
+  int i;
 
   pthread_mutex_lock (&this_priv->mct.lock);
   for (r = this_priv->providers; *r && (r < this_priv->providers + MAX_SCR_PROVIDERS); r++)
     (*r)->set_fine_speed (*r, XINE_SPEED_PAUSE);
+  for (i = 0; this_priv->speed_change_callbacks[i]; i++)
+    this_priv->speed_change_callbacks[i] (this_priv->speed_change_data[i], XINE_SPEED_PAUSE);
   pthread_mutex_unlock (&this_priv->mct.lock);
 }
 
 static void metronom_resume_clock(metronom_clock_t *this) {
   metronom_clock_private_t *this_priv = (metronom_clock_private_t *)this;
   scr_plugin_t **r;
+  int i;
 
   pthread_mutex_lock (&this_priv->mct.lock);
   for (r = this_priv->providers; *r && (r < this_priv->providers + MAX_SCR_PROVIDERS); r++)
     (*r)->set_fine_speed (*r, XINE_FINE_SPEED_NORMAL);
+  for (i = 0; this_priv->speed_change_callbacks[i]; i++)
+    this_priv->speed_change_callbacks[i] (this_priv->speed_change_data[i], XINE_FINE_SPEED_NORMAL);
   pthread_mutex_unlock (&this_priv->mct.lock);
 }
 
@@ -304,7 +351,7 @@ static void metronom_adjust_clock(metronom_clock_t *this, int64_t desired_pts) {
 static int metronom_set_speed (metronom_clock_t *this, int speed) {
   metronom_clock_private_t *this_priv = (metronom_clock_private_t *)this;
   scr_plugin_t **r;
-  int            true_speed;
+  int            true_speed, i;
 
   true_speed = this_priv->mct.scr_master->set_fine_speed (this_priv->mct.scr_master, speed);
 
@@ -313,6 +360,8 @@ static int metronom_set_speed (metronom_clock_t *this, int speed) {
   pthread_mutex_lock (&this_priv->mct.lock);
   for (r = this_priv->providers; *r && (r < this_priv->providers + MAX_SCR_PROVIDERS); r++)
     (*r)->set_fine_speed (*r, true_speed);
+  for (i = 0; this_priv->speed_change_callbacks[i]; i++)
+    this_priv->speed_change_callbacks[i] (this_priv->speed_change_data[i], true_speed);
   pthread_mutex_unlock (&this_priv->mct.lock);
 
   return true_speed;
@@ -1324,6 +1373,10 @@ metronom_clock_t *_x_metronom_clock_init(xine_t *xine)
 
   if (!this_priv)
     return NULL;
+#ifndef HAVE_ZERO_SAFE_MEM
+  this_priv->speed_change_used = 0;
+  this_priv->speed_change_callbacks[0] = NULL;
+#endif
 
   this_priv->mct.set_option       = metronom_clock_set_option;
   this_priv->mct.get_option       = metronom_clock_get_option;
@@ -1336,6 +1389,9 @@ metronom_clock_t *_x_metronom_clock_init(xine_t *xine)
   this_priv->mct.register_scr     = metronom_register_scr;
   this_priv->mct.unregister_scr   = metronom_unregister_scr;
   this_priv->mct.exit             = metronom_clock_exit;
+
+  this_priv->mct.register_speed_change_callback   = metronom_register_speed_change_callback;
+  this_priv->mct.unregister_speed_change_callback = metronom_unregister_speed_change_callback;
 
   this_priv->mct.xine             = xine;
   this_priv->mct.scr_adjustable   = 1;

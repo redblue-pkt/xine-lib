@@ -184,6 +184,8 @@ struct metronom_s {
 #define METRONOM_LOCK             9
 #define METRONOM_NO_LOCK          0x8000
 
+typedef void xine_speed_change_cb_t (void *user_data, int new_speed);
+
 metronom_t *_x_metronom_init (int have_video, int have_audio, xine_t *xine) XINE_MALLOC XINE_PROTECTED;
 
 /* FIXME: reorder this structure on the next cleanup to remove the dummies */
@@ -273,6 +275,11 @@ struct metronom_clock_s {
 #endif
 
   int speed;
+
+  void (*register_speed_change_callback)
+    (metronom_clock_t *self, xine_speed_change_cb_t *callback, void *user_data);
+  void (*unregister_speed_change_callback)
+    (metronom_clock_t *self, xine_speed_change_cb_t *callback, void *user_data);
 
 #ifdef METRONOM_CLOCK_INTERNAL
   pthread_mutex_t lock;
