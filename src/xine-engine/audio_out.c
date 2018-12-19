@@ -236,8 +236,10 @@ typedef struct {
   pthread_t       audio_thread;
 
   uint32_t        audio_step;           /* pts per 32 768 samples (sample = #bytes/2) */
-  uint32_t        frames_per_kpts;      /* frames per 1024/90000 sec                  */
-  uint32_t        pts_per_kframe;       /* pts per 1024 frames                        */
+  uint32_t        in_channels;
+  uint32_t        out_pts_per_kframe;   /* pts per 1024 frames                        */
+  uint32_t        out_frames_per_kpts;  /* frames per 1024/90000 sec                  */
+  uint32_t        out_channels;
 
   int             av_sync_method_conf;
   resample_sync_t resample_sync_info;
@@ -256,6 +258,10 @@ typedef struct {
 
   audio_fifo_t    free_fifo;
   audio_fifo_t    out_fifo;
+
+  struct timespec wake_time;            /* time to drop next buf in trick play mode without sound */
+  int             use_wake_time;        /* 0 (play), 1 (wake_time or event), 2 (event) */
+  int             wake_now;             /* immediate response requested (speed change, shutdown) */
 
   int64_t         last_audio_vpts;
   pthread_mutex_t current_speed_lock;
@@ -290,6 +296,21 @@ typedef struct {
 
   int             last_gap;
   int             last_sgap;
+
+  /* If driver cannot pause while keeping its own buffers alive,
+   * resend some frames at unpause time instead of filling a big gap with silence. */
+#define RESEND_BUF_SIZE (1 << 20)
+  int             driver_caps;
+  int64_t         resend_vpts;
+  uint32_t        resend_speed;
+  uint32_t        resend_rate;
+  uint32_t        resend_bits;
+  int             resend_mode;
+  int             resend_frame_size;
+  int             resend_write;
+  int             resend_wrap;
+  int             resend_max;
+  uint8_t        *resend_buf;
 
   xine_stream_t  *buf_streams[NUM_AUDIO_BUFFERS];
   uint8_t        *base_samp;
@@ -495,7 +516,7 @@ static void ao_fifo_append_int (audio_fifo_t *fifo, audio_buffer_t *buf) {
 static void ao_fifo_append (audio_fifo_t *fifo, audio_buffer_t *buf) {
   pthread_mutex_lock (&fifo->mutex);
   ao_fifo_append_int (fifo, buf);
-  if (fifo->num_waiters)
+  if (fifo->num_waiters && (fifo->first == buf))
     pthread_cond_signal (&fifo->not_empty);
   pthread_mutex_unlock (&fifo->mutex);
 }
@@ -523,6 +544,14 @@ static audio_buffer_t *ao_fifo_pop_int (audio_fifo_t *fifo) {
     fifo->num_buffers = 0;
   }
   return buf;
+}
+
+static void ao_out_fifo_signal (aos_t *this) {
+  pthread_mutex_lock (&this->out_fifo.mutex);
+  this->wake_now = 1;
+  if (this->out_fifo.num_waiters)
+    pthread_cond_signal (&this->out_fifo.not_empty);
+  pthread_mutex_unlock (&this->out_fifo.mutex);
 }
 
 static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
@@ -562,30 +591,32 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       }
       pthread_cond_broadcast (&this->out_fifo.empty);
       buf = NULL;
+      this->resend_write = 0;
+      this->resend_wrap  = 0;
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: flushed out %d buffers.\n", n);
     }
 
-    if (buf || !this->audio_loop_running) {
-      pthread_mutex_unlock (&this->out_fifo.mutex);
-      return buf;
-    }
-
-    buf = this->out_fifo.first;
-    if (buf) {
-      this->out_fifo.first = buf->next;
-      buf->next            = NULL;
-      if (this->out_fifo.first) {
-        this->out_fifo.num_buffers--;
-      } else {
-        this->out_fifo.add = &this->out_fifo.first;
-        this->out_fifo.num_buffers = 0;
+    if (!buf) {
+      buf = this->out_fifo.first;
+      if (buf) {
+        this->out_fifo.first = buf->next;
+        buf->next            = NULL;
+        if (this->out_fifo.first) {
+          this->out_fifo.num_buffers--;
+        } else {
+          this->out_fifo.add = &this->out_fifo.first;
+          this->out_fifo.num_buffers = 0;
+        }
       }
-      pthread_mutex_unlock (&this->out_fifo.mutex);
-      return buf;
     }
+    if (buf && !this->use_wake_time)
+      break;
+
+    if (this->wake_now || !this->audio_loop_running)
+      break;
 
     /* no more bufs for now... */
-    if (this->driver_open) {
+    if (!this->use_wake_time && this->driver_open) {
       int n;
       xine_rwlock_rdlock (&this->streams_lock);
       n = this->num_null_streams + this->num_anon_streams + this->num_streams;
@@ -617,10 +648,20 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
         continue;
       }
     }
+
     this->out_fifo.num_waiters++;
-    pthread_cond_wait (&this->out_fifo.not_empty, &this->out_fifo.mutex);
+    if (this->use_wake_time == 1) {
+      pthread_cond_timedwait (&this->out_fifo.not_empty, &this->out_fifo.mutex, &this->wake_time);
+    } else {
+      pthread_cond_wait (&this->out_fifo.not_empty, &this->out_fifo.mutex);
+    }
+    this->use_wake_time = 0;
     this->out_fifo.num_waiters--;
   }
+
+  this->wake_now = 0;
+  pthread_mutex_unlock (&this->out_fifo.mutex);
+  return buf;
 }
 
 static void ao_ticket_revoked (void *user_data, int flags) {
@@ -691,8 +732,8 @@ static int ao_fifo_num_buffers (audio_fifo_t *fifo) {
 }
 #endif
 
+/* have this->out_fifo.mutex locked */
 static void ao_out_fifo_manual_flush (aos_t *this) {
-  pthread_mutex_lock (&this->out_fifo.mutex);
   if (this->out_fifo.first) {
     audio_buffer_t *list = NULL, **add = &list;
     int n = this->out_fifo.num_buffers;
@@ -709,7 +750,6 @@ static void ao_out_fifo_manual_flush (aos_t *this) {
   }
   if (this->free_fifo.first && this->free_fifo.num_waiters)
     pthread_cond_broadcast (&this->free_fifo.not_empty);
-  pthread_mutex_unlock (&this->out_fifo.mutex);
 }
 
 static void ao_out_fifo_loop_flush (aos_t *this) {
@@ -727,6 +767,70 @@ static void ao_out_fifo_loop_flush (aos_t *this) {
 }
 
 
+static void ao_resend_init (aos_t *this) {
+  do {
+    this->driver_caps = this->driver->get_capabilities (this->driver);
+    if (!(this->driver_caps & AO_CAP_NO_UNPAUSE))
+      break;
+    if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5))
+      break;
+    if (!this->resend_buf)
+      this->resend_buf = malloc (RESEND_BUF_SIZE);
+    if (!this->resend_buf)
+      break;
+    if (this->current_speed == XINE_SPEED_PAUSE)
+      return;
+    if ((this->resend_speed == this->current_speed) &&
+        (this->resend_rate  == this->output.rate)   &&
+        (this->resend_mode  == this->output.mode)   &&
+        (this->resend_bits  == this->output.bits))
+      return;
+    this->resend_speed = this->current_speed;
+    this->resend_rate  = this->output.rate;
+    this->resend_mode  = this->output.mode;
+    this->resend_bits  = this->output.bits;
+    this->resend_frame_size = (this->output.bits >> 3) * this->out_channels;
+    if (!this->resend_frame_size)
+      break;
+    this->resend_write = 0;
+    this->resend_wrap  = 0;
+    this->resend_max = RESEND_BUF_SIZE / this->resend_frame_size;
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+      "audio_out: using unpause resend buffer for %d frames / %d pts.\n",
+      this->resend_max, (this->resend_max * this->out_pts_per_kframe) >> 10);
+    return;
+  } while (0);
+  this->driver_caps &= ~AO_CAP_NO_UNPAUSE;
+  this->resend_write = 0;
+  this->resend_wrap  = 0;
+}
+
+static void ao_resend_store (aos_t *this, audio_buffer_t *buf) {
+  uint8_t *q = this->resend_buf + this->resend_write * this->resend_frame_size;
+  int n1 = buf->num_frames;
+  int n2 = this->resend_write + n1;
+  if (n2 > this->resend_max) {
+    n2 -= this->resend_max;
+    n1 -= n2;
+    this->resend_write = n2;
+    this->resend_wrap = 1;
+    n1 *= this->resend_frame_size;
+    xine_fast_memcpy (q, buf->mem, n1);
+    xine_fast_memcpy (this->resend_buf, buf->mem + n1, n2 * this->resend_frame_size);
+  } else if (n2 == this->resend_max) {
+    this->resend_wrap = 1;
+    this->resend_write = 0;
+    n1 *= this->resend_frame_size;
+    xine_fast_memcpy (q, buf->mem, n1);
+  } else {
+    this->resend_write = n2;
+    n1 *= this->resend_frame_size;
+    xine_fast_memcpy (q, buf->mem, n1);
+  }
+  this->resend_vpts = (((uint32_t)buf->num_frames * this->out_pts_per_kframe) >> 10) + buf->vpts;
+}
+
+
 static void ao_fill_gap (aos_t *this, int64_t pts_len) {
   static const uint16_t a52_pause_head[4] = {
     0xf872,
@@ -735,7 +839,7 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
     0x0003,
     0x0020
   };
-  int64_t num_frames = (pts_len * this->frames_per_kpts) >> 10;
+  int64_t num_frames = (pts_len * this->out_frames_per_kpts) >> 10;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
            "audio_out: inserting %" PRId64 " 0-frames to fill a gap of %" PRId64 " pts\n", num_frames, pts_len);
@@ -753,7 +857,7 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
 
   } else {
 
-    int max_frames = _x_ao_mode2channels (this->output.mode) * (this->output.bits >> 3);
+    int max_frames = this->out_channels * (this->output.bits >> 3);
     max_frames = max_frames ? AUDIO_BUF_SIZE / max_frames : 4096;
     memset (this->zero_space, 0, sizeof (a52_pause_head));
     while ((num_frames >= max_frames) && !this->discard_buffers) {
@@ -772,6 +876,70 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
 
   }
 }
+
+static void ao_resend_fill (aos_t *this, int64_t pts_len, int64_t end_time) {
+  int resend_have = this->resend_wrap ? this->resend_max : this->resend_write;
+  int64_t resend_start = this->resend_vpts - ((resend_have * this->out_pts_per_kframe) >> 10);
+  int64_t fill_start = end_time - pts_len;
+  int64_t fill_len;
+
+  fill_len = resend_start - fill_start;
+  if (fill_len > 0) {
+    pts_len -= fill_len;
+    if (pts_len < 0) {
+      fill_len += pts_len;
+      pts_len = 0;
+    }
+    ao_fill_gap (this, fill_len);
+    fill_start += fill_len;
+  }
+  if (pts_len == 0)
+    return;
+
+  fill_len = this->resend_vpts - fill_start;
+  if (fill_len > 0) {
+    int start_frame, fill_frames1, fill_frames2;
+    start_frame = (fill_len * this->out_frames_per_kpts) >> 10;
+    pts_len -= fill_len;
+    if (pts_len < 0) {
+      fill_len += pts_len;
+      pts_len = 0;
+    }
+    fill_frames1 = (fill_len * this->out_frames_per_kpts) >> 10;
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+        "audio_out: resending %d frames / %" PRId64 " pts.\n", fill_frames1, fill_len);
+    start_frame = this->resend_write - start_frame;
+    if (start_frame < 0)
+      start_frame += this->resend_max;
+    fill_frames2 = this->resend_max - start_frame;
+    if (fill_frames2 < fill_frames1) {
+      fill_frames1 -= fill_frames2;
+      if (!this->discard_buffers) {
+        pthread_mutex_lock (&this->driver_lock);
+        if (this->driver_open)
+          this->driver->write (this->driver, (int16_t *)(this->resend_buf + start_frame * this->resend_frame_size), fill_frames2);
+        pthread_mutex_unlock (&this->driver_lock);
+      }
+      if (!this->discard_buffers) {
+        pthread_mutex_lock (&this->driver_lock);
+        if (this->driver_open)
+          this->driver->write (this->driver, (int16_t *)this->resend_buf, fill_frames1);
+        pthread_mutex_unlock (&this->driver_lock);
+      }
+    } else {
+      if (!this->discard_buffers) {
+        pthread_mutex_lock (&this->driver_lock);
+        if (this->driver_open)
+          this->driver->write (this->driver, (int16_t *)(this->resend_buf + start_frame * this->resend_frame_size), fill_frames1);
+        pthread_mutex_unlock (&this->driver_lock);
+      }
+    }
+  }
+
+  if (pts_len > 0)
+    ao_fill_gap (this, pts_len);
+}
+
 
 static void ensure_buffer_size (audio_buffer_t *buf, int bytes_per_frame,
                                 int frames)
@@ -810,22 +978,19 @@ int _x_ao_mode2channels( int mode ) {
   return 0;
 }
 
-int _x_ao_channels2mode( int channels ) {
-
-  switch( channels ) {
-    case 1:
-      return AO_CAP_MODE_MONO;
-    case 2:
-      return AO_CAP_MODE_STEREO;
-    case 3:
-    case 4:
-      return AO_CAP_MODE_4CHANNEL;
-    case 5:
-      return AO_CAP_MODE_5CHANNEL;
-    case 6:
-      return AO_CAP_MODE_5_1CHANNEL;
-  }
-  return AO_CAP_NOCAP;
+int _x_ao_channels2mode (int channels) {
+  static const int modes[9] = {
+    AO_CAP_NOCAP,
+    AO_CAP_MODE_MONO,
+    AO_CAP_MODE_STEREO,
+    AO_CAP_MODE_4CHANNEL,
+    AO_CAP_MODE_4CHANNEL,
+    AO_CAP_MODE_5CHANNEL,
+    AO_CAP_MODE_5_1CHANNEL,
+    AO_CAP_NOCAP,
+    AO_CAP_NOCAP
+  };
+  return modes[(channels >= 0) && (channels < 9) ? channels : 0];
 }
 
 static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
@@ -834,7 +999,7 @@ static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
   double f_max;
   int    num_channels;
 
-  num_channels = _x_ao_mode2channels (this->input.mode);
+  num_channels = this->in_channels;
   if (!num_channels)
     return;
 
@@ -874,7 +1039,7 @@ static void audio_filter_compress (aos_t *this, int16_t *mem, int num_frames) {
 static void audio_filter_amp (aos_t *this, void *buf, int num_frames) {
   double amp_factor;
   int    i;
-  const int total_frames = num_frames * _x_ao_mode2channels (this->input.mode);
+  const int total_frames = num_frames * this->in_channels;
 
   if (!total_frames)
     return;
@@ -981,7 +1146,7 @@ static void audio_filter_equalize (aos_t *this,
   int       length;
   int       num_channels;
 
-  num_channels = _x_ao_mode2channels (this->input.mode);
+  num_channels = this->in_channels;
   if (!num_channels)
     return;
 
@@ -1064,7 +1229,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   if ( this->input.bits == 8 &&
        (this->resample_sync_method || this->do_resample ||
         this->output.bits != 8 || this->input.mode != this->output.mode) ) {
-    int channels = _x_ao_mode2channels(this->input.mode);
+    int channels = this->in_channels;
     ensure_buffer_size(this->frame_buf[1], 2*channels, buf->num_frames );
     _x_audio_out_resample_8to16((int8_t *)buf->mem, this->frame_buf[1]->mem,
                                 channels * buf->num_frames );
@@ -1162,7 +1327,7 @@ static audio_buffer_t* prepare_samples( aos_t *this, audio_buffer_t *buf) {
   if( this->output.bits == 8 &&
         (this->resample_sync_method || this->do_resample ||
          this->input.mode != this->output.mode) ) {
-    int channels = _x_ao_mode2channels(this->output.mode);
+    int channels = this->out_channels;
     ensure_buffer_size(this->frame_buf[1], channels, buf->num_frames );
     _x_audio_out_resample_16to8(buf->mem, (int8_t *)this->frame_buf[1]->mem,
                                 channels * buf->num_frames );
@@ -1348,13 +1513,8 @@ static void *ao_loop (void *this_gen) {
           }
         }
       }
-
-      /* Paranoia? */
-      {
-        int new_speed = this->clock->speed;
-        if (new_speed != (int)(this->current_speed))
-        ao_set_property (&this->ao, AO_PROP_CLOCK_SPEED, new_speed);
-      }
+      if (!this->audio_loop_running)
+        break;
 
       /*
        * wait until user unpauses stream
@@ -1362,12 +1522,12 @@ static void *ao_loop (void *this_gen) {
        * we must process/free buffers otherwise the entire engine will stop.
        */
       pthread_mutex_lock (&this->current_speed_lock);
-      if (this->audio_loop_running &&
-          ((this->current_speed == XINE_SPEED_PAUSE) ||
-          ((this->current_speed != XINE_FINE_SPEED_NORMAL) && !this->slow_fast_audio)))  {
+      if ((this->current_speed == XINE_SPEED_PAUSE) ||
+         ((this->current_speed != XINE_FINE_SPEED_NORMAL) && !this->slow_fast_audio))  {
+
+        cur_time = this->clock->get_current_time (this->clock);
 
         if ((this->current_speed != XINE_SPEED_PAUSE) || this->step) {
-          cur_time = this->clock->get_current_time (this->clock);
           if (in_buf->vpts < cur_time) {
             pthread_mutex_unlock (&this->current_speed_lock);
             this->dropped++;
@@ -1405,10 +1565,21 @@ static void *ao_loop (void *this_gen) {
           }
         }
 
-        lprintf ("loop:pause: I feel sleepy (%d buffers).\n", this->out_fifo.num_buffers);
+        if (this->current_speed != XINE_SPEED_PAUSE) {
+          int wait = (in_buf->vpts - cur_time) * XINE_FINE_SPEED_NORMAL / this->current_speed;
+          wait /= 90;
+          xine_gettime (&this->wake_time);
+          this->use_wake_time = 1;
+          this->wake_time.tv_sec  +=  wait / 1000;
+          this->wake_time.tv_nsec += (wait % 1000) * 1000000;
+          if (this->wake_time.tv_nsec >= 1000000000) {
+            this->wake_time.tv_nsec -= 1000000000;
+            this->wake_time.tv_sec  += 1;
+          }
+        } else {
+          this->use_wake_time = 2;
+        }
         pthread_mutex_unlock (&this->current_speed_lock);
-        xine_usec_sleep (10000);
-        lprintf ("loop:pause: I wake up.\n");
         continue;
       }
       /* end of pause mode */
@@ -1454,8 +1625,10 @@ static void *ao_loop (void *this_gen) {
       }
       cur_time = this->clock->get_current_time (this->clock);
       pthread_mutex_unlock (&this->driver_lock);
-      if (!this->audio_loop_running)
+      if (!this->audio_loop_running) {
+        pthread_mutex_unlock (&this->current_speed_lock);
         break;
+      }
 
       /* current_extra_info not set by video stream or getting too much out of date */
       {
@@ -1481,7 +1654,7 @@ static void *ao_loop (void *this_gen) {
       /* buf timing pt 2: where, in the timeline is the "end" of the hardware audio buffer at the moment? */
       lprintf ("current delay is %d, current time is %" PRId64 "\n", delay, cur_time);
       /* no sound card should delay more than 23.301s ;-) */
-      delay = ((uint32_t)delay * this->pts_per_kframe) >> 10;
+      delay = ((uint32_t)delay * this->out_pts_per_kframe) >> 10;
       /* External A52 decoder delay correction (in pts) */
       delay += this->ptoffs;
       /* calculate gap: */
@@ -1512,7 +1685,10 @@ static void *ao_loop (void *this_gen) {
 
         /* for big gaps output silence */
         this->last_sgap = 0;
-        ao_fill_gap (this, gap);
+        if (!(this->driver_caps & AO_CAP_NO_UNPAUSE))
+          ao_fill_gap (this, gap);
+        else
+          ao_resend_fill (this, gap, in_buf->vpts);
 
       } else if ((abs ((int)gap) > this->gap_tolerance) &&
                  (cur_time > next_sync_time) &&
@@ -1572,6 +1748,11 @@ static void *ao_loop (void *this_gen) {
           printf ("\n");
         }
 #endif
+        if (this->driver_caps & AO_CAP_NO_UNPAUSE) {
+          out_buf->vpts = in_buf->vpts;
+          ao_resend_store (this, out_buf);
+        }
+
         lprintf ("loop: writing %d samples to sound device\n", out_buf->num_frames);
         if (this->driver_open) {
           pthread_mutex_lock (&this->driver_lock);
@@ -1711,7 +1892,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   frame->vpts            = out_buf->vpts;
   frame->num_samples     = out_buf->num_frames;
   frame->sample_rate     = this->input.rate;
-  frame->num_channels    = _x_ao_mode2channels (this->input.mode);
+  frame->num_channels    = this->in_channels;
   frame->bits_per_sample = this->input.bits;
   frame->pos_stream      = out_buf->extra_info->input_normpos;
   frame->pos_time        = out_buf->extra_info->input_time;
@@ -1746,9 +1927,9 @@ static int ao_update_resample_factor(aos_t *this) {
     this->do_resample = 1;
     break;
   default: /* AUTO */
-    if ((this->current_speed != XINE_FINE_SPEED_NORMAL)
-      && (this->current_speed != XINE_SPEED_PAUSE)
-      && this->slow_fast_audio)
+    /* Always set up trick play mode here. If turned off by user, it simply has no effect right now,
+     * but it can be turned on any time later. */
+    if ((this->current_speed != XINE_FINE_SPEED_NORMAL) && (this->current_speed != XINE_SPEED_PAUSE))
       eff_input_rate = (uint64_t)eff_input_rate * this->current_speed / XINE_FINE_SPEED_NORMAL;
     this->do_resample = eff_input_rate != this->output.rate;
   }
@@ -1757,13 +1938,17 @@ static int ao_update_resample_factor(aos_t *this) {
     xprintf (this->xine, XINE_VERBOSITY_DEBUG,
       "audio_out: will resample audio from %u to %d.\n", eff_input_rate, this->output.rate);
 
-  if( !this->slow_fast_audio || this->current_speed == XINE_SPEED_PAUSE )
+  if (this->current_speed == XINE_SPEED_PAUSE)
     this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
   else
     this->frame_rate_factor = ( XINE_FINE_SPEED_NORMAL / (double)this->current_speed ) * ((double)(this->output.rate)) / ((double)(this->input.rate));
-  this->frames_per_kpts = (this->output.rate * 1024 + 45000) / 90000;
-  this->pts_per_kframe  = (90000 * 1024 + (this->output.rate >> 1)) / this->output.rate;
 
+  this->out_frames_per_kpts = (this->output.rate * 1024 + 45000) / 90000;
+  this->out_pts_per_kframe  = (90000 * 1024 + (this->output.rate >> 1)) / this->output.rate;
+  this->out_channels        = _x_ao_mode2channels (this->output.mode);
+  this->in_channels         = _x_ao_mode2channels (this->input.mode);
+
+  ao_resend_init (this);
   ao_eq_update (this);
 
   lprintf ("audio_step %" PRIu32 " pts per 32768 frames\n", this->audio_step);
@@ -1831,13 +2016,12 @@ static int ao_change_settings (aos_t *this, xine_stream_t *stream, uint32_t bits
 
 static inline void ao_driver_lock (aos_t *this) {
   if (pthread_mutex_trylock (&this->driver_lock)) {
-    this->dreqs_wait++;
-
     pthread_mutex_lock (&this->driver_action_lock);
     this->num_driver_actions++;
     pthread_mutex_unlock (&this->driver_action_lock);
 
     pthread_mutex_lock (&this->driver_lock);
+    this->dreqs_wait++;
 
     pthread_mutex_lock (&this->driver_action_lock);
     this->num_driver_actions--;
@@ -1997,9 +2181,45 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 #endif
 }
 
+static void ao_speed_change_cb (void *this_gen, int new_speed) {
+  aos_t *this = (aos_t *)this_gen;
+  /* something to do? */
+  if (new_speed == (int)(this->current_speed))
+    return;
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: new speed %d.\n", new_speed);
+  /* TJ. pthread mutex implementation on my multicore AMD box is somewhat buggy.
+     When fed by a fast single threaded decoder like mad, audio out loop does
+     not release current speed lock long enough to wake us up here.
+     So tell loop to enter unpause waiting _before_ we wait. */
+  this->current_speed = new_speed;
+  /*
+   * slow motion / fast forward does not play sound, drop buffered
+   * samples from the sound driver (check slow_fast_audio flag)
+   */
+  if ((new_speed != XINE_FINE_SPEED_NORMAL) &&
+      (new_speed != XINE_SPEED_PAUSE) &&
+      !this->slow_fast_audio)
+    this->ao.control (&this->ao, AO_CTRL_FLUSH_BUFFERS, NULL);
+
+  if (new_speed == XINE_SPEED_PAUSE) {
+    /* current_speed_lock is here to make sure the ao_loop will pause in a safe place.
+     * that is, we cannot pause writing to device, filling gaps etc. */
+    pthread_mutex_lock (&this->current_speed_lock);
+    this->ao.control (&this->ao, AO_CTRL_PLAY_PAUSE, NULL);
+    pthread_mutex_unlock (&this->current_speed_lock);
+  } else {
+    this->ao.control (&this->ao, AO_CTRL_PLAY_RESUME, NULL);
+  }
+  ao_update_resample_factor (this);
+  ao_out_fifo_signal (this);
+}
+
 static void ao_exit(xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
 
+  _x_freep (&this->resend_buf);
+
+  this->xine->clock->unregister_speed_change_callback (this->xine->clock, ao_speed_change_cb, this);
   this->xine->port_ticket->revoke_cb_unregister (this->xine->port_ticket, ao_ticket_revoked, this);
 
   if (this->audio_loop_running) {
@@ -2173,6 +2393,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     this->step = ret;
     if (ret) {
       struct timespec ts = {0, 0};
+      ao_out_fifo_signal (this);
       xine_gettime (&ts);
       ts.tv_nsec += 500000000;
       if (ts.tv_nsec >= 1000000000) {
@@ -2235,14 +2456,11 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     else
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "audio_out: ao_set_property: discard_buffers is already zero\n");
-    pthread_mutex_unlock (&this->out_fifo.mutex);
-
     ret = this->discard_buffers;
-
     /* discard buffers here because we have no output thread */
-    if (this->grab_only && this->discard_buffers) {
+    if (this->grab_only && ret)
       ao_out_fifo_manual_flush (this);
-    }
+    pthread_mutex_unlock (&this->out_fifo.mutex);
     break;
 
   case AO_PROP_CLOSE_DEVICE:
@@ -2254,32 +2472,8 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     break;
 
   case AO_PROP_CLOCK_SPEED:
-    /* something to do? */
-    if (value == (int)(this->current_speed))
-      break;
-    /* TJ. pthread mutex implementation on my multicore AMD box is somewhat buggy.
-       When fed by a fast single threaded decoder like mad, audio out loop does
-       not release current speed lock long enough to wake us up here.
-       So tell loop to enter unpause waiting _before_ we wait. */
-    this->current_speed = value;
-    /*
-     * slow motion / fast forward does not play sound, drop buffered
-     * samples from the sound driver (check slow_fast_audio flag)
-     */
-    if (value != XINE_FINE_SPEED_NORMAL && value != XINE_SPEED_PAUSE && !this->slow_fast_audio )
-      this->ao.control(&this->ao, AO_CTRL_FLUSH_BUFFERS, NULL);
-
-    if( value == XINE_SPEED_PAUSE ) {
-      /* current_speed_lock is here to make sure the ao_loop will pause in a safe place.
-       * that is, we cannot pause writing to device, filling gaps etc. */
-      pthread_mutex_lock(&this->current_speed_lock);
-      this->ao.control(&this->ao, AO_CTRL_PLAY_PAUSE, NULL);
-      pthread_mutex_unlock(&this->current_speed_lock);
-    } else {
-      this->ao.control(&this->ao, AO_CTRL_PLAY_RESUME, NULL);
-    }
-    if( this->slow_fast_audio )
-      ao_update_resample_factor(this);
+    /* We no longer need this and that speed paranoia hack, and latch on that clock directly instead. */
+    ret = value;
     break;
 
   default:
@@ -2386,6 +2580,7 @@ static void ao_update_ptoffs (void *this_gen, xine_cfg_entry_t *entry) {
 static void ao_update_slow_fast (void *this_gen, xine_cfg_entry_t *entry) {
   aos_t *this = (aos_t *)this_gen;
   this->slow_fast_audio = entry->num_value;
+  ao_out_fifo_signal (this);
 }
 
 xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
@@ -2417,6 +2612,10 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->step                   = 0;
   this->last_gap               = 0;
   this->last_sgap              = 0;
+  this->wake_time.tv_sec       = 0;
+  this->wake_time.tv_nsec      = 0;
+  this->use_wake_time          = 0;
+  this->wake_now               = 0;
   this->compression_factor_max = 0.0;
   this->do_compress            = 0;
   this->do_amp                 = 0;
@@ -2432,6 +2631,17 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->eq_settings[7]         = 0;
   this->eq_settings[8]         = 0;
   this->eq_settings[9]         = 0;
+  this->resend_vpts            = 0;
+  this->driver_caps            = 0;
+  this->resend_speed           = 0;
+  this->resend_rate            = 0;
+  this->resend_mode            = 0;
+  this->resend_bits            = 0;
+  this->resend_write           = 0;
+  this->resend_wrap            = 0;
+  this->resend_max             = 0;
+  this->resend_frame_size      = 0;
+  this->resend_buf             = NULL;
 #endif
 
   this->driver        = driver;
@@ -2643,5 +2853,6 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: thread created\n");
   }
 
+  this->xine->clock->register_speed_change_callback (this->xine->clock, ao_speed_change_cb, this);
   return &this->ao;
 }
