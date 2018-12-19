@@ -312,6 +312,8 @@ int _x_ao_channels2mode( int channels ) XINE_PROTECTED;
 #define AO_CAP_16BITS           0x00001000 /* driver support 16-bit samples  */
 #define AO_CAP_24BITS           0x00002000 /* driver support 24-bit samples  */
 #define AO_CAP_FLOAT32          0x00004000 /* driver support 32-bit samples. i.e. Floats  */
+#define AO_CAP_NO_UNPAUSE       0x00008000 /* driver can not resume after pause.
+                                            * please resend some frames instead. */
 
 /* properties supported by get/set_property() */
 #define AO_PROP_MIXER_VOL       0
