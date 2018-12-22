@@ -186,19 +186,6 @@
 /* Packet readers: 1 (original), 2 (fast experimental) */
 #define TS_PACKET_READER 2
 
-#if ((defined(__GNUC__) && (__GNUC__ >= 4)) || defined(__clang__)) && defined(ARCH_X86)
-static void demux_ts_small_memcpy (void *d, const void *s, size_t l) {
-  __asm__ __volatile__ (
-    "cld\n\trep movsb"
-    : "=D" (d), "=S" (s), "=c" (l)
-    : "0"  (d), "1"  (s), "2"  (l)
-    : "cc"
-  );
-}
-#else
-#  define demux_ts_small_memcpy(d,s,l) memcpy (d, s, l)
-#endif
-
 /* transport stream packet layer */
 #define TSP_sync_byte          0xff000000
 #define TSP_transport_error    0x00800000
@@ -1124,7 +1111,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, const uint8_t *pkt, unsigned in
   }
   if (len > PAT_BUF_SIZE - this->pat_write_pos)
     len = PAT_BUF_SIZE - this->pat_write_pos;
-  demux_ts_small_memcpy (this->pat + this->pat_write_pos, pkt, len);
+  xine_small_memcpy (this->pat + this->pat_write_pos, pkt, len);
   this->pat_write_pos +=len;
 
   /* lets see if we got the section length already */
@@ -1601,21 +1588,21 @@ static void demux_ts_buffer_pes (demux_ts_t*this, const uint8_t *ts,
       this->enlarge_total++;
       if (!new_buf) {
         this->enlarge_ok++;
-        demux_ts_small_memcpy (m->buf->mem + m->buf->size, ts, len);
+        xine_small_memcpy (m->buf->mem + m->buf->size, ts, len);
         m->buf->size += len;
       } else {
         if (room > 0)
-          demux_ts_small_memcpy (m->buf->mem + m->buf->size, ts, room);
+          xine_small_memcpy (m->buf->mem + m->buf->size, ts, room);
         m->pes_bytes_left -= m->buf->max_size;
         m->buf->size = m->buf->max_size;
         demux_ts_send_buffer (this, m, 0);
         m->buf = new_buf;
         /* m->buf->decoder_flags = BUF_FLAG_MERGE; */
-        demux_ts_small_memcpy (m->buf->mem, ts + room, len - room);
+        xine_small_memcpy (m->buf->mem, ts + room, len - room);
         m->buf->size = len - room;
       }
     } else {
-      demux_ts_small_memcpy (m->buf->mem + m->buf->size, ts, len);
+      xine_small_memcpy (m->buf->mem + m->buf->size, ts, len);
       m->buf->size += len;
     }
 
@@ -1766,7 +1753,7 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
   }
   if (plen > (int)sizeof (pmt->buf) - pmt->write_pos)
     plen = sizeof (pmt->buf) - pmt->write_pos;
-  demux_ts_small_memcpy (pmt->buf + pmt->write_pos, pkt, plen);
+  xine_small_memcpy (pmt->buf + pmt->write_pos, pkt, plen);
   pmt->write_pos += plen;
 
   /* lets see if we got the section length already */

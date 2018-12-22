@@ -793,7 +793,7 @@ static char **str_array_dup (const char **from, uint32_t *n) {
   titem = to;
   while (*sitem) {
     *titem++ = q;
-    memcpy (q, *fitem++, *sitem);
+    xine_small_memcpy (q, *fitem++, *sitem);
     q += *sitem++;
   }
   *titem = NULL;
