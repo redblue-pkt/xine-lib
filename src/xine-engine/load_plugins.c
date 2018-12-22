@@ -380,7 +380,7 @@ static plugin_file_t *_insert_file (xine_list_t *list,
   entry->lib_handle = lib;
   entry->ref = 0;
   entry->no_unload = 0;
-  memcpy(entry->filename, filename, name_len + 1);
+  xine_small_memcpy (entry->filename, filename, name_len + 1);
 
   xine_list_push_back (list, entry);
   return entry;
@@ -476,7 +476,7 @@ static int _insert_node (xine_t *this, plugin_file_t *file, fat_node_t *node_cac
     entry->info[0]    = *info;
     q = (char *)entry + sizeof (*entry) + num_supported_types * sizeof (uint32_t);
     entry->info[0].id = q;
-    memcpy (q, info->id, idlen);
+    xine_small_memcpy (q, info->id, idlen);
   }
   entry->lastplugin = entry;
   entry->xine       = this;
@@ -1314,11 +1314,11 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
           n->ainfo.decoder_info.supported_types = &n->supported_types[0];
         }
         if (node.info[0].id) {
-          memcpy (q, node.info[0].id, idlen);
+          xine_small_memcpy (q, node.info[0].id, idlen);
           n->info[0].id = q;
           q += idlen;
         }
-        memcpy (q, node.file.filename, fnlen);
+        xine_small_memcpy (q, node.file.filename, fnlen);
         n->file.filename = q;
         n->node.file = &n->file;
         n->info[0].special_info = &n->ainfo;
@@ -1664,7 +1664,7 @@ int _x_scan_plugins (xine_t *this) {
     size_t len = strlen (homedir);
     if (len > XSP_BUFSIZE - 16)
       len = XSP_BUFSIZE - 16;
-    memcpy (buf, homedir, len);
+    xine_small_memcpy (buf, homedir, len);
     homeend = buf + len;
   }
 
@@ -1697,7 +1697,7 @@ int _x_scan_plugins (xine_t *this) {
       len = stop - start;
       if (len > (size_t)(bufend - q))
         len = bufend - q;
-      memcpy (q, start, len); q += len;
+      xine_small_memcpy (q, start, len); q += len;
       q[0] = 0;
       start = stop + 1;
       collect_plugins (this, try, q, bufend);
@@ -1705,7 +1705,7 @@ int _x_scan_plugins (xine_t *this) {
     len = strlen (start);
     if (len > (size_t)(bufend - q))
       len = bufend - q;
-    memcpy (q, start, len); q += len;
+    xine_small_memcpy (q, start, len); q += len;
     q[0] = 0;
     collect_plugins (this, try, q, bufend);
 
@@ -1720,7 +1720,7 @@ int _x_scan_plugins (xine_t *this) {
 
     p = XINE_PLUGINROOT;
     len = strlen (p);
-    memcpy (buf, p, len);
+    xine_small_memcpy (buf, p, len);
     buf[len++] = '.';
     for (i = XINE_LT_AGE; i >= 0; i--) {
       char *q = buf + len;
@@ -3167,7 +3167,7 @@ static char *_get_demux_strings (xine_t *self, int kind) {
       slitem = slist;
       if (kind) {
         do {
-          memcpy (q, slitem->s, slitem->len);
+          xine_small_memcpy (q, slitem->s, slitem->len);
           q += slitem->len;
           *q++ = ' ';
           slitem++;
@@ -3175,7 +3175,7 @@ static char *_get_demux_strings (xine_t *self, int kind) {
         q[-1] = 0;
       } else {
         do {
-          memcpy (q, slitem->s, slitem->len);
+          xine_small_memcpy (q, slitem->s, slitem->len);
           q += slitem->len;
           slitem++;
         } while (slitem < slend);
