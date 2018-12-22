@@ -266,6 +266,40 @@ typedef enum {
 #define SPC (space + 2 * (MAX_AMF_LEVELS - level))
 #define NEEDBYTES(n) if ((unsigned long int)(end - p) < n) return 0
 
+static unsigned int key_num (const char *key) {
+  static const char * const known_keys[] = {
+    "\x0b""audiocodecid",
+    "\x0a""audiodatarate",
+    "\x0d""audiodelay",
+    "\x07""audiosamplerate",
+    "\x08""audiosamplesize",
+    "\x01""duration",
+    "\x10""filepositions",
+    "\x0c""filesize",
+    "\x04""framerate",
+    "\x03""height",
+    "\x0e""onMetaData",
+    "\x09""stereo",
+    "\x0f""times",
+    "\x06""videocodecid",
+    "\x05""videodatarate",
+    "\x04""videoframerate",
+    "\x02""width"
+  };
+  unsigned int b = 0, e = sizeof (known_keys) / sizeof (known_keys[0]), m = e >> 1;
+  do {
+    int d = strcmp (key, known_keys[m] + 1);
+    if (d < 0)
+      e = m;
+    else if (d > 0)
+      b = m + 1;
+    else
+      return known_keys[m][0];
+    m = (b + e) >> 1;
+  } while (b != e);
+  return 0;
+}
+
 static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
   unsigned char *p = buf, *end = buf + size, *name, space[2 * MAX_AMF_LEVELS + 3];
   int level = 0, i, type, count[MAX_AMF_LEVELS], info = 0;
@@ -280,6 +314,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
   /* top level has nameless vars */
   count[0] = 10000;
   while (1) {
+    unsigned int keynum;
     if (count[level] > 0) {
       /* next strict array item */
       if (--count[level] == 0) {
@@ -291,6 +326,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
       if (p >= end) break;
       type = *p++;
       name = NULL;
+      keynum = 0;
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "%s", SPC);
     } else {
       /* get current name */
@@ -311,6 +347,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
       type = *p;
       *p++ = 0x00;
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "%s%s = ", SPC, name);
+      keynum = key_num ((char *)name);
     }
     switch (type) {
       case AMF0_NUMBER:
@@ -320,44 +357,56 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         if (i == val) xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "%d\n", i);
         else xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "%.03lf\n", val);
         p += 8;
-        if (name && info) {
-          if (!strcmp (name, "duration")) {
-            this->length = val * (double)1000;
-          } else if (!strcmp (name, "width")) {
-            this->width = i;
-            _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, i);
-          } else if (!strcmp (name, "height")) {
-            this->height = i;
-            _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, i);
-          } else if (!strcmp (name, "framerate") || !strcmp (name, "videoframerate")) {
-            if ((i > 0) && (i < 1000)) {
-              this->duration = (double)90000 / val;
-              _x_stream_info_set (this->stream, XINE_STREAM_INFO_FRAME_DURATION,
-                this->duration);
-            }
-          } else if (!strcmp (name, "videodatarate")) {
-            _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_BITRATE,
-              val * (double)1000);
-          } else if (!strcmp (name, "videocodecid")) {
-            this->videocodec = i;
-          } else if (!strcmp (name, "audiosamplerate")) {
-            this->samplerate = i;
-            _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, i);
-          } else if (!strcmp (name, "audiosamplesize")) {
-            this->samplesize = i;
-            _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_BITS, i);
-          } else if (!strcmp (name, "stereo")) {
-            this->audio_channels = i ? 2 : 1;
-            _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, i);
-          } else if (!strcmp (name, "audiodatarate")) {
-            _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
-              val * (double)1000);
-          } else if (!strcmp (name, "audiocodecid")) {
-            this->audiocodec = i;
-          } else if (!strcmp (name, "filesize")) {
-            this->filesize = val;
-          } else if (!strcmp (name, "audiodelay")) {
-            this->audiodelay = val * (double)-1000;
+        if (info) {
+          switch (keynum) {
+            case 0x01: /* "duration" */
+              this->length = val * (double)1000;
+            break;
+            case 0x02: /* "width" */
+              this->width = i;
+              _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, i);
+            break;
+            case 0x03: /* "height" */
+              this->height = i;
+              _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, i);
+            break;
+            case 0x04: /* "framerate", "videoframerate" */
+              if ((i > 0) && (i < 1000)) {
+                this->duration = (double)90000 / val;
+                _x_stream_info_set (this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
+              }
+            break;
+            case 0x05: /* "videodatarate" */
+              _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_BITRATE, val * (double)1000);
+            break;
+            case 0x06: /* "videocodecid" */
+              this->videocodec = i;
+            break;
+            case 0x07: /* "audiosamplerate" */
+              this->samplerate = i;
+              _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, i);
+            break;
+            case 0x08: /* "audiosamplesize" */
+              this->samplesize = i;
+              _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_BITS, i);
+            break;
+            case 0x09: /* "stereo" */
+              this->audio_channels = i ? 2 : 1;
+              _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, i);
+            break;
+            case 0x0a: /* "audiodatarate" */
+              _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, val * (double)1000);
+            break;
+            case 0x0b: /* "audiocodecid" */
+              this->audiocodec = i;
+            break;
+            case 0x0c: /* "filesize" */
+              this->filesize = val;
+            break;
+            case 0x0d: /* "audiodelay" */
+              this->audiodelay = val * (double)-1000;
+            break;
+            default: ;
           }
         }
       break;
@@ -365,8 +414,8 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         NEEDBYTES (1);
         i = !!(*p++);
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "%s\n", i ? "yes" : "no");
-        if (name && info) {
-          if (!strcmp (name, "stereo"))
+        if (info) {
+          if (keynum == 0x09) /* "stereo" */
             this->audio_channels = i ? 2 : 1;
         }
       break;
@@ -378,15 +427,22 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         c = p[u];
         p[u] = 0x00;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "\"%s\"\n", p);
-        if (!level && !strcmp (p, "onMetaData")) info = this->got_info = 1;
-        if (name && info) {
-          if ((!strcmp (name, "audiocodecid")) && (!strcmp (p, "mp4a")))
-            this->audiocodec = AF_AAC;
-          else if ((!strcmp (name, "videocodecid")) && (!strcmp (p, "avc1")))
-            this->videocodec = VF_H264;
-          else if (!strcmp (name, "stereo")) {
-            if (!strcmp (p, "true") || !strcmp (p, "yes"))
-              this->audio_channels = 2;
+        if (!level && !memcmp (p, "onMetaData", 11)) info = this->got_info = 1;
+        if (info) {
+          switch (keynum) {
+            case 0x0b: /* "audiocodecid" */
+              if (!memcmp (p, "mp4a", 5))
+                this->audiocodec = AF_AAC;
+            break;
+            case 0x06: /* "videocodecid" */
+              if (!memcmp (p, "avc1", 5))
+                this->videocodec = VF_H264;
+            break;
+            case 0x09: /* "stereo" */
+              if (!memcmp (p, "true", 5) || !memcmp (p, "yes", 4))
+                this->audio_channels = 2;
+            break;
+            default: ;
           }
         }
         p[u] = c;
@@ -421,12 +477,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         NEEDBYTES (4);
         u = _X_BE_32 (p);
         p += 4;
-        c = 0;
-        if (name) {
-          if (!strcmp (name, "times")) c = 1;
-          else if (!strcmp (name, "filepositions")) c = 2;
-        }
-        if (c) {
+        if ((keynum == 0x0f) || (keynum == 0x10)) { /* "times", "filepositions" */
           NEEDBYTES (u * 9);
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "[%d] {..}\n", u);
           if (!this->index || (this->num_indices != u)) {
@@ -435,14 +486,18 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
             if (!this->index) return 0;
             this->num_indices = u;
           }
-          if (c == 1) for (i = 0; i < (int)u; i++) {
-            if (*p++ != AMF0_NUMBER) return 0;
-            this->index[i].pts = BE_F64 (p) * (double)1000;
-            p += 8;
-          } else for (i = 0; i < (int)u; i++) {
-            if (*p++ != AMF0_NUMBER) return 0;
-            this->index[i].offset = BE_F64 (p);
-            p += 8;
+          if (keynum == 0x0f) { /* "times" */
+            for (i = 0; i < (int)u; i++) {
+              if (*p++ != AMF0_NUMBER) return 0;
+              this->index[i].pts = BE_F64 (p) * (double)1000;
+              p += 8;
+            }
+          } else { /* "filepositions" */
+            for (i = 0; i < (int)u; i++) {
+              if (*p++ != AMF0_NUMBER) return 0;
+              this->index[i].offset = BE_F64 (p);
+              p += 8;
+            }
           }
         } else {
           if (++level >= MAX_AMF_LEVELS) return 0;
@@ -531,7 +586,7 @@ static int read_flv_packet(demux_flv_t *this, int preview) {
       this->status = DEMUX_FINISHED;
       return this->status;
     }
-    remaining_bytes = _X_BE_24(&buffer[5]);
+    remaining_bytes = _X_BE_32 (&buffer[4]) & 0xffffff;
     /* skip empty tags */
     if (--remaining_bytes < 0)
       continue;
@@ -657,7 +712,7 @@ static int read_flv_packet(demux_flv_t *this, int preview) {
             if (!buffer[16])
               mp4header = 1;
             /* pts really is dts here, buffer[17..19] has (pts - dts) signed big endian. */
-            ptsoffs = _X_BE_24 (buffer + 17);
+            ptsoffs = _X_BE_32 (buffer + 16) & 0xffffff;
             if (ptsoffs & 0x800000)
               ptsoffs |= ~0xffffff;
             /* better: +/- 16 frames, but we cannot trust header framerate */
@@ -938,7 +993,7 @@ static void seek_flv_file (demux_flv_t *this, off_t seek_pos, int seek_pts) {
         if (!this->videocodec) found = pos;
         if (i < 0) break;
         /* Traverse forward. */
-        pos += _X_BE_24 (&buf[5]) + 15;
+        pos += (_X_BE_32 (&buf[4]) & 0xffffff) + 15;
         i = 1;
       }
     }
