@@ -1681,7 +1681,7 @@ int xine_open (xine_stream_t *stream, const char *mrl) {
 }
 
 static void wait_first_frame (xine_stream_t *stream) {
-  if (stream->video_decoder_plugin) {
+  if (stream->video_decoder_plugin || stream->audio_decoder_plugin) {
     pthread_mutex_lock (&stream->first_frame_lock);
     if (stream->first_frame_flag > 0) {
       struct timespec ts = {0, 0};
@@ -1699,9 +1699,13 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
   int        first_frame_flag = 3;
   int        demux_status;
   int        demux_thread_running;
+  struct     timespec ts1 = {0, 0}, ts2 = {0, 0};
 
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
-    "xine_play (%d.%03d, %d)\n", start_time / 1000, start_time % 1000, start_pos);
+  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+    xine_gettime (&ts1);
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+      "play_internal (%d.%03d, %d)\n", start_time / 1000, start_time % 1000, start_pos);
+  }
 
   if (!stream->demux_plugin) {
     xine_log (stream->xine, XINE_LOG_MSG, _("xine_play: no demux available\n"));
@@ -1716,7 +1720,7 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
   }
   flush = (stream->master == stream) && !stream->gapless_switch && !stream->finished_naturally;
   if (!flush)
-    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "xine_play: using gapless switch\n");
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "play_internal: using gapless switch.\n");
 
   /* hint demuxer thread we want to interrupt it */
   _x_action_raise(stream);
@@ -1807,8 +1811,17 @@ static int play_internal (xine_stream_t *stream, int start_pos, int start_time) 
    * see video_out.c
    */
   wait_first_frame (stream);
-
-  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "play_internal ...done\n");
+  if (stream->current_extra_info->seek_count != stream->video_seek_count)
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "play_internal: warning: seek count still %d != %d.\n",
+      stream->current_extra_info->seek_count, stream->video_seek_count);
+    
+  if (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+    int diff;
+    xine_gettime (&ts2);
+    diff = (int)(ts2.tv_nsec - ts1.tv_nsec) / 1000000;
+    diff += (ts2.tv_sec - ts1.tv_sec) * 1000;
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "play_internal: ...done after %dms.\n", diff);
+  }
 
   return 1;
 
