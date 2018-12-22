@@ -197,6 +197,29 @@ int xine_cpu_count(void) XINE_CONST XINE_PROTECTED;
 
 extern void *(* xine_fast_memcpy)(void *to, const void *from, size_t len) XINE_PROTECTED;
 
+/* len (usually) < 500, but not a build time constant. */
+#define xine_small_memcpy(xsm_to,xsm_from,xsm_len) memcpy (xsm_to, xsm_from, xsm_len)
+
+#if (defined(__GNUC__) && (__GNUC__ >= 4)) || defined(__clang__)
+#  if defined(ARCH_X86)
+#    undef xine_small_memcpy
+static inline void *xine_small_memcpy (void *to, const void *from, size_t len) {
+  void *t2 = to;
+  size_t l2 = len;
+  __asm__ __volatile__ (
+    "cld\n\trep movsb"
+    : "=S" (from), "=D" (t2), "=c" (l2), "=m" (*(struct {char foo[len];} *)to)
+    : "0"  (from), "1"  (t2), "2"  (l2)
+    : "cc"
+  );
+  (void)from;
+  (void)t2;
+  (void)l2;
+  return to;
+}
+#  endif
+#endif
+
 /*
  * Debug stuff
  */
