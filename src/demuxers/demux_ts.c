@@ -222,6 +222,9 @@
 #if TS_PACKET_READER == 2
    /* smallest common multiple of 188 and 192 is 9024 */
 #  define BUF_SIZE (2 * 9024)
+   /* Kaffeine feeds us through a named pipe. When recording to disk at the same time,
+    * a large read buffer provokes a lot of waiting and extra video frame drops. */
+#  define SMALL_BUF_SIZE (1 * 9024)
 #endif
 
 #define CORRUPT_PES_THRESHOLD 10
@@ -604,6 +607,7 @@ typedef struct {
 #if TS_PACKET_READER == 2
   int     buf_pos;
   int     buf_size;
+  int     buf_max;
 #endif
   uint8_t buf[BUF_SIZE]; /* == PKT_SIZE * NPKT_PER_READ */
 
@@ -2523,7 +2527,7 @@ static const uint8_t *sync_next (demux_ts_t *this) {
     /* refill */
     this->frame_pos = this->input->get_current_pos (this->input);
     {
-      int n = this->input->read (this->input, this->buf + this->buf_size, BUF_SIZE - this->buf_size);
+      int n = this->input->read (this->input, this->buf + this->buf_size, this->buf_max - this->buf_size);
       if (n <= 0) {
         if (--reread <= 0) {
           demux_ts_flush (this);
@@ -3135,6 +3139,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->enlarge_total      = 0;
   this->enlarge_ok         = 0;
 #endif
+
+#  if TS_PACKET_READER == 2
+  this->buf_max   = (input->get_capabilities (input) & INPUT_CAP_SEEKABLE) ? BUF_SIZE : SMALL_BUF_SIZE;
+#  endif
 
   this->stream    = stream;
   this->input     = input;
