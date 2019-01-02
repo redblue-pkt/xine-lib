@@ -579,6 +579,19 @@ static int _plugin_node_comparator(void *a, void *b) {
   return (node_a->priority < node_b->priority) - (node_a->priority > node_b->priority);
 }
 
+/* xine-ui simply makes a user config enum from post plugin list, and assumes the first one
+ * as the default. This effectively becomes a random choice, depending on the presence of
+ * other plugins, and of the order the file system returns them. So lets sort them by name
+ * as well here. */
+static int _post_plugin_node_comparator (void *a, void *b) {
+  const plugin_node_t *node_a = (const plugin_node_t *)a;
+  const plugin_node_t *node_b = (const plugin_node_t *)b;
+
+  if (node_a->priority != node_b->priority)
+    return node_a->priority < node_b->priority ? 1 : -1;
+  return strcmp (node_a->info->id, node_b->info->id);
+}
+
 static plugin_catalog_t *_new_catalog(void){
   plugin_catalog_t *catalog;
 
@@ -586,7 +599,8 @@ static plugin_catalog_t *_new_catalog(void){
   if (catalog) {
     int i;
     for (i = 0; i < PLUGIN_TYPE_MAX; i++) {
-      catalog->plugin_lists[i] = xine_sarray_new (0, _plugin_node_comparator);
+      catalog->plugin_lists[i] = xine_sarray_new (0,
+        i == PLUGIN_POST - 1 ? _post_plugin_node_comparator : _plugin_node_comparator);
       if (!catalog->plugin_lists[i])
         break;
     }
