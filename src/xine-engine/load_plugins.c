@@ -191,24 +191,36 @@ static int _fat_node_file_cmp (void *a_gen, void *b_gen) {
 }
 
 
-static void _build_list_typed_plugins(plugin_catalog_t **catalog, xine_sarray_t *type) {
+/* Note const char * --> void * is ok here as the strings are never written to. */
+typedef int (_cmp_func_t) (void *a, void *b);
+
+static const char * const *_build_list_typed_plugins (xine_t *xine, int type) {
+  plugin_catalog_t *catalog = xine->plugin_catalog;
+  xine_sarray_t    *a, *list;
   plugin_node_t    *node;
-  int               list_id, list_size;
-  int               i, j;
+  int               list_id, list_size, i;
 
-  list_size = xine_sarray_size (type);
-  for (list_id = 0, i = 0; list_id < list_size; list_id++) {
-    node = xine_sarray_get(type, list_id);
-
-    /* add only unique ids to the list */
-    for ( j = 0; j < i; j++ ) {
-      if( !strcmp((*catalog)->ids[j], node->info->id) )
-        break;
-    }
-    if ( j == i )
-      (*catalog)->ids[i++] = node->info->id;
+  pthread_mutex_lock (&catalog->lock);
+  list = catalog->plugin_lists[type - 1];
+  list_size = xine_sarray_size (list);
+  a = xine_sarray_new (list_size, (_cmp_func_t *)strcmp);
+  if (!a) {
+    catalog->ids[0] = NULL;
+    pthread_mutex_unlock (&catalog->lock);
+    return catalog->ids;
   }
-  (*catalog)->ids[i] = NULL;
+  xine_sarray_set_mode (a, XINE_SARRAY_MODE_UNIQUE);
+  for (list_id = 0, i = 0; list_id < list_size; list_id++) {
+    node = xine_sarray_get (list, list_id);
+    /* add only unique ids to the list */
+    if (xine_sarray_add (a, (void *)node->info->id) >= 0)
+      catalog->ids[i++] = node->info->id;
+  }
+  catalog->ids[i] = NULL;
+  pthread_mutex_unlock (&catalog->lock);
+
+  xine_sarray_delete (a);
+  return catalog->ids;
 }
 
 static void inc_file_ref(plugin_file_t *file) {
@@ -2325,23 +2337,11 @@ xine_video_port_t *xine_new_framegrab_video_port (xine_t *this) {
  */
 
 const char *const *xine_list_audio_output_plugins (xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_AUDIO_OUT - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_AUDIO_OUT);
 }
 
 const char *const *xine_list_video_output_plugins (xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_VIDEO_OUT - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_VIDEO_OUT);
 }
 
 const char *const *xine_list_video_output_plugins_typed(xine_t *xine, uint64_t typemask)
@@ -2931,63 +2931,27 @@ void _x_free_spu_decoder (xine_stream_t *stream, spu_decoder_t *sd) {
 }
 
 const char *const *xine_list_demuxer_plugins(xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_DEMUX - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_DEMUX);
 }
 
 const char *const *xine_list_input_plugins(xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_INPUT - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_INPUT);
 }
 
 const char *const *xine_list_spu_plugins(xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_SPU_DECODER - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_SPU_DECODER);
 }
 
 const char *const *xine_list_audio_decoder_plugins(xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_AUDIO_DECODER - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_AUDIO_DECODER);
 }
 
 const char *const *xine_list_video_decoder_plugins(xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_VIDEO_DECODER - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_VIDEO_DECODER);
 }
 
 const char *const *xine_list_post_plugins(xine_t *xine) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-
-  pthread_mutex_lock (&catalog->lock);
-  _build_list_typed_plugins(&catalog, catalog->plugin_lists[PLUGIN_POST - 1]);
-  pthread_mutex_unlock (&catalog->lock);
-
-  return catalog->ids;
+  return _build_list_typed_plugins (xine, PLUGIN_POST);
 }
 
 const char *const *xine_list_post_plugins_typed(xine_t *xine, uint32_t type) {
