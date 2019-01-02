@@ -73,8 +73,6 @@
 
 #include "builtins.h"
 
-#define LINE_MAX_LENGTH   (1024 * 32)  /* 32 KiB */
-
 #if 0
 
 static char *plugin_name;
@@ -675,7 +673,6 @@ static void _register_plugins_internal (xine_t *this, plugin_file_t *file,
   if (info == xine_builtin_plugin_info)
     names = builtin_names;
 #endif
-  _x_assert(this);
 /* we had worse NOPs before ;-)
   _x_assert(info); */
 
@@ -707,7 +704,8 @@ static void _register_plugins_internal (xine_t *this, plugin_file_t *file,
 }
 
 void xine_register_plugins(xine_t *self, const plugin_info_t *info) {
-  _register_plugins_internal(self, NULL, NULL, info);
+  if (self)
+    _register_plugins_internal (self, NULL, NULL, info);
 }
 
 /*
@@ -1009,7 +1007,6 @@ static int _load_plugin_class(xine_t *this,
 
 static void _dispose_plugin_class(plugin_node_t *node) {
 
-  _x_assert(node);
   if (node->plugin_class) {
     void *cls = node->plugin_class;
 
@@ -1901,8 +1898,6 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
   methods[0] = method1;
   methods[1] = method2;
   methods[2] = -1;
-
-  _x_assert(methods[0] != -1);
 
   i = 0;
   while (methods[i] != -1 && !plugin) {
@@ -3201,10 +3196,7 @@ char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) {
 
     node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
     if (probe_mime_type (self, node, mime_type))
-    {
-      free (id);
       id = strdup(node->info->id);
-    }
   }
 
   pthread_mutex_unlock (&catalog->lock);
