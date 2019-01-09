@@ -148,7 +148,6 @@ typedef struct {
 
   config_values_t   *config;
 
-  uint32_t          capabilities;
   xine_t            *xine;
 
   int		            zoom_x;
@@ -1664,9 +1663,21 @@ static int opengl2_gui_data_exchange( vo_driver_t *this_gen, int data_type, void
 
 static uint32_t opengl2_get_capabilities( vo_driver_t *this_gen )
 {
-  opengl2_driver_t *this = (opengl2_driver_t *) this_gen;
+  (void)this_gen;
 
-  return this->capabilities;
+  return VO_CAP_YV12 |
+         VO_CAP_YUY2 |
+         VO_CAP_CROP |
+         VO_CAP_UNSCALED_OVERLAY |
+         VO_CAP_CUSTOM_EXTENT_OVERLAY |
+         VO_CAP_ARGB_LAYER_OVERLAY |
+      /* VO_CAP_VIDEO_WINDOW_OVERLAY | */
+         VO_CAP_COLOR_MATRIX |
+         VO_CAP_FULLRANGE |
+         VO_CAP_HUE |
+         VO_CAP_SATURATION |
+         VO_CAP_CONTRAST |
+         VO_CAP_BRIGHTNESS;
 }
 
 
@@ -1903,20 +1914,6 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   //this->mglXSwapInterval = (GLXSWAPINTERVALSGI)glXGetProcAddressARB( (const GLubyte*)"glXSwapIntervalSGI" );
 
   this->gl->release_current(this->gl);
-
-  this->capabilities = VO_CAP_YV12
-                     | VO_CAP_YUY2
-                     | VO_CAP_CROP
-                     | VO_CAP_UNSCALED_OVERLAY
-                     | VO_CAP_CUSTOM_EXTENT_OVERLAY
-                     | VO_CAP_ARGB_LAYER_OVERLAY /* | VO_CAP_VIDEO_WINDOW_OVERLAY */
-                     | VO_CAP_COLOR_MATRIX
-                     | VO_CAP_FULLRANGE
-                     | VO_CAP_HUE
-                     | VO_CAP_SATURATION
-                     | VO_CAP_CONTRAST
-                     | VO_CAP_BRIGHTNESS
-                     | VO_CAP_SHARPNESS;
 
   this->update_csc = 1;
   this->color_standard = 10;
