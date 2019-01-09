@@ -541,121 +541,6 @@ static inline void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) 
  * lazyqt functions
  **********************************************************************/
 
-/*
- * This function traverses a file and looks for a moov atom. Returns the
- * file offset of the beginning of the moov atom (that means the offset
- * of the 4-byte length preceding the characters 'moov'). Returns -1
- * if no moov atom was found.
- *
- * Note: Do not count on the input stream being positioned anywhere in
- * particular when this function is finished.
- */
-static void find_moov_atom(input_plugin_t *input, off_t *moov_offset,
-  int64_t *moov_size) {
-
-  off_t atom_size;
-  qt_atom atom;
-  unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
-  int unknown_atoms = 0;
-
-  off_t free_moov_offset = -1;
-  int64_t free_moov_size = 0;
-
-  /* init the passed variables */
-  *moov_offset = *moov_size = -1;
-
-  /* take it from the top */
-  if (input->seek(input, 0, SEEK_SET) != 0)
-    return;
-
-  /* traverse through the input */
-  while (*moov_offset == -1) {
-    if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
-      ATOM_PREAMBLE_SIZE)
-      break;
-
-    atom_size = _X_BE_32(&atom_preamble[0]);
-    atom = _X_BE_32(&atom_preamble[4]);
-
-    /* Special case alert: 'free' atoms sometimes masquerade as 'moov'
-     * atoms. If this is a free atom, check for 'cmov' or 'mvhd' immediately
-     * following. QT Player can handle it, so xine should too. */
-    if (atom == FREE_ATOM) {
-
-      /* get the next atom preamble */
-      if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
-        ATOM_PREAMBLE_SIZE)
-        break;
-
-      /* if there is a cmov, qualify this free atom as the 'moov' atom
-       * if no actual 'moov' atom is found. */
-      if ((_X_BE_32(&atom_preamble[4]) == CMOV_ATOM) ||
-          (_X_BE_32(&atom_preamble[4]) == MVHD_ATOM)) {
-        /* pos = current pos minus 2 atom preambles */
-        free_moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE * 2;
-        free_moov_size = atom_size;
-      }
-
-      /* rewind the stream so we can keep looking */
-      if (input->seek(input, -ATOM_PREAMBLE_SIZE, SEEK_CUR) < 0)
-        return;
-    }
-
-    /* if the moov atom is found, log the position and break from the loop */
-    if (atom == MOOV_ATOM) {
-      *moov_offset = input->get_current_pos(input) - ATOM_PREAMBLE_SIZE;
-      *moov_size = atom_size;
-      break;
-    }
-
-    /* if this atom is not the moov atom, make sure that it is at least one
-     * of the other top-level QT atom.
-     * However, allow a configurable amount ( currently 1 ) atom be a
-     * non known atom, in hopes a known atom will be found */
-    if ((atom != FREE_ATOM) &&
-        (atom != JUNK_ATOM) &&
-        (atom != MDAT_ATOM) &&
-        (atom != PNOT_ATOM) &&
-        (atom != SKIP_ATOM) &&
-        (atom != WIDE_ATOM) &&
-        (atom != PICT_ATOM) &&
-        (atom != FTYP_ATOM) ) {
-      if (unknown_atoms > 1)
-        break;
-      else
-       unknown_atoms++;
-    }
-
-    /* 0 special case-- just skip the atom */
-    if (atom_size == 0)
-      atom_size = 8;
-    /* 64-bit length special case */
-    if (atom_size == 1) {
-      if (input->read(input, atom_preamble, ATOM_PREAMBLE_SIZE) !=
-        ATOM_PREAMBLE_SIZE)
-        break;
-
-      atom_size = _X_BE_32(&atom_preamble[0]);
-      atom_size <<= 32;
-      atom_size |= _X_BE_32(&atom_preamble[4]);
-      atom_size -= ATOM_PREAMBLE_SIZE * 2;
-    } else
-      atom_size -= ATOM_PREAMBLE_SIZE;
-
-    if (input->seek(input, atom_size, SEEK_CUR) < 0)
-      return;
-  }
-
-  /* reset to the start of the stream on the way out */
-  if (input->seek(input, 0, SEEK_SET) != 0)
-    return;
-
-  if ((*moov_offset == -1) && (free_moov_offset != -1)) {
-    *moov_offset = free_moov_offset;
-    *moov_size = free_moov_size;
-  }
-}
-
 /* create a qt_info structure or return NULL if no memory */
 static qt_info *create_qt_info (demux_qt_t *demux) {
   qt_info *info = &demux->qt;
@@ -729,57 +614,6 @@ static void free_qt_info(qt_info *info) {
     free(info->composer);
     free(info->year);
     memset (info, 0, sizeof (*info));
-  }
-}
-
-/* returns 1 if the file is determined to be a QT file, 0 otherwise */
-static int is_qt_file(input_plugin_t *qt_file) {
-
-  off_t moov_atom_offset = -1;
-  int64_t moov_atom_size = -1;
-  int i;
-
-  /* if the input is non-seekable, be much more stringent about qualifying
-   * a QT file: In this case, the moov must be the first atom in the file */
-  if ((qt_file->get_capabilities(qt_file) & INPUT_CAP_SEEKABLE) == 0) {
-    unsigned char preview[MAX_PREVIEW_SIZE] = { 0, };
-    qt_file->get_optional_data(qt_file, preview, INPUT_OPTIONAL_DATA_PREVIEW);
-    if (_X_BE_32(&preview[4]) == MOOV_ATOM)
-      return 1;
-    else {
-      if (_X_BE_32(&preview[4]) != FTYP_ATOM)
-	return 0;
-
-      /* show some lenience if the first atom is 'ftyp'; the second atom
-       * could be 'moov'
-       * compute the size of the current atom plus the preamble of the
-       * next atom; if the size is within the range on the preview buffer
-       * then the next atom's preamble is in the preview buffer */
-      uint64_t ftyp_atom_size = _X_BE_32(&preview[0]) + ATOM_PREAMBLE_SIZE;
-      if (ftyp_atom_size >= MAX_PREVIEW_SIZE)
-	return 0;
-      return _X_BE_32(&preview[ftyp_atom_size - 4]) == MOOV_ATOM;
-    }
-  }
-
-  find_moov_atom(qt_file, &moov_atom_offset, &moov_atom_size);
-  if (moov_atom_offset == -1) {
-    return 0;
-  } else {
-    unsigned char atom_preamble[ATOM_PREAMBLE_SIZE];
-    /* check that the next atom in the chunk contains alphanumeric
-     * characters in the atom type field; if not, disqualify the file
-     * as a QT file */
-    if (qt_file->seek(qt_file, moov_atom_offset + ATOM_PREAMBLE_SIZE, SEEK_SET) < 0)
-      return 0;
-    if (qt_file->read(qt_file, atom_preamble, ATOM_PREAMBLE_SIZE) !=
-      ATOM_PREAMBLE_SIZE)
-      return 0;
-
-    for (i = 4; i < 8; i++)
-      if (!isalnum(atom_preamble[i]))
-        return 0;
-    return 1;
   }
 }
 
@@ -2840,12 +2674,163 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
   }
 }
 
-static qt_error open_qt_file(qt_info *info, input_plugin_t *input,
-                             int64_t bandwidth) {
+static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom, off_t *moov_atom_offset) {
+  unsigned char buf[MAX_PREVIEW_SIZE] = { 0, }, *p;
+  uint64_t size = 0;
+  uint32_t hsize;
+  uint32_t type = 0;
+  uint64_t pos  = 0;
+  /* "moov" sometimes is wrongly marked as "free". Use that when there is no real one. */
+  uint64_t free_pos = 0;
+  uint64_t free_size = 0;
+  /* Quick detect non-qt files: more than 1 unknown top level atom. */
+  int unknown_atoms = 1;
 
-  unsigned char *moov_atom = NULL;
-  off_t moov_atom_offset = -1;
-  int64_t moov_atom_size = -1;
+  /* ffmpeg encodes .mp4 with "mdat" before "moov" because it does not know the table sizes needed before.
+   * Some folks actually offer such files as is for streaming.
+   * Thats why we distinctly use slow seek here as well. */
+  if (input->get_capabilities (input) & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) {
+
+    while (1) {
+      hsize = 8;
+      if (input->seek (input, pos, SEEK_SET) != (off_t)pos)
+        break;
+      if (input->read (input, buf, 8) != 8)
+        break;
+      size = _X_BE_32 (buf);
+      type = _X_BE_32 (buf + 4);
+      if (size == 1) {
+        hsize = 16;
+        if (input->read (input, buf + 8, 8) != 8)
+          return QT_FILE_READ_ERROR;
+        size = _X_BE_64 (buf + 8);
+        if (size < 16)
+          break;
+        if (size >= ((uint64_t)1 << 63))
+          break;
+      } else if (size < 8) {
+        size = input->get_length (input) - pos;
+      }
+      if (type == MOOV_ATOM)
+        break;
+      if (type == FREE_ATOM) {
+        if ((size - hsize >= 8) && (input->read (input, buf + hsize, 8) == 8)) {
+          type = _X_BE_32 (buf + hsize + 4);
+          hsize += 8;
+          if ((type == MVHD_ATOM) || (type == CMOV_ATOM)) {
+            free_pos = pos;
+            free_size = size;
+          }
+        }
+      }
+      if ((type != FREE_ATOM) &&
+          (type != JUNK_ATOM) &&
+          (type != MDAT_ATOM) &&
+          (type != PNOT_ATOM) &&
+          (type != SKIP_ATOM) &&
+          (type != WIDE_ATOM) &&
+          (type != PICT_ATOM) &&
+          (type != FTYP_ATOM)) {
+        if (--unknown_atoms < 0)
+          return QT_NOT_A_VALID_FILE;
+      }
+      pos += size;
+    }
+    p = buf;
+    if ((type != MOOV_ATOM) && free_size) {
+      type = MOOV_ATOM;
+      pos  = free_pos;
+      size = free_size;
+      hsize = 0;
+      if (input->seek (input, pos, SEEK_SET) != (off_t)pos)
+        return QT_NO_MOOV_ATOM;
+    }
+    if (type != MOOV_ATOM)
+      return QT_NOT_A_VALID_FILE;
+
+  } else {
+
+    int have = input->get_optional_data (input, buf, INPUT_OPTIONAL_DATA_PREVIEW);
+    if (have < 32)
+      return QT_FILE_READ_ERROR;
+    while (1) {
+      hsize = 8;
+      if (pos > (unsigned int)have - 8)
+        break;
+      p = buf + pos;
+      size = _X_BE_32 (p);
+      type = _X_BE_32 (p + 4);
+      if (size == 1) {
+        hsize = 16;
+        if (pos > (unsigned int)have - 16)
+          break;
+        size = _X_BE_64 (p + 8);
+        if (size < 16)
+          return QT_NO_MOOV_ATOM;
+        if (size >= ((uint64_t)1 << 63))
+          return QT_NO_MOOV_ATOM;
+      } else if (size < 8) {
+        size = have - pos;
+      }
+      if (type == MOOV_ATOM)
+        break;
+      if (type == FREE_ATOM) {
+        if (pos <= (unsigned int)have - hsize - 8) {
+          type = _X_BE_32 (p + hsize + 4);
+          hsize += 8;
+          if ((type == MVHD_ATOM) || (type == CMOV_ATOM)) {
+            free_pos = pos;
+            free_size = size;
+          }
+        }
+      }
+      if ((type != FREE_ATOM) &&
+          (type != JUNK_ATOM) &&
+          (type != MDAT_ATOM) &&
+          (type != PNOT_ATOM) &&
+          (type != SKIP_ATOM) &&
+          (type != WIDE_ATOM) &&
+          (type != PICT_ATOM) &&
+          (type != FTYP_ATOM)) {
+        if (--unknown_atoms < 0)
+          return QT_NOT_A_VALID_FILE;
+      }
+      pos += size;
+    }
+    if ((type != MOOV_ATOM) && free_size) {
+      type = MOOV_ATOM;
+      pos  = free_pos;
+      size = free_size;
+      hsize = 0;
+    }
+    if (type != MOOV_ATOM)
+      return QT_NOT_A_VALID_FILE;
+    if (input->seek (input, pos + hsize, SEEK_SET) != (off_t)pos + hsize)
+      return QT_NO_MOOV_ATOM;
+
+  }
+  /* TJ. I have not seen more than 20Mb yet... */
+  if (size >= (128 << 20))
+    return QT_NOT_A_VALID_FILE;
+
+  *moov_atom_offset = pos;
+  *moov_atom = malloc (size);
+  if (!*moov_atom)
+    return QT_NO_MEMORY;
+  if (hsize)
+    memcpy (*moov_atom, p, hsize);
+  if (input->read (input, *moov_atom + hsize, size - hsize) != (off_t)size - hsize) {
+    free (*moov_atom);
+    return QT_FILE_READ_ERROR;
+  }
+
+  return QT_OK;
+}
+
+static qt_error open_qt_file (qt_info *info, input_plugin_t *input,
+  unsigned char *moov_atom, off_t moov_atom_offset, int64_t bandwidth) {
+
+  uint32_t moov_atom_size;
 
   /* zlib stuff */
   z_stream z_state;
@@ -2865,57 +2850,8 @@ static qt_error open_qt_file(qt_info *info, input_plugin_t *input,
       *(slash + 1) = '\0';
   }
 
-  if ((input->get_capabilities(input) & INPUT_CAP_SEEKABLE))
-    find_moov_atom(input, &moov_atom_offset, &moov_atom_size);
-  else {
-    unsigned char preview[MAX_PREVIEW_SIZE] = { 0, };
-    input->get_optional_data(input, preview, INPUT_OPTIONAL_DATA_PREVIEW);
-    if (_X_BE_32(&preview[4]) != MOOV_ATOM) {
-      /* special case if there is an ftyp atom first */
-      if (_X_BE_32(&preview[4]) == FTYP_ATOM) {
-        moov_atom_size = _X_BE_32(&preview[0]);
-        if ((moov_atom_size + ATOM_PREAMBLE_SIZE >= MAX_PREVIEW_SIZE) ||
-            (_X_BE_32(&preview[moov_atom_size + 4]) != MOOV_ATOM)) {
-          info->last_error = QT_NO_MOOV_ATOM;
-          return info->last_error;
-        }
-        moov_atom_offset = moov_atom_size;
-        moov_atom_size = _X_BE_32(&preview[moov_atom_offset]);
-      } else {
-        info->last_error = QT_NO_MOOV_ATOM;
-        return info->last_error;
-      }
-    } else {
-      moov_atom_offset = 0;
-      moov_atom_size = _X_BE_32(&preview[0]);
-    }
-  }
-
-  if (moov_atom_offset == -1) {
-    info->last_error = QT_NO_MOOV_ATOM;
-    return info->last_error;
-  }
   info->moov_first_offset = moov_atom_offset;
-
-  moov_atom = (unsigned char *)malloc (moov_atom_size + 4);
-  if (moov_atom == NULL) {
-    info->last_error = QT_NO_MEMORY;
-    return info->last_error;
-  }
-
-  /* seek to the start of moov atom */
-  if (input->seek(input, info->moov_first_offset, SEEK_SET) !=
-    info->moov_first_offset) {
-    free(moov_atom);
-    info->last_error = QT_FILE_READ_ERROR;
-    return info->last_error;
-  }
-  if (input->read(input, moov_atom, moov_atom_size) !=
-    moov_atom_size) {
-    free(moov_atom);
-    info->last_error = QT_FILE_READ_ERROR;
-    return info->last_error;
-  }
+  moov_atom_size = _X_BE_32 (moov_atom);
 
   /* check if moov is compressed */
   if (_X_BE_32(&moov_atom[12]) == CMOV_ATOM && moov_atom_size >= 0x28) {
@@ -3630,7 +3566,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 
   /* short-circuit any attempts to seek in a non-seekable stream, including
    * seeking in the forward direction; this may change later */
-  if ((this->input->get_capabilities(this->input) & INPUT_CAP_SEEKABLE) == 0) {
+  if ((this->input->get_capabilities(this->input) & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) == 0) {
     this->qt.seek_flag = 1;
     this->status = DEMUX_OK;
     return this->status;
@@ -3750,9 +3686,11 @@ static int demux_qt_get_optional_data(demux_plugin_t *this_gen,
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input) {
 
-  demux_qt_t     *this;
+  demux_qt_t      *this;
   xine_cfg_entry_t entry;
-  qt_error last_error;
+  unsigned char   *moov_atom = NULL;
+  off_t            moov_atom_offset;
+  qt_error         last_error;
 
   if ((input->get_capabilities(input) & INPUT_CAP_BLOCK)) {
     return NULL;
@@ -3762,11 +3700,29 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     case METHOD_BY_CONTENT:
     case METHOD_BY_MRL:
     case METHOD_EXPLICIT:
-      if (!is_qt_file(input))
-        return NULL;
       break;
     default:
       return NULL;
+  }
+
+  last_error = load_moov_atom (input, &moov_atom, &moov_atom_offset);
+  if (last_error != QT_OK)
+    return NULL;
+
+  /* check that the next atom in the chunk contains alphanumeric characters
+   * in the atom type field; if not, disqualify the file as a QT file */
+  if (_X_BE_32 (moov_atom) < 16) {
+    free (moov_atom);
+    return NULL;
+  }
+  {
+    int i;
+    for (i = 12; i < 16; i++) {
+      if (!isalnum (moov_atom[i])) {
+        free (moov_atom);
+        return NULL;
+      }
+    }
   }
 
   this = calloc (1, sizeof (demux_qt_t));
@@ -3798,35 +3754,27 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   create_qt_info (this);
 
+  last_error = open_qt_file (&this->qt, this->input, moov_atom, moov_atom_offset, this->bandwidth);
+
   switch (stream->content_detection_method) {
-
-  case METHOD_BY_CONTENT:
-
-    last_error = open_qt_file (&this->qt, this->input, this->bandwidth);
-    if (last_error == QT_DRM_NOT_SUPPORTED) {
-
-      /* special consideration for DRM-protected files */
-      if (this->qt.last_error == QT_DRM_NOT_SUPPORTED)
-        _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE,
-          "DRM-protected Quicktime file", NULL);
-
-    } else if (last_error != QT_OK) {
-
-      free_qt_info (&this->qt);
-      free (this);
-      return NULL;
-    }
-
-  break;
-
-  default:
-    if (open_qt_file (&this->qt, this->input, this->bandwidth) != QT_OK) {
-      free_qt_info (&this->qt);
-      free (this);
-      return NULL;
-    }
-
-  break;
+    case METHOD_BY_CONTENT:
+      if (last_error == QT_DRM_NOT_SUPPORTED) {
+        /* special consideration for DRM-protected files */
+        if (this->qt.last_error == QT_DRM_NOT_SUPPORTED)
+          _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE, "DRM-protected Quicktime file", NULL);
+      } else if (last_error != QT_OK) {
+        free_qt_info (&this->qt);
+        free (this);
+        return NULL;
+      }
+    break;
+    default:
+      if (last_error != QT_OK) {
+        free_qt_info (&this->qt);
+        free (this);
+        return NULL;
+      }
+    break;
   }
 
   if (this->qt.fragment_count > 0)
