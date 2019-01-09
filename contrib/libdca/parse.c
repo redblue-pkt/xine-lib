@@ -46,7 +46,7 @@
 #include "tables_fir.h"
 #include "tables_vq.h"
 
-/* #define DEBUG */
+/* #define DEBUG_PARSE */
 
 #if defined(HAVE_MEMALIGN) && !defined(__cplusplus)
 /* some systems have memalign() but no declaration for it */
@@ -267,7 +267,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
     state->dynrnge = 1;
     state->dynrngcall = NULL;
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     fprintf (stderr, "frame type: %i\n", state->frame_type);
     fprintf (stderr, "samples deficit: %i\n", state->samples_deficit);
     fprintf (stderr, "crc present: %i\n", state->crc_present);
@@ -314,7 +314,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
     if (state->prim_channels > DCA_PRIM_CHANNELS_MAX)
         state->prim_channels = DCA_PRIM_CHANNELS_MAX;
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     fprintf (stderr, "subframes: %i\n", state->subframes);
     fprintf (stderr, "prim channels: %i\n", state->prim_channels);
 #endif
@@ -322,7 +322,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
     for (i = 0; i < state->prim_channels; i++)
     {
         state->subband_activity[i] = bitstream_get (state, 5) + 2;
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "subband activity: %i\n", state->subband_activity[i]);
 #endif
         if (state->subband_activity[i] > DCA_SUBBANDS)
@@ -331,7 +331,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
     for (i = 0; i < state->prim_channels; i++)
     {
         state->vq_start_subband[i] = bitstream_get (state, 5) + 1;
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "vq start subband: %i\n", state->vq_start_subband[i]);
 #endif
         if (state->vq_start_subband[i] > DCA_SUBBANDS)
@@ -340,7 +340,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
     for (i = 0; i < state->prim_channels; i++)
     {
         state->joint_intensity[i] = bitstream_get (state, 3);
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "joint intensity: %i\n", state->joint_intensity[i]);
         if (state->joint_intensity[i]) {fprintf (stderr, "JOINTINTENSITY\n");}
 #endif
@@ -348,7 +348,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
     for (i = 0; i < state->prim_channels; i++)
     {
         state->transient_huffman[i] = bitstream_get (state, 2);
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "transient mode codebook: %i\n",
                  state->transient_huffman[i]);
 #endif
@@ -356,7 +356,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
     for (i = 0; i < state->prim_channels; i++)
     {
         state->scalefactor_huffman[i] = bitstream_get (state, 3);
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "scale factor codebook: %i\n",
                  state->scalefactor_huffman[i]);
 #endif
@@ -368,7 +368,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
          * now we must bail out or we will buffer overflow later. */
         if (state->bitalloc_huffman[i] == 7)
             return 1;
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "bit allocation quantizer: %i\n",
                  state->bitalloc_huffman[i]);
 #endif
@@ -390,7 +390,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
         for (i = 0; i < state->prim_channels; i++)
             state->quant_index_huffman[i][j] = 0; /* Not transmitted */
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     for (i = 0; i < state->prim_channels; i++)
     {
         fprintf( stderr, "quant index huff:" );
@@ -431,7 +431,7 @@ int dca_frame (dca_state_t * state, uint8_t * buf, int * flags,
                     adj_table[bitstream_get (state, 2)];
             }
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     for (i = 0; i < state->prim_channels; i++)
     {
         fprintf (stderr, "scalefac adj:");
@@ -460,13 +460,13 @@ static int dca_subframe_header (dca_state_t * state)
 
     /* Subsubframe count */
     state->subsubframes = bitstream_get (state, 2) + 1;
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     fprintf (stderr, "subsubframes: %i\n", state->subsubframes);
 #endif
 
     /* Partial subsubframe sample count */
     state->partial_samples = bitstream_get (state, 3);
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     fprintf (stderr, "partial samples: %i\n", state->partial_samples);
 #endif
 
@@ -475,7 +475,7 @@ static int dca_subframe_header (dca_state_t * state)
     {
         for (k = 0; k < state->subband_activity[j]; k++)
             state->prediction_mode[j][k] = bitstream_get (state, 1);
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "prediction mode:");
         for (k = 0; k < state->subband_activity[j]; k++)
             fprintf (stderr, " %i", state->prediction_mode[j][k]);
@@ -492,7 +492,7 @@ static int dca_subframe_header (dca_state_t * state)
             {
                 /* (Prediction coefficient VQ address) */
                 state->prediction_vq[j][k] = bitstream_get (state, 12);
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
                 fprintf (stderr, "prediction coefs: %f, %f, %f, %f\n",
                          (double)adpcm_vb[state->prediction_vq[j][k]][0]/8192,
                          (double)adpcm_vb[state->prediction_vq[j][k]][1]/8192,
@@ -526,7 +526,7 @@ static int dca_subframe_header (dca_state_t * state)
             }
         }
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "bitalloc index: ");
         for (k = 0; k < state->vq_start_subband[j]; k++)
             fprintf (stderr, "%2.2i ", state->bitalloc[j][k]);
@@ -549,7 +549,7 @@ static int dca_subframe_header (dca_state_t * state)
                     tmode[state->transient_huffman[j]]);
             }
         }
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "Transition mode:");
         for (k = 0; k < state->subband_activity[j]; k++)
             fprintf (stderr, " %i", state->transition_mode[j][k]);
@@ -621,7 +621,7 @@ static int dca_subframe_header (dca_state_t * state)
             }
         }
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "Scale factor:");
         for (k = 0; k < state->subband_activity[j]; k++)
         {
@@ -684,7 +684,7 @@ static int dca_subframe_header (dca_state_t * state)
                 state->debug_flag |= 0x02;
             }
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
             fprintf (stderr, "Joint scale factor index:\n");
             for (k = state->subband_activity[j];
                  k < state->subband_activity[source_channel]; k++)
@@ -726,7 +726,7 @@ static int dca_subframe_header (dca_state_t * state)
             /* 1 vector -> 32 samples */
             state->high_freq_vq[j][k] = bitstream_get (state, 10);
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
             fprintf( stderr, "VQ index: %i\n", state->high_freq_vq[j][k] );
 #endif
         }
@@ -756,7 +756,7 @@ static int dca_subframe_header (dca_state_t * state)
         for (j = lfe_samples; j < lfe_samples * 2; j++)
             state->lfe_data[j] *= lfe_scale;
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "LFE samples:\n");
         for (j = lfe_samples; j < lfe_samples * 2; j++)
             fprintf (stderr, " %f", state->lfe_data[j]);
@@ -968,7 +968,7 @@ static int dca_subsubframe (dca_state_t * state)
     {
         if (0xFFFF == bitstream_get (state, 16)) /* 0xFFFF */
         {
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
             fprintf( stderr, "Got subframe DSYNC\n" );
 #endif
         }
@@ -1057,7 +1057,7 @@ static int dca_subframe_footer (dca_state_t * state)
         state->lfe_data[i] = state->lfe_data[i+lfe_samples];
     }
 
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     fprintf( stderr, "\n" );
 #endif
 
@@ -1076,7 +1076,7 @@ int dca_block (dca_state_t * state)
 
     if (!state->current_subsubframe)
     {
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf (stderr, "DSYNC dca_subframe_header\n");
 #endif
         /* Read subframe header */
@@ -1084,7 +1084,7 @@ int dca_block (dca_state_t * state)
     }
 
     /* Read subsubframe */
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
     fprintf (stderr, "DSYNC dca_subsubframe\n");
 #endif
     if (dca_subsubframe (state)) return -1;
@@ -1098,7 +1098,7 @@ int dca_block (dca_state_t * state)
     }
     if (state->current_subframe >= state->subframes)
     {
-#ifdef DEBUG
+#ifdef DEBUG_PARSE
         fprintf(stderr, "DSYNC dca_subframe_footer\n");
 #endif
         /* Read subframe footer */
