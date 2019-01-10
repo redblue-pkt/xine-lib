@@ -19,6 +19,10 @@ if ENABLE_GDK_PIXBUF
 gdkpixbuf_module = xineplug_decode_gdk_pixbuf.la
 endif
 
+if ENABLE_DAV1D
+dav1d_module = xineplug_decode_dav1d.la
+endif
+
 if ENABLE_LIBAOM
 libaom_module = xineplug_decode_libaom.la
 endif
@@ -58,6 +62,7 @@ endif
 
 xineplug_LTLIBRARIES = $(image_module) \
 	$(gdkpixbuf_module) \
+	$(dav1d_module) \
 	$(libaom_module) \
 	$(libjpeg_module) \
 	$(theora_module) \
@@ -105,6 +110,10 @@ xineplug_decode_libvpx_la_CFLAGS = $(AM_CFLAGS) $(VPX_CFLAGS)
 xineplug_decode_libaom_la_SOURCES = libaom.c
 xineplug_decode_libaom_la_LIBADD = $(XINE_LIB) $(AOM_LIBS)
 xineplug_decode_libaom_la_CFLAGS = $(AM_CFLAGS) $(AOM_CFLAGS)
+
+xineplug_decode_dav1d_la_SOURCES = dav1d.c
+xineplug_decode_dav1d_la_LIBADD = $(XINE_LIB) $(DAV1D_LIBS)
+xineplug_decode_dav1d_la_CFLAGS = $(AM_CFLAGS) $(DAV1D_CFLAGS)
 
 xineplug_decode_libmmal_la_SOURCES = mmal.c
 xineplug_decode_libmmal_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(MMAL_LIBS)
