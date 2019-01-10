@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 the xine project
+ * Copyright (C) 2001-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2698,7 +2698,6 @@ static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom
       if (input->read (input, buf, 8) != 8)
         break;
       size = _X_BE_32 (buf);
-      type = _X_BE_32 (buf + 4);
       if (size == 1) {
         hsize = 16;
         if (input->read (input, buf + 8, 8) != 8)
@@ -2709,15 +2708,17 @@ static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom
         if (size >= ((uint64_t)1 << 63))
           break;
       } else if (size < 8) {
-        size = input->get_length (input) - pos;
+        off_t len = input->get_length (input);
+        size = len > (off_t)(pos + 8) ? len - pos : 8;
       }
+      type = _X_BE_32 (buf + 4);
       if (type == MOOV_ATOM)
         break;
       if (type == FREE_ATOM) {
         if ((size - hsize >= 8) && (input->read (input, buf + hsize, 8) == 8)) {
-          type = _X_BE_32 (buf + hsize + 4);
+          uint32_t stype = _X_BE_32 (buf + hsize + 4);
           hsize += 8;
-          if ((type == MVHD_ATOM) || (type == CMOV_ATOM)) {
+          if ((stype == MVHD_ATOM) || (stype == CMOV_ATOM)) {
             free_pos = pos;
             free_size = size;
           }
@@ -2759,7 +2760,6 @@ static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom
         break;
       p = buf + pos;
       size = _X_BE_32 (p);
-      type = _X_BE_32 (p + 4);
       if (size == 1) {
         hsize = 16;
         if (pos > (unsigned int)have - 16)
@@ -2772,13 +2772,14 @@ static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom
       } else if (size < 8) {
         size = have - pos;
       }
+      type = _X_BE_32 (p + 4);
       if (type == MOOV_ATOM)
         break;
       if (type == FREE_ATOM) {
         if (pos <= (unsigned int)have - hsize - 8) {
-          type = _X_BE_32 (p + hsize + 4);
+          uint32_t stype = _X_BE_32 (p + hsize + 4);
           hsize += 8;
-          if ((type == MVHD_ATOM) || (type == CMOV_ATOM)) {
+          if ((stype == MVHD_ATOM) || (stype == CMOV_ATOM)) {
             free_pos = pos;
             free_size = size;
           }
