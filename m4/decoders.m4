@@ -660,6 +660,18 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
     fi
     AM_CONDITIONAL([ENABLE_LIBAOM], [test x"$have_libaom" = x"yes"])
 
+    dnl dav1d AV1 decoder plugin
+    AC_ARG_WITH([dav1d],
+                [AS_HELP_STRING([--with-dav1d], [Enable dav1d AV1 decoder support (default: enabled)])],
+                [test x"$enableval" != x"no" && enable_dav1d="yes"])
+    if test x"$enable_dav1d" != x"no"; then
+        PKG_CHECK_MODULES([DAV1D], [dav1d >= 0.3.1] , [have_dav1d=yes], [have_dav1d=no])
+        if test x"$enable_dav1d" = x"yes" && test x"$have_dav1d" != x"yes"; then
+            AC_MSG_ERROR([dav1d AV1 support requested, but dav1d not found])
+        fi
+    fi
+    AM_CONDITIONAL([ENABLE_DAV1D], [test x"$have_dav1d" = x"yes"])
+
     dnl Broadcom MMAL (Multi Media Abstraction Layer) decoder plugin for RPi
     AC_ARG_ENABLE([mmal],
                   [AS_HELP_STRING([--enable-mmal], [Enable libmmal HW decoder and video output plugin for Raspberry Pi (default: enabled)])],
