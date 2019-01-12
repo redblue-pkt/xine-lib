@@ -161,6 +161,9 @@ typedef unsigned int qt_atom;
 #define _ATOM QT_ATOM('', '', '', '')
 */
 
+/* TJ. I have not seen more than 20Mb yet... */
+#define MAX_MOOV_SIZE (128 << 20)
+
 #define ATOM_PREAMBLE_SIZE 8
 #define PALETTE_COUNT 256
 
@@ -2810,8 +2813,7 @@ static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom
       return QT_NO_MOOV_ATOM;
 
   }
-  /* TJ. I have not seen more than 20Mb yet... */
-  if (size >= (128 << 20))
+  if (size >= MAX_MOOV_SIZE)
     return QT_NOT_A_VALID_FILE;
 
   *moov_atom_offset = pos;
@@ -2833,16 +2835,9 @@ static qt_error open_qt_file (qt_info *info, input_plugin_t *input,
 
   uint32_t moov_atom_size;
 
-  /* zlib stuff */
-  z_stream z_state;
-  int z_ret_code;
-  unsigned char *unzip_buffer;
-
   /* extract the base MRL if this is a http MRL */
   if (strncmp(input->get_mrl(input), "http://", 7) == 0) {
-
     char *slash;
-
     /* this will copy a few bytes too many, but no big deal */
     info->base_mrl = strdup(input->get_mrl(input));
     /* terminate the string after the last slash character */
@@ -2855,73 +2850,58 @@ static qt_error open_qt_file (qt_info *info, input_plugin_t *input,
   moov_atom_size = _X_BE_32 (moov_atom);
 
   /* check if moov is compressed */
-  if (_X_BE_32(&moov_atom[12]) == CMOV_ATOM && moov_atom_size >= 0x28) {
-
+  if ((moov_atom_size >= 0x28) && (_X_BE_32 (moov_atom + 12) == CMOV_ATOM)) do {
+    unsigned char *unzip_buffer;
+    uint32_t       size2;
     info->compressed_header = 1;
-
-    z_state.next_in = &moov_atom[0x28];
-    z_state.avail_in = moov_atom_size - 0x28;
-    z_state.avail_out = _X_BE_32(&moov_atom[0x24]);
-    unzip_buffer = (unsigned char *)malloc (_X_BE_32 (&moov_atom[0x24]) + 4);
-    if (!unzip_buffer) {
-      free(moov_atom);
-      info->last_error = QT_NO_MEMORY;
-      return info->last_error;
+    info->last_error        = QT_NO_MEMORY;
+    size2                   = _X_BE_32 (moov_atom + 0x24);
+    if (size2 > MAX_MOOV_SIZE)
+      size2 = MAX_MOOV_SIZE;
+    unzip_buffer = malloc (size2 + 4);
+    if (unzip_buffer) {
+      /* zlib stuff */
+      z_stream z_state;
+      int      z_ret_code1, z_ret_code2;
+      info->last_error  = QT_ZLIB_ERROR;
+      z_state.next_in   = moov_atom + 0x28;
+      z_state.avail_in  = moov_atom_size - 0x28;
+      z_state.next_out  = unzip_buffer;
+      z_state.avail_out = size2;
+      z_state.zalloc    = NULL;
+      z_state.zfree     = NULL;
+      z_state.opaque    = NULL;
+      z_ret_code1       = inflateInit (&z_state);
+      if (Z_OK == z_ret_code1) {
+        z_ret_code1 = inflate (&z_state, Z_NO_FLUSH);
+        z_ret_code2 = inflateEnd (&z_state);
+        if (((z_ret_code1 == Z_OK) || (z_ret_code1 == Z_STREAM_END)) && (Z_OK == z_ret_code2)) {
+          /* replace the compressed moov atom with the decompressed atom */
+          info->last_error = QT_OK;
+          free (moov_atom);
+          moov_atom = unzip_buffer;
+          moov_atom_size = _X_BE_32 (moov_atom);
+          if (moov_atom_size > size2) {
+            moov_atom_size = size2;
+            WRITE_BE_32 (size2, moov_atom);
+          }
+          break;
+        }
+      }
+      free (unzip_buffer);
     }
-
-    z_state.next_out = unzip_buffer;
-    z_state.zalloc = (alloc_func)0;
-    z_state.zfree = (free_func)0;
-    z_state.opaque = (voidpf)0;
-
-    z_ret_code = inflateInit (&z_state);
-    if (Z_OK != z_ret_code) {
-      free(unzip_buffer);
-      free(moov_atom);
-      info->last_error = QT_ZLIB_ERROR;
-      return info->last_error;
-    }
-
-    z_ret_code = inflate(&z_state, Z_NO_FLUSH);
-    if ((z_ret_code != Z_OK) && (z_ret_code != Z_STREAM_END)) {
-      free(unzip_buffer);
-      free(moov_atom);
-      info->last_error = QT_ZLIB_ERROR;
-      return info->last_error;
-    }
-
-    z_ret_code = inflateEnd(&z_state);
-    if (Z_OK != z_ret_code) {
-      free(unzip_buffer);
-      free(moov_atom);
-      info->last_error = QT_ZLIB_ERROR;
-      return info->last_error;
-    }
-
-    /* replace the compressed moov atom with the decompressed atom */
     free (moov_atom);
-    moov_atom = unzip_buffer;
-    moov_atom_size = _X_BE_32(&moov_atom[0]);
-  }
-
-  if (!moov_atom) {
-    info->last_error = QT_NO_MOOV_ATOM;
     return info->last_error;
-  }
+  } while (0);
 
   /* write moov atom to disk if debugging option is turned on */
   dump_moov_atom(moov_atom, moov_atom_size);
 
   /* take apart the moov atom */
   parse_moov_atom(info, moov_atom, bandwidth, input);
-  if (info->last_error != QT_OK) {
-    free(moov_atom);
-    return info->last_error;
-  }
 
-  free(moov_atom);
-
-  return QT_OK;
+  free (moov_atom);
+  return info->last_error;
 }
 
 /**********************************************************************
@@ -3727,8 +3707,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   }
 
   this = calloc (1, sizeof (demux_qt_t));
-  if (!this)
+  if (!this) {
+    free (moov_atom);
     return NULL;
+  }
 
   this->stream = stream;
   this->input  = input;
