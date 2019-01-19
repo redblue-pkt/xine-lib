@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -229,17 +229,33 @@ static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
   free (this);
 }
 
+static uint32_t stdin_plugin_get_capabilities (input_plugin_t *this_gen) {
+  (void)this_gen;
+  return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW;
+}
+
 static int stdin_plugin_get_optional_data (input_plugin_t *this_gen,
 					   void *data, int data_type) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
   switch (data_type) {
-  case INPUT_OPTIONAL_DATA_PREVIEW:
-
-    memcpy (data, this->preview, this->preview_size);
-    return this->preview_size;
-
-    break;
+    case INPUT_OPTIONAL_DATA_PREVIEW:
+      if (!data || (this->preview_size <= 0))
+        break;
+      memcpy (data, this->preview, this->preview_size);
+      return this->preview_size;
+    case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
+      if (!data || (this->preview_size <= 0))
+        break;
+      {
+        int want;
+        memcpy (&want, data, sizeof (want));
+        want = want < 0 ? 0
+             : want > this->preview_size ? this->preview_size
+             : want;
+        memcpy (data, this->preview, want);
+        return want;
+      }
   }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
@@ -336,7 +352,7 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *class_gen,
   this->requery_timeout = 0;
 
   this->input_plugin.open              = stdin_plugin_open;
-  this->input_plugin.get_capabilities  = _x_input_get_capabilities_preview;
+  this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
   this->input_plugin.read              = stdin_plugin_read;
   this->input_plugin.read_block        = _x_input_default_read_block;
   this->input_plugin.seek              = stdin_plugin_seek;
