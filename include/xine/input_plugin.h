@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -332,6 +332,13 @@ struct input_plugin_s {
 #define INPUT_IS_SEEKABLE(input) (((input)->get_capabilities(input) & INPUT_CAP_SEEKABLE) != 0)
 #define INPUT_IS_SLOW_SEEKABLE(input) (((input)->get_capabilities(input) & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) != 0)
 
+/*
+ * INPUT_CAP_SIZED_PREVIEW:
+ *   Like INPUT_CAP_PREVIEW, but the buffer shall contain an int telling
+ *   the count of bytes to read before the call.
+ */
+#define INPUT_CAP_SIZED_PREVIEW        0x00001000
+
 #define INPUT_OPTIONAL_UNSUPPORTED    0
 #define INPUT_OPTIONAL_SUCCESS        1
 
@@ -347,6 +354,8 @@ struct input_plugin_s {
 #define INPUT_OPTIONAL_DATA_DEMUXER   10
 /* buffer is a struct input_plugin_s **; release by calling ptr->dispose (ptr). */
 #define INPUT_OPTIONAL_DATA_CLONE     11
+
+#define INPUT_OPTIONAL_DATA_SIZED_PREVIEW 12
 
 #define MAX_MRL_ENTRIES 255
 #define MAX_PREVIEW_SIZE 4096

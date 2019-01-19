@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -539,11 +539,14 @@ int _x_demux_stop_thread (xine_stream_t *stream) {
 
 int _x_demux_read_header (input_plugin_t *input, void *buffer, off_t size) {
   int want_size = size;
+  uint32_t caps;
 
   if (!input || !buffer || (want_size <= 0))
     return 0;
 
-  if (input->get_capabilities(input) & INPUT_CAP_SEEKABLE) {
+  caps = input->get_capabilities (input);
+
+  if (caps & INPUT_CAP_SEEKABLE) {
     if (input->seek (input, 0, SEEK_SET) != 0)
       return 0;
     want_size = input->read (input, buffer, want_size);
@@ -552,7 +555,12 @@ int _x_demux_read_header (input_plugin_t *input, void *buffer, off_t size) {
     return want_size;
   }
 
-  if (input->get_capabilities(input) & INPUT_CAP_PREVIEW) {
+  if ((caps & INPUT_CAP_SIZED_PREVIEW) && (want_size >= (int)sizeof (want_size))) {
+    memcpy (buffer, &want_size, sizeof (want_size));
+    return input->get_optional_data (input, buffer, INPUT_OPTIONAL_DATA_SIZED_PREVIEW);
+  }
+
+  if (caps & INPUT_CAP_PREVIEW) {
     if (want_size < MAX_PREVIEW_SIZE) {
       int read_size;
       uint8_t *temp = malloc (MAX_PREVIEW_SIZE);

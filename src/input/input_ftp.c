@@ -593,9 +593,21 @@ static int _ftp_get_optional_data (input_plugin_t *this_gen, void *data, int dat
 
   switch (data_type) {
     case INPUT_OPTIONAL_DATA_PREVIEW:
-      if (this->preview_size > 0) {
-        memcpy (data, this->preview, this->preview_size);
-        return this->preview_size;
+      if (!data || (this->preview_size <= 0))
+        break;
+      memcpy (data, this->preview, this->preview_size);
+      return this->preview_size;
+    case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
+      if (!data || (this->preview_size <= 0))
+        break;
+      {
+        int want;
+        memcpy (&want, data, sizeof (want));
+        want = want < 0 ? 0
+             : want > this->preview_size ? this->preview_size
+             : want;
+        memcpy (data, this->preview, want);
+        return want;
       }
   }
 
@@ -686,7 +698,7 @@ static uint32_t _ftp_get_capabilities (input_plugin_t *this_gen)
 {
   ftp_input_plugin_t *this = (ftp_input_plugin_t *)this_gen;
 
-  return INPUT_CAP_PREVIEW | (this->cap_rest ? INPUT_CAP_SLOW_SEEKABLE : 0);
+  return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW | (this->cap_rest ? INPUT_CAP_SLOW_SEEKABLE : 0);
 }
 
 static input_plugin_t *_get_instance (input_class_t *cls_gen, xine_stream_t *stream, const char *mrl)
