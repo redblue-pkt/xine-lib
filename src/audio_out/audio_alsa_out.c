@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1529,22 +1529,32 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     char logbuf[2048], *q, *logend = logbuf + sizeof (logbuf);
     q = logbuf;
     q += strlcpy (q, _("audio_alsa_out : supported modes are"), logend - q);
+    if (q >= logend)
+      q = logend;
     if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_U8))) {
       this->capabilities |= AO_CAP_8BITS;
       q += strlcpy (q, _(" 8bit"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
     /* ALSA automatically appends _LE or _BE depending on the CPU */
     if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_S16))) {
       this->capabilities |= AO_CAP_16BITS;
       q += strlcpy (q, _(" 16bit"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
     if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_S24))) {
       this->capabilities |= AO_CAP_24BITS;
       q += strlcpy (q, _(" 24bit"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
     if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_FLOAT))) {
       this->capabilities |= AO_CAP_FLOAT32;
       q += strlcpy (q, _(" 32bit"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
     if (0 == (this->capabilities & (AO_CAP_FLOAT32 | AO_CAP_24BITS | AO_CAP_16BITS | AO_CAP_8BITS))) {
       xprintf (class->xine, XINE_VERBOSITY_LOG, "%s.\n", logbuf);
@@ -1556,10 +1566,14 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 1))) {
       this->capabilities |= AO_CAP_MODE_MONO;
       q += strlcpy (q, _(" mono"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
     if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 2))) {
       this->capabilities |= AO_CAP_MODE_STEREO;
       q += strlcpy (q, _(" stereo"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
     if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 4))) {
       if (speakers == SURROUND4) {
@@ -1567,6 +1581,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
         q += strlcpy (q, _(" 4-channel"), logend - q);
       } else
         q += strlcpy (q, _(" (4-channel not enabled in xine config)"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
     if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 6))) {
       if (speakers == SURROUND41) {
@@ -1574,16 +1590,22 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
         q += strlcpy (q, _(" 4.1-channel"), logend - q);
       } else
         q += strlcpy (q, _(" (4.1-channel not enabled in xine config)"), logend - q);
+      if (q >= logend)
+        q = logend;
       if (speakers == SURROUND5) {
         this->capabilities |= AO_CAP_MODE_5CHANNEL;
         q += strlcpy (q, _(" 5-channel"), logend - q);
       } else
         q += strlcpy (q, _(" (5-channel not enabled in xine config)"), logend - q);
+      if (q >= logend)
+        q = logend;
       if (speakers >= SURROUND51) {
         this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
         q += strlcpy (q, _(" 5.1-channel"), logend - q);
       } else
         q += strlcpy (q, _(" (5.1-channel not enabled in xine config)"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
 
     snd_pcm_close (this->audio_fd);
@@ -1605,6 +1627,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
       q += strlcpy (q, _(" a/52 and DTS pass-through"), logend - q);
     } else
       q += strlcpy (q, _(" (a/52 and DTS pass-through not enabled in xine config)"), logend - q);
+/*  if (q >= logend)
+      q = logend; */
 
     xprintf (class->xine, XINE_VERBOSITY_LOG, "%s.\n", logbuf);
   }
