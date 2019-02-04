@@ -2,6 +2,7 @@ xine-lib (1.2.10) ????-??-??
   * Add first Android support.
   * Add (xcb)xv yuy2 emulation.
   * Add libavcodec v58 compatibility.
+  * Add avio seek support.
   * Make libpostproc optional.
   * Add libaom and lavc AV1 video decoders.
   * Add Opus audio support to ogg demuxer.
@@ -13,17 +14,29 @@ xine-lib (1.2.10) ????-??-??
   * Add libnfs NFS input plugin.
   * Add ftp/http seek support.
   * Add scp forward seek support.
+  * Add mp4 http streaming support.
+  * Better support for audio out drivers that cannot resume after pause.
   * XML parser fixes.
+  * Fix midstream audio mode switch.
+  * Fix FLAC audio playback via ffmpeg.
   * Fix ffmpeg mpeg1/2 video.
   * Fix C++ build.
   * Fix build on clang only systems.
-  * Fix/optimize mpeg, mpeg-ts, qt, real and asf demuxers.
+  * Fix/optimize mpeg, mpeg-ts, qt, flv, matroska, real and asf demuxers.
   * Fix network seek.
+  * Fix/optimize audio CD.
+  * Fix DVD (occasional crashes, damaged video after a DVD had been played).
+  * Fix opengl2 freeze after X server failure.
+  * Fix tvtime deinterlacer crash.
+  * Fix/optimize overlay.
+  * Fix xine-ui freeze when opening a playlist while paused.
   * Security fixes.
   * Build fixes (C99 mode, vaapi, ImageMagick, libmvec, less warnings).
   * Many small fixes.
+  * More error handling instead of aborting.
   * Build optimizations.
   * Engine optimizations.
+  * Alsa/oss startup optimization.
 
 xine-lib (1.2.9) 2018-01-11
   * Add LIBXINE_VERBOSITY environment var override.
