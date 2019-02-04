@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -904,7 +904,8 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     }
   }
 
-  this->capabilities = 0;
+  /* we always reset or reopen at pause for now. */
+  this->capabilities = AO_CAP_NO_UNPAUSE;
 
   arg = AFMT_U8;
   if( ioctl(audio_fd, SNDCTL_DSP_SETFMT, &arg) != -1  && arg == AFMT_U8)
@@ -925,65 +926,77 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                    AUDIO_DEVICE_SPEAKER_ARRANGEMENT_HELP,
                                    0, oss_speaker_arrangement_cb, this);
 
-
-  char *logmsg = strdup (_("audio_oss_out: supported modes are"));
-  num_channels = 1;
-  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
-  if ( (status != -1) && (num_channels==1) ) {
-    this->capabilities |= AO_CAP_MODE_MONO;
-    xine_strcat_realloc (&logmsg, _(" mono"));
-  }
-  num_channels = 2;
-  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
-  if ( (status != -1) && (num_channels==2) ) {
-    this->capabilities |= AO_CAP_MODE_STEREO;
-    xine_strcat_realloc (&logmsg, _(" stereo"));
-  }
-  num_channels = 4;
-  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
-  if ( (status != -1) && (num_channels==4) )  {
-    if  ( speakers == SURROUND4 ) {
-      this->capabilities |= AO_CAP_MODE_4CHANNEL;
-      xine_strcat_realloc (&logmsg, _(" 4-channel"));
+  {
+    char logbuf[2048], *q, *logend = logbuf + sizeof (logbuf);
+    q = logbuf;
+    q += strlcpy (q, _("audio_oss_out: supported modes are"), logend - q);
+    if (q >= logend)
+      q = logend;
+    num_channels = 1;
+    status = ioctl (audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
+    if ((status != -1) && (num_channels == 1)) {
+      this->capabilities |= AO_CAP_MODE_MONO;
+      q += strlcpy (q, _(" mono"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
-    else
-      xine_strcat_realloc (&logmsg, _(" (4-channel not enabled in xine config)"));
-  }
-  num_channels = 5;
-  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
-  if ( (status != -1) && (num_channels==5) ) {
-    if  ( speakers == SURROUND5 ) {
-      this->capabilities |= AO_CAP_MODE_5CHANNEL;
-      xine_strcat_realloc (&logmsg, _(" 5-channel"));
+    num_channels = 2;
+    status = ioctl (audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
+    if ((status != -1) && (num_channels == 2)) {
+      this->capabilities |= AO_CAP_MODE_STEREO;
+      q += strlcpy (q, _(" stereo"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
-    else
-      xine_strcat_realloc (&logmsg, _(" (5-channel not enabled in xine config)"));
-  }
-  num_channels = 6;
-  status = ioctl(audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
-  if ( (status != -1) && (num_channels==6) ) {
-    if  ( speakers == SURROUND51 ) {
-      this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
-      xine_strcat_realloc (&logmsg, _(" 5.1-channel"));
+    num_channels = 4;
+    status = ioctl (audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
+    if ((status != -1) && (num_channels == 4)) {
+      if (speakers == SURROUND4) {
+        this->capabilities |= AO_CAP_MODE_4CHANNEL;
+        q += strlcpy (q, _(" 4-channel"), logend - q);
+      } else
+        q += strlcpy (q, _(" (4-channel not enabled in xine config)"), logend - q);
+      if (q >= logend)
+        q = logend;
     }
-    else
-      xine_strcat_realloc (&logmsg, _(" (5.1-channel not enabled in xine config)"));
+    num_channels = 5;
+    status = ioctl (audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
+    if ((status != -1) && (num_channels == 5)) {
+      if (speakers == SURROUND5) {
+        this->capabilities |= AO_CAP_MODE_5CHANNEL;
+        q += strlcpy (q, _(" 5-channel"), logend - q);
+      } else
+        q += strlcpy (q, _(" (5-channel not enabled in xine config)"), logend - q);
+      if (q >= logend)
+        q = logend;
+    }
+    num_channels = 6;
+    status = ioctl (audio_fd, SNDCTL_DSP_CHANNELS, &num_channels);
+    if ((status != -1) && (num_channels == 6)) {
+      if (speakers == SURROUND51 ) {
+        this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+        q += strlcpy (q, _(" 5.1-channel"), logend - q);
+      } else
+        q += strlcpy (q, _(" (5.1-channel not enabled in xine config)"), logend - q);
+      if (q >= logend)
+        q = logend;
+    }
+
+    ioctl (audio_fd, SNDCTL_DSP_GETFMTS, &caps);
+
+    /* one would normally check for (caps & AFMT_AC3) before asking about passthrough,
+     * but some buggy OSS drivers do not report this properly, so we ask anyway. */
+    if (speakers == A52_PASSTHRU) {
+      this->capabilities |= AO_CAP_MODE_A52;
+      this->capabilities |= AO_CAP_MODE_AC5;
+      q += strlcpy (q, _(" a/52 pass-through"), logend - q);
+    } else
+      q += strlcpy (q, _(" (a/52 pass-through not enabled in xine config)"), logend - q);
+/*  if (q >= logend)
+      q = logend; */
+
+    xprintf (class->xine, XINE_VERBOSITY_DEBUG, "%s\n", logbuf);
   }
-
-  ioctl(audio_fd,SNDCTL_DSP_GETFMTS,&caps);
-
-  /* one would normally check for (caps & AFMT_AC3) before asking about passthrough,
-   * but some buggy OSS drivers do not report this properly, so we ask anyway */
-  if  ( speakers == A52_PASSTHRU ) {
-    this->capabilities |= AO_CAP_MODE_A52;
-    this->capabilities |= AO_CAP_MODE_AC5;
-    xine_strcat_realloc (&logmsg, _(" a/52 pass-through"));
-  }
-  else
-    xine_strcat_realloc (&logmsg, _(" (a/52 pass-through not enabled in xine config)"));
-
-  xprintf(class->xine, XINE_VERBOSITY_DEBUG, "%s\n", logmsg);
-  free (logmsg);
 
   /*
    * mixer initialisation.
