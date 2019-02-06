@@ -70,6 +70,9 @@ typedef unsigned int qt_atom;
 #define WIDE_ATOM QT_ATOM('w', 'i', 'd', 'e')
 #define PICT_ATOM QT_ATOM('P', 'I', 'C', 'T')
 #define FTYP_ATOM QT_ATOM('f', 't', 'y', 'p')
+/*
+#define SIDX_ATOM QT_ATOM('s', 'i', 'd', 'x')
+*/
 
 #define CMOV_ATOM QT_ATOM('c', 'm', 'o', 'v')
 
@@ -198,6 +201,18 @@ typedef enum {
   MEDIA_OTHER
 
 } media_type;
+
+#ifdef SIDX_ATOM
+typedef struct {
+  int64_t offset;
+  int64_t pts;
+} fragment_info_t;
+
+typedef struct {
+  int num_fragments;
+  fragment_info_t fragments[1];
+} fragment_index_t;
+#endif
 
 /* TJ. Cinematic movies reach > 200000 frames easily, so we better save space here.
  * offset / file size should well fit into 48 bits :-) */
@@ -397,6 +412,9 @@ struct qt_info_s {
 
   /* fragment mode */
   int               fragment_count;
+  size_t            fragbuf_size;
+  uint8_t          *fragment_buf;
+  off_t             fragment_next;
 
   char              *artist;
   char              *name;
@@ -544,10 +562,7 @@ static inline void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) 
  * lazyqt functions
  **********************************************************************/
 
-/* create a qt_info structure or return NULL if no memory */
-static qt_info *create_qt_info (demux_qt_t *demux) {
-  qt_info *info = &demux->qt;
-
+static void reset_qt_info (qt_info *info) {
 #ifndef HAVE_ZERO_SAFE_MEM
   info->compressed_header = 0;
   info->creation_time     = 0;
@@ -569,15 +584,26 @@ static qt_info *create_qt_info (demux_qt_t *demux) {
   info->references        = NULL;
   info->reference_count   = 0;
   info->base_mrl          = NULL;
+  info->fragbuf_size      = 0;
+  info->fragment_buf      = NULL;
+  info->fragment_next     = 0;
+#else
+  memset (info, 0, sizeof (*info));
 #endif
   info->last_error        = QT_OK;
-  info->demux             = demux;
   info->timescale         = 1;
   info->msecs             = 1;
   info->video_trak        = -1;
   info->audio_trak        = -1;
   info->chosen_reference  = -1;
+  info->fragment_count    = -1;
+}
 
+/* create a qt_info structure */
+static qt_info *create_qt_info (demux_qt_t *demux) {
+  qt_info *info = &demux->qt;
+  reset_qt_info (info);
+  info->demux = demux;
   return info;
 }
 
@@ -606,6 +632,7 @@ static void free_qt_info(qt_info *info) {
         free(info->references[i].url);
       free(info->references);
     }
+    free (info->fragment_buf);
     free(info->base_mrl);
     free(info->artist);
     free(info->name);
@@ -616,7 +643,7 @@ static void free_qt_info(qt_info *info) {
     free(info->comment);
     free(info->composer);
     free(info->year);
-    memset (info, 0, sizeof (*info));
+    reset_qt_info (info);
   }
 }
 
@@ -2055,6 +2082,75 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
 * Fragment stuff                                                        *
 ************************************************************************/
 
+#ifdef SIDX_ATOM
+static fragment_index_t *load_fragment_index (input_plugin_t *input, const uint8_t *head, uint32_t hsize, uint32_t timescale) {
+  uint32_t inum;
+
+  {
+    uint8_t fullhead[32];
+    uint32_t isize;
+    int n = 32 - hsize;
+    if (hsize)
+      memcpy (fullhead, head, hsize);
+    if (n > 0) {
+      if (input->read (input, fullhead + hsize, n) != n)
+        return NULL;
+    }
+    isize = _X_BE_32 (fullhead);
+    if (isize < 32)
+      return NULL;
+    inum  = _X_BE_32 (fullhead + 28);
+    if (inum > (isize - 32) / 12)
+      inum = (isize - 32) / 12;
+  }
+
+  {
+    int64_t pos, pts;
+    fragment_index_t *idx;
+    fragment_info_t  *inf;
+    uint8_t *tab = malloc (sizeof (*idx) + inum * sizeof (idx->fragments[0]));
+    if (!tab)
+      return NULL;
+    idx = (fragment_index_t *)tab;
+    tab += sizeof (*idx) + inum * sizeof (idx->fragments[0]) - inum * 12;
+    if (input->read (input, tab, inum * 12) != (int32_t)inum * 12) {
+      free (idx);
+      return NULL;
+    }
+    idx->num_fragments = inum;
+    pos = input->get_current_pos (input);
+    pts = 0;
+    inf = &idx->fragments[0];
+    while (inum--) {
+      inf->offset = pos;
+      pos += _X_BE_32 (tab);
+      inf->pts = pts * 90000 / timescale;
+      pts += _X_BE_32 (tab + 8);
+      inf++;
+      tab += 12;
+    }
+    inf->offset = pos;
+    inf->pts    = pts * 90000 / timescale;
+    return idx;
+  }
+}
+
+static void report_fragment_index (xine_t *xine, fragment_index_t *idx) {
+  if (idx) {
+    unsigned int v, s, m;
+    v = idx->fragments[idx->num_fragments].pts / 90000;
+    s = v % 60;
+    v /= 60;
+    m = v % 60;
+    v /= 60;
+    xprintf (xine, XINE_VERBOSITY_DEBUG,
+      "demux_qt: found index of %u fragments, %"PRId64" bytes, %0u:%02u:%02u.\n",
+      (unsigned int)idx->num_fragments, idx->fragments[idx->num_fragments].offset,
+      v, m, s);
+  }
+}
+#endif
+
 static qt_trak *find_trak_by_id (qt_info *info, int id) {
   unsigned int i;
 
@@ -2127,7 +2223,7 @@ static int parse_mvex_atom (qt_info *info, unsigned char *mvex_atom, unsigned in
           }
         }
         trak->fragment_frames = trak->frame_count;
-        info->fragment_count = -1;
+        info->fragment_count = 0;
         break;
       default: ;
     }
@@ -2350,61 +2446,129 @@ static int parse_moof_atom (qt_info *info, unsigned char *moof_atom, int moofsiz
 }
 
 static int fragment_scan (qt_info *info, input_plugin_t *input) {
-  unsigned char *buf;
-  off_t pos, fsize, atomsize = 0, bufsize = 16;
-  int frags = 0, atomtype;
+  uint8_t hbuf[16];
+  off_t pos, fsize;
+  uint64_t atomsize;
+  uint32_t caps, atomtype;
 
   /* prerequisites */
-  if (info->fragment_count != -1)
+  if (info->fragment_count < 0)
     return 0;
-  if (!INPUT_IS_SEEKABLE (input))
-    return 0;
+  caps = input->get_capabilities (input);
   fsize = input->get_length (input);
-  if (fsize <= 0)
-    return 0;
-  buf = malloc (bufsize);
-  if (!buf)
-    return 0;
 
-  for (pos = 0; pos < fsize; pos += atomsize) {
-    if (input->seek (input, pos, SEEK_SET) != pos)
-      break;
-    if (input->read (input, buf, 16) != 16)
-      break;
-    atomsize = _X_BE_32 (buf);
-    atomtype = _X_BE_32 (&buf[4]);
-    if (atomsize == 0)
-      atomsize = fsize - pos;
-    else if (atomsize == 1) {
-      atomsize = _X_BE_64 (&buf[8]);
-      if (atomsize < 16)
+  if ((caps & INPUT_CAP_SEEKABLE) && (fsize > 0)) {
+    /* Plain file, possibly being written right now.
+     * Get all fragments known so far. */
+
+    int frags = 0;
+    for (pos = info->fragment_next; pos < fsize; pos += atomsize) {
+      if (input->seek (input, pos, SEEK_SET) != pos)
         break;
-    } else if (atomsize < 8)
-      break;
-    if (atomtype == MOOF_ATOM) {
-      if (atomsize > (80 << 20))
+      if (input->read (input, hbuf, 16) != 16)
         break;
-      if (atomsize > bufsize) {
-        unsigned char *b2;
-        bufsize = atomsize + (atomsize >> 1);
-        b2 = realloc (buf, bufsize);
-        if (b2)
-          buf = b2;
-        else
+      atomsize = _X_BE_32 (hbuf);
+      atomtype = _X_BE_32 (hbuf + 4);
+      if (atomsize == 0)
+        atomsize = fsize - pos;
+      else if (atomsize == 1) {
+        atomsize = _X_BE_64 (hbuf + 8);
+        if (atomsize < 16)
           break;
-      }
-      if (atomsize > 16) {
-        if (input->read (input, buf + 16, atomsize - 16) != atomsize - 16)
+      } else if (atomsize < 8)
+        break;
+      if (atomtype == MOOF_ATOM) {
+        if (atomsize > (80 << 20))
           break;
+        if (atomsize > info->fragbuf_size) {
+          size_t size2 = atomsize + (atomsize >> 1);
+          uint8_t *b2 = realloc (info->fragment_buf, size2);
+          if (!b2)
+            break;
+          info->fragment_buf = b2;
+          info->fragbuf_size = size2;
+        }
+        memcpy (info->fragment_buf, hbuf, 16);
+        if (atomsize > 16) {
+          if (input->read (input, info->fragment_buf + 16, atomsize - 16) != (off_t)atomsize - 16)
+            break;
+        }
+        if (parse_moof_atom (info, info->fragment_buf, atomsize, pos))
+          frags++;
       }
-      if (parse_moof_atom (info, buf, atomsize, pos))
-        frags++;
     }
-  }
+    info->fragment_next = pos;
+    info->fragment_count += frags;
+    return frags;
 
-  info->fragment_count = frags;
-  free (buf);
-  return frags;
+  } else {
+    /* Stay patient, get 1 fragment only. */
+
+    /* find next moof */
+    pos = info->fragment_next;
+    if (pos == 0)
+      pos = input->get_current_pos (input);
+    while (1) {
+      if (pos <= 0)
+        return 0;
+      if (input->seek (input, pos, SEEK_SET) != pos)
+        return 0;
+      if (input->read (input, hbuf, 8) != 8)
+        return 0;
+      atomsize = _X_BE_32 (hbuf);
+      if (_X_BE_32 (hbuf + 4) == MOOF_ATOM)
+        break;
+      if (atomsize < 8) {
+        if (atomsize != 1)
+          return 0;
+        if (input->read (input, hbuf + 8, 8) != 8)
+          return 0;
+        atomsize = _X_BE_64 (hbuf + 8);
+        if (atomsize < 16)
+          return 0;
+      }
+      pos += atomsize;
+    }
+    /* add it */
+    if (atomsize < 16)
+      return 0;
+    if (atomsize > (80 << 20))
+      return 0;
+    if (atomsize > info->fragbuf_size) {
+      size_t size2 = atomsize + (atomsize >> 1);
+      uint8_t *b2 = realloc (info->fragment_buf, size2);
+      if (!b2)
+        return 0;
+      info->fragment_buf = b2;
+      info->fragbuf_size = size2;
+    }
+    memcpy (info->fragment_buf, hbuf, 8);
+    if (input->read (input, info->fragment_buf + 8, atomsize - 8) != (off_t)atomsize - 8)
+      return 0;
+    if (!parse_moof_atom (info, info->fragment_buf, atomsize, pos))
+      return 0;
+    info->fragment_count += 1;
+    pos += atomsize;
+    /* next should be mdat. remember its end for next try.
+     * dont actually skip it here, we will roughly do that by playing. */
+    if (input->read (input, hbuf, 8) != 8)
+      return 0;
+    atomsize = _X_BE_32 (hbuf);
+    if (_X_BE_32 (hbuf + 4) != MDAT_ATOM)
+      return 0;
+    if (atomsize < 8) {
+      if (atomsize != 1)
+        return 0;
+      if (input->read (input, hbuf + 8, 8) != 8)
+        return 0;
+      atomsize = _X_BE_64 (hbuf + 8);
+      if (atomsize < 16)
+        return 0;
+    }
+    pos += atomsize;
+    info->fragment_next = pos;
+    return 1;
+  }
 }
 
 /************************************************************************
@@ -2436,6 +2600,21 @@ static void info_string_from_atom (unsigned char *atom, char **target) {
     return;
   memcpy (*target, &atom[i], string_size);
   (*target)[string_size] = 0;
+}
+
+/* get real duration */
+static void qt_update_duration (qt_info *info) {
+  qt_trak *trak = info->traks;
+  uint32_t n;
+  for (n = info->trak_count; n; n--) {
+    if (trak->frame_count) {
+      int32_t msecs = qt_pts_2_msecs (trak->frames[trak->frame_count].pts);
+      if (msecs > info->msecs)
+        info->msecs = msecs;
+    }
+    trak++;
+  }
+  qt_normpos_init (info);
 }
 
 /*
@@ -2593,20 +2772,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
     fragment_scan (info, input);
   }
 
-  /* get real duration */
-  {
-    qt_trak *trak = info->traks;
-    uint32_t n;
-    for (n = info->trak_count; n; n--) {
-      if (trak->frame_count) {
-        int32_t msecs = qt_pts_2_msecs (trak->frames[trak->frame_count].pts);
-        if (msecs > info->msecs)
-          info->msecs = msecs;
-      }
-      trak++;
-    }
-  }
-  qt_normpos_init (info);
+  qt_update_duration (info);
 
   for (i = 0; i < info->trak_count; i++) {
     qt_trak *trak = info->traks + i;
@@ -2964,7 +3130,11 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
 
     /* Step 2: handle trivial cases. */
     if (trak_count == 0) {
-      this->status = DEMUX_FINISHED;
+      if (fragment_scan (&this->qt, this->input)) {
+        qt_update_duration (&this->qt);
+        this->status = DEMUX_OK;
+      } else
+        this->status = DEMUX_FINISHED;
       return this->status;
     }
     if (trak_count == 1) {
