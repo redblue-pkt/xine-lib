@@ -257,16 +257,16 @@ typedef struct {
 
 typedef struct {
   /* the media id that corresponds to this trak */
+  uint8_t       *properties_atom;
+  uint8_t       *decoder_config;
   unsigned int   media_id;
   unsigned int   codec_fourcc;
   unsigned int   codec_buftype;
-  unsigned char *properties_atom;
-  unsigned char *decoder_config;
   unsigned int   properties_atom_size;
   unsigned int   decoder_config_len;
-  char           codec_str[20];
   /* formattag-like field that specifies codec in mp4 files */
   int            object_type_id;
+  char           codec_str[20];
   union {
     struct {
       unsigned int width;
@@ -278,13 +278,14 @@ typedef struct {
       palette_entry_t palette[PALETTE_COUNT];
     } video;
     struct {
+      xine_waveformatex *wave;
+      unsigned int wave_size;
+
       unsigned int sample_rate;
       unsigned int channels;
       unsigned int bits;
       unsigned int vbr;
 
-      unsigned int wave_size;
-      xine_waveformatex *wave;
       /* special audio parameters */
       unsigned int samples_per_packet;
       unsigned int bytes_per_packet;
@@ -295,27 +296,21 @@ typedef struct {
   } s;
 } properties_t;
 
-typedef struct qt_info_s qt_info;
-
 typedef struct {
-
-  qt_info *info;
-
   /* trak description */
   media_type type;
   int id;
 
-  /* one or more properties atoms for this trak */
-  properties_t *stsd_atoms;
-  unsigned int stsd_atoms_count;
+  /* internal frame table corresponding to this trak */
+  qt_frame    *frames;
+  unsigned int frame_count;
+  unsigned int current_frame;
 
   /* this is the current properties atom in use */
   properties_t *properties;
-
-  /* internal frame table corresponding to this trak */
-  qt_frame *frames;
-  unsigned int frame_count;
-  unsigned int current_frame;
+  /* one or more properties atoms for this trak */
+  properties_t *stsd_atoms;
+  unsigned int  stsd_atoms_count;
 
   /* trak timescale */
   int timescale;
@@ -324,44 +319,37 @@ typedef struct {
   /* flags that indicate how a trak is supposed to be used */
   unsigned int flags;
 
-  /****************************************/
   /* temporary tables for loading a chunk */
-
   /* edit list table */
-  unsigned int edit_list_count;
-  edit_list_table_t *edit_list_table;
-
+  edit_list_table_t       *edit_list_table;
   /* chunk offsets */
-  unsigned int chunk_offset_count;
-  unsigned char *chunk_offset_table32;
-  unsigned char *chunk_offset_table64;
-
+  uint8_t                 *chunk_offset_table32;
+  uint8_t                 *chunk_offset_table64;
   /* sample sizes */
+  uint8_t                 *sample_size_table;
+  /* sync samples, a.k.a., keyframes */
+  uint8_t                 *sync_sample_table;
+  xine_keyframes_entry_t  *keyframes_list;
+  /* sample to chunk table */
+  sample_to_chunk_table_t *sample_to_chunk_table;
+  /* time to sample table */
+  uint8_t                 *time_to_sample_table;
+  /* pts to dts timeoffset to sample table */
+  uint8_t                 *timeoffs_to_sample_table;
+  /* and the sizes thereof */
+  unsigned int edit_list_count;
+  unsigned int chunk_offset_count;
   unsigned int samples;
   unsigned int sample_size;
   unsigned int sample_size_count;
   unsigned int sample_size_bytes;
   unsigned int sample_size_shift;
-  unsigned char *sample_size_table;
-
-  /* sync samples, a.k.a., keyframes */
   unsigned int sync_sample_count;
-  unsigned char *sync_sample_table;
-  xine_keyframes_entry_t *keyframes_list;
   unsigned int keyframes_used;
   unsigned int keyframes_size;
-
-  /* sample to chunk table */
   unsigned int sample_to_chunk_count;
-  sample_to_chunk_table_t *sample_to_chunk_table;
-
-  /* time to sample table */
   unsigned int time_to_sample_count;
-  unsigned char *time_to_sample_table;
-
-  /* pts to dts timeoffset to sample table */
   unsigned int timeoffs_to_sample_count;
-  unsigned char *timeoffs_to_sample_table;
 
   /* what to add to output buffer type */
   int audio_index;
@@ -380,13 +368,8 @@ typedef struct {
   int fragment_frames;
 } qt_trak;
 
-typedef struct demux_qt_s demux_qt_t;
-
-struct qt_info_s {
-
-  demux_qt_t *demux;
-
-  int compressed_header;  /* 1 if there was a compressed moov; just FYI */
+typedef struct {
+  int          compressed_header;  /* 1 if there was a compressed moov; just FYI */
 
   unsigned int creation_time;  /* in ms since Jan-01-1904 */
   unsigned int modification_time;
@@ -396,49 +379,48 @@ struct qt_info_s {
   uint32_t     normpos_mul;
   uint32_t     normpos_shift;
 
-  int64_t moov_first_offset;
+  int64_t      moov_first_offset;
 
-  unsigned int      trak_count;
-  qt_trak          *traks;
+  unsigned int trak_count;
+  qt_trak     *traks;
 
 #define MAX_AUDIO_TRAKS 8
-  int               audio_trak_count;
-  int               audio_traks[MAX_AUDIO_TRAKS];
+  int          audio_trak_count;
+  int          audio_traks[MAX_AUDIO_TRAKS];
 
   /* the trak numbers that won their respective frame count competitions */
-  int               video_trak;
-  int               audio_trak;
-  int seek_flag;  /* this is set to indicate that a seek has just occurred */
+  int          video_trak;
+  int          audio_trak;
+  int          seek_flag;  /* this is set to indicate that a seek has just occurred */
 
   /* fragment mode */
-  int               fragment_count;
-  size_t            fragbuf_size;
-  uint8_t          *fragment_buf;
-  off_t             fragment_next;
+  int          fragment_count;
+  size_t       fragbuf_size;
+  uint8_t     *fragment_buf;
+  off_t        fragment_next;
 
-  char              *artist;
-  char              *name;
-  char              *album;
-  char              *genre;
-  char              *copyright;
-  char              *description;
-  char              *comment;
-  char              *composer;
-  char              *year;
+  char        *artist;
+  char        *name;
+  char        *album;
+  char        *genre;
+  char        *copyright;
+  char        *description;
+  char        *comment;
+  char        *composer;
+  char        *year;
 
   /* a QT movie may contain a number of references pointing to URLs */
-  reference_t       *references;
-  unsigned int       reference_count;
-  int                chosen_reference;
+  reference_t *references;
+  unsigned int reference_count;
+  int          chosen_reference;
 
   /* need to know base MRL to construct URLs from relative paths */
-  char              *base_mrl;
+  char        *base_mrl;
 
-  qt_error last_error;
-};
+  qt_error     last_error;
+} qt_info;
 
-struct demux_qt_s {
-
+typedef struct {
   demux_plugin_t       demux_plugin;
 
   xine_stream_t       *stream;
@@ -454,15 +436,14 @@ struct demux_qt_s {
 
   qt_info              qt;
   xine_bmiheader       bih;
-  unsigned int         current_frame;
-  unsigned int         last_frame;
 
+#ifdef QT_OFFSET_SEEK
   off_t                data_start;
   off_t                data_size;
+#endif
 
   int64_t              bandwidth;
-
-};
+} demux_qt_t;
 
 
 /**********************************************************************
@@ -536,7 +517,7 @@ static inline void XINE_FORMAT_PRINTF (1, 2) debug_audio_demux (const char *form
 static inline void XINE_FORMAT_PRINTF (1, 2) debug_meta_load (const char *format, ...) {(void)format;}
 #endif
 
-static inline void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) {
+static inline void dump_moov_atom (uint8_t *moov_atom, int moov_atom_size) {
 #if DEBUG_DUMP_MOOV
 
   FILE *f;
@@ -562,109 +543,104 @@ static inline void dump_moov_atom(unsigned char *moov_atom, int moov_atom_size) 
  * lazyqt functions
  **********************************************************************/
 
-static void reset_qt_info (qt_info *info) {
+static void reset_qt_info (demux_qt_t *this) {
 #ifndef HAVE_ZERO_SAFE_MEM
-  info->compressed_header = 0;
-  info->creation_time     = 0;
-  info->modification_time = 0;
-  info->duration          = 0;
-  info->normpos_mul       = 0;
-  info->normpos_shift     = 0;
-  info->trak_count        = 0;
-  info->traks             = NULL;
-  info->artist            = NULL;
-  info->name              = NULL;
-  info->album             = NULL;
-  info->genre             = NULL;
-  info->copyright         = NULL;
-  info->description       = NULL;
-  info->comment           = NULL;
-  info->composer          = NULL;
-  info->year              = NULL;
-  info->references        = NULL;
-  info->reference_count   = 0;
-  info->base_mrl          = NULL;
-  info->fragbuf_size      = 0;
-  info->fragment_buf      = NULL;
-  info->fragment_next     = 0;
+  this->qt.compressed_header = 0;
+  this->qt.creation_time     = 0;
+  this->qt.modification_time = 0;
+  this->qt.duration          = 0;
+  this->qt.normpos_mul       = 0;
+  this->qt.normpos_shift     = 0;
+  this->qt.trak_count        = 0;
+  this->qt.traks             = NULL;
+  this->qt.artist            = NULL;
+  this->qt.name              = NULL;
+  this->qt.album             = NULL;
+  this->qt.genre             = NULL;
+  this->qt.copyright         = NULL;
+  this->qt.description       = NULL;
+  this->qt.comment           = NULL;
+  this->qt.composer          = NULL;
+  this->qt.year              = NULL;
+  this->qt.references        = NULL;
+  this->qt.reference_count   = 0;
+  this->qt.base_mrl          = NULL;
+  this->qt.fragbuf_size      = 0;
+  this->qt.fragment_buf      = NULL;
+  this->qt.fragment_next     = 0;
 #else
-  memset (info, 0, sizeof (*info));
+  memset (&this->qt, 0, sizeof (this->qt));
 #endif
-  info->last_error        = QT_OK;
-  info->timescale         = 1;
-  info->msecs             = 1;
-  info->video_trak        = -1;
-  info->audio_trak        = -1;
-  info->chosen_reference  = -1;
-  info->fragment_count    = -1;
+  this->qt.last_error        = QT_OK;
+  this->qt.timescale         = 1;
+  this->qt.msecs             = 1;
+  this->qt.video_trak        = -1;
+  this->qt.audio_trak        = -1;
+  this->qt.chosen_reference  = -1;
+  this->qt.fragment_count    = -1;
 }
 
 /* create a qt_info structure */
-static qt_info *create_qt_info (demux_qt_t *demux) {
-  qt_info *info = &demux->qt;
-  reset_qt_info (info);
-  info->demux = demux;
-  return info;
+static qt_info *create_qt_info (demux_qt_t *this) {
+  reset_qt_info (this);
+  return &this->qt;
 }
 
 /* release a qt_info structure and associated data */
-static void free_qt_info(qt_info *info) {
-
-  if(info) {
-    if(info->traks) {
-      unsigned int i;
-      for (i = 0; i < info->trak_count; i++) {
-        free(info->traks[i].frames);
-        free(info->traks[i].edit_list_table);
-        free(info->traks[i].sample_to_chunk_table);
-        if (info->traks[i].type == MEDIA_AUDIO) {
-          unsigned int j;
-          for (j = 0; j < info->traks[i].stsd_atoms_count; j++)
-            free (info->traks[i].stsd_atoms[j].s.audio.wave);
-        }
-        free(info->traks[i].stsd_atoms);
+static void free_qt_info (demux_qt_t *this) {
+  if (this->qt.traks) {
+    unsigned int i;
+    for (i = 0; i < this->qt.trak_count; i++) {
+      free (this->qt.traks[i].frames);
+      free (this->qt.traks[i].edit_list_table);
+      free (this->qt.traks[i].sample_to_chunk_table);
+      if (this->qt.traks[i].type == MEDIA_AUDIO) {
+        unsigned int j;
+        for (j = 0; j < this->qt.traks[i].stsd_atoms_count; j++)
+          free (this->qt.traks[i].stsd_atoms[j].s.audio.wave);
       }
-      free(info->traks);
+      free (this->qt.traks[i].stsd_atoms);
     }
-    if(info->references) {
-      unsigned int i;
-      for (i = 0; i < info->reference_count; i++)
-        free(info->references[i].url);
-      free(info->references);
-    }
-    free (info->fragment_buf);
-    free(info->base_mrl);
-    free(info->artist);
-    free(info->name);
-    free(info->album);
-    free(info->genre);
-    free(info->copyright);
-    free(info->description);
-    free(info->comment);
-    free(info->composer);
-    free(info->year);
-    reset_qt_info (info);
+    free (this->qt.traks);
   }
+  if (this->qt.references) {
+    unsigned int i;
+    for (i = 0; i < this->qt.reference_count; i++)
+      free (this->qt.references[i].url);
+    free (this->qt.references);
+  }
+  free (this->qt.fragment_buf);
+  free (this->qt.base_mrl);
+  free (this->qt.artist);
+  free (this->qt.name);
+  free (this->qt.album);
+  free (this->qt.genre);
+  free (this->qt.copyright);
+  free (this->qt.description);
+  free (this->qt.comment);
+  free (this->qt.composer);
+  free (this->qt.year);
+  reset_qt_info (this);
 }
 
 /* fetch interesting information from the movie header atom */
-static void parse_mvhd_atom(qt_info *info, unsigned char *mvhd_atom) {
+static void parse_mvhd_atom (demux_qt_t *this, uint8_t *mvhd_atom) {
 
-  info->creation_time = _X_BE_32(&mvhd_atom[0x0C]);
-  info->modification_time = _X_BE_32(&mvhd_atom[0x10]);
-  info->timescale = _X_BE_32(&mvhd_atom[0x14]);
-  info->duration = _X_BE_32(&mvhd_atom[0x18]);
+  this->qt.creation_time     = _X_BE_32 (mvhd_atom + 0x0c);
+  this->qt.modification_time = _X_BE_32 (mvhd_atom + 0x10);
+  this->qt.timescale         = _X_BE_32 (mvhd_atom + 0x14);
+  this->qt.duration          = _X_BE_32 (mvhd_atom + 0x18);
 
-  if (info->timescale == 0)
-    info->timescale = 1;
+  if (this->qt.timescale == 0)
+    this->qt.timescale = 1;
 
   debug_atom_load("  qt: timescale = %d, duration = %d (%d seconds)\n",
-    info->timescale, info->duration,
-    info->duration / info->timescale);
+    this->qt.timescale, this->qt.duration,
+    this->qt.duration / this->qt.timescale);
 }
 
 /* helper function from mplayer's parse_mp4.c */
-static int mp4_read_descr_len(unsigned char *s, uint32_t *length) {
+static int mp4_read_descr_len (uint8_t *s, uint32_t *length) {
   uint8_t b;
   uint8_t numBytes = 0;
 
@@ -687,7 +663,7 @@ static int mp4_read_descr_len(unsigned char *s, uint32_t *length) {
 }
 #else
 #  define WRITE_BE_32(v,p) { \
-  unsigned char *wp = (unsigned char *)(p); \
+  uint8_t *wp = (uint8_t *)(p); \
   uint32_t wv = (v); \
   wp[0] = wv >> 24; \
   wp[1] = wv >> 16; \
@@ -741,12 +717,12 @@ static void find_embedded_atoms (uint8_t *atom,
 }
 
 static int atom_scan (     /** << return value: # of missing atoms. */
-  unsigned char  *atom,    /** << the atom to parse. */
+  uint8_t        *atom,    /** << the atom to parse. */
   int             depth,   /** << how many levels of hierarchy to examine. */
   const uint32_t *types,   /** << zero terminated list of interesting atom types. */
-  unsigned char **found,   /** << list of atom pointers to fill in. */
+  uint8_t       **found,   /** << list of atom pointers to fill in. */
   unsigned int   *sizes) { /** << list of atom sizes to fill in. */
-  static const unsigned char containers[] =
+  static const uint8_t containers[] =
     /* look into these from "trak". */
     "edtsmdiaminfdinfstbl"
     /* look into these from "moov" (intentionally hide "trak"). */
@@ -819,9 +795,8 @@ static int atom_scan (     /** << return value: # of missing atoms. */
  * This function traverses through a trak atom searching for the sample
  * table atoms, which it loads into an internal trak structure.
  */
-static qt_error parse_trak_atom (qt_trak *trak,
-				 unsigned char *trak_atom) {
-  unsigned char *atom;
+static qt_error parse_trak_atom (qt_trak *trak, uint8_t *trak_atom) {
+  uint8_t *atom;
   int j;
   unsigned int atomsize;
   qt_error last_error = QT_OK;
@@ -832,15 +807,11 @@ static qt_error parse_trak_atom (qt_trak *trak,
     STCO_ATOM, CO64_ATOM, STSC_ATOM, STTS_ATOM,
     CTTS_ATOM, STZ2_ATOM, 0};
   unsigned int sizes[14];
-  unsigned char *atoms[14];
+  uint8_t *atoms[14];
 
   /* initialize trak structure */
 #ifdef HAVE_ZERO_SAFE_MEM
-  {
-    qt_info *info = trak->info;
-    memset (trak, 0, sizeof (*trak));
-    trak->info = info;
-  }
+  memset (trak, 0, sizeof (*trak));
 #else
   trak->edit_list_count = 0;
   trak->edit_list_table = NULL;
@@ -969,7 +940,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
   atom     = atoms[5]; /* STSD_ATOM */
   atomsize = sizes[5];
   if (atomsize >= 16) {
-    unsigned char *item;
+    uint8_t *item;
     unsigned int k;
     debug_atom_load ("demux_qt: stsd atom\n");
     /* Allocate space for our prop array, plus a copy of the STSD atom.
@@ -1033,7 +1004,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
       find_embedded_atoms (item, stsd_types, stsd_atoms, stsd_sizes);
       do {
         unsigned int j, subsize = stsd_sizes[0], len;
-        unsigned char *subatom = stsd_atoms[0]; /* ESDS_ATOM */
+        uint8_t *subatom = stsd_atoms[0]; /* ESDS_ATOM */
         if (subsize < 13)
           break;
         debug_atom_load ("    qt/mpeg-4 esds atom\n");
@@ -1132,7 +1103,7 @@ static qt_error parse_trak_atom (qt_trak *trak,
 
           } else if (color_flag & 0x08) {
 
-            const unsigned char *color_table;
+            const uint8_t *color_table;
             /* if flag bit 3 is set, load the default palette */
             p->s.video.palette_count = 1 << color_depth;
 
@@ -1512,13 +1483,11 @@ free_trak:
 }
 
 /* Traverse through a reference atom and extract the URL and data rate. */
-static qt_error parse_reference_atom (qt_info *info,
-                                      unsigned char *ref_atom,
-                                      char *base_mrl) {
+static qt_error parse_reference_atom (demux_qt_t *this, uint8_t *ref_atom, char *base_mrl) {
 
   unsigned int sizes[4];
   reference_t ref;
-  unsigned char *atoms[4] = { NULL, NULL, NULL, NULL };
+  uint8_t *atoms[4] = { NULL, NULL, NULL, NULL };
   static const uint32_t types_ref[] = { URL__ATOM, RMDR_ATOM, QTIM_ATOM, 0 };
   /* initialize reference atom */
   ref.url = NULL;
@@ -1570,16 +1539,16 @@ static qt_error parse_reference_atom (qt_info *info,
   }
 
   if (ref.url) {
-    info->references = realloc (info->references, (info->reference_count + 1) * sizeof (reference_t));
-    if (info->references)
-      info->references[info->reference_count++] = ref;
+    this->qt.references = realloc (this->qt.references, (this->qt.reference_count + 1) * sizeof (reference_t));
+    if (this->qt.references)
+      this->qt.references[this->qt.reference_count++] = ref;
   }
 
   return QT_OK;
 }
 
-static void qt_normpos_init (qt_info *info) {
-  uint32_t n = info->msecs, dbits = 32, sbits;
+static void qt_normpos_init (demux_qt_t *this) {
+  uint32_t n = this->qt.msecs, dbits = 32, sbits;
   while (!(n & 0x80000000))
     dbits--, n <<= 1;
   /* _mul setup limit:    sbits <= 64 - 16
@@ -1592,12 +1561,12 @@ static void qt_normpos_init (qt_info *info) {
    *                      sbits <= 16 + dbits
    */
   sbits = 16 + dbits - 1; /* safety */
-  info->normpos_shift = sbits;
-  info->normpos_mul   = ((uint64_t)0xffff << sbits) / (uint32_t)info->msecs;
+  this->qt.normpos_shift = sbits;
+  this->qt.normpos_mul   = ((uint64_t)0xffff << sbits) / (uint32_t)this->qt.msecs;
 }
 
-static int32_t qt_msec_2_normpos (qt_info *info, int32_t msec) {
-  return ((uint64_t)msec * info->normpos_mul) >> info->normpos_shift;
+static int32_t qt_msec_2_normpos (demux_qt_t *this, int32_t msec) {
+  return ((uint64_t)msec * this->qt.normpos_mul) >> this->qt.normpos_shift;
 }
 
 static int32_t qt_pts_2_msecs (int64_t pts) {
@@ -1860,7 +1829,7 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
     qt_keyframes_size (trak, trak->sync_sample_count);
     if (!trak->edit_list_count && (trak->keyframes_size >= trak->sync_sample_count)) {
       unsigned int u;
-      unsigned char *p = trak->sync_sample_table;
+      uint8_t *p = trak->sync_sample_table;
       for (u = 0; u < trak->sync_sample_count; u++) {
         unsigned int fr = _X_BE_32 (p); p += 4;
         if ((fr > 0) && (fr <= trak->frame_count)) {
@@ -1871,7 +1840,7 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
       }
     } else {
       unsigned int u;
-      unsigned char *p = trak->sync_sample_table;
+      uint8_t *p = trak->sync_sample_table;
       for (u = 0; u < trak->sync_sample_count; u++) {
         unsigned int fr = _X_BE_32 (p); p += 4;
         if ((fr > 0) && (fr <= trak->frame_count))
@@ -2151,17 +2120,17 @@ static void report_fragment_index (xine_t *xine, fragment_index_t *idx) {
 }
 #endif
 
-static qt_trak *find_trak_by_id (qt_info *info, int id) {
+static qt_trak *find_trak_by_id (demux_qt_t *this, int id) {
   unsigned int i;
 
-  for (i = 0; i < info->trak_count; i++) {
-    if (info->traks[i].id == id)
-      return &(info->traks[i]);
+  for (i = 0; i < this->qt.trak_count; i++) {
+    if (this->qt.traks[i].id == id)
+      return &(this->qt.traks[i]);
   }
   return NULL;
 }
 
-static int parse_mvex_atom (qt_info *info, unsigned char *mvex_atom, unsigned int bufsize) {
+static int parse_mvex_atom (demux_qt_t *this, uint8_t *mvex_atom, unsigned int bufsize) {
   unsigned int i, mvex_size;
   uint32_t traknum = 0, subtype, subsize = 0;
   qt_trak *trak;
@@ -2187,7 +2156,7 @@ static int parse_mvex_atom (qt_info *info, unsigned char *mvex_atom, unsigned in
         if (subsize < 8 + 24)
           break;
         traknum = _X_BE_32 (&mvex_atom[i + 8 + 4]);
-        trak = find_trak_by_id (info, traknum);
+        trak = find_trak_by_id (this, traknum);
         if (!trak)
           break;
         trak->default_sample_description_index = _X_BE_32 (&mvex_atom[i + 8 + 8]);
@@ -2211,7 +2180,7 @@ static int parse_mvex_atom (qt_info *info, unsigned char *mvex_atom, unsigned in
               d = trak->edit_list_table[0].track_duration;
               if (d > 0) {
                 d *= trak->timescale;
-                d /= info->timescale;
+                d /= this->qt.timescale;
                 trak->fragment_dts = d;
               }
               n = 1;
@@ -2223,7 +2192,7 @@ static int parse_mvex_atom (qt_info *info, unsigned char *mvex_atom, unsigned in
           }
         }
         trak->fragment_frames = trak->frame_count;
-        info->fragment_count = 0;
+        this->qt.fragment_count = 0;
         break;
       default: ;
     }
@@ -2232,7 +2201,7 @@ static int parse_mvex_atom (qt_info *info, unsigned char *mvex_atom, unsigned in
   return 1;
 }
 
-static int parse_traf_atom (qt_info *info, unsigned char *traf_atom, unsigned int trafsize, off_t moofpos) {
+static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int trafsize, off_t moofpos) {
   unsigned int i, done = 0;
   uint32_t subtype, subsize = 0;
   uint32_t sample_description_index = 0;
@@ -2253,12 +2222,12 @@ static int parse_traf_atom (qt_info *info, unsigned char *traf_atom, unsigned in
 
       case TFHD_ATOM: {
         uint32_t tfhd_flags;
-        unsigned char *p;
+        uint8_t *p;
         if (subsize < 8 + 8)
           break;
         p = traf_atom + i + 8;
         tfhd_flags = _X_BE_32 (p); p += 4;
-        trak = find_trak_by_id (info, _X_BE_32 (p)); p += 4;
+        trak = find_trak_by_id (this, _X_BE_32 (p)); p += 4;
         {
           unsigned int n;
           n = ((tfhd_flags << 3) & 8)
@@ -2302,7 +2271,7 @@ static int parse_traf_atom (qt_info *info, unsigned char *traf_atom, unsigned in
         uint32_t sample_duration, sample_size;
         uint32_t first_sample_flags, sample_flags;
         int64_t  sample_dts;
-        unsigned char *p;
+        uint8_t *p;
         qt_frame *frame;
         /* get head */
         if (!trak)
@@ -2421,7 +2390,7 @@ static int parse_traf_atom (qt_info *info, unsigned char *traf_atom, unsigned in
   return done;
 }
 
-static int parse_moof_atom (qt_info *info, unsigned char *moof_atom, int moofsize, off_t moofpos) {
+static int parse_moof_atom (demux_qt_t *this, uint8_t *moof_atom, int moofsize, off_t moofpos) {
   int i, subtype, subsize = 0, done = 0;
 
   for (i = 8; i + 8 <= moofsize; i += subsize) {
@@ -2436,7 +2405,7 @@ static int parse_moof_atom (qt_info *info, unsigned char *moof_atom, int moofsiz
         /* TODO: check sequence # here */
         break;
       case TRAF_ATOM:
-        if (parse_traf_atom (info, &moof_atom[i], subsize, moofpos))
+        if (parse_traf_atom (this, &moof_atom[i], subsize, moofpos))
           done++;
         break;
       default: ;
@@ -2445,27 +2414,27 @@ static int parse_moof_atom (qt_info *info, unsigned char *moof_atom, int moofsiz
   return done;
 }
 
-static int fragment_scan (qt_info *info, input_plugin_t *input) {
+static int fragment_scan (demux_qt_t *this) {
   uint8_t hbuf[16];
   off_t pos, fsize;
   uint64_t atomsize;
   uint32_t caps, atomtype;
 
   /* prerequisites */
-  if (info->fragment_count < 0)
+  if (this->qt.fragment_count < 0)
     return 0;
-  caps = input->get_capabilities (input);
-  fsize = input->get_length (input);
+  caps = this->input->get_capabilities (this->input);
+  fsize = this->input->get_length (this->input);
 
   if ((caps & INPUT_CAP_SEEKABLE) && (fsize > 0)) {
     /* Plain file, possibly being written right now.
      * Get all fragments known so far. */
 
     int frags = 0;
-    for (pos = info->fragment_next; pos < fsize; pos += atomsize) {
-      if (input->seek (input, pos, SEEK_SET) != pos)
+    for (pos = this->qt.fragment_next; pos < fsize; pos += atomsize) {
+      if (this->input->seek (this->input, pos, SEEK_SET) != pos)
         break;
-      if (input->read (input, hbuf, 16) != 16)
+      if (this->input->read (this->input, hbuf, 16) != 16)
         break;
       atomsize = _X_BE_32 (hbuf);
       atomtype = _X_BE_32 (hbuf + 4);
@@ -2480,40 +2449,40 @@ static int fragment_scan (qt_info *info, input_plugin_t *input) {
       if (atomtype == MOOF_ATOM) {
         if (atomsize > (80 << 20))
           break;
-        if (atomsize > info->fragbuf_size) {
+        if (atomsize > this->qt.fragbuf_size) {
           size_t size2 = atomsize + (atomsize >> 1);
-          uint8_t *b2 = realloc (info->fragment_buf, size2);
+          uint8_t *b2 = realloc (this->qt.fragment_buf, size2);
           if (!b2)
             break;
-          info->fragment_buf = b2;
-          info->fragbuf_size = size2;
+          this->qt.fragment_buf = b2;
+          this->qt.fragbuf_size = size2;
         }
-        memcpy (info->fragment_buf, hbuf, 16);
+        memcpy (this->qt.fragment_buf, hbuf, 16);
         if (atomsize > 16) {
-          if (input->read (input, info->fragment_buf + 16, atomsize - 16) != (off_t)atomsize - 16)
+          if (this->input->read (this->input, this->qt.fragment_buf + 16, atomsize - 16) != (off_t)atomsize - 16)
             break;
         }
-        if (parse_moof_atom (info, info->fragment_buf, atomsize, pos))
+        if (parse_moof_atom (this, this->qt.fragment_buf, atomsize, pos))
           frags++;
       }
     }
-    info->fragment_next = pos;
-    info->fragment_count += frags;
+    this->qt.fragment_next = pos;
+    this->qt.fragment_count += frags;
     return frags;
 
   } else {
     /* Stay patient, get 1 fragment only. */
 
     /* find next moof */
-    pos = info->fragment_next;
+    pos = this->qt.fragment_next;
     if (pos == 0)
-      pos = input->get_current_pos (input);
+      pos = this->input->get_current_pos (this->input);
     while (1) {
       if (pos <= 0)
         return 0;
-      if (input->seek (input, pos, SEEK_SET) != pos)
+      if (this->input->seek (this->input, pos, SEEK_SET) != pos)
         return 0;
-      if (input->read (input, hbuf, 8) != 8)
+      if (this->input->read (this->input, hbuf, 8) != 8)
         return 0;
       atomsize = _X_BE_32 (hbuf);
       if (_X_BE_32 (hbuf + 4) == MOOF_ATOM)
@@ -2521,7 +2490,7 @@ static int fragment_scan (qt_info *info, input_plugin_t *input) {
       if (atomsize < 8) {
         if (atomsize != 1)
           return 0;
-        if (input->read (input, hbuf + 8, 8) != 8)
+        if (this->input->read (this->input, hbuf + 8, 8) != 8)
           return 0;
         atomsize = _X_BE_64 (hbuf + 8);
         if (atomsize < 16)
@@ -2534,24 +2503,24 @@ static int fragment_scan (qt_info *info, input_plugin_t *input) {
       return 0;
     if (atomsize > (80 << 20))
       return 0;
-    if (atomsize > info->fragbuf_size) {
+    if (atomsize > this->qt.fragbuf_size) {
       size_t size2 = atomsize + (atomsize >> 1);
-      uint8_t *b2 = realloc (info->fragment_buf, size2);
+      uint8_t *b2 = realloc (this->qt.fragment_buf, size2);
       if (!b2)
         return 0;
-      info->fragment_buf = b2;
-      info->fragbuf_size = size2;
+      this->qt.fragment_buf = b2;
+      this->qt.fragbuf_size = size2;
     }
-    memcpy (info->fragment_buf, hbuf, 8);
-    if (input->read (input, info->fragment_buf + 8, atomsize - 8) != (off_t)atomsize - 8)
+    memcpy (this->qt.fragment_buf, hbuf, 8);
+    if (this->input->read (this->input, this->qt.fragment_buf + 8, atomsize - 8) != (off_t)atomsize - 8)
       return 0;
-    if (!parse_moof_atom (info, info->fragment_buf, atomsize, pos))
+    if (!parse_moof_atom (this, this->qt.fragment_buf, atomsize, pos))
       return 0;
-    info->fragment_count += 1;
+    this->qt.fragment_count += 1;
     pos += atomsize;
     /* next should be mdat. remember its end for next try.
      * dont actually skip it here, we will roughly do that by playing. */
-    if (input->read (input, hbuf, 8) != 8)
+    if (this->input->read (this->input, hbuf, 8) != 8)
       return 0;
     atomsize = _X_BE_32 (hbuf);
     if (_X_BE_32 (hbuf + 4) != MDAT_ATOM)
@@ -2559,14 +2528,14 @@ static int fragment_scan (qt_info *info, input_plugin_t *input) {
     if (atomsize < 8) {
       if (atomsize != 1)
         return 0;
-      if (input->read (input, hbuf + 8, 8) != 8)
+      if (this->input->read (this->input, hbuf + 8, 8) != 8)
         return 0;
       atomsize = _X_BE_64 (hbuf + 8);
       if (atomsize < 16)
         return 0;
     }
     pos += atomsize;
-    info->fragment_next = pos;
+    this->qt.fragment_next = pos;
     return 1;
   }
 }
@@ -2575,7 +2544,7 @@ static int fragment_scan (qt_info *info, input_plugin_t *input) {
 * /Fragment stuff                                                       *
 ************************************************************************/
 
-static void info_string_from_atom (unsigned char *atom, char **target) {
+static void info_string_from_atom (uint8_t *atom, char **target) {
   uint32_t size, string_size, i;
 
   if (!atom)
@@ -2603,18 +2572,18 @@ static void info_string_from_atom (unsigned char *atom, char **target) {
 }
 
 /* get real duration */
-static void qt_update_duration (qt_info *info) {
-  qt_trak *trak = info->traks;
+static void qt_update_duration (demux_qt_t *this) {
+  qt_trak *trak = this->qt.traks;
   uint32_t n;
-  for (n = info->trak_count; n; n--) {
+  for (n = this->qt.trak_count; n; n--) {
     if (trak->frame_count) {
       int32_t msecs = qt_pts_2_msecs (trak->frames[trak->frame_count].pts);
-      if (msecs > info->msecs)
-        info->msecs = msecs;
+      if (msecs > this->qt.msecs)
+        this->qt.msecs = msecs;
     }
     trak++;
   }
-  qt_normpos_init (info);
+  qt_normpos_init (this);
 }
 
 /*
@@ -2623,15 +2592,14 @@ static void qt_update_duration (qt_info *info) {
  * finishes successfully, qt_info will have a list of qt_frame objects,
  * ordered by offset.
  */
-static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
-                            int64_t bandwidth, input_plugin_t *input) {
+static void parse_moov_atom (demux_qt_t *this, uint8_t *moov_atom) {
   unsigned int i;
   int error;
   unsigned int sizes[20];
-  unsigned char *atoms[20];
+  uint8_t *atoms[20];
   unsigned int max_video_frames = 0;
   unsigned int max_audio_frames = 0;
-  unsigned char *mvex_atom;
+  uint8_t *mvex_atom;
   int mvex_size;
   static const uint32_t types_base[] = {
     MVHD_ATOM, MVEX_ATOM,
@@ -2656,7 +2624,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
    * a special case) */
   if ((_X_BE_32(&moov_atom[4]) != MOOV_ATOM) &&
       (_X_BE_32(&moov_atom[4]) != FREE_ATOM)) {
-    info->last_error = QT_NO_MOOV_ATOM;
+    this->qt.last_error = QT_NO_MOOV_ATOM;
     return;
   }
 
@@ -2664,8 +2632,8 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
   atom_scan (moov_atom, 1, types_base, atoms, sizes);
 
   if (atoms[0]) {
-    parse_mvhd_atom(info, atoms[0]);
-    if (info->last_error != QT_OK)
+    parse_mvhd_atom (this, atoms[0]);
+    if (this->qt.last_error != QT_OK)
       return;
   }
 
@@ -2677,34 +2645,33 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
     uint8_t **a = atoms + 2;
     while (*a)
       a++;
-    info->traks = malloc ((a - (atoms + 2)) * sizeof (qt_trak));
-    if (!info->traks) {
-      info->last_error = QT_NO_MEMORY;
+    this->qt.traks = malloc ((a - (atoms + 2)) * sizeof (qt_trak));
+    if (!this->qt.traks) {
+      this->qt.last_error = QT_NO_MEMORY;
       return;
     }
     a = atoms + 2;
     while (*a) {
       /* create a new trak structure */
-      info->traks[info->trak_count].info = info;
-      info->last_error = parse_trak_atom (&info->traks[info->trak_count], *a);
-      if (info->last_error != QT_OK)
+      this->qt.last_error = parse_trak_atom (&this->qt.traks[this->qt.trak_count], *a);
+      if (this->qt.last_error != QT_OK)
         return;
-      info->trak_count++;
+      this->qt.trak_count++;
       a++;
     }
   }
 
   atom_scan (moov_atom, 4, types_meta, atoms, sizes);
 
-  info_string_from_atom (atoms[0], &info->name);
-  info_string_from_atom (atoms[1], &info->copyright);
-  info_string_from_atom (atoms[2], &info->description);
-  info_string_from_atom (atoms[3], &info->comment);
-  info_string_from_atom (atoms[4], &info->artist);
-  info_string_from_atom (atoms[5], &info->album);
-  info_string_from_atom (atoms[6], &info->genre);
-  info_string_from_atom (atoms[7], &info->composer);
-  info_string_from_atom (atoms[8], &info->year);
+  info_string_from_atom (atoms[0], &this->qt.name);
+  info_string_from_atom (atoms[1], &this->qt.copyright);
+  info_string_from_atom (atoms[2], &this->qt.description);
+  info_string_from_atom (atoms[3], &this->qt.comment);
+  info_string_from_atom (atoms[4], &this->qt.artist);
+  info_string_from_atom (atoms[5], &this->qt.album);
+  info_string_from_atom (atoms[6], &this->qt.genre);
+  info_string_from_atom (atoms[7], &this->qt.composer);
+  info_string_from_atom (atoms[8], &this->qt.year);
 
   atom_scan (moov_atom, 2, types_rmda, atoms, sizes);
 
@@ -2712,7 +2679,7 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
   {
     uint8_t **a = atoms;
     while (*a) {
-      parse_reference_atom (info, *a, info->base_mrl);
+      parse_reference_atom (this, *a, this->qt.base_mrl);
       a++;
     }
   }
@@ -2720,45 +2687,45 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
 
   /* build frame tables corresponding to each trak */
   debug_frame_table("  qt: preparing to build %d frame tables\n",
-    info->trak_count);
-  for (i = 0; i < info->trak_count; i++) {
-    qt_trak *trak = &info->traks[i];
+    this->qt.trak_count);
+  for (i = 0; i < this->qt.trak_count; i++) {
+    qt_trak *trak = &this->qt.traks[i];
     if (trak->type == MEDIA_VIDEO) {
       if (trak->properties) {
-        xprintf (info->demux->stream->xine, XINE_VERBOSITY_DEBUG,
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
           "demux_qt: stream #%u: video [%s], %u x %u.\n",
           i, trak->properties->codec_str,
           trak->properties->s.video.width,
           trak->properties->s.video.height);
       } else {
-        xprintf (info->demux->stream->xine, XINE_VERBOSITY_DEBUG,
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
           "demux_qt: stream #%u: video [unknown].\n", i);
       }
     } else if (trak->type == MEDIA_AUDIO) {
       if (trak->properties) {
-        xprintf (info->demux->stream->xine, XINE_VERBOSITY_DEBUG,
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
           "demux_qt: stream #%u: audio [%s], %uch, %uHz, %ubit.\n",
           i, trak->properties->codec_str,
           trak->properties->s.audio.channels,
           trak->properties->s.audio.sample_rate,
           trak->properties->s.audio.bits);
       } else {
-        xprintf (info->demux->stream->xine, XINE_VERBOSITY_DEBUG,
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
           "demux_qt: stream #%u: audio [unknown].\n", i);
       }
     } else {
-      xprintf (info->demux->stream->xine, XINE_VERBOSITY_DEBUG,
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
         "demux_qt: stream #%u: other.\n", i);
     }
     debug_frame_table("    qt: building frame table #%d (%s)\n", i,
-      (info->traks[i].type == MEDIA_VIDEO) ? "video" : "audio");
-    error = build_frame_table(&info->traks[i], info->timescale);
+      (this->qt.traks[i].type == MEDIA_VIDEO) ? "video" : "audio");
+    error = build_frame_table(&this->qt.traks[i], this->qt.timescale);
     if (error != QT_OK) {
-      info->last_error = error;
+      this->qt.last_error = error;
       return;
     }
     if (trak->frame_count) {
-      xprintf (info->demux->stream->xine, XINE_VERBOSITY_DEBUG,
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
         "demux_qt:            start %" PRId64 "pts, %u frames.\n",
         trak->frames[0].pts + trak->frames[0].ptsoffs,
         trak->frame_count);
@@ -2767,15 +2734,15 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
 
   /* must parse mvex _after_ building traks */
   if (mvex_atom) {
-    parse_mvex_atom (info, mvex_atom, mvex_size);
+    parse_mvex_atom (this, mvex_atom, mvex_size);
     /* reassemble fragments, if any */
-    fragment_scan (info, input);
+    fragment_scan (this);
   }
 
-  qt_update_duration (info);
+  qt_update_duration (this);
 
-  for (i = 0; i < info->trak_count; i++) {
-    qt_trak *trak = info->traks + i;
+  for (i = 0; i < this->qt.trak_count; i++) {
+    qt_trak *trak = this->qt.traks + i;
 #if DEBUG_DUMP_MOOV
     unsigned int j;
     /* dump the frame table in debug mode */
@@ -2792,23 +2759,23 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
     if ((trak->type == MEDIA_VIDEO) &&
         (trak->frame_count > max_video_frames)) {
 
-      info->video_trak = i;
+      this->qt.video_trak = i;
       max_video_frames = trak->frame_count;
 
       if (trak->keyframes_list) {
         xine_keyframes_entry_t *e = trak->keyframes_list;
         uint32_t n = trak->keyframes_used;
         while (n--) {
-          e->normpos = qt_msec_2_normpos (info, e->msecs);
+          e->normpos = qt_msec_2_normpos (this, e->msecs);
           e++;
         }
-        _x_keyframes_set (info->demux->stream, trak->keyframes_list, trak->keyframes_used);
+        _x_keyframes_set (this->stream, trak->keyframes_list, trak->keyframes_used);
       }
 
     } else if ((trak->type == MEDIA_AUDIO) &&
                (trak->frame_count > max_audio_frames)) {
 
-      info->audio_trak = i;
+      this->qt.audio_trak = i;
       max_audio_frames = trak->frame_count;
     }
 
@@ -2818,33 +2785,33 @@ static void parse_moov_atom(qt_info *info, unsigned char *moov_atom,
   }
 
   /* check for references */
-  if (info->reference_count > 0) {
+  if (this->qt.reference_count > 0) {
 
     /* init chosen reference to the first entry */
-    info->chosen_reference = 0;
+    this->qt.chosen_reference = 0;
 
     /* iterate through 1..n-1 reference entries and decide on the right one */
-    for (i = 1; i < info->reference_count; i++) {
+    for (i = 1; i < this->qt.reference_count; i++) {
 
-      if (info->references[i].qtim_version >
-          info->references[info->chosen_reference].qtim_version)
-        info->chosen_reference = i;
-      else if ((info->references[i].data_rate <= bandwidth) &&
-               (info->references[i].data_rate >
-                info->references[info->chosen_reference].data_rate))
-        info->chosen_reference = i;
+      if (this->qt.references[i].qtim_version >
+          this->qt.references[this->qt.chosen_reference].qtim_version)
+        this->qt.chosen_reference = i;
+      else if ((this->qt.references[i].data_rate <= this->bandwidth) &&
+               (this->qt.references[i].data_rate >
+                this->qt.references[this->qt.chosen_reference].data_rate))
+        this->qt.chosen_reference = i;
     }
 
     debug_atom_load("  qt: chosen reference is ref #%d, qtim version %04X, %"PRId64" bps\n      URL: %s\n",
-      info->chosen_reference,
-      info->references[info->chosen_reference].qtim_version,
-      info->references[info->chosen_reference].data_rate,
-      info->references[info->chosen_reference].url);
+      this->qt.chosen_reference,
+      this->qt.references[this->qt.chosen_reference].qtim_version,
+      this->qt.references[this->qt.chosen_reference].data_rate,
+      this->qt.references[this->qt.chosen_reference].url);
   }
 }
 
-static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom, off_t *moov_atom_offset) {
-  unsigned char buf[MAX_PREVIEW_SIZE] = { 0, }, *p;
+static qt_error load_moov_atom (input_plugin_t *input, uint8_t **moov_atom, off_t *moov_atom_offset) {
+  uint8_t buf[MAX_PREVIEW_SIZE] = { 0, }, *p;
   uint64_t size = 0;
   uint32_t hsize;
   uint32_t type = 0;
@@ -2996,31 +2963,30 @@ static qt_error load_moov_atom (input_plugin_t *input, unsigned char **moov_atom
   return QT_OK;
 }
 
-static qt_error open_qt_file (qt_info *info, input_plugin_t *input,
-  unsigned char *moov_atom, off_t moov_atom_offset, int64_t bandwidth) {
+static qt_error open_qt_file (demux_qt_t *this, uint8_t *moov_atom, off_t moov_atom_offset) {
 
   uint32_t moov_atom_size;
 
   /* extract the base MRL if this is a http MRL */
-  if (strncmp(input->get_mrl(input), "http://", 7) == 0) {
+  if (strncmp (this->input->get_mrl (this->input), "http://", 7) == 0) {
     char *slash;
     /* this will copy a few bytes too many, but no big deal */
-    info->base_mrl = strdup(input->get_mrl(input));
+    this->qt.base_mrl = strdup (this->input->get_mrl (this->input));
     /* terminate the string after the last slash character */
-    slash = strrchr(info->base_mrl, '/');
+    slash = strrchr (this->qt.base_mrl, '/');
     if (slash)
       *(slash + 1) = '\0';
   }
 
-  info->moov_first_offset = moov_atom_offset;
+  this->qt.moov_first_offset = moov_atom_offset;
   moov_atom_size = _X_BE_32 (moov_atom);
 
   /* check if moov is compressed */
   if ((moov_atom_size >= 0x28) && (_X_BE_32 (moov_atom + 12) == CMOV_ATOM)) do {
-    unsigned char *unzip_buffer;
-    uint32_t       size2;
-    info->compressed_header = 1;
-    info->last_error        = QT_NO_MEMORY;
+    uint8_t  *unzip_buffer;
+    uint32_t  size2;
+    this->qt.compressed_header = 1;
+    this->qt.last_error        = QT_NO_MEMORY;
     size2                   = _X_BE_32 (moov_atom + 0x24);
     if (size2 > MAX_MOOV_SIZE)
       size2 = MAX_MOOV_SIZE;
@@ -3029,7 +2995,7 @@ static qt_error open_qt_file (qt_info *info, input_plugin_t *input,
       /* zlib stuff */
       z_stream z_state;
       int      z_ret_code1, z_ret_code2;
-      info->last_error  = QT_ZLIB_ERROR;
+      this->qt.last_error  = QT_ZLIB_ERROR;
       z_state.next_in   = moov_atom + 0x28;
       z_state.avail_in  = moov_atom_size - 0x28;
       z_state.next_out  = unzip_buffer;
@@ -3043,7 +3009,7 @@ static qt_error open_qt_file (qt_info *info, input_plugin_t *input,
         z_ret_code2 = inflateEnd (&z_state);
         if (((z_ret_code1 == Z_OK) || (z_ret_code1 == Z_STREAM_END)) && (Z_OK == z_ret_code2)) {
           /* replace the compressed moov atom with the decompressed atom */
-          info->last_error = QT_OK;
+          this->qt.last_error = QT_OK;
           free (moov_atom);
           moov_atom = unzip_buffer;
           moov_atom_size = _X_BE_32 (moov_atom);
@@ -3057,17 +3023,17 @@ static qt_error open_qt_file (qt_info *info, input_plugin_t *input,
       free (unzip_buffer);
     }
     free (moov_atom);
-    return info->last_error;
+    return this->qt.last_error;
   } while (0);
 
   /* write moov atom to disk if debugging option is turned on */
   dump_moov_atom(moov_atom, moov_atom_size);
 
   /* take apart the moov atom */
-  parse_moov_atom(info, moov_atom, bandwidth, input);
+  parse_moov_atom (this, moov_atom);
 
   free (moov_atom);
-  return info->last_error;
+  return this->qt.last_error;
 }
 
 /**********************************************************************
@@ -3130,8 +3096,8 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
 
     /* Step 2: handle trivial cases. */
     if (trak_count == 0) {
-      if (fragment_scan (&this->qt, this->input)) {
-        qt_update_duration (&this->qt);
+      if (fragment_scan (this)) {
+        qt_update_duration (this);
         this->status = DEMUX_OK;
       } else
         this->status = DEMUX_FINISHED;
@@ -3236,7 +3202,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       buf = this->video_fifo->buffer_pool_size_alloc (this->video_fifo, remaining_sample_bytes);
       buf->type = trak->properties->codec_buftype;
       buf->extra_info->input_time = qt_pts_2_msecs (trak->frames[i].pts);
-      buf->extra_info->input_normpos = qt_msec_2_normpos (&this->qt, buf->extra_info->input_time);
+      buf->extra_info->input_normpos = qt_msec_2_normpos (this, buf->extra_info->input_time);
       buf->pts = trak->frames[i].pts + (int64_t)trak->frames[i].ptsoffs;
 
       buf->decoder_flags |= BUF_FLAG_FRAMERATE;
@@ -3297,7 +3263,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       buf = this->audio_fifo->buffer_pool_size_alloc (this->audio_fifo, remaining_sample_bytes);
       buf->type = trak->properties->codec_buftype;
       buf->extra_info->input_time = qt_pts_2_msecs (trak->frames[i].pts);
-      buf->extra_info->input_normpos = qt_msec_2_normpos (&this->qt, buf->extra_info->input_time);
+      buf->extra_info->input_normpos = qt_msec_2_normpos (this, buf->extra_info->input_time);
       /* The audio chunk is often broken up into multiple 8K buffers when
        * it is sent to the audio decoder. Only attach the proper timestamp
        * to the first buffer. This is for the linear PCM decoder which
@@ -3368,11 +3334,13 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   unsigned int tnum;
   int audio_index = 0;
 
+#ifdef QT_OFFSET_SEEK
   /* for deciding data start and data size */
   int64_t first_video_offset = -1;
   int64_t  last_video_offset = -1;
   int64_t first_audio_offset = -1;
   int64_t  last_audio_offset = -1;
+#endif
 
   this->video_fifo = this->stream->video_fifo;
   this->audio_fifo = this->stream->audio_fifo;
@@ -3382,17 +3350,22 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
   /* figure out where the data begins and ends */
   if (this->qt.video_trak != -1) {
     video_trak = &this->qt.traks[this->qt.video_trak];
+#ifdef QT_OFFSET_SEEK
     first_video_offset = QTF_OFFSET(video_trak->frames[0]);
     last_video_offset = video_trak->frames[video_trak->frame_count - 1].size +
       QTF_OFFSET(video_trak->frames[video_trak->frame_count - 1]);
+#endif
   }
   if (this->qt.audio_trak != -1) {
     audio_trak = &this->qt.traks[this->qt.audio_trak];
+#ifdef QT_OFFSET_SEEK
     first_audio_offset = QTF_OFFSET(audio_trak->frames[0]);
     last_audio_offset = audio_trak->frames[audio_trak->frame_count - 1].size +
       QTF_OFFSET(audio_trak->frames[audio_trak->frame_count - 1]);
+#endif
   }
 
+#ifdef QT_OFFSET_SEEK
   if (first_video_offset < first_audio_offset)
     this->data_start = first_video_offset;
   else
@@ -3402,6 +3375,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
     this->data_size = last_video_offset - this->data_size;
   else
     this->data_size = last_audio_offset - this->data_size;
+#endif
 
   /* sort out the A/V information */
   if (this->qt.video_trak != -1) {
@@ -3630,7 +3604,7 @@ static void demux_qt_send_headers(demux_plugin_t *this_gen) {
 
 /* support function that performs a binary seek on a trak; returns the
  * demux status */
-static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
+static int binary_seek (demux_qt_t *this, qt_trak *trak, off_t start_pos, int start_time) {
 
   int best_index;
   int left, middle, right;
@@ -3642,6 +3616,7 @@ static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
     return QT_OK;
 
 #ifdef QT_OFFSET_SEEK
+  (void)this;
   /* perform a binary search on the trak, testing the offset
    * boundaries first; offset request has precedent over time request */
   if (start_pos) {
@@ -3671,7 +3646,7 @@ static int binary_seek(qt_trak *trak, off_t start_pos, int start_time) {
   } else
 #else
   if (start_pos) {
-    start_time = (uint64_t)(start_pos & 0xffff) * (uint32_t)trak->info->msecs / 0xffff;
+    start_time = (uint64_t)(start_pos & 0xffff) * (uint32_t)this->qt.msecs / 0xffff;
   }
 #endif
   {
@@ -3727,7 +3702,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
    * requested position */
   if (this->qt.video_trak != -1) {
     video_trak = &this->qt.traks[this->qt.video_trak];
-    this->status = binary_seek(video_trak, start_pos, start_time);
+    this->status = binary_seek (this, video_trak, start_pos, start_time);
     if (this->status != DEMUX_OK)
       return this->status;
     /* search back in the video trak for the nearest keyframe */
@@ -3743,7 +3718,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
   /* seek all supported audio traks */
   for (i = 0; i < this->qt.audio_trak_count; i++) {
     audio_trak = &this->qt.traks[this->qt.audio_traks[i]];
-    this->status = binary_seek(audio_trak, start_pos, start_time);
+    this->status = binary_seek (this, audio_trak, start_pos, start_time);
     if (this->status != DEMUX_OK)
       return this->status;
   }
@@ -3781,7 +3756,7 @@ static int demux_qt_seek (demux_plugin_t *this_gen,
 static void demux_qt_dispose (demux_plugin_t *this_gen) {
   demux_qt_t *this = (demux_qt_t *) this_gen;
 
-  free_qt_info (&this->qt);
+  free_qt_info (this);
   free(this);
 }
 
@@ -3839,7 +3814,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   demux_qt_t      *this;
   xine_cfg_entry_t entry;
-  unsigned char   *moov_atom = NULL;
+  uint8_t         *moov_atom = NULL;
   off_t            moov_atom_offset;
   qt_error         last_error;
 
@@ -3907,7 +3882,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   create_qt_info (this);
 
-  last_error = open_qt_file (&this->qt, this->input, moov_atom, moov_atom_offset, this->bandwidth);
+  last_error = open_qt_file (this, moov_atom, moov_atom_offset);
 
   switch (stream->content_detection_method) {
     case METHOD_BY_CONTENT:
@@ -3916,14 +3891,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
         if (this->qt.last_error == QT_DRM_NOT_SUPPORTED)
           _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE, "DRM-protected Quicktime file", NULL);
       } else if (last_error != QT_OK) {
-        free_qt_info (&this->qt);
+        free_qt_info (this);
         free (this);
         return NULL;
       }
     break;
     default:
       if (last_error != QT_OK) {
-        free_qt_info (&this->qt);
+        free_qt_info (this);
         free (this);
         return NULL;
       }
