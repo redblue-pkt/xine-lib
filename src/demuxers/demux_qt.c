@@ -1578,19 +1578,6 @@ static int32_t qt_pts_2_msecs (int64_t pts) {
 }
 
 #define KEYFRAMES_SIZE 1024
-static void qt_keyframes_add (qt_trak *trak, qt_frame *f) {
-  xine_keyframes_entry_t *e = trak->keyframes_list;
-  if (trak->keyframes_used + 1 > trak->keyframes_size) {
-    e = realloc (e, (trak->keyframes_size + KEYFRAMES_SIZE) * sizeof (*e));
-    if (!e)
-      return;
-    trak->keyframes_list = e;
-    trak->keyframes_size += KEYFRAMES_SIZE;
-  }
-  e += trak->keyframes_used++;
-  e->msecs = qt_pts_2_msecs (f->pts);
-}
-
 static void qt_keyframes_size (qt_trak *trak, uint32_t n) {
   xine_keyframes_entry_t *e = trak->keyframes_list;
   n = (n + KEYFRAMES_SIZE - 1) & ~(KEYFRAMES_SIZE - 1);
@@ -1604,9 +1591,11 @@ static void qt_keyframes_size (qt_trak *trak, uint32_t n) {
 }
 
 static void qt_keyframes_simple_add (qt_trak *trak, qt_frame *f) {
-  xine_keyframes_entry_t *e = trak->keyframes_list;
-  e += trak->keyframes_used++;
-  e->msecs = qt_pts_2_msecs (f->pts);
+  if (trak->keyframes_used < trak->keyframes_size) {
+    xine_keyframes_entry_t *e = trak->keyframes_list;
+    e += trak->keyframes_used++;
+    e->msecs = qt_pts_2_msecs (f->pts);
+  }
 }
 
 static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale) {
@@ -2328,7 +2317,7 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
         frame += trak->frame_count;
         /* add pending delay. first frame dts is always 0, so just test ptsoffs.
          * this happens at most once, so keep it away from main loop. */
-        if ((trak->delay_index >= 0) && samples) {
+        if (trak->delay_index >= 0) {
           uint32_t n = 0;
           int64_t  t;
           if (trun_flags & 0x800) {
@@ -2350,32 +2339,316 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
         sample_duration = default_sample_duration;
         sample_size     = default_sample_size;
         sample_flags    = first_sample_flags;
+        /* prepare for keyframes */
+        if (trak->type == MEDIA_VIDEO)
+          qt_keyframes_size (trak, trak->keyframes_used + samples);
         /* add frames */
-        while (samples--) {
-          frame->pts = sample_dts * 90000 / trak->timescale;
-          if (trun_flags & 0x100)
-            sample_duration = _X_BE_32 (p), p += 4;
-          sample_dts += sample_duration;
-          frame[0]._ffs.offset = data_pos;
-          if (trun_flags & 0x200)
-            sample_size = _X_BE_32 (p), p += 4;
-          frame->size = sample_size;
-          data_pos += sample_size;
-          QTF_MEDIA_ID(frame[0]) = sample_description_index;
-          if (trun_flags & 0x400)
-            sample_flags = _X_BE_32 (p), p += 4;
-          QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
-          sample_flags = default_sample_flags;
-          if (trun_flags & 0x800) {
-            uint32_t o = _X_BE_32 (p);
-            p += 4;
-            frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
-          } else
-            frame->ptsoffs = 0;
-          if (QTF_KEYFRAME(frame[0]))
-            qt_keyframes_add (trak, frame);
-          frame++;
-          (trak->frame_count)++;
+        trak->frame_count += samples;
+        switch ((trun_flags & 0xf00) >> 8) {
+          case 0xf:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0xe:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0xd:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0xc:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0xb:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0xa:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x9:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x8:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              {
+                uint32_t o = _X_BE_32 (p);
+                p += 4;
+                frame->ptsoffs = ((int)o * trak->ptsoffs_mul) >> 12;
+              }
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x7:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x6:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x5:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x4:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              sample_flags = _X_BE_32 (p), p += 4;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x3:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x2:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              sample_size = _X_BE_32 (p), p += 4;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x1:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_duration = _X_BE_32 (p), p += 4;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
+          case 0x0:
+            do {
+              frame->pts = sample_dts * 90000 / trak->timescale;
+              sample_dts += sample_duration;
+              frame[0]._ffs.offset = data_pos;
+              frame->size = sample_size;
+              data_pos += sample_size;
+              QTF_MEDIA_ID(frame[0]) = sample_description_index;
+              QTF_KEYFRAME(frame[0]) = !(sample_flags & 0x10000);
+              sample_flags = default_sample_flags;
+              frame->ptsoffs = 0;
+              if (QTF_KEYFRAME(frame[0]))
+                qt_keyframes_simple_add (trak, frame);
+              frame++;
+            } while (--samples);
+            break;
         }
         trak->fragment_dts = sample_dts;
         /* convenience frame */
@@ -2782,6 +3055,7 @@ static void parse_moov_atom (demux_qt_t *this, uint8_t *moov_atom) {
     free (trak->keyframes_list);
     trak->keyframes_list = NULL;
     trak->keyframes_size = 0;
+    trak->keyframes_used = 0;
   }
 
   /* check for references */
