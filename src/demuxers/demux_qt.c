@@ -172,6 +172,38 @@ typedef unsigned int qt_atom;
 
 #define MAX_PTS_DIFF 100000
 
+#ifdef ARCH_X86
+#  define HAVE_FAST_FLOAT
+#endif
+
+typedef struct {
+#ifdef HAVE_FAST_FLOAT
+  double   mul;
+#else
+  int32_t num;
+  int32_t den;
+#endif
+} scale_int_t;
+
+static void scale_int_init (scale_int_t *scale, uint32_t num, uint32_t den) {
+  if (!den)
+    den = 1;
+#ifdef HAVE_FAST_FLOAT
+  scale->mul = (double)num / (double)den;
+#else
+  scale->num = num;
+  scale->den = den;
+#endif
+}
+
+static void scale_int_do (scale_int_t *scale, int64_t *v) {
+#ifdef HAVE_FAST_FLOAT
+  *v = (double)(*v) * scale->mul;
+#else
+  *v = *v * scale->num / scale->den;
+#endif
+}
+
 /**
  * @brief Network bandwidth, cribbed from src/input/input_mms.c
  */
@@ -315,6 +347,7 @@ typedef struct {
   /* trak timescale */
   int timescale;
   int ptsoffs_mul;
+  scale_int_t si;
 
   /* flags that indicate how a trak is supposed to be used */
   unsigned int flags;
@@ -936,6 +969,7 @@ static qt_error parse_trak_atom (qt_trak *trak, uint8_t *trak_atom) {
   }
   if (trak->timescale == 0)
     trak->timescale = 1;
+  scale_int_init (&trak->si, 90000, trak->timescale);
 
   atom     = atoms[5]; /* STSD_ATOM */
   atomsize = sizes[5];
@@ -1793,7 +1827,7 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
             ptsoffs_countdown--;
 
             if (!trak->edit_list_count) {
-              frame->pts = frame->pts * 90000 / trak->timescale;
+              scale_int_do (&trak->si, &frame->pts);
               frame->ptsoffs = (frame->ptsoffs * trak->ptsoffs_mul) >> 12;
             }
 
@@ -1807,7 +1841,7 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
       /* convenience frame */
       frame->pts = pts_value;
       if (!trak->edit_list_count)
-        frame->pts = frame->pts * 90000 / trak->timescale;
+        scale_int_do (&trak->si, &frame->pts);
     }
 
     /* was the last chunk incomplete? */
@@ -1884,8 +1918,7 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
         /* figure out the pts for this chunk */
         af->pts = pts_value;
         if (!trak->edit_list_count) {
-          af->pts *= 90000;
-          af->pts /= trak->timescale;
+          scale_int_do (&trak->si, &af->pts);
         }
         pts_value += duration;
         af->ptsoffs = 0;
@@ -1907,8 +1940,7 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
       /* convenience frame */
       af->pts = pts_value;
       if (!trak->edit_list_count) {
-        af->pts *= 90000;
-        af->pts /= trak->timescale;
+        scale_int_do (&trak->si, &af->pts);
       }
     }
     /* provide append time for fragments */
@@ -1961,7 +1993,8 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
         for (; f < sf; f++) {
           if (f != tf)
             *tf = *f;
-          tf->pts = edit_list_pts * 90000 / trak->timescale;
+          tf->pts = edit_list_pts;
+          scale_int_do (&trak->si, &tf->pts);
           tf->ptsoffs = (tf->ptsoffs * trak->ptsoffs_mul) >> 12;
           tf++;
         }
@@ -1990,7 +2023,8 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
         do {
           /* this _does_ fit, see above */
           uint32_t d = sf[1].pts - sf[0].pts;
-          sf[0].pts = edit_list_pts * 90000 / trak->timescale;
+          sf[0].pts = edit_list_pts;
+          scale_int_do (&trak->si, &sf[0].pts);
           sf[0].ptsoffs = (sf[0].ptsoffs * trak->ptsoffs_mul) >> 12;
           if (QTF_KEYFRAME(sf[0]) & use_keyframes)
             qt_keyframes_simple_add (trak, sf);
@@ -2004,7 +2038,8 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
         do {
           uint32_t d = sf[1].pts - sf[0].pts;
           tf[0] = sf[0];
-          tf[0].pts = edit_list_pts * 90000 / trak->timescale;
+          tf[0].pts = edit_list_pts;
+          scale_int_do (&trak->si, &tf[0].pts);
           tf[0].ptsoffs = (tf[0].ptsoffs * trak->ptsoffs_mul) >> 12;
           if (QTF_KEYFRAME(tf[0]) & use_keyframes)
             qt_keyframes_simple_add (trak, tf);
@@ -2019,7 +2054,8 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
     }
     trak->fragment_dts = edit_list_pts;
     /* convenience frame */
-    tf->pts            = edit_list_pts * 90000 / trak->timescale;
+    tf->pts            = edit_list_pts;
+    scale_int_do (&trak->si, &tf[0].pts);
     trak->frame_count  = tf - trak->frames;
   }
 #ifdef DEBUG_EDIT_LIST
@@ -2347,7 +2383,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
         switch ((trun_flags & 0xf00) >> 8) {
           case 0xf:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2369,7 +2406,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0xe:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               sample_size = _X_BE_32 (p), p += 4;
@@ -2390,7 +2428,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0xd:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2411,7 +2450,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0xc:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               frame->size = sample_size;
@@ -2431,7 +2471,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0xb:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2453,7 +2494,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0xa:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               sample_size = _X_BE_32 (p), p += 4;
@@ -2474,7 +2516,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x9:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2495,7 +2538,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x8:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               frame->size = sample_size;
@@ -2515,7 +2559,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x7:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2533,7 +2578,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x6:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               sample_size = _X_BE_32 (p), p += 4;
@@ -2550,7 +2596,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x5:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2567,7 +2614,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x4:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               frame->size = sample_size;
@@ -2583,7 +2631,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x3:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2601,7 +2650,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x2:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               sample_size = _X_BE_32 (p), p += 4;
@@ -2618,7 +2668,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x1:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_duration = _X_BE_32 (p), p += 4;
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
@@ -2635,7 +2686,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
             break;
           case 0x0:
             do {
-              frame->pts = sample_dts * 90000 / trak->timescale;
+              frame->pts = sample_dts;
+              scale_int_do (&trak->si, &frame->pts);
               sample_dts += sample_duration;
               frame[0]._ffs.offset = data_pos;
               frame->size = sample_size;
@@ -2652,7 +2704,8 @@ static int parse_traf_atom (demux_qt_t *this, uint8_t *traf_atom, unsigned int t
         }
         trak->fragment_dts = sample_dts;
         /* convenience frame */
-        frame->pts = sample_dts * 90000 / trak->timescale;
+        frame->pts = sample_dts;
+        scale_int_do (&trak->si, &frame->pts);
         done++;
         break;
       }
@@ -4206,4 +4259,3 @@ void *demux_qt_init_class (xine_t *xine, const void *data) {
 
   return (void *)&demux_qt_class;
 }
-
