@@ -3277,7 +3277,7 @@ static qt_error load_moov_atom (input_plugin_t *input, uint8_t **moov_atom, off_
     return QT_NOT_A_VALID_FILE;
 
   *moov_atom_offset = pos;
-  *moov_atom = malloc (size);
+  *moov_atom = malloc (size + 4);
   if (!*moov_atom)
     return QT_NO_MEMORY;
   if (hsize)
@@ -4215,21 +4215,16 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     case METHOD_BY_CONTENT:
       if (last_error == QT_DRM_NOT_SUPPORTED) {
         /* special consideration for DRM-protected files */
-        if (this->qt.last_error == QT_DRM_NOT_SUPPORTED)
-          _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE, "DRM-protected Quicktime file", NULL);
-      } else if (last_error != QT_OK) {
-        free_qt_info (this);
-        free (this);
-        return NULL;
+        _x_message (this->stream, XINE_MSG_ENCRYPTED_SOURCE, "DRM-protected Quicktime file", NULL);
+        break;
       }
-    break;
+      /* fall through */
     default:
       if (last_error != QT_OK) {
         free_qt_info (this);
         free (this);
         return NULL;
       }
-    break;
   }
 
   if (this->qt.fragment_count > 0)
