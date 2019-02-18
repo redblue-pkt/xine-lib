@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -212,11 +212,23 @@ struct demux_plugin_s {
 
 #define DEMUX_CAP_CHAPTERS             0x00000080
 
+/*
+ * DEMUX_CAP_STOP:
+ *   demux plugin needs to do some cleanup work _before_ end buffers
+ *   when the stream is stopped (eg flushing a pending discontinuity).
+ *   This shall be done by calling
+ *   demux_plugin->get_optional_data (demux_plugin, NULL, DEMUX_OPTIONAL_DATA_STOP).
+ */
+
+#define DEMUX_CAP_STOP                 0x00000100
+   
+
 
 #define DEMUX_OPTIONAL_UNSUPPORTED    0
 #define DEMUX_OPTIONAL_SUCCESS        1
 
 #define DEMUX_OPTIONAL_DATA_AUDIOLANG 2
 #define DEMUX_OPTIONAL_DATA_SPULANG   3
+#define DEMUX_OPTIONAL_DATA_STOP      4
 
 #endif
