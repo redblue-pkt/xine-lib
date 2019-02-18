@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -462,17 +462,18 @@ static void *audio_decoder_loop (void *stream_gen) {
 }
 
 int _x_audio_decoder_init (xine_stream_t *stream) {
-
-  pthread_attr_t       pth_attrs;
-#if defined(_POSIX_THREAD_PRIORITY_SCHEDULING) && (_POSIX_THREAD_PRIORITY_SCHEDULING > 0)
-  struct sched_param   pth_params;
-#endif
-  int                  err;
-
   if (stream->audio_out == NULL) {
+
     stream->audio_fifo = _x_dummy_fifo_buffer_new (5, 8192);
-    return 1;
+    return !!stream->audio_fifo;
+
   } else {
+
+    pthread_attr_t     pth_attrs;
+#if defined(_POSIX_THREAD_PRIORITY_SCHEDULING) && (_POSIX_THREAD_PRIORITY_SCHEDULING > 0)
+    struct sched_param pth_params;
+#endif
+    int err;
     int num_buffers;
 
     /* The fifo size is based on dvd playback where buffers are filled
@@ -484,16 +485,19 @@ int _x_audio_decoder_init (xine_stream_t *stream) {
      */
 
     num_buffers = stream->xine->config->register_num (stream->xine->config,
-                                                      "engine.buffers.audio_num_buffers",
-                                                      230,
-                                                      _("number of audio buffers"),
-						      _("The number of audio buffers (each is 8k in size) "
-						        "xine uses in its internal queue. Higher values "
-							"mean smoother playback for unreliable inputs, but "
-							"also increased latency and memory consumption."),
-                                                      20, NULL, NULL);
+      "engine.buffers.audio_num_buffers", 230,
+      _("number of audio buffers"),
+      _("The number of audio buffers (each is 8k in size) xine uses in its "
+        "internal queue. Higher values mean smoother playback for unreliable "
+        "inputs, but also increased latency and memory consumption."),
+      20, NULL, NULL);
+    if (num_buffers > 2000)
+      num_buffers = 2000;
 
     stream->audio_fifo = _x_fifo_buffer_new (num_buffers, 8192);
+    if (!stream->audio_fifo)
+      return 0;
+
     stream->audio_channel_user = -1;
     stream->audio_channel_auto = -1;
     stream->audio_track_map_entries = 0;
@@ -518,12 +522,14 @@ int _x_audio_decoder_init (xine_stream_t *stream) {
 	       "audio_decoder: can't create new thread (%s)\n", strerror(err));
       stream->audio_thread_created = 0;
       pthread_attr_destroy(&pth_attrs);
+      stream->audio_fifo->dispose (stream->audio_fifo);
+      stream->audio_fifo = NULL;
       return 0;
     }
 
     pthread_attr_destroy(&pth_attrs);
+    return 1;
   }
-  return 1;
 }
 
 void _x_audio_decoder_shutdown (xine_stream_t *stream) {
@@ -550,5 +556,3 @@ int _x_get_audio_channel (xine_stream_t *stream) {
 
   return stream->audio_type & 0xFFFF;
 }
-
-

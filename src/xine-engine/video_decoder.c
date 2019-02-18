@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -533,11 +533,13 @@ static void *video_decoder_loop (void *stream_gen) {
 }
 
 int _x_video_decoder_init (xine_stream_t *stream) {
+  stream->spu_track_map_entries = 0;
 
   if (stream->video_out == NULL) {
+
     stream->video_fifo = _x_dummy_fifo_buffer_new (5, 8192);
-    stream->spu_track_map_entries = 0;
-    return 1;
+    return !!stream->video_fifo;
+
   } else {
 
     pthread_attr_t       pth_attrs;
@@ -554,22 +556,20 @@ int _x_video_decoder_init (xine_stream_t *stream) {
      */
 
     num_buffers = stream->xine->config->register_num (stream->xine->config,
-                                                      "engine.buffers.video_num_buffers",
-                                                      500,
-                                                      _("number of video buffers"),
-						      _("The number of video buffers (each is 8k in size) "
-						        "xine uses in its internal queue. Higher values "
-							"mean smoother playback for unreliable inputs, but "
-							"also increased latency and memory consumption."),
-                                                      20, NULL, NULL);
+      "engine.buffers.video_num_buffers", 500,
+      _("number of video buffers"),
+      _("The number of video buffers (each is 8k in size) xine uses in its internal queue. "
+        "Higher values mean smoother playback for unreliable inputs, but also increased "
+        "latency and memory consumption."),
+      20, NULL, NULL);
+    if (num_buffers > 5000)
+      num_buffers = 5000;
 
     stream->video_fifo = _x_fifo_buffer_new (num_buffers, 8192);
     if (stream->video_fifo == NULL) {
       xine_log(stream->xine, XINE_LOG_MSG, "video_decoder: can't allocated video fifo\n");
       return 0;
     }
-
-    stream->spu_track_map_entries = 0;
 
     pthread_attr_init(&pth_attrs);
 #if defined(_POSIX_THREAD_PRIORITY_SCHEDULING) && (_POSIX_THREAD_PRIORITY_SCHEDULING > 0)
@@ -586,12 +586,14 @@ int _x_video_decoder_init (xine_stream_t *stream) {
                 strerror(err));
       stream->video_thread_created = 0;
       pthread_attr_destroy(&pth_attrs);
+      stream->video_fifo->dispose (stream->video_fifo);
+      stream->video_fifo = NULL;
       return 0;
     }
 
     pthread_attr_destroy(&pth_attrs);
+    return 1;
   }
-  return 1;
 }
 
 void _x_video_decoder_shutdown (xine_stream_t *stream) {
