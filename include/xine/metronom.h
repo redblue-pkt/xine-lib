@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -182,6 +182,8 @@ struct metronom_s {
  *   metronom->set_option(metronom, METRONOM_LOCK, 0);
  */
 #define METRONOM_LOCK             9
+/* Returns 0 (not waiting), 1 (waiting for audio discontinuity), 2 (waiting for video discontinuity). */
+#define METRONOM_WAITING          10
 #define METRONOM_NO_LOCK          0x8000
 
 typedef void xine_speed_change_cb_t (void *user_data, int new_speed);
