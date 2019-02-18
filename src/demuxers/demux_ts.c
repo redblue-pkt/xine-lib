@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -555,7 +555,8 @@ typedef struct {
   demux_ts_audio_track audio_tracks[MAX_AUDIO_TRACKS];
   int              audio_tracks_count;
 
-  int64_t          last_pts[2];
+  int64_t          last_pts[3];
+  fifo_buffer_t   *newpts_fifo;
   int              send_newpts;
   int              buf_flag_seek;
 
@@ -880,6 +881,61 @@ static void demux_ts_tbre_update (demux_ts_t *this, unsigned int mode, int64_t n
    i guess llabs may not be available everywhere */
 #define abs(x) ( ((x)<0) ? -(x) : (x) )
 
+/* Xine engine does accept separate audio and video discontinuites,
+   and synchronizes them later. Therefore they need to come in pairs.
+   Most demuxers simply use _x_demux_control_newpts () which ensures this.
+   However, DVB muxes video 1..2 seconds ahaed of audio.
+   So lets try a careful split solution here. */
+static void newpts_pair (demux_ts_t *this) {
+  fifo_buffer_t *fifo = this->newpts_fifo;
+  buf_element_t *buf = fifo->buffer_pool_alloc (fifo);
+  buf->type = BUF_CONTROL_NEWPTS;
+  buf->decoder_flags = 0;
+  buf->disc_off = this->last_pts[2];
+  fifo->put (fifo, buf);
+  this->last_pts[this->newpts_fifo == this->stream->video_fifo ? 1 : 0] = this->last_pts[2];
+  this->newpts_fifo = NULL;
+}
+
+static void newpts_test (demux_ts_t *this, int64_t pts, int video) {
+#ifdef TS_LOG
+  printf ("demux_ts: newpts_test %lld, send_newpts %d, buf_flag_seek %d\n",
+    pts, this->send_newpts, this->buf_flag_seek);
+#endif
+  if (pts) {
+    int64_t diff = pts - this->last_pts[video];
+    diff = diff < 0 ? -diff : diff;
+    this->last_pts[video] = pts;
+    if (this->send_newpts || (this->last_pts[video] && (diff > WRAP_THRESHOLD))) {
+      if (this->newpts_fifo) {
+        newpts_pair (this);
+        /* Lets see whether this already did the job. */
+        diff = pts - this->last_pts[video];
+        diff = diff < 0 ? -diff : diff;
+        this->last_pts[video] = pts;
+      }
+      if (this->buf_flag_seek) {
+        _x_demux_control_newpts (this->stream, pts, BUF_FLAG_SEEK);
+        this->last_pts[0] =
+        this->last_pts[1] = pts;
+        this->buf_flag_seek = 0;
+      } else {
+        if (diff > WRAP_THRESHOLD) {
+          fifo_buffer_t *fifo = video ? this->stream->video_fifo : this->stream->audio_fifo;
+          buf_element_t *buf = fifo->buffer_pool_alloc (fifo);
+          buf->type = BUF_CONTROL_NEWPTS;
+          buf->decoder_flags = 0;
+          buf->disc_off = pts;
+          fifo->put (fifo, buf);
+          this->last_pts[2] = pts;
+          this->newpts_fifo = video ? this->stream->audio_fifo : this->stream->video_fifo;
+        }
+      }
+    }
+  }
+}
+
+#if 0
 static void check_newpts( demux_ts_t *this, int64_t pts, int video )
 {
 
@@ -936,6 +992,7 @@ static void check_newpts( demux_ts_t *this, int64_t pts, int video )
     this->last_pts[video] = this->last_pts[1-video] = pts;
   }
 }
+#endif
 
 /* Send a BUF_SPU_DVB to let xine know of that channel. */
 static void demux_send_special_spu_buf( demux_ts_t *this, uint32_t spu_type, int spu_channel )
@@ -1013,9 +1070,9 @@ static void demux_ts_send_buffer (demux_ts_t *this, demux_ts_media *m, int flags
      * dont bother this on every ts packet. :-) */
     uint32_t t = m->type & BUF_MAJOR_MASK;
     if (t == BUF_VIDEO_BASE)
-      check_newpts (this, m->pts, PTS_VIDEO);
+      newpts_test (this, m->pts, PTS_VIDEO);
     else if (t == BUF_AUDIO_BASE)
-      check_newpts (this, m->pts, PTS_AUDIO);
+      newpts_test (this, m->pts, PTS_AUDIO);
     m->buf->content = m->buf->mem;
     m->buf->type = m->type;
     m->buf->decoder_flags |= flags;
@@ -1588,7 +1645,19 @@ static void demux_ts_buffer_pes (demux_ts_t*this, const uint8_t *ts,
 
     /* append data */
     if ((int)len > room) {
-      buf_element_t *new_buf = m->fifo->buffer_pool_realloc (m->buf, m->buf->size + len);
+      buf_element_t *new_buf;
+      /* Engine blocks decoder until discontinuities are paired again.
+         When that fifo runs full before we sent the pair, we will freeze as well. */
+      if (this->newpts_fifo) {
+        if  ((this->newpts_fifo != m->fifo)
+          && (this->stream->metronom->get_option (this->stream->metronom, METRONOM_WAITING))
+          && (m->fifo->num_free (m->fifo) < 5)) {
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "demux_ts: discontinuity timeout.\n");
+          newpts_pair (this);
+        }
+      }
+      new_buf = m->fifo->buffer_pool_realloc (m->buf, m->buf->size + len);
       this->enlarge_total++;
       if (!new_buf) {
         this->enlarge_ok++;
@@ -2753,6 +2822,9 @@ static void demux_ts_dispose (demux_plugin_t *this_gen) {
   int i;
   demux_ts_t*this = (demux_ts_t*)this_gen;
 
+  if (this->newpts_fifo)
+    newpts_pair (this);
+
   for (i = 0; this->programs[i] != INVALID_PROGRAM; i++) {
     if (this->pmts[i] != NULL) {
       free (this->pmts[i]);
@@ -3132,6 +3204,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->last_pat_time      = 0;
   this->last_keyframe_time = 0;
   this->get_frametype      = NULL;
+  this->last_pts[0]        = 0;
+  this->last_pts[1]        = 0;
+  this->newpts_fifo        = NULL;
 #  if TS_PACKET_READER == 2
   this->buf_pos            = 0;
   this->buf_size           = 0;
@@ -3233,3 +3308,4 @@ void *demux_ts_init_class (xine_t *xine, const void *data) {
 
   return (void *)&demux_ts_class;
 }
+
