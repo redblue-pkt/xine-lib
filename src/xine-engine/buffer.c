@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -963,12 +963,11 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
  * allocate and initialize new (empty) fifo buffer
  */
 fifo_buffer_t *_x_dummy_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
-
-  fifo_buffer_t *this;
-
-  this = _x_fifo_buffer_new(num_buffers, buf_size);
-  this->put    = dummy_fifo_buffer_put;
-  this->insert = dummy_fifo_buffer_insert;
+  fifo_buffer_t *this = _x_fifo_buffer_new (num_buffers, buf_size);
+  if (this) {
+    this->put    = dummy_fifo_buffer_put;
+    this->insert = dummy_fifo_buffer_insert;
+  }
   return this;
 }
 
@@ -985,3 +984,4 @@ void _x_free_buf_elements(buf_element_t *head) {
     }
   }
 }
+
