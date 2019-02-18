@@ -2903,6 +2903,10 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
 
   demux_ts_t *this = (demux_ts_t *) this_gen;
   int i;
+
+  if (this->newpts_fifo)
+    newpts_pair (this);
+
   start_pos = (off_t) ( (double) start_pos / 65535 *
               this->input->get_length (this->input) );
 
@@ -3071,58 +3075,68 @@ static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
 static uint32_t demux_ts_get_capabilities(demux_plugin_t *this_gen)
 {
   (void)this_gen;
-  return DEMUX_CAP_AUDIOLANG | DEMUX_CAP_SPULANG;
+  return DEMUX_CAP_STOP | DEMUX_CAP_AUDIOLANG | DEMUX_CAP_SPULANG;
 }
 
 static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 				      void *data, int data_type)
 {
   demux_ts_t *this = (demux_ts_t *) this_gen;
-  char *str = data;
-  int channel = *((int *)data);
 
   /* be a bit paranoid */
   if (this == NULL || this->stream == NULL)
     return DEMUX_OPTIONAL_UNSUPPORTED;
 
-  switch (data_type)
-    {
+  switch (data_type) {
+
     case DEMUX_OPTIONAL_DATA_AUDIOLANG:
-      if ((channel >= 0) && (channel < this->audio_tracks_count)) {
-        if (this->audio_tracks[channel].lang[0]) {
-          strcpy(str, this->audio_tracks[channel].lang);
+      {
+        char *str = data;
+        int channel = *((int *)data);
+        if ((channel >= 0) && (channel < this->audio_tracks_count)) {
+          if (this->audio_tracks[channel].lang[0]) {
+            strcpy (str, this->audio_tracks[channel].lang);
+          } else {
+            /* input plugin may know the language */
+            if (this->input->get_capabilities(this->input) & INPUT_CAP_AUDIOLANG)
+              return DEMUX_OPTIONAL_UNSUPPORTED;
+            sprintf (str, "%3i", channel);
+          }
+          return DEMUX_OPTIONAL_SUCCESS;
         } else {
-          /* input plugin may know the language */
-          if (this->input->get_capabilities(this->input) & INPUT_CAP_AUDIOLANG)
-            return DEMUX_OPTIONAL_UNSUPPORTED;
-          sprintf(str, "%3i", channel);
+          strcpy (str, "none");
         }
-        return DEMUX_OPTIONAL_SUCCESS;
+        return DEMUX_OPTIONAL_UNSUPPORTED;
       }
-      else {
-        strcpy(str, "none");
-      }
-      return DEMUX_OPTIONAL_UNSUPPORTED;
 
     case DEMUX_OPTIONAL_DATA_SPULANG:
-      if (channel>=0 && channel<this->spu_langs_count) {
-        if (this->spu_langs[channel].desc.lang[0]) {
-          strcpy(str, this->spu_langs[channel].desc.lang);
+        {
+          char *str = data;
+          int channel = *((int *)data);
+          if ((channel >= 0) && (channel < this->spu_langs_count)) {
+            if (this->spu_langs[channel].desc.lang[0]) {
+              strcpy (str, this->spu_langs[channel].desc.lang);
+          } else {
+            /* input plugin may know the language */
+            if (this->input->get_capabilities(this->input) & INPUT_CAP_SPULANG)
+              return DEMUX_OPTIONAL_UNSUPPORTED;
+            sprintf (str, "%3i", channel);
+          }
+          return DEMUX_OPTIONAL_SUCCESS;
         } else {
-          /* input plugin may know the language */
-          if (this->input->get_capabilities(this->input) & INPUT_CAP_SPULANG)
-            return DEMUX_OPTIONAL_UNSUPPORTED;
-          sprintf(str, "%3i", channel);
+          strcpy (str, "none");
         }
-        return DEMUX_OPTIONAL_SUCCESS;
-      } else {
-        strcpy(str, "none");
+        return DEMUX_OPTIONAL_UNSUPPORTED;
       }
-      return DEMUX_OPTIONAL_UNSUPPORTED;
+
+    case DEMUX_OPTIONAL_DATA_STOP:
+      if (this->newpts_fifo)
+        newpts_pair (this);
+      return DEMUX_OPTIONAL_SUCCESS;
 
     default:
       return DEMUX_OPTIONAL_UNSUPPORTED;
-    }
+  }
 }
 
 static int detect_ts(uint8_t *buf, size_t len, int ts_size)
