@@ -339,6 +339,10 @@ static void *demux_loop (void *stream_gen) {
 
     lprintf ("main demuxer loop finished (status: %d)\n", status);
 
+    /* let demux plugin do some needed cleanup */
+    if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_STOP)
+      stream->demux_plugin->get_optional_data (stream->demux_plugin, NULL, DEMUX_OPTIONAL_DATA_STOP);
+
     /* tell to the net_buf_ctrl that we are at the end of the stream
      * then the net_buf_ctrl will not pause
      */
