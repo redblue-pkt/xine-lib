@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -410,6 +410,7 @@ typedef struct {
   int             video_discontinuity_count;
   int             audio_discontinuity_count;
   int             discontinuity_handled_count;
+  int             waiting;
   pthread_cond_t  video_discontinuity_reached;
   pthread_cond_t  audio_discontinuity_reached;
 
@@ -610,7 +611,9 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
         "metronom: waiting for audio discontinuity #%d...\n",
         this->video_discontinuity_count);
 
+      this->waiting = 1;
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
+      this->waiting = 0;
     }
   }
 
@@ -805,7 +808,9 @@ static void metronom_handle_audio_discontinuity (metronom_t *this_gen, int type,
         "metronom: waiting for in_discontinuity update #%d...\n",
         this->audio_discontinuity_count);
 
+      this->waiting = 2;
       pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
+      this->waiting = 0;
     }
   } else {
     metronom_handle_discontinuity(this, type, disc_off);
@@ -1042,6 +1047,9 @@ static int64_t metronom_get_option (metronom_t *this_gen, int option) {
       else
         result = this->audio_vpts;
       break;
+  case METRONOM_WAITING:
+    result = this->waiting;
+    break;
   default:
     result = 0;
     xprintf (this->xine, XINE_VERBOSITY_NONE,
@@ -1303,6 +1311,7 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
   this->last_audio_pts              = 0;
   this->audio_vpts_rmndr            = 0;
   this->audio_discontinuity_count   = 0;
+  this->waiting                     = 0;
 #endif
   this->metronom.set_audio_rate             = metronom_set_audio_rate;
   this->metronom.got_video_frame            = metronom_got_video_frame;
