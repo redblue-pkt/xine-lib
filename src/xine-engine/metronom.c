@@ -407,6 +407,9 @@ typedef struct {
 
   int             have_video;
   int             have_audio;
+
+  int64_t         last_discontinuity_offs;
+  int             last_discontinuity_type;
   int             video_discontinuity_count;
   int             audio_discontinuity_count;
   int             discontinuity_handled_count;
@@ -417,11 +420,11 @@ typedef struct {
   int             force_video_jump;
   int             force_audio_jump;
 
-  int64_t         img_duration;
-  int             img_cpt;
-  int64_t         last_video_pts;
   int64_t         last_audio_pts;
 
+  int64_t         last_video_pts;
+  int64_t         img_duration;
+  int             img_cpt;
   int             video_mode;
 
 } metronom_impl_t;
@@ -580,6 +583,7 @@ static void metronom_handle_discontinuity (metronom_impl_t *this, int type,
 static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
                                                  int64_t disc_off) {
   metronom_impl_t *this = (metronom_impl_t *)this_gen;
+  int waited;
 
   if (type == DISC_GAPLESS) {
     /* this would cause deadlock in metronom_handle_discontinuity()
@@ -603,6 +607,14 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
     "metronom: video discontinuity #%d, type is %d, disc_off %" PRId64 ".\n",
     this->video_discontinuity_count, type, disc_off);
 
+  /* If both audio and video are there, the video side shall take
+   * effect. Previous code did this by letting audio wait even if
+   * video came first. Lets drop that unnecessary wait, and pass
+   * over params instead. */
+  this->last_discontinuity_type = type;
+  this->last_discontinuity_offs = disc_off;
+
+  waited = 0;
   if (this->have_audio) {
     while (this->audio_discontinuity_count <
 	   this->video_discontinuity_count) {
@@ -614,13 +626,14 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
       this->waiting = 1;
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
       this->waiting = 0;
+      waited = 1;
     }
   }
 
-  metronom_handle_discontinuity(this, type, disc_off);
-
-  this->discontinuity_handled_count++;
-  pthread_cond_signal (&this->video_discontinuity_reached);
+  if (!waited) {
+    metronom_handle_discontinuity (this, type, disc_off);
+    this->discontinuity_handled_count++;
+  }
 
   pthread_mutex_unlock (&this->lock);
 }
@@ -777,6 +790,7 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
 static void metronom_handle_audio_discontinuity (metronom_t *this_gen, int type,
                                                  int64_t disc_off) {
   metronom_impl_t *this = (metronom_impl_t *)this_gen;
+  int waited;
 
   if (type == DISC_GAPLESS) {
     metronom_handle_discontinuity (this, type, disc_off);
@@ -798,24 +812,29 @@ static void metronom_handle_audio_discontinuity (metronom_t *this_gen, int type,
     "metronom: audio discontinuity #%d, type is %d, disc_off %" PRId64 ".\n",
     this->audio_discontinuity_count, type, disc_off);
 
+  waited = 0;
   if (this->have_video) {
-
-    /* next_vpts_offset, in_discontinuity is handled in expect_video_discontinuity */
     while ( this->audio_discontinuity_count >
-            this->discontinuity_handled_count ) {
+            this->video_discontinuity_count ) {
 
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-        "metronom: waiting for in_discontinuity update #%d...\n",
+        "metronom: waiting for video discontinuity #%d...\n",
         this->audio_discontinuity_count);
 
       this->waiting = 2;
       pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
       this->waiting = 0;
+      waited = 1;
     }
   } else {
-    metronom_handle_discontinuity(this, type, disc_off);
+    this->last_discontinuity_type = type;
+    this->last_discontinuity_offs = disc_off;
   }
 
+  if (!waited) {
+    metronom_handle_discontinuity (this, this->last_discontinuity_type, this->last_discontinuity_offs);
+    this->discontinuity_handled_count++;
+  }
   this->audio_samples = 0;
   this->audio_drift_step = 0;
 
@@ -1312,6 +1331,16 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
   this->audio_vpts_rmndr            = 0;
   this->audio_discontinuity_count   = 0;
   this->waiting                     = 0;
+  this->pts_per_smpls               = 0;
+  this->spu_vpts                    = 0;
+  this->audio_samples               = 0;
+  this->audio_drift_step            = 0;
+  this->last_discontinuity_offs     = 0;
+  this->last_discontinuity_type     = 0;
+  this->force_video_jump            = 0;
+  this->force_audio_jump            = 0;
+  this->img_duration                = 0;
+  this->video_mode                  = 0;
 #endif
   this->metronom.set_audio_rate             = metronom_set_audio_rate;
   this->metronom.got_video_frame            = metronom_got_video_frame;
