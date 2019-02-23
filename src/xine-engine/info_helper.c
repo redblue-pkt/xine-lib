@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2017 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -35,6 +35,7 @@
 #endif
 
 #include <xine/info_helper.h>
+#include "xine_private.h"
 
 /* *******************  Stream Info  *************************** */
 
@@ -42,7 +43,7 @@
  * Compare stream_info, private and public values,
  * return 1 if it's identical, otherwirse 0.
  */
-static int stream_info_is_identical(xine_stream_t *stream, int info) {
+static int stream_info_is_identical (xine_stream_private_t *stream, int info) {
 
   if(stream->stream_info_public[info] == stream->stream_info[info])
     return 1;
@@ -62,7 +63,7 @@ static int info_valid(int info) {
   }
 }
 
-static void stream_info_set_unlocked(xine_stream_t *stream, int info, int value) {
+static void stream_info_set_unlocked (xine_stream_private_t *stream, int info, int value) {
   if(info_valid(info))
     stream->stream_info[info] = value;
 }
@@ -70,7 +71,8 @@ static void stream_info_set_unlocked(xine_stream_t *stream, int info, int value)
 /*
  * Reset private info.
  */
-void _x_stream_info_reset(xine_stream_t *stream, int info) {
+void _x_stream_info_reset (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->info_mutex);
   stream_info_set_unlocked(stream, info, 0);
   pthread_mutex_unlock(&stream->info_mutex);
@@ -79,7 +81,8 @@ void _x_stream_info_reset(xine_stream_t *stream, int info) {
 /*
  * Reset public info value.
  */
-void _x_stream_info_public_reset(xine_stream_t *stream, int info) {
+void _x_stream_info_public_reset (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->info_mutex);
   if(info_valid(info))
     stream->stream_info_public[info] = 0;
@@ -89,7 +92,8 @@ void _x_stream_info_public_reset(xine_stream_t *stream, int info) {
 /*
  * Set private info value.
  */
-void _x_stream_info_set(xine_stream_t *stream, int info, int value) {
+void _x_stream_info_set (xine_stream_t *s, int info, int value) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->info_mutex);
   stream_info_set_unlocked(stream, info, value);
   pthread_mutex_unlock(&stream->info_mutex);
@@ -98,7 +102,8 @@ void _x_stream_info_set(xine_stream_t *stream, int info, int value) {
 /*
  * Retrieve private info value.
  */
-uint32_t _x_stream_info_get(xine_stream_t *stream, int info) {
+uint32_t _x_stream_info_get (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   uint32_t stream_info = 0;
 
   pthread_mutex_lock(&stream->info_mutex);
@@ -111,7 +116,8 @@ uint32_t _x_stream_info_get(xine_stream_t *stream, int info) {
 /*
  * Retrieve public info value
  */
-uint32_t _x_stream_info_get_public(xine_stream_t *stream, int info) {
+uint32_t _x_stream_info_get_public (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   uint32_t stream_info = 0;
 
   pthread_mutex_lock(&stream->info_mutex);
@@ -147,7 +153,7 @@ static void meta_info_chomp(char *str) {
  * Compare stream_info, public and private values,
  * return 1 if it's identical, otherwise 0.
  */
-static int meta_info_is_identical(xine_stream_t *stream, int info) {
+static int meta_info_is_identical (xine_stream_private_t *stream, int info) {
 
   if((!(stream->meta_info_public[info] && stream->meta_info[info])) ||
      ((stream->meta_info_public[info] && stream->meta_info[info]) &&
@@ -172,7 +178,7 @@ static int meta_valid(int info) {
 /*
  * Set private meta info to utf-8 string value (can be NULL).
  */
-static void meta_info_set_unlocked_utf8(xine_stream_t *stream, int info, const char *value) {
+static void meta_info_set_unlocked_utf8 (xine_stream_private_t *stream, int info, const char *value) {
   if(meta_valid(info)) {
 
     free(stream->meta_info[info]);
@@ -214,7 +220,7 @@ static int meta_info_validate_utf8 (const char *value)
  * Set private meta info to value (can be NULL) with a given encoding.
  * if encoding is NULL assume locale.
  */
-static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, const char *value, const char *enc) {
+static void meta_info_set_unlocked_encoding (xine_stream_private_t *stream, int info, const char *value, const char *enc) {
 #ifdef HAVE_ICONV
   iconv_t cd;
   char *system_enc = NULL;
@@ -222,8 +228,8 @@ static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, con
   if (value) {
     if (enc == NULL) {
       if ((enc = system_enc = xine_get_system_encoding()) == NULL) {
-        xprintf(stream->xine, XINE_VERBOSITY_LOG,
-                _("info_helper: can't find out current locale character set\n"));
+        xprintf (stream->s.xine, XINE_VERBOSITY_LOG,
+          _("info_helper: can't find out current locale character set\n"));
       }
     }
 
@@ -237,8 +243,8 @@ static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, con
       }
       cd = iconv_open("UTF-8", enc);
       if (cd == (iconv_t)-1)
-        xprintf(stream->xine, XINE_VERBOSITY_LOG,
-                _("info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"), enc);
+        xprintf (stream->s.xine, XINE_VERBOSITY_LOG,
+          _("info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"), enc);
 
       if (cd != (iconv_t)-1) {
         char *utf8_value;
@@ -282,14 +288,15 @@ static void meta_info_set_unlocked_encoding(xine_stream_t *stream, int info, con
  * Set private meta info to value (can be NULL)
  * value string must be provided with current locale encoding.
  */
-static void meta_info_set_unlocked(xine_stream_t *stream, int info, const char *value) {
+static void meta_info_set_unlocked (xine_stream_private_t *stream, int info, const char *value) {
   meta_info_set_unlocked_encoding(stream, info, value, NULL);
 }
 
 /*
  * Reset (nullify) private info value.
  */
-void _x_meta_info_reset(xine_stream_t *stream, int info) {
+void _x_meta_info_reset (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->meta_mutex);
   meta_info_set_unlocked_utf8(stream, info, NULL);
   pthread_mutex_unlock(&stream->meta_mutex);
@@ -298,12 +305,13 @@ void _x_meta_info_reset(xine_stream_t *stream, int info) {
 /*
  * Reset (nullify) public info value.
  */
-static void meta_info_public_reset_unlocked(xine_stream_t *stream, int info) {
+static void meta_info_public_reset_unlocked (xine_stream_private_t *stream, int info) {
   if (meta_valid(info)) {
     _x_freep(&stream->meta_info_public[info]);
   }
 }
-void _x_meta_info_public_reset(xine_stream_t *stream, int info) {
+void _x_meta_info_public_reset (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->meta_mutex);
   meta_info_public_reset_unlocked(stream, info);
   pthread_mutex_unlock(&stream->meta_mutex);
@@ -312,7 +320,8 @@ void _x_meta_info_public_reset(xine_stream_t *stream, int info) {
 /*
  * Set private meta info value using current locale.
  */
-void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) {
+void _x_meta_info_set (xine_stream_t *s, int info, const char *str) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
     meta_info_set_unlocked(stream, info, str);
@@ -322,7 +331,8 @@ void _x_meta_info_set(xine_stream_t *stream, int info, const char *str) {
 /*
  * Set private meta info value using specified encoding.
  */
-void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, const char *enc) {
+void _x_meta_info_set_generic (xine_stream_t *s, int info, const char *str, const char *enc) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
     meta_info_set_unlocked_encoding(stream, info, str, enc);
@@ -332,7 +342,8 @@ void _x_meta_info_set_generic(xine_stream_t *stream, int info, const char *str, 
 /*
  * Set private meta info value using utf8.
  */
-void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str) {
+void _x_meta_info_set_utf8 (xine_stream_t *s, int info, const char *str) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->meta_mutex);
   if(str)
     meta_info_set_unlocked_utf8(stream, info, str);
@@ -342,7 +353,8 @@ void _x_meta_info_set_utf8(xine_stream_t *stream, int info, const char *str) {
 /*
  * Set private meta info from buf, 'len' bytes long.
  */
-void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int len) {
+void _x_meta_info_n_set (xine_stream_t *s, int info, const char *buf, int len) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   pthread_mutex_lock(&stream->meta_mutex);
   if(meta_valid(info) && len) {
     char *str = strndup(buf, len);
@@ -356,7 +368,8 @@ void _x_meta_info_n_set(xine_stream_t *stream, int info, const char *buf, int le
 /*
  * Set private meta info value, from multiple arguments.
  */
-void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...) {
+void _x_meta_info_set_multi (xine_stream_t *s, int info, ...) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
   pthread_mutex_lock(&stream->meta_mutex);
   if(meta_valid(info)) {
@@ -405,7 +418,8 @@ void _x_meta_info_set_multi(xine_stream_t *stream, int info, ...) {
 /*
  * Retrieve private info value.
  */
-const char *_x_meta_info_get(xine_stream_t *stream, int info) {
+const char *_x_meta_info_get (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   const char *meta_info = NULL;
 
   pthread_mutex_lock(&stream->meta_mutex);
@@ -418,7 +432,8 @@ const char *_x_meta_info_get(xine_stream_t *stream, int info) {
 /*
  * Retrieve public info value.
  */
-const char *_x_meta_info_get_public(xine_stream_t *stream, int info) {
+const char *_x_meta_info_get_public (xine_stream_t *s, int info) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   const char *meta_info = NULL;
 
   pthread_mutex_lock(&stream->meta_mutex);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -230,7 +230,7 @@ typedef struct {
   int                  num_anon_streams;
   int                  num_streams;
   int                  streams_size;
-  xine_stream_t      **streams, *streams_default[STREAMS_DEFAULT_SIZE];
+  xine_stream_private_t **streams, *streams_default[STREAMS_DEFAULT_SIZE];
   xine_rwlock_t        streams_lock;
 
   pthread_t       audio_thread;
@@ -314,7 +314,7 @@ typedef struct {
   int             resend_max;
   uint8_t        *resend_buf;
 
-  xine_stream_t  *buf_streams[NUM_AUDIO_BUFFERS];
+  xine_stream_private_t *buf_streams[NUM_AUDIO_BUFFERS];
   uint8_t        *base_samp;
 
   int             seek_count2;
@@ -361,16 +361,16 @@ static void ao_streams_close (aos_t *this) {
 #endif
 }
 
-static void ao_streams_register (aos_t *this, xine_stream_t *s) {
+static void ao_streams_register (aos_t *this, xine_stream_private_t *s) {
   xine_rwlock_wrlock (&this->streams_lock);
   if (!s) {
     this->num_null_streams++;
-  } else if (s == XINE_ANON_STREAM) {
+  } else if (&s->s == XINE_ANON_STREAM) {
     this->num_anon_streams++;
   } else do {
-    xine_stream_t **a = this->streams;
+    xine_stream_private_t **a = this->streams;
     if (this->num_streams + 2 > this->streams_size) {
-      xine_stream_t **n = malloc ((this->streams_size + 32) * sizeof (void *));
+      xine_stream_private_t **n = malloc ((this->streams_size + 32) * sizeof (void *));
       if (!n)
         break;
       memcpy (n, a, this->streams_size * sizeof (void *));
@@ -386,15 +386,15 @@ static void ao_streams_register (aos_t *this, xine_stream_t *s) {
   xine_rwlock_unlock (&this->streams_lock);
 }
 
-static int ao_streams_unregister (aos_t *this, xine_stream_t *s) {
+static int ao_streams_unregister (aos_t *this, xine_stream_private_t *s) {
   int n;
   xine_rwlock_wrlock (&this->streams_lock);
   if (!s) {
     this->num_null_streams--;
-  } else if (s == XINE_ANON_STREAM) {
+  } else if (&s->s == XINE_ANON_STREAM) {
     this->num_anon_streams--;
   } else {
-    xine_stream_t **a = this->streams;
+    xine_stream_private_t **a = this->streams;
     while (*a && (*a != s))
       a++;
     if (*a) {
@@ -419,13 +419,13 @@ static int ao_streams_unregister (aos_t *this, xine_stream_t *s) {
 static int ao_reref (aos_t *this, audio_buffer_t *buf) {
   /* Paranoia? */
   if (PTR_IN_RANGE (buf, this->base_buf, NUM_AUDIO_BUFFERS * sizeof (*buf))) {
-    xine_stream_t **s = this->buf_streams + (buf - this->base_buf);
-    if (buf->stream != *s) {
+    xine_stream_private_t **s = this->buf_streams + (buf - this->base_buf);
+    if (buf->stream != &(*s)->s) {
       if (*s)
         _x_refcounter_dec ((*s)->refcounter);
-      if (buf->stream)
-        _x_refcounter_inc (buf->stream->refcounter);
-      *s = buf->stream;
+      *s = (xine_stream_private_t *)buf->stream;
+      if (*s)
+        _x_refcounter_inc ((*s)->refcounter);
       return 1;
     }
   }
@@ -435,7 +435,7 @@ static int ao_reref (aos_t *this, audio_buffer_t *buf) {
 static int ao_unref_buf (aos_t *this, audio_buffer_t *buf) {
   /* Paranoia? */
   if (PTR_IN_RANGE (buf, this->base_buf, NUM_AUDIO_BUFFERS * sizeof (*buf))) {
-    xine_stream_t **s = this->buf_streams + (buf - this->base_buf);
+    xine_stream_private_t **s = this->buf_streams + (buf - this->base_buf);
     buf->stream = NULL;
     if (*s) {
       _x_refcounter_dec ((*s)->refcounter);
@@ -598,10 +598,11 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       }
       if (n) {
         if ((this->seek_count3 >= 0) && list->stream) {
-          pthread_mutex_lock (&list->stream->first_frame_lock);
-          list->stream->first_frame_flag = 0;
-          pthread_cond_broadcast (&list->stream->first_frame_reached);
-          pthread_mutex_unlock (&list->stream->first_frame_lock);
+          xine_stream_private_t *s = (xine_stream_private_t *)list->stream;
+          pthread_mutex_lock (&s->first_frame_lock);
+          s->first_frame_flag = 0;
+          pthread_cond_broadcast (&s->first_frame_reached);
+          pthread_mutex_unlock (&s->first_frame_lock);
         }
         pthread_mutex_lock (&this->free_fifo.mutex);
         this->free_fifo.num_buffers = n + (this->free_fifo.first ? this->free_fifo.num_buffers : 0);
@@ -1502,7 +1503,7 @@ static void *ao_loop (void *this_gen) {
 
   while (this->audio_loop_running || this->out_fifo.first) {
 
-    xine_stream_t  *stream;
+    xine_stream_private_t *stream;
     int64_t         gap;
     int             delay;
     int             drop = 0;
@@ -1521,7 +1522,7 @@ static void *ao_loop (void *this_gen) {
           drop = 1;
           break;
         }
-        stream = in_buf->stream;
+        stream = (xine_stream_private_t *)in_buf->stream;
         if (!last) {
           bufs_since_sync++;
           lprintf ("got a buffer\n");
@@ -1623,10 +1624,10 @@ static void *ao_loop (void *this_gen) {
         if (!this->driver_open || changed) {
           lprintf ("audio format has changed\n");
           if (!stream || !stream->emergency_brake)
-            ao_change_settings (this, stream, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
+            ao_change_settings (this, &stream->s, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
         }
         if (!this->driver_open) {
-          xine_stream_t **s;
+          xine_stream_private_t **s;
           pthread_mutex_unlock (&this->driver_lock);
           xprintf (this->xine, XINE_VERBOSITY_LOG,
             _("audio_out: delay calculation impossible with an unavailable audio device\n"));
@@ -1634,7 +1635,7 @@ static void *ao_loop (void *this_gen) {
           for (s = this->streams; *s; s++) {
             if (!(*s)->emergency_brake) {
               (*s)->emergency_brake = 1;
-              _x_message (*s, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+              _x_message (&(*s)->s, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
             }
           }
           xine_rwlock_unlock (&this->streams_lock);
@@ -1737,7 +1738,7 @@ static void *ao_loop (void *this_gen) {
          * feedback them into metronom's vpts_offset (when using
          * metronom feedback for A/V sync)
          */
-        xine_stream_t **s;
+        xine_stream_private_t **s;
         int sgap = (int)gap >> SYNC_GAP_RATE_LOG2;
         /* avoid asymptote trap of bringing down step with remaining gap */
         if (sgap < 0) {
@@ -1752,7 +1753,7 @@ static void *ao_loop (void *this_gen) {
         lprintf ("audio_loop: ADJ_VPTS\n");
         xine_rwlock_rdlock (&this->streams_lock);
         for (s = this->streams; *s; s++)
-          (*s)->metronom->set_option ((*s)->metronom, METRONOM_ADJ_VPTS_OFFSET, sgap);
+          (*s)->s.metronom->set_option ((*s)->s.metronom, METRONOM_ADJ_VPTS_OFFSET, sgap);
         xine_rwlock_unlock (&this->streams_lock);
         next_sync_time = cur_time + SYNC_TIME_INTERVAL;
         bufs_since_sync = 0;
@@ -1804,7 +1805,7 @@ static void *ao_loop (void *this_gen) {
           /* device unplugged. */
           xprintf (this->xine, XINE_VERBOSITY_LOG, _("write to sound card failed. Assuming the device was unplugged.\n"));
           if (stream)
-            _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+            _x_message (&stream->s, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
           pthread_mutex_lock (&this->driver_lock);
           if (this->driver_open)
             this->driver->close (this->driver);
@@ -1812,12 +1813,12 @@ static void *ao_loop (void *this_gen) {
           _x_free_audio_driver (this->xine, &this->driver);
           this->driver = _x_load_audio_output_plugin (this->xine, "none");
           if (this->driver && (!stream || !stream->emergency_brake)) {
-            if (ao_change_settings (this, stream, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode) == 0) {
+            if (ao_change_settings (this, &stream->s, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode) == 0) {
               if (stream)
                 stream->emergency_brake = 1;
             }
             if (stream)
-              _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+              _x_message (&stream->s, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
           }
           pthread_mutex_unlock (&this->driver_lock);
           /* closing the driver will result in XINE_MSG_AUDIO_OUT_UNAVAILABLE to be emitted */
@@ -1879,8 +1880,8 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
 
   while (!this->out_fifo.first) {
     {
-      xine_stream_t *stream = this->streams[0];
-      if (stream && (stream->audio_fifo->fifo_size == 0)
+      xine_stream_private_t *stream = this->streams[0];
+      if (stream && (stream->s.audio_fifo->fifo_size == 0)
         && (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK)) {
         /* no further data can be expected here */
         pthread_mutex_unlock (&this->out_fifo.mutex);
@@ -1912,10 +1913,11 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
   if  ((in_buf->format.bits != this->input.bits)
     || (in_buf->format.rate != this->input.rate)
     || (in_buf->format.mode != this->input.mode)) {
+    xine_stream_private_t *s = (xine_stream_private_t *)in_buf->stream;
     pthread_mutex_lock (&this->driver_lock);
     lprintf ("audio format has changed\n");
-    if (!(in_buf->stream && in_buf->stream->emergency_brake))
-      ao_change_settings (this, in_buf->stream, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
+    if (!(s && s->emergency_brake))
+      ao_change_settings (this, &s->s, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode);
     pthread_mutex_unlock (&this->driver_lock);
   }
 
@@ -2080,10 +2082,11 @@ static inline void ao_driver_unlock (aos_t *this) {
  * open the audio device for writing to
  */
 
-static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
+static int ao_open (xine_audio_port_t *this_gen, xine_stream_t *s,
 		   uint32_t bits, uint32_t rate, int mode) {
 
   aos_t *this = (aos_t *) this_gen;
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   int channels;
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: ao_open (%p)\n", (void*)stream);
@@ -2099,12 +2102,12 @@ static int ao_open(xine_audio_port_t *this_gen, xine_stream_t *stream,
 
     if( !stream->emergency_brake ) {
       pthread_mutex_lock( &this->driver_lock );
-      ret = ao_change_settings (this, stream, bits, rate, mode);
+      ret = ao_change_settings (this, &stream->s, bits, rate, mode);
       pthread_mutex_unlock( &this->driver_lock );
 
       if( !ret ) {
         stream->emergency_brake = 1;
-        _x_message (stream, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
+        _x_message (&stream->s, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
         return 0;
       }
     } else {
@@ -2166,30 +2169,31 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   if (stream == XINE_ANON_STREAM)
     stream = NULL;
   if (stream) {
+    xine_stream_private_t *s = (xine_stream_private_t *)stream;
     /* faster than 3x _x_stream_info_get () */
-    pthread_mutex_lock (&stream->info_mutex);
-    buf->format.bits = stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
-    buf->format.rate = stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
-    buf->format.mode = stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
-    pthread_mutex_unlock (&stream->info_mutex);
-    _x_extra_info_merge (buf->extra_info, stream->audio_decoder_extra_info);
-    buf->vpts = stream->metronom->got_audio_samples (stream->metronom, pts, buf->num_frames);
-    if ((stream->first_frame_flag >= 2) && !stream->video_decoder_plugin) {
-      pthread_mutex_lock (&stream->first_frame_lock);
-      if (stream->first_frame_flag >= 2) {
+    pthread_mutex_lock (&s->info_mutex);
+    buf->format.bits = s->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
+    buf->format.rate = s->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
+    buf->format.mode = s->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
+    pthread_mutex_unlock (&s->info_mutex);
+    _x_extra_info_merge (buf->extra_info, s->audio_decoder_extra_info);
+    buf->vpts = s->s.metronom->got_audio_samples (s->s.metronom, pts, buf->num_frames);
+    if ((s->first_frame_flag >= 2) && !s->video_decoder_plugin) {
+      pthread_mutex_lock (&s->first_frame_lock);
+      if (s->first_frame_flag >= 2) {
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 1.\n", buf->extra_info->seek_count);
-        if (stream->first_frame_flag == 3) {
-          pthread_mutex_lock (&stream->current_extra_info_lock);
-          _x_extra_info_merge (stream->current_extra_info, buf->extra_info);
-          pthread_mutex_unlock (&stream->current_extra_info_lock);
-          stream->first_frame_flag = 0;
-          pthread_cond_broadcast (&stream->first_frame_reached);
+        if (s->first_frame_flag == 3) {
+          pthread_mutex_lock (&s->current_extra_info_lock);
+          _x_extra_info_merge (s->current_extra_info, buf->extra_info);
+          pthread_mutex_unlock (&s->current_extra_info_lock);
+          s->first_frame_flag = 0;
+          pthread_cond_broadcast (&s->first_frame_reached);
         } else {
-          stream->first_frame_flag = 1;
+          s->first_frame_flag = 1;
         }
         is_first = 1;
       }
-      pthread_mutex_unlock (&stream->first_frame_lock);
+      pthread_mutex_unlock (&s->first_frame_lock);
     }
   }
   buf->extra_info->vpts = buf->vpts;
@@ -2211,7 +2215,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: ao_close (%p)\n", (void*)stream);
 
   /* unregister stream */
-  n = ao_streams_unregister (this, stream);
+  n = ao_streams_unregister (this, (xine_stream_private_t *)stream);
   ao_unref_all (this);
 
   /* ao_close () simply means that decoder is finished. The remaining buffered frames
@@ -2581,7 +2585,7 @@ static void ao_flush (xine_audio_port_t *this_gen) {
 static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
 	       uint32_t *bits, uint32_t *rate, int *mode) {
   aos_t *this = (aos_t *) this_gen;
-  xine_stream_t **s;
+  xine_stream_private_t **s;
   int ret = 0;
 
   if (!stream || (stream == XINE_ANON_STREAM)) {
@@ -2593,7 +2597,7 @@ static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
 
   xine_rwlock_rdlock (&this->streams_lock);
   for (s = this->streams; *s; s++) {
-    if (*s == stream) {
+    if (&(*s)->s == stream) {
       *bits = this->input.bits;
       *rate = this->input.rate;
       *mode = this->input.mode;

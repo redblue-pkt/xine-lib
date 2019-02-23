@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -28,6 +28,7 @@
 #include <sys/time.h>
 
 #include <xine/xine_internal.h>
+#include "xine_private.h"
 
 xine_event_t *xine_event_get  (xine_event_queue_t *queue) {
 
@@ -77,8 +78,9 @@ void xine_event_free (xine_event_t *event) {
   free (event);
 }
 
-void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
+void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
 
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   xine_list_iterator_t ite;
   xine_event_queue_t *queue;
 
@@ -93,7 +95,7 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
       continue;
 
     cevent->type        = event->type;
-    cevent->stream      = stream;
+    cevent->stream      = &stream->s;
     cevent->data_length = event->data_length;
     if ((event->data_length > 0) && (event->data) ) {
       cevent->data = malloc (event->data_length);
@@ -113,8 +115,9 @@ void xine_event_send (xine_stream_t *stream, const xine_event_t *event) {
 }
 
 
-xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) {
+xine_event_queue_t *xine_event_new_queue (xine_stream_t *s) {
 
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   xine_event_queue_t *queue;
 
   _x_refcounter_inc(stream->refcounter);
@@ -125,7 +128,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) {
   pthread_cond_init (&queue->new_event, NULL);
   pthread_cond_init (&queue->events_processed, NULL);
   queue->events = xine_list_new ();
-  queue->stream = stream;
+  queue->stream = &stream->s;
   queue->listener_thread = NULL;
   queue->callback_running = 0;
 
@@ -138,7 +141,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) {
 
 void xine_event_dispose_queue (xine_event_queue_t *queue) {
 
-  xine_stream_t        *stream = queue->stream;
+  xine_stream_private_t *stream = (xine_stream_private_t *)queue->stream;
   xine_event_t         *event;
   xine_event_t         *qevent;
   xine_event_queue_t   *q;
@@ -154,7 +157,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   }
 
   if (q != queue) {
-    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "events: tried to dispose queue which is not in list\n");
+    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "events: tried to dispose queue which is not in list\n");
 
     pthread_mutex_unlock (&stream->event_queues_lock);
     return;
@@ -169,7 +172,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   qevent = (xine_event_t *)malloc(sizeof(xine_event_t));
 
   qevent->type        = XINE_EVENT_QUIT;
-  qevent->stream      = stream;
+  qevent->stream      = &stream->s;
   qevent->data        = NULL;
   qevent->data_length = 0;
   gettimeofday (&qevent->tv, NULL);

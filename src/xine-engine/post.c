@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -25,6 +25,7 @@
 #define POST_INTERNAL
 
 #include <xine/post.h>
+#include "xine_private.h"
 
 #include <stdarg.h>
 #include <pthread.h>
@@ -115,9 +116,13 @@ static vo_frame_t *post_intercept_video_frame (post_video_port_t *port, vo_frame
   /* Optimization: dont NULL stream ref, will often be reused later */
   if ((new_frame->frame.free == post_frame_free) &&
     new_frame->frame.stream && (new_frame->stream != new_frame->frame.stream)) {
-    _x_refcounter_inc (new_frame->frame.stream->refcounter);
-    if (new_frame->stream)
-      _x_refcounter_dec (new_frame->stream->refcounter);
+    xine_stream_private_t *s;
+    s = (xine_stream_private_t *)new_frame->frame.stream;
+    _x_refcounter_inc (s->refcounter);
+    if (new_frame->stream) {
+      s = (xine_stream_private_t *)new_frame->stream;
+      _x_refcounter_dec (s->refcounter);
+    }
     new_frame->stream = new_frame->frame.stream;
   }
 
@@ -155,7 +160,8 @@ static vo_frame_t *post_restore_video_frame (vo_frame_t *frame, post_video_port_
   if ((frame->free == post_frame_free) && !port->stream) {
     vf_alias_t *f = (vf_alias_t *)frame;
     if (f->stream) {
-      _x_refcounter_dec (f->stream->refcounter);
+      xine_stream_private_t *s = (xine_stream_private_t *)f->stream;
+      _x_refcounter_dec (s->refcounter);
        f->stream = NULL;
     }
   }
@@ -374,7 +380,8 @@ static void post_video_close(xine_video_port_t *port_gen, xine_stream_t *stream)
     f = (vf_alias_t *)port->free_frame_slots;
     while (f) {
       if ((f->frame.free == post_frame_free) && f->stream) {
-        _x_refcounter_dec (f->stream->refcounter);
+        xine_stream_private_t *s = (xine_stream_private_t *)f->stream;
+        _x_refcounter_dec (s->refcounter);
         f->stream = NULL;
       }
       f = (vf_alias_t *)f->frame.next;
@@ -652,9 +659,13 @@ void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to) {
     vf_alias_t *f = (vf_alias_t *)to;
     f->frame.stream = from->stream;
     if (f->frame.stream && (f->frame.stream != f->stream)) {
-      _x_refcounter_inc (f->frame.stream->refcounter);
-      if (f->stream)
-        _x_refcounter_dec (f->stream->refcounter);
+      xine_stream_private_t *s;
+      s = (xine_stream_private_t *)f->frame.stream;
+      _x_refcounter_inc (s->refcounter);
+      if (f->stream) {
+        s = (xine_stream_private_t *)f->stream;
+        _x_refcounter_dec (s->refcounter);
+      }
       f->stream = f->frame.stream;
     }
   }
@@ -683,9 +694,13 @@ void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from) {
     vf_alias_t *f = (vf_alias_t *)to;
     f->frame.stream = from->stream;
     if (f->frame.stream && (f->frame.stream != f->stream)) {
-      _x_refcounter_inc (f->frame.stream->refcounter);
-      if (f->stream)
-        _x_refcounter_dec (f->stream->refcounter);
+      xine_stream_private_t *s;
+      s = (xine_stream_private_t *)f->frame.stream;
+      _x_refcounter_inc (s->refcounter);
+      if (f->stream) {
+        s = (xine_stream_private_t *)f->stream;
+        _x_refcounter_dec (s->refcounter);
+      }
       f->stream = f->frame.stream;
     }
   }
@@ -703,15 +718,20 @@ void _x_post_frame_u_turn(vo_frame_t *frame, xine_stream_t *stream) {
     vf_alias_t *f = (vf_alias_t *)frame;
     f->frame.stream = stream;
     if (f->frame.stream && (f->frame.stream != f->stream)) {
-      _x_refcounter_inc (f->frame.stream->refcounter);
-      if (f->stream)
-        _x_refcounter_dec (f->stream->refcounter);
+      xine_stream_private_t *s;
+      s = (xine_stream_private_t *)f->frame.stream;
+      _x_refcounter_inc (s->refcounter);
+      if (f->stream) {
+        s = (xine_stream_private_t *)f->stream;
+        _x_refcounter_dec (s->refcounter);
+      }
       f->stream = f->frame.stream;
     }
   }
 
   if (stream) {
-    _x_extra_info_merge(frame->extra_info, stream->video_decoder_extra_info);
+    xine_stream_private_t *s = (xine_stream_private_t *)stream;
+    _x_extra_info_merge (frame->extra_info, s->video_decoder_extra_info);
     stream->metronom->got_video_frame(stream->metronom, frame);
   }
 }
@@ -1079,8 +1099,10 @@ int _x_post_dispose(post_plugin_t *this) {
             int n = 0;
             do {
               vf_alias_t *next = (vf_alias_t *)f->frame.next;
-              if ((f->frame.free == post_frame_free) && f->stream)
-                _x_refcounter_dec (f->stream->refcounter);
+              if ((f->frame.free == post_frame_free) && f->stream) {
+                xine_stream_private_t *s = (xine_stream_private_t *)f->stream;
+                _x_refcounter_dec (s->refcounter);
+              }
               free (f);
               n++;
               f = next;
