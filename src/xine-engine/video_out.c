@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -112,7 +112,7 @@ typedef struct {
   int                       num_anon_streams;
   int                       num_streams;
   int                       streams_size;
-  xine_stream_t           **streams, *streams_default[STREAMS_DEFAULT_SIZE];
+  xine_stream_private_t   **streams, *streams_default[STREAMS_DEFAULT_SIZE];
   xine_rwlock_t             streams_lock;
 
   img_buf_fifo_t            free_img_buf_queue;
@@ -205,7 +205,7 @@ typedef struct {
 
   /* frame stream refs */
   vo_frame_t              **frames;
-  xine_stream_t           **img_streams;
+  xine_stream_private_t   **img_streams;
 
   /* frames usage stats */
   int                       frames_total;
@@ -244,16 +244,16 @@ static void vo_streams_close (vos_t *this) {
 #endif
 }
 
-static void vo_streams_register (vos_t *this, xine_stream_t *s) {
+static void vo_streams_register (vos_t *this, xine_stream_private_t *s) {
   xine_rwlock_wrlock (&this->streams_lock);
   if (!s) {
     this->num_null_streams++;
-  } else if (s == XINE_ANON_STREAM) {
+  } else if (&s->s == XINE_ANON_STREAM) {
     this->num_anon_streams++;
   } else do {
-    xine_stream_t **a = this->streams;
+    xine_stream_private_t **a = this->streams;
     if (this->num_streams + 2 > this->streams_size) {
-      xine_stream_t **n = malloc ((this->streams_size + 32) * sizeof (void *));
+      xine_stream_private_t **n = malloc ((this->streams_size + 32) * sizeof (void *));
       if (!n)
         break;
       memcpy (n, a, this->streams_size * sizeof (void *));
@@ -269,14 +269,14 @@ static void vo_streams_register (vos_t *this, xine_stream_t *s) {
   xine_rwlock_unlock (&this->streams_lock);
 }
 
-static void vo_streams_unregister (vos_t *this, xine_stream_t *s) {
+static void vo_streams_unregister (vos_t *this, xine_stream_private_t *s) {
   xine_rwlock_wrlock (&this->streams_lock);
   if (!s) {
     this->num_null_streams--;
-  } else if (s == XINE_ANON_STREAM) {
+  } else if (&s->s == XINE_ANON_STREAM) {
     this->num_anon_streams--;
   } else {
-    xine_stream_t **a = this->streams;
+    xine_stream_private_t **a = this->streams;
     while (*a && (*a != s))
       a++;
     if (*a) {
@@ -298,13 +298,13 @@ static void vo_streams_unregister (vos_t *this, xine_stream_t *s) {
 static void vo_reref (vos_t *this, vo_frame_t *img) {
   /* Paranoia? */
   if ((img->id >= 0) && (img->id < this->frames_total)) {
-    xine_stream_t **s = this->img_streams + img->id;
-    if (img->stream != *s) {
+    xine_stream_private_t **s = this->img_streams + img->id;
+    if (img->stream != &(*s)->s) {
       if (*s)
         _x_refcounter_dec ((*s)->refcounter);
-      if (img->stream)
-        _x_refcounter_inc (img->stream->refcounter);
-      *s = img->stream;
+      *s = (xine_stream_private_t *)img->stream;
+      if (*s)
+        _x_refcounter_inc ((*s)->refcounter);
     }
   }
 }
@@ -313,7 +313,7 @@ static void vo_unref_frame (vos_t *this, vo_frame_t *img) {
   img->stream = NULL;
   /* Paranoia? */
   if ((img->id >= 0) && (img->id < this->frames_total)) {
-    xine_stream_t **s = this->img_streams + img->id;
+    xine_stream_private_t **s = this->img_streams + img->id;
     if (*s) {
       _x_refcounter_dec ((*s)->refcounter);
       *s = NULL;
@@ -326,7 +326,7 @@ static void vo_unref_list (vos_t *this, vo_frame_t *img) {
     img->stream = NULL;
     /* Paranoia? */
     if ((img->id >= 0) && (img->id < this->frames_total)) {
-      xine_stream_t **s = this->img_streams + img->id;
+      xine_stream_private_t **s = this->img_streams + img->id;
       if (*s) {
         _x_refcounter_dec ((*s)->refcounter);
         *s = NULL;
@@ -1331,8 +1331,9 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
   return img;
 }
 
-static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
+static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
 
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   vos_t         *this = (vos_t *) img->port;
   int            frames_to_skip, first_frame_flag = 0;
 
@@ -1345,7 +1346,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
   }
 
   /* handle anonymous streams like NULL for easy checking */
-  if (stream == XINE_ANON_STREAM) stream = NULL;
+  if (&stream->s == XINE_ANON_STREAM) stream = NULL;
 
   if (stream) {
     first_frame_flag = stream->first_frame_flag;
@@ -1367,9 +1368,9 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
         this->num_frames_burst = 0;
       }
     }
-    img->stream = stream;
+    img->stream = &stream->s;
     _x_extra_info_merge( img->extra_info, stream->video_decoder_extra_info );
-    stream->metronom->got_video_frame (stream->metronom, img);
+    stream->s.metronom->got_video_frame (stream->s.metronom, img);
 #if 0
     if (FIXME: IS_KEYFRAME (img)) {
       if (this->keyframe_mode == 0) {
@@ -1507,7 +1508,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       /* We can always do the frame's native stream here.
        * We know its there, and we vo_reref()ed it above.
        */
-      xine_stream_t *s = stream;
+      xine_stream_private_t *s = stream;
       pthread_mutex_lock (&s->first_frame_lock);
       if (s->first_frame_flag >= 2) {
         if ((s->first_frame_flag > 2) || this->grab_only) {
@@ -1523,7 +1524,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
     }
     /* avoid a complex deadlock situation caused by net_buf_control */
     if (!xine_rwlock_tryrdlock (&this->streams_lock)) {
-      xine_stream_t **s;
+      xine_stream_private_t **s;
       for (s = this->streams; *s; s++) {
         if (*s == stream)
           continue;
@@ -1576,7 +1577,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
 
   if (this->num_frames_delivered == 200) {
     int send_event;
-    xine_stream_t **it;
+    xine_stream_private_t **it;
 
     /* 100 * n / num_frames_delivered */
     if (((this->num_frames_skipped >> 1)   > this->warn_skipped_threshold) ||
@@ -1600,8 +1601,8 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
       /* 1000 * n / num_frames_delivered */
       skipped   = 5 * this->num_frames_skipped;
       discarded = 5 * this->num_frames_discarded;
-      _x_stream_info_set (stream, XINE_STREAM_INFO_SKIPPED_FRAMES, skipped);
-      _x_stream_info_set (stream, XINE_STREAM_INFO_DISCARDED_FRAMES, discarded);
+      _x_stream_info_set (&stream->s, XINE_STREAM_INFO_SKIPPED_FRAMES, skipped);
+      _x_stream_info_set (&stream->s, XINE_STREAM_INFO_DISCARDED_FRAMES, discarded);
 
       /* we send XINE_EVENT_DROPPED_FRAMES to frontend to warn that
        * number of skipped or discarded frames is too high.
@@ -1611,14 +1612,14 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *stream) {
          xine_dropped_frames_t data;
 
          event.type        = XINE_EVENT_DROPPED_FRAMES;
-         event.stream      = stream;
+         event.stream      = &stream->s;
          event.data        = &data;
          event.data_length = sizeof(data);
          data.skipped_frames = skipped;
          data.skipped_threshold = this->warn_skipped_threshold * 10;
          data.discarded_frames = discarded;
          data.discarded_threshold = this->warn_discarded_threshold * 10;
-         xine_event_send(stream, &event);
+         xine_event_send (&stream->s, &event);
       }
     }
     xine_rwlock_unlock (&this->streams_lock);
@@ -1903,9 +1904,10 @@ static vo_frame_t *next_frame (vos_t *this, int64_t *vpts) {
     img = vo_ready_pop (this);
 
     if (img->stream) {
-      pthread_mutex_lock (&img->stream->current_extra_info_lock);
-      _x_extra_info_merge (img->stream->current_extra_info, img->extra_info);
-      pthread_mutex_unlock (&img->stream->current_extra_info_lock);
+      xine_stream_private_t *s = (xine_stream_private_t *)img->stream;
+      pthread_mutex_lock (&s->current_extra_info_lock);
+      _x_extra_info_merge (s->current_extra_info, img->extra_info);
+      pthread_mutex_unlock (&s->current_extra_info_lock);
     }
 
     ADD_READY_FRAMES;
@@ -1960,17 +1962,18 @@ static void overlay_and_display_frame (vos_t *this, vo_frame_t *img, int64_t vpt
 
   if (img->stream) {
     int64_t diff;
-    pthread_mutex_lock( &img->stream->current_extra_info_lock );
-    diff = img->extra_info->vpts - img->stream->current_extra_info->vpts;
+    xine_stream_private_t *s = (xine_stream_private_t *)img->stream;
+    pthread_mutex_lock (&s->current_extra_info_lock);
+    diff = img->extra_info->vpts - s->current_extra_info->vpts;
     /* Always post first frame time to make frontend relative seek work. */
     if ((diff > 3000) || (diff<-300000) || (img->is_first > 0))
-      _x_extra_info_merge( img->stream->current_extra_info, img->extra_info );
-    pthread_mutex_unlock( &img->stream->current_extra_info_lock );
+      _x_extra_info_merge (s->current_extra_info, img->extra_info);
+    pthread_mutex_unlock (&s->current_extra_info_lock);
     /* First frame's native stream is the most common case.
      * Do it without streams lock.
      */
     if (img->is_first > 0) {
-      xine_stream_t *s = img->stream;
+      xine_stream_private_t *s = (xine_stream_private_t *)img->stream;
       pthread_mutex_lock (&s->first_frame_lock);
       if (s->first_frame_flag) {
         s->first_frame_flag = 0;
@@ -1985,10 +1988,10 @@ static void overlay_and_display_frame (vos_t *this, vo_frame_t *img, int64_t vpt
    * it up _before_ we start displaying, or the first 10 seconds of video are lost.
    */
   if (img->is_first > 0) {
-    xine_stream_t **s;
+    xine_stream_private_t **s;
     xine_rwlock_rdlock (&this->streams_lock);
     for (s = this->streams; *s; s++) {
-      if (*s == img->stream)
+      if (&(*s)->s == img->stream)
         continue;
       pthread_mutex_lock (&(*s)->first_frame_lock);
       if ((*s)->first_frame_flag) {
@@ -2209,16 +2212,16 @@ static void *video_out_loop (void *this_gen) {
     if ((vpts - this->last_delivery_pts > 30000) &&
         !this->display_img_buf_queue.first && !this->ready_first) {
       if (this->last_delivery_pts && !disable_decoder_flush_from_video_out) {
-        xine_stream_t **s;
+        xine_stream_private_t **s;
         xine_rwlock_rdlock (&this->streams_lock);
         for (s = this->streams; *s; s++) {
-          if ((*s)->video_decoder_plugin && (*s)->video_fifo) {
+          if ((*s)->video_decoder_plugin && (*s)->s.video_fifo) {
             buf_element_t *buf;
             lprintf ("flushing current video decoder plugin\n");
-            buf = (*s)->video_fifo->buffer_pool_try_alloc ((*s)->video_fifo);
+            buf = (*s)->s.video_fifo->buffer_pool_try_alloc ((*s)->s.video_fifo);
             if (buf) {
               buf->type = BUF_CONTROL_FLUSH_DECODER;
-              (*s)->video_fifo->insert ((*s)->video_fifo, buf);
+              (*s)->s.video_fifo->insert ((*s)->s.video_fifo, buf);
             }
           }
         }
@@ -2353,8 +2356,8 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen, xine_video_frame_t *
 
   while (!this->display_img_buf_queue.first) {
     {
-      xine_stream_t *stream = this->streams[0];
-      if (stream && (stream->video_fifo->fifo_size == 0)
+      xine_stream_private_t *stream = this->streams[0];
+      if (stream && (stream->s.video_fifo->fifo_size == 0)
         && (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK)) {
         /* no further data can be expected here */
         pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
@@ -2435,7 +2438,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
     /* enable overlays if our new stream might want to show some */
     this->overlay_enabled = 1;
 
-  vo_streams_register (this, stream);
+  vo_streams_register (this, (xine_stream_private_t *)stream);
 }
 
 static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
@@ -2453,7 +2456,7 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
   this->video_opened = 0;
 
   /* unregister stream */
-  vo_streams_unregister (this, stream);
+  vo_streams_unregister (this, (xine_stream_private_t *)stream);
 }
 
 
@@ -2658,11 +2661,12 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
   return ret;
 }
 
-static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
+static int vo_status (xine_video_port_t *this_gen, xine_stream_t *s,
                       int *width, int *height, int64_t *img_duration) {
   vos_t      *this = (vos_t *) this_gen;
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
-  if (!stream || (stream == XINE_ANON_STREAM)) {
+  if (!stream || (&stream->s == XINE_ANON_STREAM)) {
     *width = this->current_width;
     *height = this->current_height;
     *img_duration = this->current_duration;
@@ -2671,7 +2675,7 @@ static int vo_status (xine_video_port_t *this_gen, xine_stream_t *stream,
 
   xine_rwlock_rdlock (&this->streams_lock);
   {
-    xine_stream_t **s;
+    xine_stream_private_t **s;
     for (s = this->streams; *s; s++) {
       if (*s == stream) {
         *width = this->current_width;
@@ -2782,14 +2786,14 @@ static void vo_enable_overlay (xine_video_port_t *this_gen, int overlay_enabled)
     this->overlay_enabled = 1;
   } else {
     /* ... but we only actually DISable, if all associated streams have SPU off */
-    xine_stream_t **s;
+    xine_stream_private_t **s;
     xine_rwlock_rdlock (&this->streams_lock);
     if (this->num_anon_streams > 0) {
       xine_rwlock_unlock (&this->streams_lock);
       return;
     }
     for (s = this->streams; *s; s++) {
-      if ((*s)->spu_channel_user > -2) {
+      if ((*s)->s.spu_channel_user > -2) {
         xine_rwlock_unlock (&this->streams_lock);
 	return;
       }
@@ -2997,7 +3001,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
     }
     this->frames = (vo_frame_t **)m;
     m += num_frame_buffers * sizeof (void *);
-    this->img_streams = (xine_stream_t **)m;
+    this->img_streams = (xine_stream_private_t **)m;
     m += num_frame_buffers * sizeof (void *) + 31;
     m = (uint8_t *)((uintptr_t)m & ~(uintptr_t)31);
     this->extra_info_base = (extra_info_t *)m;

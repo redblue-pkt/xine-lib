@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -316,6 +316,129 @@ static inline void xine_uint64_2str (char **s, uint64_t v) {
 #  define PTR_IN_RANGE(_ptr,_start,_size) \
     ((uint8_t *)(_ptr) >= (uint8_t *)(_start) && ((uint8_t *)(_ptr) < (uint8_t *)(_start) + (_size)))
 #endif
+
+typedef struct {
+  xine_stream_t              s;
+
+  int                        status;
+
+  /* lock controlling speed change access */
+  pthread_mutex_t            speed_change_lock;
+  uint32_t                   ignore_speed_change:1;  /*< speed changes during stop can be disastrous */
+  uint32_t                   video_thread_created:1;
+  uint32_t                   audio_thread_created:1;
+  /* 3: wait for first frame to decode (stream start).
+   * 2: wait for first frame to display (stream seek).
+   * 1: after 2, first frame is decoded but not yet displayed.
+   * 0: waiting done.
+   */
+  uint32_t                   first_frame_flag:2;
+  uint32_t                   demux_action_pending:1;
+  uint32_t                   demux_thread_created:1;
+  uint32_t                   demux_thread_running:1;
+  uint32_t                   slave_is_subtitle:1;    /*< ... and will be automaticaly disposed */
+  uint32_t                   emergency_brake:1;      /*< something went really wrong and this stream must be
+                                                      *  stopped. usually due some fatal error on output
+                                                      *  layers as they cannot call xine_stop. */
+  uint32_t                   early_finish_event:1;   /*< do not wait fifos get empty before sending event */
+  uint32_t                   gapless_switch:1;       /*< next stream switch will be gapless */
+  uint32_t                   keep_ao_driver_open:1;
+  uint32_t                   finished_naturally:1;
+
+  input_class_t             *eject_class;
+  demux_plugin_t            *demux_plugin;
+
+/*  vo_driver_t               *video_driver;*/
+  pthread_t                  video_thread;
+  video_decoder_t           *video_decoder_plugin;
+  extra_info_t              *video_decoder_extra_info;
+  int                        video_decoder_streamtype;
+  int                        video_channel;
+
+  uint32_t                   audio_track_map[50];
+  int                        audio_track_map_entries;
+
+  int                        audio_decoder_streamtype;
+  pthread_t                  audio_thread;
+  audio_decoder_t           *audio_decoder_plugin;
+  extra_info_t              *audio_decoder_extra_info;
+
+  uint32_t                   audio_type;
+  /* *_user: -2 => off
+             -1 => auto (use *_auto value)
+	    >=0 => respect the user's choice
+  */
+  int                        audio_channel_user;
+/*  int                        audio_channel_auto; */
+
+/*  spu_decoder_t             *spu_decoder_plugin; */
+/*  int                        spu_decoder_streamtype; */
+  uint32_t                   spu_track_map[50];
+  int                        spu_track_map_entries;
+/*  int                        spu_channel_user; */
+/*  int                        spu_channel_auto; */
+/*  int                        spu_channel_letterbox; */
+  int                        spu_channel_pan_scan;
+/*  int                        spu_channel; */
+
+  /* lock for public xine player functions */
+  pthread_mutex_t            frontend_lock;
+
+  /* stream meta information */
+  /* NEVER access directly, use helpers (see info_helper.c) */
+  pthread_mutex_t            info_mutex;
+  int                        stream_info_public[XINE_STREAM_INFO_MAX];
+  int                        stream_info[XINE_STREAM_INFO_MAX];
+  pthread_mutex_t            meta_mutex;
+  char                      *meta_info_public[XINE_STREAM_INFO_MAX];
+  char                      *meta_info[XINE_STREAM_INFO_MAX];
+
+  /* seeking slowdown */
+  pthread_mutex_t            first_frame_lock;
+  pthread_cond_t             first_frame_reached;
+
+  /* wait for headers sent / stream decoding finished */
+  pthread_mutex_t            counter_lock;
+  pthread_cond_t             counter_changed;
+  int                        header_count_audio;
+  int                        header_count_video;
+  int                        finished_count_audio;
+  int                        finished_count_video;
+
+  /* event mechanism */
+  xine_list_t               *event_queues;
+  pthread_mutex_t            event_queues_lock;
+
+  /* demux thread stuff */
+  pthread_t                  demux_thread;
+  pthread_mutex_t            demux_lock;
+  pthread_mutex_t            demux_action_lock;
+  pthread_cond_t             demux_resume;
+  pthread_mutex_t            demux_mutex; /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
+
+  extra_info_t              *current_extra_info;
+  pthread_mutex_t            current_extra_info_lock;
+  int                        video_seek_count;
+
+  int                        delay_finish_event; /* delay event in 1/10 sec units. 0=>no delay, -1=>forever */
+
+  int                        slave_affection;   /* what operations need to be propagated down to the slave? */
+
+  int                        err;
+
+  xine_post_out_t            video_source;
+  xine_post_out_t            audio_source;
+
+  broadcaster_t             *broadcaster;
+
+  refcounter_t              *refcounter;
+
+  xine_keyframes_entry_t    *index_array;
+  int                        index_size, index_used, index_lastadd;
+  pthread_mutex_t            index_mutex;
+
+  extra_info_t               ei[3];
+} xine_stream_private_t;
 
 EXTERN_C_STOP
 
