@@ -385,11 +385,12 @@ typedef struct {
   pthread_mutex_t            frontend_lock;
 
   /* stream meta information */
-  /* NEVER access directly, use helpers (see info_helper.c) */
-  pthread_mutex_t            info_mutex;
-  int                        stream_info_public[XINE_STREAM_INFO_MAX];
+  /* Grab lock, or use helpers (see info_helper.c). */
+  xine_rwlock_t              info_lock;
   int                        stream_info[XINE_STREAM_INFO_MAX];
-  pthread_mutex_t            meta_mutex;
+  /* Broken API: _x_meta_info_get_public () returns const char *, with no go away safety.
+   * For now, we copy info to info_public when a new value is requested :-/ */
+  xine_rwlock_t              meta_lock;
   char                      *meta_info_public[XINE_STREAM_INFO_MAX];
   char                      *meta_info[XINE_STREAM_INFO_MAX];
 

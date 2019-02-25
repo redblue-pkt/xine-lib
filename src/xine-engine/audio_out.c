@@ -2124,12 +2124,12 @@ static int ao_open (xine_audio_port_t *this_gen, xine_stream_t *s,
       channels = 255; /* unknown */
 
     /* faster than 4x _x_stream_info_set () */
-    pthread_mutex_lock (&stream->info_mutex);
+    xine_rwlock_wrlock (&stream->info_lock);
     stream->stream_info[XINE_STREAM_INFO_AUDIO_MODE]       = mode;
     stream->stream_info[XINE_STREAM_INFO_AUDIO_CHANNELS]   = channels;
     stream->stream_info[XINE_STREAM_INFO_AUDIO_BITS]       = bits;
     stream->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE] = rate;
-    pthread_mutex_unlock (&stream->info_mutex);
+    xine_rwlock_unlock (&stream->info_lock);
 
   }
 
@@ -2171,11 +2171,11 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
   if (stream) {
     xine_stream_private_t *s = (xine_stream_private_t *)stream;
     /* faster than 3x _x_stream_info_get () */
-    pthread_mutex_lock (&s->info_mutex);
+    xine_rwlock_rdlock (&s->info_lock);
     buf->format.bits = s->stream_info[XINE_STREAM_INFO_AUDIO_BITS];
     buf->format.rate = s->stream_info[XINE_STREAM_INFO_AUDIO_SAMPLERATE];
     buf->format.mode = s->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
-    pthread_mutex_unlock (&s->info_mutex);
+    xine_rwlock_unlock (&s->info_lock);
     _x_extra_info_merge (buf->extra_info, s->audio_decoder_extra_info);
     buf->vpts = s->s.metronom->got_audio_samples (s->s.metronom, pts, buf->num_frames);
     if ((s->first_frame_flag >= 2) && !s->video_decoder_plugin) {
