@@ -3261,7 +3261,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
 #ifndef HAVE_ZERO_SAFE_MEM
   for (i = 0; i < MAX_PMTS; i++) {
-    this->pmt[i]            = NULL;
+    this->pmts[i] = NULL;
   }
 #endif
 
@@ -3322,4 +3322,3 @@ void *demux_ts_init_class (xine_t *xine, const void *data) {
 
   return (void *)&demux_ts_class;
 }
-

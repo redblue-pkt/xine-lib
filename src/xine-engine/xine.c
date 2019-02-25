@@ -916,27 +916,27 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
    * interpretes as 0, 0f or NULL safely.
    */
   stream->s.spu_decoder_plugin     = NULL;
-  stream->s.audio_decoder_plugin   = NULL;
-  stream->s.early_finish_event     = 0;
-  stream->s.delay_finish_event     = 0;
-  stream->s.gapless_switch         = 0;
-  stream->s.keep_ao_driver_open    = 0;
-  stream->s.video_channel          = 0;
-  stream->s.video_decoder_plugin   = NULL;
-  stream->s.header_count_audio     = 0;
-  stream->s.header_count_video     = 0;
-  stream->s.finished_count_audio   = 0;
-  stream->s.finished_count_video   = 0;
-  stream->s.err                    = 0;
-  stream->s.broadcaster            = NULL;
-  stream->s.index_array            = NULL;
+  stream->audio_decoder_plugin     = NULL;
+  stream->early_finish_event       = 0;
+  stream->delay_finish_event       = 0;
+  stream->gapless_switch           = 0;
+  stream->keep_ao_driver_open      = 0;
+  stream->video_channel            = 0;
+  stream->video_decoder_plugin     = NULL;
+  stream->header_count_audio       = 0;
+  stream->header_count_video       = 0;
+  stream->finished_count_audio     = 0;
+  stream->finished_count_video     = 0;
+  stream->err                      = 0;
+  stream->broadcaster              = NULL;
+  stream->index_array              = NULL;
   stream->s.slave                  = NULL;
-  stream->s.slave_is_subtitle      = 0;
+  stream->slave_is_subtitle        = 0;
   {
     int i;
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++) {
-      stream->s.stream_info_public[i] = stream->s.stream_info[i] = 0;
-      stream->s.meta_info_public[i]   = stream->s.meta_info[i]   = NULL;
+      stream->stream_info_public[i] = stream->stream_info[i] = 0;
+      stream->meta_info_public[i]   = stream->meta_info[i]   = NULL;
     }
   }
 #endif
