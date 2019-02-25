@@ -792,18 +792,21 @@ static void close_internal (xine_stream_private_t *stream) {
    */
   {
     int i;
-    pthread_mutex_lock (&stream->info_mutex);
+    xine_rwlock_wrlock (&stream->info_lock);
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++)
-      stream->stream_info_public[i] = stream->stream_info[i] = 0;
-    pthread_mutex_unlock (&stream->info_mutex);
-    pthread_mutex_lock (&stream->meta_mutex);
+      stream->stream_info[i] = 0;
+    xine_rwlock_unlock (&stream->info_lock);
+    xine_rwlock_wrlock (&stream->meta_lock);
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++) {
-      if (stream->meta_info_public[i])
-        free (stream->meta_info_public[i]), stream->meta_info_public[i] = NULL;
+      if (stream->meta_info_public[i]) {
+        if (stream->meta_info_public[i] != stream->meta_info[i])
+          free (stream->meta_info_public[i]);
+        stream->meta_info_public[i] = NULL;
+      }
       if (stream->meta_info[i])
         free (stream->meta_info[i]), stream->meta_info[i] = NULL;
     }
-    pthread_mutex_unlock (&stream->meta_mutex);
+    xine_rwlock_unlock (&stream->meta_lock);
   }
   stream->audio_track_map_entries = 0;
   stream->spu_track_map_entries = 0;
@@ -935,7 +938,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   {
     int i;
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++) {
-      stream->stream_info_public[i] = stream->stream_info[i] = 0;
+      stream->stream_info[i] = 0;
       stream->meta_info_public[i]   = stream->meta_info[i]   = NULL;
     }
   }
@@ -987,8 +990,8 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
     goto err_free;
 
   /* init mutexes and conditions */
-  pthread_mutex_init (&stream->info_mutex, NULL);
-  pthread_mutex_init (&stream->meta_mutex, NULL);
+  xine_rwlock_init_default (&stream->info_lock);
+  xine_rwlock_init_default (&stream->meta_lock);
   pthread_mutex_init (&stream->demux_lock, NULL);
   pthread_mutex_init (&stream->demux_action_lock, NULL);
   pthread_mutex_init (&stream->demux_mutex, NULL);
@@ -1065,8 +1068,8 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   pthread_mutex_destroy (&stream->demux_mutex);
   pthread_mutex_destroy (&stream->demux_action_lock);
   pthread_mutex_destroy (&stream->demux_lock);
-  pthread_mutex_destroy (&stream->meta_mutex);
-  pthread_mutex_destroy (&stream->info_mutex);
+  xine_rwlock_destroy   (&stream->meta_lock);
+  xine_rwlock_destroy   (&stream->info_lock);
   xine_list_delete      (stream->event_queues);
 
   err_free:
@@ -1909,8 +1912,8 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->demux_mutex);
   pthread_mutex_destroy (&stream->demux_action_lock);
   pthread_mutex_destroy (&stream->demux_lock);
-  pthread_mutex_destroy (&stream->meta_mutex);
-  pthread_mutex_destroy (&stream->info_mutex);
+  xine_rwlock_destroy   (&stream->meta_lock);
+  xine_rwlock_destroy   (&stream->info_lock);
 
   xine_list_delete(stream->event_queues);
 

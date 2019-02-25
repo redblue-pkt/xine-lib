@@ -40,32 +40,16 @@
 /* *******************  Stream Info  *************************** */
 
 /*
- * Compare stream_info, private and public values,
- * return 1 if it's identical, otherwirse 0.
- */
-static int stream_info_is_identical (xine_stream_private_t *stream, int info) {
-
-  if(stream->stream_info_public[info] == stream->stream_info[info])
-    return 1;
-
-  return 0;
-}
-
-/*
  * Check if 'info' is in bounds.
  */
-static int info_valid(int info) {
+static int info_valid (xine_stream_private_t *stream, int info) {
   if ((info >= 0) && (info < XINE_STREAM_INFO_MAX))
     return 1;
   else {
-    fprintf(stderr, "Error: invalid STREAM_INFO %d. Ignored.\n", info);
+    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+      "info_helper: invalid STREAM_INFO %d. Ignored.\n", info);
     return 0;
   }
-}
-
-static void stream_info_set_unlocked (xine_stream_private_t *stream, int info, int value) {
-  if(info_valid(info))
-    stream->stream_info[info] = value;
 }
 
 /*
@@ -73,20 +57,19 @@ static void stream_info_set_unlocked (xine_stream_private_t *stream, int info, i
  */
 void _x_stream_info_reset (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->info_mutex);
-  stream_info_set_unlocked(stream, info, 0);
-  pthread_mutex_unlock(&stream->info_mutex);
+  if (info_valid (stream, info)) {
+    xine_rwlock_wrlock (&stream->info_lock);
+    stream->stream_info[info] = 0;
+    xine_rwlock_unlock (&stream->info_lock);
+  }
 }
 
 /*
  * Reset public info value.
  */
 void _x_stream_info_public_reset (xine_stream_t *s, int info) {
-  xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->info_mutex);
-  if(info_valid(info))
-    stream->stream_info_public[info] = 0;
-  pthread_mutex_unlock(&stream->info_mutex);
+  (void)s;
+  (void)info;
 }
 
 /*
@@ -94,9 +77,11 @@ void _x_stream_info_public_reset (xine_stream_t *s, int info) {
  */
 void _x_stream_info_set (xine_stream_t *s, int info, int value) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->info_mutex);
-  stream_info_set_unlocked(stream, info, value);
-  pthread_mutex_unlock(&stream->info_mutex);
+  if (info_valid (stream, info)) {
+    xine_rwlock_wrlock (&stream->info_lock);
+    stream->stream_info[info] = value;
+    xine_rwlock_unlock (&stream->info_lock);
+  }
 }
 
 /*
@@ -104,12 +89,10 @@ void _x_stream_info_set (xine_stream_t *s, int info, int value) {
  */
 uint32_t _x_stream_info_get (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  uint32_t stream_info = 0;
-
-  pthread_mutex_lock(&stream->info_mutex);
+  uint32_t stream_info;
+  xine_rwlock_rdlock (&stream->info_lock);
   stream_info = stream->stream_info[info];
-  pthread_mutex_unlock(&stream->info_mutex);
-
+  xine_rwlock_unlock (&stream->info_lock);
   return stream_info;
 }
 
@@ -118,14 +101,10 @@ uint32_t _x_stream_info_get (xine_stream_t *s, int info) {
  */
 uint32_t _x_stream_info_get_public (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  uint32_t stream_info = 0;
-
-  pthread_mutex_lock(&stream->info_mutex);
-  stream_info = stream->stream_info_public[info];
-  if(info_valid(info) && (!stream_info_is_identical(stream, info)))
-    stream_info = stream->stream_info_public[info] = stream->stream_info[info];
-  pthread_mutex_unlock(&stream->info_mutex);
-
+  uint32_t stream_info;
+  xine_rwlock_rdlock (&stream->info_lock);
+  stream_info = stream->stream_info[info];
+  xine_rwlock_unlock (&stream->info_lock);
   return stream_info;
 }
 
@@ -150,27 +129,14 @@ static void meta_info_chomp(char *str) {
 }
 
 /*
- * Compare stream_info, public and private values,
- * return 1 if it's identical, otherwise 0.
- */
-static int meta_info_is_identical (xine_stream_private_t *stream, int info) {
-
-  if((!(stream->meta_info_public[info] && stream->meta_info[info])) ||
-     ((stream->meta_info_public[info] && stream->meta_info[info]) &&
-      strcmp(stream->meta_info_public[info], stream->meta_info[info])))
-    return 0;
-
-  return 1;
-}
-
-/*
  * Check if 'info' is in bounds.
  */
-static int meta_valid(int info) {
+static int meta_valid (xine_stream_private_t *stream, int info) {
   if ((info >= 0) && (info < XINE_STREAM_INFO_MAX))
     return 1;
   else {
-    fprintf(stderr, "Error: invalid META_INFO %d. Ignored.\n", info);
+    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+      "info_helper: invalid META_INFO %d. Ignored.\n", info);
     return 0;
   }
 }
@@ -178,41 +144,65 @@ static int meta_valid(int info) {
 /*
  * Set private meta info to utf-8 string value (can be NULL).
  */
-static void meta_info_set_unlocked_utf8 (xine_stream_private_t *stream, int info, const char *value) {
-  if(meta_valid(info)) {
-
-    free(stream->meta_info[info]);
-
-    stream->meta_info[info] = (value) ? strdup(value) : NULL;
-
-    if(stream->meta_info[info] && strlen(stream->meta_info[info]))
-      meta_info_chomp(stream->meta_info[info]);
+static void _meta_info_set_utf8 (xine_stream_private_t *stream, int info, const char *value) {
+  if (meta_valid (stream, info)) {
+    xine_rwlock_wrlock (&stream->meta_lock);
+    if  (( value && !stream->meta_info[info])
+      || ( value &&  stream->meta_info[info] && strcmp (value, stream->meta_info[info]))
+      || (!value &&  stream->meta_info[info])) {
+      if (stream->meta_info_public[info] != stream->meta_info[info])
+        free (stream->meta_info[info]);
+      stream->meta_info[info] = (value) ? strdup(value) : NULL;
+      if (stream->meta_info[info])
+        meta_info_chomp (stream->meta_info[info]);
+    }
+    xine_rwlock_unlock (&stream->meta_lock);
   }
 }
 
 #ifdef HAVE_ICONV
-static int meta_info_validate_utf8 (const char *value)
-{
-  iconv_t cd;
-  char *utf8_value;
-  ICONV_CONST char *inbuf;
-  char *outbuf;
-  size_t inbytesleft, outbytesleft;
-
-  if ((cd = iconv_open("UTF-8", "UTF-8")) == (iconv_t)-1) {
-    return 0;
+static int is_utf8 (const char *s) {
+  const uint8_t *p = (const uint8_t *)s;
+  while (1) {
+    if ((*p & 0x80) == 0x00) {
+      if (*p == 0x00)
+        break;
+      p += 1;
+    } else if ((*p & 0xe0) == 0xc0) {
+      if ((p[1] & 0xc0) != 0x80)
+        return -1;
+      p += 2;
+    } else if ((*p & 0xf0) == 0xe0) {
+      if  (((p[1] & 0xc0) != 0x80)
+        || ((p[2] & 0xc0) != 0x80))
+        return -1;
+      p += 3;
+    } else if ((*p & 0xf8) == 0xf0) {
+      if  (((p[1] & 0xc0) != 0x80)
+        || ((p[2] & 0xc0) != 0x80)
+        || ((p[3] & 0xc0) != 0x80))
+        return -1;
+      p += 4;
+    } else if ((*p & 0xfc) == 0xf8) {
+      if  (((p[1] & 0xc0) != 0x80)
+        || ((p[2] & 0xc0) != 0x80)
+        || ((p[3] & 0xc0) != 0x80)
+        || ((p[4] & 0xc0) != 0x80))
+        return -1;
+      p += 5;
+    } else if ((*p & 0xfe) == 0xfc) {
+      if  (((p[1] & 0xc0) != 0x80)
+        || ((p[2] & 0xc0) != 0x80)
+        || ((p[3] & 0xc0) != 0x80)
+        || ((p[4] & 0xc0) != 0x80)
+        || ((p[5] & 0xc0) != 0x80))
+        return -1;
+      p += 6;
+    } else {
+      return -1;
+    }
   }
-
-  inbuf = (ICONV_CONST char *)value;
-  inbytesleft = strlen(value);
-  outbytesleft = 4 * inbytesleft; /* estimative (max) */
-  outbuf = utf8_value = malloc(outbytesleft+1);
-
-  iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
-  free(utf8_value);
-  iconv_close(cd);
-
-  return (inbytesleft == 0);
+  return p - (const uint8_t *)s;
 }
 #endif
 
@@ -220,76 +210,74 @@ static int meta_info_validate_utf8 (const char *value)
  * Set private meta info to value (can be NULL) with a given encoding.
  * if encoding is NULL assume locale.
  */
-static void meta_info_set_unlocked_encoding (xine_stream_private_t *stream, int info, const char *value, const char *enc) {
-#ifdef HAVE_ICONV
-  iconv_t cd;
-  char *system_enc = NULL;
+static void _meta_info_set_encoding (xine_stream_private_t *stream, int info, const char *value, const char *enc) {
+  const char *buf_set = value;
+  char *buf_free = NULL;
 
-  if (value) {
+#ifdef HAVE_ICONV
+  char *system_enc = NULL;
+  iconv_t cd = (iconv_t)-1;
+
+  do {
+    if (!value)
+      break;
+
     if (enc == NULL) {
       if ((enc = system_enc = xine_get_system_encoding()) == NULL) {
         xprintf (stream->s.xine, XINE_VERBOSITY_LOG,
           _("info_helper: can't find out current locale character set\n"));
+        break;
       }
     }
 
-    if (enc && strcmp(enc, "UTF-8")) {
+    if (strcmp (enc, "UTF-8")) {
       /* Don't bother converting if it's already in UTF-8, but the encoding
        * is badly reported */
-      if (meta_info_validate_utf8(value)) {
-        meta_info_set_unlocked_utf8(stream, info, value);
-        free(system_enc);
-	return;
-      }
-      cd = iconv_open("UTF-8", enc);
-      if (cd == (iconv_t)-1)
-        xprintf (stream->s.xine, XINE_VERBOSITY_LOG,
-          _("info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"), enc);
-
-      if (cd != (iconv_t)-1) {
-        char *utf8_value;
-        ICONV_CONST char *inbuf;
-        char *outbuf;
-        size_t inbytesleft, outbytesleft;
-
-        inbuf = (ICONV_CONST char *)value;
-        if (!strncmp (enc, "UTF-16", 6) || !strncmp (enc, "UCS-2", 5))
-        {
-          /* strlen() won't work with UTF-16* or UCS-2* */
-          inbytesleft = 0;
-          while (value[inbytesleft] || value[inbytesleft + 1])
-            inbytesleft += 2;
-        } /* ... do we need to handle UCS-4? Probably not. */
-        else
-          inbytesleft = strlen(value);
-        outbytesleft = 4 * inbytesleft; /* estimative (max) */
-        outbuf = utf8_value = malloc(outbytesleft+1);
-
-        iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft );
-        *outbuf = '\0';
-
-        meta_info_set_unlocked_utf8(stream, info, utf8_value);
-
-        free(utf8_value);
-        iconv_close(cd);
-        free(system_enc);
-        return;
-      }
+      if (is_utf8 (value) >= 0)
+        break;
     }
 
-    free(system_enc);
-  }
+    cd = iconv_open ("UTF-8", enc);
+    if (cd == (iconv_t)-1) {
+      xprintf (stream->s.xine, XINE_VERBOSITY_LOG,
+        _("info_helper: unsupported conversion %s -> UTF-8, no conversion performed\n"), enc);
+      break;
+    }
+
+    {
+      ICONV_CONST char *inbuf;
+      char *outbuf;
+      size_t inbytesleft, outbytesleft;
+
+      if (!strncmp (enc, "UTF-16", 6) || !strncmp (enc, "UCS-2", 5)) {
+        /* strlen() won't work with UTF-16* or UCS-2* */
+        inbytesleft = 0;
+        while (value[inbytesleft] || value[inbytesleft + 1])
+          inbytesleft += 2;
+      } /* ... do we need to handle UCS-4? Probably not. */
+      else
+        inbytesleft = strlen(value);
+      outbytesleft = 4 * inbytesleft; /* estimative (max) */
+      buf_free = malloc (outbytesleft + 1);
+      if (!buf_free)
+        break;
+
+      inbuf = (ICONV_CONST char *)value;
+      outbuf = buf_free;
+      if (iconv (cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft) != (size_t)-1) {
+        *outbuf = '\0';
+        buf_set = buf_free;
+      }
+    }
+  } while (0);
+
+  if (cd != (iconv_t)-1)
+    iconv_close (cd);
+  free (system_enc);
 #endif
 
-  meta_info_set_unlocked_utf8(stream, info, value);
-}
-
-/*
- * Set private meta info to value (can be NULL)
- * value string must be provided with current locale encoding.
- */
-static void meta_info_set_unlocked (xine_stream_private_t *stream, int info, const char *value) {
-  meta_info_set_unlocked_encoding(stream, info, value, NULL);
+  _meta_info_set_utf8 (stream, info, buf_set);
+  free (buf_free);
 }
 
 /*
@@ -297,24 +285,20 @@ static void meta_info_set_unlocked (xine_stream_private_t *stream, int info, con
  */
 void _x_meta_info_reset (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->meta_mutex);
-  meta_info_set_unlocked_utf8(stream, info, NULL);
-  pthread_mutex_unlock(&stream->meta_mutex);
+  _meta_info_set_utf8 (stream, info, NULL);
 }
 
 /*
  * Reset (nullify) public info value.
  */
-static void meta_info_public_reset_unlocked (xine_stream_private_t *stream, int info) {
-  if (meta_valid(info)) {
-    _x_freep(&stream->meta_info_public[info]);
-  }
-}
 void _x_meta_info_public_reset (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->meta_mutex);
-  meta_info_public_reset_unlocked(stream, info);
-  pthread_mutex_unlock(&stream->meta_mutex);
+  if (meta_valid (stream, info)) {
+    xine_rwlock_wrlock (&stream->meta_lock);
+    if (stream->meta_info_public[info] != stream->meta_info[info])
+      _x_freep (&stream->meta_info[info]);
+    xine_rwlock_unlock (&stream->meta_lock);
+  }
 }
 
 /*
@@ -322,10 +306,8 @@ void _x_meta_info_public_reset (xine_stream_t *s, int info) {
  */
 void _x_meta_info_set (xine_stream_t *s, int info, const char *str) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->meta_mutex);
-  if(str)
-    meta_info_set_unlocked(stream, info, str);
-  pthread_mutex_unlock(&stream->meta_mutex);
+  if (str)
+    _meta_info_set_encoding (stream, info, str, NULL);
 }
 
 /*
@@ -333,10 +315,8 @@ void _x_meta_info_set (xine_stream_t *s, int info, const char *str) {
  */
 void _x_meta_info_set_generic (xine_stream_t *s, int info, const char *str, const char *enc) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->meta_mutex);
-  if(str)
-    meta_info_set_unlocked_encoding(stream, info, str, enc);
-  pthread_mutex_unlock(&stream->meta_mutex);
+  if (str)
+    _meta_info_set_encoding (stream, info, str, enc);
 }
 
 /*
@@ -344,10 +324,8 @@ void _x_meta_info_set_generic (xine_stream_t *s, int info, const char *str, cons
  */
 void _x_meta_info_set_utf8 (xine_stream_t *s, int info, const char *str) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->meta_mutex);
-  if(str)
-    meta_info_set_unlocked_utf8(stream, info, str);
-  pthread_mutex_unlock(&stream->meta_mutex);
+  if (str)
+    _meta_info_set_utf8 (stream, info, str);
 }
 
 /*
@@ -355,14 +333,11 @@ void _x_meta_info_set_utf8 (xine_stream_t *s, int info, const char *str) {
  */
 void _x_meta_info_n_set (xine_stream_t *s, int info, const char *buf, int len) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->meta_mutex);
-  if(meta_valid(info) && len) {
-    char *str = strndup(buf, len);
-
-    meta_info_set_unlocked(stream, info, str);
+  if (meta_valid (stream, info) && len) {
+    char *str = strndup (buf, len);
+    _meta_info_set_encoding (stream, info, str, NULL);
     free(str);
   }
-  pthread_mutex_unlock(&stream->meta_mutex);
 }
 
 /*
@@ -371,8 +346,7 @@ void _x_meta_info_n_set (xine_stream_t *s, int info, const char *buf, int len) {
 void _x_meta_info_set_multi (xine_stream_t *s, int info, ...) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
-  pthread_mutex_lock(&stream->meta_mutex);
-  if(meta_valid(info)) {
+  if (meta_valid (stream, info)) {
     va_list   ap;
     char     *args[1025];
     char     *buf;
@@ -404,15 +378,15 @@ void _x_meta_info_set_multi (xine_stream_t *s, int info, ...) {
 
       *meta = '\0';
 
-      free(stream->meta_info[info]);
+      xine_rwlock_wrlock (&stream->meta_lock);
+      if (stream->meta_info_public[info] != stream->meta_info[info])
+        free (stream->meta_info[info]);
       stream->meta_info[info] = p;
-
-      if(stream->meta_info[info] && strlen(stream->meta_info[info]))
-	  meta_info_chomp(stream->meta_info[info]);
+      if (p)
+        meta_info_chomp (p);
+      xine_rwlock_unlock (&stream->meta_lock);
     }
-
   }
-  pthread_mutex_unlock(&stream->meta_mutex);
 }
 
 /*
@@ -420,12 +394,10 @@ void _x_meta_info_set_multi (xine_stream_t *s, int info, ...) {
  */
 const char *_x_meta_info_get (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  const char *meta_info = NULL;
-
-  pthread_mutex_lock(&stream->meta_mutex);
+  const char *meta_info;
+  xine_rwlock_rdlock (&stream->meta_lock);
   meta_info = stream->meta_info[info];
-  pthread_mutex_unlock(&stream->meta_mutex);
-
+  xine_rwlock_unlock (&stream->meta_lock);
   return meta_info;
 }
 
@@ -434,19 +406,18 @@ const char *_x_meta_info_get (xine_stream_t *s, int info) {
  */
 const char *_x_meta_info_get_public (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  const char *meta_info = NULL;
-
-  pthread_mutex_lock(&stream->meta_mutex);
-  meta_info = stream->meta_info_public[info];
-  if(meta_valid(info) && (!meta_info_is_identical(stream, info))) {
-    meta_info_public_reset_unlocked(stream, info);
-
-    if(stream->meta_info[info])
-      stream->meta_info_public[info] = strdup(stream->meta_info[info]);
-
-    meta_info = stream->meta_info_public[info];
+  char *pub_meta_info = NULL;
+  if (meta_valid (stream, info)) {
+    xine_rwlock_rdlock (&stream->meta_lock);
+    pub_meta_info = stream->meta_info_public[info];
+    if (pub_meta_info != stream->meta_info[info]) {
+      xine_rwlock_unlock (&stream->meta_lock);
+      xine_rwlock_wrlock (&stream->meta_lock);
+      free (pub_meta_info);
+      stream->meta_info_public[info] = pub_meta_info = stream->meta_info[info];
+    }
+    xine_rwlock_unlock (&stream->meta_lock);
   }
-  pthread_mutex_unlock(&stream->meta_mutex);
-
-  return meta_info;
+  return pub_meta_info;
 }
+
