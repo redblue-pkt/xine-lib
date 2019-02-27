@@ -438,10 +438,21 @@ typedef struct {
   int                        index_size, index_used, index_lastadd;
   pthread_mutex_t            index_mutex;
 
+  /* generic bitrate estimation, private to decoder threads. */
+  int64_t                    audio_br_lasttime;
+  uint32_t                   audio_br_time;
+  uint32_t                   audio_br_bytes;
+  int                        audio_br_num;
+  int                        audio_br_value;
+  int64_t                    video_br_lasttime;
+  uint32_t                   video_br_time;
+  uint32_t                   video_br_bytes;
+  int                        video_br_num;
+  int                        video_br_value;
+
   extra_info_t               ei[3];
 } xine_stream_private_t;
 
 EXTERN_C_STOP
 
 #endif
-
