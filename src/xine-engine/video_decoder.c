@@ -49,6 +49,46 @@
 #endif
 
 
+static void video_br_reset (xine_stream_private_t *stream) {
+  stream->video_br_lasttime = 0;
+  stream->video_br_time     = 1; /* No / 0 please. */
+  stream->video_br_bytes    = 0;
+  stream->video_br_num      = 20;
+  stream->video_br_value    = 0;
+}
+  
+static void video_br_add (xine_stream_private_t *stream, buf_element_t *buf) {
+  stream->video_br_bytes += buf->size;
+  if (buf->pts) {
+    int64_t d = buf->pts - stream->video_br_lasttime;
+    if (d > 0) {
+      if (d < 220000) {
+        stream->video_br_time += d;
+        if (--stream->video_br_num < 0) {
+          int br, bdiff;
+          stream->video_br_num = 20;
+          if ((stream->video_br_bytes | stream->video_br_time) & 0x80000000) {
+            stream->video_br_bytes >>= 1;
+            stream->video_br_time  >>= 1;
+          }
+          br = (uint64_t)stream->video_br_bytes * 90000 * 8 / stream->video_br_time;
+          bdiff = br - stream->video_br_value;
+          if (bdiff < 0)
+            bdiff = -bdiff;
+          if (bdiff > (br >> 6)) {
+            stream->video_br_value = br;
+            _x_stream_info_set (&stream->s, XINE_STREAM_INFO_VIDEO_BITRATE, br);
+          }
+        }
+      }
+      stream->video_br_lasttime = buf->pts;
+    } else {
+      if (d <= -220000)
+        stream->video_br_lasttime = buf->pts;
+    }
+  }
+}
+
 static void update_spu_decoder (xine_stream_t *stream, int type) {
 
   int streamtype = (type>>16) & 0xFF;
@@ -423,11 +463,14 @@ static void *video_decoder_loop (void *stream_gen) {
           stream->video_decoder_streamtype = streamtype;
           stream->video_decoder_plugin = _x_get_video_decoder (&stream->s, streamtype);
 
+          video_br_reset (stream);
           _x_stream_info_set (&stream->s, XINE_STREAM_INFO_VIDEO_HANDLED, (stream->video_decoder_plugin != NULL));
         }
 
         if (stream->video_decoder_plugin)
           stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);
+
+        video_br_add (stream, buf);
 
         if (buf->type != buftype_unknown &&
             !_x_stream_info_get (&stream->s, XINE_STREAM_INFO_VIDEO_HANDLED)) {

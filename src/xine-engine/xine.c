@@ -935,6 +935,16 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->index_array              = NULL;
   stream->s.slave                  = NULL;
   stream->slave_is_subtitle        = 0;
+  stream->audio_br_time            = 0;
+  stream->audio_br_lasttime        = 0;
+  stream->audio_br_bytes           = 0;
+  stream->audio_br_num             = 0;
+  stream->audio_br_value           = 0;
+  stream->video_br_time            = 0;
+  stream->video_br_lasttime        = 0;
+  stream->video_br_bytes           = 0;
+  stream->video_br_num             = 0;
+  stream->video_br_value           = 0;
   {
     int i;
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++) {
