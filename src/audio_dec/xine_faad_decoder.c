@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -96,9 +96,6 @@ typedef struct faad_decoder_s {
 
   /* 1 (OK), 0 (closed), < 0 (# failed attempts) */
   int              output_open;
-
-  unsigned long    total_time;
-  unsigned long    total_data;
 
   int              in_channels, out_channels, out_used;
   int              in_mode, out_mode, out_flags;
@@ -581,19 +578,6 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         faad_meta_info_set( this );
       }
 
-      /* estimate bitrate */
-      this->total_time += (1000*this->faac_finfo.samples/(this->rate*this->num_channels));
-      this->total_data += 8*used;
-
-      if ((this->total_time > LONG_MAX) || (this->total_data > LONG_MAX)) {
-        this->total_time >>= 2;
-        this->total_data >>= 2;
-      }
-
-      if (this->total_time)
-        _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE,
-                           1000*(this->total_data/this->total_time));
-
       decoded = this->faac_finfo.samples / this->num_channels;
 
       lprintf("decoded %d/%d output %ld\n",
@@ -1013,8 +997,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->max_audio_src_size = 0;
   this->dec_config         = NULL;
   this->dec_config_size    = 0;
-  this->total_time         = 0;
-  this->total_data         = 0;
   this->rate               = 0;
 
   this->class  = (faad_class_t *)class_gen;
