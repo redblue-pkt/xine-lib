@@ -43,47 +43,6 @@
 #include <xine/xineutils.h>
 #include "xine_private.h"
 
-static void audio_br_reset (xine_stream_private_t *stream) {
-  stream->audio_br_lasttime = 0;
-  stream->audio_br_time     = 1; /* No / 0 please. */
-  stream->audio_br_bytes    = 0;
-  stream->audio_br_num      = 20;
-  stream->audio_br_value    = 0;
-}
-  
-static void audio_br_add (xine_stream_private_t *stream, buf_element_t *buf) {
-  stream->audio_br_bytes += buf->size;
-  if (buf->pts) {
-    int64_t d = buf->pts - stream->audio_br_lasttime;
-    if (d > 0) {
-      if (d < 220000) {
-        stream->audio_br_time += d;
-        if (--stream->audio_br_num < 0) {
-          int br, bdiff;
-          stream->audio_br_num = 20;
-          if ((stream->audio_br_bytes | stream->audio_br_time) & 0x80000000) {
-            stream->audio_br_bytes >>= 1;
-            stream->audio_br_time  >>= 1;
-          }
-          br = (uint64_t)stream->audio_br_bytes * 90000 * 8 / stream->audio_br_time;
-          bdiff = br - stream->audio_br_value;
-          if (bdiff < 0)
-            bdiff = -bdiff;
-          if (bdiff > (br >> 6)) {
-            stream->audio_br_value = br;
-            _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_BITRATE, br);
-          }
-        }
-      }
-      stream->audio_br_lasttime = buf->pts;
-    } else {
-      /* Do we really need to care for reordered audio? So what. */
-      if (d <= -220000)
-        stream->audio_br_lasttime = buf->pts;
-    }
-  }
-}
-
 static void *audio_decoder_loop (void *stream_gen) {
 
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
@@ -96,6 +55,13 @@ static void *audio_decoder_loop (void *stream_gen) {
   int              prof_audio_decode = -1;
   uint32_t         buftype_unknown = 0;
   int              audio_channel_user = stream->audio_channel_user;
+  /* generic bitrate estimation. */
+  int64_t          audio_br_lasttime = 0;
+  uint32_t         audio_br_lastsize = 0;
+  uint32_t         audio_br_time     = 1;
+  uint32_t         audio_br_bytes    = 0;
+  int              audio_br_num      = 20;
+  int              audio_br_value    = 0;
 
   if (prof_audio_decode == -1)
     prof_audio_decode = xine_profiler_allocate_slot ("audio decoder/output");
@@ -260,6 +226,11 @@ static void *audio_decoder_loop (void *stream_gen) {
         stream->s.metronom->handle_audio_discontinuity (stream->s.metronom, DISC_ABSOLUTE, buf->disc_off);
       }
       running_ticket->acquire (running_ticket, 0);
+
+      /* audio_br_discontinuity */
+      audio_br_lasttime = 0;
+      audio_br_lastsize = 0;
+
       break;
 
     case BUF_CONTROL_AUDIO_CHANNEL:
@@ -391,7 +362,13 @@ static void *audio_decoder_loop (void *stream_gen) {
               _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED, 
 				 (stream->audio_decoder_plugin != NULL));
 
-              audio_br_reset (stream);
+              /* audio_br_reset */
+              audio_br_lasttime = 0;
+              audio_br_lastsize = 0;
+              audio_br_time     = 1; /* No / 0 please. */
+              audio_br_bytes    = 0;
+              audio_br_num      = 20;
+              audio_br_value    = 0;
             }
 
 	    if (audio_type != stream->audio_type) {
@@ -412,7 +389,39 @@ static void *audio_decoder_loop (void *stream_gen) {
 	    if (stream->audio_decoder_plugin)
 	      stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
 
-            audio_br_add (stream, buf);
+            /* audio_br_add */
+            if (buf->pts) {
+              int64_t d = buf->pts - audio_br_lasttime;
+              if (d > 0) {
+                if (d < 220000) {
+                  audio_br_time += d;
+                  audio_br_bytes += audio_br_lastsize;
+                  audio_br_lastsize = 0;
+                  if (--audio_br_num < 0) {
+                    int br, bdiff;
+                    audio_br_num = 20;
+                    if ((audio_br_bytes | audio_br_time) & 0x80000000) {
+                      audio_br_bytes >>= 1;
+                      audio_br_time  >>= 1;
+                    }
+                    br = (uint64_t)audio_br_bytes * 90000 * 8 / audio_br_time;
+                    bdiff = br - audio_br_value;
+                    if (bdiff < 0)
+                      bdiff = -bdiff;
+                    if (bdiff > (br >> 6)) {
+                      audio_br_value = br;
+                      _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_BITRATE, br);
+                    }
+                  }
+                }
+                audio_br_lasttime = buf->pts;
+              } else {
+                /* Do we really need to care for reordered audio? So what. */
+                if (d <= -220000)
+                  audio_br_lasttime = buf->pts;
+              }
+            }
+            audio_br_lastsize += buf->size;
 
 	    if (buf->type != buftype_unknown &&
               !_x_stream_info_get (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED)) {
@@ -604,3 +613,5 @@ int _x_get_audio_channel (xine_stream_t *s) {
 
   return stream->audio_type & 0xFFFF;
 }
+
+
