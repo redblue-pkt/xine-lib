@@ -327,15 +327,6 @@ typedef struct {
   uint32_t                   ignore_speed_change:1;  /*< speed changes during stop can be disastrous */
   uint32_t                   video_thread_created:1;
   uint32_t                   audio_thread_created:1;
-  /* 3: wait for first frame to decode (stream start).
-   * 2: wait for first frame to display (stream seek).
-   * 1: after 2, first frame is decoded but not yet displayed.
-   * 0: waiting done.
-   */
-  uint32_t                   first_frame_flag:2;
-  uint32_t                   demux_action_pending:1;
-  uint32_t                   demux_thread_created:1;
-  uint32_t                   demux_thread_running:1;
   uint32_t                   slave_is_subtitle:1;    /*< ... and will be automaticaly disposed */
   uint32_t                   emergency_brake:1;      /*< something went really wrong and this stream must be
                                                       *  stopped. usually due some fatal error on output
@@ -355,7 +346,6 @@ typedef struct {
   int                        video_decoder_streamtype;
   int                        video_channel;
 
-  uint32_t                   audio_track_map[50];
   int                        audio_track_map_entries;
 
   int                        audio_decoder_streamtype;
@@ -373,7 +363,6 @@ typedef struct {
 
 /*  spu_decoder_t             *spu_decoder_plugin; */
 /*  int                        spu_decoder_streamtype; */
-  uint32_t                   spu_track_map[50];
   int                        spu_track_map_entries;
 /*  int                        spu_channel_user; */
 /*  int                        spu_channel_auto; */
@@ -397,6 +386,12 @@ typedef struct {
   /* seeking slowdown */
   pthread_mutex_t            first_frame_lock;
   pthread_cond_t             first_frame_reached;
+  /* 3: wait for first frame to decode (stream start).
+   * 2: wait for first frame to display (stream seek).
+   * 1: after 2, first frame is decoded but not yet displayed.
+   * 0: waiting done.
+   */
+  uint32_t                   first_frame_flag:2;
 
   /* wait for headers sent / stream decoding finished */
   pthread_mutex_t            counter_lock;
@@ -416,6 +411,9 @@ typedef struct {
   pthread_mutex_t            demux_action_lock;
   pthread_cond_t             demux_resume;
   pthread_mutex_t            demux_mutex; /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
+  uint32_t                   demux_action_pending:1;
+  uint32_t                   demux_thread_created:1;
+  uint32_t                   demux_thread_running:1;
 
   extra_info_t              *current_extra_info;
   pthread_mutex_t            current_extra_info_lock;
@@ -435,8 +433,10 @@ typedef struct {
   refcounter_t              *refcounter;
 
   xine_keyframes_entry_t    *index_array;
-  int                        index_size, index_used, index_lastadd;
   pthread_mutex_t            index_mutex;
+  int                        index_size, index_used, index_lastadd;
+
+  uint32_t                   disable_decoder_flush_at_discontinuity;
 
   extra_info_t               ei[3];
 } xine_stream_private_t;
