@@ -178,6 +178,8 @@ typedef struct {
   int                       warn_discarded_threshold;
   int                       warn_threshold_exceeded;
 
+  int                       disable_decoder_flush_from_video_out;
+
   /* pts value when decoder delivered last video frame */
   int64_t                   last_delivery_pts;
 
@@ -2134,14 +2136,13 @@ static void paused_loop( vos_t *this, int64_t vpts )
   vo_queue_read_unlock (&this->free_img_buf_queue);
 }
 
-static void video_out_update_disable_flush_from_video_out(void *disable_decoder_flush_from_video_out, xine_cfg_entry_t *entry)
-{
-  *(int *)disable_decoder_flush_from_video_out = entry->num_value;
+static void video_out_update_disable_flush_from_video_out(void *this_gen, xine_cfg_entry_t *entry) {
+  vos_t *this = (vos_t *)this_gen;
+  this->disable_decoder_flush_from_video_out = entry->num_value;
 }
 
 static void *video_out_loop (void *this_gen) {
   vos_t *this = (vos_t *) this_gen;
-  int    disable_decoder_flush_from_video_out;
 
 #ifndef WIN32
   errno = 0;
@@ -2149,15 +2150,16 @@ static void *video_out_loop (void *this_gen) {
     xine_log(this->xine, XINE_LOG_MSG, "video_out: can't raise nice priority by 2: %s\n", strerror(errno));
 #endif /* WIN32 */
 
-  disable_decoder_flush_from_video_out = this->xine->config->register_bool(this->xine->config, "engine.decoder.disable_flush_from_video_out", 0,
-      _("disable decoder flush from video out"),
-      _("video out causes a decoder flush when video out runs out of frames for displaying,\n"
-        "because the decoder hasn't deliverd new frames for quite a while.\n"
-        "flushing the decoder causes decoding errors for images decoded after the flush.\n"
-        "to avoid the decoding errors, decoder flush at video out should be disabled.\n\n"
-        "WARNING: as the flush was introduced to fix some issues when playing DVD still images, it is\n"
-        "likely that these issues may reappear in case they haven't been fixed differently meanwhile.\n"),
-        20, video_out_update_disable_flush_from_video_out, &disable_decoder_flush_from_video_out);
+  this->disable_decoder_flush_from_video_out = this->xine->config->register_bool (this->xine->config,
+    "engine.decoder.disable_flush_from_video_out", 0,
+    _("disable decoder flush from video out"),
+    _("video out causes a decoder flush when video out runs out of frames for displaying,\n"
+      "because the decoder hasn't deliverd new frames for quite a while.\n"
+      "flushing the decoder causes decoding errors for images decoded after the flush.\n"
+      "to avoid the decoding errors, decoder flush at video out should be disabled.\n\n"
+      "WARNING: as the flush was introduced to fix some issues when playing DVD still images, it is\n"
+      "likely that these issues may reappear in case they haven't been fixed differently meanwhile.\n"),
+    20, video_out_update_disable_flush_from_video_out, this);
 
   /*
    * here it is - the heart of xine (or rather: one of the hearts
@@ -2211,7 +2213,7 @@ static void *video_out_loop (void *this_gen) {
 
     if ((vpts - this->last_delivery_pts > 30000) &&
         !this->display_img_buf_queue.first && !this->ready_first) {
-      if (this->last_delivery_pts && !disable_decoder_flush_from_video_out) {
+      if (this->last_delivery_pts && !this->disable_decoder_flush_from_video_out) {
         xine_stream_private_t **s;
         xine_rwlock_rdlock (&this->streams_lock);
         for (s = this->streams; *s; s++) {
@@ -2337,7 +2339,7 @@ static void *video_out_loop (void *this_gen) {
   }
   pthread_mutex_unlock(&this->grab_lock);
 
-  this->xine->config->unregister_callback(this->xine->config, "engine.decoder.disable_flush_from_video_out");
+  this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
 
   return NULL;
 }
@@ -3114,4 +3116,3 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
 
   return &this->vo;
 }
-
