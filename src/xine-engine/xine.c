@@ -900,6 +900,11 @@ static int stream_rewire_video(xine_post_out_t *output, void *data)
   return 1;
 }
 
+static void video_decoder_update_disable_flush_at_discontinuity (void *s, xine_cfg_entry_t *entry) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream->disable_decoder_flush_at_discontinuity = !!entry->num_value;
+}
+
 static void xine_dispose_internal (xine_stream_private_t *stream);
 
 xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_port_t *vo) {
@@ -1014,6 +1019,17 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   pthread_mutexattr_destroy(&attr);
 
   pthread_mutex_lock (&this->streams_lock);
+
+  /* some user config */
+  stream->disable_decoder_flush_at_discontinuity = this->config->register_bool (this->config,
+    "engine.decoder.disable_flush_at_discontinuity", 0,
+    _("disable decoder flush at discontinuity"),
+    _("when watching live tv a discontinuity happens for example about every 26.5 hours due to a pts wrap.\n"
+      "flushing the decoder at that time causes decoding errors for images after the pts wrap.\n"
+      "to avoid the decoding errors, decoder flush at discontinuity should be disabled.\n\n"
+      "WARNING: as the flush was introduced to fix some issues when playing DVD still images, it is\n"
+      "likely that these issues may reappear in case they haven't been fixed differently meanwhile.\n"),
+    20, video_decoder_update_disable_flush_at_discontinuity, stream);
 
   /* create a metronom */
   stream->s.metronom = _x_metronom_init ( (vo != NULL), (ao != NULL), this);
@@ -1890,6 +1906,8 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
   xine_list_iterator_t *ite;
 
   lprintf("stream: %p\n", (void*)stream);
+
+  xine->config->unregister_callbacks (xine->config, NULL, NULL, stream, sizeof (*stream));
 
   pthread_mutex_lock (&xine->streams_lock);
   ite = xine_list_find (xine->streams, stream);

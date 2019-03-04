@@ -47,14 +47,13 @@ static void *audio_decoder_loop (void *stream_gen) {
 
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
   buf_element_t   *buf = NULL;
-  buf_element_t   *first_header = NULL;
-  buf_element_t   *last_header = NULL;
-  int              replaying_headers = 0;
+  buf_element_t   *headers_first = NULL, **headers_add = &headers_first, *headers_replay = NULL;
   xine_ticket_t   *running_ticket = stream->s.xine->port_ticket;
   int              running = 1;
   int              prof_audio_decode = -1;
   uint32_t         buftype_unknown = 0;
   int              audio_channel_user = stream->audio_channel_user;
+  int              headers_num = 0;
   /* generic bitrate estimation. */
   int64_t          audio_br_lasttime = 0;
   uint32_t         audio_br_lastsize = 0;
@@ -62,9 +61,20 @@ static void *audio_decoder_loop (void *stream_gen) {
   uint32_t         audio_br_bytes    = 0;
   int              audio_br_num      = 20;
   int              audio_br_value    = 0;
+  /* list of seen audio channels, sorted by number.
+   * audio_track_map[foo] & 0xff000000 is always BUF_AUDIO_BASE,
+   * and bit 31 may serve as an end marker. */
+#define AUDIO_TRACK_MAP_MAX 50
+#define AUDIO_TRACK_MAP_MASK 0x8000ffff
+#define AUDIO_TRACK_MAP_END 0x80000000
+  uint32_t         audio_track_map[AUDIO_TRACK_MAP_MAX + 1];
+#define BUFTYPE_BASE(type) ((type) >> 24)
+#define BUFTYPE_SUB(type)  (((type) & 0x00ff0000) >> 16)
 
   if (prof_audio_decode == -1)
     prof_audio_decode = xine_profiler_allocate_slot ("audio decoder/output");
+
+  audio_track_map[0] = AUDIO_TRACK_MAP_END;
 
   running_ticket->acquire (running_ticket, 0);
 
@@ -72,7 +82,8 @@ static void *audio_decoder_loop (void *stream_gen) {
 
     lprintf ("audio_loop: waiting for package...\n");
 
-    if( !replaying_headers )
+    buf = headers_replay;
+    if (!buf)
       buf = stream->s.audio_fifo->tget (stream->s.audio_fifo, running_ticket);
 
     lprintf ("audio_loop: got package pts = %"PRId64", type = %08x\n", buf->pts, buf->type);
@@ -80,380 +91,325 @@ static void *audio_decoder_loop (void *stream_gen) {
     _x_extra_info_merge( stream->audio_decoder_extra_info, buf->extra_info );
     stream->audio_decoder_extra_info->seek_count = stream->video_seek_count;
 
-    switch (buf->type) {
+    switch (BUFTYPE_BASE (buf->type)) {
 
-    case BUF_CONTROL_HEADERS_DONE:
-      pthread_mutex_lock (&stream->counter_lock);
-      stream->header_count_audio++;
-      pthread_cond_broadcast (&stream->counter_changed);
-      pthread_mutex_unlock (&stream->counter_lock);
-      break;
+      case BUFTYPE_BASE (BUF_AUDIO_BASE):
 
-    case BUF_CONTROL_START:
-
-      lprintf ("start\n");
-
-      /* decoder dispose might call port functions */
-      /* running_ticket->acquire(running_ticket, 0); */
-
-      if (stream->audio_decoder_plugin) {
-
-	lprintf ("close old decoder\n");
-
-	stream->keep_ao_driver_open = !!(buf->decoder_flags & BUF_FLAG_GAPLESS_SW);
-	_x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
-	stream->audio_decoder_plugin = NULL;
-	stream->audio_track_map_entries = 0;
-	stream->audio_type = 0;
-	stream->keep_ao_driver_open = 0;
-      }
-
-      /* running_ticket->release(running_ticket, 0); */
-
-      if (!(buf->decoder_flags & BUF_FLAG_GAPLESS_SW)) {
-        running_ticket->release (running_ticket, 0);
-        stream->s.metronom->handle_audio_discontinuity (stream->s.metronom, DISC_STREAMSTART, 0);
-        running_ticket->acquire (running_ticket, 0);
-      }
-      buftype_unknown = 0;
-      break;
-
-    case BUF_CONTROL_END:
-
-      /* free all held header buffers, see comments below */
-      _x_free_buf_elements( first_header );
-      first_header = last_header = NULL;
-
-      /*
-       * wait the output fifos to run dry before sending the notification event
-       * to the frontend. this test is only valid if there is only a single
-       * stream attached to the current output port.
-       */
-      while(1) {
-        int num_bufs, num_streams;
-
-        /* running_ticket->acquire(running_ticket, 0); */
-        num_bufs = stream->s.audio_out->get_property (stream->s.audio_out, AO_PROP_BUFS_IN_FIFO);
-        num_streams = stream->s.audio_out->get_property (stream->s.audio_out, AO_PROP_NUM_STREAMS);
-        /* running_ticket->release(running_ticket, 0); */
-
-        if( num_bufs > 0 && num_streams == 1 && !stream->early_finish_event) {
-          running_ticket->release (running_ticket, 0);
-          xine_usec_sleep (10000);
-          running_ticket->acquire (running_ticket, 0);
-        } else
+        if ((buf->type & 0xffff0000) == BUF_AUDIO_UNKNOWN)
           break;
-      }
+        if (_x_stream_info_get (&stream->s, XINE_STREAM_INFO_IGNORE_AUDIO))
+          break;
+        xine_profiler_start_count (prof_audio_decode);
 
-      running_ticket->release (running_ticket, 0);
+        /* running_ticket->acquire (running_ticket, 0); */
 
-      /* wait for video to reach this marker, if necessary */
-      pthread_mutex_lock (&stream->counter_lock);
+        {
+          uint32_t audio_type = 0;
+          int      i;
+          uint32_t chan;
+          /* printf ("audio_decoder: buf_type=%08x auto=%08x user=%08x\n",
+               buf->type, stream->audio_channel_auto, audio_channel_user); */
 
-      stream->finished_count_audio++;
-
-      lprintf ("reached end marker # %d\n", stream->finished_count_audio);
-
-      pthread_cond_broadcast (&stream->counter_changed);
-
-      if (stream->video_thread_created) {
-        while (stream->finished_count_video < stream->finished_count_audio) {
-          struct timespec ts = {0, 0};
-          xine_gettime (&ts);
-          ts.tv_sec += 1;
-          /* use timedwait to workaround buggy pthread broadcast implementations */
-          pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
-        }
-      }
-      pthread_mutex_unlock (&stream->counter_lock);
-      stream->s.audio_channel_auto = -1;
-
-      running_ticket->acquire (running_ticket, 0);
-      break;
-
-    case BUF_CONTROL_QUIT:
-      /* decoder dispose might call port functions */
-      /* running_ticket->acquire(running_ticket, 0); */
-
-      if (stream->audio_decoder_plugin) {
-        _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
-	stream->audio_decoder_plugin = NULL;
-	stream->audio_track_map_entries = 0;
-	stream->audio_type = 0;
-      }
-
-      /* running_ticket->release(running_ticket, 0); */
-      running = 0;
-      break;
-
-    case BUF_CONTROL_NOP:
-      break;
-
-    case BUF_CONTROL_RESET_DECODER:
-      lprintf ("reset\n");
-
-      _x_extra_info_reset( stream->audio_decoder_extra_info );
-      if (stream->audio_decoder_plugin) {
-	/* running_ticket->acquire(running_ticket, 0); */
-	stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
-	/* running_ticket->release(running_ticket, 0); */
-      }
-      break;
-
-    case BUF_CONTROL_DISCONTINUITY:
-      if (stream->audio_decoder_plugin) {
-	/* running_ticket->acquire(running_ticket, 0); */
-	stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
-	/* running_ticket->release(running_ticket, 0); */
-      }
-
-      running_ticket->release (running_ticket, 0);
-      stream->s.metronom->handle_audio_discontinuity (stream->s.metronom, DISC_RELATIVE, buf->disc_off);
-      running_ticket->acquire (running_ticket, 0);
-      break;
-
-    case BUF_CONTROL_NEWPTS:
-      if (stream->audio_decoder_plugin) {
-	/* running_ticket->acquire(running_ticket, 0); */
-	stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
-	/* running_ticket->release(running_ticket, 0); */
-      }
-
-      running_ticket->release (running_ticket, 0);
-      if (buf->decoder_flags & BUF_FLAG_SEEK) {
-        stream->s.metronom->handle_audio_discontinuity (stream->s.metronom, DISC_STREAMSEEK, buf->disc_off);
-      } else {
-        stream->s.metronom->handle_audio_discontinuity (stream->s.metronom, DISC_ABSOLUTE, buf->disc_off);
-      }
-      running_ticket->acquire (running_ticket, 0);
-
-      /* audio_br_discontinuity */
-      audio_br_lasttime = 0;
-      audio_br_lastsize = 0;
-
-      break;
-
-    case BUF_CONTROL_AUDIO_CHANNEL:
-      {
-        xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
-          "audio_decoder: suggested switching to stream_id %02x\n", buf->decoder_info[0]);
-        stream->s.audio_channel_auto = buf->decoder_info[0] & 0xff;
-      }
-      break;
-
-    case BUF_CONTROL_RESET_TRACK_MAP:
-      if (stream->audio_track_map_entries)
-      {
-        xine_event_t ui_event;
-
-        stream->audio_track_map_entries = 0;
-
-        ui_event.type        = XINE_EVENT_UI_CHANNELS_CHANGED;
-        ui_event.data_length = 0;
-        xine_event_send (&stream->s, &ui_event);
-      }
-      break;
-
-    case BUF_AUDIO_UNKNOWN:
-      break;
-
-    default:
-
-      if (_x_stream_info_get (&stream->s, XINE_STREAM_INFO_IGNORE_AUDIO))
-        break;
-
-      xine_profiler_start_count (prof_audio_decode);
-
-      /* running_ticket->acquire (running_ticket, 0); */
-
-      if ( (buf->type & 0xFF000000) == BUF_AUDIO_BASE ) {
-
-	uint32_t audio_type = 0;
-	int      i,j;
-	uint32_t chan=buf->type&0x0000FFFF;
-
-	/*
-        printf("audio_decoder: buf_type=%08x auto=%08x user=%08x\n",
-	       buf->type,
-	       stream->audio_channel_auto,
-	       audio_channel_user);
-	       */
-
-        /* update track map */
-
-        i = 0;
-        while ( (i<stream->audio_track_map_entries) && ((stream->audio_track_map[i]&0x0000FFFF)<chan) )
-          i++;
-
-        if ( (i==stream->audio_track_map_entries)
-	     || ((stream->audio_track_map[i]&0x0000FFFF)!=chan) ) {
-          xine_event_t  ui_event;
-
-          j = stream->audio_track_map_entries;
-
-          if (j >= 50)
-            break;
-
-          while (j>i) {
-            stream->audio_track_map[j] = stream->audio_track_map[j-1];
-            j--;
+          /* update track map */
+          chan = buf->type & 0x0000ffff;
+          i = 0;
+          while ((audio_track_map[i] & AUDIO_TRACK_MAP_MASK) < chan)
+            i++;
+          if ((audio_track_map[i] & AUDIO_TRACK_MAP_MASK) != chan) {
+            xine_event_t  ui_event;
+            int j = stream->audio_track_map_entries;
+            if (j >= AUDIO_TRACK_MAP_MAX) {
+              xine_profiler_stop_count (prof_audio_decode);
+              break;
+            }
+            while (j >= i) {
+              audio_track_map[j + 1] = audio_track_map[j];
+              j--;
+            }
+            audio_track_map[i] = buf->type;
+            stream->audio_track_map_entries++;
+            /* implicit channel change - reopen decoder below */
+            if ((i == 0) && (audio_channel_user == -1) && (stream->s.audio_channel_auto < 0))
+              stream->audio_decoder_streamtype = -1;
+            ui_event.type        = XINE_EVENT_UI_CHANNELS_CHANGED;
+            ui_event.data_length = 0;
+            xine_event_send (&stream->s, &ui_event);
           }
-          stream->audio_track_map[i] = buf->type;
-          stream->audio_track_map_entries++;
-          /* implicit channel change - reopen decoder below */
-          if ((i == 0) && (audio_channel_user == -1) && (stream->s.audio_channel_auto < 0))
-            stream->audio_decoder_streamtype = -1;
 
-	  ui_event.type        = XINE_EVENT_UI_CHANNELS_CHANGED;
-	  ui_event.data_length = 0;
-          xine_event_send (&stream->s, &ui_event);
-        }
-
-	/* find out which audio type to decode */
-
-	lprintf ("audio_channel_user = %d, map[0]=%08x\n",
-		 audio_channel_user,
-		 stream->audio_track_map[0]);
-
-	if (audio_channel_user > -2) {
-
-	  if (audio_channel_user == -1) {
-
-	    /* auto */
-
-            lprintf ("audio_channel_auto = %d\n", stream->s.audio_channel_auto);
-
-            if (stream->s.audio_channel_auto >= 0) {
-
-              if ((int)(buf->type & 0xFF) == stream->s.audio_channel_auto) {
-		audio_type = buf->type;
-	      } else
-		audio_type = -1;
-
-	    } else
-	      audio_type = stream->audio_track_map[0];
-
-	  } else {
-	    if (audio_channel_user <= stream->audio_track_map_entries)
-	      audio_type = stream->audio_track_map[audio_channel_user];
-	    else
-	      audio_type = -1;
-	  }
-
-	  /* now, decode stream buffer if it's the right audio type */
-
-	  if (buf->type == audio_type) {
-
-	    int streamtype = (buf->type>>16) & 0xFF;
-
-	    /* close old decoder of audio type has changed */
-
-            if( buf->type != buftype_unknown &&
-                (stream->audio_decoder_streamtype != streamtype ||
-                !stream->audio_decoder_plugin) ) {
-
-              if (stream->audio_decoder_plugin) {
-                _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
-              }
-
-              stream->audio_decoder_streamtype = streamtype;
-              stream->audio_decoder_plugin = _x_get_audio_decoder (&stream->s, streamtype);
-
-              _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED, 
-				 (stream->audio_decoder_plugin != NULL));
-
-              /* audio_br_reset */
-              audio_br_lasttime = 0;
-              audio_br_lastsize = 0;
-              audio_br_time     = 1; /* No / 0 please. */
-              audio_br_bytes    = 0;
-              audio_br_num      = 20;
-              audio_br_value    = 0;
+          /* find out which audio type to decode */
+          lprintf ("audio_channel_user = %d, map[0]=%08x\n", audio_channel_user, audio_track_map[0]);
+          if (audio_channel_user > -2) {
+            if (audio_channel_user == -1) {
+              /* auto */
+              lprintf ("audio_channel_auto = %d\n", stream->s.audio_channel_auto);
+              if (stream->s.audio_channel_auto >= 0) {
+                if ((int)(buf->type & 0xFF) == stream->s.audio_channel_auto) {
+                  audio_type = buf->type;
+                } else
+                  audio_type = -1;
+              } else
+                audio_type = audio_track_map[0];
+            } else {
+              if (audio_channel_user <= stream->audio_track_map_entries)
+                audio_type = audio_track_map[audio_channel_user];
+              else
+                audio_type = -1;
             }
 
-	    if (audio_type != stream->audio_type) {
+            /* now, decode stream buffer if it's the right audio type */
+            if (buf->type == audio_type) {
 
-	      if (stream->audio_decoder_plugin) {
-		xine_event_t event;
+              int streamtype = (buf->type>>16) & 0xFF;
+              /* close old decoder of audio type has changed */
+              if (buf->type != buftype_unknown &&
+                (stream->audio_decoder_streamtype != streamtype ||
+                !stream->audio_decoder_plugin)) {
+                if (stream->audio_decoder_plugin) {
+                  _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
+                }
+                stream->audio_decoder_streamtype = streamtype;
+                stream->audio_decoder_plugin = _x_get_audio_decoder (&stream->s, streamtype);
+                _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED,
+                  (stream->audio_decoder_plugin != NULL));
+                /* audio_br_reset */
+                audio_br_lasttime = 0;
+                audio_br_lastsize = 0;
+                audio_br_time     = 1; /* No / 0 please. */
+                audio_br_bytes    = 0;
+                audio_br_num      = 20;
+                audio_br_value    = 0;
+              }
+              if (audio_type != stream->audio_type) {
+                if (stream->audio_decoder_plugin) {
+                  xine_event_t event;
+                  stream->audio_type = audio_type;
+                  event.type         = XINE_EVENT_UI_CHANNELS_CHANGED;
+                  event.data_length  = 0;
+                  xine_event_send (&stream->s, &event);
+                }
+              }
 
-		stream->audio_type = audio_type;
+              /* finally - decode data */
+              if (stream->audio_decoder_plugin)
+                stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
 
-		event.type         = XINE_EVENT_UI_CHANNELS_CHANGED;
-		event.data_length  = 0;
-                xine_event_send (&stream->s, &event);
-	      }
-	    }
-
-	    /* finally - decode data */
-
-	    if (stream->audio_decoder_plugin)
-	      stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
-
-            /* audio_br_add */
-            if (buf->pts) {
-              int64_t d = buf->pts - audio_br_lasttime;
-              if (d > 0) {
-                if (d < 220000) {
-                  audio_br_time += d;
-                  audio_br_bytes += audio_br_lastsize;
-                  audio_br_lastsize = 0;
-                  if (--audio_br_num < 0) {
-                    int br, bdiff;
-                    audio_br_num = 20;
-                    if ((audio_br_bytes | audio_br_time) & 0x80000000) {
-                      audio_br_bytes >>= 1;
-                      audio_br_time  >>= 1;
-                    }
-                    br = (uint64_t)audio_br_bytes * 90000 * 8 / audio_br_time;
-                    bdiff = br - audio_br_value;
-                    if (bdiff < 0)
-                      bdiff = -bdiff;
-                    if (bdiff > (br >> 6)) {
-                      audio_br_value = br;
-                      _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_BITRATE, br);
+              /* audio_br_add */
+              if (buf->pts) {
+                int64_t d = buf->pts - audio_br_lasttime;
+                if (d > 0) {
+                  if (d < 220000) {
+                    audio_br_time += d;
+                    audio_br_bytes += audio_br_lastsize;
+                    audio_br_lastsize = 0;
+                    if (--audio_br_num < 0) {
+                      int br, bdiff;
+                      audio_br_num = 20;
+                      if ((audio_br_bytes | audio_br_time) & 0x80000000) {
+                        audio_br_bytes >>= 1;
+                        audio_br_time  >>= 1;
+                      }
+                      br = (uint64_t)audio_br_bytes * 90000 * 8 / audio_br_time;
+                      bdiff = br - audio_br_value;
+                      if (bdiff < 0)
+                        bdiff = -bdiff;
+                      if (bdiff > (br >> 6)) {
+                        audio_br_value = br;
+                        _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_BITRATE, br);
+                      }
                     }
                   }
-                }
-                audio_br_lasttime = buf->pts;
-              } else {
-                /* Do we really need to care for reordered audio? So what. */
-                if (d <= -220000)
                   audio_br_lasttime = buf->pts;
+                } else {
+                  /* Do we really need to care for reordered audio? So what. */
+                  if (d <= -220000)
+                    audio_br_lasttime = buf->pts;
+                }
+              }
+              audio_br_lastsize += buf->size;
+
+              if (buf->type != buftype_unknown &&
+                !_x_stream_info_get (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED)) {
+                xine_log (stream->s.xine, XINE_LOG_MSG,
+                  _("audio_decoder: no plugin available to handle '%s'\n"), _x_buf_audio_name (buf->type));
+                if (!_x_meta_info_get (&stream->s, XINE_META_INFO_AUDIOCODEC))
+                  _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name (buf->type));
+                buftype_unknown = buf->type;
+                /* fatal error - dispose plugin */
+                if (stream->audio_decoder_plugin) {
+                  _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
+                  stream->audio_decoder_plugin = NULL;
+                }
               }
             }
-            audio_br_lastsize += buf->size;
+          }
+        }
+        /* if (running_ticket->ticket_revoked)
+         *   running_ticket->renew (running_ticket, 0);
+         * running_ticket->release (running_ticket, 0);
+         */
+        xine_profiler_stop_count (prof_audio_decode);
+        break;
 
-	    if (buf->type != buftype_unknown &&
-              !_x_stream_info_get (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED)) {
+      case BUFTYPE_BASE (BUF_CONTROL_BASE):
+
+        switch (BUFTYPE_SUB (buf->type)) {
+          int t;
+
+          case BUFTYPE_SUB (BUF_CONTROL_HEADERS_DONE):
+            pthread_mutex_lock (&stream->counter_lock);
+            stream->header_count_audio++;
+            pthread_cond_broadcast (&stream->counter_changed);
+            pthread_mutex_unlock (&stream->counter_lock);
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_START):
+            lprintf ("start\n");
+            /* decoder dispose might call port functions */
+            /* running_ticket->acquire(running_ticket, 0); */
+            if (stream->audio_decoder_plugin) {
+              lprintf ("close old decoder\n");
+              stream->keep_ao_driver_open = !!(buf->decoder_flags & BUF_FLAG_GAPLESS_SW);
+              _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
+              stream->audio_decoder_plugin = NULL;
+              stream->audio_type = 0;
+              stream->keep_ao_driver_open = 0;
+            }
+            /* running_ticket->release(running_ticket, 0); */
+            audio_track_map[0] = AUDIO_TRACK_MAP_END;
+            stream->audio_track_map_entries = 0;
+            if (!(buf->decoder_flags & BUF_FLAG_GAPLESS_SW)) {
+              running_ticket->release (running_ticket, 0);
+              stream->s.metronom->handle_audio_discontinuity (stream->s.metronom, DISC_STREAMSTART, 0);
+              running_ticket->acquire (running_ticket, 0);
+            }
+            buftype_unknown = 0;
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_END):
+            /* free all held header buffers, see comments below */
+            _x_free_buf_elements (headers_first);
+            headers_first  = NULL;
+            headers_add    = &headers_first;
+            headers_replay = NULL;
+            headers_num    = 0;
+            /* wait the output fifos to run dry before sending the notification event
+             * to the frontend. this test is only valid if there is only a single
+             * stream attached to the current output port. */
+            while (1) {
+              int num_bufs, num_streams;
+              /* running_ticket->acquire(running_ticket, 0); */
+              num_bufs = stream->s.audio_out->get_property (stream->s.audio_out, AO_PROP_BUFS_IN_FIFO);
+              num_streams = stream->s.audio_out->get_property (stream->s.audio_out, AO_PROP_NUM_STREAMS);
+              /* running_ticket->release(running_ticket, 0); */
+              if( num_bufs > 0 && num_streams == 1 && !stream->early_finish_event) {
+                running_ticket->release (running_ticket, 0);
+                xine_usec_sleep (10000);
+                running_ticket->acquire (running_ticket, 0);
+              } else
+                break;
+            }
+            running_ticket->release (running_ticket, 0);
+            /* wait for video to reach this marker, if necessary */
+            pthread_mutex_lock (&stream->counter_lock);
+            stream->finished_count_audio++;
+            lprintf ("reached end marker # %d\n", stream->finished_count_audio);
+            pthread_cond_broadcast (&stream->counter_changed);
+            if (stream->video_thread_created) {
+              while (stream->finished_count_video < stream->finished_count_audio) {
+                struct timespec ts = {0, 0};
+                xine_gettime (&ts);
+                ts.tv_sec += 1;
+                /* use timedwait to workaround buggy pthread broadcast implementations */
+                pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+              }
+            }
+            pthread_mutex_unlock (&stream->counter_lock);
+            stream->s.audio_channel_auto = -1;
+            running_ticket->acquire (running_ticket, 0);
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_QUIT):
+            /* decoder dispose might call port functions */
+            /* running_ticket->acquire(running_ticket, 0); */
+            if (stream->audio_decoder_plugin) {
+              _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
+              stream->audio_decoder_plugin = NULL;
+              stream->audio_type = 0;
+            }
+            /* running_ticket->release(running_ticket, 0); */
+            audio_track_map[0] = AUDIO_TRACK_MAP_END;
+            stream->audio_track_map_entries = 0;
+            running = 0;
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_NOP):
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_RESET_DECODER):
+            lprintf ("reset\n");
+            _x_extra_info_reset (stream->audio_decoder_extra_info);
+            if (stream->audio_decoder_plugin) {
+              /* running_ticket->acquire(running_ticket, 0); */
+              stream->audio_decoder_plugin->reset (stream->audio_decoder_plugin);
+              /* running_ticket->release(running_ticket, 0); */
+            }
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_DISCONTINUITY):
+            t = DISC_RELATIVE;
+            goto handle_disc;
+
+          case BUFTYPE_SUB (BUF_CONTROL_NEWPTS):
+            t = (buf->decoder_flags & BUF_FLAG_SEEK) ? DISC_STREAMSEEK : DISC_ABSOLUTE;
+          handle_disc:
+            if (stream->audio_decoder_plugin) {
+              /* running_ticket->acquire(running_ticket, 0); */
+              stream->audio_decoder_plugin->discontinuity (stream->audio_decoder_plugin);
+              /* running_ticket->release(running_ticket, 0); */
+            }
+            running_ticket->release (running_ticket, 0);
+            stream->s.metronom->handle_audio_discontinuity (stream->s.metronom, t, buf->disc_off);
+            running_ticket->acquire (running_ticket, 0);
+            /* audio_br_discontinuity */
+            audio_br_lasttime = 0;
+            audio_br_lastsize = 0;
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_AUDIO_CHANNEL):
+            xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+              "audio_decoder: suggested switching to stream_id %02x\n", buf->decoder_info[0]);
+            stream->s.audio_channel_auto = buf->decoder_info[0] & 0xff;
+            break;
+
+          case BUFTYPE_SUB (BUF_CONTROL_RESET_TRACK_MAP):
+            if (stream->audio_track_map_entries) {
+              xine_event_t ui_event;
+              audio_track_map[0] = AUDIO_TRACK_MAP_END;
+              stream->audio_track_map_entries = 0;
+              ui_event.type        = XINE_EVENT_UI_CHANNELS_CHANGED;
+              ui_event.data_length = 0;
+              xine_event_send (&stream->s, &ui_event);
+            }
+            break;
+
+          default:
+            if (buf->type != buftype_unknown) {
               xine_log (stream->s.xine, XINE_LOG_MSG,
-			_("audio_decoder: no plugin available to handle '%s'\n"), _x_buf_audio_name( buf->type ) );
+              _("audio_decoder: error, unknown buffer type: %08x\n"), buf->type);
+              buftype_unknown = buf->type;
+            }
 
-              if (!_x_meta_info_get (&stream->s, XINE_META_INFO_AUDIOCODEC))
-                _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name( buf->type ));
+        } /* case BUFTYPE_BASE (BUF_CONTROL_BASE) */
+        break;
 
-	      buftype_unknown = buf->type;
+      default:
+        if (buf->type != buftype_unknown) {
+          xine_log (stream->s.xine, XINE_LOG_MSG,
+            _("audio_decoder: error, unknown buffer type: %08x\n"), buf->type);
+          buftype_unknown = buf->type;
+        }
 
-	      /* fatal error - dispose plugin */
-	      if (stream->audio_decoder_plugin) {
-                _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
-	        stream->audio_decoder_plugin = NULL;
-	      }
-	    }
-	  }
-	}
-      } else if( buf->type != buftype_unknown ) {
-        xine_log (stream->s.xine, XINE_LOG_MSG,
-		    _("audio_decoder: error, unknown buffer type: %08x\n"), buf->type );
-	  buftype_unknown = buf->type;
-      }
-
-      /* if (running_ticket->ticket_revoked)
-       *   running_ticket->renew (running_ticket, 0);
-       * running_ticket->release (running_ticket, 0);
-       */
-
-      xine_profiler_stop_count (prof_audio_decode);
-    }
+    } /* switch (BUFTYPE_BASE (buf->type)) */
 
     /* some decoders require a full reinitialization when audio
      * channel is changed (rate might be change and even a
@@ -462,55 +418,68 @@ static void *audio_decoder_loop (void *stream_gen) {
      * we must close the old decoder and process all the headers
      * again, since they are needed for decoder initialization.
      */
-    if( audio_channel_user != stream->audio_channel_user &&
-        !replaying_headers ) {
-      audio_channel_user = stream->audio_channel_user;
-
-      if (stream->audio_decoder_plugin) {
-	/* decoder dispose might call port functions */
-        /* running_ticket->acquire (running_ticket, 0); */
-        _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
-        /* running_ticket->release (running_ticket, 0); */
-
-        stream->audio_decoder_plugin = NULL;
-        stream->audio_track_map_entries = 0;
-        stream->audio_type = 0;
-      }
-
-      buf->free_buffer (buf);
-      if( first_header ) {
-        replaying_headers = 1;
-        buf = first_header;
-      } else {
-        replaying_headers = 0;
-      }
-    } else if( !replaying_headers ) {
-
-      /* header buffers are never freed. instead they
-       * are added to a list to allow replaying them
-       * in case of a channel change.
-       */
-      if( (buf->decoder_flags & BUF_FLAG_HEADER) ) {
-        if( last_header )
-          last_header->next = buf;
-        else
-          first_header = buf;
-        buf->next = NULL;
-        last_header = buf;
-      } else {
-        buf->free_buffer (buf);
-      }
+    if (headers_replay) {
+      headers_replay = headers_replay->next;
     } else {
-      buf = buf->next;
-      if( !buf )
-        replaying_headers = 0;
+      if (audio_channel_user != stream->audio_channel_user) {
+        audio_channel_user = stream->audio_channel_user;
+        if (stream->audio_decoder_plugin) {
+          /* decoder dispose might call port functions */
+          /* running_ticket->acquire (running_ticket, 0); */
+          _x_free_audio_decoder (&stream->s, stream->audio_decoder_plugin);
+          /* running_ticket->release (running_ticket, 0); */
+          stream->audio_decoder_plugin = NULL;
+          audio_track_map[0] = AUDIO_TRACK_MAP_END;
+          stream->audio_track_map_entries = 0;
+          stream->audio_type = 0;
+        }
+        buf->free_buffer (buf);
+        headers_replay = headers_first;
+        xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+          "audio_decoder: replaying %d headers.\n", headers_num);
+      } else {
+        /* header buffers are never freed. instead they
+         * are added to a list to allow replaying them
+         * in case of a channel change. */
+        if (buf->decoder_flags & BUF_FLAG_HEADER) {
+          /* drop outdated headers. */
+          int num = 0;
+          buf_element_t *here = headers_first, **add = &headers_first;
+          while (here) {
+            buf_element_t *next = here->next;
+            uint32_t d = here->type ^ buf->type;
+            if (((d & 0x0000ffff) == 0) &&
+              (((d & 0xffff0000) != 0) || (here->decoder_flags == buf->decoder_flags))) {
+              *add = next;
+              here->next = NULL;
+              here->free_buffer (here);
+              headers_num--;
+              num++;
+            } else {
+              add = &here->next;
+            }
+            here = next;
+          }
+          headers_add = add;
+          if (num)
+            xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+              "audio_decoder: dropped %d outdated headers for track #%u.\n",
+              num, (unsigned int)(buf->type & 0x0000ffff));
+          *headers_add = buf;
+          headers_add  = &buf->next;
+          buf->next = NULL;
+          headers_num++;
+        } else {
+          buf->free_buffer (buf);
+        }
+      }
     }
   }
 
   running_ticket->release (running_ticket, 0);
 
   /* free all held header buffers */
-  _x_free_buf_elements( first_header );
+  _x_free_buf_elements (headers_first);
 
   return NULL;
 }
@@ -613,5 +582,3 @@ int _x_get_audio_channel (xine_stream_t *s) {
 
   return stream->audio_type & 0xFFFF;
 }
-
-
