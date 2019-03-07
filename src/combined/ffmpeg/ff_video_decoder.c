@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 the xine project
+ * Copyright (C) 2001-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2979,17 +2979,7 @@ static void dispose_video_class (video_decoder_class_t *this_gen) {
   ff_video_class_t *this = (ff_video_class_t *)this_gen;
   config_values_t *config = this->xine->config;
 
-#ifdef HAVE_POSTPROC
-  config->unregister_callback (config, "video.processing.ffmpeg_pp_quality");
-#endif
-  config->unregister_callback (config, "video.processing.ffmpeg_thread_count");
-  config->unregister_callback (config, "video.processing.ffmpeg_skip_loop_filter");
-  config->unregister_callback (config, "video.processing.ffmpeg_choose_speed_over_accuracy");
-  config->unregister_callback (config, "video.processing.ffmpeg_direct_rendering");
-#ifdef ENABLE_VAAPI
-  config->unregister_callback (config, "video.processing.vaapi_mpeg_softdec");
-  config->unregister_callback (config, "video.processing.ffmpeg_enable_vaapi");
-#endif
+  config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
 
   free (this);
 }
