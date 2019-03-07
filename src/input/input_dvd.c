@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project,
+ * Copyright (C) 2000-2019 the xine project,
  *                         Rich Wareham <richwareham@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -208,6 +208,13 @@ struct dvd_input_plugin_s {
   dvd_input_saved_buf_t *saved_free;
   unsigned int      saved_used;
   unsigned int      saved_size;
+
+  uint32_t          user_conf_version;
+  int32_t           user_read_ahead;
+  int32_t           user_seek_mode;
+  int32_t           user_region;
+  char              user_lang4[4];
+
   int               freeing;
 };
 
@@ -220,10 +227,13 @@ typedef struct {
   const char         *dvd_device;    /* default DVD device */
   char               *eject_device;  /* the device last opened is remembered for eject */
 
-  dvd_input_plugin_t *ip;
-
-  int32_t             seek_mode;
-  int32_t             play_single_chapter;
+  uint32_t            user_conf_version;
+  int32_t             user_read_ahead;
+  int32_t             user_seek_mode;
+  int32_t             user_region;
+  char                user_lang4[4];
+  int32_t             user_play_single_chapter;
+  int32_t             user_skip_mode;
 
 } dvd_input_class_t;
 
@@ -293,60 +303,74 @@ static uint32_t dvd_plugin_get_capabilities (input_plugin_t *this_gen) {
     INPUT_CAP_AUDIOLANG | INPUT_CAP_SPULANG | INPUT_CAP_CHAPTERS;
 }
 
+static void apply_cfg (dvd_input_plugin_t *this) {
+  dvd_input_class_t *class = (dvd_input_class_t*)this->input_plugin.input_class;
+
+  this->user_conf_version  = class->user_conf_version;
+  this->user_read_ahead    = class->user_read_ahead;
+  this->user_seek_mode     = class->user_seek_mode;
+  this->user_region        = class->user_region;
+  memcpy (this->user_lang4, class->user_lang4, 4);
+
+  dvdnav_set_readahead_flag       (this->dvdnav, this->user_read_ahead);
+  dvdnav_set_PGC_positioning_flag (this->dvdnav, !this->user_seek_mode);
+  dvdnav_set_region_mask          (this->dvdnav, 1 << (this->user_region - 1));
+  dvdnav_menu_language_select     (this->dvdnav, this->user_lang4);
+  dvdnav_audio_language_select    (this->dvdnav, this->user_lang4);
+  dvdnav_spu_language_select      (this->dvdnav, this->user_lang4);
+}
+
+static void update_cfg (dvd_input_plugin_t *this) {
+  dvd_input_class_t *class = (dvd_input_class_t*)this->input_plugin.input_class;
+  if (class->user_read_ahead != this->user_read_ahead) {
+    this->user_read_ahead = class->user_read_ahead;
+    dvdnav_set_readahead_flag (this->dvdnav, this->user_read_ahead);
+  }
+  if (class->user_seek_mode != this->user_seek_mode) {
+    this->user_seek_mode = class->user_seek_mode;
+    dvdnav_set_PGC_positioning_flag (this->dvdnav, !this->user_seek_mode);
+  }
+  if (class->user_region != this->user_region) {
+    this->user_region = class->user_region;
+    dvdnav_set_region_mask (this->dvdnav, 1 << (this->user_region - 1));
+  }
+  if (memcmp (class->user_lang4, this->user_lang4, 4)) {
+    memcpy (this->user_lang4, class->user_lang4, 4);
+    dvdnav_menu_language_select (this->dvdnav, this->user_lang4);
+    dvdnav_audio_language_select (this->dvdnav, this->user_lang4);
+    dvdnav_spu_language_select (this->dvdnav, this->user_lang4);
+  }
+}
+
 static void read_ahead_cb(void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
-
-  if(!class)
-   return;
-
-  if(class->ip) {
-    dvd_input_plugin_t *this = class->ip;
-
-    dvdnav_set_readahead_flag(this->dvdnav, entry->num_value);
+  if (class) {
+    class->user_conf_version += 1;
+    class->user_read_ahead = entry->num_value;
   }
 }
 
 static void seek_mode_cb(void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
-
-  if(!class)
-   return;
-
-  class->seek_mode = entry->num_value;
-
-  if(class->ip) {
-    dvd_input_plugin_t *this = class->ip;
-
-    dvdnav_set_PGC_positioning_flag(this->dvdnav, !entry->num_value);
+  if (class) {
+    class->user_conf_version += 1;
+    class->user_seek_mode = entry->num_value;
   }
 }
 
 static void region_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
-
-  if(!class)
-   return;
-
-  if(class->ip && ((entry->num_value >= 1) && (entry->num_value <= 8))) {
-    dvd_input_plugin_t *this = class->ip;
-
-    dvdnav_set_region_mask(this->dvdnav, 1<<(entry->num_value-1));
+  if (class && (entry->num_value >= 1) && (entry->num_value <= 8)) {
+    class->user_conf_version += 1;
+    class->user_region = entry->num_value;
   }
 }
 
 static void language_changed_cb(void *this_gen, xine_cfg_entry_t *entry) {
   dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
-
-  if(!class)
-   return;
-
-  if(class->ip) {
-    char lang[3] = { entry->str_value[0], entry->str_value[1], 0 };
-    dvd_input_plugin_t *this = class->ip;
-
-    dvdnav_menu_language_select(this->dvdnav, lang);
-    dvdnav_audio_language_select(this->dvdnav, lang);
-    dvdnav_spu_language_select(this->dvdnav, lang);
+  if (class && entry->str_value) {
+    class->user_conf_version += 1;
+    strlcpy (class->user_lang4, entry->str_value, 4);
   }
 }
 
@@ -356,7 +380,13 @@ static void play_single_chapter_cb(void *this_gen, xine_cfg_entry_t *entry) {
   if(!class)
    return;
 
-  class->play_single_chapter = entry->num_value;
+  class->user_play_single_chapter = entry->num_value;
+}
+
+static void skip_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
+  dvd_input_class_t *class = (dvd_input_class_t*)this_gen;
+  if (class)
+    class->user_skip_mode = entry->num_value;
 }
 
 static void send_mouse_enter_leave_event(dvd_input_plugin_t *this, int direction) {
@@ -398,7 +428,7 @@ static int update_title_display(dvd_input_plugin_t *this) {
 
   dvdnav_current_title_info(this->dvdnav, &tt, &pr);
   if( this->mode == MODE_TITLE ) {
-    if( (((dvd_input_class_t *)this->input_plugin.input_class)->play_single_chapter ) ) {
+    if( (((dvd_input_class_t *)this->input_plugin.input_class)->user_play_single_chapter ) ) {
       if( (this->tt && this->tt != tt) ||
           (this->pr && this->pr != pr) )
         return 0;
@@ -470,10 +500,8 @@ static int update_title_display(dvd_input_plugin_t *this) {
 
 static void dvd_plugin_dispose (input_plugin_t *this_gen) {
   dvd_input_plugin_t *this = (dvd_input_plugin_t *)this_gen;
-  dvd_input_class_t *class = (dvd_input_class_t *)this->input_plugin.input_class;
 
   lprintf("Called\n");
-  class->ip = NULL;
 
   if (this->event_queue)
     xine_event_dispose_queue (this->event_queue);
@@ -627,6 +655,14 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
 	    _("input_dvd: values of \\beta will give rise to dom!\n"));
     return NULL;
+  }
+
+  if (this->dvdnav) {
+    dvd_input_class_t *class = (dvd_input_class_t *)this->input_plugin.input_class;
+    if (this->user_conf_version < class->user_conf_version) {
+      this->user_conf_version = class->user_conf_version;
+      update_cfg (this);
+    }
   }
 
   /* Read buffer */
@@ -864,7 +900,7 @@ static buf_element_t *dvd_plugin_read_block (input_plugin_t *this_gen,
   }
 
   if (this->pg_length && this->pgc_length) {
-    switch (((dvd_input_class_t *)this->input_plugin.input_class)->seek_mode) {
+    switch (this->user_seek_mode) {
     case 0: /* PGC based seeking */
       buf->extra_info->total_time = this->pgc_length / 90;
       buf->extra_info->input_time = this->cell_start / 90;
@@ -1006,7 +1042,6 @@ static void xine_dvd_send_button_update(dvd_input_plugin_t *this, int mode) {
 static void dvd_handle_events(dvd_input_plugin_t *this) {
 
   dvd_input_class_t  *class = (dvd_input_class_t*)this->input_plugin.input_class;
-  config_values_t  *config = class->xine->config;       /* Pointer to XineRC config file   */
   xine_event_t *event;
 
   while ((event = xine_event_get(this->event_queue))) {
@@ -1048,9 +1083,8 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
       break;
     case XINE_EVENT_INPUT_NEXT:
       {
-        cfg_entry_t* entry = config->lookup_entry(config, "media.dvd.skip_behaviour");
 	int title = 0, part = 0;
-	switch (entry->num_value) {
+        switch (class->user_skip_mode) {
 	case 0: /* skip by program */
 	  dvdnav_next_pg_search(this->dvdnav);
 	  break;
@@ -1067,9 +1101,8 @@ static void dvd_handle_events(dvd_input_plugin_t *this) {
       break;
     case XINE_EVENT_INPUT_PREVIOUS:
       {
-        cfg_entry_t *entry = config->lookup_entry(config, "media.dvd.skip_behaviour");
 	int title = 0, part = 0;
-	switch (entry->num_value) {
+        switch (class->user_skip_mode) {
 	case 0: /* skip by program */
 	  dvdnav_prev_pg_search(this->dvdnav);
 	  break;
@@ -1559,8 +1592,6 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   dvd_input_plugin_t    *this = (dvd_input_plugin_t*)this_gen;
   dvd_input_class_t     *class = (dvd_input_class_t*)this_gen->input_class;
 
-  xine_cfg_entry_t       region_entry, lang_entry, cfg_entry;
-
   lprintf("Called\n");
 
   this->mode = dvd_parse_mrl (this);
@@ -1578,30 +1609,7 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
   if(this->dvd_name)
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, this->dvd_name);
 
-  /* Set region code */
-  if (xine_config_lookup_entry (this->stream->xine, "media.dvd.region",
-				&region_entry))
-    region_changed_cb (class, &region_entry);
-
-  /* Set languages */
-  if (xine_config_lookup_entry (this->stream->xine, "media.dvd.language",
-				&lang_entry))
-    language_changed_cb (class, &lang_entry);
-
-  /* Set cache usage */
-  if (xine_config_lookup_entry(this->stream->xine, "media.dvd.readahead",
-			       &cfg_entry))
-    read_ahead_cb(class, &cfg_entry);
-
-  /* Set seek mode */
-  if (xine_config_lookup_entry(this->stream->xine, "media.dvd.seek_behaviour",
-			       &cfg_entry))
-    seek_mode_cb(class, &cfg_entry);
-
-  /* Set single chapter mode */
-  if (xine_config_lookup_entry(this->stream->xine, "media.dvd.play_single_chapter",
-			       &cfg_entry))
-    play_single_chapter_cb(class, &cfg_entry);
+  apply_cfg (this);
 
   if (this->mode == MODE_TITLE) {
     int titles, parts;
@@ -1679,7 +1687,6 @@ static int dvd_plugin_open (input_plugin_t *this_gen) {
  */
 static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_stream_t *stream, const char *data) {
   dvd_input_plugin_t    *this;
-  dvd_input_class_t     *class = (dvd_input_class_t*)class_gen;
   static const char handled_mrl[] = "dvd:/";
 
   lprintf("Called\n");
@@ -1725,6 +1732,8 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   this->input_plugin.dispose            = dvd_plugin_dispose;
   this->input_plugin.input_class        = class_gen;
 
+  this->user_conf_version = 0;
+
   this->stream = stream;
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HAS_STILL, 1);
 
@@ -1734,9 +1743,6 @@ static input_plugin_t *dvd_class_get_instance (input_class_t *class_gen, xine_st
   pthread_mutex_init(&this->buf_mutex, NULL);
 
   this->event_queue = xine_event_new_queue (this->stream);
-
-  /* config callbacks may react now */
-  class->ip = this;
 
   return &this->input_plugin;
 }
@@ -1778,12 +1784,7 @@ static void dvd_class_dispose(input_class_t *this_gen) {
   dvd_input_class_t *this = (dvd_input_class_t*)this_gen;
   config_values_t *config = this->xine->config;
 
-  config->unregister_callback(config, "media.dvd.device");
-  config->unregister_callback(config, "media.dvd.region");
-  config->unregister_callback(config, "media.dvd.language");
-  config->unregister_callback(config, "media.dvd.readahead");
-  config->unregister_callback(config, "media.dvd.seek_behaviour");
-  config->unregister_callback(config, "media.dvd.play_single_chapter");
+  config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
 
   _x_freep(&this->eject_device);
   free(this);
@@ -1882,65 +1883,74 @@ static void *init_class (xine_t *xine, const void *data) {
     dlclose(dvdcss);
   }
 
-  config->register_num(config, "media.dvd.region",
-		       1,
-		       _("region the DVD player claims to be in (1 to 8)"),
-		       _("This only needs to be changed if your DVD jumps to a screen "
-		         "complaining about a wrong region code. It has nothing to do with "
-		         "the region code set in DVD drives, this is purely software."),
-		       0, region_changed_cb, this);
-  config->register_string(config, "media.dvd.language",
-			  "en",
-			  _("default language for DVD playback"),
-			  _("xine tries to use this language as a default for DVD playback. "
-			    "As far as the DVD supports it, menus and audio tracks will be presented "
-			    "in this language.\nThe value must be a two character ISO639 language code."),
-			  0, language_changed_cb, this);
-  config->register_bool(config, "media.dvd.readahead",
-			1,
-			_("read-ahead caching"),
-			_("xine can use a read ahead cache for DVD drive access.\n"
-			  "This may lead to jerky playback on slow drives, but it improves the impact "
-			  "of the DVD layer change on faster drives."),
-			10, read_ahead_cb, this);
-  config->register_enum(config, "media.dvd.skip_behaviour", 0,
-			(char **)skip_modes,
-			_("unit for the skip action"),
-			_("You can configure the behaviour when issuing a skip command (using the skip "
-			  "buttons for example). The individual values mean:\n\n"
-			  "skip program\n"
-			  "will skip a DVD program, which is a navigational unit similar to the "
-			  "index marks on an audio CD; this is the normal behaviour for DVD players\n\n"
-			  "skip part\n"
-			  "will skip a DVD part, which is a structural unit similar to the "
-			  "track marks on an audio CD; parts usually coincide with programs, but parts "
-			  "can be larger than programs\n\n"
-			  "skip title\n"
-			  "will skip a DVD title, which is a structural unit representing entire "
-			  "features on the DVD"),
-			20, NULL, NULL);
-  config->register_enum(config, "media.dvd.seek_behaviour", 0,
-			(char **)seek_modes,
-			_("unit for seeking"),
-			_("You can configure the domain spanned by the seek slider. The individual "
-			  "values mean:\n\n"
-			  "seek in program chain\n"
-			  "seeking will span an entire DVD program chain, which is a navigational "
-			  "unit representing the entire video stream of the current feature\n\n"
-			  "seek in program\n"
-			  "seeking will span a DVD program, which is a navigational unit representing "
-			  "a chapter of the current feature"),
-			20, seek_mode_cb, this);
-  config->register_enum(config, "media.dvd.play_single_chapter", 0,
-			(char **)play_single_chapter_modes,
-			_("play mode when title/chapter is given"),
-			_("You can configure the behaviour when playing a dvd from a given "
-			  "title/chapter (eg. using MRL 'dvd:/1.2'). The individual values mean:\n\n"
-			  "entire dvd\n"
-			  "play the entire dvd starting on the specified position.\n\n"
-			  "one chapter\n"
-			  "play just the specified title/chapter and then stop"),
-			20, play_single_chapter_cb, this);
+  this->user_conf_version = 1;
+
+  this->user_region = config->register_num (config, "media.dvd.region", 1,
+    _("region the DVD player claims to be in (1 to 8)"),
+    _("This only needs to be changed if your DVD jumps to a screen "
+      "complaining about a wrong region code. It has nothing to do with "
+      "the region code set in DVD drives, this is purely software."),
+    0, region_changed_cb, this);
+  if ((this->user_region < 1) || (this->user_region > 8))
+    this->user_region = 1;
+
+  {
+    const char *lang = config->register_string (config, "media.dvd.language", "en",
+      _("default language for DVD playback"),
+      _("xine tries to use this language as a default for DVD playback. "
+        "As far as the DVD supports it, menus and audio tracks will be presented "
+        "in this language.\nThe value must be a two character ISO639 language code."),
+      0, language_changed_cb, this);
+    if (lang)
+      strlcpy (this->user_lang4, lang, 4);
+  }
+
+  this->user_read_ahead = config->register_bool (config, "media.dvd.readahead", 1,
+    _("read-ahead caching"),
+    _("xine can use a read ahead cache for DVD drive access.\n"
+      "This may lead to jerky playback on slow drives, but it improves the impact "
+      "of the DVD layer change on faster drives."),
+    10, read_ahead_cb, this);
+
+  this->user_skip_mode = config->register_enum (config, "media.dvd.skip_behaviour", 0,
+    (char **)skip_modes,
+    _("unit for the skip action"),
+    _("You can configure the behaviour when issuing a skip command (using the skip "
+      "buttons for example). The individual values mean:\n\n"
+      "skip program\n"
+      "will skip a DVD program, which is a navigational unit similar to the "
+      "index marks on an audio CD; this is the normal behaviour for DVD players\n\n"
+      "skip part\n"
+      "will skip a DVD part, which is a structural unit similar to the "
+      "track marks on an audio CD; parts usually coincide with programs, but parts "
+      "can be larger than programs\n\n"
+      "skip title\n"
+      "will skip a DVD title, which is a structural unit representing entire "
+      "features on the DVD"),
+    20, skip_changed_cb, this);
+
+  this->user_seek_mode = config->register_enum (config, "media.dvd.seek_behaviour", 0,
+    (char **)seek_modes,
+    _("unit for seeking"),
+    _("You can configure the domain spanned by the seek slider. The individual values mean:\n\n"
+      "seek in program chain\n"
+      "seeking will span an entire DVD program chain, which is a navigational "
+      "unit representing the entire video stream of the current feature\n\n"
+      "seek in program\n"
+      "seeking will span a DVD program, which is a navigational unit representing "
+      "a chapter of the current feature"),
+    20, seek_mode_cb, this);
+
+  this->user_play_single_chapter = config->register_enum (config, "media.dvd.play_single_chapter", 0,
+    (char **)play_single_chapter_modes,
+    _("play mode when title/chapter is given"),
+    _("You can configure the behaviour when playing a dvd from a given "
+      "title/chapter (eg. using MRL 'dvd:/1.2'). The individual values mean:\n\n"
+      "entire dvd\n"
+      "play the entire dvd starting on the specified position.\n\n"
+      "one chapter\n"
+      "play just the specified title/chapter and then stop"),
+    20, play_single_chapter_cb, this);
 
 #ifdef __sun
   check_solaris_vold_device(this);
@@ -1957,3 +1967,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 18, "DVD", XINE_VERSION_CODE, NULL, init_class },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
+
