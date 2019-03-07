@@ -65,6 +65,7 @@
 /* network bandwidth */
 static const uint32_t mms_bandwidths[]={14400,19200,28800,33600,34430,57600,
 					115200,262200,393216,524300,1544000,10485800};
+#define NUM_BANDWIDTHS (sizeof (mms_bandwidths) / sizeof (mms_bandwidths[0]))
 
 static const char *const mms_bandwidth_strs[]={"14.4 Kbps (Modem)", "19.2 Kbps (Modem)",
 					       "28.8 Kbps (Modem)", "33.6 Kbps (Modem)",
@@ -89,7 +90,6 @@ typedef struct {
 
   char             scratch[1025];
 
-  int              bandwidth;
   int              protocol;       /* mmst or mmsh */
 
 } mms_input_plugin_t;
@@ -98,8 +98,8 @@ typedef struct {
 
   input_class_t       input_class;
 
-  mms_input_plugin_t *ip;
   int                 protocol;    /* autoprobe, mmst or mmsh */
+  int                 bandwidth;
 
   xine_t             *xine;
 } mms_input_class_t;
@@ -259,17 +259,9 @@ static int mms_plugin_get_optional_data (input_plugin_t *this_gen,
 
 static void bandwidth_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
   mms_input_class_t *class = (mms_input_class_t*) this_gen;
-
   lprintf ("bandwidth_changed_cb %d\n", entry->num_value);
-
-  if(!class)
-   return;
-
-  if(class->ip && ((entry->num_value >= 0) && (entry->num_value <= 11))) {
-    mms_input_plugin_t *this = class->ip;
-
-    this->bandwidth = mms_bandwidths[entry->num_value];
-  }
+  if (class && (entry->num_value >= 0) && (entry->num_value < (int)NUM_BANDWIDTHS))
+    class->bandwidth = mms_bandwidths[entry->num_value];
 }
 
 static void protocol_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
@@ -283,24 +275,25 @@ static void protocol_changed_cb (void *this_gen, xine_cfg_entry_t *entry) {
 
 static int mms_plugin_open (input_plugin_t *this_gen) {
   mms_input_plugin_t *this = (mms_input_plugin_t *) this_gen;
+  mms_input_class_t  *class = (mms_input_class_t *) this->input_plugin.input_class;
   mms_t              *mms  = NULL;
   mmsh_t             *mmsh = NULL;
 
   switch (this->protocol) {
     case PROTOCOL_UNDEFINED:
-      mms = mms_connect (this->stream, this->mrl, this->bandwidth);
+      mms = mms_connect (this->stream, this->mrl, class->bandwidth);
       if (mms) {
         this->protocol = PROTOCOL_MMST;
       } else {
-        mmsh = mmsh_connect (this->stream, this->mrl, this->bandwidth);
+        mmsh = mmsh_connect (this->stream, this->mrl, class->bandwidth);
         this->protocol = PROTOCOL_MMSH;
       }
       break;
     case PROTOCOL_MMST:
-      mms = mms_connect (this->stream, this->mrl, this->bandwidth);
+      mms = mms_connect (this->stream, this->mrl, class->bandwidth);
       break;
     case PROTOCOL_MMSH:
-      mmsh = mmsh_connect (this->stream, this->mrl, this->bandwidth);
+      mmsh = mmsh_connect (this->stream, this->mrl, class->bandwidth);
       break;
   }
 
@@ -337,7 +330,6 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   }
 
   this = calloc(1, sizeof (mms_input_plugin_t));
-  cls->ip = this;
   this->stream   = stream;
   this->mms      = NULL;
   this->mmsh     = NULL;
@@ -375,16 +367,14 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
 static void mms_class_dispose (input_class_t *this_gen) {
   mms_input_class_t  *this = (mms_input_class_t *) this_gen;
 
-  this->xine->config->unregister_callback(this->xine->config,
-					  "media.network.bandwidth");
-  this->xine->config->unregister_callback(this->xine->config,
-					  "media.network.mms_protocol");
+  this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
   free (this);
 }
 
 static void *init_class (xine_t *xine, const void *data) {
 
   mms_input_class_t  *this;
+  int i;
 
   (void)data;
   this = calloc(1, sizeof (mms_input_class_t));
@@ -392,7 +382,6 @@ static void *init_class (xine_t *xine, const void *data) {
     return NULL;
 
   this->xine   = xine;
-  this->ip                             = NULL;
 
   this->input_class.get_instance       = mms_class_get_instance;
   this->input_class.identifier         = "mms";
@@ -402,16 +391,17 @@ static void *init_class (xine_t *xine, const void *data) {
   this->input_class.dispose            = mms_class_dispose;
   this->input_class.eject_media        = NULL;
 
-  xine->config->register_enum(xine->config, "media.network.bandwidth", 10,
-			      (char **)mms_bandwidth_strs,
-			      _("network bandwidth"),
-			      _("Specify the bandwidth of your internet connection here. "
-			        "This will be used when streaming servers offer different versions "
-				"with different bandwidth requirements of the same stream."),
-			      0, bandwidth_changed_cb, (void*) this);
+  i = xine->config->register_enum (xine->config, "media.network.bandwidth",
+    10,
+    (char **)mms_bandwidth_strs,
+    _("network bandwidth"),
+    _("Specify the bandwidth of your internet connection here. "
+      "This will be used when streaming servers offer different versions "
+      "with different bandwidth requirements of the same stream."),
+    0, bandwidth_changed_cb, (void*) this);
+  this->bandwidth = mms_bandwidths[((i >= 0) && (i < (int)NUM_BANDWIDTHS)) ? i : 10];
 
-  this->protocol = xine->config->register_enum(xine->config,
-    "media.network.mms_protocol",
+  this->protocol = xine->config->register_enum (xine->config, "media.network.mms_protocol",
     0,
     (char **)mms_protocol_strs,
     _("MMS protocol"),
