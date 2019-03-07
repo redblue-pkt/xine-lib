@@ -39,10 +39,10 @@
 */
 
 /* TJ. this is what my 32bit Linux running on a AMD Athlon II X2 240e (2 * 2800Mhz)
-  performed @ 1024x576, 19 fps:
-  goom: csc_method 0 min 5355 us avg 5398 us
-  goom: csc_method 1 min 12718 us avg 12855 us
-  goom: csc_method 2 min 4199 us avg 4289 us
+  performed @ 1280x720, 19 fps:
+  goom: csc_method 0 min 8257 us avg 8308 us
+  goom: csc_method 1 min 16312 us avg 16413 us
+  goom: csc_method 2 min 5019 us avg 5134 us
   Seems gcc 4.5 has a very nice 64bit math emulation :-)
 */
 #define BENCHMARK 1
@@ -271,7 +271,7 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   this->rgb2yuy2 = rgb2yuy2_alloc (10, "bgra");
 #endif
 #ifdef BENCHMARK
-  this->benchmark_frames = 0;
+  this->benchmark_frames = 200 - 1;
   this->benchmark_min = 10000000;
   this->benchmark_time = 0;
 #endif
@@ -351,6 +351,12 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
 
   (this->vo_port->open) (this->vo_port, XINE_ANON_STREAM);
   this->metronom->set_master(this->metronom, stream->metronom);
+
+#ifdef BENCHMARK
+  this->benchmark_frames = 200 - 1;
+  this->benchmark_min = 10000000;
+  this->benchmark_time = 0;
+#endif
 
   return (port->original_port->open) (port->original_port, stream, bits, rate, mode );
 }
@@ -480,7 +486,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
 
       if (!this->skip_frame) {
 #ifdef BENCHMARK
-        int elapsed;
+        int elapsed = 0;
 #endif
         /* Try to be fast */
         goom_frame = (uint8_t *)goom_update (this->goom, this->data, 0, 0, NULL, NULL);
@@ -489,7 +495,8 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
         goom_frame_end = goom_frame + 4 * (this->width_back * this->height_back);
 
 #ifdef BENCHMARK
-        elapsed = -now ();
+        if (this->benchmark_frames >= 0)
+          elapsed = -now ();
 #endif
 
         this->csc_method = this->class->csc_method;
@@ -572,13 +579,16 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
         }
 
 #ifdef BENCHMARK
-        elapsed += now ();
-        if (this->benchmark_frames < 200) {
+        if (this->benchmark_frames >= 0) {
+          elapsed += now ();
           this->benchmark_time += elapsed;
-          if (elapsed < this->benchmark_min) this->benchmark_min = elapsed;
-          this->benchmark_frames++;
-          if (this->benchmark_frames == 200) printf ("goom: csc_method %d min %d us avg %d us\n",
-            this->csc_method, this->benchmark_min, this->benchmark_time / 200);
+          if (elapsed < this->benchmark_min)
+            this->benchmark_min = elapsed;
+          if (--this->benchmark_frames < 0) {
+            xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+              "goom: csc_method %d min %d us avg %d us\n",
+              this->csc_method, this->benchmark_min, this->benchmark_time / 200);
+          }
         }
 #endif
 
