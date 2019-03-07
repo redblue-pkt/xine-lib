@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -89,6 +89,18 @@ struct config_values_s {
    * registered item, i.e. the default value if it was
    * not found in the config file or the current value
    * from the config file otherwise
+   *
+   * NOTE on callbacks:
+   * - callback shall be safe to run from _any_ thread.
+   *   There will be no 2 calls at the same time, though.
+   * - callback shall be safe to call at any time between
+   *   entering register_foo (), and leaving unregister_foo ().
+   * - There can be multiple callbacks for the same key.
+   *   They will run in no fixed order.
+   * - if cb_data is a real pointer, make sure it points to
+   *   valid thread shared memory (malloc'ed or static).
+   *   Plain stack variables will not work, and may cause
+   *   strange malfunction.
    */
 
   char* (*register_string) (config_values_t *self,
@@ -148,6 +160,7 @@ struct config_values_s {
 			xine_config_cb_t changed_cb,
 			void *cb_data);
 
+  /** not yet implemented */
   void (*register_entry) (config_values_t *self, cfg_entry_t* entry);
 
   /** convenience function to update range, enum, num and bool values */
@@ -169,7 +182,11 @@ struct config_values_s {
   cfg_entry_t* (*lookup_entry) (config_values_t *self, const char *key);
 
   /**
-   * unregister entry callback function
+   * unregister _all_ entry callback functions for this key.
+   * if there may be multiple callbacks on different cb_data,
+   * consider using unregister_callbacks (self, NULL, NULL, my_data, sizeof (*my_data))
+   * before freeing each instance instead. this also eliminates the need
+   * to unregister every key separately.
    */
   void (*unregister_callback) (config_values_t *self, const char *key);
 
@@ -251,6 +268,7 @@ config_values_t *_x_config_init (void);
 
 int _x_config_change_opt(config_values_t *config, const char *opt);
 
+/** deprecated in favour of config_values_t->unregister_callbacks (). */
 void _x_config_unregister_cb_class_d (config_values_t *config, void *callback_data) XINE_PROTECTED;
 void _x_config_unregister_cb_class_p (config_values_t *config, xine_config_cb_t callback) XINE_PROTECTED;
 
