@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -74,8 +74,10 @@ typedef struct post_class_goom_s post_class_goom_t;
 struct post_class_goom_s {
   post_class_t class;
 
-  post_plugin_goom_t *ip;
-  xine_t             *xine;
+  xine_t *xine;
+  int width, height;
+  int fps;
+  int csc_method;
 };
 
 struct post_plugin_goom_s {
@@ -100,10 +102,8 @@ struct post_plugin_goom_s {
   int channels;
   int sample_rate;
   int samples_per_frame;
-  int width, height;
   int width_back, height_back;
   double ratio;
-  int fps;
   int csc_method;
 
 
@@ -144,52 +144,29 @@ static void goom_port_put_buffer (xine_audio_port_t *this, audio_buffer_t *buf, 
 
 static void fps_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   post_class_goom_t *class = (post_class_goom_t*) data;
-
-  if(class->ip) {
-    post_plugin_goom_t *this = class->ip;
-
-    if (cfg->num_value < 1)
-      cfg->num_value = 1;
-
-    this->fps = cfg->num_value;
-
-    if(this->sample_rate)
-      this->samples_per_frame = this->sample_rate / this->fps;
-  }
+  class->fps = cfg->num_value < 1 ? 1
+             : cfg->num_value > 50 ? 50
+             : cfg->num_value;
 }
 
 static void width_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   post_class_goom_t *class = (post_class_goom_t*) data;
-
-  if(class->ip) {
-    post_plugin_goom_t *this = class->ip;
-    this->width = cfg->num_value;
-  }
+  class->width = cfg->num_value;
 }
 
 static void height_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   post_class_goom_t *class = (post_class_goom_t*) data;
-
-  if(class->ip) {
-    post_plugin_goom_t *this = class->ip;
-    this->height = cfg->num_value;
-  }
+  class->height = cfg->num_value;
 }
 
 static void csc_method_changed_cb(void *data, xine_cfg_entry_t *cfg) {
   post_class_goom_t *class = (post_class_goom_t*) data;
-
-  if(class->ip) {
-    post_plugin_goom_t *this = class->ip;
-    this->csc_method = cfg->num_value;
-  }
+  class->csc_method = cfg->num_value;
 }
 
-static void *goom_init_plugin(xine_t *xine, const void *data)
-{
-  post_class_goom_t *this = calloc(1, sizeof(post_class_goom_t));
+static void *goom_init_plugin (xine_t *xine, const void *data) {
   config_values_t   *cfg;
-
+  post_class_goom_t *this = calloc (1, sizeof (*this));
   if (!this)
     return NULL;
 
@@ -199,34 +176,35 @@ static void *goom_init_plugin(xine_t *xine, const void *data)
   this->class.identifier      = "goom";
   this->class.description     = N_("What a GOOM");
   this->class.dispose         = goom_class_dispose;
-  this->ip                    = NULL;
   this->xine                  = xine;
 
   cfg = xine->config;
 
-  cfg->register_num (cfg, "effects.goom.fps", FPS,
-                                 _("frames per second to generate"),
-                                 _("With more frames per second, the animation will get "
-				   "smoother and faster, but will also require more CPU power."),
-				 10, fps_changed_cb, this);
+  this->fps = cfg->register_num (cfg, "effects.goom.fps", FPS,
+    _("frames per second to generate"),
+    _("With more frames per second, the animation will get "
+      "smoother and faster, but will also require more CPU power."),
+    10, fps_changed_cb, this);
+  this->fps = this->fps < 1 ? 1
+            : this->fps > 50 ? 50
+            : this->fps;
 
-  cfg->register_num (cfg, "effects.goom.width", GOOM_WIDTH,
-                                   _("goom image width"),
-				   _("The width in pixels of the image to be generated."),
-                                   10, width_changed_cb, this);
+  this->width = cfg->register_num (cfg, "effects.goom.width", GOOM_WIDTH,
+    _("goom image width"),
+    _("The width in pixels of the image to be generated."),
+    10, width_changed_cb, this);
 
-  cfg->register_num (cfg, "effects.goom.height", GOOM_HEIGHT,
-                                    _("goom image height"),
-				    _("The height in pixels of the image to be generated."),
-                                    10, height_changed_cb, this);
+  this->height = cfg->register_num (cfg, "effects.goom.height", GOOM_HEIGHT,
+    _("goom image height"),
+    _("The height in pixels of the image to be generated."),
+    10, height_changed_cb, this);
 
-
-  cfg->register_enum (cfg, "effects.goom.csc_method", 0,
-                           (char **)goom_csc_methods,
-                           _("colour space conversion method"),
-                           _("You can choose the colour space conversion method used by goom.\n"
-			     "The available selections should be self-explaining."),
-			   20, csc_method_changed_cb, this);
+  this->csc_method = cfg->register_enum (cfg, "effects.goom.csc_method", 0,
+    (char **)goom_csc_methods,
+    _("colour space conversion method"),
+    _("You can choose the colour space conversion method used by goom.\n"
+      "The available selections should be self-explaining."),
+    20, csc_method_changed_cb, this);
 
   return &this->class;
 }
@@ -242,7 +220,6 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
   post_out_t         *output;
   post_out_t         *outputv;
   post_audio_port_t  *port;
-  xine_cfg_entry_t    fps_entry, width_entry, height_entry, csc_method_entry;
 
   if (!this || !video_target || !video_target[0] || !audio_target || !audio_target[0]) {
     free(this);
@@ -253,35 +230,15 @@ static post_plugin_t *goom_open_plugin(post_class_t *class_gen, int inputs,
 
   _x_post_init(&this->post, 1, 0);
 
-  /*
-   * Lookup config entries.
-   */
   this->class = class;
-  class->ip   = this;
   this->vo_port = video_target[0];
 
   this->metronom = _x_metronom_init(1, 0, class->xine);
 
   lprintf("goom_open_plugin\n");
 
-  if(xine_config_lookup_entry(class->xine, "effects.goom.fps",
-                              &fps_entry))
-    fps_changed_cb(class, &fps_entry);
-
-  if(xine_config_lookup_entry(class->xine, "effects.goom.width",
-                              &width_entry))
-    width_changed_cb(class, &width_entry);
-
-  if(xine_config_lookup_entry(class->xine, "effects.goom.height",
-                              &height_entry))
-    height_changed_cb(class, &height_entry);
-
-  if(xine_config_lookup_entry(class->xine, "effects.goom.csc_method",
-                              &csc_method_entry))
-    csc_method_changed_cb(class, &csc_method_entry);
-
-  this->width_back  = this->width;
-  this->height_back = this->height;
+  this->width_back  = class->width;
+  this->height_back = class->height;
 
   srand((unsigned int)time((time_t *)NULL));
   this->goom = goom_init (this->width_back, this->height_back);
@@ -326,14 +283,7 @@ static void goom_class_dispose(post_class_t *class_gen)
 {
   post_class_goom_t  *this = (post_class_goom_t*) class_gen;
 
-  this->xine->config->unregister_callback(this->xine->config,
-					  "effects.goom.fps");
-  this->xine->config->unregister_callback(this->xine->config,
-					  "effects.goom.width");
-  this->xine->config->unregister_callback(this->xine->config,
-					  "effects.goom.height");
-  this->xine->config->unregister_callback(this->xine->config,
-					  "effects.goom.csc_method");
+  this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
 
   free(class_gen);
 }
@@ -346,8 +296,6 @@ static void goom_dispose(post_plugin_t *this_gen)
   if (_x_post_dispose(this_gen)) {
 
     rgb2yuy2_free (this->rgb2yuy2);
-
-    this->class->ip = NULL;
 
     goom_close(this->goom);
 
@@ -393,9 +341,9 @@ static int goom_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
 
   this->channels = _x_ao_mode2channels(mode);
   this->sample_rate = rate;
-  this->samples_per_frame = rate / this->fps;
+  this->samples_per_frame = rate / this->class->fps;
   this->data_idx = 0;
-  init_yuv_planes(&this->yuv, this->width, this->height);
+  init_yuv_planes(&this->yuv, this->width_back, this->height_back);
   this->skip_frame = 0;
 
   this->do_samples_skip = 0;
@@ -544,6 +492,7 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
         elapsed = -now ();
 #endif
 
+        this->csc_method = this->class->csc_method;
         if (this->csc_method == 2) {
 
           if (!frame->proc_slice || (frame->height & 15)) {
@@ -644,16 +593,16 @@ static void goom_port_put_buffer (xine_audio_port_t *port_gen,
 
       frame->free(frame);
 
-      width  = this->width;
-      height = this->height;
+      width  = this->class->width;
+      height = this->class->height;
       if ((width != this->width_back) || (height != this->height_back)) {
         goom_close(this->goom);
-        this->goom = goom_init (this->width, this->height);
+        this->goom = goom_init (width, height);
         this->width_back = width;
         this->height_back = height;
         this->ratio = (double)width/(double)height;
         free_yuv_planes(&this->yuv);
-        init_yuv_planes(&this->yuv, this->width, this->height);
+        init_yuv_planes(&this->yuv, width, height);
       }
     }
   }
