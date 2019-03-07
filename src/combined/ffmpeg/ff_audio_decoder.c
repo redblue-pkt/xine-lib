@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 the xine project
+ * Copyright (C) 2001-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1333,7 +1333,7 @@ static void dispose_audio_class (audio_decoder_class_t *this_gen) {
   ff_audio_class_t *this = (ff_audio_class_t *)this_gen;
   config_values_t *config = this->xine->config;
 
-  config->unregister_callback (config, "audio.processing.ffmpeg_gain_dB");
+  config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
 
   free (this);
 }
@@ -1374,3 +1374,4 @@ const decoder_info_t dec_info_ffmpeg_audio = {
   supported_audio_types,   /* supported types */
   7                        /* priority        */
 };
+
