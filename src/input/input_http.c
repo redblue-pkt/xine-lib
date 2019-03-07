@@ -1152,11 +1152,7 @@ static void http_class_dispose (input_class_t *this_gen) {
   http_input_class_t  *this = (http_input_class_t *) this_gen;
   config_values_t     *config = this->xine->config;
 
-  config->unregister_callback(config, "media.network.http_proxy_host");
-  config->unregister_callback(config, "media.network.http_proxy_port");
-  config->unregister_callback(config, "media.network.http_proxy_user");
-  config->unregister_callback(config, "media.network.http_proxy_password");
-  config->unregister_callback(config, "media.network.http_no_proxy");
+  config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
 
   free (this);
 }
@@ -1204,14 +1200,17 @@ void *input_http_init_class (xine_t *xine, const void *data) {
   /*
    * proxy settings
    */
-  this->proxyhost = config->register_string(config,
-					    "media.network.http_proxy_host", proxyhost_env ? proxyhost_env : "",
-					    _("HTTP proxy host"), _("The hostname of the HTTP proxy."), 10,
-					    proxy_host_change_cb, (void *) this);
-  this->proxyport = config->register_num(config,
-					 "media.network.http_proxy_port", proxyport_env,
-					 _("HTTP proxy port"), _("The port number of the HTTP proxy."), 10,
-					 proxy_port_change_cb, (void *) this);
+  this->proxyhost = config->register_string (config, "media.network.http_proxy_host",
+    proxyhost_env ? proxyhost_env : "",
+    _("HTTP proxy host"),
+    _("The hostname of the HTTP proxy."),
+    10, proxy_host_change_cb, (void *) this);
+
+  this->proxyport = config->register_num (config, "media.network.http_proxy_port",
+    proxyport_env,
+    _("HTTP proxy port"),
+    _("The port number of the HTTP proxy."),
+    10, proxy_port_change_cb, (void *) this);
 
   /* registered entries could be empty. Don't ignore envvar */
   if(!strlen(this->proxyhost) && (proxyhost_env && strlen(proxyhost_env))) {
@@ -1220,20 +1219,26 @@ void *input_http_init_class (xine_t *xine, const void *data) {
   }
   _x_freep(&proxyhost_env);
 
-  this->proxyuser = config->register_string(config,
-					    "media.network.http_proxy_user", "", _("HTTP proxy username"),
-					    _("The user name for the HTTP proxy."), 10,
-					    proxy_user_change_cb, (void *) this);
-  this->proxypassword = config->register_string(config,
-						"media.network.http_proxy_password", "", _("HTTP proxy password"),
-						_("The password for the HTTP proxy."), 10,
-						proxy_password_change_cb, (void *) this);
-  this->noproxylist = config->register_string(config,
-					      "media.network.http_no_proxy", "", _("Domains for which to ignore the HTTP proxy"),
-					      _("A comma-separated list of domain names for which the proxy is to be ignored.\nIf a domain name is prefixed with '=' then it is treated as a host name only (full match required)."), 10,
-					      no_proxy_list_change_cb, (void *) this);
+  this->proxyuser = config->register_string (config, "media.network.http_proxy_user",
+    "",
+    _("HTTP proxy username"),
+    _("The user name for the HTTP proxy."),
+    10, proxy_user_change_cb, (void *) this);
+
+  this->proxypassword = config->register_string (config, "media.network.http_proxy_password",
+    "",
+    _("HTTP proxy password"),
+    _("The password for the HTTP proxy."),
+    10, proxy_password_change_cb, (void *) this);
+
+  this->noproxylist = config->register_string (config, "media.network.http_no_proxy",
+    "",
+    _("Domains for which to ignore the HTTP proxy"),
+    _("A comma-separated list of domain names for which the proxy is to be ignored.\n"
+      "If a domain name is prefixed with '=' then it is treated as a host name only "
+      "(full match required)."),
+    10, no_proxy_list_change_cb, (void *) this);
 
   return this;
 }
-
 
