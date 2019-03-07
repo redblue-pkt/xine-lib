@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  * Copyright (C) 2009-2011 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -101,6 +101,7 @@ typedef struct {
   const char     *country;
   int             region;
   int             parental;
+  int             skip_mode;
 } bluray_input_class_t;
 
 #if BLURAY_VERSION >= BLURAY_VERSION_CODE(0, 2, 4)
@@ -1040,9 +1041,7 @@ static void handle_events(bluray_input_plugin_t *this)
       case XINE_EVENT_INPUT_NUMBER_9:  bd_user_input(this->bdh, pts, BD_VK_9); break;
 
       case XINE_EVENT_INPUT_NEXT: {
-        cfg_entry_t* entry = this->class->xine->config->lookup_entry(this->class->xine->config,
-                                                                     "media.bluray.skip_behaviour");
-        switch (entry->num_value) {
+        switch (this->class->skip_mode) {
           case 0: /* skip by chapter */
             bd_seek_chapter(this->bdh, bd_get_current_chapter(this->bdh) + 1);
             update_stream_info(this);
@@ -1060,9 +1059,7 @@ static void handle_events(bluray_input_plugin_t *this)
       }
 
       case XINE_EVENT_INPUT_PREVIOUS: {
-        cfg_entry_t* entry = this->class->xine->config->lookup_entry(this->class->xine->config,
-                                                                     "media.bluray.skip_behaviour");
-        switch (entry->num_value) {
+        switch (this->class->skip_mode) {
           case 0: /* skip by chapter */
             bd_seek_chapter(this->bdh, MAX(0, ((int)bd_get_current_chapter(this->bdh)) - 1));
             update_stream_info(this);
@@ -1834,6 +1831,11 @@ static void parental_change_cb(void *data, xine_cfg_entry_t *cfg)
   class->parental = cfg->num_value;
 }
 
+static void skip_mode_change_cb (void *data, xine_cfg_entry_t *cfg) {
+  bluray_input_class_t *class = (bluray_input_class_t *) data;
+  class->skip_mode = cfg->num_value;
+}
+
 static const char * const *bluray_class_get_autoplay_list (input_class_t *this_gen, int *num_files)
 {
   static const char * const autoplay_list[] = { "bluray:/", NULL };
@@ -1900,12 +1902,7 @@ static void bluray_class_dispose (input_class_t *this_gen)
 
   _x_input_free_mrls(&this->xine_playlist);
 
-  config->unregister_callback(config, "media.bluray.mountpoint");
-  config->unregister_callback(config, "media.bluray.device");
-  config->unregister_callback(config, "media.bluray.region");
-  config->unregister_callback(config, "media.bluray.language");
-  config->unregister_callback(config, "media.bluray.country");
-  config->unregister_callback(config, "media.bluray.parental");
+  config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
 
   free (this);
 }
@@ -1931,59 +1928,55 @@ static void *bluray_init_plugin (xine_t *xine, const void *data)
   this->input_class.identifier     = "bluray";
   this->input_class.description    = _("BluRay input plugin");
 
-  this->mountpoint =
-    config->register_filename(config, "media.bluray.mountpoint",
-                              BLURAY_MNT_PATH, XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
-                              _("BluRay mount point"),
-                              _("Default mount location for BluRay discs."),
-                              0, mountpoint_change_cb, (void *) this);
-  this->device =
-    config->register_filename(config, "media.bluray.device",
-                              BLURAY_PATH, XINE_CONFIG_STRING_IS_DEVICE_NAME,
-                              _("device used for BluRay playback"),
-                              _("The path to the device "
-                                "which you intend to use for playing BluRay discs."),
-                              0, device_change_cb, (void *) this);
+  this->mountpoint = config->register_filename (config, "media.bluray.mountpoint",
+    BLURAY_MNT_PATH, XINE_CONFIG_STRING_IS_DIRECTORY_NAME,
+    _("BluRay mount point"),
+    _("Default mount location for BluRay discs."),
+    0, mountpoint_change_cb, (void *) this);
+
+  this->device = config->register_filename (config, "media.bluray.device",
+    BLURAY_PATH, XINE_CONFIG_STRING_IS_DEVICE_NAME,
+    _("device used for BluRay playback"),
+    _("The path to the device which you intend to use for playing BluRay discs."),
+    0, device_change_cb, (void *) this);
 
   /* Player settings */
-  this->language =
-    config->register_string(config, "media.bluray.language",
-                            "eng",
-                            _("default language for BluRay playback"),
-                            _("xine tries to use this language as a default for BluRay playback. "
-                              "As far as the BluRay supports it, menus and audio tracks will be presented "
-                              "in this language.\nThe value must be a three character"
-                              "ISO639-2 language code."),
-                            0, language_change_cb, this);
-  this->country =
-    config->register_string(config, "media.bluray.country",
-                            "en",
-                            _("BluRay player country code"),
-                            _("The value must be a two character ISO3166-1 country code."),
-                            0, country_change_cb, this);
-  this->region =
-    config->register_num(config, "media.bluray.region",
-                         7,
-                         _("BluRay player region code (1=A, 2=B, 4=C)"),
-                         _("This only needs to be changed if your BluRay jumps to a screen "
-                           "complaining about a wrong region code. It has nothing to do with "
-                           "the region code set in BluRay drives, this is purely software."),
-                         0, region_change_cb, this);
-  this->parental =
-    config->register_num(config, "media.bluray.parental",
-                         99,
-                         _("parental control age limit (1-99)"),
-                         _("Prevents playback of BluRay titles where parental "
-                           "control age limit is higher than this limit"),
-                         0, parental_change_cb, this);
+  this->language = config->register_string (config, "media.bluray.language",
+    "eng",
+    _("default language for BluRay playback"),
+    _("xine tries to use this language as a default for BluRay playback. "
+      "As far as the BluRay supports it, menus and audio tracks will be presented in this language.\n"
+      "The value must be a three characterISO639-2 language code."),
+    0, language_change_cb, this);
 
-  /* */
-  config->register_enum(config, "media.bluray.skip_behaviour", 0,
-                        (char **)skip_modes,
-                        _("unit for the skip action"),
-                        _("You can configure the behaviour when issuing a skip command (using the skip "
-                          "buttons for example)."),
-                        20, NULL, NULL);
+  this->country = config->register_string (config, "media.bluray.country",
+    "en",
+    _("BluRay player country code"),
+    _("The value must be a two character ISO3166-1 country code."),
+    0, country_change_cb, this);
+
+  this->region = config->register_num (config, "media.bluray.region",
+    7,
+    _("BluRay player region code (1=A, 2=B, 4=C)"),
+    _("This only needs to be changed if your BluRay jumps to a screen "
+      "complaining about a wrong region code. It has nothing to do with "
+      "the region code set in BluRay drives, this is purely software."),
+    0, region_change_cb, this);
+
+  this->parental = config->register_num (config, "media.bluray.parental",
+    99,
+    _("parental control age limit (1-99)"),
+    _("Prevents playback of BluRay titles where parental control age limit "
+      "is higher than this limit"),
+    0, parental_change_cb, this);
+
+  this->skip_mode = config->register_enum (config, "media.bluray.skip_behaviour",
+    0,
+    (char **)skip_modes,
+    _("unit for the skip action"),
+    _("You can configure the behaviour when issuing a skip command (using the skip "
+      "buttons for example)."),
+    20, skip_mode_change_cb, this);
 
   return this;
 }
