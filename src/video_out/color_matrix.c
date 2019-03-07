@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2017 the xine project
+ * Copyright (C) 2012-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -248,9 +248,7 @@ static int cm_from_frame (vo_frame_t *frame) {
 
 static void cm_close (CM_DRIVER_T *this) {
   /* dont know whether this is really necessary */
-  this->xine->config->unregister_callback (this->xine->config, CR_CONFIG_NAME);
-  this->xine->config->unregister_callback (this->xine->config, CM_CONFIG_NAME);
+  this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
 }
 
 #endif /* defined CM_DRIVER_T */
-
