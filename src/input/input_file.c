@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -922,7 +922,7 @@ static void file_input_class_dispose (input_class_t *this_gen) {
   file_input_class_t  *this = (file_input_class_t *) this_gen;
   config_values_t     *config = this->xine->config;
 
-  config->unregister_callback(config, "media.files.origin_path");
+  config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
 
   while(this->mrls_allocated_entries) {
     this->mrls_allocated_entries--;
