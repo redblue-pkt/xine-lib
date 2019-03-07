@@ -1275,7 +1275,7 @@ static void metronom_exit (metronom_t *this_gen) {
 
   metronom_impl_t *this = (metronom_impl_t *)this_gen;
 
-  this->xine->config->unregister_callback (this->xine->config, "video.output.base_delay");
+  this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
 
   pthread_mutex_destroy (&this->lock);
   pthread_cond_destroy (&this->video_discontinuity_reached);
@@ -1288,7 +1288,7 @@ static void metronom_clock_exit (metronom_clock_t *this) {
   metronom_clock_private_t *this_priv = (metronom_clock_private_t *)this;
   scr_plugin_t **r;
 
-  this_priv->mct.xine->config->unregister_callback (this_priv->mct.xine->config, "engine.use_metronom_sync_thread");
+  this_priv->mct.xine->config->unregister_callbacks (this_priv->mct.xine->config, NULL, NULL, this_priv, sizeof (*this_priv));
 
   metronom_stop_sync_thread (this_priv);
 
