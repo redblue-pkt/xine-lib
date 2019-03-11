@@ -633,11 +633,15 @@ static void decode_render( vdpau_vc1_decoder_t *vd, vdpau_accel_t *accel, uint8_
 
   VdpStatus st;
   if ( vd->decoder==VDP_INVALID_HANDLE || vd->decoder_profile!=seq->profile || vd->decoder_width!=seq->coded_width || vd->decoder_height!=seq->coded_height ) {
+    if (accel->lock)
+      accel->lock (accel->vo_frame);
     if ( vd->decoder!=VDP_INVALID_HANDLE ) {
       accel->vdp_decoder_destroy( vd->decoder );
       vd->decoder = VDP_INVALID_HANDLE;
     }
     st = accel->vdp_decoder_create( accel->vdp_device, seq->profile, seq->coded_width, seq->coded_height, 2, &vd->decoder);
+    if (accel->unlock)
+      accel->unlock (accel->vo_frame);
     if ( st!=VDP_STATUS_OK )
       fprintf(stderr, "vdpau_vc1: failed to create decoder !! %s\n", accel->vdp_get_error_string( st ) );
     else {
@@ -655,7 +659,11 @@ static void decode_render( vdpau_vc1_decoder_t *vd, vdpau_accel_t *accel, uint8_
   vbit.bitstream_bytes = len;
   if ( pic->field )
     vbit.bitstream_bytes = pic->field;
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   st = accel->vdp_decoder_render( vd->decoder, accel->surface, CAST_VdpPictureInfo_PTR &pic->vdp_infos, 1, &vbit );
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
   if ( st!=VDP_STATUS_OK )
     fprintf(stderr, "vdpau_vc1: decoder failed : %d!! %s\n", st, accel->vdp_get_error_string( st ) );
   else {
@@ -697,7 +705,11 @@ static void decode_render( vdpau_vc1_decoder_t *vd, vdpau_accel_t *accel, uint8_
     }
     vbit.bitstream = buf+pic->field+4;
     vbit.bitstream_bytes = len-pic->field-4;
+    if (accel->lock)
+      accel->lock (accel->vo_frame);
     st = accel->vdp_decoder_render( vd->decoder, accel->surface, CAST_VdpPictureInfo_PTR &pic->vdp_infos, 1, &vbit );
+    if (accel->unlock)
+      accel->unlock (accel->vo_frame);
     if ( st!=VDP_STATUS_OK )
       fprintf(stderr, "vdpau_vc1: decoder failed : %d!! %s\n", st, accel->vdp_get_error_string( st ) );
     else {
@@ -1053,8 +1065,12 @@ static void vdpau_vc1_dispose (video_decoder_t *this_gen) {
   lprintf( "vdpau_vc1_dispose\n" );
 
   if ( this->decoder!=VDP_INVALID_HANDLE && this->sequence.accel_vdpau ) {
+      if (this->sequence.accel_vdpau->lock)
+        this->sequence.accel_vdpau->lock (this->sequence.accel_vdpau->vo_frame);
       this->sequence.accel_vdpau->vdp_decoder_destroy( this->decoder );
       this->decoder = VDP_INVALID_HANDLE;
+      if (this->sequence.accel_vdpau->unlock)
+        this->sequence.accel_vdpau->unlock (this->sequence.accel_vdpau->vo_frame);
     }
 
   reset_sequence( &this->sequence );
@@ -1091,13 +1107,21 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   int runtime_nr = accel->vdp_runtime_nr;
   img->free(img);
   VdpDecoder decoder;
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   VdpStatus st = accel->vdp_decoder_create( accel->vdp_device, VDP_DECODER_PROFILE_VC1_MAIN, 1920, 1080, 2, &decoder );
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
   if ( st!=VDP_STATUS_OK ) {
     lprintf( "can't create vdpau decoder.\n" );
     return NULL;
   }
 
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   accel->vdp_decoder_destroy( decoder );
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
 
   this = (vdpau_vc1_decoder_t *) calloc(1, sizeof(vdpau_vc1_decoder_t));
 
@@ -1152,4 +1176,5 @@ void *vc1_init_plugin (xine_t *xine, const void *data) {
 
   return (void *)&decode_video_vdpau_vc1_class;
 }
+
 

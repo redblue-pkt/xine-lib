@@ -1,6 +1,6 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2008-2018 the xine project
+ * Copyright (C) 2008-2019 the xine project
  * Copyright (C) 2008 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -685,11 +685,15 @@ static void decode_render( vdpau_mpeg12_decoder_t *vd, vdpau_accel_t *accel )
 
   VdpStatus st;
   if ( vd->decoder==VDP_INVALID_HANDLE || vd->decoder_profile!=seq->profile || vd->decoder_width!=seq->coded_width || vd->decoder_height!=seq->coded_height ) {
+    if (accel->lock)
+      accel->lock (accel->vo_frame);
     if ( vd->decoder!=VDP_INVALID_HANDLE ) {
       accel->vdp_decoder_destroy( vd->decoder );
       vd->decoder = VDP_INVALID_HANDLE;
     }
     st = accel->vdp_decoder_create( accel->vdp_device, seq->profile, seq->coded_width, seq->coded_height, 2, &vd->decoder);
+    if (accel->unlock)
+      accel->unlock (accel->vo_frame);
     if ( st!=VDP_STATUS_OK )
       lprintf( "failed to create decoder !! %s\n", accel->vdp_get_error_string( st ) );
     else {
@@ -704,7 +708,11 @@ static void decode_render( vdpau_mpeg12_decoder_t *vd, vdpau_accel_t *accel )
   vbit.struct_version = VDP_BITSTREAM_BUFFER_VERSION;
   vbit.bitstream = pic->slices;
   vbit.bitstream_bytes = (pic->vdp_infos.picture_structure==PICTURE_FRAME)? pic->slices_pos : pic->slices_pos_top;
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   st = accel->vdp_decoder_render( vd->decoder, accel->surface, CAST_VdpPictureInfo_PTR &pic->vdp_infos, 1, &vbit );
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
 #ifdef LOG
   if ( st!=VDP_STATUS_OK )
     lprintf( "decoder failed : %d!! %s\n", st, accel->vdp_get_error_string( st ) );
@@ -734,7 +742,11 @@ static void decode_render( vdpau_mpeg12_decoder_t *vd, vdpau_accel_t *accel )
     vbit.struct_version = VDP_BITSTREAM_BUFFER_VERSION;
     vbit.bitstream = pic->slices+pic->slices_pos_top;
     vbit.bitstream_bytes = pic->slices_pos-pic->slices_pos_top;
+    if (accel->lock)
+      accel->lock (accel->vo_frame);
     st = accel->vdp_decoder_render( vd->decoder, accel->surface, CAST_VdpPictureInfo_PTR &pic->vdp_infos2, 1, &vbit );
+    if (accel->unlock)
+      accel->unlock (accel->vo_frame);
     if ( st!=VDP_STATUS_OK )
       lprintf( "decoder failed : %d!! %s\n", st, accel->vdp_get_error_string( st ) );
     else
@@ -994,8 +1006,12 @@ static void vdpau_mpeg12_dispose (video_decoder_t *this_gen) {
   lprintf( "vdpau_mpeg12_dispose\n" );
 
   if ( this->decoder!=VDP_INVALID_HANDLE && this->sequence.accel_vdpau ) {
+      if (this->sequence.accel_vdpau->lock)
+        this->sequence.accel_vdpau->lock (this->sequence.accel_vdpau->vo_frame);
       this->sequence.accel_vdpau->vdp_decoder_destroy( this->decoder );
       this->decoder = VDP_INVALID_HANDLE;
+      if (this->sequence.accel_vdpau->unlock)
+        this->sequence.accel_vdpau->unlock (this->sequence.accel_vdpau->vo_frame);
     }
 
   free_sequence( &this->sequence );
@@ -1033,13 +1049,21 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   int runtime_nr = accel->vdp_runtime_nr;
   img->free(img);
   VdpDecoder decoder;
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   VdpStatus st = accel->vdp_decoder_create( accel->vdp_device, VDP_DECODER_PROFILE_MPEG2_MAIN, 1920, 1080, 2, &decoder );
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
   if ( st!=VDP_STATUS_OK ) {
     lprintf( "can't create vdpau decoder.\n" );
     return NULL;
   }
 
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   accel->vdp_decoder_destroy( decoder );
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
 
   this = (vdpau_mpeg12_decoder_t *) calloc(1, sizeof(vdpau_mpeg12_decoder_t));
 
