@@ -1,5 +1,5 @@
 /* kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2008-2018 the xine project
+ * Copyright (C) 2008-2019 the xine project
  * Copyright (C) 2008 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -1741,6 +1741,8 @@ decode_render (vdpau_h264_alter_decoder_t * vd, int bad_frame)
       || vd->decoder_width != seq->coded_width
       || vd->decoder_height != seq->coded_height)
   {
+    if (accel->lock)
+      accel->lock (accel->vo_frame);
     if (vd->decoder != VDP_INVALID_HANDLE)
     {
       accel->vdp_decoder_destroy (vd->decoder);
@@ -1750,6 +1752,8 @@ decode_render (vdpau_h264_alter_decoder_t * vd, int bad_frame)
       accel->vdp_decoder_create (accel->vdp_device, seq->profile,
 				 seq->coded_width, seq->coded_height,
 				 sp->num_ref_frames, &vd->decoder);
+    if (accel->unlock)
+      accel->unlock (accel->vo_frame);
     if (st != VDP_STATUS_OK)
       fprintf (stderr, "vdpau_h264_alter : failed to create decoder !! %s\n",
 	       accel->vdp_get_error_string (st));
@@ -1852,10 +1856,14 @@ decode_render (vdpau_h264_alter_decoder_t * vd, int bad_frame)
     vbits[(i * 2) + 1].bitstream = seq->buf + seq->slices[i].buf_offset;
     vbits[(i * 2) + 1].bitstream_bytes = seq->slices[i].len;
   }
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   st =
     accel->vdp_decoder_render (vd->decoder, accel->surface,
 			       CAST_VdpPictureInfo_PTR &info,
 			       seq->slices_count * 2, vbits);
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
   if (st != VDP_STATUS_OK)
     lprintf ("**********************DECODING failed! - surface = %d - %s\n",
 	     accel->surface, accel->vdp_get_error_string (st));
@@ -2340,8 +2348,12 @@ vdpau_h264_alter_dispose (video_decoder_t * this_gen)
 
   if ((this->decoder != VDP_INVALID_HANDLE) && this->sequence.accel_vdpau)
   {
+    if (this->sequence.accel_vdpau->lock)
+      this->sequence.accel_vdpau->lock (this->sequence.accel_vdpau->vo_frame);
     this->sequence.accel_vdpau->vdp_decoder_destroy (this->decoder);
     this->decoder = VDP_INVALID_HANDLE;
+    if (this->sequence.accel_vdpau->unlock)
+      this->sequence.accel_vdpau->unlock (this->sequence.accel_vdpau->vo_frame);
   }
   reset_sequence (&this->sequence);
 
@@ -2391,17 +2403,25 @@ open_plugin (video_decoder_class_t * class_gen, xine_stream_t * stream)
   int runtime_nr = accel->vdp_runtime_nr;
   img->free (img);
   VdpDecoder decoder;
-  VdpStatus st =
-    accel->vdp_decoder_create (accel->vdp_device,
+  VdpStatus st;
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
+  st =accel->vdp_decoder_create (accel->vdp_device,
 			       VDP_DECODER_PROFILE_H264_MAIN, 1920, 1080, 16,
 			       &decoder);
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
   if (st != VDP_STATUS_OK)
   {
     fprintf (stderr, "can't create vdpau decoder!\n");
     return NULL;
   }
 
+  if (accel->lock)
+    accel->lock (accel->vo_frame);
   accel->vdp_decoder_destroy (decoder);
+  if (accel->unlock)
+    accel->unlock (accel->vo_frame);
 
   this =
     (vdpau_h264_alter_decoder_t *) calloc (1,

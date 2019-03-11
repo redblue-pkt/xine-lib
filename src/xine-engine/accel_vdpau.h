@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2018 the xine project
+ * Copyright (C) 2008-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -39,9 +39,14 @@ typedef struct {
   VdpDevice vdp_device;
 
   VdpGetErrorString *vdp_get_error_string;
+
   VdpDecoderCreate *vdp_decoder_create;
   VdpDecoderDestroy *vdp_decoder_destroy;
   VdpDecoderRender *vdp_decoder_render;
+
+  /* if not NULL, call these around the 3 above. */
+  void (*lock) (vo_frame_t *frame);
+  void (*unlock) (vo_frame_t *frame);
 
   VdpVideoSurface surface;
   VdpChromaType chroma;
