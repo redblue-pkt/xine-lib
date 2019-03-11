@@ -3918,7 +3918,10 @@ static void vaapi_dispose_locked (vo_driver_t *this_gen) {
   ff_vaapi_context_t  *va_context = this->va_context;
   config_values_t     *config = this->xine->config;
 
+  /* cm_close already does this.
   config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
+  */
+  cm_close (this);
 
   _x_vo_scale_cleanup (&this->sc, config);
 
@@ -3953,8 +3956,6 @@ static void vaapi_dispose_locked (vo_driver_t *this_gen) {
 
   pthread_mutex_unlock(&this->vaapi_lock);
   pthread_mutex_destroy(&this->vaapi_lock);
-
-  cm_close (this);
 
   free (this);
 }

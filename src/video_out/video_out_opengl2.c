@@ -1,6 +1,6 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2012-2018 the xine project
+ * Copyright (C) 2012-2019 the xine project
  * Copyright (C) 2012 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -1675,8 +1675,9 @@ static void opengl2_dispose( vo_driver_t *this_gen )
 
   opengl2_exit_unregister( this );
 
+  /* cm_close already does this.
   this->xine->config->unregister_callbacks (this->xine->config, "video.output.opengl2_bicubic_scaling", NULL, this, sizeof (*this));
-
+  */
   cm_close (this);
   _x_vo_scale_cleanup (&this->sc, this->xine->config);
 
