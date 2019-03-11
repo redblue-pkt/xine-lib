@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1219,8 +1219,9 @@ static void xv_dispose (vo_driver_t *this_gen) {
 
   cm_close (this);
 
+  /* cm_close already does this.
   this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
-
+  */
   free (this);
 }
 
@@ -1852,3 +1853,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_VIDEO_OUT, 22, "xv", XINE_VERSION_CODE, &vo_info_xv_2, init_class_2 },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
+
