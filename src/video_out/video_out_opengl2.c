@@ -129,6 +129,7 @@ typedef struct {
   int                contrast;
   int                brightness;
   int                hue;
+  int                update_sharpness;
   int                sharpness;
 
   opengl2_program_t  bicubic_pass1_program;
@@ -841,7 +842,7 @@ static int opengl2_redraw_needed( vo_driver_t *this_gen )
     _x_vo_scale_compute_output_size( &this->sc );
     return 1;
   }
-  return this->update_csc;
+  return this->update_csc | this->update_sharpness;
 }
 
 
@@ -1337,6 +1338,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   }
 
   opengl2_update_csc_matrix( that, frame );
+  that->update_sharpness = 0;
 
   glBindFramebuffer( GL_FRAMEBUFFER, that->fbo );
 
@@ -1576,7 +1578,7 @@ static int opengl2_set_property( vo_driver_t *this_gen, int property, int value 
     case VO_PROP_SATURATION: this->saturation = value; this->update_csc = 1; break;
     case VO_PROP_CONTRAST: this->contrast = value; this->update_csc = 1; break;
     case VO_PROP_BRIGHTNESS: this->brightness = value; this->update_csc = 1; break;
-    case VO_PROP_SHARPNESS: this->sharpness = value; break;
+    case VO_PROP_SHARPNESS: this->sharpness = value; this->update_sharpness = 1; break;
   }
 
   return value;
@@ -1747,6 +1749,7 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
 #ifndef HAVE_ZERO_SAFE_MEM
   this->hue                            = 0;
   this->brightness                     = 0;
+  this->update_sharpness               = 0;
   this->sharpness                      = 0;
   this->sharpness_program.compiled     = 0;
   this->bicubic_pass1_program.compiled = 0;
@@ -1895,7 +1898,8 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
                      | VO_CAP_HUE
                      | VO_CAP_SATURATION
                      | VO_CAP_CONTRAST
-                     | VO_CAP_BRIGHTNESS;
+                     | VO_CAP_BRIGHTNESS
+                     | VO_CAP_SHARPNESS;
 
   this->update_csc = 1;
   this->color_standard = 10;

@@ -399,6 +399,7 @@ typedef struct {
   int               saturation;
   int               brightness;
   int               contrast;
+  int               update_s_n;
   int               sharpness;
   int               noise;
   int               deinterlace;
@@ -1388,7 +1389,7 @@ static int vdpau_redraw_needed (vo_driver_t *this_gen)
     _x_vo_scale_compute_output_size( &this->sc );
     return 1;
   }
-  return this->update_csc;
+  return this->update_csc | this->update_s_n;
 }
 
 
@@ -2035,6 +2036,7 @@ static void vdpau_reinit (vdpau_driver_t *this)
   vdpau_set_inverse_telecine (this);
   vdpau_update_noise( this );
   vdpau_update_sharpness( this );
+  this->update_s_n = 1;
   this->update_csc = 1;
   vdpau_update_skip_chroma( this );
   vdpau_update_background( this );
@@ -2158,6 +2160,7 @@ static void vdpau_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen)
   }
 
   vdpau_update_csc_matrix (this, frame);
+  this->update_s_n = 0;
 
   if (this->ovl_changed || redraw_needed)
     vdpau_process_overlays(this);
@@ -2372,8 +2375,8 @@ static int vdpau_set_property (vo_driver_t *this_gen, int property, int value)
     case VO_PROP_SATURATION: this->saturation = value; this->update_csc = 1; break;
     case VO_PROP_CONTRAST: this->contrast = value; this->update_csc = 1; break;
     case VO_PROP_BRIGHTNESS: this->brightness = value; this->update_csc = 1; break;
-    case VO_PROP_SHARPNESS: this->sharpness = value; vdpau_update_sharpness( this ); break;
-    case VO_PROP_NOISE_REDUCTION: this->noise = value; vdpau_update_noise( this ); break;
+    case VO_PROP_SHARPNESS: this->sharpness = value; vdpau_update_sharpness (this); this->update_s_n = 1; break;
+    case VO_PROP_NOISE_REDUCTION: this->noise = value; vdpau_update_noise (this); this->update_s_n = 1; break;
   }
 
   return value;
@@ -3121,6 +3124,7 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
   this->hue = 0;
   this->brightness = 0;
   this->sharpness = 0;
+  this->update_s_n = 0;
 #endif
   this->saturation = 128;
   this->contrast = 128;
