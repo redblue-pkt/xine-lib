@@ -697,7 +697,8 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
   }
 
   this->video_discontinuity_count++;
-  pthread_cond_signal (&this->video_discontinuity_reached);
+  if (this->waiting && (this->audio_discontinuity_count <= this->video_discontinuity_count))
+    pthread_cond_signal (&this->video_discontinuity_reached);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
     "metronom: video discontinuity #%d, type is %d, disc_off %" PRId64 ".\n",
@@ -839,7 +840,7 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
       if ((abs (diff) > VIDEO_DRIFT_TOLERANCE) || (this->force_video_jump)) {
 
 
-        xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: video jump by %"PRId64" pts.\n", diff);
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: video jump by %"PRId64" pts.\n", -diff);
         this->force_video_jump = 0;
         this->video_vpts       = pts;
         this->video_drift      = 0;
@@ -930,7 +931,8 @@ static void metronom_handle_audio_discontinuity (metronom_t *this_gen, int type,
   }
 
   this->audio_discontinuity_count++;
-  pthread_cond_signal (&this->audio_discontinuity_reached);
+  if (this->waiting && (this->audio_discontinuity_count >= this->video_discontinuity_count))
+    pthread_cond_signal (&this->audio_discontinuity_reached);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
     "metronom: audio discontinuity #%d, type is %d, disc_off %" PRId64 ".\n",
@@ -1028,6 +1030,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
       }
       if (this->bounce_jumped) {
         if ((diff > 0) /* && (diff < BOUNCE_MAX) */) {
+          vpts += diff;
           this->vpts_offset += diff;
           this->bounce_diff = this->bounce_vpts_offs - this->vpts_offset;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG,
@@ -1039,7 +1042,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
 
     /* compare predicted and given vpts */
     if((abs(diff) > AUDIO_DRIFT_TOLERANCE) || (this->force_audio_jump)) {
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: audio jump by %" PRId64 " pts.\n", diff);
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: audio jump by %" PRId64 " pts.\n", -diff);
       this->force_audio_jump = 0;
       this->audio_vpts       = vpts;
       this->audio_vpts_rmndr = 0;
