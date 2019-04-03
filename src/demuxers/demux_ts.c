@@ -2902,26 +2902,35 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
 			  off_t start_pos, int start_time, int playing) {
 
   demux_ts_t *this = (demux_ts_t *) this_gen;
+  uint32_t caps;
   int i;
 
   if (this->newpts_fifo)
     newpts_pair (this);
 
-  start_pos = (off_t) ( (double) start_pos / 65535 *
-              this->input->get_length (this->input) );
-
-  if (this->input->get_capabilities(this->input) & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) {
-    if ((!start_pos) && (start_time)) {
-
-      if (this->input->seek_time) {
-        this->input->seek_time(this->input, start_time, SEEK_SET);
+  caps = this->input->get_capabilities (this->input);
+  if (caps & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_TIME_SEEKABLE)) {
+    if ((caps & INPUT_CAP_TIME_SEEKABLE) && this->input->seek_time) {
+      if (start_pos > 0) {
+        int32_t duration = 0;
+        if ((this->input->get_optional_data (this->input, &duration, INPUT_OPTIONAL_DATA_DURATION) == INPUT_OPTIONAL_SUCCESS)
+          && (duration > 0)) {
+          start_time = (double)start_pos * duration / 65535;
+        }
+      }
+      this->input->seek_time (this->input, start_time, SEEK_SET);
+    } else {
+      start_pos = (off_t)((double)start_pos / 65535 * this->input->get_length (this->input));
+      if ((!start_pos) && (start_time)) {
+        if (this->input->seek_time) {
+          this->input->seek_time (this->input, start_time, SEEK_SET);
+        } else {
+          start_pos = (int64_t)start_time * this->rate / 1000;
+          this->input->seek (this->input, start_pos, SEEK_SET);
+        }
       } else {
-        start_pos = (int64_t)start_time * this->rate / 1000;
         this->input->seek (this->input, start_pos, SEEK_SET);
       }
-
-    } else {
-      this->input->seek (this->input, start_pos, SEEK_SET);
     }
 #if TS_PACKET_READER == 2
     this->buf_pos  = 0;
