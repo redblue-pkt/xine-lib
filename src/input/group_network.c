@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 the xine project
+ * Copyright (C) 2017-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -32,6 +32,11 @@
  * exported plugin catalog entry
  */
 
+static const input_info_t input_hls_info = {
+  /* need to try high level protocol before plain file or http(s). */
+  .priority = 1
+};
+
 const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_INPUT,                       18, "tcp",  XINE_VERSION_CODE, NULL, input_net_init_class },
@@ -41,6 +46,7 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_INPUT,                       18, "pnm",  XINE_VERSION_CODE, NULL, input_pnm_init_class },
   { PLUGIN_INPUT,                       18, "ftp",  XINE_VERSION_CODE, NULL, input_ftp_init_class },
   { PLUGIN_INPUT,                       18, "ftpes", XINE_VERSION_CODE, NULL, input_ftpes_init_class },
+  { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 18, "hls",  XINE_VERSION_CODE, &input_hls_info, input_hls_init_class },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
 

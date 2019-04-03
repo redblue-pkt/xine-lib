@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 the xine project
+ * Copyright (C) 2017-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -29,3 +29,4 @@ void *input_rtsp_init_class (xine_t *xine, const void *data);
 void *input_pnm_init_class  (xine_t *xine, const void *data);
 void *input_ftp_init_class  (xine_t *xine, const void *data);
 void *input_ftpes_init_class(xine_t *xine, const void *data);
+void *input_hls_init_class  (xine_t *xine, const void *data);

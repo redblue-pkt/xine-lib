@@ -52,6 +52,8 @@ noinst_LTLIBRARIES += \
         librtsp.la \
         libreal.la
 
+EXTRA_DIST = multirate_pref.c
+
 librtsp_la_SOURCES = \
         librtsp/rtsp.c \
         librtsp/rtsp.h \
@@ -198,6 +200,7 @@ xineplug_inp_network_la_SOURCES = \
 	input_net.c \
 	input_pnm.c \
 	input_rtsp.c \
+	input_hls.c \
 	pnm.c \
 	pnm.h
 xineplug_inp_network_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(LTLIBINTL) \
@@ -270,3 +273,4 @@ xineplug_tls_gnutls_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(GNUTLS_LIBS)
 xineplug_tls_openssl_la_SOURCES = tls/tls_openssl.c tls/xine_tls_plugin.h
 xineplug_tls_openssl_la_CFLAGS = $(AM_CFLAGS) $(OPENSSL_CFLAGS)
 xineplug_tls_openssl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(OPENSSL_LIBS)
+
