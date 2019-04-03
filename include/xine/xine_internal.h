@@ -317,6 +317,9 @@ char *_x_mrl_remove_auth(const char *mrl) XINE_PROTECTED;
  *
  */
 
+/* allow input plugins to use other input plugins */
+input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) XINE_PROTECTED;
+
 /* on-demand loading of generic modules / sub-plugins */
 struct xine_module_s; /* xine_module.h */
 struct xine_module_s *_x_find_module(xine_t *xine, const char *type, const char *id, unsigned sub_type, void *params) XINE_PROTECTED;

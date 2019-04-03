@@ -1826,25 +1826,39 @@ void _x_free_module(xine_t *xine, xine_module_t **pmodule) {
 
 input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
 
-  xine_t           *xine = stream->xine;
+  xine_stream_private_t *s = (xine_stream_private_t *)stream;
+  xine_t           *xine = s->s.xine;
   plugin_catalog_t *catalog = xine->plugin_catalog;
-  plugin_node_t    *node;
   input_plugin_t   *plugin = NULL;
-  int               list_id, list_size;
+  uint32_t          n;
 
   pthread_mutex_lock (&catalog->lock);
 
-  list_size = xine_sarray_size(catalog->plugin_lists[PLUGIN_INPUT - 1]);
-  for (list_id = 0; list_id < list_size; list_id++) {
-    node = xine_sarray_get (catalog->plugin_lists[PLUGIN_INPUT - 1], list_id);
-
-    if (node->plugin_class || _load_plugin_class(xine, node, NULL)) {
-      if ((plugin = ((input_class_t *)node->plugin_class)->get_instance(node->plugin_class, stream, mrl))) {
-        inc_node_ref(node);
-        plugin->node = node;
-        break;
+  n = !s->query_input_plugins[0] ? 0
+    : !s->query_input_plugins[1] ? 1 : 2;
+  if (n != 2) {
+    int list_id, list_size;
+    list_size = xine_sarray_size (catalog->plugin_lists[PLUGIN_INPUT - 1]);
+    for (list_id = 0; list_id < list_size; list_id++) {
+      plugin_node_t *node = xine_sarray_get (catalog->plugin_lists[PLUGIN_INPUT - 1], list_id);
+      input_class_t *class = (input_class_t *)node->plugin_class;
+      if (!class) {
+        _load_plugin_class (xine, node, NULL);
+        class = (input_class_t *)node->plugin_class;
+      }
+      if (class) {
+        s->query_input_plugins[n] = class;
+        if (s->query_input_plugins[0] != s->query_input_plugins[1]) {
+          plugin = class->get_instance (class, stream, mrl);
+          if (plugin) {
+            inc_node_ref (node);
+            plugin->node = node;
+            break;
+          }
+        }
       }
     }
+    s->query_input_plugins[n] = NULL;
   }
 
   pthread_mutex_unlock (&catalog->lock);
