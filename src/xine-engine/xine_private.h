@@ -95,7 +95,6 @@ void _x_free_audio_driver (xine_t *xine, ao_driver_t **driver) INTERNAL;
  * @defgroup
  * @brief find and instantiate input and demux plugins
  */
-input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) INTERNAL;
 demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input) INTERNAL;
 input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *filename) INTERNAL;
 input_plugin_t *_x_cache_plugin_get_instance (xine_stream_t *stream) INTERNAL;
@@ -437,6 +436,9 @@ typedef struct {
   int                        index_size, index_used, index_lastadd;
 
   uint32_t                   disable_decoder_flush_at_discontinuity;
+
+  /* _x_find_input_plugin () recursion protection */
+  input_class_t             *query_input_plugins[2];
 
   extra_info_t               ei[3];
 } xine_stream_private_t;

@@ -940,6 +940,8 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->index_array              = NULL;
   stream->s.slave                  = NULL;
   stream->slave_is_subtitle        = 0;
+  stream->query_input_plugins[0]   = NULL;
+  stream->query_input_plugins[1]   = NULL;
   {
     int i;
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++) {
