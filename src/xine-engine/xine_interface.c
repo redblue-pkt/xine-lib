@@ -737,7 +737,8 @@ uint32_t xine_get_stream_info (xine_stream_t *s, int info) {
 
   case XINE_STREAM_INFO_SEEKABLE:
     if (stream->s.input_plugin)
-      return stream->s.input_plugin->get_capabilities (stream->s.input_plugin) & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE);
+      return stream->s.input_plugin->get_capabilities (stream->s.input_plugin) 
+        & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_TIME_SEEKABLE);
     return 0;
 
   case XINE_STREAM_INFO_HAS_CHAPTERS:

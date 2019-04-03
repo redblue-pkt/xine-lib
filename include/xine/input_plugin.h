@@ -143,7 +143,8 @@ struct input_plugin_s {
    *
    * if seeking failed, -1 is returned
    *
-   * note: only SEEK_SET (0) is currently supported as origin
+   * note: only SEEK_SET (0) is currently supported as origin,
+   *       unless INPUT_CAP_TIME_SEEKABLE is set.
    * note: may be NULL is not supported
    */
   off_t (*seek_time) (input_plugin_t *this_gen, int time_offset, int origin);
@@ -339,6 +340,19 @@ struct input_plugin_s {
  */
 #define INPUT_CAP_SIZED_PREVIEW        0x00001000
 
+/*
+ * INPUT_CAP_TIME_SEEKABLE:
+ *   Time based seek works reliably and should be preferred over size based seek.
+ */
+#define INPUT_CAP_TIME_SEEKABLE        0x00002000
+
+/*
+ * INPUT_CAP_NEW_MRL:
+ *   Plugin can try to switch to a new mrl on the fly.
+ *   See INPUT_OPTIONAL_DATA_NEW_MRL below.
+ */
+#define INPUT_CAP_NEW_MRL              0x00004000
+
 #define INPUT_OPTIONAL_UNSUPPORTED    0
 #define INPUT_OPTIONAL_SUCCESS        1
 
@@ -354,8 +368,15 @@ struct input_plugin_s {
 #define INPUT_OPTIONAL_DATA_DEMUXER   10
 /* buffer is a struct input_plugin_s **; release by calling ptr->dispose (ptr). */
 #define INPUT_OPTIONAL_DATA_CLONE     11
-
+/* see INPUT_CAP_SIZED_PREVIEW above. */
 #define INPUT_OPTIONAL_DATA_SIZED_PREVIEW 12
+/* buffer is an int32_t * where input plugin will store media duration in milliseconds. */
+#define INPUT_OPTIONAL_DATA_DURATION  13
+/* buffer is a const char * holding the new mrl to try.
+ * fragment streams can avoid input_plugin->dispose () followed by
+ * input_class->get_instance () or _x_find_input_plugin () on a lot of
+ * similar mrls. */
+#define INPUT_OPTIONAL_DATA_NEW_MRL   14
 
 #define MAX_MRL_ENTRIES 255
 #define MAX_PREVIEW_SIZE 4096
