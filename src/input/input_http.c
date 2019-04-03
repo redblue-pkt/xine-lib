@@ -94,6 +94,9 @@ typedef struct {
   /* set to 1 if server replied with Accept-Ranges: bytes */
   unsigned int     accept_range:1;
 
+  /* avoid annoying ui messages on fragment streams */
+  int              num_msgs;
+
   /* ShoutCast */
   int              shoutcast_metaint;
   off_t            shoutcast_pos;
@@ -468,7 +471,7 @@ static off_t http_plugin_get_length (input_plugin_t *this_gen) {
 
 static uint32_t http_plugin_get_capabilities (input_plugin_t *this_gen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
-  uint32_t caps = INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW;
+  uint32_t caps = INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW | INPUT_CAP_NEW_MRL;
 
   /* Nullsoft asked to not allow saving streaming nsv files */
   if (this->url.uri && strlen(this->url.uri) >= 4 &&
@@ -564,40 +567,6 @@ static const char* http_plugin_get_mrl (input_plugin_t *this_gen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
   return this->mrl;
-}
-
-static int http_plugin_get_optional_data (input_plugin_t *this_gen,
-					  void *const data, int data_type) {
-
-  void **const ptr = (void **const) data;
-  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
-
-  switch (data_type) {
-    case INPUT_OPTIONAL_DATA_PREVIEW:
-      if (!data || (this->preview_size <= 0))
-        break;
-      memcpy (data, this->preview, this->preview_size);
-      return this->preview_size;
-    case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
-      if (!data || (this->preview_size <= 0))
-        break;
-      {
-        int want;
-        memcpy (&want, data, sizeof (want));
-        want = want < 0 ? 0
-             : want > this->preview_size ? this->preview_size
-             : want;
-        memcpy (data, this->preview, want);
-        return want;
-      }
-  case INPUT_OPTIONAL_DATA_MIME_TYPE:
-    *ptr = this->mime_type;
-    /* fall through */
-  case INPUT_OPTIONAL_DATA_DEMUX_MIME_TYPE:
-    return *this->mime_type ? INPUT_OPTIONAL_SUCCESS : INPUT_OPTIONAL_UNSUPPORTED;
-  }
-
-  return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
 static void http_plugin_dispose (input_plugin_t *this_gen ) {
@@ -707,7 +676,11 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
 
     progress = 0;
     do {
-      report_progress(this->stream, progress);
+      if (this->num_msgs) {
+        if (this->num_msgs > 0)
+          this->num_msgs--;
+        report_progress (this->stream, progress);
+      }
       res = _x_io_select (this->stream, fh, XIO_WRITE_READY, 500);
       progress += (500*100000)/timeout;
     } while ((res == XIO_TIMEOUT) && (progress <= 100000) && !_x_action_pending(this->stream));
@@ -1093,6 +1066,86 @@ static int http_plugin_open (input_plugin_t *this_gen ) {
   return 1;
 }
 
+static int http_can_handle (xine_stream_t *stream, const char *mrl) {
+  if (!strncasecmp (mrl, "https://", 8)) {
+    /* check for tls plugin here to allow trying another https plugin (avio) */
+    if (!_x_tls_available(stream->xine)) {
+      xine_log (stream->xine, XINE_LOG_MSG, "input_http: TLS plugin not found\n");
+      return 0;
+    }
+  } else
+  if (strncasecmp (mrl, "http://", 7) &&
+      strncasecmp (mrl, "unsv://", 7) &&
+      strncasecmp (mrl, "peercast://pls/", 15) &&
+      !_x_url_user_agent (mrl) /* user agent hacks */) {
+    return 0;
+  }
+  return 1;
+}
+
+static int http_plugin_get_optional_data (input_plugin_t *this_gen,
+					  void *const data, int data_type) {
+
+  void **const ptr = (void **const) data;
+  http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
+
+  switch (data_type) {
+    case INPUT_OPTIONAL_DATA_PREVIEW:
+      if (!data || (this->preview_size <= 0))
+        break;
+      memcpy (data, this->preview, this->preview_size);
+      return this->preview_size;
+
+    case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
+      if (!data || (this->preview_size <= 0))
+        break;
+      {
+        int want;
+        memcpy (&want, data, sizeof (want));
+        want = want < 0 ? 0
+             : want > this->preview_size ? this->preview_size
+             : want;
+        memcpy (data, this->preview, want);
+        return want;
+      }
+
+    case INPUT_OPTIONAL_DATA_MIME_TYPE:
+      *ptr = this->mime_type;
+      /* fall through */
+    case INPUT_OPTIONAL_DATA_DEMUX_MIME_TYPE:
+      return *this->mime_type ? INPUT_OPTIONAL_SUCCESS : INPUT_OPTIONAL_UNSUPPORTED;
+
+    case INPUT_OPTIONAL_DATA_NEW_MRL:
+      if (!data)
+        break;
+      if (!http_can_handle (this->stream, data))
+        break;
+      http_close (this);
+      _x_freep (&this->mrl);
+      _x_freep (&this->mime_type);
+      _x_freep (&this->user_agent);
+      _x_freep (&this->shoutcast_songtitle);
+      this->curpos              = 0;
+      this->contentlength       = 0;
+      this->is_nsv              = 0;
+      this->is_lastfm           = 0;
+      this->shoutcast_mode      = 0;
+      this->accept_range        = 0;
+      this->shoutcast_metaint   = 0;
+      this->shoutcast_pos       = 0;
+      this->preview_size        = 0;
+      if ((this->num_msgs < 0) || (this->num_msgs > 8))
+        this->num_msgs = 8;
+      if (!strncasecmp ((const char *)data, "peercast://pls/", 15))
+        this->mrl = _x_asprintf ("http://127.0.0.1:7144/stream/%s", (const char *)data + 15);
+      else
+        this->mrl = strdup ((const char *)data);
+      return INPUT_OPTIONAL_SUCCESS;
+  }
+
+  return INPUT_OPTIONAL_UNSUPPORTED;
+}
+
 /*
  * http input plugin class
  */
@@ -1101,23 +1154,28 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   http_input_class_t  *cls = (http_input_class_t *)cls_gen;
   http_input_plugin_t *this;
 
-  if (!strncasecmp (mrl, "https://", 8)) {
-    /* check for tls plugin here to allow trying another https plugin (avio) */
-    if (!_x_tls_available(stream->xine)) {
-      xine_log (stream->xine, XINE_LOG_MSG, "input_http: TLS plugin not found\n");
-      return NULL;
-    }
-  } else
-  if (strncasecmp (mrl, "http://", 7) &&
-      strncasecmp (mrl, "unsv://", 7) &&
-      strncasecmp (mrl, "peercast://pls/", 15) &&
-      !_x_url_user_agent (mrl) /* user agent hacks */) {
+  if (!http_can_handle (stream, mrl))
     return NULL;
-  }
 
   this = calloc(1, sizeof(http_input_plugin_t));
   if (!this)
     return NULL;
+
+#ifndef HAVE_ZERO_SAFE_MEM
+  this->curpos              = 0;
+  this->contentlength       = 0;
+  this->mime_type           = NULL;
+  this->user_agent          = NULL;
+  this->tls                 = NULL;
+  this->is_nsv              = 0;
+  this->is_lastfm           = 0;
+  this->shoutcast_mode      = 0;
+  this->accept_range        = 0;
+  this->shoutcast_metaint   = 0;
+  this->shoutcast_pos       = 0;
+  this->shoutcast_songtitle = NULL;
+  this->preview_size        = 0;
+#endif
 
   if (!strncasecmp (mrl, "peercast://pls/", 15)) {
     this->mrl = _x_asprintf ("http://127.0.0.1:7144/stream/%s", mrl+15);
@@ -1125,9 +1183,9 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
     this->mrl = strdup (mrl);
   }
 
+  this->num_msgs = -1;
   this->stream = stream;
   this->xine   = cls->xine;
-  this->tls    = NULL;
   if (stream) {
     this->nbc  = nbc_init (stream);
   }
