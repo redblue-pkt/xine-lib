@@ -203,7 +203,8 @@ xineplug_inp_network_la_SOURCES = \
 	input_hls.c \
 	pnm.c \
 	pnm.h
-xineplug_inp_network_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(LTLIBINTL) \
+xineplug_inp_network_la_CPPFLAGS = $(AM_CPPFLAGS) $(ZLIB_CPPFLAGS)
+xineplug_inp_network_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(LTLIBINTL) $(ZLIB_LIBS) \
 	libreal.la librtsp.la http_helper.la input_helper.la net_buf_ctrl.la xine_tls.la
 
 xineplug_inp_rtp_la_SOURCES = input_rtp.c

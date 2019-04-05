@@ -32,6 +32,7 @@
 #endif
 #include <ctype.h>
 #include <errno.h>
+#include <zlib.h>
 
 #ifdef WIN32
 #include <winsock.h>
@@ -57,14 +58,81 @@
 #define DEFAULT_HTTP_PORT         80
 #define DEFAULT_HTTPS_PORT       443
 
-#define TAG_ICY_NAME       "icy-name:"
-#define TAG_ICY_GENRE      "icy-genre:"
-#define TAG_ICY_NOTICE1    "icy-notice1:"
-#define TAG_ICY_NOTICE2    "icy-notice2:"
-#define TAG_ICY_METAINT    "icy-metaint:"
-#define TAG_CONTENT_TYPE   "Content-Type:"
-#define TAG_LASTFM_SERVER  "Server: last.fm "
+static inline void uint64_2str (char **s, uint64_t v) {
+  uint8_t b[44], *t = b + 21, *q = (uint8_t *)*s;
+  uint32_t u;
+  *t = 0;
+  while (v & ((uint64_t)0xffffffff << 32)) {
+    *--t = v % 10u + '0';
+    v /= 10u;
+  }
+  u = v;
+  do {
+    *--t = u % 10u + '0';
+    u /= 10u;
+  } while (u);
+  memcpy (q, t, 21);
+  *s = (char *)(q + (b + 21 - t));
+}
 
+static inline void uint32_2str (char **s, uint32_t u) {
+  uint8_t b[24], *t = b + 12, *q = (uint8_t *)*s;
+  *t = 0;
+  do {
+    *--t = u % 10u + '0';
+    u /= 10u;
+  } while (u);
+  memcpy (q, t, 12);
+  *s = (char *)(q + (b + 12 - t));
+}
+
+static inline uint64_t str2uint64 (uint8_t **s) {
+  uint8_t *p = *s;
+  uint64_t v = 0;
+  uint8_t z;
+  while ((z = *p ^ '0') < 10)
+    v = (v << 3) + (v << 1) + z, p++;
+  *s = p;
+  return v;
+}
+
+static inline uint32_t str2uint32 (uint8_t **s) {
+  uint8_t *p = *s, z;
+  uint32_t v = 0;
+  while ((z = *p ^ '0') < 10)
+    v = v * 10u + z, p++;
+  *s = p;
+  return v;
+}
+
+static inline uint32_t hexstr2uint32 (uint8_t **s) {
+  static const int8_t tab_unhex[256] = {
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+     0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1,
+    -1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+  };
+  uint8_t *p = *s;
+  uint32_t v = 0;
+  int32_t z;
+  while ((z = tab_unhex[*p]) >= 0)
+    v = (v << 4) | z, p++;
+  *s = p;
+  return v;
+}
+  
 typedef struct {
   input_plugin_t   input_plugin;
 
@@ -77,6 +145,9 @@ typedef struct {
 
   off_t            curpos;
   off_t            contentlength;
+  off_t            range_start;
+  off_t            range_end;
+  off_t            range_total;
 
   char            *mime_type;
   const char      *user_agent;
@@ -84,15 +155,28 @@ typedef struct {
 
   xine_tls_t      *tls;
 
-  /** Set to 1 if the stream is a NSV stream. */
-  unsigned int     is_nsv:1;
-  /** Set to 1 if the stream comes from last.fm. */
-  unsigned int     is_lastfm:1;
-  /** Set to 1 if the stream is ShoutCast. */
-  unsigned int     shoutcast_mode:1;
-
   /* set to 1 if server replied with Accept-Ranges: bytes */
-  unsigned int     accept_range:1;
+  uint32_t         accept_range:1;
+  /** Set to 1 if the stream is a NSV stream. */
+  uint32_t         is_nsv:1;
+  /** Set to 1 if the stream comes from last.fm. */
+  uint32_t         is_lastfm:1;
+  /** Set to 1 if the stream is ShoutCast. */
+  uint32_t         shoutcast_mode:1;
+
+  uint32_t         sgot;
+  uint32_t         sdelivered;
+  uint32_t         schunkleft;
+#define MODE_CHUNKED     1
+#define MODE_DEFLATED    2
+#define MODE_INFLATING   4
+#define MODE_DONE        8
+#define MODE_HAS_TYPE   16
+#define MODE_HAS_LENGTH 32
+  uint32_t         smode;
+  uint32_t         status;
+
+  z_stream         z_state;
 
   /* avoid annoying ui messages on fragment streams */
   int              num_msgs;
@@ -101,6 +185,9 @@ typedef struct {
   int              shoutcast_metaint;
   off_t            shoutcast_pos;
   char            *shoutcast_songtitle;
+
+  uint8_t          sbuf[32 << 10];
+  uint8_t          sbuf_pad[4];
 
   off_t            preview_size;
   char             preview[MAX_PREVIEW_SIZE];
@@ -120,6 +207,315 @@ typedef struct {
   const char       *proxypassword;
   const char       *noproxylist;
 } http_input_class_t;
+
+static void sbuf_init (http_input_plugin_t *this) {
+  this->sgot = 0;
+  this->sdelivered = 0;
+  this->schunkleft = 0;
+  this->smode = 0;
+}
+
+static void sbuf_reset (http_input_plugin_t *this) {
+  this->sgot = 0;
+  this->sdelivered = 0;
+  this->schunkleft = 0;
+  if (this->smode & MODE_INFLATING) {
+    this->z_state.next_in = this->sbuf;
+    this->z_state.avail_in = 0;
+    this->z_state.next_out = this->sbuf;
+    this->z_state.avail_out = 0;
+    inflateEnd (&this->z_state);
+  }
+  this->smode = 0;
+}
+
+static int32_t sbuf_get_string (http_input_plugin_t *this, uint8_t **buf) {
+  uint8_t *p = *buf = this->sbuf + this->sdelivered;
+  while (1) {
+    /* find end of line or data */
+    {
+      uint8_t *stop = this->sbuf + this->sgot;
+      *stop = '\n';
+      while (*p != '\n')
+        p++;
+      /* found */
+      if (p != stop) {
+        size_t n = p - *buf + 1;
+        this->sdelivered += n;
+        n--;
+        if (n && (p[-1] == '\r'))
+          p--, n--;
+        *p = 0;
+        return n;
+      }
+    }
+    /* move to beginning of buffer */
+    if (this->sdelivered) {
+      size_t n = this->sgot - this->sdelivered;
+      if (n) {
+        if (this->sdelivered < n)
+          memmove (this->sbuf, this->sbuf + this->sdelivered, n);
+        else
+          memcpy (this->sbuf, this->sbuf + this->sdelivered, n);
+      }
+      *buf = p = this->sbuf;
+      p += n;
+      this->sgot = n;
+      this->sdelivered = 0;
+    }
+    {
+      size_t n = (32 << 10) - this->sgot;
+      /* buffer full */
+      if (!n) {
+        this->sgot = 0;
+        return -1;
+      }
+      /* refill fast buffer */
+      {
+        int i = _x_tls_read (this->tls, p, n);
+        if (i <= 0)
+          return 0;
+        this->sgot += i;
+      }
+    }
+  }
+}
+
+static void sbuf_align (http_input_plugin_t *this) {
+  if (this->sdelivered > 0) {
+    if (this->sgot > this->sdelivered) {
+      uint32_t l = this->sgot - this->sdelivered;
+      if (l <= this->sdelivered)
+        memcpy (this->sbuf, this->sbuf + this->sdelivered, l);
+      else
+        memmove (this->sbuf, this->sbuf + this->sdelivered, l);
+    }
+    this->sgot -= this->sdelivered;
+    this->sdelivered = 0;
+  }
+  {
+    uint32_t l = sizeof (this->sbuf) - this->sgot;
+    uint8_t *q = this->sbuf + this->sgot;
+    while (l > 0) {
+      int i = _x_tls_read (this->tls, q, l);
+      if (i <= 0) {
+        this->smode |= MODE_DONE;
+        break;
+      }
+      q += i;
+      l -= i;
+    }
+    this->sgot = q - this->sbuf;
+  }
+}
+
+static int sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t len) {
+  uint8_t *q = buf;
+  size_t left = len;
+
+  switch (this->smode & (MODE_CHUNKED | MODE_DEFLATED)) {
+
+    case 0:
+      /* get from fast buffer */
+      do {
+        uint32_t fast = this->sgot - this->sdelivered;
+        if (fast == 0)
+          break;
+        if (fast > left) {
+          memcpy (q, this->sbuf + this->sdelivered, left);
+          this->sdelivered += left;
+          return left;
+        }
+        memcpy (q, this->sbuf + this->sdelivered, fast);
+        q += fast;
+        left -= fast;
+        this->sgot = this->sdelivered = 0;
+      } while (0);
+      /* get the usual way */
+      while (left > 0) {
+        int i = _x_tls_read (this->tls, q, left);
+        if (i <= 0)
+          break;
+        q += i;
+        left -= i;
+      }
+      break;
+
+    case MODE_CHUNKED + MODE_DEFLATED:
+      this->z_state.next_out = q;
+      this->z_state.avail_out = left;
+      while (left > 0) {
+        int z_ret_code1, bytes_in, bytes_out;
+        if (this->schunkleft == 0) {
+          uint8_t *p;
+          if (this->smode & MODE_DONE)
+            return 0;
+          if (sbuf_get_string (this, &p) <= 0)
+            break;
+          this->schunkleft = hexstr2uint32 (&p);
+          if (this->schunkleft == 0) {
+            this->smode |= MODE_DONE;
+            break;
+          }
+          sbuf_align (this);
+          this->z_state.next_in = this->sbuf;
+          this->z_state.avail_in = this->sgot < this->schunkleft ? this->sgot : this->schunkleft;
+          if (!(this->smode & MODE_INFLATING)) {
+            this->z_state.zalloc = NULL;
+            this->z_state.zfree  = NULL;
+            this->z_state.opaque = NULL;
+            z_ret_code1 = inflateInit (&this->z_state);
+            if (z_ret_code1 != Z_OK) {
+              this->smode |= MODE_DONE;
+              break;
+            }
+            this->smode |= MODE_INFLATING;
+          }
+        } else if (this->sgot - this->sdelivered < 8) {
+          sbuf_align (this);
+          this->z_state.next_in = this->sbuf;
+          this->z_state.avail_in = this->sgot < this->schunkleft ? this->sgot : this->schunkleft;
+        }
+        if (!(this->smode & MODE_INFLATING))
+          break;
+        bytes_in = this->z_state.avail_in;
+        bytes_out = this->z_state.avail_out;
+        z_ret_code1 = inflate (&this->z_state, 0);
+        if ((z_ret_code1 != Z_OK) && (z_ret_code1 != Z_STREAM_END)) {
+          this->smode |= MODE_DONE;
+          break;
+        }
+        bytes_in -= this->z_state.avail_in;
+        if (bytes_in < 0)
+          break;
+        this->sdelivered += bytes_in;
+        this->schunkleft -= bytes_in;
+        bytes_out -= this->z_state.avail_out;
+        if (bytes_out < 0)
+          break;
+        q += bytes_out;
+        left -= bytes_out;
+        if (z_ret_code1 == Z_STREAM_END) {
+          this->smode |= MODE_DONE;
+          break;
+        }
+      }
+      if (this->smode & MODE_DONE) {
+        int bytes_out;
+        bytes_out = this->z_state.avail_out;
+        inflateEnd (&this->z_state);
+        bytes_out -= this->z_state.avail_out;
+        if (bytes_out > 0)
+          q += bytes_out;
+        this->smode &= ~MODE_INFLATING;
+      }
+      break;
+
+    case MODE_CHUNKED:
+      while (left > 0) {
+        uint32_t fast, chunkleft;
+        if (this->schunkleft == 0) {
+          uint8_t *p;
+          if (this->smode & MODE_DONE)
+            return 0;
+          if (sbuf_get_string (this, &p) <= 0)
+            break;
+          this->schunkleft = hexstr2uint32 (&p);
+          if (this->schunkleft == 0) {
+            this->smode |= MODE_DONE;
+            break;
+          }
+        }
+        chunkleft = left < this->schunkleft ? left : this->schunkleft;
+        fast = this->sgot - this->sdelivered;
+        if (fast > chunkleft)
+          fast = chunkleft;
+        if (fast > 0) {
+          /* get from fast buffer */
+          memcpy (q, this->sbuf + this->sdelivered, fast);
+          q += fast;
+          left -= fast;
+          this->schunkleft -= fast;
+          this->sdelivered += fast;
+          if (this->sgot == this->sdelivered)
+            this->sgot = this->sdelivered = 0;
+        } else {
+          /* get the usual way */
+          while (chunkleft > 0) {
+            int i = _x_tls_read (this->tls, q, chunkleft);
+            if (i <= 0)
+              break;
+            q += i;
+            left -= i;
+            chunkleft -= i;
+            this->schunkleft -= i;
+          }
+        }
+      }
+      break;
+
+    case MODE_DEFLATED:
+      this->z_state.next_out = q;
+      this->z_state.avail_out = left;
+      while (left > 0) {
+        int z_ret_code1, bytes_in, bytes_out;
+        if (this->smode & MODE_DONE)
+          return 0;
+        if (!(this->smode & MODE_INFLATING)) {
+          sbuf_align (this);
+          this->z_state.next_in = this->sbuf;
+          this->z_state.avail_in = this->sgot;
+          this->z_state.zalloc = NULL;
+          this->z_state.zfree  = NULL;
+          this->z_state.opaque = NULL;
+          z_ret_code1 = inflateInit (&this->z_state);
+          if (z_ret_code1 != Z_OK) {
+            this->smode |= MODE_DONE;
+            break;
+          }
+          this->smode |= MODE_INFLATING;
+        }
+        if (this->sgot - this->sdelivered < 8) {
+          sbuf_align (this);
+          this->z_state.next_in = this->sbuf;
+          this->z_state.avail_in = this->sgot;
+        }
+        if (!(this->smode & MODE_INFLATING))
+          break;
+        bytes_in = this->z_state.avail_in;
+        bytes_out = this->z_state.avail_out;
+        z_ret_code1 = inflate (&this->z_state, 0);
+        if ((z_ret_code1 != Z_OK) && (z_ret_code1 != Z_STREAM_END)) {
+          this->smode |= MODE_DONE;
+          break;
+        }
+        bytes_in -= this->z_state.avail_in;
+        if (bytes_in < 0)
+          break;
+        this->sdelivered += bytes_in;
+        bytes_out -= this->z_state.avail_out;
+        if (bytes_out < 0)
+          break;
+        q += bytes_out;
+        left -= bytes_out;
+        if (z_ret_code1 == Z_STREAM_END) {
+          this->smode |= MODE_DONE;
+          break;
+        }
+      }
+      if (this->smode & MODE_DONE) {
+        int bytes_out;
+        bytes_out = this->z_state.avail_out;
+        inflateEnd (&this->z_state);
+        bytes_out -= this->z_state.avail_out;
+        if (bytes_out > 0)
+          q += bytes_out;
+        this->smode &= ~MODE_INFLATING;
+      }
+      break;
+  }
+  return q - buf;
+}
 
 static void proxy_host_change_cb (void *this_gen, xine_cfg_entry_t *cfg) {
   http_input_class_t *this = (http_input_class_t *)this_gen;
@@ -248,13 +644,13 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
   xine_ui_data_t data;
 
   /* get the length of the metadata */
-  if (_x_tls_read (this->tls, (char*)&len, 1) != 1)
+  if (sbuf_get_bytes (this, (char*)&len, 1) != 1)
     return 0;
 
   lprintf ("http_plugin_read_metainf: len=%d\n", len);
 
   if (len > 0) {
-    if (_x_tls_read (this->tls, metadata_buf, len * 16) != (len * 16))
+    if (sbuf_get_bytes (this, metadata_buf, len * 16) != (len * 16))
       return 0;
 
     metadata_buf[len * 16] = '\0';
@@ -324,7 +720,7 @@ static off_t http_plugin_read_int (http_input_plugin_t *this,
         ((this->shoutcast_pos + nlen) >= this->shoutcast_metaint)) {
       nlen = this->shoutcast_metaint - this->shoutcast_pos;
 
-      nlen = _x_tls_read (this->tls, &buf[read_bytes], nlen);
+      nlen = sbuf_get_bytes (this, &buf[read_bytes], nlen);
       if (nlen < 0)
         goto error;
 
@@ -333,7 +729,7 @@ static off_t http_plugin_read_int (http_input_plugin_t *this,
       this->shoutcast_pos = 0;
 
     } else {
-      nlen = _x_tls_read (this->tls, &buf[read_bytes], nlen);
+      nlen = sbuf_get_bytes (this, &buf[read_bytes], nlen);
       if (nlen < 0)
         goto error;
 
@@ -573,6 +969,7 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
 
   http_close(this);
+  sbuf_reset (this);
 
   if (this->nbc) {
     nbc_close (this->nbc);
@@ -603,433 +1000,459 @@ static void report_progress (xine_stream_t *stream, int p) {
 }
 
 static int http_plugin_open (input_plugin_t *this_gen ) {
+  static const uint8_t tab_tolower[256] = {
+      0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
+     16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    ' ','!','"','#','$','%','&','\'','(',')','*','+',',','-','.','/',
+    '0','1','2','3','4','5','6','7','8','9',':',';','<','=','>','?',
+    '@','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
+    'p','q','r','s','t','u','v','w','x','y','z','[','\\',']','^','_',
+    '`','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
+    'p','q','r','s','t','u','v','w','x','y','z','{','|','}','~',127,
+    128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,
+    144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,
+    160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,
+    176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,
+    192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,
+    208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,
+    224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,
+    240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
+  };
+
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   http_input_class_t  *this_class = (http_input_class_t *) this->input_plugin.input_class;
-  int                  done, len, linenum;
-  int                  httpcode;
   int                  res;
-  size_t               buflen;
   int                  use_proxy;
   int                  proxyport;
   int                  mpegurl_redirect = 0;
   char                 mime_type[256];
-  char                 buf[BUFSIZE];
-  int                  fh, use_tls;
+  int                  fh, use_tls, again;
 
-  mime_type[0] = 0;
   use_proxy = this_class->proxyhost && strlen(this_class->proxyhost);
 
-  this->user_agent = _x_url_user_agent (this->mrl);
-  if (!_x_url_parse2(this->mrl, &this->url)) {
-    _x_message(this->stream, XINE_MSG_GENERAL_WARNING, "malformed url", NULL);
-    return 0;
-  }
-  use_proxy = use_proxy && _x_use_proxy(this->xine, this_class, this->url.host);
+  do {
+    char httpstatus[128], *href = NULL;
+    httpstatus[0] = 0;
+    mime_type[0] = 0;
+    again = 0;
+    sbuf_reset (this);
 
-  use_tls = !strcasecmp (this->url.proto, "https");
-
-  if (this->url.port == 0) {
-    if (use_tls)
-      this->url.port = DEFAULT_HTTPS_PORT;
-    else
-      this->url.port = DEFAULT_HTTP_PORT;
-  }
-
-  if (this_class->proxyport == 0)
-    proxyport = DEFAULT_HTTP_PORT;
-  else
-    proxyport = this_class->proxyport;
-
+    this->user_agent = _x_url_user_agent (this->mrl);
+    if (!_x_url_parse2 (this->mrl, &this->url)) {
+      _x_message(this->stream, XINE_MSG_GENERAL_WARNING, "malformed url", NULL);
+      return 0;
+    }
+    use_proxy = use_proxy && _x_use_proxy (this->xine, this_class, this->url.host);
+    use_tls = !strcasecmp (this->url.proto, "https");
+    if (this->url.port == 0)
+      this->url.port = use_tls ? DEFAULT_HTTPS_PORT : DEFAULT_HTTP_PORT;
+    proxyport = this_class->proxyport == 0 ? DEFAULT_HTTP_PORT : this_class->proxyport;
 #ifdef LOG
-  {
     printf ("input_http: host     : >%s<\n", this->url.host);
     printf ("input_http: port     : >%d<\n", this->url.port);
     printf ("input_http: user     : >%s<\n", this->url.user);
     printf ("input_http: password : >%s<\n", this->url.password);
     printf ("input_http: path     : >%s<\n", this->url.uri);
-
-
     if (use_proxy)
       printf (" via proxy >%s:%d<", this_class->proxyhost, proxyport);
-
     printf ("\n");
-  }
-
 #endif
 
-  if (use_proxy && !use_tls)
-    fh = _x_io_tcp_connect (this->stream, this_class->proxyhost, proxyport);
-  else
-    fh = _x_io_tcp_connect (this->stream, this->url.host, this->url.port);
+    if (use_proxy && !use_tls)
+      fh = _x_io_tcp_connect (this->stream, this_class->proxyhost, proxyport);
+    else
+      fh = _x_io_tcp_connect (this->stream, this->url.host, this->url.port);
+    if (fh == -1)
+      return -2;
 
-  if (fh == -1)
-    return -2;
-
-  {
-    uint32_t         timeout, progress;
-    xine_cfg_entry_t cfgentry;
-    if (xine_config_lookup_entry (this->xine, "media.network.timeout", &cfgentry)) {
-      timeout = cfgentry.num_value * 1000;
-    } else {
-      timeout = 30000; /* 30K msecs = 30 secs */
-    }
-
-    progress = 0;
-    do {
-      if (this->num_msgs) {
-        if (this->num_msgs > 0)
-          this->num_msgs--;
-        report_progress (this->stream, progress);
-      }
-      res = _x_io_select (this->stream, fh, XIO_WRITE_READY, 500);
-      progress += (500*100000)/timeout;
-    } while ((res == XIO_TIMEOUT) && (progress <= 100000) && !_x_action_pending(this->stream));
-
-    if (res != XIO_READY) {
-      _x_message(this->stream, XINE_MSG_NETWORK_UNREACHABLE, this->mrl, NULL);
-      _x_io_tcp_close(this->stream, fh);
-      return -3;
-    }
-  }
-
-  /*
-   * TLS
-   */
-
-  _x_assert(this->tls == NULL);
-
-  this->tls = _x_tls_init(this->xine, this->stream, fh);
-  if (!this->tls) {
-    _x_io_tcp_close(this->stream, fh);
-    return -2;
-  }
-  fh = -1;
-
-  if (use_tls) {
-    int r = _x_tls_handshake(this->tls, this->url.host, -1);
-    if (r < 0) {
-      _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "TLS handshake failed", NULL);
-      xprintf(this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": TLS handshake failed\n");
-      return -4;
-    }
-    xprintf(this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": TLS handshake succeed, connection is encrypted\n");
-  }
-
-  /*
-   * Request
-   */
-
-  if (use_proxy) {
-    if (this->url.port != DEFAULT_HTTP_PORT) {
-      snprintf (buf, sizeof(buf), "GET http://%s:%d%s HTTP/1.0\015\012",
-                this->url.host, this->url.port, this->url.uri);
-    } else {
-      snprintf (buf, sizeof(buf), "GET http://%s%s HTTP/1.0\015\012",
-                this->url.host, this->url.uri);
-    }
-  }
-  else
-    snprintf (buf, sizeof(buf), "GET %s HTTP/1.0\015\012", this->url.uri);
-
-  buflen = strlen(buf);
-  if (this->url.port != DEFAULT_HTTP_PORT)
-    snprintf (buf + buflen, sizeof(buf) - buflen, "Host: %s:%d\015\012",
-              this->url.host, this->url.port);
-  else
-    snprintf (buf + buflen, sizeof(buf) - buflen, "Host: %s\015\012",
-              this->url.host);
-
-  if (this->curpos > 0) {
-      /* restart from offset */
-      buflen = strlen(buf);
-      snprintf (buf + buflen, sizeof(buf) - buflen, "Range: bytes=%" PRId64 "-\015\012",
-                (int64_t)this->curpos/*, (int64_t)this->contentlength - 1*/);
-      xprintf(this->xine, XINE_VERBOSITY_DEBUG, "input_http: requesting restart from offset %" PRId64 "\n",
-              (int64_t)this->curpos);
-  }
-
-  buflen = strlen(buf);
-  if (use_proxy && this_class->proxyuser && strlen(this_class->proxyuser)) {
-    char *proxyauth;
-    http_plugin_basicauth (this_class->proxyuser, this_class->proxypassword,
-			   &proxyauth);
-
-    snprintf (buf + buflen, sizeof(buf) - buflen,
-              "Proxy-Authorization: Basic %s\015\012", proxyauth);
-    buflen = strlen(buf);
-    free(proxyauth);
-  }
-  if (this->url.user && strlen(this->url.user)) {
-    char *auth;
-    http_plugin_basicauth (this->url.user, this->url.password, &auth);
-
-    snprintf (buf + buflen, sizeof(buf) - buflen,
-              "Authorization: Basic %s\015\012", auth);
-    buflen = strlen(buf);
-    free(auth);
-  }
-
-  snprintf(buf + buflen, sizeof(buf) - buflen,
-           "User-Agent: %s%sxine/%s\015\012"
-           "Accept: */*\015\012"
-           "Icy-MetaData: 1\015\012"
-           "\015\012",
-           this->user_agent ? this->user_agent : "",
-           this->user_agent ? " " : "",
-           VERSION);
-  buflen = strlen(buf);
-
-  if ((size_t)_x_tls_write(this->tls, buf, buflen) != buflen) {
-    _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
-    xprintf(this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": couldn't send request\n");
-    return -4;
-  }
-
-  lprintf ("request sent: >%s<\n", buf);
-
-  /*
-   * Response
-   */
-
-  /* read and parse reply */
-  done = 0; len = 0; linenum = 0;
-  this->contentlength = 0;
-  this->curpos = 0;
-
-  while (!done) {
-    /* fprintf (stderr, "input_http: read...\n"); */
-
-    if (_x_tls_read (this->tls, &buf[len], 1) <= 0) {
-      return -5;
-    }
-
-    if (buf[len] == '\012') {
-
-      buf[len] = '\0';
-      len--;
-
-      if (len >= 0 && buf[len] == '\015') {
-       buf[len] = '\0';
-	len--;
-      }
-
-      linenum++;
-
-      lprintf ("answer: >%s<\n", buf);
-
-      if (linenum == 1) {
-        int httpver, httpsub;
-	char httpstatus[51] = { 0, };
-
-	if (
-            (sscanf(buf, "HTTP/%d.%d %d %50[^\015\012]", &httpver, &httpsub,
-		    &httpcode, httpstatus) != 4) &&
-            (sscanf(buf, "HTTP/%d.%d %d", &httpver, &httpsub,
-		    &httpcode) != 3) &&
-            (sscanf(buf, "ICY %d %50[^\015\012]", /* icecast 1 ? */
-		    &httpcode, httpstatus) != 2)
-	   ) {
-	    _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
-            xine_log (this->xine, XINE_LOG_MSG,
-		      _("input_http: invalid http answer\n"));
-	    return -6;
-	}
-
-	if (httpcode >= 300 && httpcode < 400) {
-          xine_log (this->xine, XINE_LOG_MSG,
-		    _("input_http: 3xx redirection: >%d %s<\n"),
-		    httpcode, httpstatus);
-	} else if (httpcode == 404) {
-	  _x_message(this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
-          xine_log (this->xine, XINE_LOG_MSG,
-		    _("input_http: http status not 2xx: >%d %s<\n"),
-		                        httpcode, httpstatus);
-	  return -7;
-	} else if (httpcode == 401) {
-          xine_log (this->xine, XINE_LOG_MSG,
-		    _("input_http: http status not 2xx: >%d %s<\n"),
-		    httpcode, httpstatus);
-          /* don't return - there may be a WWW-Authenticate header... */
-	} else if (httpcode == 403) {
-          _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
-          xine_log (this->xine, XINE_LOG_MSG,
-		    _("input_http: http status not 2xx: >%d %s<\n"),
-		    httpcode, httpstatus);
-	  return -8;
-	} else if (httpcode < 200 || httpcode >= 300) {
-	  _x_message(this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ",
-	               httpstatus, NULL);
-          xine_log (this->xine, XINE_LOG_MSG,
-		    _("input_http: http status not 2xx: >%d %s<\n"),
-		    httpcode, httpstatus);
-	  return -9;
-	}
+    {
+      uint32_t timeout, progress;
+      xine_cfg_entry_t cfgentry;
+      if (xine_config_lookup_entry (this->xine, "media.network.timeout", &cfgentry)) {
+        timeout = cfgentry.num_value * 1000;
       } else {
-	if (this->contentlength == 0) {
-	  intmax_t contentlength;
-
-          if (sscanf(buf, "Content-Length: %" SCNdMAX , &contentlength) == 1) {
-	    xine_log (this->xine, XINE_LOG_MSG,
-              _("input_http: content length = %" PRIdMAX " bytes\n"),
-              contentlength);
-	    this->contentlength = (off_t)contentlength;
-	  }
+        timeout = 30000; /* 30K msecs = 30 secs */
+      }
+      progress = 0;
+      do {
+        if (this->num_msgs) {
+          if (this->num_msgs > 0)
+            this->num_msgs--;
+          report_progress (this->stream, progress);
         }
+        res = _x_io_select (this->stream, fh, XIO_WRITE_READY, 500);
+        progress += (500 * 100000) / timeout;
+      } while ((res == XIO_TIMEOUT) && (progress <= 100000) && !_x_action_pending (this->stream));
+      if (res != XIO_READY) {
+        _x_message (this->stream, XINE_MSG_NETWORK_UNREACHABLE, this->mrl, NULL);
+        _x_io_tcp_close (this->stream, fh);
+        return -3;
+      }
+    }
 
-        if (!strncasecmp(buf, "Content-Range", 13)) {
-          intmax_t contentlength, range_start, range_end;
-          if (sscanf(buf, "Content-Range: bytes %" SCNdMAX "-%" SCNdMAX "/%" SCNdMAX,
-                     &range_start, &range_end, &contentlength) == 3) {
-            this->curpos = range_start;
-            this->contentlength = contentlength;
-            if (contentlength != range_end + 1) {
-              xprintf(this->xine, XINE_VERBOSITY_LOG,
-                      "input_http: Reveived invalid content range: \'%s\'\n", buf);
-              /* truncate - there won't be more data anyway */
-              this->contentlength = range_end + 1;
-            } else {
-              xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-                      "input_http: Stream starting at offset %" PRIdMAX "\n", range_start);
-            }
-          } else {
-            xprintf(this->xine, XINE_VERBOSITY_LOG,
-                    "input_http: Error parsing \'%s\'\n", buf);
-          }
-        }
+    /* TLS */
+    _x_assert (this->tls == NULL);
+    this->tls = _x_tls_init (this->xine, this->stream, fh);
+    if (!this->tls) {
+      _x_io_tcp_close (this->stream, fh);
+      return -2;
+    }
+    fh = -1;
+    if (use_tls) {
+      int r = _x_tls_handshake (this->tls, this->url.host, -1);
+      if (r < 0) {
+        _x_message (this->stream, XINE_MSG_CONNECTION_REFUSED, "TLS handshake failed", NULL);
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": TLS handshake failed\n");
+        return -4;
+      }
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": TLS handshake succeed, connection is encrypted\n");
+    }
 
-        if (!strncasecmp(buf, "Accept-Ranges", 13)) {
-          if (strstr(buf + 14, "bytes")) {
-            xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-                    "input_http: Server supports request ranges. Enabling seeking support.\n");
-            this->accept_range = 1;
-          } else {
-            xprintf(this->xine, XINE_VERBOSITY_LOG,
-                    "input_http: Unknown value in header \'%s\'\n", buf + 14);
-            this->accept_range = 0;
-          }
-        }
+    /* Request */
+    {
+#define ADDSTR(s) q += strlcpy (q, s, e - q); if (q > e) q = e
+#define ADDLIT(s) { static const char ls[] = s; if (q + sizeof (ls) <= e) memcpy (q, s, sizeof (ls)), q += sizeof (ls) - 1; }
+      char *q = this->sbuf, *e = q + sizeof (this->sbuf) - 24;
+      char strport[16];
 
-        if (!strncasecmp(buf, "Location: ", 10)) {
-          char *href = (buf + 10);
-
-	  lprintf ("trying to open target of redirection: >%s<\n", href);
-
-          href = _x_canonicalise_url (this->mrl, href);
-          free(this->mrl);
-          this->mrl = href;
-          http_close(this);
-          return http_plugin_open(this_gen);
-        }
-
-        if (!strncasecmp (buf, "WWW-Authenticate: ", 18))
-          strcpy (this->preview, buf + 18);
-
-	{
-	  static const char mpegurl_ct_str[] = "Content-Type: audio/x-mpegurl";
-	  static const size_t mpegurl_ct_size = sizeof(mpegurl_ct_str)-1;
-          if (!strncasecmp(buf, mpegurl_ct_str, mpegurl_ct_size)) {
-	    lprintf("Opening an audio/x-mpegurl file, late redirect.");
-
-	    mpegurl_redirect = 1;
-	  }
-	}
-
-        /* Icecast / ShoutCast Stuff */
-        if (this->stream) {
-        if (!strncasecmp(buf, TAG_ICY_NAME, sizeof(TAG_ICY_NAME) - 1)) {
-          _x_meta_info_set(this->stream, XINE_META_INFO_ALBUM,
-                           (buf + sizeof(TAG_ICY_NAME) - 1 +
-                            (*(buf + sizeof(TAG_ICY_NAME) - 1) == ' ')));
-          _x_meta_info_set(this->stream, XINE_META_INFO_TITLE,
-                           (buf + sizeof(TAG_ICY_NAME) - 1 +
-                            (*(buf + sizeof(TAG_ICY_NAME) - 1) == ' ')));
-        }
-
-        if (!strncasecmp(buf, TAG_ICY_GENRE, sizeof(TAG_ICY_GENRE) - 1)) {
-          _x_meta_info_set(this->stream, XINE_META_INFO_GENRE,
-                          (buf + sizeof(TAG_ICY_GENRE) - 1 +
-                           (*(buf + sizeof(TAG_ICY_GENRE) - 1) == ' ')));
-        }
-
-        /* icy-notice1 is always the same */
-        if (!strncasecmp(buf, TAG_ICY_NOTICE2, sizeof(TAG_ICY_NOTICE2) - 1)) {
-          char *end;
-          if((end = strstr(buf, "<BR>")))
-            *end = '\0';
-
-          _x_meta_info_set(this->stream, XINE_META_INFO_COMMENT,
-                           (buf + sizeof(TAG_ICY_NOTICE2) - 1 +
-                            (*(buf + sizeof(TAG_ICY_NOTICE2) - 1) == ' ')));
-        }
-        }
-
-        /* metadata interval (in byte) */
-        if (sscanf(buf, TAG_ICY_METAINT"%d", &this->shoutcast_metaint) == 1) {
-          lprintf("shoutcast_metaint: %d\n", this->shoutcast_metaint);
-          this->shoutcast_mode = 1;
-          this->shoutcast_pos = 0;
-        }
-
-        /* content type */
-        if (!strncasecmp(buf, TAG_CONTENT_TYPE, sizeof(TAG_CONTENT_TYPE) - 1)) {
-          const char *type = buf + sizeof (TAG_CONTENT_TYPE) - 1;
-          while (isspace (*type))
-            ++type;
-          sprintf (mime_type, "%.255s", type);
-          if (!strncasecmp (type, "video/nsv", 9)) {
-            lprintf("shoutcast nsv detected\n");
-            this->is_nsv = 1;
-          }
-        }
-        if ( !strncasecmp(buf, TAG_LASTFM_SERVER, sizeof(TAG_LASTFM_SERVER)-1) ) {
-	  lprintf("last.fm streaming server detected\n");
-	  this->is_lastfm = 1;
-	}
+      if (this->url.port != DEFAULT_HTTP_PORT) {
+        char *t = strport;
+        *t++ = ':';
+        uint32_2str (&t, this->url.port);
+      } else {
+        strport[0] = 0;
       }
 
-      if (len == -1)
-	done = 1;
-      len = 0;
-    } else
-      len ++;
+      if (use_proxy) {
+        ADDLIT ("GET http://");
+        ADDSTR (this->url.host);
+        ADDSTR (strport);
+      } else {
+        ADDLIT ("GET ");
+      }
+      ADDSTR (this->url.uri);
+      ADDLIT (" HTTP/1.0\015\012Host: ");
+      ADDSTR (this->url.host);
+      ADDSTR (strport);
+      if (this->curpos > 0) {
+        /* restart from offset */
+        ADDLIT ("\015\012Range: bytes=");
+        uint64_2str (&q, this->curpos);
+        ADDLIT ("-");
+/*      uint64_2str (&q, this->contentlength - 1); */
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+          "input_http: requesting restart from offset %" PRId64 "\n", (int64_t)this->curpos);
+      }
+      if (use_proxy && this_class->proxyuser && this_class->proxyuser[0]) {
+        char *proxyauth;
+        http_plugin_basicauth (this_class->proxyuser, this_class->proxypassword, &proxyauth);
+        ADDLIT ("\015\012Proxy-Authorization: Basic ");
+        ADDSTR (proxyauth);
+        free (proxyauth);
+      }
+      if (this->url.user && this->url.user[0]) {
+        char *auth;
+        http_plugin_basicauth (this->url.user, this->url.password, &auth);
+        ADDLIT ("\015\012Authorization: Basic ");
+        ADDSTR (auth);
+        free (auth);
+      }
+      ADDLIT ("\015\012User-Agent: ");
+      if (this->user_agent) {
+        ADDSTR (this->user_agent);
+        ADDLIT (" ");
+      }
+      ADDLIT ("xine/" VERSION "\015\012Accept: */*\015\012Icy-MetaData: 1\015\012\015\012");
+      if (_x_tls_write (this->tls, this->sbuf, (uint8_t *)q - this->sbuf) != (uint8_t *)q - this->sbuf) {
+        _x_message (this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": couldn't send request\n");
+        return -4;
+      }
+      lprintf ("request sent: >%s<\n", this->sbuf);
+#undef ADDSTR
+#undef ADDLIT
+    }
+
+    /* Response */
+    do {
+      this->smode &= ~(MODE_HAS_TYPE | MODE_HAS_LENGTH | MODE_DEFLATED | MODE_CHUNKED);
+      this->range_start = 0;
+      this->range_end = 0;
+      this->range_total = 0;
+      /* get status */
+      {
+        uint8_t *line, *p1, *p2;
+        int32_t ok = 0, i = sbuf_get_string (this, &line);
+        do {
+          if (i < 4)
+            break;
+          if ((memcmp (line, "HTTP", 4) && memcmp (line, "ICY ", 4)))
+            break;
+          p1 = line + i;
+          *p1 = ' ';
+          for (p2 = line + 4; *p2 != ' '; p2++) ;
+          *p1 = 0;
+          while (*p2 == ' ') p2++;
+          this->status = str2uint32 (&p2);
+          if (this->status == 0)
+            break;
+          while (*p2 == ' ') p2++;
+          strlcpy (httpstatus, p2, sizeof (httpstatus));
+          ok = 1;
+        } while (0);
+        if (!ok) {
+          _x_message (this->stream, XINE_MSG_CONNECTION_REFUSED, "invalid http answer", NULL);
+          xine_log (this->xine, XINE_LOG_MSG, _("input_http: invalid http answer\n"));
+          return -6;
+        }
+      }
+      /* get props */
+      while (1) {
+        uint32_t key;
+        uint8_t *line, *p1, *p2;
+        {
+          int32_t i = sbuf_get_string (this, &line);
+          if (i < 0) {
+            /* "httpget.http: invalid HTTP response\n" */
+            return -1;
+          }
+          /* an empty line marks the end of response head */
+          if (!i) break;
+          p1 = line + i;
+        }
+        /* find value string */
+        *p1 = ':';
+        for (p2 = line; *p2 != ':'; p2++) *p2 = tab_tolower[*p2];
+        *p1 = 0;
+        if (p2 != p1) {
+          *p2++ = 0;
+          while (*p2 == ' ') p2++;
+        }
+        /* find key */
+        {
+          static const char * const keys[] = {
+            "\x06""accept-ranges",
+            "\x03""content-encoding",
+            "\x01""content-length",
+            "\x04""content-range",
+            "\x02""content-type",
+            "\x0b""icy-genre",
+            "\x0d""icy-metaint",
+            "\x0a""icy-name",
+            "\x0c""icy-notice2",
+            "\x07""location",
+            "\x08""server",
+            "\x05""transfer-encoding",
+            "\x09""www-authenticate"
+          };
+          uint32_t b = 0, e = sizeof (keys) / sizeof (keys[0]), m = e >> 1;
+          key = 0;
+          do {
+            int d = strcmp ((char *)line, keys[m] + 1);
+            if (d == 0) {
+              key = keys[m][0];
+              break;
+            }
+            if (d < 0)
+              e = m;
+            else
+              b = m + 1;
+            m = (b + e) >> 1;
+          } while (b != e);
+        }
+        switch (key) {
+          case 0x1: /* content-length */
+            if (!this->contentlength)
+              this->contentlength = str2uint64 (&p2);
+            this->smode |= MODE_HAS_LENGTH;
+            break;
+          case 0x2: /* content type */
+            strlcpy (mime_type, (char *)p2, sizeof (mime_type));
+            this->smode |= MODE_HAS_TYPE;
+            if (!strncasecmp ((char *)p2, "audio/x-mpegurl", 15)) {
+              lprintf ("Opening an audio/x-mpegurl file, late redirect.");
+              mpegurl_redirect = 1;
+            }
+            else if (!strncasecmp ((char *)p2, "video/nsv", 9)) {
+              lprintf ("shoutcast nsv detected\n");
+              this->is_nsv = 1;
+            }
+            break;
+          case 0x3: /* content-encoding */
+            if ((!memcmp (p2, "gzip", 4)) || (!memcmp (p2, "deflate", 7)))
+              this->smode |= MODE_DEFLATED;
+            break;
+          case 0x4: /* content-range */
+            if (!memcmp (p2, "bytes", 5))
+              p2 += 5;
+            while (*p2 == ' ')
+              p2++;
+            this->range_start = str2uint64 (&p2);
+            if (*p2 == '-') {
+              p2++;
+              this->range_end = str2uint64 (&p2);
+            }
+            if (*p2 == '/') {
+              p2++;
+              this->range_total = str2uint64 (&p2);
+            }
+            break;
+          case 0x5: /* transfer-encoding */
+            if ((!memcmp (p2, "chunked", 7)))
+              this->smode |= MODE_CHUNKED;
+            break;
+          case 0x6: /* accept-ranges */
+            if (strstr (line + 14, "bytes")) {
+              xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+                "input_http: Server supports request ranges. Enabling seeking support.\n");
+              this->accept_range = 1;
+            } else {
+              xprintf (this->xine, XINE_VERBOSITY_LOG,
+                "input_http: Unknown value in header \'%s\'\n", line + 14);
+              this->accept_range = 0;
+            }
+            break;
+          case 0x7: /* location */
+            /* check redirection */
+            if  ((this->status == 302) /* found */
+              || (this->status == 301) /* moved permanently */
+              || (this->status == 303) /* see other */
+              || (this->status == 307)) { /* temporary redirect */
+              lprintf ("trying to open target of redirection: >%s<\n", (char *)p2);
+              free (href);
+              href = _x_canonicalise_url (this->mrl, (char *)p2);
+            }
+            break;
+          case 0x8: /* server */
+            if (!strncasecmp ((char *)p2, "last.fm", 7)) {
+              lprintf ("last.fm streaming server detected\n");
+              this->is_lastfm = 1;
+            }
+            break;
+          case 0x9: /* www-authenticate */
+            if (this->status == 401)
+              _x_message (this->stream, XINE_MSG_AUTHENTICATION_NEEDED, this->mrl, (char *)p2, NULL);
+            break;
+          /* Icecast / ShoutCast Stuff */
+          case 0xa: /* icy-name */
+            if (this->stream) {
+              _x_meta_info_set (this->stream, XINE_META_INFO_ALBUM, (char *)p2);
+              _x_meta_info_set (this->stream, XINE_META_INFO_TITLE, (char *)p2);
+            }
+            break;
+          case 0xb: /* icy-genre */
+            if (this->stream)
+              _x_meta_info_set (this->stream, XINE_META_INFO_GENRE, (char *)p2);
+            break;
+          /* icy-notice1 is always the same */
+          case 0xc: /* icy-notice2 */
+            {
+              char *end = strstr ((char *)p2, "<BR>");
+              if (end)
+              *end = '\0';
+              if (this->stream)
+                _x_meta_info_set (this->stream, XINE_META_INFO_COMMENT, (char *)p2);
+            }
+            break;
+          case 0xd: /* icy-metaint */
+            /* metadata interval (in byte) */
+            this->shoutcast_metaint = str2uint32 (&p2);
+            lprintf ("shoutcast_metaint: %d\n", this->shoutcast_metaint);
+            this->shoutcast_mode = 1;
+            this->shoutcast_pos = 0;
+            break;
+        }
+      }
+      /* skip non-document content */
+      if ((this->status != 200) && (this->status != 206)) while (this->contentlength > 0) {
+        int i = sizeof (this->preview);
+        if (i > this->contentlength) i = this->contentlength;
+        i = sbuf_get_bytes (this, this->sbuf, i);
+        if (i <= 0) break;
+        this->contentlength -= i;
+      }
+      /* indicate free content length */
+      if ((this->smode & (MODE_HAS_TYPE | MODE_HAS_LENGTH)) == MODE_HAS_TYPE) this->contentlength = -1;
+      if (this->smode & MODE_CHUNKED) this->contentlength = 0;
+    } while (this->status == 102); /* processing */
+
+    this->curpos = 0;
+
+    if ((this->status >= 300) && (this->status < 400)) {
+      xine_log (this->xine, XINE_LOG_MSG,
+        _("input_http: 3xx redirection: >%d %s<\n"), this->status, httpstatus);
+      if (href) {
+        free (this->mrl);
+        this->mrl = href;
+        href = NULL;
+        http_close (this);
+        again = 1;
+      }
+    } else if (this->status == 404) {
+      _x_message (this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
+      xine_log (this->xine, XINE_LOG_MSG,
+        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+      return -7;
+    } else if (this->status == 401) {
+      xine_log (this->xine, XINE_LOG_MSG,
+        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+      /* don't return - there may be a WWW-Authenticate header... */
+    } else if (this->status == 403) {
+      _x_message (this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
+      xine_log (this->xine, XINE_LOG_MSG,
+        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+      return -8;
+    } else if ((this->status < 200) || (this->status >= 300)) {
+      _x_message (this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ", httpstatus, NULL);
+      xine_log (this->xine, XINE_LOG_MSG,
+        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+      return -9;
+    }
+    free (href);
+    if (this->smode & MODE_HAS_LENGTH)
+      xine_log (this->xine, XINE_LOG_MSG,
+        _("input_http: content length = %" PRId64 " bytes\n"), (int64_t)this->contentlength);
+    if (this->range_start) {
+      this->curpos = this->range_start;
+      if (this->contentlength != this->range_end + 1) {
+        xprintf (this->xine, XINE_VERBOSITY_LOG,
+          "input_http: Reveived invalid content range");
+        /* truncate - there won't be more data anyway */
+        this->contentlength = this->range_end + 1;
+      } else {
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+          "input_http: Stream starting at offset %" PRId64 "\n.", this->range_start);
+      }
+    }
+#if 0
     if ( len >= (int)sizeof(buf) ) {
        _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
        xine_log (this->xine, XINE_LOG_MSG,
          _("input_http: buffer exhausted after %zu bytes."), sizeof(buf));
        return -10;
     }
-  }
+#endif
+    lprintf ("end of headers\n");
 
-  lprintf ("end of headers\n");
-
-  if (httpcode == 401)
-    _x_message(this->stream, XINE_MSG_AUTHENTICATION_NEEDED,
-               this->mrl, *this->preview ? this->preview : NULL, NULL);
-
-  if ( mpegurl_redirect ) {
-    char urlbuf[4096] = { 0, };
-    char *newline = NULL;
-
-    http_plugin_read_int(this, urlbuf, sizeof(urlbuf) - 1);
-    newline = strstr(urlbuf, "\r\n");
-
-    /* If the newline can't be found, either the 4K buffer is too small, or
-     * more likely something is fuzzy.
-     */
-    if ( newline ) {
-      char *href;
-
-      *newline = '\0';
-
-      lprintf("mpegurl pointing to %s\n", urlbuf);
-
-      href = _x_canonicalise_url (this->mrl, urlbuf);
-      free(this->mrl);
-      this->mrl = href;
-      http_close(this);
-      return http_plugin_open(this_gen);
+    if (mpegurl_redirect) {
+      char urlbuf[4096] = { 0, };
+      char *newline = NULL;
+      http_plugin_read_int (this, urlbuf, sizeof (urlbuf) - 1);
+      newline = strstr (urlbuf, "\r\n");
+      /* If the newline can't be found, either the 4K buffer is too small, or
+       * more likely something is fuzzy. */
+      if (newline) {
+        char *href;
+        *newline = '\0';
+        lprintf ("mpegurl pointing to %s\n", urlbuf);
+        href = _x_canonicalise_url (this->mrl, urlbuf);
+        free (this->mrl);
+        this->mrl = href;
+        http_close (this);
+        again = 1;
+      }
     }
-  }
+  } while (again);
 
   if (this->curpos > 0) {
     /* restarting after seek */
@@ -1121,6 +1544,7 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
       if (!http_can_handle (this->stream, data))
         break;
       http_close (this);
+      sbuf_reset (this);
       _x_freep (&this->mrl);
       _x_freep (&this->mime_type);
       _x_freep (&this->user_agent);
@@ -1189,6 +1613,7 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   if (stream) {
     this->nbc  = nbc_init (stream);
   }
+  sbuf_init (this);
 
   this->input_plugin.open              = http_plugin_open;
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;
