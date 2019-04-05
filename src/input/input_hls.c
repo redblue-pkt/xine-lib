@@ -378,16 +378,43 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
   this->items_num = 0;
 
   size = this->in1->get_length (this->in1);
-  if ((size <= 0) || (size > (32 << 20)))
+  if (size > (32 << 20))
     return 0;
-  if (this->in1->seek (this->in1, 0, SEEK_SET) != 0)
-    return 0;
-  this->list_buf = malloc (4 + size + 4);
-  if (!this->list_buf)
-    return 0;
-  if (this->in1->read (this->in1, this->list_buf + 4, size) != size) {
-    _x_freep (&this->list_buf);
-    return 0;
+  if (size > 0) {
+    /* size known, get at once. */
+    if (this->in1->seek (this->in1, 0, SEEK_SET) != 0)
+      return 0;
+    this->list_buf = malloc (4 + size + 4);
+    if (!this->list_buf)
+      return 0;
+    if (this->in1->read (this->in1, this->list_buf + 4, size) != size) {
+      _x_freep (&this->list_buf);
+      return 0;
+    }
+  } else {
+    /* chunked/deflated */
+    int32_t max = (32 << 10) - 4 - 4, have = 0;
+    this->list_buf = malloc (4 + max + 4);
+    if (!this->list_buf)
+      return 0;
+    while (1) {
+      int32_t r = this->in1->read (this->in1, this->list_buf + 4 + have, max - have);
+      if (r <= 0)
+        break;
+      if (have >= max) {
+        char *n = NULL;
+        if (max < (32 << 20))
+          n = realloc (this->list_buf, 4 + max + (32 << 10) + 4);
+        if (!n) {
+          _x_freep (&this->list_buf);
+          return 0;
+        }
+        this->list_buf = n;
+        max += 32 << 10;
+      }
+      have += r;
+    }
+    size = have;
   }
   memset (this->list_buf, 0, 4);
   memset (this->list_buf + 4 + size, 0, 4);
