@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project,
+ * Copyright (C) 2000-2019 the xine project,
  *
  * This file is part of xine, a free video player.
  *
@@ -49,10 +49,6 @@
 #include <xine/io_helper.h>
 
 /* private constants */
-#define XIO_FILE_READ             0
-#define XIO_FILE_WRITE            1
-#define XIO_TCP_READ              2
-#define XIO_TCP_WRITE             3
 #define XIO_POLLING_INTERVAL  50000  /* usec */
 
 
@@ -107,19 +103,22 @@ static int _x_io_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int p
     saddr.in.sin_addr   = ia;
     saddr.in.sin_port   = htons(port);
 
+    if (connect (s, &saddr.sa, sizeof (saddr.in)) == -1) {
 #ifndef WIN32
-    if (connect(s, &saddr.sa, sizeof(saddr.in))==-1 && errno != EINPROGRESS) {
+      if (errno != EINPROGRESS)
 #else
-    if (connect(s, &saddr.sa, sizeof(saddr.in))==-1 && WSAGetLastError() != WSAEWOULDBLOCK) {
-      if (stream)
-        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+      if (WSAGetLastError() != WSAEWOULDBLOCK)
 #endif /* WIN32 */
-
-      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(errno), NULL);
-      _x_io_tcp_close(NULL, s);
-      continue;
+      {
+#ifdef WIN32
+        if (stream)
+          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+#endif /* WIN32 */
+        _x_message (stream, XINE_MSG_CONNECTION_REFUSED, strerror (errno), NULL);
+        _x_io_tcp_close (NULL, s);
+        continue;
+      }
     }
-
     return s;
   }
 
@@ -194,25 +193,23 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
 #endif
       }
 
+    if (connect (s, tmpaddr->ai_addr, tmpaddr->ai_addrlen) == -1) {
 #ifndef WIN32
-    if (connect(s, tmpaddr->ai_addr,
-		tmpaddr->ai_addrlen)==-1 && errno != EINPROGRESS) {
-
+      if (errno != EINPROGRESS)
 #else
-    if (connect(s, tmpaddr->ai_addr,
-		tmpaddr->ai_addrlen)==-1 &&
-	WSAGetLastError() != WSAEWOULDBLOCK) {
-
-      if (stream)
-        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+      if (WSAGetLastError() != WSAEWOULDBLOCK)
 #endif /* WIN32 */
-
-      error = errno;
-      _x_io_tcp_close(NULL, s);
-      tmpaddr = tmpaddr->ai_next;
-      continue;
+      {
+#ifdef WIN32
+        if (stream)
+          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+#endif /* WIN32 */
+        error = errno;
+        _x_io_tcp_close (NULL, s);
+        tmpaddr = tmpaddr->ai_next;
+        continue;
+      }
     }
-
     freeaddrinfo(res);
     return s;
   }
@@ -227,9 +224,6 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
 
 int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
 
-  fd_set fdset;
-  fd_set *rset, *wset;
-  struct timeval select_timeout;
   int timeout_usec, total_time_usec;
   int ret;
 #ifdef WIN32
@@ -280,18 +274,46 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
           return XIO_ERROR;
       }
     }
+    if (stream && _x_action_pending(stream)) {
+      errno = EINTR;
+      return XIO_ABORTED;
+    }
     total_time_usec += XIO_POLLING_INTERVAL;
     return XIO_TIMEOUT;
   }
 #endif
+
+  if (timeout_msec == 0) {
+    struct timeval select_timeout = {0, 0};
+    fd_set fdset;
+    fd_set *rset, *wset;
+
+    if (stream && _x_action_pending(stream)) {
+      errno = EINTR;
+      return XIO_ABORTED;
+    }
+    FD_ZERO (&fdset);
+    FD_SET  (fd, &fdset);
+    rset = (state & XIO_READ_READY) ? &fdset : NULL;
+    wset = (state & XIO_WRITE_READY) ? &fdset : NULL;
+    ret = select (fd + 1, rset, wset, NULL, &select_timeout);
+    if (ret == -1 && errno != EINTR) {
+      /* select error */
+      return XIO_ERROR;
+    } else if (ret == 1) {
+      /* fd is ready */
+      return XIO_READY;
+    }
+    return XIO_TIMEOUT;
+  }
+
   while (total_time_usec < timeout_usec) {
+    struct timeval select_timeout = {0, XIO_POLLING_INTERVAL};
+    fd_set fdset;
+    fd_set *rset, *wset;
 
     FD_ZERO (&fdset);
     FD_SET  (fd, &fdset);
-
-    select_timeout.tv_sec  = 0;
-    select_timeout.tv_usec = XIO_POLLING_INTERVAL;
-
     rset = (state & XIO_READ_READY) ? &fdset : NULL;
     wset = (state & XIO_WRITE_READY) ? &fdset : NULL;
     ret = select (fd + 1, rset, wset, NULL, &select_timeout);
@@ -308,8 +330,10 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
      *   aborts current read if action pending. otherwise xine
      *   cannot be stopped when no more data is available.
      */
-    if (stream && _x_action_pending(stream))
+    if (stream && _x_action_pending(stream)) {
+      errno = EINTR;
       return XIO_ABORTED;
+    }
 
     total_time_usec += XIO_POLLING_INTERVAL;
   }
@@ -344,113 +368,181 @@ int _x_io_tcp_connect_finish(xine_stream_t *stream, int fd, int timeout_msec) {
 }
 
 
-static off_t xio_rw_abort(xine_stream_t *stream, int fd, int cmd, void *buf_gen, const void *wbuf_gen, off_t todo) {
+#ifndef WIN32
+#  define IF_EAGAIN (errno == EAGAIN)
+#else
+#  define IF_EAGAIN (WSAGetLastError() == WSAEWOULDBLOCK)
+#endif
+
+static off_t xio_err (xine_stream_t *stream, int ret) {
+  /* non-blocking mode */
+#ifndef WIN32
+  if (errno == EACCES) {
+    _x_message (stream, XINE_MSG_PERMISSION_ERROR, NULL, NULL);
+    if (stream)
+      xine_log (stream->xine, XINE_LOG_MSG, _("io_helper: Permission denied\n"));
+  } else if (errno == ENOENT) {
+    _x_message (stream, XINE_MSG_FILE_NOT_FOUND, NULL, NULL);
+    if (stream)
+      xine_log (stream->xine, XINE_LOG_MSG, _("io_helper: File not found\n"));
+  } else if (errno == ECONNREFUSED) {
+    _x_message (stream, XINE_MSG_CONNECTION_REFUSED, NULL, NULL);
+    if (stream)
+      xine_log (stream->xine, XINE_LOG_MSG, _("io_helper: Connection Refused\n"));
+  } else {
+    perror ("io_helper: I/O error");
+  }
+#else
+  if (stream)
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
+#endif
+  return ret;
+}
+
+off_t _x_io_tcp_read (xine_stream_t *stream, int s, void *buf_gen, off_t todo) {
   uint8_t *buf = buf_gen;
-  const uint8_t *wbuf = wbuf_gen;
+  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  size_t want = todo, have = 0;
 
-  off_t ret = -1;
-  off_t total = 0;
-  int sret;
-  int state = 0;
-  xine_cfg_entry_t cfgentry;
-  unsigned int timeout;
-
-  if ((cmd == XIO_TCP_READ) || (cmd == XIO_FILE_READ)) {
-    _x_assert(buf != NULL);
-    state = XIO_READ_READY;
-  } else if ((cmd == XIO_TCP_WRITE) || (cmd == XIO_FILE_WRITE)) {
-    _x_assert(wbuf != NULL);
-    state = XIO_WRITE_READY;
-  } else {
-    errno = EINVAL;
-    return -1;
-  }
-
-  if (stream && xine_config_lookup_entry (stream->xine, "media.network.timeout", &cfgentry)) {
-    timeout = cfgentry.num_value * 1000;
-  } else {
-    timeout = 30000; /* 30K msecs = 30 secs */
-  }
-
-  while (total < todo) {
-
-    sret = _x_io_select(stream, fd, state, timeout);
-
-    if (sret != XIO_READY)
+  _x_assert(buf != NULL);
+  while (have < want) {
+    ssize_t ret;
+    ret = _x_io_select (stream, s, XIO_READ_READY, timeout);
+    if (ret != XIO_READY)
       return -1;
-
-    switch (cmd) {
-      case XIO_FILE_READ:
-        ret = read(fd, &buf[total], todo - total);
-        break;
-      case XIO_FILE_WRITE:
-        ret = write(fd, &wbuf[total], todo - total);
-        break;
-      case XIO_TCP_READ:
-        ret = recv(fd, &buf[total], todo - total, 0);
-        break;
-      case XIO_TCP_WRITE:
-        ret = send(fd, &wbuf[total], todo - total, 0);
-        break;
-    }
+    ret = recv (s, buf + have, want - have, 0);
     /* check EOF */
     if (!ret)
       break;
-
     /* check errors */
     if (ret < 0) {
-
-      /* non-blocking mode */
-#ifndef WIN32
-      if (errno == EAGAIN)
+      if (IF_EAGAIN)
         continue;
-
-      if (errno == EACCES) {
-        _x_message(stream, XINE_MSG_PERMISSION_ERROR, NULL, NULL);
-        if (stream)
-          xine_log (stream->xine, XINE_LOG_MSG,
-                    _("io_helper: Permission denied\n"));
-      } else if (errno == ENOENT) {
-        _x_message(stream, XINE_MSG_FILE_NOT_FOUND, NULL, NULL);
-        if (stream)
-          xine_log (stream->xine, XINE_LOG_MSG,
-                    _("io_helper: File not found\n"));
-      } else if (errno == ECONNREFUSED) {
-	_x_message(stream, XINE_MSG_CONNECTION_REFUSED, NULL, NULL);
-        if (stream)
-          xine_log (stream->xine, XINE_LOG_MSG,
-                    _("io_helper: Connection Refused\n"));
-      } else {
-        perror("io_helper: I/O error");
-      }
-#else
-      if (WSAGetLastError() == WSAEWOULDBLOCK)
-        continue;
-      if (stream)
-        xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
-#endif
-
-      return ret;
+      return xio_err (stream, ret);
     }
-    total += ret;
+    have += ret;
   }
-  return total;
+  return have;
 }
 
-off_t _x_io_tcp_read (xine_stream_t *stream, int s, void *buf, off_t todo) {
-  return xio_rw_abort (stream, s, XIO_TCP_READ, buf, NULL, todo);
+ssize_t _x_io_tcp_part_read (xine_stream_t *stream, int s, void *buf_gen, size_t min, size_t max) {
+  uint8_t *buf = buf_gen;
+  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  size_t have = 0;
+
+  _x_assert(buf != NULL);
+
+  if (min == 0) {
+    ssize_t ret = _x_io_select (stream, s, XIO_READ_READY, 0);
+    if (ret != XIO_READY) {
+      errno = ret == XIO_TIMEOUT ? EAGAIN : EINTR;
+      return -1;
+    }
+    ret = recv (s, buf, max, 0);
+    if (ret < 0) {
+      if (!IF_EAGAIN)
+        return xio_err (stream, ret);
+      errno = EAGAIN;
+    }
+    return ret;
+  }
+
+  while (have < min) {
+    ssize_t ret;
+    ret = _x_io_select (stream, s, XIO_READ_READY, timeout);
+    if (ret != XIO_READY)
+      return -1;
+    ret = recv (s, buf + have, max - have, 0);
+    /* check EOF */
+    if (!ret)
+      break;
+    /* check errors */
+    if (ret < 0) {
+      if (IF_EAGAIN)
+        continue;
+      return xio_err (stream, ret);
+    }
+    have += ret;
+  }
+  return have;
 }
 
-off_t _x_io_tcp_write (xine_stream_t *stream, int s, const void *buf, off_t todo) {
-  return xio_rw_abort (stream, s, XIO_TCP_WRITE, NULL, buf, todo);
+off_t _x_io_tcp_write (xine_stream_t *stream, int s, const void *wbuf_gen, off_t todo) {
+  const uint8_t *wbuf = wbuf_gen;
+  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  size_t have = 0, want = todo;
+
+  _x_assert (wbuf != NULL);
+  while (have < want) {
+    ssize_t ret;
+    ret = _x_io_select (stream, s, XIO_WRITE_READY, timeout);
+    if (ret != XIO_READY)
+      return -1;
+    ret = send (s, wbuf + have, want - have, 0);
+    /* check EOF */
+    if (!ret)
+      break;
+    /* check errors */
+    if (ret < 0) {
+      if (IF_EAGAIN)
+        continue;
+      return xio_err (stream, ret);
+    }
+    have += ret;
+  }
+  return have;
 }
 
-off_t _x_io_file_read (xine_stream_t *stream, int s, void *buf, off_t todo) {
-  return xio_rw_abort (stream, s, XIO_FILE_READ, buf, NULL, todo);
+off_t _x_io_file_read (xine_stream_t *stream, int s, void *buf_gen, off_t todo) {
+  uint8_t *buf = buf_gen;
+  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  size_t have = 0, want = todo;
+
+  _x_assert(buf != NULL);
+  while (have < want) {
+    ssize_t ret;
+    ret = _x_io_select (stream, s, XIO_READ_READY, timeout);
+    if (ret != XIO_READY)
+      return -1;
+    ret = read (s, buf + have, want - have);
+    /* check EOF */
+    if (!ret)
+      break;
+    /* check errors */
+    if (ret < 0) {
+      if (IF_EAGAIN)
+        continue;
+      return xio_err (stream, ret);
+    }
+    have += ret;
+  }
+  return have;
 }
 
-off_t _x_io_file_write (xine_stream_t *stream, int s, const void *buf, off_t todo) {
-  return xio_rw_abort (stream, s, XIO_FILE_WRITE, NULL, buf, todo);
+off_t _x_io_file_write (xine_stream_t *stream, int s, const void *wbuf_gen, off_t todo) {
+  const uint8_t *wbuf = wbuf_gen;
+  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  size_t have = 0, want = todo;
+
+  _x_assert (wbuf != NULL);
+  while (have < want) {
+    ssize_t ret;
+    ret = _x_io_select (stream, s, XIO_WRITE_READY, timeout);
+    if (ret != XIO_READY)
+      return -1;
+    ret = write (s, wbuf + have, want - have);
+    /* check EOF */
+    if (!ret)
+      break;
+    /* check errors */
+    if (ret < 0) {
+      if (IF_EAGAIN)
+        continue;
+      return xio_err (stream, ret);
+    }
+    have += ret;
+  }
+  return have;
 }
 
 /*
@@ -466,7 +558,7 @@ int _x_io_tcp_read_line(xine_stream_t *stream, int sock, char *str, int size) {
   if( size <= 0 )
     return 0;
 
-  while ((r = xio_rw_abort(stream, sock, XIO_TCP_READ, &c, NULL, 1)) == 1) {
+  while ((r = _x_io_tcp_read (stream, sock, &c, 1)) == 1) {
     if (c == '\r' || c == '\n')
       break;
     if (i+1 == size)
@@ -477,7 +569,7 @@ int _x_io_tcp_read_line(xine_stream_t *stream, int sock, char *str, int size) {
   }
 
   if (r == 1 && c == '\r')
-    r = xio_rw_abort(stream, sock, XIO_TCP_READ, &c, NULL, 1);
+    r = _x_io_tcp_read (stream, sock, &c, 1);
 
   str[i] = '\0';
 
@@ -524,3 +616,5 @@ int _x_io_tcp_close(xine_stream_t *stream, int fd)
 
   return r;
 }
+
+
