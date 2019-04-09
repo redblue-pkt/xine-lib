@@ -75,10 +75,8 @@ static off_t stdin_plugin_get_current_pos (input_plugin_t *this_gen);
 static int stdin_plugin_wait (stdin_input_plugin_t *this) {
   int ret;
   if (this->requery_timeout <= 0) {
-    xine_cfg_entry_t cfgentry;
     this->requery_timeout = 1 << 20;
-    if (xine_config_lookup_entry (this->xine, "media.network.timeout", &cfgentry))
-      this->timeout = cfgentry.num_value * 1000;
+    this->timeout = _x_query_network_timeout (this->xine) * 1000;
   }
   ret = _x_io_select (this->stream, this->fh, XIO_READ_READY, this->timeout);
   if (ret != XIO_READY) {
