@@ -2200,6 +2200,15 @@ void xine_set_flags (xine_t *this, int flags)
   this->flags = flags;
 }
 
+int _x_query_network_timeout (xine_t *xine) {
+  return xine ? xine->network_timeout : 30;
+}
+
+static void network_timeout_cb (void *this_gen, xine_cfg_entry_t *entry) {
+  xine_t *this = (xine_t *)this_gen;
+  this->network_timeout = entry->num_value;
+}
+
 void xine_init (xine_t *this) {
   static const char *const demux_strategies[] = {"default", "reverse", "content",
 						 "extension", NULL};
@@ -2292,14 +2301,14 @@ void xine_init (xine_t *this) {
   /*
    * timeout for network I/O to avoid freezes
    */
-  this->config->register_num(this->config,
+  this->network_timeout = this->config->register_num (this->config,
       "media.network.timeout", 30,
       _("Timeout for network stream reading (in seconds)"),
       _("Specifies the timeout when reading from network streams, in seconds. "
-	"Too low values might stop streaming when the source is slow or the "
-	"bandwidth is occupied, too high values will freeze the player if the "
-	"connection is lost."),
-      0, NULL, this);
+        "Too low values might stop streaming when the source is slow or the "
+        "bandwidth is occupied, too high values will freeze the player if the "
+        "connection is lost."),
+      0, network_timeout_cb, this);
 
   /*
    * keep track of all opened streams

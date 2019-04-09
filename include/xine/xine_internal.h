@@ -107,6 +107,7 @@ struct xine_s {
   void                      *log_cb_user_data;
 
   int                        flags;
+  int                        network_timeout;
 
   /* set when pauseing with port ticket granted, for XINE_PARAM_VO_SINGLE_STEP. */
   int                        live_pause;
@@ -210,6 +211,7 @@ xine_query_buffers_t;
  * private function prototypes:
  */
 
+int _x_query_network_timeout (xine_t *xine) XINE_PROTECTED;
 int _x_query_buffers(xine_stream_t *stream, xine_query_buffers_t *query) XINE_PROTECTED;
 int _x_query_buffer_usage(xine_stream_t *stream, int *num_video_buffers, int *num_audio_buffers, int *num_video_frames, int *num_audio_frames) XINE_PROTECTED;
 int _x_lock_port_rewiring(xine_t *xine, int ms_to_time_out) XINE_PROTECTED;
@@ -401,3 +403,5 @@ typedef struct {
 #endif
 
 #endif
+
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project,
+ * Copyright (C) 2000-2019 the xine project,
  *
  * This file is part of xine, a free video player.
  *
@@ -89,49 +89,25 @@ int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) XINE_PR
  */
 int _x_io_tcp_connect_finish(xine_stream_t *stream, int fd, int timeout_msec) XINE_PROTECTED XINE_USED;
 
-/*
- * read from tcp socket checking demux_action_pending
- *
- * network input plugins should use this function in order to
- * not freeze the engine.
- *
- * aborts with zero if no data is available and *abort is set
+/* The next 5 read/write functions will try to transfer todo/min bytes unless
+ * - the end of stream is reached (0), or
+ * - no data is available for user network timeout seconds (-1 ETIMEDOUT), or
+ * - an io error hits (-1 Exxx), or
+ * - xine engine wants to seek/stop (-1 EINTR).
+ * _x_io_tcp_part_read (stream, s, buf, 0, len) may also yield (-1 EAGAIN), and will never wait.
+ * network input plugins should use these functions in order not to freeze the engine.
+ * "off_t" is just there for historical reasons, "(s)size_t" should be enough.
  */
 off_t _x_io_tcp_read (xine_stream_t *stream, int s, void *buf, off_t todo) XINE_PROTECTED XINE_USED;
-
-
-/*
- * write to a tcp socket checking demux_action_pending
- *
- * network input plugins should use this function in order to
- * not freeze the engine.
- *
- * aborts with zero if no data is available and *abort is set
- */
+/* like _x_io_tcp_read () but:
+ * 1. wait until we have at least min bytes, then
+ * 2. return up to max bytes that are already there. */
+ssize_t _x_io_tcp_part_read (xine_stream_t *stream, int s, void *buf, size_t min, size_t max) XINE_PROTECTED XINE_USED;
 off_t _x_io_tcp_write (xine_stream_t *stream, int s, const void *buf, off_t todo) XINE_PROTECTED XINE_USED;
-
-/*
- * read from a file descriptor checking demux_action_pending
- *
- * the fifo input plugin should use this function in order to
- * not freeze the engine.
- *
- * aborts with zero if no data is available and *abort is set
- */
 off_t _x_io_file_read (xine_stream_t *stream, int fd, void *buf, off_t todo) XINE_PROTECTED XINE_USED;
-
-
-/*
- * write to a file descriptor checking demux_action_pending
- *
- * the fifo input plugin should use this function in order to
- * not freeze the engine.
- *
- * aborts with zero if *abort is set
- */
 off_t _x_io_file_write (xine_stream_t *stream, int fd, const void *buf, off_t todo) XINE_PROTECTED XINE_USED;
 
-/*
+/* XXX this is slow.
  * read a string from socket, return string length (same as strlen)
  * the string is always '\0' terminated but given buffer size is never exceeded
  * that is, _x_io_tcp_read_line(,,,X) <= (X-1) ; X > 0
