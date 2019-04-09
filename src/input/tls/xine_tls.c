@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  * Copyright (C) 2018 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -73,6 +73,14 @@ ssize_t _x_tls_write(xine_tls_t *t, const void *buf, size_t len)
     return t->tls->write(t->tls, buf, len);
 
   return _x_io_tcp_write(t->stream, t->fd, buf, len);
+}
+
+ssize_t _x_tls_part_read(xine_tls_t *t, void *buf, size_t min, size_t max)
+{
+  if (t->tls && t->enabled)
+    return t->tls->part_read(t->tls, buf, min, max);
+
+  return _x_io_tcp_part_read(t->stream, t->fd, buf, min, max);
 }
 
 ssize_t _x_tls_read(xine_tls_t *t, void *buf, size_t len)

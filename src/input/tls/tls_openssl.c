@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  * Copyright (C) 2018 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -202,6 +202,22 @@ static ssize_t _openssl_read(tls_plugin_t *this_gen, void *buf, size_t len)
   return ret;
 }
 
+static ssize_t _openssl_part_read(tls_plugin_t *this_gen, void *buf, size_t min, size_t max)
+{
+  tls_openssl_t *this = (tls_openssl_t *)this_gen;
+  int ret;
+
+  if (!this->ssl)
+    return -1;
+
+  ret = SSL_read(this->ssl, buf, max);
+  if (ret < 0)
+    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+            "OpenSSL read failed: %s\n",
+            ERR_error_string(ERR_get_error(), NULL));
+  return ret;
+}
+
 static void _openssl_shutdown(tls_plugin_t *this_gen)
 {
   tls_openssl_t *this = (tls_openssl_t *)this_gen;
@@ -306,6 +322,7 @@ static xine_module_t *_openssl_get_instance(xine_module_class_t *cls_gen, const 
 
   this->tls_plugin.handshake = _openssl_handshake;
   this->tls_plugin.shutdown  = _openssl_shutdown;
+  this->tls_plugin.part_read = _openssl_part_read;
   this->tls_plugin.read      = _openssl_read;
   this->tls_plugin.write     = _openssl_write;
 

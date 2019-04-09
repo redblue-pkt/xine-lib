@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  * Copyright (C) 2018      Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -46,6 +46,7 @@ xine_tls_t *_x_tls_connect(xine_t *xine, xine_stream_t *stream, const char *host
 xine_tls_t *_x_tls_init(xine_t *xine, xine_stream_t *stream, int fd);
 void        _x_tls_close(xine_tls_t **);  /* note: associated socket is also closed */
 
+ssize_t _x_tls_part_read(xine_tls_t *, void *data, size_t min, size_t max);
 ssize_t _x_tls_read(xine_tls_t *, void *data, size_t len);
 ssize_t _x_tls_write(xine_tls_t *, const void *data, size_t len);
 ssize_t _x_tls_read_line(xine_tls_t *, char *buf, size_t buf_size);

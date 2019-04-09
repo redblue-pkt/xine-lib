@@ -1,5 +1,5 @@
  /*
- * Copyright (C) 2018 the xine project
+ * Copyright (C) 2019 the xine project
  * Copyright (C) 2018 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -46,6 +46,7 @@ struct tls_plugin_s {
 
   ssize_t (*read)(tls_plugin_t *, void *buf, size_t len);
   ssize_t (*write)(tls_plugin_t *, const void *buf, size_t len);
+  ssize_t (*part_read)(tls_plugin_t *, void *buf, size_t min, size_t max);
 };
 
 /*
