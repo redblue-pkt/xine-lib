@@ -69,6 +69,9 @@ typedef struct {
   gnutls_session_t session;
   gnutls_certificate_credentials_t cred;
 
+  size_t buf_got, buf_delivered;
+  uint8_t buf[32 << 10];
+
 } tls_gnutls_t;
 
 /*
@@ -78,8 +81,38 @@ typedef struct {
 static ssize_t gnutls_tcp_pull(gnutls_transport_ptr_t tp,
                                void *buf, size_t len)
 {
+  /* gnutls always reads small block head (5 bytes), gets payload size,
+   * and reads the rest of block before it does anything else. */
   tls_gnutls_t *this = (tls_gnutls_t *)tp;
-  return _x_io_tcp_part_read (this->stream, this->fd, buf, 0, len);
+  size_t l = this->buf_got - this->buf_delivered;
+  if (l) {
+    /* get from buf */
+    if (l > len) {
+      xine_fast_memcpy (buf, this->buf + this->buf_delivered, len);
+      this->buf_delivered += len;
+      return len;
+    }
+    xine_fast_memcpy (buf, this->buf + this->buf_delivered, l);
+    this->buf_got = this->buf_delivered = 0;
+    return l;
+  }
+  /* buf is empty */
+  if (len < 17) {
+    /* head only, read ahead ;-) */
+    ssize_t r = _x_io_tcp_part_read (this->stream, this->fd, this->buf, len, sizeof (this->buf));
+    if (r <= 0)
+      return r;
+    if ((size_t)r > len) {
+      xine_small_memcpy (buf, this->buf, len);
+      this->buf_got = r;
+      this->buf_delivered = len;
+      return len;
+    }
+    xine_small_memcpy (buf, this->buf, r);
+    return r;
+  }
+  /* get directly */
+  return _x_io_tcp_read (this->stream, this->fd, buf, len);
 }
 
 static ssize_t gnutls_tcp_push(gnutls_transport_ptr_t tp,
@@ -469,6 +502,9 @@ static xine_module_t *gnutls_get_instance(xine_module_class_t *cls_gen, const vo
   this->fd     = p->fd;
   this->stream = p->stream;
 
+  this->buf_got = 0;
+  this->buf_delivered = 0;
+
   return &this->tls_plugin.module;
 }
 
@@ -503,5 +539,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_XINE_MODULE, 1, "gnutls", XINE_VERSION_CODE, &module_info_gnutls, gnutls_init_class },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
-
 
