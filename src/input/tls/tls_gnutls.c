@@ -78,10 +78,8 @@ typedef struct {
 static ssize_t gnutls_tcp_pull(gnutls_transport_ptr_t tp,
                                void *buf, size_t len)
 {
-  /* gnutls always reads small block head (5 bytes), gets payload size,
-   * and reads the rest of block before it does anything else. */
   tls_gnutls_t *this = (tls_gnutls_t *)tp;
-  return _x_io_tcp_read (this->stream, this->fd, buf, len);
+  return _x_io_tcp_part_read (this->stream, this->fd, buf, 0, len);
 }
 
 static ssize_t gnutls_tcp_push(gnutls_transport_ptr_t tp,
