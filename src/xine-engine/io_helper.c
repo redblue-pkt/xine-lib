@@ -47,180 +47,270 @@
 #include <string.h>
 
 #include <xine/io_helper.h>
+#include "xine_private.h"
 
 /* private constants */
 #define XIO_POLLING_INTERVAL  50000  /* usec */
 
+/* #define ENABLE_IPV6 */
 
 #ifndef ENABLE_IPV6
-static int _x_io_tcp_connect_ipv4(xine_stream_t *stream, const char *host, int port) {
+static void reportIP (xine_stream_t *stream, const char *text, const uint8_t *p, int port) {
+  if (stream && (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)) {
+    char b[128], *q = b;
+    xine_uint32_2str (&q, p[0]);
+    *q++ = '.';
+    xine_uint32_2str (&q, p[1]);
+    *q++ = '.';
+    xine_uint32_2str (&q, p[2]);
+    *q++ = '.';
+    xine_uint32_2str (&q, p[3]);
+    *q++ = ':';
+    xine_uint32_2str (&q, port);
+    *q = 0;
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: %s %s.\n", text, b);
+  }
+}
+#else
+static void reportIP (xine_stream_t *stream, const char *text, struct addrinfo *addr) {
+  if (stream && (stream->xine->verbosity >= XINE_VERBOSITY_DEBUG)) {
+    char b[128], *q = b;
+    if (addr->ai_family == AF_INET) {
+      struct sockaddr_in *sa4 = (struct sockaddr_in *)addr->ai_addr;
+      uint8_t *p = (uint8_t *) &sa4->sin_addr;
+      xine_uint32_2str (&q, p[0]);
+      *q++ = '.';
+      xine_uint32_2str (&q, p[1]);
+      *q++ = '.';
+      xine_uint32_2str (&q, p[2]);
+      *q++ = '.';
+      xine_uint32_2str (&q, p[3]);
+      *q++ = ':';
+      xine_uint32_2str (&q, ntohs (sa4->sin_port));
+    } else if (addr->ai_family == AF_INET6) {
+      static const uint8_t tab_hex[16] = "0123456789abcdef";
+      struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)addr->ai_addr;
+      uint8_t *p = (uint8_t *) &sa6->sin6_addr;
+      int i;
+      *q++ = '[';
+      for (i = 0; i < 16; i += 2) {
+        uint32_t v = ((uint32_t)p[i] << 8) | p[i + 1];
+        if (v) {
+          if (v & 0xf000) *q++ = tab_hex[v >> 12];
+          if (v & 0xff00) *q++ = tab_hex[(v >> 8) & 15];
+          if (v & 0xfff0) *q++ = tab_hex[(v >> 4) & 15];
+          *q++ = tab_hex[v & 15];
+          *q++ = ':';
+        } else {
+          while (q[-2] != ':') *q++ = ':';
+        }
+      }
+      if (q[-2] != ':') q--;
+      *q++ = ']';
+      *q++ = ':';
+      xine_uint32_2str (&q, ntohs (sa6->sin6_port));
+    }
+    *q = 0;
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: %s %s.\n", text, b);
+  }
+}
+#endif
 
+/* win32 specific error messages */
+#ifdef WIN32
+static const char *sock_strerror (int num) {
+  switch (num) {
+    case WSAEACCES: return ("Access denied");
+    case WSAENETDOWN: return ("Network down");
+    case WSAENETUNREACH: return ("Network unreachable");
+    case WSAENETRESET: return ("Network reset");
+    case WSAECONNABORTED: return ("Connection aborted");
+    case WSAECONNRESET: return ("Connection reset by peer");
+    case WSAECONNREFUSED: return ("Connection refused");
+    case WSAENAMETOOLONG: return ("Name too long");
+    case WSAEHOSTDOWN: return ("Host down");
+    case WSAEHOSTUNREACH: return ("Host unreachable");
+    case WSAHOST_NOT_FOUND: return ("Host not found");
+    case WSATRY_AGAIN: return ("Try again later");
+    case WSANO_RECOVERY: return ("Name resolution unavailable");
+    case WSANO_DATA: return ("No suitable database entry");
+    case WSAETIMEDOUT: return ("Connection timeout");
+    default: return (strerror (num));
+  }
+}
+#  define sock_errno WSAGetLastError ()
+#  define IF_EAGAIN (WSAGetLastError() == WSAEWOULDBLOCK)
+#  define SOCK_EAGAIN WSAEWOULDBLOCK
+#  define SOCK_EINPROGRESS WSAEWOULDBLOCK
+#  define SOCK_ENOENT WSAHOST_NOT_FOUND
+#  define SOCK_EACCES WSAEACCES
+#  define SOCK_ECONNREFUSED WSAECONNREFUSED
+#else
+#  define sock_strerror strerror
+#  define sock_errno errno
+#  define IF_EAGAIN (errno == EAGAIN)
+#  define SOCK_EAGAIN EAGAIN
+#  define SOCK_EINPROGRESS EINPROGRESS
+#  define SOCK_ENOENT ENOENT
+#  define SOCK_EACCES EACCES
+#  define SOCK_ECONNREFUSED ECONNREFUSED
+#endif
+
+int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
+#ifndef ENABLE_IPV6
   struct hostent *h;
-  int             i;
+  int i;
+#else
+  struct addrinfo hints, *res = NULL, *tmpaddr;
+#endif
 
-  h = gethostbyname(host);
+  /* resolve host ip(s) */
+  if (stream)
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: resolving %s:%d...\n", host, port);
+#ifndef ENABLE_IPV6
+  h = gethostbyname (host);
   if (h == NULL) {
-    _x_message(stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve", host, NULL);
+    int e = sock_errno;
+    if (stream)
+      xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: gethostbyname: %s (%d).\n", sock_strerror (e), e);
+    _x_message (stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve", host, sock_strerror (e), NULL);
     return -1;
   }
+  /* report found ip's */
+  for (i = 0; h->h_addr_list[i]; i++)
+    reportIP (stream, "found IP", h->h_addr_list[i], port);
+#else
+  memset (&hints, 0, sizeof (hints));
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_family = PF_UNSPEC;
+  {
+    char strport[32], *q = strport;
+    int r;
+    xine_uint32_2str (&q, port);
+    r = getaddrinfo (host, strport, &hints, &res);
+    if (r != 0) {
+      if (stream)
+        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: getaddrinfo: %s (%d).\n", gai_strerror (r), r);
+      _x_message (stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve", host, gai_strerror (r), NULL);
+      return -1;
+    }
+    /* report ip's */
+    for (tmpaddr = res; tmpaddr; tmpaddr = tmpaddr->ai_next)
+      reportIP (stream, "found IP", tmpaddr);
+  }
+#endif
 
-  for (i = 0; h->h_addr_list[i]; i++) {
-
-    int s = xine_socket_cloexec(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  /* try to connect ip's */
+#ifndef ENABLE_IPV6
+  for (i = 0; h->h_addr_list[i]; i++)
+#else
+  for (tmpaddr = res; tmpaddr; tmpaddr = tmpaddr->ai_next)
+#endif
+  {
+    /* make socket */
+    int r, s;
+#ifndef ENABLE_IPV6
+    s = xine_socket_cloexec (PF_INET, SOCK_STREAM, IPPROTO_TCP);
+#else
+    s = xine_socket_cloexec (tmpaddr->ai_family, SOCK_STREAM, IPPROTO_TCP);
+#endif
     if (s == -1) {
-      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "failed to create socket", strerror(errno), NULL);
-      return -1;
+      int e = sock_errno;
+      if (stream)
+        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
+      _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "failed to create socket", sock_strerror (e), NULL);
+      /* XXX: does it make sense to retry this? */
+      break;
     }
-
+    /* try to turn off blocking, but dont require that.
+     * main io will work the same with and without, only connect () and close () may hang. */
 #ifndef WIN32
-    if (fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK) == -1) {
-      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
-      _x_io_tcp_close(NULL, s);
-      return -1;
-    }
+    if (fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK) == -1)
 #else
     {
       unsigned long non_block = 1;
-      int rc;
-
-      rc = ioctlsocket(s, FIONBIO, &non_block);
-
-      if (rc == SOCKET_ERROR) {
-        _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
-        _x_io_tcp_close(NULL, s);
-        return -1;
-      }
+      r = ioctlsocket (s, FIONBIO, &non_block);
     }
+    if (r == SOCKET_ERROR)
 #endif
-
-    struct in_addr ia;
-    union {
-      struct sockaddr    sa;
-      struct sockaddr_in in;
-    } saddr;
-    memcpy (&ia, h->h_addr_list[i], 4);
-    saddr.in.sin_family = AF_INET;
-    saddr.in.sin_addr   = ia;
-    saddr.in.sin_port   = htons(port);
-
-    if (connect (s, &saddr.sa, sizeof (saddr.in)) == -1) {
-#ifndef WIN32
-      if (errno != EINPROGRESS)
-#else
-      if (WSAGetLastError() != WSAEWOULDBLOCK)
-#endif /* WIN32 */
-      {
-#ifdef WIN32
-        if (stream)
-          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
-#endif /* WIN32 */
-        _x_message (stream, XINE_MSG_CONNECTION_REFUSED, strerror (errno), NULL);
-        _x_io_tcp_close (NULL, s);
-        continue;
-      }
+    {
+      int e = sock_errno;
+      if (stream)
+        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: connect: %s (%d).\n", sock_strerror (e), e);
+      _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", sock_strerror (e), NULL);
     }
-    return s;
-  }
-
-  return -1;
-}
-#endif
-
-int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) {
-
+    /* connect now */
 #ifndef ENABLE_IPV6
-    return _x_io_tcp_connect_ipv4(stream, host, port);
+    {
+      struct in_addr ia;
+      union {
+        struct sockaddr_in sin;
+        struct sockaddr addr;
+      } a;
+      reportIP (stream, "connecting", h->h_addr_list[i], port);
+      memcpy (&ia, h->h_addr_list[i], 4);
+      a.sin.sin_family = AF_INET;
+      a.sin.sin_addr = ia;
+      a.sin.sin_port = htons (port);
+      r = connect (s, &a.addr, sizeof (a.sin));
+    }
 #else
-  int             s;
-  struct addrinfo hints, *res, *tmpaddr;
-  int error;
-  char strport[16];
-
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_family = PF_UNSPEC;
-
-  snprintf(strport, sizeof(strport), "%d", port);
-
-  if (stream)
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "Resolving host '%s' at port '%s'\n", host, strport);
-
-  error = getaddrinfo(host, strport, &hints, &res);
-
-  if (error) {
-    _x_message(stream, XINE_MSG_UNKNOWN_HOST,
-		 "unable to resolve", host, NULL);
-    return -1;
-  }
-
-  tmpaddr = res;
-
-  while (tmpaddr) {
-
-      s = xine_socket_cloexec(tmpaddr->ai_family, SOCK_STREAM, IPPROTO_TCP);
-      if (s == -1) {
-	  _x_message(stream, XINE_MSG_CONNECTION_REFUSED,
-		       "failed to create socket", strerror(errno), NULL);
-	  tmpaddr = tmpaddr->ai_next;
-	  continue;
-      }
-
-      /*
-       * Enable the non-blocking features only when there's no other
-       * address, allowing to use other addresses if available.
-       * there will be an error if no address worked at all
-       */
-      if ( ! tmpaddr->ai_next ) {
-#ifndef WIN32
-	if (fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK) == -1) {
-	  _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
-          _x_io_tcp_close(NULL, s);
-          freeaddrinfo(res);
-	  return -1;
-	}
-#else
-	unsigned long non_block = 1;
-	int rc;
-
-	rc = ioctlsocket(s, FIONBIO, &non_block);
-
-	if (rc == SOCKET_ERROR) {
-	  _x_message(stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", strerror(errno), NULL);
-          _x_io_tcp_close(NULL, s);
-          freeaddrinfo(res);
-	  return -1;
-	}
+    reportIP (stream, "connecting", tmpaddr);
+    r = connect (s, tmpaddr->ai_addr, tmpaddr->ai_addrlen);
 #endif
-      }
-
-    if (connect (s, tmpaddr->ai_addr, tmpaddr->ai_addrlen) == -1) {
-#ifndef WIN32
-      if (errno != EINPROGRESS)
-#else
-      if (WSAGetLastError() != WSAEWOULDBLOCK)
-#endif /* WIN32 */
-      {
-#ifdef WIN32
+    if (r == -1) {
+      int e = sock_errno;
+      if (e != SOCK_EINPROGRESS) {
         if (stream)
-          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
-#endif /* WIN32 */
-        error = errno;
+          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
+        _x_message (stream, XINE_MSG_CONNECTION_REFUSED, host, sock_strerror (e), NULL);
         _x_io_tcp_close (NULL, s);
-        tmpaddr = tmpaddr->ai_next;
         continue;
       }
     }
-    freeaddrinfo(res);
+#if 1
+    /* yes _x_io_tcp_connect_finish () does this below.
+     * however, if there are more IPs we can try, test this one now
+     * before we discard any alternatives. */
+#  ifndef ENABLE_IPV6
+    if (stream && h->h_addr_list[i + 1])
+#  else
+    if (stream && tmpaddr->ai_next)
+#  endif
+    {
+      r = _x_io_select (stream, s, XIO_WRITE_READY, stream->xine->network_timeout);
+      if (r == XIO_ABORTED) {
+        _x_io_tcp_close (NULL, s);
+        break;
+      }
+      if (r != XIO_READY) {
+        _x_io_tcp_close (NULL, s);
+        continue;
+      }
+      {
+        int e;
+        socklen_t len = sizeof (e);
+        if ((getsockopt (s, SOL_SOCKET, SO_ERROR, &e, &len)) == -1)
+          e = sock_errno;
+        if (e) {
+          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
+          _x_io_tcp_close (NULL, s);
+          continue;
+        }
+      }
+    }
+#endif
+    /* done */
+#ifdef ENABLE_IPV6
+    freeaddrinfo (res);
+#endif
     return s;
   }
-
-  _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(error), NULL);
-
-  freeaddrinfo(res);
-  return -1;
+#ifdef ENABLE_IPV6
+  freeaddrinfo (res);
 #endif
+  return -1;
 }
-
 
 int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
 
@@ -344,58 +434,49 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
 /*
  * wait for finish connection
  */
-int _x_io_tcp_connect_finish(xine_stream_t *stream, int fd, int timeout_msec) {
-  int ret;
-
-  ret = _x_io_select(stream, fd, XIO_WRITE_READY, timeout_msec);
-
-  /* find out, if connection is successfull */
-  if (ret == XIO_READY) {
-    socklen_t len = sizeof(int);
-    int err;
-
-    if ((getsockopt(fd, SOL_SOCKET, SO_ERROR, (void *)&err, &len)) == -1) {
-      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, _("failed to get status of socket"), strerror(errno), NULL);
+int _x_io_tcp_connect_finish (xine_stream_t *stream, int fd, int timeout_msec) {
+  int r;
+  r = _x_io_select (stream, fd, XIO_WRITE_READY, timeout_msec);
+  if (r == XIO_READY) {
+    /* find out, if connection is successfull */
+    int e;
+    socklen_t len = sizeof (e);
+    if ((getsockopt (fd, SOL_SOCKET, SO_ERROR, &e, &len)) == -1) {
+      e = sock_errno;
+      if (stream)
+        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
+      _x_message (stream, XINE_MSG_CONNECTION_REFUSED, _("failed to get status of socket"), sock_strerror (e), NULL);
       return XIO_ERROR;
     }
-    if (err) {
-      _x_message(stream, XINE_MSG_CONNECTION_REFUSED, strerror(errno), NULL);
+    if (e) {
+      if (stream)
+        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
+      _x_message (stream, XINE_MSG_CONNECTION_REFUSED, sock_strerror (e), NULL);
       return XIO_ERROR;
     }
   }
-
-  return ret;
+  return r;
 }
 
 
-#ifndef WIN32
-#  define IF_EAGAIN (errno == EAGAIN)
-#else
-#  define IF_EAGAIN (WSAGetLastError() == WSAEWOULDBLOCK)
-#endif
-
 static off_t xio_err (xine_stream_t *stream, int ret) {
   /* non-blocking mode */
-#ifndef WIN32
-  if (errno == EACCES) {
+  int e = sock_errno;
+  if (stream)
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
+  if (e == SOCK_EACCES) {
     _x_message (stream, XINE_MSG_PERMISSION_ERROR, NULL, NULL);
     if (stream)
       xine_log (stream->xine, XINE_LOG_MSG, _("io_helper: Permission denied\n"));
-  } else if (errno == ENOENT) {
+  } else if (e == SOCK_ENOENT) {
     _x_message (stream, XINE_MSG_FILE_NOT_FOUND, NULL, NULL);
     if (stream)
       xine_log (stream->xine, XINE_LOG_MSG, _("io_helper: File not found\n"));
-  } else if (errno == ECONNREFUSED) {
+  } else if (e == SOCK_ECONNREFUSED) {
     _x_message (stream, XINE_MSG_CONNECTION_REFUSED, NULL, NULL);
     if (stream)
       xine_log (stream->xine, XINE_LOG_MSG, _("io_helper: Connection Refused\n"));
-  } else {
-    perror ("io_helper: I/O error");
   }
-#else
-  if (stream)
-    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: WSAGetLastError() = %d\n", WSAGetLastError());
-#endif
   return ret;
 }
 
@@ -589,32 +670,19 @@ int _x_io_tcp_close(xine_stream_t *stream, int fd)
   /* disable lingering (hard close) */
   r = setsockopt(fd, SOL_SOCKET, SO_LINGER, (void *)&linger, sizeof(linger));
   if (r < 0 && stream) {
-#ifdef WIN32
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-            "io_helper: disabling linger failed: %d\n",
-            WSAGetLastError());
-#else
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG,
-            "io_helper: disabling linger failed: %s (%d)\n",
-            strerror(errno), errno);
-#endif
+    int e = sock_errno;
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: disable linger: %s (%d).\n", sock_strerror (e), e);
   }
 
 #ifdef WIN32
   r = closesocket(fd);
-  if (r != 0 && stream) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: error closing socket (%d)\n",
-            WSAGetLastError());
-  }
 #else
   r = close(fd);
-  if (r < 0 && stream) {
-    xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: error closing socket %s (%d)\n",
-            strerror(errno), errno);
-  }
 #endif
+  if (r < 0 && stream) {
+    int e = sock_errno;
+    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: close: %s (%d).\n", sock_strerror (e), e);
+  }
 
   return r;
 }
-
-
