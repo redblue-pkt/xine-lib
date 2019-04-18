@@ -346,7 +346,7 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
            *   aborts current read if action pending. otherwise xine
            *   cannot be stopped when no more data is available.
            */
-          if (stream && _x_action_pending(stream))
+          if (_x_action_pending (stream))
             return XIO_ABORTED;
           break;
         case WAIT_ABANDONED:
@@ -364,7 +364,7 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
           return XIO_ERROR;
       }
     }
-    if (stream && _x_action_pending(stream)) {
+    if (_x_action_pending (stream)) {
       errno = EINTR;
       return XIO_ABORTED;
     }
@@ -378,7 +378,7 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
     fd_set fdset;
     fd_set *rset, *wset;
 
-    if (stream && _x_action_pending(stream)) {
+    if (_x_action_pending (stream)) {
       errno = EINTR;
       return XIO_ABORTED;
     }
@@ -420,7 +420,7 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
      *   aborts current read if action pending. otherwise xine
      *   cannot be stopped when no more data is available.
      */
-    if (stream && _x_action_pending(stream)) {
+    if (_x_action_pending (stream)) {
       errno = EINTR;
       return XIO_ABORTED;
     }
