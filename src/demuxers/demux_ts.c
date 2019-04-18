@@ -2908,6 +2908,19 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
   if (this->newpts_fifo)
     newpts_pair (this);
 
+  if (playing) {
+    /* Keyframe search below may mean waiting on input for several seconds (hls).
+     * Output layers are in flush mode already, so there is no need to let fifos
+     * run dry naturally. Flush them first here. */
+    this->buf_flag_seek = 1;
+    _x_demux_flush_engine (this->stream);
+    /* Append sequence end code to video stream. */
+    /* Keep ffmpeg h.264 video decoder from piling up too many DR1 frames, */
+    /* and thus freezing video out. */
+    if (this->videoPid != INVALID_PID && this->stream->video_fifo)
+      post_sequence_end (this->stream->video_fifo, this->media[this->videoMedia].type);
+  }
+
   caps = this->input->get_capabilities (this->input);
   if (caps & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_TIME_SEEKABLE)) {
     if ((caps & INPUT_CAP_TIME_SEEKABLE) && this->input->seek_time) {
@@ -3049,17 +3062,6 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
 
     this->status        = DEMUX_OK;
     this->buf_flag_seek = 0;
-
-  } else {
-
-    this->buf_flag_seek = 1;
-    _x_demux_flush_engine(this->stream);
-
-    /* Append sequence end code to video stream. */
-    /* Keep ffmpeg h.264 video decoder from piling up too many DR1 frames, */
-    /* and thus freezing video out. */
-    if (this->videoPid != INVALID_PID && this->stream->video_fifo)
-      post_sequence_end (this->stream->video_fifo, this->media[this->videoMedia].type);
 
   }
 
