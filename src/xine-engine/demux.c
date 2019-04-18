@@ -698,7 +698,21 @@ off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
 
 int _x_action_pending (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  return stream->demux_action_pending;
+  int a;
+  if (!stream)
+    return 0;
+  a = stream->demux_action_pending;
+  if (a) {
+    /* On seek, xine_play_internal () sets this, waits for demux to stop,
+     * grabs demux lock, resets this again, performs the seek, and finally
+     * unlocks demux. Due to per processor core L1 data caches, demux may
+     * still see this set for some time, and abort input for no real reason.
+     * Avoid that trap by checking again with lock here. */
+    pthread_mutex_lock (&stream->demux_action_lock);
+    a = stream->demux_action_pending;
+    pthread_mutex_unlock (&stream->demux_action_lock);
+  }
+  return a;
 }
 
 /* set demux_action_pending in a thread-safe way */
