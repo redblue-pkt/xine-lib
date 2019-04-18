@@ -671,7 +671,7 @@ static void set_speed_internal (xine_stream_private_t *stream, int speed) {
 }
 
 
-/* stream->ignore_speed_change must be set, when entering this function */
+/* SPEED_FLAG_IGNORE_CHANGE must be set in stream->speed_change_flags, when entering this function */
 static void stop_internal (xine_stream_private_t *stream) {
   lprintf ("status before = %d\n", stream->status);
 
@@ -705,9 +705,9 @@ void xine_stop (xine_stream_t *s) {
   pthread_cleanup_push (mutex_cleanup, (void *) &stream->frontend_lock);
 
   /* make sure that other threads cannot change the speed, especially pauseing the stream */
-  pthread_mutex_lock(&stream->speed_change_lock);
-  stream->ignore_speed_change = 1;
-  pthread_mutex_unlock(&stream->speed_change_lock);
+  pthread_mutex_lock (&stream->speed_change_lock);
+  stream->speed_change_flags |= SPEED_FLAG_IGNORE_CHANGE;
+  pthread_mutex_unlock (&stream->speed_change_lock);
 
   stream->s.xine->port_ticket->acquire (stream->s.xine->port_ticket, 1);
 
@@ -727,7 +727,9 @@ void xine_stop (xine_stream_t *s) {
     stream->s.audio_out->set_property (stream->s.audio_out, AO_PROP_DISCARD_BUFFERS, 0);
 
   stream->s.xine->port_ticket->release (stream->s.xine->port_ticket, 1);
-  stream->ignore_speed_change = 0;
+  pthread_mutex_lock (&stream->speed_change_lock);
+  stream->speed_change_flags &= ~SPEED_FLAG_IGNORE_CHANGE;
+  pthread_mutex_unlock (&stream->speed_change_lock);
 
   pthread_cleanup_pop (0);
   pthread_mutex_unlock (&stream->frontend_lock);
@@ -749,9 +751,9 @@ static void close_internal (xine_stream_private_t *stream) {
 
   if (flush) {
     /* make sure that other threads cannot change the speed, especially pauseing the stream */
-    pthread_mutex_lock(&stream->speed_change_lock);
-    stream->ignore_speed_change = 1;
-    pthread_mutex_unlock(&stream->speed_change_lock);
+    pthread_mutex_lock (&stream->speed_change_lock);
+    stream->speed_change_flags |= SPEED_FLAG_IGNORE_CHANGE;
+    pthread_mutex_unlock (&stream->speed_change_lock);
 
     stream->s.xine->port_ticket->acquire (stream->s.xine->port_ticket, 1);
 
@@ -770,7 +772,9 @@ static void close_internal (xine_stream_private_t *stream) {
       stream->s.audio_out->set_property (stream->s.audio_out, AO_PROP_DISCARD_BUFFERS, 0);
 
     stream->s.xine->port_ticket->release (stream->s.xine->port_ticket, 1);
-    stream->ignore_speed_change = 0;
+    pthread_mutex_lock (&stream->speed_change_lock);
+    stream->speed_change_flags &= ~SPEED_FLAG_IGNORE_CHANGE;
+    pthread_mutex_unlock (&stream->speed_change_lock);
   }
 
   if (stream->demux_plugin)
@@ -931,6 +935,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->keep_ao_driver_open      = 0;
   stream->video_channel            = 0;
   stream->video_decoder_plugin     = NULL;
+  stream->speed_change_flags       = 0;
   stream->header_count_audio       = 0;
   stream->header_count_video       = 0;
   stream->finished_count_audio     = 0;
@@ -1750,9 +1755,9 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
     set_speed_internal (stream, XINE_FINE_SPEED_NORMAL);
 
   /* ignore speed changes (net_buf_ctrl causes deadlocks while seeking ...) */
-  pthread_mutex_lock(&stream->speed_change_lock);
-  stream->ignore_speed_change = 1;
-  pthread_mutex_unlock(&stream->speed_change_lock);
+  pthread_mutex_lock (&stream->speed_change_lock);
+  stream->speed_change_flags |= SPEED_FLAG_IGNORE_CHANGE;
+  pthread_mutex_unlock (&stream->speed_change_lock);
 
   stream->s.xine->port_ticket->acquire (stream->s.xine->port_ticket, 1);
 
@@ -1797,9 +1802,9 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   }
 
   stream->s.xine->port_ticket->release (stream->s.xine->port_ticket, 1);
-  pthread_mutex_lock(&stream->speed_change_lock);
-  stream->ignore_speed_change = 0;
-  pthread_mutex_unlock(&stream->speed_change_lock);
+  pthread_mutex_lock (&stream->speed_change_lock);
+  stream->speed_change_flags &= ~SPEED_FLAG_IGNORE_CHANGE;
+  pthread_mutex_unlock (&stream->speed_change_lock);
 
   /* before resuming the demuxer, set first_frame_flag */
   pthread_mutex_lock (&stream->first_frame_lock);
@@ -2418,20 +2423,59 @@ int xine_get_status (xine_stream_t *s) {
 
 void _x_set_fine_speed (xine_stream_t *s, int speed) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->speed_change_lock);
+  uint32_t speed_change_flags;
 
-  if (!stream->ignore_speed_change)
-  {
+  /* net_buf_ctrl may have 2 threads trying to pause with ticket held in parallel.
+   * Avoid that freeze like this:
+   * - Hold speed_change_lock for finite time only.
+   * - While changing speed, remember latest speed wishes from elsewhere,
+   *   and apply them after the current one. */
+  pthread_mutex_lock (&stream->speed_change_lock);
+  speed_change_flags = stream->speed_change_flags;
+  if (speed_change_flags & SPEED_FLAG_IGNORE_CHANGE) {
+    pthread_mutex_unlock (&stream->speed_change_lock);
+    return;
+  }
+  if (speed_change_flags & SPEED_FLAG_CHANGING) {
+    if ((speed == XINE_LIVE_PAUSE_ON) || (speed == XINE_LIVE_PAUSE_OFF)) {
+      stream->speed_change_flags = speed_change_flags | SPEED_FLAG_WANT_LIVE;
+      stream->speed_change_new_live = speed;
+      pthread_mutex_unlock (&stream->speed_change_lock);
+      return;
+    }
+    stream->speed_change_flags = speed_change_flags | SPEED_FLAG_WANT_NEW;
+    stream->speed_change_new_speed = speed;
+    pthread_mutex_unlock (&stream->speed_change_lock);
+    return;
+  }
+  stream->speed_change_flags |= SPEED_FLAG_CHANGING;
+  pthread_mutex_unlock (&stream->speed_change_lock);
+
+  while (1) {
     if (speed <= XINE_SPEED_PAUSE)
       speed = XINE_SPEED_PAUSE;
-
-    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "set_speed %d\n", speed);
+    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "set_speed %d.\n", speed);
     set_speed_internal (stream, speed);
-
     if (stream->s.slave && (stream->slave_affection & XINE_MASTER_SLAVE_SPEED))
       set_speed_internal ((xine_stream_private_t *)stream->s.slave, speed);
+
+    pthread_mutex_lock (&stream->speed_change_lock);
+    speed_change_flags = stream->speed_change_flags;
+    if ((speed_change_flags & SPEED_FLAG_IGNORE_CHANGE) ||
+       !(speed_change_flags & (SPEED_FLAG_WANT_LIVE | SPEED_FLAG_WANT_NEW))) {
+        stream->speed_change_flags = speed_change_flags & ~(SPEED_FLAG_CHANGING | SPEED_FLAG_WANT_LIVE | SPEED_FLAG_WANT_NEW);
+      pthread_mutex_unlock (&stream->speed_change_lock);
+      return;
+    }
+    if (speed_change_flags & SPEED_FLAG_WANT_LIVE) {
+      stream->speed_change_flags = speed_change_flags & ~SPEED_FLAG_WANT_LIVE;
+      speed = stream->speed_change_new_live;
+    } else { /* speed_change_flags & SPEED_FLAG_WANT_NEW */
+      stream->speed_change_flags = speed_change_flags & ~SPEED_FLAG_WANT_NEW;
+      speed = stream->speed_change_new_speed;
+    }
+    pthread_mutex_unlock (&stream->speed_change_lock);
   }
-  pthread_mutex_unlock(&stream->speed_change_lock);
 }
 
 int _x_get_fine_speed (xine_stream_t *stream) {

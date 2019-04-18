@@ -322,8 +322,15 @@ typedef struct {
   int                        status;
 
   /* lock controlling speed change access */
+#define SPEED_FLAG_IGNORE_CHANGE  1
+#define SPEED_FLAG_CHANGING       2
+#define SPEED_FLAG_WANT_LIVE      4
+#define SPEED_FLAG_WANT_NEW       8
+  uint32_t                   speed_change_flags;
+  int                        speed_change_new_live;
+  int                        speed_change_new_speed;
   pthread_mutex_t            speed_change_lock;
-  uint32_t                   ignore_speed_change:1;  /*< speed changes during stop can be disastrous */
+
   uint32_t                   video_thread_created:1;
   uint32_t                   audio_thread_created:1;
   uint32_t                   slave_is_subtitle:1;    /*< ... and will be automaticaly disposed */
@@ -446,3 +453,5 @@ typedef struct {
 EXTERN_C_STOP
 
 #endif
+
+
