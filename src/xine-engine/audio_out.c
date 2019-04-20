@@ -223,7 +223,7 @@ typedef struct {
   pthread_cond_t       driver_action_cond; /* informs about num_driver_actions-- */
 
   metronom_clock_t    *clock;
-  xine_t              *xine;
+  xine_private_t      *xine;
 
 #define STREAMS_DEFAULT_SIZE 32
   int                  num_null_streams;
@@ -453,7 +453,7 @@ static void ao_unref_all (aos_t *this) {
   for (buf = this->free_fifo.first; buf; buf = buf->next)
     n += ao_unref_buf (this, buf);
   if (n && (this->free_fifo.num_buffers == NUM_AUDIO_BUFFERS))
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: unreferenced stream.\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: unreferenced stream.\n");
   pthread_mutex_unlock (&this->free_fifo.mutex);
 }
 
@@ -473,7 +473,7 @@ static void ao_force_unref_all (aos_t *this) {
   }
   pthread_mutex_unlock (&this->free_fifo.mutex);
   if (n && (a == NUM_AUDIO_BUFFERS))
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: unreferenced stream.\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: unreferenced stream.\n");
 }
 
 /********************************************************************
@@ -535,7 +535,7 @@ static void ao_free_fifo_append (aos_t *this, audio_buffer_t *buf) {
     pthread_cond_signal (&this->free_fifo.not_empty);
   if (!this->num_streams) {
     if (ao_unref_buf (this, buf) && (this->free_fifo.num_buffers == NUM_AUDIO_BUFFERS))
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: unreferenced stream.\n");
+      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: unreferenced stream.\n");
   }
   pthread_mutex_unlock (&this->free_fifo.mutex);
 }
@@ -567,7 +567,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
   while (1) {
 
     if (this->seek_count1 >= 0) {
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 2.\n", this->seek_count1);
+      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 2.\n", this->seek_count1);
       this->seek_count2 =
       this->seek_count3 = this->seek_count1;
       this->seek_count1 = -1;
@@ -577,7 +577,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       this->ei_read = this->ei_write = 0;
       this->ao.control (&this->ao, AO_CTRL_FLUSH_BUFFERS, NULL);
       this->flush_audio_driver--;
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: flushed driver.\n");
+      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: flushed driver.\n");
     }
 
     if (this->discard_buffers) {
@@ -616,7 +616,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       buf = NULL;
       this->resend_write = 0;
       this->resend_wrap  = 0;
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: flushed out %d buffers.\n", n);
+      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: flushed out %d buffers.\n", n);
     }
 
     if (!buf) {
@@ -662,7 +662,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
         n = pthread_cond_timedwait (&this->out_fifo.not_empty, &this->out_fifo.mutex, &ts);
         this->out_fifo.num_waiters--;
         if (n == ETIMEDOUT) {
-          xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: driver idle, closing.\n");
+          xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: driver idle, closing.\n");
           pthread_mutex_lock (&this->driver_lock);
           this->driver->close (this->driver);
           this->driver_open = 0;
@@ -692,7 +692,7 @@ static void ao_ticket_revoked (void *user_data, int flags) {
   const char *s1 = (flags & XINE_TICKET_FLAG_ATOMIC) ? " atomic" : "";
   const char *s2 = (flags & XINE_TICKET_FLAG_REWIRE) ? " port_rewire" : "";
   pthread_cond_signal (&this->free_fifo.not_empty);
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: port ticket revoked%s%s.\n", s1, s2);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: port ticket revoked%s%s.\n", s1, s2);
 }
 
 static audio_buffer_t *ao_free_fifo_get (aos_t *this) {
@@ -713,7 +713,7 @@ static audio_buffer_t *ao_free_fifo_get (aos_t *this) {
         if (this->out_fifo.first) {
           buf = ao_fifo_pop_int (&this->out_fifo);
           pthread_mutex_unlock (&this->out_fifo.mutex);
-          xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: try unblocking decoder.\n");
+          xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: try unblocking decoder.\n");
           return buf;
         }
         pthread_mutex_unlock (&this->out_fifo.mutex);
@@ -818,7 +818,7 @@ static void ao_resend_init (aos_t *this) {
     this->resend_write = 0;
     this->resend_wrap  = 0;
     this->resend_max = RESEND_BUF_SIZE / this->resend_frame_size;
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
       "audio_out: using unpause resend buffer for %d frames / %d pts.\n",
       this->resend_max, (this->resend_max * this->out_pts_per_kframe) >> 10);
     return;
@@ -864,7 +864,7 @@ static void ao_fill_gap (aos_t *this, int64_t pts_len) {
   };
   int64_t num_frames = (pts_len * this->out_frames_per_kpts) >> 10;
 
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
            "audio_out: inserting %" PRId64 " 0-frames to fill a gap of %" PRId64 " pts\n", num_frames, pts_len);
 
   if ((this->output.mode == AO_CAP_MODE_A52) || (this->output.mode == AO_CAP_MODE_AC5)) {
@@ -929,7 +929,7 @@ static void ao_resend_fill (aos_t *this, int64_t pts_len, int64_t end_time) {
       pts_len = 0;
     }
     fill_frames1 = (fill_len * this->out_frames_per_kpts) >> 10;
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
         "audio_out: resending %d frames / %" PRId64 " pts.\n", fill_frames1, fill_len);
     start_frame = this->resend_write - start_frame;
     if (start_frame < 0)
@@ -1563,12 +1563,12 @@ static void *ao_loop (void *this_gen) {
             pthread_cond_broadcast (&this->done_stepping);
             pthread_mutex_unlock (&this->step_mutex);
             if (this->dropped)
-              xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+              xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
                 "audio_out: SINGLE_STEP: dropped %d buffers.\n", this->dropped);
           }
           this->dropped = 0;
           if ((in_buf->vpts - cur_time) > 2 * 90000)
-            xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+            xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
               "audio_out: vpts/clock error, in_buf->vpts=%" PRId64 " cur_time=%" PRId64 "\n", in_buf->vpts, cur_time);
         }
 
@@ -1586,7 +1586,7 @@ static void *ao_loop (void *this_gen) {
             _x_extra_info_merge (stream->current_extra_info, found);
             pthread_mutex_unlock (&stream->current_extra_info_lock);
             if (found->seek_count == this->seek_count3) {
-              xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
+              xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
               pthread_mutex_lock (&stream->first_frame_lock);
               stream->first_frame_flag = 0;
@@ -1629,7 +1629,7 @@ static void *ao_loop (void *this_gen) {
         if (!this->driver_open) {
           xine_stream_private_t **s;
           pthread_mutex_unlock (&this->driver_lock);
-          xprintf (this->xine, XINE_VERBOSITY_LOG,
+          xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
             _("audio_out: delay calculation impossible with an unavailable audio device\n"));
           xine_rwlock_rdlock (&this->streams_lock);
           for (s = this->streams; *s; s++) {
@@ -1679,7 +1679,7 @@ static void *ao_loop (void *this_gen) {
             _x_extra_info_merge (stream->current_extra_info, found);
             pthread_mutex_unlock (&stream->current_extra_info_lock);
             if (found->seek_count == this->seek_count3) {
-              xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
+              xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
               pthread_mutex_lock (&stream->first_frame_lock);
               stream->first_frame_flag = 0;
@@ -1764,7 +1764,7 @@ static void *ao_loop (void *this_gen) {
         int result;
 
         if (this->dropped) {
-          xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+          xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
             "audio_out: dropped %d late buffers.\n", this->dropped);
           this->dropped = 0;
         }
@@ -1803,15 +1803,15 @@ static void *ao_loop (void *this_gen) {
 
         if (result < 0) {
           /* device unplugged. */
-          xprintf (this->xine, XINE_VERBOSITY_LOG, _("write to sound card failed. Assuming the device was unplugged.\n"));
+          xprintf (&this->xine->x, XINE_VERBOSITY_LOG, _("write to sound card failed. Assuming the device was unplugged.\n"));
           if (stream)
             _x_message (&stream->s, XINE_MSG_AUDIO_OUT_UNAVAILABLE, NULL);
           pthread_mutex_lock (&this->driver_lock);
           if (this->driver_open)
             this->driver->close (this->driver);
           this->driver_open = 0;
-          _x_free_audio_driver (this->xine, &this->driver);
-          this->driver = _x_load_audio_output_plugin (this->xine, "none");
+          _x_free_audio_driver (&this->xine->x, &this->driver);
+          this->driver = _x_load_audio_output_plugin (&this->xine->x, "none");
           if (this->driver && (!stream || !stream->emergency_brake)) {
             if (ao_change_settings (this, &stream->s, in_buf->format.bits, in_buf->format.rate, in_buf->format.mode) == 0) {
               if (stream)
@@ -1975,7 +1975,7 @@ static int ao_update_resample_factor(aos_t *this) {
   }
 
   if (this->do_resample)
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
       "audio_out: will resample audio from %u to %d.\n", eff_input_rate, this->output.rate);
 
   if (this->current_speed == XINE_SPEED_PAUSE)
@@ -2011,18 +2011,18 @@ static int ao_change_settings (aos_t *this, xine_stream_t *stream, uint32_t bits
     /* not all drivers/cards support 8 bits */
     if ((this->input.bits == 8) && !(caps & AO_CAP_8BITS)) {
       bits = 16;
-      xprintf (this->xine, XINE_VERBOSITY_LOG,
+      xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
                _("8 bits not supported by driver, converting to 16 bits.\n"));
     }
     /* provide mono->stereo and stereo->mono conversions */
     if ((this->input.mode == AO_CAP_MODE_MONO) && !(caps & AO_CAP_MODE_MONO)) {
       mode = AO_CAP_MODE_STEREO;
-      xprintf (this->xine, XINE_VERBOSITY_LOG,
+      xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
                _("mono not supported by driver, converting to stereo.\n"));
     }
     if ((this->input.mode == AO_CAP_MODE_STEREO) && !(caps & AO_CAP_MODE_STEREO)) {
       mode = AO_CAP_MODE_MONO;
-      xprintf (this->xine, XINE_VERBOSITY_LOG,
+      xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
                _("stereo not supported by driver, converting to mono.\n"));
     }
     output_sample_rate = (this->driver->open)(this->driver, bits, this->force_rate ? this->force_rate : rate, mode);
@@ -2030,12 +2030,12 @@ static int ao_change_settings (aos_t *this, xine_stream_t *stream, uint32_t bits
     output_sample_rate = this->input.rate;
 
   if (output_sample_rate == 0) {
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: open failed!\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: open failed!\n");
     return 0;
   }
 
   this->driver_open = 1;
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: output sample rate %d.\n", output_sample_rate);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: output sample rate %d.\n", output_sample_rate);
 
   this->last_audio_vpts = 0;
   this->output.mode     = mode;
@@ -2089,7 +2089,7 @@ static int ao_open (xine_audio_port_t *this_gen, xine_stream_t *s,
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   int channels;
 
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: ao_open (%p)\n", (void*)stream);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: ao_open (%p)\n", (void*)stream);
 
   /* Defer _changing_ settings of an open driver to final output stage, following buf queue status. */
   if (!this->driver_open) {
@@ -2181,7 +2181,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
     if ((s->first_frame_flag >= 2) && !s->video_decoder_plugin) {
       pthread_mutex_lock (&s->first_frame_lock);
       if (s->first_frame_flag >= 2) {
-        xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 1.\n", buf->extra_info->seek_count);
+        xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 1.\n", buf->extra_info->seek_count);
         if (s->first_frame_flag == 3) {
           pthread_mutex_lock (&s->current_extra_info_lock);
           _x_extra_info_merge (s->current_extra_info, buf->extra_info);
@@ -2212,7 +2212,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
   aos_t *this = (aos_t *) this_gen;
   int n;
 
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: ao_close (%p)\n", (void*)stream);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: ao_close (%p)\n", (void*)stream);
 
   /* unregister stream */
   n = ao_streams_unregister (this, (xine_stream_private_t *)stream);
@@ -2223,7 +2223,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 #if 0
   /* close driver if no streams left */
   if (!n && !this->grab_only && !stream->keep_ao_driver_open) {
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: no streams left, closing driver\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: no streams left, closing driver\n");
 
     if (this->audio_loop_running) {
       /* make sure there are no more buffers on queue */
@@ -2246,7 +2246,7 @@ static void ao_speed_change_cb (void *this_gen, int new_speed) {
   /* something to do? */
   if (new_speed == (int)(this->current_speed))
     return;
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: new speed %d.\n", new_speed);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: new speed %d.\n", new_speed);
   /* TJ. pthread mutex implementation on my multicore AMD box is somewhat buggy.
      When fed by a fast single threaded decoder like mad, audio out loop does
      not release current speed lock long enough to wake us up here.
@@ -2279,7 +2279,7 @@ static void ao_exit(xine_audio_port_t *this_gen) {
 
   _x_freep (&this->resend_buf);
 
-  this->xine->clock->unregister_speed_change_callback (this->xine->clock, ao_speed_change_cb, this);
+  this->xine->x.clock->unregister_speed_change_callback (this->xine->x.clock, ao_speed_change_cb, this);
   this->xine->port_ticket->revoke_cb_unregister (this->xine->port_ticket, ao_ticket_revoked, this);
 
   if (this->audio_loop_running) {
@@ -2314,17 +2314,17 @@ static void ao_exit(xine_audio_port_t *this_gen) {
     pthread_mutex_unlock (&this->driver_lock);
 
     if (prop)
-      this->xine->config->update_num (this->xine->config, "audio.volume.mixer_volume", vol);
+      this->xine->x.config->update_num (this->xine->x.config, "audio.volume.mixer_volume", vol);
 
-    _x_free_audio_driver(this->xine, &driver);
+    _x_free_audio_driver (&this->xine->x, &driver);
   }
 
   if (this->dreqs_wait)
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
       "audio_out: waited %d of %d external driver requests.\n", this->dreqs_wait, this->dreqs_all);
 
   /* We are about to free "this". No callback shall refer to it anymore, even if not our own. */
-  this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
+  this->xine->x.config->unregister_callbacks (this->xine->x.config, NULL, NULL, this, sizeof (*this));
 
   pthread_mutex_destroy(&this->driver_lock);
   pthread_cond_destroy(&this->driver_action_cond);
@@ -2514,7 +2514,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     } else if (this->discard_buffers)
       this->discard_buffers--;
     else
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
                "audio_out: ao_set_property: discard_buffers is already zero\n");
     ret = this->discard_buffers;
     /* discard buffers here because we have no output thread */
@@ -2571,7 +2571,7 @@ static int ao_control (xine_audio_port_t *this_gen, int cmd, ...) {
 static void ao_flush (xine_audio_port_t *this_gen) {
   aos_t *this = (aos_t *) this_gen;
 
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
            "audio_out: ao_flush (loop running: %d)\n", this->audio_loop_running);
 
   if( this->audio_loop_running ) {
@@ -2705,7 +2705,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 #endif
 
   this->driver        = driver;
-  this->xine          = xine;
+  this->xine          = (xine_private_t *)xine;
   this->clock         = xine->clock;
   this->current_speed = xine->clock->speed;
 
@@ -2903,9 +2903,9 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
     pthread_attr_destroy(&pth_attrs);
 
     if (err != 0) {
-      xprintf (this->xine, XINE_VERBOSITY_NONE,
+      xprintf (&this->xine->x, XINE_VERBOSITY_NONE,
 	       "audio_out: can't create thread (%s)\n", strerror(err));
-      xprintf (this->xine, XINE_VERBOSITY_LOG,
+      xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
 	       _("audio_out: sorry, this should not happen. please restart xine.\n"));
 
       this->audio_loop_running = 0;
@@ -2914,10 +2914,10 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
       return NULL;
     }
 
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "audio_out: thread created\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: thread created\n");
   }
 
-  this->xine->clock->register_speed_change_callback (this->xine->clock, ao_speed_change_cb, this);
+  this->xine->x.clock->register_speed_change_callback (this->xine->x.clock, ao_speed_change_cb, this);
   return &this->ao;
 }
 

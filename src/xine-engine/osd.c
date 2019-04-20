@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -52,6 +52,8 @@
 #include <xine/xineutils.h>
 #include <xine/video_out.h>
 #include <xine/osd.h>
+
+#include "xine_private.h"
 
 #ifdef HAVE_FT2
 #include <ft2build.h>
@@ -354,6 +356,7 @@ static int _osd_hide (osd_object_t *osd, int64_t vpts);
 static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
 
   osd_renderer_t *this = osd->renderer;
+  xine_private_t *xine = (xine_private_t *)this->stream->xine;
   video_overlay_manager_t *ovl_manager;
   rle_elem_t rle, *rle_p=0;
   int x, y;
@@ -361,13 +364,13 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
 
   lprintf("osd=%p vpts=%"PRId64"\n", osd, vpts);
 
-  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+  xine->port_ticket->acquire (xine->port_ticket, 1);
 
   ovl_manager = this->stream->video_out->get_overlay_manager(this->stream->video_out);
 
   if( osd->handle < 0 ) {
     if( (osd->handle = ovl_manager->get_handle(ovl_manager, 0)) == -1 ) {
-      this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
+      xine->port_ticket->release (xine->port_ticket, 1);
       return 0;
     }
   }
@@ -487,7 +490,7 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   }
   pthread_mutex_unlock (&this->osd_mutex);
 
-  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
+  xine->port_ticket->release (xine->port_ticket, 1);
 
   return 1;
 }
@@ -537,9 +540,10 @@ static int _osd_hide (osd_object_t *osd, int64_t vpts) {
 static int osd_hide (osd_object_t *osd, int64_t vpts) {
 
   osd_renderer_t *this = osd->renderer;
+  xine_private_t *xine = (xine_private_t *)this->stream->xine;
   int ret;
 
-  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+  xine->port_ticket->acquire (xine->port_ticket, 1);
 
   pthread_mutex_lock (&this->osd_mutex);
 
@@ -547,7 +551,7 @@ static int osd_hide (osd_object_t *osd, int64_t vpts) {
 
   pthread_mutex_unlock (&this->osd_mutex);
 
-  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
+  xine->port_ticket->release (xine->port_ticket, 1);
 
   return ret;
 }
@@ -1698,6 +1702,7 @@ static void osd_preload_fonts (osd_renderer_t *this, char *path) {
 static void osd_free_object (osd_object_t *osd_to_close) {
 
   osd_renderer_t *this = osd_to_close->renderer;
+  xine_private_t *xine = (xine_private_t *)this->stream->xine;
   video_overlay_manager_t *ovl_manager;
   osd_object_t *osd, *last;
 
@@ -1711,10 +1716,10 @@ static void osd_free_object (osd_object_t *osd_to_close) {
     this->event.event_type = OVERLAY_EVENT_FREE_HANDLE;
     this->event.vpts = 0;
 
-    this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+    xine->port_ticket->acquire (xine->port_ticket, 1);
     ovl_manager = this->stream->video_out->get_overlay_manager(this->stream->video_out);
     ovl_manager->add_event(ovl_manager, (void *)&this->event);
-    this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
+    xine->port_ticket->release (xine->port_ticket, 1);
 
     osd_to_close->handle = -1; /* handle will be freed */
   }
@@ -1835,6 +1840,7 @@ static void osd_set_argb_buffer(osd_object_t *osd, uint32_t *argb_buffer,
 static uint32_t osd_get_capabilities (osd_object_t *osd) {
 
   osd_renderer_t *this = osd->renderer;
+  xine_private_t *xine = (xine_private_t *)this->stream->xine;
   uint32_t capabilities = 0;
   uint32_t vo_capabilities;
 
@@ -1842,9 +1848,9 @@ static uint32_t osd_get_capabilities (osd_object_t *osd) {
   capabilities |= XINE_OSD_CAP_FREETYPE2;
 #endif
 
-  this->stream->xine->port_ticket->acquire(this->stream->xine->port_ticket, 1);
+  xine->port_ticket->acquire (xine->port_ticket, 1);
   vo_capabilities = this->stream->video_out->get_capabilities(this->stream->video_out);
-  this->stream->xine->port_ticket->release(this->stream->xine->port_ticket, 1);
+  xine->port_ticket->release (xine->port_ticket, 1);
 
   if (vo_capabilities & VO_CAP_UNSCALED_OVERLAY)
     capabilities |= XINE_OSD_CAP_UNSCALED;

@@ -68,6 +68,7 @@ static void update_spu_decoder (xine_stream_t *stream, int type) {
 
 int _x_spu_decoder_sleep (xine_stream_t *s, int64_t next_spu_vpts) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  xine_private_t *xine = (xine_private_t *)stream->s.xine;
   int64_t time, wait;
   int thread_vacant = 1;
 
@@ -76,7 +77,7 @@ int _x_spu_decoder_sleep (xine_stream_t *s, int64_t next_spu_vpts) {
 
   do {
     if (next_spu_vpts)
-      time = stream->s.xine->clock->get_current_time (stream->s.xine->clock);
+      time = xine->x.clock->get_current_time (xine->x.clock);
     else
       time = 0;
 
@@ -88,8 +89,8 @@ int _x_spu_decoder_sleep (xine_stream_t *s, int64_t next_spu_vpts) {
 
     if (wait > 0) xine_usec_sleep(wait * 11);
 
-    if (stream->s.xine->port_ticket->ticket_revoked)
-      stream->s.xine->port_ticket->renew (stream->s.xine->port_ticket, 0);
+    if (xine->port_ticket->ticket_revoked)
+      xine->port_ticket->renew (xine->port_ticket, 0);
 
     /* never wait, if we share the thread with a video decoder */
     thread_vacant = !stream->video_decoder_plugin;
@@ -108,8 +109,9 @@ int _x_spu_decoder_sleep (xine_stream_t *s, int64_t next_spu_vpts) {
 static void *video_decoder_loop (void *stream_gen) {
 
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
+  xine_private_t *xine = (xine_private_t *)stream->s.xine;
+  xine_ticket_t   *running_ticket = xine->port_ticket;
   buf_element_t   *buf;
-  xine_ticket_t   *running_ticket = stream->s.xine->port_ticket;
   int              running = 1;
   int              streamtype;
   int              prof_video_decode = -1;

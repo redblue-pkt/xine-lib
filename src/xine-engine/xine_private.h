@@ -317,11 +317,20 @@ static inline void xine_uint64_2str (char **s, uint64_t v) {
 #endif
 
 typedef struct {
-  xine_stream_t              s;
+  xine_t                     x;
 
-  int                        status;
+  xine_ticket_t             *port_ticket;
+  pthread_mutex_t            log_lock;
 
-  /* lock controlling speed change access */
+  xine_log_cb_t              log_cb;
+  void                      *log_cb_user_data;
+
+  int                        flags;
+  int                        network_timeout;
+
+  /* lock controlling speed change access.
+   * if we should ever introduce per stream clock and ticket,
+   * move this to xine_stream_private_t below. */
 #define SPEED_FLAG_IGNORE_CHANGE  1
 #define SPEED_FLAG_CHANGING       2
 #define SPEED_FLAG_WANT_LIVE      4
@@ -330,6 +339,16 @@ typedef struct {
   int                        speed_change_new_live;
   int                        speed_change_new_speed;
   pthread_mutex_t            speed_change_lock;
+  /* set when pauseing with port ticket granted, for XINE_PARAM_VO_SINGLE_STEP. */
+  /* special values for set_speed_internal () */
+# define XINE_LIVE_PAUSE_ON 0x7ffffffd
+# define XINE_LIVE_PAUSE_OFF 0x7ffffffc
+} xine_private_t;
+  
+typedef struct {
+  xine_stream_t              s;
+
+  int                        status;
 
   uint32_t                   video_thread_created:1;
   uint32_t                   audio_thread_created:1;
@@ -453,5 +472,3 @@ typedef struct {
 EXTERN_C_STOP
 
 #endif
-
-

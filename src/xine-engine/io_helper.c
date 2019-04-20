@@ -163,16 +163,15 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
 #else
   struct addrinfo hints, *res = NULL, *tmpaddr;
 #endif
+  xine_private_t *xine = stream ? (xine_private_t *)stream->xine : NULL;
 
   /* resolve host ip(s) */
-  if (stream)
-    xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: resolving %s:%d...\n", host, port);
+  xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: resolving %s:%d...\n", host, port);
 #ifndef ENABLE_IPV6
   h = gethostbyname (host);
   if (h == NULL) {
     int e = sock_errno;
-    if (stream)
-      xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: gethostbyname: %s (%d).\n", sock_strerror (e), e);
+    xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: gethostbyname: %s (%d).\n", sock_strerror (e), e);
     _x_message (stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve", host, sock_strerror (e), NULL);
     return -1;
   }
@@ -189,8 +188,7 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
     xine_uint32_2str (&q, port);
     r = getaddrinfo (host, strport, &hints, &res);
     if (r != 0) {
-      if (stream)
-        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: getaddrinfo: %s (%d).\n", gai_strerror (r), r);
+      xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: getaddrinfo: %s (%d).\n", gai_strerror (r), r);
       _x_message (stream, XINE_MSG_UNKNOWN_HOST, "unable to resolve", host, gai_strerror (r), NULL);
       return -1;
     }
@@ -216,8 +214,7 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
 #endif
     if (s == -1) {
       int e = sock_errno;
-      if (stream)
-        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
+      xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
       _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "failed to create socket", sock_strerror (e), NULL);
       /* XXX: does it make sense to retry this? */
       break;
@@ -235,8 +232,7 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
 #endif
     {
       int e = sock_errno;
-      if (stream)
-        xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: connect: %s (%d).\n", sock_strerror (e), e);
+      xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: connect: %s (%d).\n", sock_strerror (e), e);
       _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", sock_strerror (e), NULL);
     }
     /* connect now */
@@ -261,8 +257,7 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
     if (r == -1) {
       int e = sock_errno;
       if (e != SOCK_EINPROGRESS) {
-        if (stream)
-          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
+        xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
         _x_message (stream, XINE_MSG_CONNECTION_REFUSED, host, sock_strerror (e), NULL);
         _x_io_tcp_close (NULL, s);
         continue;
@@ -278,7 +273,7 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
     if (stream && tmpaddr->ai_next)
 #  endif
     {
-      r = _x_io_select (stream, s, XIO_WRITE_READY, stream->xine->network_timeout);
+      r = _x_io_select (stream, s, XIO_WRITE_READY, xine ? xine->network_timeout * 1000 : 30000);
       if (r == XIO_ABORTED) {
         _x_io_tcp_close (NULL, s);
         break;
@@ -293,7 +288,7 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
         if ((getsockopt (s, SOL_SOCKET, SO_ERROR, &e, &len)) == -1)
           e = sock_errno;
         if (e) {
-          xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
+          xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
           _x_io_tcp_close (NULL, s);
           continue;
         }
@@ -482,10 +477,18 @@ static off_t xio_err (xine_stream_t *stream, int ret) {
 
 off_t _x_io_tcp_read (xine_stream_t *stream, int s, void *buf_gen, off_t todo) {
   uint8_t *buf = buf_gen;
-  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  unsigned int timeout;
   size_t want = todo, have = 0;
 
   _x_assert(buf != NULL);
+
+  if (stream) {
+    xine_private_t *xine = (xine_private_t *)stream->xine;
+    timeout = xine->network_timeout * 1000;
+  } else {
+    timeout = 30000; /* 30K msecs = 30 secs */
+  }
+
   while (have < want) {
     ssize_t ret;
     ret = _x_io_select (stream, s, XIO_READ_READY, timeout);
@@ -508,10 +511,17 @@ off_t _x_io_tcp_read (xine_stream_t *stream, int s, void *buf_gen, off_t todo) {
 
 ssize_t _x_io_tcp_part_read (xine_stream_t *stream, int s, void *buf_gen, size_t min, size_t max) {
   uint8_t *buf = buf_gen;
-  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  unsigned int timeout;
   size_t have = 0;
 
   _x_assert(buf != NULL);
+
+  if (stream) {
+    xine_private_t *xine = (xine_private_t *)stream->xine;
+    timeout = xine->network_timeout * 1000;
+  } else {
+    timeout = 30000; /* 30K msecs = 30 secs */
+  }
 
   if (min == 0) {
     ssize_t ret = _x_io_select (stream, s, XIO_READ_READY, 0);
@@ -550,10 +560,18 @@ ssize_t _x_io_tcp_part_read (xine_stream_t *stream, int s, void *buf_gen, size_t
 
 off_t _x_io_tcp_write (xine_stream_t *stream, int s, const void *wbuf_gen, off_t todo) {
   const uint8_t *wbuf = wbuf_gen;
-  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  unsigned int timeout;
   size_t have = 0, want = todo;
 
   _x_assert (wbuf != NULL);
+
+  if (stream) {
+    xine_private_t *xine = (xine_private_t *)stream->xine;
+    timeout = xine->network_timeout * 1000;
+  } else {
+    timeout = 30000; /* 30K msecs = 30 secs */
+  }
+
   while (have < want) {
     ssize_t ret;
     ret = _x_io_select (stream, s, XIO_WRITE_READY, timeout);
@@ -576,10 +594,18 @@ off_t _x_io_tcp_write (xine_stream_t *stream, int s, const void *wbuf_gen, off_t
 
 off_t _x_io_file_read (xine_stream_t *stream, int s, void *buf_gen, off_t todo) {
   uint8_t *buf = buf_gen;
-  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  unsigned int timeout;
   size_t have = 0, want = todo;
 
   _x_assert(buf != NULL);
+
+  if (stream) {
+    xine_private_t *xine = (xine_private_t *)stream->xine;
+    timeout = xine->network_timeout * 1000;
+  } else {
+    timeout = 30000; /* 30K msecs = 30 secs */
+  }
+
   while (have < want) {
     ssize_t ret;
     ret = _x_io_select (stream, s, XIO_READ_READY, timeout);
@@ -602,10 +628,18 @@ off_t _x_io_file_read (xine_stream_t *stream, int s, void *buf_gen, off_t todo) 
 
 off_t _x_io_file_write (xine_stream_t *stream, int s, const void *wbuf_gen, off_t todo) {
   const uint8_t *wbuf = wbuf_gen;
-  unsigned int timeout = stream ? stream->xine->network_timeout * 1000 : 30000; /* 30K msecs = 30 secs */
+  unsigned int timeout;
   size_t have = 0, want = todo;
 
   _x_assert (wbuf != NULL);
+
+  if (stream) {
+    xine_private_t *xine = (xine_private_t *)stream->xine;
+    timeout = xine->network_timeout * 1000;
+  } else {
+    timeout = 30000; /* 30K msecs = 30 secs */
+  }
+
   while (have < want) {
     ssize_t ret;
     ret = _x_io_select (stream, s, XIO_WRITE_READY, timeout);
