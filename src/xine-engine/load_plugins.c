@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1668,8 +1668,9 @@ static void load_cached_catalog (xine_t *this) {
 /*
  *  initialize catalog, load all plugins into new catalog
  */
-int _x_scan_plugins (xine_t *this) {
+int _x_scan_plugins (xine_t *this_gen) {
 #define XSP_BUFSIZE 4096
+  xine_private_t *this = (xine_private_t *)this_gen;
   char buf[XSP_BUFSIZE], *homeend, *bufend = buf + XSP_BUFSIZE - 16;
   const char *pluginpath = NULL;
   const char *homedir;
@@ -1677,8 +1678,8 @@ int _x_scan_plugins (xine_t *this) {
   lprintf("_x_scan_plugins()\n");
 
   _x_assert(this);
-  _x_assert(this->config);
-  _x_assert(!this->plugin_catalog);
+  _x_assert (this->x.config);
+  _x_assert (!this->x.plugin_catalog);
 
   homedir = xine_get_homedir ();
   if (!homedir)
@@ -1691,15 +1692,15 @@ int _x_scan_plugins (xine_t *this) {
     homeend = buf + len;
   }
 
-  this->plugin_catalog = _new_catalog();
-  if (!this->plugin_catalog)
+  this->x.plugin_catalog = _new_catalog();
+  if (!this->x.plugin_catalog)
     return -1;
 
-  XINE_PROFILE(load_cached_catalog (this));
+  XINE_PROFILE (load_cached_catalog (&this->x));
 
 #ifdef XINE_MAKE_BUILTINS
   lprintf ("collect_plugins in libxine\n");
-  _register_plugins_internal (this, NULL, NULL , xine_builtin_plugin_info);
+  _register_plugins_internal (&this->x, NULL, NULL , xine_builtin_plugin_info);
 #endif
 
   if ((pluginpath = getenv("XINE_PLUGIN_PATH")) != NULL && *pluginpath) {
@@ -1723,14 +1724,14 @@ int _x_scan_plugins (xine_t *this) {
       xine_small_memcpy (q, start, len); q += len;
       q[0] = 0;
       start = stop + 1;
-      collect_plugins (this, try, q, bufend);
+      collect_plugins (&this->x, try, q, bufend);
     }
     len = strlen (start);
     if (len > (size_t)(bufend - q))
       len = bufend - q;
     xine_small_memcpy (q, start, len); q += len;
     q[0] = 0;
-    collect_plugins (this, try, q, bufend);
+    collect_plugins (&this->x, try, q, bufend);
 
   } else {
 
@@ -1739,7 +1740,7 @@ int _x_scan_plugins (xine_t *this) {
     int i;
 
     memcpy (homeend, "/.xine/plugins", 15);
-    collect_plugins (this, buf, homeend + 15, bufend);
+    collect_plugins (&this->x, buf, homeend + 15, bufend);
 
     p = XINE_PLUGINROOT;
     len = strlen (p);
@@ -1748,16 +1749,16 @@ int _x_scan_plugins (xine_t *this) {
     for (i = XINE_LT_AGE; i >= 0; i--) {
       char *q = buf + len;
       xine_uint32_2str (&q, i);
-      collect_plugins (this, buf, q, bufend);
+      collect_plugins (&this->x, buf, q, bufend);
     }
   }
 
-  load_required_plugins (this);
+  load_required_plugins (&this->x);
 
   if ((this->flags & XINE_FLAG_NO_WRITE_CACHE) == 0)
-    XINE_PROFILE(save_catalog (this));
+    XINE_PROFILE (save_catalog (&this->x));
 
-  map_decoders (this);
+  map_decoders (&this->x);
 
   return 0;
 }
@@ -3020,10 +3021,11 @@ GET_PLUGIN_DESC (audio_driver,	audio_driver,	PLUGIN_AUDIO_OUT)
 GET_PLUGIN_DESC (video_driver,	video_driver,	PLUGIN_VIDEO_OUT)
 GET_PLUGIN_DESC (post,		post,		PLUGIN_POST)
 
-xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
+xine_post_t *xine_post_init (xine_t *xine_gen, const char *name, int inputs,
 			    xine_audio_port_t **audio_target,
 			    xine_video_port_t **video_target) {
-  plugin_catalog_t *catalog = xine->plugin_catalog;
+  xine_private_t *xine = (xine_private_t *)xine_gen;
+  plugin_catalog_t *catalog = xine->x.plugin_catalog;
   plugin_node_t    *node;
   post_plugin_t    *post = NULL;
   int               list_id, list_size;
@@ -3040,8 +3042,8 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 
     if (strcmp(node->info->id, name) == 0) {
 
-      if (!node->plugin_class && !_load_plugin_class(xine, node, NULL)) {
-        xprintf(xine, XINE_VERBOSITY_DEBUG,
+      if (!node->plugin_class && !_load_plugin_class (&xine->x, node, NULL)) {
+        xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
 		"load_plugins: requested post plugin %s failed to load\n", name);
 	break;
       }
@@ -3051,7 +3053,7 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 
       if (post) {
 	post->running_ticket = xine->port_ticket;
-	post->xine = xine;
+        post->xine = &xine->x;
 	post->node = node;
 	inc_node_ref(node);
 
@@ -3079,7 +3081,7 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
 
 	break;
       } else {
-        xprintf(xine, XINE_VERBOSITY_DEBUG,
+        xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
 		"load_plugins: post plugin %s failed to instantiate itself\n", name);
 	break;
       }
@@ -3091,7 +3093,7 @@ xine_post_t *xine_post_init(xine_t *xine, const char *name, int inputs,
   if(post)
     return &post->xine_post;
   else {
-    xprintf(xine, XINE_VERBOSITY_DEBUG, "load_plugins: no post plugin named %s found\n", name);
+    xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "load_plugins: no post plugin named %s found\n", name);
     return NULL;
   }
 }

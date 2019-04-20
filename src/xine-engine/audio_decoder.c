@@ -46,9 +46,10 @@
 static void *audio_decoder_loop (void *stream_gen) {
 
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
+  xine_private_t *xine = (xine_private_t *)stream->s.xine;
+  xine_ticket_t   *running_ticket = xine->port_ticket;
   buf_element_t   *buf = NULL;
   buf_element_t   *headers_first = NULL, **headers_add = &headers_first, *headers_replay = NULL;
-  xine_ticket_t   *running_ticket = stream->s.xine->port_ticket;
   int              running = 1;
   int              prof_audio_decode = -1;
   uint32_t         buftype_unknown = 0;
@@ -582,3 +583,4 @@ int _x_get_audio_channel (xine_stream_t *s) {
 
   return stream->audio_type & 0xFFFF;
 }
+

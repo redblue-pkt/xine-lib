@@ -61,12 +61,13 @@
 void _x_demux_flush_engine (xine_stream_t *s) {
 
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  xine_private_t *xine = (xine_private_t *)stream->s.xine;
   buf_element_t *buf;
 
   if (stream->gapless_switch || stream->finished_naturally)
     return;
 
-  stream->s.xine->port_ticket->acquire (stream->s.xine->port_ticket, 1);
+  xine->port_ticket->acquire (xine->port_ticket, 1);
 
   /* only flush/discard output ports on master streams */
   if (stream->s.master == &stream->s) {
@@ -116,7 +117,7 @@ void _x_demux_flush_engine (xine_stream_t *s) {
     }
   }
 
-  stream->s.xine->port_ticket->release (stream->s.xine->port_ticket, 1);
+  xine->port_ticket->release (xine->port_ticket, 1);
 }
 
 
@@ -881,4 +882,3 @@ void _x_demux_send_mrl_reference (xine_stream_t *stream, int alternative,
 
   free (data.e);
 }
-
