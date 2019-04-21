@@ -2631,8 +2631,8 @@ static const char * const * cdda_class_get_autoplay_list (input_class_t *this_ge
       if (cdda_open (inst, dname, &fd) == -1) {
 #ifdef LOG
         int e = errno;
-#endif
         lprintf ("cdda_class_get_autoplay_list: opening >%s< failed %s\n", dname, strerror (e));
+#endif
         free (inst);
         return NULL;
       }
