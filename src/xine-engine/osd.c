@@ -96,6 +96,12 @@
 #  define FT_LOAD_FLAGS  (FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)
 #endif
 
+typedef struct {
+  osd_renderer_t r;
+  vo_overlay_t   ovl;
+  xine_t        *xine;
+} osd_renderer_private_t;
+
 /* This text descriptions are used for config screen */
 static const char *const textpalettes_str[NUMBER_OF_TEXT_PALETTES+1] = {
   "white-black-transparent",
@@ -201,6 +207,7 @@ struct osd_font_s {
   char             name[40];
   char            *filename;
   osd_fontchar_t  *fontchar;
+  uint8_t         *data;
   osd_font_t      *next;
   uint16_t         version;
   uint16_t         size;
@@ -243,22 +250,33 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
   osd_object_t *osd;
 
   osd = calloc(1, sizeof(osd_object_t));
-  osd->renderer = this;
-  osd->video_window_x = 0;
-  osd->video_window_y = 0;
-  osd->video_window_width = 0;
+  if (!osd)
+    return NULL;
+#ifndef HAVE_ZERO_SAFE_MEM
+  osd->video_window_x      = 0;
+  osd->video_window_y      = 0;
+  osd->video_window_width  = 0;
   osd->video_window_height = 0;
-  osd->extent_width = 0;
-  osd->extent_height = 0;
+  osd->extent_width        = 0;
+  osd->extent_height       = 0;
+  osd->area_touched        = 0;
+  osd->x2                  = 0;
+  osd->y2                  = 0;
+#endif
+
+  osd->area = calloc(width, height);
+  if (!osd->area) {
+    free (osd);
+    return NULL;
+  }
+
+  osd->renderer = this;
+
   osd->width = width;
   osd->height = height;
-  osd->area = calloc(width, height);
-  osd->area_touched = 0;
 
   osd->x1 = width;
   osd->y1 = height;
-  osd->x2 = 0;
-  osd->y2 = 0;
 
   memcpy(osd->color, textpalettes_color[0], sizeof(textpalettes_color[0]));
   memcpy(osd->trans, textpalettes_trans[0], sizeof(textpalettes_trans[0]));
@@ -851,126 +869,167 @@ static void osd_set_position (osd_object_t *osd, int x, int y) {
   osd->display_y = y;
 }
 
-static uint16_t gzread_i16(gzFile fp) {
-  uint16_t ret;
-  ret = gzgetc(fp);
-  ret |= (gzgetc(fp)<<8);
-  return ret;
-}
-
 /*
    load bitmap font into osd engine
 */
 
-static int osd_renderer_load_font(osd_renderer_t *this, char *filename) {
+static int osd_renderer_load_font (osd_renderer_t *this, const char *filename) {
 
   gzFile       fp;
+  size_t       fnlen = strlen (filename) + 1;
+  int          i;
   osd_font_t  *font = NULL;
-  int          i, ret = 0;
 
   lprintf("name=%s\n", filename );
 
   /* load quick & dirt font format */
-  /* fixme: check for all read errors... */
-  if( (fp = gzopen(filename,"rb")) != NULL ) {
+  do {
+    uint8_t b[sizeof (font->name) + 3 * 2];
+    size_t dsize, lsize;
 
-    font = calloc(1, sizeof(osd_font_t));
+    fp = gzopen (filename, "rb");
+    if (!fp)
+      break;
 
-    gzread(fp, font->name, sizeof(font->name) );
-    font->version = gzread_i16(fp);
-
-    if( font->version == FONT_VERSION ) {
-
-      font->size = gzread_i16(fp);
-      font->num_fontchars = gzread_i16(fp);
-      font->loaded = 1;
-
-      font->fontchar = malloc( sizeof(osd_fontchar_t) * font->num_fontchars );
-
-      lprintf("font '%s' chars=%d\n", font->name, font->num_fontchars);
-
-      /* load all characters */
-      for( i = 0; i < font->num_fontchars; i++ ) {
-        font->fontchar[i].code = gzread_i16(fp);
-        font->fontchar[i].width = gzread_i16(fp);
-        font->fontchar[i].height = gzread_i16(fp);
-        font->fontchar[i].bmp = malloc((size_t)font->fontchar[i].width * (size_t)font->fontchar[i].height);
-        if( gzread(fp, font->fontchar[i].bmp,
-              font->fontchar[i].width*font->fontchar[i].height) <= 0 )
-          break;
-      }
-
-      /* check if all expected characters were loaded */
-      if( i == font->num_fontchars ) {
-        osd_font_t *known_font;
-        ret = 1;
-
-        lprintf("font '%s' loaded\n",font->name);
-
-        /* check if font is already known to us */
-        known_font = this->fonts;
-        while( known_font ) {
-          if( !strcasecmp(known_font->name,font->name) &&
-               known_font->size == font->size )
-            break;
-          known_font = known_font->next;
-        }
-
-        if( !known_font ) {
-
-          /* new font, add it to list */
-          font->filename = strdup(filename);
-          font->next = this->fonts;
-          this->fonts = font;
-
-        } else {
-
-          if( !known_font->loaded ) {
-            /* the font was preloaded before.
-             * add loaded characters to the existing entry.
-             */
-            known_font->version = font->version;
-            known_font->num_fontchars = font->num_fontchars;
-            known_font->loaded = 1;
-            known_font->fontchar = font->fontchar;
-            free(font);
-          } else {
-            xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		    _("font '%s-%d' already loaded, weird.\n"), font->name, font->size);
-            while( --i >= 0 ) {
-              free(font->fontchar[i].bmp);
-            }
-            free(font->fontchar);
-            free(font);
-          }
-
-        }
-      } else {
-
-        xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-		_("font '%s' loading failed (%d < %d)\n") ,font->name, i, font->num_fontchars);
-
-        while( --i >= 0 ) {
-          free(font->fontchar[i].bmp);
-        }
-        free(font->fontchar);
-        free(font);
-      }
-    } else {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-	      _("wrong version for font '%s'. expected %d found %d.\n"), font->name, font->version, FONT_VERSION);
-      free(font);
+    if (gzread (fp, b, sizeof (font->name) + 3 * 2) != (int)sizeof (font->name) + 3 * 2)
+      break;
+    i = _X_LE_16 (b + sizeof (font->name));
+    if (i != FONT_VERSION) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        _("wrong version for font '%s'. expected %d found %d.\n"), (char *)b, i, FONT_VERSION);
+      break;
     }
-    gzclose(fp);
-  }
+    font = calloc (1, sizeof (*font) + fnlen);
+    if (!font)
+      break;
+    memcpy (font->name, b, sizeof (font->name));
+    font->version = i;
+    font->size = _X_LE_16 (b + sizeof (font->name) + 1 * 2);
+    font->num_fontchars = _X_LE_16 (b + sizeof (font->name) + 2 * 2);
+    font->loaded = 1;
+    font->data = NULL;
 
-  return ret;
+    font->fontchar = malloc (sizeof (osd_fontchar_t) * font->num_fontchars);
+    if (!font->fontchar)
+      break;
+    lprintf ("font '%s' chars=%d\n", font->name, font->num_fontchars);
+
+    /* estimate total uncompressed size, and load entire rest. */
+    dsize = font->num_fontchars * font->size * font->size;
+    font->data = malloc (dsize);
+    if (!font->data)
+      break;
+    lsize = 0;
+    while (1) {
+      uint8_t *n;
+      int r = gzread (fp, font->data + lsize, dsize - lsize);
+      if (r <= 0)
+        break;
+      lsize += r;
+      if (lsize < dsize)
+        break;
+      if (dsize > (20 << 20))
+        break;
+      n = realloc (font->data, 2 * dsize);
+      if (!n)
+        break;
+      font->data = n;
+      dsize *= 2;
+    }
+    gzclose (fp);
+    fp = NULL;
+    if (lsize < dsize) {
+      uint8_t *n = realloc (font->data, lsize);
+      if (n)
+        font->data = n;
+    }
+    dsize = sizeof (font->name) + 3 * 2 + lsize;
+
+    /* load all characters */
+    {
+      uint8_t *p = font->data;
+      for (i = 0; i < font->num_fontchars; i++) {
+        size_t bsize;
+        if (lsize < 3 * 2)
+          break;
+        font->fontchar[i].code = _X_LE_16 (p);
+        font->fontchar[i].width = _X_LE_16 (p + 1 * 2);
+        font->fontchar[i].height = _X_LE_16 (p + 2 * 2);
+        p += 3 * 2;
+        lsize -= 3 * 2;
+        font->fontchar[i].bmp = p;
+        bsize = (size_t)font->fontchar[i].width * (size_t)font->fontchar[i].height;
+        if (lsize < bsize)
+          break;
+        p += bsize;
+        lsize -= bsize;
+      }
+    }
+    /* check if all expected characters were loaded */
+    if (i < font->num_fontchars)
+      break;
+
+    {
+      osd_font_t *known_font;
+
+      lprintf ("font '%s' loaded\n", font->name);
+      /* check if font is already known to us */
+      known_font = this->fonts;
+      while (known_font) {
+        if (!strcasecmp (known_font->name, font->name) && known_font->size == font->size)
+          break;
+        known_font = known_font->next;
+      }
+      if (!known_font) {
+        /* new font, add it to list */
+        font->filename = (char *)font + sizeof (*font);
+        memcpy (font->filename, filename, fnlen);
+        font->next = this->fonts;
+        this->fonts = font;
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "osd: loaded font %s (%u bytes).\n", filename, (unsigned int)dsize);
+        return 1;
+      }
+      if (!known_font->loaded) {
+        /* the font was preloaded before.
+         * add loaded characters to the existing entry.
+         */
+        known_font->version = font->version;
+        known_font->size = font->size;
+        known_font->num_fontchars = font->num_fontchars;
+        known_font->loaded = 1;
+        known_font->fontchar = font->fontchar;
+        known_font->data = font->data;
+        free (font);
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "osd: loaded font %s (%u bytes).\n", filename, (unsigned int)dsize);
+        return 1;
+      }
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        _("font '%s-%d' already loaded, weird.\n"), font->name, font->size);
+      free (font->data);
+      free (font->fontchar);
+      free (font);
+      return 1;
+    }
+  } while (0);
+
+  if (font) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+      _("font '%s' loading failed (%d < %d)\n"), font->name, i, font->num_fontchars);
+    free (font->data);
+    free (font->fontchar);
+    free (font);
+  }
+  if (fp)
+    gzclose (fp);
+  return 0;
 }
 
 /*
  * unload font
  */
-static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
+static int osd_renderer_unload_font(osd_renderer_t *this, const char *fontname ) {
 
   osd_font_t *font, *last;
   osd_object_t *osd;
@@ -989,16 +1048,17 @@ static int osd_renderer_unload_font(osd_renderer_t *this, char *fontname ) {
 
   last = NULL;
   font = this->fonts;
-  while( font ) {
-    if ( !strcasecmp(font->name,fontname) ) {
-
-      _x_freep( &font->filename );
-
-      if( font->loaded ) {
-        for( i = 0; i < font->num_fontchars; i++ ) {
-          _x_freep( &font->fontchar[i].bmp );
+  while (font) {
+    if (!strcasecmp (font->name, fontname)) {
+      if (font->loaded) {
+        if (font->data) {
+          _x_freep (&font->data);
+        } else {
+          for (i = 0; i < font->num_fontchars; i++) {
+            _x_freep (&font->fontchar[i].bmp);
+          }
         }
-        _x_freep( &font->fontchar );
+        _x_freep (&font->fontchar);
       }
 
       if( last )
@@ -1110,27 +1170,31 @@ static int osd_lookup_fontconfig( osd_object_t *osd, const char *const fontname,
  * @see XDG Base Directory specification:
  *      http://standards.freedesktop.org/basedir-spec/latest/index.html
  */
-static int osd_lookup_xdg( osd_object_t *osd, const char *const fontname ) {
-  const char *const *data_dirs = xdgSearchableDataDirectories(&osd->renderer->stream->xine->basedir_handle);
+static int osd_lookup_xdg (osd_object_t *osd, const char *const fontname) {
+  const char * const *data_dirs = xdgSearchableDataDirectories (&osd->renderer->stream->xine->basedir_handle);
 
-  if ( data_dirs )
-    while( (*data_dirs) && *(*data_dirs) ) {
+  if (data_dirs) {
+    while ((*data_dirs) && (*data_dirs)[0]) {
+      char fontpath[2048], *e = fontpath + sizeof (fontpath), *q = fontpath;
       FT_Error fte = FT_Err_Ok;
-      char *fontpath = NULL;
-      fontpath = _x_asprintf("%s/"PACKAGE"/fonts/%s", *data_dirs, fontname);
-
-      fte = FT_New_Face(osd->ft2->library, fontpath, 0, &osd->ft2->face);
-
-      free(fontpath);
-
-      if ( fte == FT_Err_Ok )
-	return 1;
-
+      q += strlcpy (q, *data_dirs, q - e);
+      if (q > e)
+        q = e;
+      q += strlcpy (q, "/"PACKAGE"/fonts/", q - e);
+      if (q > e)
+        q = e;
+      strlcpy (q, fontname, q - e);
+      fte = FT_New_Face (osd->ft2->library, fontpath, 0, &osd->ft2->face);
+      if (fte == FT_Err_Ok) {
+        xprintf (osd->renderer->stream->xine, XINE_VERBOSITY_DEBUG,
+          "osd: loaded font %s.\n", fontpath);
+        return 1;
+      }
       data_dirs++;
     }
-
-  xprintf(osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
-	  _("osd: error loading font %s with in XDG data directories.\n"), fontname);
+  }
+  xprintf (osd->renderer->stream->xine, XINE_VERBOSITY_LOG,
+    _("osd: error loading font %s with in XDG data directories.\n"), fontname);
   return 0;
 }
 
@@ -1476,9 +1540,9 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
       if( x1 > osd->x2 ) osd->x2 = x1;
       if( y1 + osd->ft2->face->size->metrics.height/64 > osd->y2 ) osd->y2 = y1 + osd->ft2->face->size->metrics.height/64;
 
-    } else {
-
+    } else
 #endif
+    {
 
       i = osd_search(font->fontchar, font->num_fontchars, unicode);
 
@@ -1515,9 +1579,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
           osd->y2 = y1 + font->fontchar[i].height;
       }
 
-#ifdef HAVE_FT2
     } /* !(osd->ft2 && osd->ft2->face) */
-#endif
 
   }
 
@@ -1611,8 +1673,9 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
       first_glyph = 0;
       *width += slot->advance.x / 64;
       text++;
-    } else {
+    } else
 #endif
+    {
       i = osd_search(font->fontchar, font->num_fontchars, unicode);
 
       if ( i != font->num_fontchars ) {
@@ -1620,9 +1683,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
           *height = font->fontchar[i].height;
         *width += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
       }
-#ifdef HAVE_FT2
     } /* !(osd->ft2 && osd->ft2->face) */
-#endif
   }
 
 #ifdef HAVE_FT2
@@ -1646,53 +1707,6 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   pthread_mutex_unlock (&this->osd_mutex);
 
   return 1;
-}
-
-static void osd_preload_fonts (osd_renderer_t *this, char *path) {
-  DIR   *dir;
-  char  *s, *p;
-
-  lprintf ("path='%s'\n", path);
-
-  dir = opendir (path);
-
-  if (dir) {
-    struct dirent  *entry;
-
-    while ((entry = readdir (dir)) != NULL) {
-      int  len;
-
-      len = strlen (entry->d_name);
-
-      if ( (len > 12) && !strncmp (&entry->d_name[len-12], ".xinefont.gz", 12)) {
-
-        s = strdup(entry->d_name);
-        p = strchr(s, '-');
-
-        if( p ) {
-	  osd_font_t  *font;
-
-          *p++ = '\0';
-          font = calloc(1, sizeof(osd_font_t) );
-
-          strncpy(font->name, s, sizeof(font->name));
-          font->name[sizeof(font->name) - 1] = 0;
-          font->size = atoi(p);
-
-          lprintf("font '%s' size %d is preloaded\n",
-                  font->name, font->size);
-
-          font->filename = _x_asprintf ("%s/%s", path, entry->d_name);
-
-          font->next = this->fonts;
-          this->fonts = font;
-        }
-        free(s);
-      }
-    }
-
-    closedir (dir);
-  }
 }
 
 /*
@@ -1755,18 +1769,24 @@ static void osd_free_object (osd_object_t *osd_to_close) {
   pthread_mutex_unlock (&this->osd_mutex);
 }
 
-static void osd_renderer_close (osd_renderer_t *this) {
+static void osd_renderer_close (osd_renderer_t *this_gen) {
+  osd_renderer_private_t *this = (osd_renderer_private_t *)this_gen;
 
-  while( this->osds )
-    osd_free_object ( this->osds );
+  if (this->r.event.object.overlay == &this->ovl)
+    this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, &this->r, sizeof (*this));
 
-  while( this->fonts )
-    osd_renderer_unload_font( this, this->fonts->name );
+  while (this->r.osds)
+    osd_free_object (this->r.osds);
 
-  pthread_mutex_destroy (&this->osd_mutex);
+  while (this->r.fonts)
+    osd_renderer_unload_font (&this->r, this->r.fonts->name);
 
-  _x_freep(&this->event.object.overlay);
-  free(this);
+  pthread_mutex_destroy (&this->r.osd_mutex);
+
+  if (this->r.event.object.overlay != &this->ovl)
+    _x_freep (&this->r.event.object.overlay);
+
+  free (this);
 }
 
 
@@ -1874,71 +1894,117 @@ static uint32_t osd_get_capabilities (osd_object_t *osd) {
 
 osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream ) {
 
-  osd_renderer_t *this;
+  osd_renderer_private_t *this;
 
-  this = calloc(1, sizeof(osd_renderer_t));
-  this->stream = stream;
-  this->event.object.overlay = calloc(1, sizeof(vo_overlay_t));
+  this = calloc (1, sizeof (*this));
+  if (!this)
+    return NULL;
 
-  pthread_mutex_init (&this->osd_mutex, NULL);
+  this->r.stream = stream;
+  this->r.event.object.overlay = &this->ovl;
+  this->xine = stream->xine;
+
+  pthread_mutex_init (&this->r.osd_mutex, NULL);
 
   /*
    * load available fonts
    */
   {
-    const char *const *data_dirs = xdgSearchableDataDirectories(&stream->xine->basedir_handle);
-    if ( data_dirs )
-      while( (*data_dirs) && *(*data_dirs) ) {
-	/* sizeof("") takes care of the final NUL byte */
-        char *fontpath = malloc( strlen(*data_dirs) + sizeof("/"PACKAGE"/fonts/") );
-        if (fontpath) {
-          strcpy(fontpath, *data_dirs);
-          strcat(fontpath, "/"PACKAGE"/fonts/");
-
-          osd_preload_fonts(this, fontpath);
-
-          free(fontpath);
+    const char * const *data_dirs = xdgSearchableDataDirectories (&stream->xine->basedir_handle);
+    if (data_dirs) {
+      char fontpath[2048], *e = fontpath + sizeof (fontpath);
+      while ((*data_dirs) && (*data_dirs)[0]) {
+        DIR *dir;
+        char *q = fontpath;
+        q += strlcpy (q, *data_dirs, e - q);
+        if (q > e)
+          q = e;
+        q += strlcpy (q, "/"PACKAGE"/fonts/", e - q);
+        if (q > e)
+          q = e;
+        lprintf ("path='%s'\n", fontpath);
+        dir = opendir (fontpath);
+        if (dir) {
+          int n = 0;
+          struct dirent *entry;
+          while ((entry = readdir (dir)) != NULL) {
+            char *s, *d;
+            osd_font_t *font;
+            size_t len = strlen (entry->d_name);
+            if (len <= 12)
+              continue;
+            if (strncmp (entry->d_name + len - 12, ".xinefont.gz", 12))
+              continue;
+            s = q + strlcpy (q, entry->d_name, e - q) + 1;
+            if (s > e)
+              s = e;
+            d = strchr (q, '-');
+            if (!d)
+              continue;
+            font = calloc (1, sizeof (*font) + s - fontpath);
+            if (!font)
+              continue;
+            font->filename = (char *)font + sizeof (*font);
+            memcpy (font->filename, fontpath, s - fontpath);
+            *d++ = 0;
+            strlcpy (font->name, q, sizeof (font->name));
+            {
+              const char *d1 = d;
+              font->size = xine_str2uint32 (&d1);
+            }
+            lprintf ("font '%s' size %d is preloaded\n", font->name, font->size);
+            font->next = this->r.fonts;
+            this->r.fonts = font;
+            n++;
+          }
+          closedir (dir);
+          if (n) {
+            *q = 0;
+            xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+              "osd: found %d xine fonts in %s.\n", n, fontpath);
+          }
         }
-	data_dirs++;
+        data_dirs++;
       }
+    }
   }
 
-  this->textpalette = this->stream->xine->config->register_enum (this->stream->xine->config,
-                                             "ui.osd.text_palette", 0,
-                                             (char **)textpalettes_str,
-                                             _("palette (foreground-border-background) to use for subtitles and OSD"),
-                                             _("The palette for on-screen-display and some subtitle formats that do "
-					       "not specify any colouring themselves. The palettes are listed in the "
-					       "form: foreground-border-background."),
-                                             10, update_text_palette, this);
+  this->r.textpalette = this->xine->config->register_enum (this->xine->config,
+    "ui.osd.text_palette", 0, (char **)textpalettes_str,
+    _("palette (foreground-border-background) to use for subtitles and OSD"),
+    _("The palette for on-screen-display and some subtitle formats that do "
+      "not specify any colouring themselves. The palettes are listed in the "
+      "form: foreground-border-background."),
+    10, update_text_palette, &this->r);
 
   /*
    * set up function pointer
    */
 
-  this->new_object         = osd_new_object;
-  this->free_object        = osd_free_object;
-  this->show               = osd_show_scaled;
-  this->hide               = osd_hide;
-  this->set_palette        = osd_set_palette;
-  this->set_text_palette   = osd_set_text_palette;
-  this->get_palette        = osd_get_palette;
-  this->set_position       = osd_set_position;
-  this->set_font           = osd_set_font;
-  this->clear              = osd_clear;
-  this->point              = osd_point;
-  this->line               = osd_line;
-  this->filled_rect        = osd_filled_rect;
-  this->set_encoding       = osd_set_encoding;
-  this->render_text        = osd_render_text;
-  this->get_text_size      = osd_get_text_size;
-  this->close              = osd_renderer_close;
-  this->draw_bitmap        = osd_draw_bitmap;
-  this->set_argb_buffer    = osd_set_argb_buffer;
-  this->show_unscaled      = osd_show_unscaled;
-  this->get_capabilities   = osd_get_capabilities;
-  this->set_extent         = osd_set_extent;
-  this->set_video_window   = osd_set_video_window;
+  this->r.new_object         = osd_new_object;
+  this->r.free_object        = osd_free_object;
+  this->r.show               = osd_show_scaled;
+  this->r.hide               = osd_hide;
+  this->r.set_palette        = osd_set_palette;
+  this->r.set_text_palette   = osd_set_text_palette;
+  this->r.get_palette        = osd_get_palette;
+  this->r.set_position       = osd_set_position;
+  this->r.set_font           = osd_set_font;
+  this->r.clear              = osd_clear;
+  this->r.point              = osd_point;
+  this->r.line               = osd_line;
+  this->r.filled_rect        = osd_filled_rect;
+  this->r.set_encoding       = osd_set_encoding;
+  this->r.render_text        = osd_render_text;
+  this->r.get_text_size      = osd_get_text_size;
+  this->r.close              = osd_renderer_close;
+  this->r.draw_bitmap        = osd_draw_bitmap;
+  this->r.set_argb_buffer    = osd_set_argb_buffer;
+  this->r.show_unscaled      = osd_show_unscaled;
+  this->r.get_capabilities   = osd_get_capabilities;
+  this->r.set_extent         = osd_set_extent;
+  this->r.set_video_window   = osd_set_video_window;
 
-  return this;
+  return &this->r;
 }
+
