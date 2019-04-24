@@ -229,7 +229,6 @@ void _x_demux_control_headers_done (xine_stream_t *s) {
   }
 
   _x_action_lower (&stream->s);
-  pthread_cond_signal(&stream->demux_resume);
 
   lprintf ("headers processed.\n");
 
@@ -485,7 +484,6 @@ int _x_demux_start_thread (xine_stream_t *s) {
   _x_action_raise (&stream->s);
   pthread_mutex_lock( &stream->demux_lock );
   _x_action_lower (&stream->s);
-  pthread_cond_signal(&stream->demux_resume);
 
   if( !stream->demux_thread_running ) {
 
@@ -521,7 +519,6 @@ int _x_demux_stop_thread (xine_stream_t *s) {
   pthread_mutex_lock( &stream->demux_lock );
   stream->demux_thread_running = 0;
   _x_action_lower (&stream->s);
-  pthread_cond_signal(&stream->demux_resume);
 
   /* At that point, the demuxer has sent the last audio/video buffer,
    * so it's a safe place to flush the engine.
@@ -730,6 +727,7 @@ void _x_action_lower (xine_stream_t *s) {
   pthread_mutex_lock(&stream->demux_action_lock);
   stream->demux_action_pending--;
   pthread_mutex_unlock(&stream->demux_action_lock);
+  pthread_cond_signal(&stream->demux_resume);
 }
 
 /*

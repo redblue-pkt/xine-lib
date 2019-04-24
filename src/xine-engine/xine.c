@@ -1798,7 +1798,6 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   pthread_mutex_lock( &stream->demux_lock );
   /* demux_lock taken. now demuxer is suspended */
   _x_action_lower (&stream->s);
-  pthread_cond_signal(&stream->demux_resume);
 
   /* set normal speed again (now that demuxer/input pair is suspended)
    * some input plugin may have changed speed by itself, we must ensure
