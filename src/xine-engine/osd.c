@@ -96,6 +96,8 @@
 #  define FT_LOAD_FLAGS  (FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)
 #endif
 
+#define CLIP0MAX(val,max) { int32_t _v = val; if (_v > (int32_t)(max)) _v = max; _v &= ~(_v >> 31); val = _v; }
+
 typedef struct {
   osd_renderer_t r;
   vo_overlay_t   ovl;
@@ -396,18 +398,10 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   pthread_mutex_lock (&this->osd_mutex);
 
   /* clip update area to allowed range */
-  if(osd->x1 > osd->width)
-    osd->x1 = osd->width;
-  if(osd->x2 > osd->width)
-    osd->x2 = osd->width;
-  if(osd->y1 > osd->height)
-    osd->y1 = osd->height;
-  if(osd->y2 > osd->height)
-    osd->y2 = osd->height;
-  if(osd->x1 < 0) osd->x1 = 0;
-  if(osd->x2 < 0) osd->x2 = 0;
-  if(osd->y1 < 0) osd->y1 = 0;
-  if(osd->y2 < 0) osd->y2 = 0;
+  CLIP0MAX (osd->x1, osd->width);
+  CLIP0MAX (osd->x2, osd->width);
+  CLIP0MAX (osd->y1, osd->height);
+  CLIP0MAX (osd->y2, osd->height);
 
 #ifdef DEBUG_RLE
   lprintf("osd_show %p rle starts\n", osd);
@@ -1413,28 +1407,17 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
 
 #define FONT_OVERLAP 1/10  /* overlap between consecutive characters */
 
-/*
- * render text in current encoding on x,y position
- *  no \n yet
- */
+/* render text in current encoding on x,y position */
 static int osd_render_text (osd_object_t *osd, int x1, int y1,
                             const char *text, int color_base) {
 
   osd_renderer_t *this = osd->renderer;
-  osd_font_t *font;
-  int i, y;
-  uint8_t *dst, *src;
+  int xleft = x1, i;
   const char *inbuf;
   uint16_t unicode;
   size_t inbytesleft;
 
   lprintf("osd=%p (%d,%d) \"%s\"\n", osd, x1, y1, text);
-
-#ifdef HAVE_FT2
-  FT_UInt previous = 0;
-  FT_Bool use_kerning = osd->ft2 && osd->ft2->face && FT_HAS_KERNING(osd->ft2->face);
-  int first = 1;
-#endif
 
   /* some sanity checks for the color indices */
   if( color_base < 0 )
@@ -1443,46 +1426,59 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
     color_base = OVL_PALETTE_SIZE - TEXT_PALETTE_SIZE;
 
   pthread_mutex_lock (&this->osd_mutex);
-
-  {
-    int proceed = 0;
-
-    if ((font = osd->font)) proceed = 1;
-#ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->face) proceed = 1;
-#endif
-
-    if (proceed == 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: font isn't defined\n"));
-      pthread_mutex_unlock(&this->osd_mutex);
-      return 0;
-    }
+  if ((x1 >= osd->width) || (y1 >= osd->height)) {
+    pthread_mutex_unlock (&this->osd_mutex);
+    return 0;
   }
 
-  if( x1 < osd->x1 ) osd->x1 = x1;
-  if( y1 < osd->y1 ) osd->y1 = y1;
+  if (x1 < osd->x1)
+    osd->x1 = x1 < 0 ? 0 : x1;
+  if (y1 < osd->y1)
+    osd->y1 = y1 < 0 ? 0 : y1;
   osd->area_touched = 1;
 
   inbuf = text;
   inbytesleft = strlen(text);
 
-  while( inbytesleft ) {
-#ifdef HAVE_ICONV
-    unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding,
-                                   (ICONV_CONST char **)&inbuf, &inbytesleft);
-#else
-    unicode = inbuf[0];
-    inbuf++;
-    inbytesleft--;
-#endif
-
-
 #ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->face) {
+  if (osd->ft2 && osd->ft2->face) {
+    FT_UInt previous = 0;
+    FT_Bool use_kerning = FT_HAS_KERNING (osd->ft2->face);
+    int first = 1, yb = y1;
+    uint8_t ctab[256];
 
-      FT_GlyphSlot slot = osd->ft2->face->glyph;
+    /* we will likely render more than 256 pixels, so preset a color table. */
+    for (i = 0; i < 256; i++)
+      ctab[i] = i / 25 + color_base;
 
-      i = FT_Get_Char_Index( osd->ft2->face, unicode );
+    while (inbytesleft) {
+      FT_GlyphSlot slot;
+#ifdef HAVE_ICONV
+      unicode = osd_iconv_getunicode (this->stream->xine, osd->cd, osd->encoding,
+        (ICONV_CONST char **)&inbuf, &inbytesleft);
+#else
+      unicode = inbuf[0];
+      inbuf++;
+      inbytesleft--;
+#endif
+      if (unicode == '\n') {
+        y1 += osd->ft2->face->size->metrics.height / 64;
+        if (!first)
+          yb = y1;
+        previous = 0;
+        first = 1;
+        if (x1 > osd->x2)
+          osd->x2 = x1 > osd->width ? osd->width : x1;
+        x1 = xleft;
+        if (y1 >= osd->height)
+          break;
+        continue;
+      }
+      if (x1 >= osd->width)
+        continue;
+
+      slot = osd->ft2->face->glyph;
+      i = FT_Get_Char_Index (osd->ft2->face, unicode);
 
       /* add kerning relative to the previous letter */
       if (use_kerning && previous && i) {
@@ -1502,91 +1498,182 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
           xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering glyph\n"));
       }
 
-      /* if the first letter has a bearing not on the basepoint shift, the
+      /* if the first letter has a bearing not on the basepoint, shift the
        * whole output to be sure that we are inside the bounding box
        */
       if (first) x1 -= slot->bitmap_left;
       first = 0;
 
-      /* we shift the whole glyph down by it's ascender so that the specified
-       * coordinate is the top left corner which is much more practical than
-       * the baseline as the user normally has no idea where the baseline is
-       */
-      dst = osd->area + (y1 + osd->ft2->face->size->metrics.ascender/64 - slot->bitmap_top) * osd->width;
-      src = (uint8_t*) slot->bitmap.buffer;
-
-      for (y = 0; y < slot->bitmap.rows; y++) {
-        uint8_t *s = src;
-        uint8_t *d = dst + x1 + slot->bitmap_left;
-
-        if (d >= osd->area + osd->width*osd->height)
-          break;
-
-        if (dst > osd->area)
-          while (s < src + slot->bitmap.width) {
-            if ((d >= dst) && (d < dst + osd->width) && *s)
-              *d = (uint8_t)(*s/25) + (uint8_t) color_base;
-
-            d++;
+      {
+        const uint8_t *s = (const uint8_t *)slot->bitmap.buffer;
+        uint8_t *d = osd->area + x1 + slot->bitmap_left;
+        int y, yt, lines = slot->bitmap.rows, cols = slot->bitmap.width;
+        size_t pads = slot->bitmap.pitch - cols;
+        size_t padd = osd->width - cols;
+        /* we shift the whole glyph down by it's ascender so that the specified
+         * coordinate is the top left corner which is much more practical than
+         * the baseline as the user normally has no idea where the baseline is */
+        yt = osd->ft2->face->size->metrics.ascender / 64 - slot->bitmap_top;
+        if (yt < 0) { /* paranoia? */
+          s -= yt * slot->bitmap.pitch;
+          lines += yt;
+          yt = 0;
+        }
+        yt += y1;
+        d += yt * osd->width;
+        /* clip top (XXX: is this at all possible?) */
+        if (yt < 0) {
+          s -= yt * slot->bitmap.pitch;
+          d -= yt * osd->width;
+          lines += yt;
+        }
+        /* clip bottom */
+        y = osd->height - yt - lines;
+        if (y < 0) {
+          lines += y;
+        }
+        /* clip left (XXX: is this at all possible?) */
+        if (x1 < 0) {
+          s -= x1;
+          d -= x1;
+          pads -= x1;
+          padd -= x1;
+          cols += x1;
+        }
+        /* clip right */
+        y = osd->width - x1 - cols;
+        if (y < 0) {
+          pads -= y;
+          padd -= y;
+          cols += y;
+        }
+        /* render this char (or not if there is too much clipping) */
+        for (y = lines; y > 0; y--) {
+          int x;
+          for (x = cols; x > 0; x--) {
+            if (*s) /* skip drawing transparency */
+              *d = ctab[*s];
             s++;
+            d++;
           }
-
-        src += slot->bitmap.pitch;
-        dst += osd->width;
-
+          s += pads;
+          d += padd;
+        }
       }
-
       x1 += slot->advance.x / 64;
-      if( x1 > osd->x2 ) osd->x2 = x1;
-      if( y1 + osd->ft2->face->size->metrics.height/64 > osd->y2 ) osd->y2 = y1 + osd->ft2->face->size->metrics.height/64;
+      if (x1 >= osd->width)
+        break;
+    }
+    y1 += (osd->ft2->face->size->metrics.height / 64);
+    /* mark the space down to the last nonempty line as dirty. */
+    if (!first)
+      yb = y1;
+    if (yb > osd->y2)
+      osd->y2 = yb > osd->width ? osd->width : yb;
+    if (x1 > osd->x2)
+      osd->x2 = x1 > osd->width ? osd->width : x1;
 
-    } else
+  } else
 #endif
-    {
+  {
+    osd_font_t *font = osd->font;
+    int lineheight = 0, yb = y1;
+    if (!font) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("osd: font isn't defined\n"));
+      pthread_mutex_unlock (&this->osd_mutex);
+      return 0;
+    }
+    while (inbytesleft) {
+#ifdef HAVE_ICONV
+      unicode = osd_iconv_getunicode (this->stream->xine, osd->cd, osd->encoding,
+        (ICONV_CONST char **)&inbuf, &inbytesleft);
+#else
+      unicode = inbuf[0];
+      inbuf++;
+      inbytesleft--;
+#endif
+      if (unicode == '\n') {
+        y1 += font->size;
+        if (lineheight)
+          yb = y1;
+        lineheight = 0;
+        if (x1 > osd->x2)
+          osd->x2 = x1 > osd->width ? osd->width : x1;
+        x1 = xleft;
+        if (y1 >= osd->height)
+          break;
+        continue;
+      }
+      if (x1 >= osd->width)
+        continue;
 
-      i = osd_search(font->fontchar, font->num_fontchars, unicode);
-
-      lprintf("font '%s' [%d, U+%04X == U+%04X] %dx%d -> %d,%d\n", font->name, i,
+      i = osd_search (font->fontchar, font->num_fontchars, unicode);
+      lprintf ("font '%s' [%d, U+%04X == U+%04X] %dx%d -> %d,%d\n", font->name, i,
              unicode, font->fontchar[i].code, font->fontchar[i].width,
              font->fontchar[i].height, x1, y1);
-
-      if ( i != font->num_fontchars ) {
-        dst = osd->area + y1 * osd->width;
-        src = font->fontchar[i].bmp;
-
-        for( y = 0; y < font->fontchar[i].height; y++ ) {
-          uint8_t *s = src;
-          uint8_t *d = dst + x1;
-
-          if (d >= osd->area + osd->width*osd->height)
-            break;
-
-          if (dst >= osd->area)
-            while (s < src + font->fontchar[i].width) {
-              if((d >= dst) && (d < dst + osd->width) && (*s > 1)) /* skip drawing transparency */
-                *d = *s + (uint8_t) color_base;
-
-              d++;
-              s++;
-            }
-          src += font->fontchar[i].width;
-          dst += osd->width;
+      if (i != font->num_fontchars) {
+        const uint8_t *s = font->fontchar[i].bmp;
+        uint8_t *d = osd->area + y1 * osd->width + x1;
+        int y, lines = font->fontchar[i].height, cols = font->fontchar[i].width;
+        size_t pads = 0;
+        size_t padd = osd->width - cols;
+        /* clip top (XXX: is this at all possible?) */
+        if (y1 < 0) {
+          s -= y1 * cols;
+          d -= y1 * osd->width;
+          lines += y1;
+        }
+        /* clip bottom */
+        y = osd->height - y1 - lines;
+        if (y < 0) {
+          lines += y;
+        }
+        /* clip left (XXX: is this at all possible?) */
+        if (x1 < 0) {
+          s -= x1;
+          d -= x1;
+          pads -= x1;
+          padd -= x1;
+          cols += x1;
+        }
+        /* clip right */
+        y = osd->width - x1 - cols;
+        if (y < 0) {
+          pads -= y;
+          padd -= y;
+          cols += y;
+        }
+        /* render this char (or not if there is too much clipping) */
+        for (y = lines; y > 0; y--) {
+          int x;
+          for (x = cols; x > 0; x--) {
+            if (*s > 1) /* skip drawing transparency */
+              *d = *s + (uint8_t)color_base;
+            s++;
+            d++;
+          }
+          s += pads;
+          d += padd;
         }
         x1 += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
-
-        if( x1 > osd->x2 ) osd->x2 = x1;
-        if( y1 + font->fontchar[i].height > osd->y2 )
-          osd->y2 = y1 + font->fontchar[i].height;
+        if (lineheight < font->fontchar[i].height)
+          lineheight = font->fontchar[i].height;
       }
+    }
+    if (lineheight)
+      yb = y1 + lineheight;
+    if (osd->y2 < yb)
+      osd->y2 = yb > osd->height ? osd->height : yb;
+    if (x1 > osd->x2)
+      osd->x2 = x1 > osd->width ? osd->width : x1;
 
-    } /* !(osd->ft2 && osd->ft2->face) */
-
-  }
+  } /* !(osd->ft2 && osd->ft2->face) */
 
   pthread_mutex_unlock (&this->osd_mutex);
 
   return 1;
 }
+
 
 /*
   get width and height of how text will be renderized
@@ -1594,100 +1681,80 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
 static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, int *height) {
 
   osd_renderer_t *this = osd->renderer;
-  osd_font_t *font;
   int i;
   const char *inbuf;
   uint16_t unicode;
   size_t inbytesleft;
 
-#ifdef HAVE_FT2
-  /* not all free type fonts provide kerning */
-  FT_Bool use_kerning = osd->ft2 && osd->ft2->face && FT_HAS_KERNING(osd->ft2->face);
-  FT_UInt previous = 0;
-  int first_glyph = 1;
-#endif
-
   lprintf("osd=%p \"%s\"\n", osd, text);
-
-  pthread_mutex_lock (&this->osd_mutex);
-
-  {
-    int proceed = 0;
-
-    if ((font = osd->font)) proceed = 1;
-#ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->face) proceed = 1;
-#endif
-
-    if (proceed == 0) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: font isn't defined\n"));
-      pthread_mutex_unlock(&this->osd_mutex);
-      return 0;
-    }
-  }
-
+  inbuf = text;
+  inbytesleft = strlen (text);
   *width = 0;
   *height = 0;
 
-  inbuf = text;
-  inbytesleft = strlen(text);
-
-  while( inbytesleft ) {
-#ifdef HAVE_ICONV
-    unicode = osd_iconv_getunicode(this->stream->xine, osd->cd, osd->encoding,
-                                   (ICONV_CONST char **)&inbuf, &inbytesleft);
-#else
-    unicode = inbuf[0];
-    inbuf++;
-    inbytesleft--;
-#endif
+  pthread_mutex_lock (&this->osd_mutex);
 
 #ifdef HAVE_FT2
-    if (osd->ft2 && osd->ft2->face) {
-      FT_GlyphSlot  slot = osd->ft2->face->glyph;
-
-      i = FT_Get_Char_Index( osd->ft2->face, unicode);
-
+  if (osd->ft2 && osd->ft2->face) {
+    int y1 = 0, linewidth = 0;
+    /* not all free type fonts provide kerning */
+    FT_Bool use_kerning = FT_HAS_KERNING (osd->ft2->face);
+    FT_UInt previous = 0;
+    int first_glyph = 1;
+    while (inbytesleft) {
+      FT_GlyphSlot slot;
+#ifdef HAVE_ICONV
+      unicode = osd_iconv_getunicode (this->stream->xine, osd->cd, osd->encoding,
+        (ICONV_CONST char **)&inbuf, &inbytesleft);
+#else
+      unicode = inbuf[0];
+      inbuf++;
+      inbytesleft--;
+#endif
+      if (unicode == '\n') {
+        y1 += osd->ft2->face->size->metrics.height / 64;
+        /* see last char comment below */
+        if (!first_glyph) {
+          *height = y1;
+          if (osd->ft2->face->glyph->bitmap.width)
+            linewidth -= osd->ft2->face->glyph->advance.x / 64;
+          linewidth += osd->ft2->face->glyph->bitmap.width;
+          linewidth += osd->ft2->face->glyph->bitmap_left;
+        }
+        if (*width < linewidth)
+          *width = linewidth;
+        linewidth = 0;
+        previous = 0;
+        first_glyph = 1;
+        continue;
+      }
+      slot = osd->ft2->face->glyph;
+      i = FT_Get_Char_Index (osd->ft2->face, unicode);
       /* kerning add the relative to the previous letter */
       if (use_kerning && previous && i) {
         FT_Vector delta;
-        FT_Get_Kerning(osd->ft2->face, previous, i, KERNING_DEFAULT, &delta);
-        *width += delta.x / 64;
+        FT_Get_Kerning (osd->ft2->face, previous, i, KERNING_DEFAULT, &delta);
+        linewidth += delta.x / 64;
       }
       previous = i;
-
-      if (FT_Load_Glyph(osd->ft2->face, i, FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)) {
-        xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph %i\n"), i);
+      if (FT_Load_Glyph (osd->ft2->face, i, FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING)) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error loading glyph %i\n"), i);
         text++;
         continue;
       }
-
       if (slot->format != ft_glyph_format_bitmap) {
         if (FT_Render_Glyph(osd->ft2->face->glyph, ft_render_mode_normal))
-          xprintf(this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering\n"));
+          xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("osd: error in rendering\n"));
       }
       /* left shows the left edge relative to the base point. A positive value means the
        * letter is shifted right, so we need to subtract the value from the width
        */
-      if (first_glyph) *width -= slot->bitmap_left;
+      if (first_glyph) linewidth -= slot->bitmap_left;
       first_glyph = 0;
-      *width += slot->advance.x / 64;
+      linewidth += slot->advance.x / 64;
       text++;
-    } else
-#endif
-    {
-      i = osd_search(font->fontchar, font->num_fontchars, unicode);
-
-      if ( i != font->num_fontchars ) {
-        if( font->fontchar[i].height > *height )
-          *height = font->fontchar[i].height;
-        *width += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
-      }
-    } /* !(osd->ft2 && osd->ft2->face) */
-  }
-
-#ifdef HAVE_FT2
-  if (osd->ft2 && osd->ft2->face) {
+    }
+    y1 += osd->ft2->face->size->metrics.height / 64;
     /* if we have a true type font we need to do some corrections for the last
      * letter. As this one is still in the gylph slot we can still work with
      * it. For the last letter be must not use advance and width but the real
@@ -1696,13 +1763,58 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
      * to also add the left bearing because the letter might be shifted left or
      * right and then the right edge is also shifted
      */
-    if (osd->ft2->face->glyph->bitmap.width)
-        *width -= osd->ft2->face->glyph->advance.x / 64;
-    *width += osd->ft2->face->glyph->bitmap.width;
-    *width += osd->ft2->face->glyph->bitmap_left;
-    *height = osd->ft2->face->size->metrics.height / 64;
-  }
+    if (!first_glyph) {
+      *height = y1;
+      if (osd->ft2->face->glyph->bitmap.width)
+        linewidth -= osd->ft2->face->glyph->advance.x / 64;
+      linewidth += osd->ft2->face->glyph->bitmap.width;
+      linewidth += osd->ft2->face->glyph->bitmap_left;
+    }
+    if (*width < linewidth)
+      *width = linewidth;
+
+  } else
 #endif
+  {
+    int y1 = 0, linewidth = 0, lineheight = 0;
+    osd_font_t *font = osd->font;
+    if (!font) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("osd: font isn't defined\n"));
+      pthread_mutex_unlock (&this->osd_mutex);
+      return 0;
+    }
+    while (inbytesleft) {
+#ifdef HAVE_ICONV
+      unicode = osd_iconv_getunicode (this->stream->xine, osd->cd, osd->encoding,
+        (ICONV_CONST char **)&inbuf, &inbytesleft);
+#else
+      unicode = inbuf[0];
+      inbuf++;
+      inbytesleft--;
+#endif
+      if (unicode == '\n') {
+        y1 += font->size;
+        if (lineheight)
+          *height = y1;
+        if (*width < linewidth)
+          *width = linewidth;
+        linewidth = 0;
+        lineheight = 0;
+        continue;
+      }
+      i = osd_search (font->fontchar, font->num_fontchars, unicode);
+      if (i != font->num_fontchars) {
+        if (font->fontchar[i].height > lineheight)
+          lineheight = font->fontchar[i].height;
+        linewidth += font->fontchar[i].width - (font->fontchar[i].width * FONT_OVERLAP);
+      }
+    }
+    if (lineheight)
+      *height = y1 + lineheight;
+    if (*width < linewidth)
+      *width = linewidth;
+
+  } /* !(osd->ft2 && osd->ft2->face) */
 
   pthread_mutex_unlock (&this->osd_mutex);
 
@@ -2007,4 +2119,3 @@ osd_renderer_t *_x_osd_renderer_init( xine_stream_t *stream ) {
 
   return &this->r;
 }
-
