@@ -1107,6 +1107,7 @@ static uint32_t bluray_plugin_get_capabilities (input_plugin_t *this_gen)
 {
   (void)this_gen;
   return INPUT_CAP_SEEKABLE  |
+         INPUT_CAP_TIME_SEEKABLE |
          INPUT_CAP_BLOCK     |
          INPUT_CAP_AUDIOLANG |
          INPUT_CAP_SPULANG   |
@@ -1387,6 +1388,14 @@ static int get_optional_data_impl (bluray_input_plugin_t *this, void *data, int 
     case INPUT_OPTIONAL_DATA_SPULANG:
       r = get_spu_lang(this, data);
       return r;
+
+    case INPUT_OPTIONAL_DATA_DURATION:
+      if (data && this->title_info) {
+        uint32_t duration = (uint32_t)(this->title_info->duration / UINT64_C(90));
+        memcpy (data, &duration, sizeof (duration));
+        return INPUT_OPTIONAL_SUCCESS;
+      }
+      return INPUT_OPTIONAL_UNSUPPORTED;
 
     default:
       return INPUT_OPTIONAL_UNSUPPORTED;
