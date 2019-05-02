@@ -1197,7 +1197,7 @@ static buf_element_t *bluray_plugin_read_block (input_plugin_t *this_gen, fifo_b
     buf->type = BUF_DEMUX_BLOCK;
 
     if (buf->size > 0) {
-      buf->extra_info->total_time = this->title_info->duration / 90000;
+      buf->extra_info->total_time = this->title_info->duration / 90;
       return buf;
     }
   }
