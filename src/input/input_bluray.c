@@ -1676,6 +1676,12 @@ static int bluray_plugin_open (input_plugin_t *this_gen)
       return -1;
 
     /* if title was not in mrl, guess the main title */
+#if BLURAY_VERSION >= BLURAY_VERSION_CODE(0, 5, 0)
+    if (title < 0) {
+      title = bd_get_main_title(this->bdh);
+      LOGMSG("main title: %d\n", title);
+    }
+#endif
     if (title < 0) {
       uint64_t duration = 0;
       int i, playlist = 99999;
