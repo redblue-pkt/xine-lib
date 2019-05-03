@@ -934,7 +934,7 @@ static void _new_entry_cb (void *user_data, xine_cfg_entry_t *entry) {
 
 static int _load_plugin_class(xine_t *this,
 			      plugin_node_t *node,
-			      void *data) {
+                              const void *data) {
   if (node->file) {
     const char *filename = node->file->filename;
     const plugin_info_t *target = node->info;
@@ -1767,7 +1767,7 @@ int _x_scan_plugins (xine_t *this_gen) {
  * generic module loading
  */
 xine_module_t *_x_find_module(xine_t *xine, const char *type, const char *id,
-                              unsigned sub_type, void *params) {
+                              unsigned sub_type, const void *params) {
 
   plugin_catalog_t *catalog = xine->plugin_catalog;
   plugin_node_t    *node;
@@ -2224,7 +2224,7 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
  */
 
 static vo_driver_t *_load_video_driver (xine_t *this, plugin_node_t *node,
-					void *data) {
+                                        const void *data) {
 
   vo_driver_t *driver;
 
@@ -2243,7 +2243,8 @@ static vo_driver_t *_load_video_driver (xine_t *this, plugin_node_t *node,
 
 vo_driver_t *_x_load_video_output_plugin(xine_t *this,
                                          const char *id,
-                                         int visual_type, void *visual) {
+                                         int visual_type,
+                                         const void *visual) {
 
   plugin_node_t      *node;
   vo_driver_t        *driver = NULL;
@@ -2288,7 +2289,8 @@ vo_driver_t *_x_load_video_output_plugin(xine_t *this,
 
 xine_video_port_t *xine_open_video_driver (xine_t *this,
 					   const char *id,
-					   int visual_type, void *visual) {
+                                           int visual_type,
+                                           const void *visual) {
 
   vo_driver_t        *driver;
   xine_video_port_t  *port;
@@ -2385,7 +2387,7 @@ const char *const *xine_list_video_output_plugins_typed(xine_t *xine, uint64_t t
 }
 
 static ao_driver_t *_load_audio_driver (xine_t *this, plugin_node_t *node,
-					void *data) {
+                                        const void *data) {
 
   ao_driver_t *driver;
 
@@ -2432,7 +2434,7 @@ ao_driver_t *_x_load_audio_output_plugin (xine_t *this, const char *id)
 }
 
 xine_audio_port_t *xine_open_audio_driver (xine_t *this, const char *id,
-					   void *data) {
+                                           const void *data) {
 
   plugin_node_t      *node;
   ao_driver_t        *driver = NULL;
