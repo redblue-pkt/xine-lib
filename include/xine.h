@@ -142,9 +142,9 @@ void xine_init (xine_t *self) XINE_PROTECTED;
  * and free resources allocated by them
  */
 xine_audio_port_t *xine_open_audio_driver (xine_t *self, const char *id,
-					   void *data) XINE_PROTECTED;
+                                           const void *data) XINE_PROTECTED;
 xine_video_port_t *xine_open_video_driver (xine_t *self, const char *id,
-					   int visual, void *data) XINE_PROTECTED;
+                                           int visual, const void *data) XINE_PROTECTED;
 
 void xine_close_audio_driver (xine_t *self, xine_audio_port_t  *driver) XINE_PROTECTED;
 void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver) XINE_PROTECTED;

@@ -1785,7 +1785,7 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
   const char        *args[] = { "xine", "--dfb:" DIRECTFB_OPTIONS };
   int                argn   = 2;
   char             **argp   = (char **) args;
-  fb_visual_t       *visual = (fb_visual_t *) visual_gen;
+  const fb_visual_t *visual = (const fb_visual_t *) visual_gen;
   config_values_t   *config = class->xine->config;
   DFBDisplayLayerID  id;
   DFBResult          ret;
@@ -1961,7 +1961,7 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
   const char        *args[] = { "xine", "--dfb:" XDIRECTFB_OPTIONS };
   int                argn   = 2;
   char             **argp   = (char **) args;
-  x11_visual_t      *visual = (x11_visual_t *) visual_gen;
+  const x11_visual_t *visual = (const x11_visual_t *) visual_gen;
   XWindowAttributes  attrs;
   IDirectFBScreen   *screen;
   DFBDisplayLayerID  id     = DLID_PRIMARY;
@@ -2118,7 +2118,7 @@ static vo_driver_t *open_plugin_x11 (video_driver_class_t *class_gen, const void
 
 static void *init_class_x11 (xine_t *xine, const void *visual_gen) {
   directfb_class_t *this;
-  x11_visual_t     *visual = (x11_visual_t *) visual_gen;
+  const x11_visual_t *visual = (const x11_visual_t *) visual_gen;
   const char       *error;
 
   /* check DirectFB version */

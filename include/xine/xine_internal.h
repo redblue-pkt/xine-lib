@@ -306,7 +306,7 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) XI
 
 /* on-demand loading of generic modules / sub-plugins */
 struct xine_module_s; /* xine_module.h */
-struct xine_module_s *_x_find_module(xine_t *xine, const char *type, const char *id, unsigned sub_type, void *params) XINE_PROTECTED;
+struct xine_module_s *_x_find_module(xine_t *xine, const char *type, const char *id, unsigned sub_type, const void *params) XINE_PROTECTED;
 void _x_free_module(xine_t *xine, struct xine_module_s **pmodule) XINE_PROTECTED;
 
 /* on-demand loading of audio/video/spu decoder plugins */
@@ -332,7 +332,8 @@ void _x_free_demux_plugin (xine_stream_t *stream, demux_plugin_t **demux) XINE_P
  */
 
 vo_driver_t *_x_load_video_output_plugin(xine_t *this_gen,
-                                         const char *id, int visual_type, void *visual) XINE_PROTECTED;
+                                         const char *id, int visual_type,
+                                         const void *visual) XINE_PROTECTED;
 
 /*
  * audio output plugin dynamic loading stuff
