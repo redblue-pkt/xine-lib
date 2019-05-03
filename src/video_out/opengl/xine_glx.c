@@ -62,15 +62,15 @@ static int _glx_make_current(xine_gl_t *gl)
 
   XLockDisplay(glx->display);
   result = glXMakeCurrent(glx->display, glx->drawable, glx->context);
-  if (!glx->lock2)
-    XUnlockDisplay (glx->display);
 
   if (!result) {
-    if (glx->lock2)
-      XUnlockDisplay (glx->display);
+    XUnlockDisplay (glx->display);
     xprintf(glx->xine, XINE_VERBOSITY_LOG, "glx: display unavailable for rendering\n");
     return 0;
   }
+
+  if (!glx->lock2)
+    XUnlockDisplay (glx->display);
 
   glx->is_current = 1;
   return result;
