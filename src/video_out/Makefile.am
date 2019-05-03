@@ -183,7 +183,7 @@ xineplug_vo_out_opengl_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(GLUT_LIBS) \
 xineplug_vo_out_opengl_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)
 
 xineplug_vo_out_opengl2_la_SOURCES = video_out_opengl2.c
-xineplug_vo_out_opengl2_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(PTHREAD_LIBS) $(DYNAMIC_LD_LIBS) $(LTLIBINTL) -lm
+xineplug_vo_out_opengl2_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) -lm
 xineplug_vo_out_opengl2_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)
 
 xineplug_vo_out_pgx64_la_SOURCES = video_out_pgx64.c
