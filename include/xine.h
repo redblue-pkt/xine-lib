@@ -163,6 +163,7 @@ void xine_close_video_driver (xine_t *self, xine_video_port_t  *driver) XINE_PRO
 #define XINE_VISUAL_TYPE_MACOSX            9
 #define XINE_VISUAL_TYPE_XCB              11
 #define XINE_VISUAL_TYPE_RAW              12
+#define XINE_VISUAL_TYPE_WAYLAND          13
 
 /*
  * free all resources, close all plugins, close engine.
@@ -1395,6 +1396,31 @@ typedef struct {
 			   int *win_x, int *win_y);
 
 } xcb_visual_t;
+
+/*
+ * this is the visual data struct any Wayland GUI
+ * must supply to the xine_open_video_driver call
+ * ("data" parameter)
+ */
+
+struct wl_display;
+struct wl_surface;
+
+typedef struct {
+
+  struct wl_display *display;
+  struct wl_surface *surface;
+
+  void *user_data;
+  void (*frame_output_cb) (void *user_data,
+                           int video_width, int video_height,
+                           double video_pixel_aspect,
+                           int *dest_x, int *dest_y,
+                           int *dest_width, int *dest_height,
+                           double *dest_pixel_aspect,
+                           int *win_x, int *win_y);
+
+} xine_wayland_visual_t;
 
 /**************************************************
  * XINE_VO_RAW struct definitions
