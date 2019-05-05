@@ -1,3 +1,4 @@
+AUTOMAKE_OPTIONS = subdir-objects
 include $(top_builddir)/misc/Makefile.plugins
 include $(top_srcdir)/misc/Makefile.common
 
@@ -24,12 +25,19 @@ libxcbosd_la_SOURCES = xcbosd.c xcbosd.h
 libxcbosd_la_CFLAGS = $(AM_CFLAGS) $(XCB_CFLAGS)
 libxcbosd_la_LIBADD = $(XINE_LIB) $(XCB_LIBS) $(LTLIBINTL)
 
-EXTRA_DIST += opengl/xine_gl.h opengl/xine_glx.c
+opengl_xine_gl_la_SOURCES = opengl/xine_gl.c opengl/xine_gl.h opengl/xine_gl_plugin.h
+opengl_xine_gl_la_CFLAGS = $(AM_CFLAGS)
+opengl_xine_gl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
 #
 
 if !ENABLE_LIBXINE_BUILTINS
 vo_builtins = xineplug_vo_out_none.la
+endif
+
+if ENABLE_OPENGL2
+XINE_GL_LIB = opengl/xine_gl.la
+opengl2_module = xineplug_vo_out_opengl2.la
 endif
 
 if HAVE_X11
@@ -47,7 +55,7 @@ endif
 if ENABLE_OPENGL
 opengl_module = xineplug_vo_out_opengl.la
 if ENABLE_OPENGL2
-opengl2_module = xineplug_vo_out_opengl2.la
+gl_glx_module = xineplug_vo_gl_glx.la
 endif
 endif
 if ENABLE_SUNFB
@@ -121,11 +129,12 @@ if ENABLE_MACOSX_VIDEO
 macosx_module = xineplug_vo_out_macosx.la
 endif
 
-noinst_LTLIBRARIES = $(X11OSD_LIB) $(XCBOSD_LIB)
+noinst_LTLIBRARIES = $(X11OSD_LIB) $(XCBOSD_LIB) $(XINE_GL_LIB)
 
 xineplug_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   $(opengl_module) \
                   $(opengl2_module) \
+                  $(gl_glx_module) \
                   $(pgx64_module) $(pgx32_module)\
 	          $(vidix_module) \
 	          $(aa_module) \
@@ -183,8 +192,8 @@ xineplug_vo_out_opengl_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(GLUT_LIBS) \
 xineplug_vo_out_opengl_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)
 
 xineplug_vo_out_opengl2_la_SOURCES = video_out_opengl2.c
-xineplug_vo_out_opengl2_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) -lm
-xineplug_vo_out_opengl2_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)
+xineplug_vo_out_opengl2_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(XINE_GL_LIB) -lm
+xineplug_vo_out_opengl2_la_CFLAGS = $(AM_CFLAGS)
 
 xineplug_vo_out_pgx64_la_SOURCES = video_out_pgx64.c
 xineplug_vo_out_pgx64_la_LIBADD = $(XINE_LIB) $(X_LIBS) $(SUNDGA_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL)
@@ -251,3 +260,9 @@ xineplug_vo_out_raw_la_CFLAGS = $(AM_CFLAGS)
 xineplug_vo_out_macosx_la_SOURCES = video_out_macosx.m
 xineplug_vo_out_macosx_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS)
 xineplug_vo_out_macosx_la_LDFLAGS = $(AM_LDFLAGS) -framework Cocoa -framework OpenGL
+
+# GL provider plugins
+
+xineplug_vo_gl_glx_la_SOURCES = opengl/xine_glx.c opengl/xine_gl_plugin.h
+xineplug_vo_gl_glx_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(LTLIBINTL)
+xineplug_vo_gl_glx_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)

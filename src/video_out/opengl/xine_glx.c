@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2012-2018 the xine project
+ * Copyright (C) 2012-2019 the xine project
  * Copyright (C) 2012 Christophe Thommeret <hftom@free.fr>
- * Copyright (C) 2012-2018 Petri Hintukainen <phintuka@users.sourceforge.net>
+ * Copyright (C) 2012-2019 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
  *
@@ -25,19 +25,19 @@
  *
  */
 
+#include "xine_gl_plugin.h"
 #include "xine_gl.h"
 
 #include <stdlib.h>
 
+#include <xine.h> /* visual types */
 #include <xine/xine_internal.h>
 
 #include <X11/Xlib.h>
 #include <GL/glx.h>
 
 typedef struct {
-  xine_gl_t   gl;
-
-  xine_t     *xine;
+  xine_gl_plugin_t p;
 
   Display    *display;
   Drawable    drawable;
@@ -49,10 +49,11 @@ typedef struct {
   int         is_current;
 } xine_glx_t;
 
+#define GLX(_gl) xine_container_of(_gl, xine_glx_t, p.gl)
 
 static int _glx_make_current(xine_gl_t *gl)
 {
-  xine_glx_t *glx = (xine_glx_t *)gl;
+  xine_glx_t *glx = GLX(gl);
   int result;
 
   _x_assert(!glx->is_current);
@@ -65,7 +66,7 @@ static int _glx_make_current(xine_gl_t *gl)
 
   if (!result) {
     XUnlockDisplay (glx->display);
-    xprintf(glx->xine, XINE_VERBOSITY_LOG, "glx: display unavailable for rendering\n");
+    xprintf(glx->p.xine, XINE_VERBOSITY_LOG, "glx: display unavailable for rendering\n");
     return 0;
   }
 
@@ -78,7 +79,7 @@ static int _glx_make_current(xine_gl_t *gl)
 
 static void _glx_release_current(xine_gl_t *gl)
 {
-  xine_glx_t *glx = (xine_glx_t *)gl;
+  xine_glx_t *glx = GLX(gl);
 
   _x_assert(glx->is_current);
 
@@ -92,7 +93,7 @@ static void _glx_release_current(xine_gl_t *gl)
 
 static void _glx_swap_buffers(xine_gl_t *gl)
 {
-  xine_glx_t *glx = (xine_glx_t *)gl;
+  xine_glx_t *glx = GLX(gl);
 
   XLockDisplay(glx->display);
   glXSwapBuffers(glx->display, glx->drawable);
@@ -101,11 +102,12 @@ static void _glx_swap_buffers(xine_gl_t *gl)
 
 static void _glx_set_native_window(xine_gl_t *gl, void *drawable)
 {
-  xine_glx_t *glx = (xine_glx_t *)gl;
+  xine_glx_t *glx = GLX(gl);
 
   _x_assert(!glx->is_current);
 
   XLockDisplay(glx->display);
+
   glx->drawable = (intptr_t)drawable;
   XUnlockDisplay(glx->display);
 }
@@ -117,17 +119,17 @@ static void _glx_resize(xine_gl_t *gl, int w, int h)
   (void)h;
 }
 
-static void _glx_dispose(xine_gl_t **pgl)
-{
-  xine_glx_t *glx = (xine_glx_t *)*pgl;
+/*
+ * xine module
+ */
 
-  if (!glx) {
-    return;
-  }
+static void _module_dispose(xine_module_t *module)
+{
+  xine_glx_t *glx = (xine_glx_t *)module;
 
   lprintf("Destroying glx context %p\n", (void*)glx->context);
 
-  glx->xine->config->unregister_callback (glx->xine->config, "video.output.lockdisplay");
+  glx->p.xine->config->unregister_callback (glx->p.xine->config, "video.output.lockdisplay");
 
   _x_assert(!glx->is_current);
 
@@ -138,18 +140,32 @@ static void _glx_dispose(xine_gl_t **pgl)
   glXDestroyContext(glx->display, glx->context);
   XUnlockDisplay(glx->display);
 
-  _x_freep(pgl);
+  free(glx);
 }
 
 static void _glx_set_lockdisplay (void *this_gen, xine_cfg_entry_t *entry) {
   xine_glx_t *glx = (xine_glx_t *)this_gen;
   glx->lock1 = entry->num_value;
-  xprintf (glx->xine, XINE_VERBOSITY_DEBUG, "glx: lockdisplay=%d\n", glx->lock1);
+  xprintf (glx->p.xine, XINE_VERBOSITY_DEBUG, "glx: lockdisplay=%d\n", glx->lock1);
 }
 
-static xine_gl_t *_glx_init(xine_t *xine, const void *visual)
+static void _register_config(config_values_t *config, xine_glx_t *glx)
 {
-  const x11_visual_t *vis = visual;
+  int r = config->register_bool (config,
+                                 "video.output.lockdisplay", 0,
+                                 _("Lock X display during whole frame output."),
+                                 _("This sometimes reduces system load and jitter.\n"),
+                                 10,
+                                 glx ? _glx_set_lockdisplay : NULL,
+                                 glx);
+  if (glx)
+    glx->lock1 = r;
+}
+
+static xine_module_t *_glx_get_instance(xine_module_class_t *class_gen, const void *data)
+{
+  const gl_plugin_params_t *params = data;
+  const x11_visual_t *vis = params->visual;
   Window              root;
   XVisualInfo        *visinfo;
   GLXContext          ctx;
@@ -165,6 +181,10 @@ static xine_gl_t *_glx_init(xine_t *xine, const void *visual)
     GLX_DEPTH_SIZE, 16,
     None,
   };
+
+  if (!(params->flags & XINE_GL_API_OPENGL)) {
+    return NULL;
+  }
 
   _x_assert(vis);
   _x_assert(vis->display);
@@ -204,25 +224,24 @@ static xine_gl_t *_glx_init(xine_t *xine, const void *visual)
 
   XUnlockDisplay(vis->display);
 
-  glx->gl.make_current      = _glx_make_current;
-  glx->gl.release_current   = _glx_release_current;
-  glx->gl.swap_buffers      = _glx_swap_buffers;
-  glx->gl.resize            = _glx_resize;
-  glx->gl.set_native_window = _glx_set_native_window;
-  glx->gl.dispose           = _glx_dispose;
+  glx->p.module.dispose     = _module_dispose;
 
-  glx->xine     = xine;
+  glx->p.gl.make_current      = _glx_make_current;
+  glx->p.gl.release_current   = _glx_release_current;
+  glx->p.gl.swap_buffers      = _glx_swap_buffers;
+  glx->p.gl.resize            = _glx_resize;
+  glx->p.gl.set_native_window = _glx_set_native_window;
+  glx->p.gl.dispose           = NULL;
+
+  glx->p.xine   = params->xine;
+
   glx->context  = ctx;
   glx->display  = vis->display;
   glx->drawable = vis->d;
 
-  glx->lock1 = glx->lock2 = xine->config->register_bool (xine->config,
-    "video.output.lockdisplay", 0,
-    _("Lock X display during whole frame output."),
-    _("This sometimes reduces system load and jitter.\n"),
-      10, _glx_set_lockdisplay, glx);
+  _register_config(glx->p.xine->config, glx);
 
-  return &glx->gl;
+  return &glx->p.module;
 
  fail_created:
   glXDestroyContext( vis->display, ctx );
@@ -230,3 +249,36 @@ static xine_gl_t *_glx_init(xine_t *xine, const void *visual)
   XUnlockDisplay (vis->display);
   return NULL;
 }
+
+/*
+ * plugin
+ */
+
+static void *glx_init_class(xine_t *xine, const void *params)
+{
+  static const xine_module_class_t xine_glx_class = {
+    .get_instance  = _glx_get_instance,
+    .description   = N_("GL provider (GLX)"),
+    .identifier    = "glx",
+    .dispose       = NULL,
+  };
+
+  _register_config(xine->config, NULL);
+
+  (void)xine;
+  (void)params;
+
+  return (void *)&xine_glx_class;
+}
+
+static const xine_module_info_t module_info_glx = {
+  .priority  = 10,
+  .type      = "gl_v1",
+  .sub_type  = XINE_VISUAL_TYPE_X11,
+};
+
+const plugin_info_t xine_plugin_info[] EXPORTED = {
+  /* type, API, "name", version, special_info, init_function */
+  { PLUGIN_XINE_MODULE, 1, "glx", XINE_VERSION_CODE, &module_info_glx, glx_init_class },
+  { PLUGIN_NONE, 0, NULL, 0, NULL, NULL },
+};
