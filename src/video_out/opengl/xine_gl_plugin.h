@@ -18,35 +18,37 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * xine_gl.h, Interface between OpenGL and native windowing system
+ * xine GL interface plugin:
+ * interface between OpenGL and native windowing system (GLX/EGL/WGL/Wayland/...)
  *
- * GL provider API, used in vo drivers
- *
+ * GL plugin API, used in GL provider plugins
  */
 
-#ifndef XINE_GL_H_
-#define XINE_GL_H_
+#ifndef XINE_GL_PLUGIN_H_
+#define XINE_GL_PLUGIN_H_
+
+#include <sys/types.h>
 
 #include <xine.h>
+#include <xine/xine_module.h>
 
-typedef struct xine_gl xine_gl_t;
+#include "xine_gl.h"
 
-struct xine_gl {
-  int  (*make_current)     (xine_gl_t *);
-  void (*release_current)  (xine_gl_t *);
-  void (*swap_buffers)     (xine_gl_t *);
+#define GL_PLUGIN_TYPE "gl_v1"
 
-  /* resize is needed only with WAYLAND visual */
-  void (*resize)           (xine_gl_t *, int width, int height);
-  /* set_native_window is used only with X11 */
-  void (*set_native_window)(xine_gl_t *, void *);
+typedef struct xine_gl_plugin_s xine_gl_plugin_t;
 
-  void (*dispose)          (xine_gl_t **);
+struct xine_gl_plugin_s {
+  xine_module_t module;
+  xine_gl_t     gl;
+  xine_t       *xine;
 };
 
-xine_gl_t *_x_load_gl(xine_t *xine, unsigned visual_type, const void *visual, unsigned flags);
+typedef struct {
+  xine_t      *xine;
+  unsigned     visual_type;
+  const void  *visual;
+  unsigned     flags;
+} gl_plugin_params_t;
 
-/* flags */
-#define XINE_GL_API_OPENGL     0x0001
-
-#endif /* XINE_GL_H_ */
+#endif /* XINE_GL_PLUGIN_H_ */

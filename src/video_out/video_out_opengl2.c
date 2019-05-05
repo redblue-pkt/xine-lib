@@ -54,7 +54,6 @@
 #include <GL/glext.h>
 
 #include "opengl/xine_gl.h"
-#include "opengl/xine_glx.c"
 
 typedef int (*GLXSWAPINTERVALSGI) ( int );
 
@@ -1783,7 +1782,7 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   }
 #endif
 
-  this->gl = _glx_init(class->xine, visual);
+  this->gl = _x_load_gl(class->xine, XINE_VISUAL_TYPE_X11, visual_gen, XINE_GL_API_OPENGL);
   if (!this->gl) {
     goto fail_gl_init;
   }
@@ -1936,7 +1935,7 @@ static int opengl2_check_platform( xine_t *xine, const void *visual )
   xine_gl_t  *gl;
   int result = 0;
 
-  gl = _glx_init(xine, visual);
+  gl = _x_load_gl(xine, XINE_VISUAL_TYPE_X11, visual, XINE_GL_API_OPENGL);
   if (!gl)
     return 0;
 
