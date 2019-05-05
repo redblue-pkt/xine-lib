@@ -200,6 +200,10 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         fi
         if test x"$have_opengl2" = x"yes"; then
             echo "   - OpenGL 2.0 (with bicubic scaling)"
+            echo "       - GLX backend"
+            if test x"$have_egl" = x"yes"; then
+                echo "       - EGL/X11 backend"
+            fi
         fi
         if test x"$have_vaapi" = x"yes" -a x"$enable_ffmpeg" != x"no" ; then
             echo "   - vaapi (Video Acceleration (VA) API for Linux)"

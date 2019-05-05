@@ -56,6 +56,9 @@ if ENABLE_OPENGL
 opengl_module = xineplug_vo_out_opengl.la
 if ENABLE_OPENGL2
 gl_glx_module = xineplug_vo_gl_glx.la
+if ENABLE_EGL
+gl_egl_x11_module = xineplug_vo_gl_egl_x11.la
+endif
 endif
 endif
 if ENABLE_SUNFB
@@ -135,6 +138,7 @@ xineplug_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   $(opengl_module) \
                   $(opengl2_module) \
                   $(gl_glx_module) \
+                  $(gl_egl_x11_module) \
                   $(pgx64_module) $(pgx32_module)\
 	          $(vidix_module) \
 	          $(aa_module) \
@@ -266,3 +270,7 @@ xineplug_vo_out_macosx_la_LDFLAGS = $(AM_LDFLAGS) -framework Cocoa -framework Op
 xineplug_vo_gl_glx_la_SOURCES = opengl/xine_glx.c opengl/xine_gl_plugin.h
 xineplug_vo_gl_glx_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(LTLIBINTL)
 xineplug_vo_gl_glx_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)
+
+xineplug_vo_gl_egl_x11_la_SOURCES = opengl/xine_egl.c opengl/xine_gl_plugin.h
+xineplug_vo_gl_egl_x11_la_LIBADD = $(XINE_LIB) $(X_LIBS) $(EGL_LIBS) $(LTLIBINTL)
+xineplug_vo_gl_egl_x11_la_CFLAGS = -DXINE_EGL_USE_X11 $(AM_CFLAGS) $(X_CFLAGS) $(EGL_CFLAGS)
