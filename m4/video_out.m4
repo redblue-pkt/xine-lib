@@ -287,6 +287,11 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
         AC_DEFINE([HAVE_OPENGL], 1, [Define this if you have OpenGL support available])
     fi
 
+    if test x"$have_opengl2" = x"yes" ; then
+        PKG_CHECK_MODULES([EGL], [egl], [have_egl=yes], [have_egl=no])
+    fi
+    AM_CONDITIONAL([ENABLE_EGL], [test x"$have_egl" = x"yes"])
+
     dnl SDL
     XINE_ARG_WITH([sdl], [Enable support for SDL video output])
     if test x"$with_sdl" != x"no"; then
