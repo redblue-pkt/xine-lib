@@ -223,36 +223,10 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
         AC_CHECK_LIB([GL], [glBegin],
                      [AC_CHECK_HEADERS([GL/gl.h], [have_opengl=yes], [have_opengl=no])], [have_opengl=no],
                      [$X_LIBS -lm])
-        have_opengl2=$have_opengl
-        if test x"$have_opengl2" = x"yes" ; then
-            AC_MSG_CHECKING([for OpenGL 2.0])
-            ac_save_LIBS="$LIBS"
-            LIBS="$LIBS $X_LIBS -lGL -lm"
-            AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-                #define GL_GLEXT_PROTOTYPES
-                #include <GL/gl.h>
-                #include <GL/glext.h>
-                #include <GL/glx.h>
-                ]],[[
-                GLint i = 0;
-                /* GLX ARB 2.0 */
-                glXGetProcAddressARB ("proc");
-                /* GL_VERSION_1_5 */
-                glDeleteBuffers (1024, &i);
-                /* GL_VERSION_2_0 */
-                glCreateProgram ();
-                glCompileShader (1);
-                /* GL_ARB_framebuffer_object */
-                glFramebufferTexture2D (GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, 2, 0);
-                /* GL_ARB_shader_objects */
-                glGetUniformLocationARB (3, "tex");]])],
-                [have_opengl2=yes], [have_opengl2=no])
-            LIBS="$ac_save_LIBS"
-            AC_MSG_RESULT($have_opengl2)
-        fi
         if test x"$hard_enable_opengl" = x"yes" && test x"$have_opengl" != x"yes"; then
             AC_MSG_ERROR([OpenGL support requested, but OpenGL not found])
-        elif test x"$have_opengl" = x"yes"; then
+        fi
+        if test x"$have_opengl" = x"yes"; then
             OPENGL_LIBS="-lGL -lm"
             if test x"$enable_glu" != x"no"; then
                 have_glu=no
@@ -277,15 +251,43 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
             fi
         fi
         CPPFLAGS="$ac_save_CPPFLAGS"
-        AC_SUBST(OPENGL_CFLAGS)
-        AC_SUBST(OPENGL_LIBS)
-        AC_SUBST(GLU_LIBS)
     fi
+    AC_SUBST(OPENGL_CFLAGS)
+    AC_SUBST(OPENGL_LIBS)
+    AC_SUBST(GLU_LIBS)
     AM_CONDITIONAL([ENABLE_OPENGL], [test x"$have_opengl" = x"yes"])
-    AM_CONDITIONAL([ENABLE_OPENGL2], [test x"$have_opengl2" = x"yes"])
     if test x"$have_opengl" = x"yes"; then
         AC_DEFINE([HAVE_OPENGL], 1, [Define this if you have OpenGL support available])
     fi
+
+    dnl OpenGL 2.0
+    if test x"$have_opengl" = x"yes" ; then
+        AC_MSG_CHECKING([for OpenGL 2.0])
+        ac_save_LIBS="$LIBS"
+        LIBS="$LIBS $X_LIBS -lGL -lm"
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+            #define GL_GLEXT_PROTOTYPES
+            #include <GL/gl.h>
+            #include <GL/glext.h>
+            #include <GL/glx.h>
+            ]],[[
+            GLint i = 0;
+            /* GLX ARB 2.0 */
+            glXGetProcAddressARB ("proc");
+            /* GL_VERSION_1_5 */
+            glDeleteBuffers (1024, &i);
+            /* GL_VERSION_2_0 */
+            glCreateProgram ();
+            glCompileShader (1);
+            /* GL_ARB_framebuffer_object */
+            glFramebufferTexture2D (GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, 2, 0);
+            /* GL_ARB_shader_objects */
+            glGetUniformLocationARB (3, "tex");]])],
+            [have_opengl2=yes], [have_opengl2=no])
+        LIBS="$ac_save_LIBS"
+        AC_MSG_RESULT($have_opengl2)
+    fi
+    AM_CONDITIONAL([ENABLE_OPENGL2], [test x"$have_opengl2" = x"yes"])
 
     if test x"$have_opengl2" = x"yes" ; then
         PKG_CHECK_MODULES([EGL], [egl], [have_egl=yes], [have_egl=no])
