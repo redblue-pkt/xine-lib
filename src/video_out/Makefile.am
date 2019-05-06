@@ -55,7 +55,9 @@ endif
 if ENABLE_OPENGL
 opengl_module = xineplug_vo_out_opengl.la
 if ENABLE_OPENGL2
+if ENABLE_GLX
 gl_glx_module = xineplug_vo_gl_glx.la
+endif
 if ENABLE_EGL
 gl_egl_x11_module = xineplug_vo_gl_egl_x11.la
 endif

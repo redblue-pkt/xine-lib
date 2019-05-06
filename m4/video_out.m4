@@ -269,11 +269,8 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
             #define GL_GLEXT_PROTOTYPES
             #include <GL/gl.h>
             #include <GL/glext.h>
-            #include <GL/glx.h>
             ]],[[
             GLint i = 0;
-            /* GLX ARB 2.0 */
-            glXGetProcAddressARB ("proc");
             /* GL_VERSION_1_5 */
             glDeleteBuffers (1024, &i);
             /* GL_VERSION_2_0 */
@@ -291,7 +288,22 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
 
     if test x"$have_opengl2" = x"yes" ; then
         PKG_CHECK_MODULES([EGL], [egl], [have_egl=yes], [have_egl=no])
+            AC_MSG_CHECKING([for OpenGL GLX 2.0])
+            ac_save_LIBS="$LIBS"
+            LIBS="$LIBS $X_LIBS -lGL -lm"
+            AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+                  #include <GL/glx.h>
+                ]],[[
+                  /* GLX ARB 2.0 */
+                  glXGetProcAddressARB ("proc");]])],
+                [have_glx=yes], [have_glx=no])
+            AC_MSG_RESULT($have_glx)
+        if test x"$have_glx" != x"yes" && test x"$have_egl" != x"yes" ; then
+            AC_MSG_WARN([OpenGL 2.0 requires GLX or EGL.])
+            have_opengl2=no
+        fi
     fi
+    AM_CONDITIONAL([ENABLE_GLX], [test x"$have_glx" = x"yes"])
     AM_CONDITIONAL([ENABLE_EGL], [test x"$have_egl" = x"yes"])
 
     dnl SDL
