@@ -238,6 +238,7 @@ static void opengl2_exit_register (opengl2_driver_t *this) {
 typedef struct {
   video_driver_class_t driver_class;
   xine_t              *xine;
+  unsigned             visual_type;
 } opengl2_class_t;
 
 
@@ -1748,7 +1749,6 @@ static void opengl2_dispose( vo_driver_t *this_gen )
 static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const void *visual_gen )
 {
   opengl2_class_t     *class   = (opengl2_class_t *) class_gen;
-  const x11_visual_t  *visual  = (const x11_visual_t *) visual_gen;
   opengl2_driver_t    *this;
   config_values_t     *config  = class->xine->config;
 
@@ -1792,7 +1792,7 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   }
 #endif
 
-  this->gl = _x_load_gl(class->xine, XINE_VISUAL_TYPE_X11, visual_gen, XINE_GL_API_OPENGL);
+  this->gl = _x_load_gl(class->xine, class->visual_type, visual_gen, XINE_GL_API_OPENGL);
   if (!this->gl) {
     goto fail_gl_init;
   }
@@ -1810,9 +1810,17 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   }
 
   _x_vo_scale_init(&this->sc, 1, 0, config);
-  this->sc.frame_output_cb  = visual->frame_output_cb;
-  this->sc.dest_size_cb     = visual->dest_size_cb;
-  this->sc.user_data        = visual->user_data;
+
+  if (class->visual_type == XINE_VISUAL_TYPE_X11) {
+    const x11_visual_t  *visual  = (const x11_visual_t *) visual_gen;
+    this->sc.frame_output_cb  = visual->frame_output_cb;
+    this->sc.dest_size_cb     = visual->dest_size_cb;
+    this->sc.user_data        = visual->user_data;
+  } else /*if (class->visual_type == XINE_VISUAL_TYPE_WAYLAND)*/ {
+    const xine_wayland_visual_t  *visual  = (const xine_wayland_visual_t *) visual_gen;
+    this->sc.frame_output_cb  = visual->frame_output_cb;
+    this->sc.user_data        = visual->user_data;
+  }
   this->sc.user_ratio       = XINE_VO_ASPECT_AUTO;
 
   this->zoom_x = 100;
@@ -1939,13 +1947,13 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   return NULL;
 }
 
-static int opengl2_check_platform( xine_t *xine, const void *visual )
+static int opengl2_check_platform( xine_t *xine, unsigned visual_type, const void *visual )
 {
   const char *extensions;
   xine_gl_t  *gl;
   int result = 0;
 
-  gl = _x_load_gl(xine, XINE_VISUAL_TYPE_X11, visual, XINE_GL_API_OPENGL);
+  gl = _x_load_gl(xine, visual_type, visual, XINE_GL_API_OPENGL);
   if (!gl)
     return 0;
 
@@ -1981,11 +1989,11 @@ static int opengl2_check_platform( xine_t *xine, const void *visual )
  * class functions
  */
 
-static void *opengl2_init_class( xine_t *xine, const void *visual_gen )
+static void *opengl2_init_class( xine_t *xine, unsigned visual_type, const void *visual_gen )
 {
   opengl2_class_t *this;
 
-  if (!opengl2_check_platform( xine, visual_gen)) {
+  if (!opengl2_check_platform( xine, visual_type, visual_gen)) {
     return NULL;
   }
 
@@ -1999,10 +2007,20 @@ static void *opengl2_init_class( xine_t *xine, const void *visual_gen )
   this->driver_class.description     = N_("xine video output plugin using opengl 2.0");
   this->driver_class.dispose         = default_video_driver_class_dispose;
   this->xine                         = xine;
+  this->visual_type                  = visual_type;
 
   return this;
 }
 
+static void *opengl2_init_class_x11( xine_t *xine, const void *visual_gen )
+{
+  return opengl2_init_class(xine, XINE_VISUAL_TYPE_X11, visual_gen);
+}
+
+static void *opengl2_init_class_wl( xine_t *xine, const void *visual_gen )
+{
+  return opengl2_init_class(xine, XINE_VISUAL_TYPE_WAYLAND, visual_gen);
+}
 
 
 static const vo_info_t vo_info_opengl2 = {
@@ -2010,6 +2028,10 @@ static const vo_info_t vo_info_opengl2 = {
   .visual_type = XINE_VISUAL_TYPE_X11,
 };
 
+static const vo_info_t vo_info_opengl2_wl = {
+  .priority    = 8,
+  .visual_type = XINE_VISUAL_TYPE_WAYLAND,
+};
 
 /*
  * exported plugin catalog entry
@@ -2017,6 +2039,7 @@ static const vo_info_t vo_info_opengl2 = {
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 22, "opengl2", XINE_VERSION_CODE, &vo_info_opengl2, opengl2_init_class },
+  { PLUGIN_VIDEO_OUT, 22, "opengl2", XINE_VERSION_CODE, &vo_info_opengl2,    opengl2_init_class_x11 },
+  { PLUGIN_VIDEO_OUT, 22, "opengl2", XINE_VERSION_CODE, &vo_info_opengl2_wl, opengl2_init_class_wl },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };

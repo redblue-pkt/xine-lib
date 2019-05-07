@@ -280,8 +280,6 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
 
 #if defined(XINE_EGL_USE_X11)
   native_window       = vis->d;
-  egl->native_display = vis->display;
-
 #elif defined(XINE_EGL_USE_WAYLAND)
   egl->width = 720;
   egl->height = 576;
