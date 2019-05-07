@@ -31,6 +31,13 @@
 
 #include "xine_gl_plugin.h"
 
+#if defined(XINE_EGL_USE_X11)
+#elif defined(XINE_EGL_USE_WAYLAND)
+#  include <wayland-egl.h>
+#else
+#  error EGL platform undefined
+#endif
+
 #include <EGL/egl.h>
 
 #define EGL(_gl) xine_container_of(_gl, xine_egl_t, p.gl)
@@ -42,6 +49,11 @@ typedef struct {
   EGLContext context;
   EGLSurface surface;
   EGLConfig  config;
+
+#if defined(XINE_EGL_USE_WAYLAND)
+  struct wl_egl_window *window;
+  int width, height;
+#endif
 
   /* DEBUG */
   int         is_current;
@@ -117,9 +129,13 @@ static void _egl_set_native_window(xine_gl_t *gl, void *drawable)
 
   _x_assert(!egl->is_current);
 
-  window = (intptr_t)drawable;
-
   eglDestroySurface (egl->display, egl->surface);
+#if defined(XINE_EGL_USE_X11)
+  window = (intptr_t)drawable;
+#elif defined(XINE_EGL_USE_WAYLAND)
+  wl_egl_window_destroy(egl->window);
+  window = egl->window = wl_egl_window_create(drawable, egl->width, egl->height);
+#endif
   egl->surface = eglCreateWindowSurface(egl->display, egl->config, window, NULL);
 
   if (egl->surface == EGL_NO_SURFACE) {
@@ -129,9 +145,16 @@ static void _egl_set_native_window(xine_gl_t *gl, void *drawable)
 
 static void _egl_resize(xine_gl_t *gl, int w, int h)
 {
+#if defined(XINE_EGL_USE_WAYLAND)
+  xine_egl_t *egl = EGL(gl);
+  wl_egl_window_resize(egl->window, w, h, 0, 0);
+  egl->width = w;
+  egl->height = h;
+#else
   (void)gl;
   (void)w;
   (void)h;
+#endif
 }
 
 static int _egl_init(xine_egl_t *egl, EGLNativeDisplayType native_display)
@@ -194,6 +217,9 @@ static void _egl_dispose(xine_gl_t *gl)
   }
 
   eglDestroySurface (egl->display, egl->surface);
+#if defined(XINE_EGL_USE_WAYLAND)
+  wl_egl_window_destroy(egl->window);
+#endif
   eglDestroyContext(egl->display, egl->context);
   eglTerminate(egl->display);
   free(egl);
@@ -213,11 +239,17 @@ static void _module_dispose(xine_module_t *module)
 static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const void *data)
 {
   const gl_plugin_params_t *params = data;
+  EGLNativeWindowType native_window;
   xine_egl_t *egl;
 
+#if defined(XINE_EGL_USE_X11)
   const x11_visual_t *vis = params->visual;
   _x_assert(params->visual_type == XINE_VISUAL_TYPE_X11 ||
             params->visual_type == XINE_VISUAL_TYPE_X11_2);
+#elif defined(XINE_EGL_USE_WAYLAND)
+  const xine_wayland_visual_t *vis = params->visual;
+  _x_assert (params->visual_type == XINE_VISUAL_TYPE_WAYLAND);
+#endif
 
   if (!(params->flags & XINE_GL_API_OPENGL)) {
     return NULL;
@@ -246,7 +278,19 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
     return NULL;
   }
 
-  egl->surface = eglCreateWindowSurface(egl->display, egl->config, vis->d, NULL);
+#if defined(XINE_EGL_USE_X11)
+  native_window       = vis->d;
+  egl->native_display = vis->display;
+
+#elif defined(XINE_EGL_USE_WAYLAND)
+  egl->width = 720;
+  egl->height = 576;
+  native_window = wl_egl_window_create(vis->surface, egl->width, egl->height);
+  egl->window = native_window;
+  egl->surface = vis->surface;
+#endif
+
+  egl->surface = eglCreateWindowSurface(egl->display, egl->config, native_window, NULL);
   if (egl->surface == EGL_NO_SURFACE) {
     _egl_log_error(egl->p.xine, "eglCreateWindowSurface() failed");
     goto fail;
@@ -269,7 +313,11 @@ static void *egl_init_class(xine_t *xine, const void *params)
 {
   static const xine_module_class_t xine_egl_class = {
     .get_instance  = _egl_get_instance,
+#if defined(XINE_EGL_USE_X11)
     .description   = "GL provider (EGL/X11)",
+#elif defined(XINE_EGL_USE_WAYLAND)
+    .description   = "GL provider (EGL/Wayland)",
+#endif
     .identifier    = "egl",
     .dispose       = NULL,
   };
@@ -280,11 +328,19 @@ static void *egl_init_class(xine_t *xine, const void *params)
   return (void *)&xine_egl_class;
 }
 
+#if defined(XINE_EGL_USE_X11)
 static const xine_module_info_t module_info_egl = {
   .priority  = 9,
   .type      = "gl_v1",
   .sub_type  = XINE_VISUAL_TYPE_X11,
 };
+#elif defined(XINE_EGL_USE_WAYLAND)
+static const xine_module_info_t module_info_egl = {
+  .priority  = 10,
+  .type      = "gl_v1",
+  .sub_type  = XINE_VISUAL_TYPE_WAYLAND,
+};
+#endif
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
