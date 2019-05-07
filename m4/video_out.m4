@@ -297,6 +297,7 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
                   /* GLX ARB 2.0 */
                   glXGetProcAddressARB ("proc");]])],
                 [have_glx=yes], [have_glx=no])
+            LIBS="$ac_save_LIBS"
             AC_MSG_RESULT($have_glx)
         if test x"$have_glx" != x"yes" && test x"$have_egl" != x"yes" ; then
             AC_MSG_WARN([OpenGL 2.0 requires GLX or EGL.])
