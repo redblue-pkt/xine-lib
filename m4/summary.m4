@@ -172,6 +172,12 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
 
     dnl Video plugins
     echo " * video driver plugins:"
+    if test x"$have_opengl2" = x"yes"; then
+        echo "   - OpenGL 2.0 (with bicubic scaling)"
+        test x"$have_glx" = x"yes" && test x"$no_x" != x"yes"        && echo "       - X11 (GLX) backend"
+        test x"$have_egl" = x"yes" && test x"$no_x" != x"yes"        && echo "       - X11 (EGL) backend"
+        test x"$have_egl" = x"yes" && test x"$have_wayland" = x"yes" && echo "       - Wayland (EGL) backend"
+    fi
     if test x"$no_x" != x"yes"; then
         echo "   - XShm (X11 shared memory)"
         if test x"$have_xv" = x"yes"; then
@@ -196,15 +202,6 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
                 echo "   - OpenGL (with GLU support)"
             else
                 echo "   - OpenGL"
-            fi
-        fi
-        if test x"$have_opengl2" = x"yes"; then
-            echo "   - OpenGL 2.0 (with bicubic scaling)"
-            if test x"$have_glx" = x"yes"; then
-                echo "       - GLX backend"
-            fi
-            if test x"$have_egl" = x"yes"; then
-                echo "       - EGL/X11 backend"
             fi
         fi
         if test x"$have_vaapi" = x"yes" -a x"$enable_ffmpeg" != x"no" ; then
