@@ -114,6 +114,8 @@ typedef struct {
   GLuint             fbo;
   GLuint             videoTex, videoTex2;
   //GLXSWAPINTERVALSGI mglXSwapInterval;
+  int                last_gui_width;
+  int                last_gui_height;
 
   int                ovl_changed;
   int                ovl_vid_scale;
@@ -1483,6 +1485,14 @@ static void opengl2_display_frame( vo_driver_t *this_gen, vo_frame_t *frame_gen 
   this->sc.crop_bottom      = frame->vo_frame.crop_bottom;
 
   opengl2_redraw_needed( this_gen );
+
+  if (this->gl->resize) {
+    if (this->last_gui_width != this->sc.gui_width || this->last_gui_height != this->sc.gui_height) {
+      this->last_gui_width = this->sc.gui_width;
+      this->last_gui_height = this->sc.gui_height;
+      this->gl->resize(this->gl, this->last_gui_width, this->last_gui_height);
+    }
+  }
 
   if( !this->exiting ) {
     pthread_mutex_lock(&this->drawable_lock); /* protect drawable from being changed */
