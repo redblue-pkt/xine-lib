@@ -1817,7 +1817,6 @@ static void *init_class (xine_t *xine, const void *data) {
     return NULL;
 #ifndef HAVE_ZERO_SAFE_MEM
   this->input_class.get_dir            = NULL;
-  this->ip                             = NULL;
 #endif
   this->input_class.get_instance       = dvd_class_get_instance;
   this->input_class.identifier         = "DVD";
