@@ -28,6 +28,7 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
     default_enable_xvmc=yes
     default_enable_vdpau=no
     default_enable_vaapi=no
+    default_enable_wayland=yes
 
     default_with_caca=yes
     default_with_libstk=no
@@ -206,14 +207,25 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
     fi
     AM_CONDITIONAL([ENABLE_MACOSX_VIDEO], [test x"$have_macosx_video" = x"yes"])
 
+    dnl Wayland (used only in opengl2)
+    XINE_ARG_ENABLE([wayland], [Disable native Wayland support])
+    if test x"$enable_wayland" != x"no"; then
+        PKG_CHECK_MODULES([WAYLAND], [wayland-egl egl],
+                          [ have_wayland=yes ],
+                          [ have_wayland=no
+                            AS_IF([test x"$hard_enable_wayland" = x"yes"], [
+                                AC_MSG_ERROR([${WAYLAND_PKG_ERRORS}.])], [
+                                AC_MSG_WARN([${WAYLAND_PKG_ERRORS}.])])])
+    fi
+    AM_CONDITIONAL([ENABLE_WAYLAND], test x"$have_wayland" = x"yes")
 
     dnl OpenGL, including GLut and/or GLU
     XINE_ARG_ENABLE([opengl], [enable support for X-based OpenGL video output])
     XINE_ARG_ENABLE([glu], [enable support for GLU in the OpenGL plugin])
     if test x"$enable_opengl" != x"no"; then
-        if test x"$no_x" = x"yes"; then
+        if test x"$no_x" = x"yes" && test x"$have_wayland" != x"yes"; then
             if test x"$hard_enable_opengl" = x"yes"; then
-                AC_MSG_ERROR([OpenGL support requested, but X support is disabled])
+                AC_MSG_ERROR([OpenGL support requires X11 or Wayland])
             fi
             enable_opengl=no
         fi
@@ -255,7 +267,7 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
     AC_SUBST(OPENGL_CFLAGS)
     AC_SUBST(OPENGL_LIBS)
     AC_SUBST(GLU_LIBS)
-    AM_CONDITIONAL([ENABLE_OPENGL], [test x"$have_opengl" = x"yes"])
+    AM_CONDITIONAL([ENABLE_OPENGL], [test x"$have_opengl" = x"yes" && test x"$no_x" != x"yes"])
     if test x"$have_opengl" = x"yes"; then
         AC_DEFINE([HAVE_OPENGL], 1, [Define this if you have OpenGL support available])
     fi
@@ -284,7 +296,6 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
         LIBS="$ac_save_LIBS"
         AC_MSG_RESULT($have_opengl2)
     fi
-    AM_CONDITIONAL([ENABLE_OPENGL2], [test x"$have_opengl2" = x"yes"])
 
     if test x"$have_opengl2" = x"yes" ; then
         PKG_CHECK_MODULES([EGL], [egl], [have_egl=yes], [have_egl=no])
@@ -299,11 +310,19 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
                 [have_glx=yes], [have_glx=no])
             LIBS="$ac_save_LIBS"
             AC_MSG_RESULT($have_glx)
-        if test x"$have_glx" != x"yes" && test x"$have_egl" != x"yes" ; then
-            AC_MSG_WARN([OpenGL 2.0 requires GLX or EGL.])
+
+        if test x"$have_glx" != x"yes" && test x"$have_egl" != x"yes" && test x"$have_wayland" != x"yes"; then
+            AC_MSG_WARN([OpenGL 2.0 requires GLX, EGL or Wayland.])
             have_opengl2=no
         fi
+    else
+        if test x"$hard_enable_wayland" = x"yes" ; then
+            AC_MSG_ERROR([GLX, EGL and Wayland require OpenGL2])
+        fi
+        have_glx=have_egl=no;
     fi
+
+    AM_CONDITIONAL([ENABLE_OPENGL2], [test x"$have_opengl2" = x"yes"])
     AM_CONDITIONAL([ENABLE_GLX], [test x"$have_glx" = x"yes"])
     AM_CONDITIONAL([ENABLE_EGL], [test x"$have_egl" = x"yes"])
 
