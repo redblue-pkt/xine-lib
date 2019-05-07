@@ -955,8 +955,7 @@ static cdrom_toc_t *read_cdrom_toc (cdda_input_plugin_t *this_gen) {
     return NULL;
 
   }
-  else
-    {
+
       cdrom_toc_t *toc;
       DWORD dwBytesReturned;
       CDROM_TOC cdrom_toc;
@@ -1008,7 +1007,6 @@ static cdrom_toc_t *read_cdrom_toc (cdda_input_plugin_t *this_gen) {
               (toc->toc_entries[i].first_frame_second * CD_FRAMES_PER_SECOND) +
               toc->toc_entries[i].first_frame_frame;
       }
-  }
 
   return toc;
 }
