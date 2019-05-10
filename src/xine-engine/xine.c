@@ -2572,8 +2572,11 @@ int xine_get_pos_length (xine_stream_t *s, int *pos_stream, int *pos_time, int *
     *pos_time    = stream->current_extra_info->input_time;
     pthread_mutex_unlock( &stream->current_extra_info_lock );
   }
-  if (length_time)
+  if (length_time) {
+    pthread_mutex_lock( &stream->frontend_lock );
     *length_time = get_stream_length (stream);
+    pthread_mutex_unlock( &stream->frontend_lock );
+  }
 
   return 1;
 }
