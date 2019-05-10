@@ -251,6 +251,8 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
   _x_assert (params->visual_type == XINE_VISUAL_TYPE_WAYLAND);
 #endif
 
+  (void)class_gen;
+
   if (!(params->flags & XINE_GL_API_OPENGL)) {
     return NULL;
   }

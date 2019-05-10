@@ -182,6 +182,8 @@ static xine_module_t *_glx_get_instance(xine_module_class_t *class_gen, const vo
     None,
   };
 
+  (void)class_gen;
+
   if (!(params->flags & XINE_GL_API_OPENGL)) {
     return NULL;
   }
