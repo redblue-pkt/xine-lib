@@ -2780,12 +2780,17 @@ int xine_get_current_frame (xine_stream_t *stream, int *width, int *height,
 }
 
 xine_grab_video_frame_t* xine_new_grab_video_frame (xine_stream_t *stream) {
+  xine_private_t *xine = (xine_private_t *)stream->xine;
   xine_grab_video_frame_t *frame;
+
+  xine->port_ticket->acquire (xine->port_ticket, 1);
 
   if (stream->video_out->driver->new_grab_video_frame)
     frame = stream->video_out->driver->new_grab_video_frame(stream->video_out->driver);
   else
     frame = stream->video_out->new_grab_video_frame(stream->video_out);
+
+  xine->port_ticket->release (xine->port_ticket, 1);
 
   return frame;
 }
