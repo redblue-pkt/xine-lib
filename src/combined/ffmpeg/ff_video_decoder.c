@@ -2950,7 +2950,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 #endif
 
 #ifdef ENABLE_VAAPI
-  if(this->class->enable_vaapi && (stream->video_driver->get_capabilities(stream->video_driver) & VO_CAP_VAAPI)) {
+  if (this->class->enable_vaapi && (stream->video_out->get_capabilities(stream->video_out) & VO_CAP_VAAPI)) {
     xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("ffmpeg_video_dec: vaapi_mpeg_softdec %d\n"),
           this->class->vaapi_mpeg_softdec );
 
