@@ -2790,8 +2790,7 @@ xine_grab_video_frame_t* xine_new_grab_video_frame (xine_stream_t *stream) {
   return frame;
 }
 
-int xine_get_spu_lang (xine_stream_t *s, int channel, char *lang) {
-  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+static int _get_spu_lang (xine_stream_private_t *stream, int channel, char *lang) {
 
   /* Ask the demuxer first (e.g. TS extracts this information from
    * the stream)
@@ -2822,9 +2821,17 @@ int xine_get_spu_lang (xine_stream_t *s, int channel, char *lang) {
   return 0;
 }
 
-int xine_get_audio_lang (xine_stream_t *s, int channel, char *lang) {
+int xine_get_spu_lang (xine_stream_t *s, int channel, char *lang) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  int ret;
 
+  pthread_mutex_lock (&stream->frontend_lock);
+  ret = _get_spu_lang(stream, channel, lang);
+  pthread_mutex_unlock (&stream->frontend_lock);
+  return ret;
+}
+
+static int _get_audio_lang (xine_stream_private_t *stream, int channel, char *lang) {
   if (stream->demux_plugin) {
     if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_AUDIOLANG) {
       /* pass the channel number to the plugin in the data field */
@@ -2846,6 +2853,16 @@ int xine_get_audio_lang (xine_stream_t *s, int channel, char *lang) {
   }
 
   return 0;
+}
+
+int xine_get_audio_lang (xine_stream_t *s, int channel, char *lang) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  int ret;
+
+  pthread_mutex_lock (&stream->frontend_lock);
+  ret = _get_audio_lang(stream, channel, lang);
+  pthread_mutex_unlock (&stream->frontend_lock);
+  return ret;
 }
 
 int _x_get_spu_channel (xine_stream_t *stream) {
