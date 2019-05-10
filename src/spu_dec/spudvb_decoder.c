@@ -1042,7 +1042,7 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
 	  continue;
         /* clear osd */
         this->stream->osd_renderer->clear( this->dvbsub->regions[r].osd );
-        if ( this->dvbsub->regions[r].width>dest_width && !(this->stream->video_driver->get_capabilities(this->stream->video_driver) & VO_CAP_CUSTOM_EXTENT_OVERLAY)) {
+        if ( this->dvbsub->regions[r].width>dest_width && !(this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_CUSTOM_EXTENT_OVERLAY)) {
 	  downscale_region_image(&this->dvbsub->regions[r], tmp, dest_width);
 	  reg = tmp;
 	  reg_width = dest_width;
