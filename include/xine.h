@@ -448,7 +448,7 @@ int  xine_get_param (xine_stream_t *stream, int param) XINE_PROTECTED;
 int  xine_get_current_frame (xine_stream_t *stream,
 			     int *width, int *height,
 			     int *ratio_code, int *format,
-			     uint8_t *img) XINE_PROTECTED;
+                             uint8_t *img) XINE_PROTECTED XINE_DEPRECATED;
 
 int  xine_get_current_frame_s (xine_stream_t *stream,
 			     int *width, int *height,
