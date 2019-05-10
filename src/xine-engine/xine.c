@@ -240,16 +240,16 @@ static int ticket_acquire_internal (xine_ticket_private_t *this, int irrevocable
     this->holder_threads[i].count = 1;
     this->holder_threads[i].holder = self;
     this->holder_thread_count = i + 1;
+
+    while (wait) {
+      pthread_cond_wait (&this->issued, &this->lock);
+      wait = this->pending_revocations
+        && (this->atomic_revokers ? !pthread_equal (this->atomic_revoker_thread, self) : !irrevocable);
+    }
+
   } else {
     /* found, we already hold this */
     this->holder_threads[i].count++;
-    wait = 0;
-  }
-    
-  while (wait) {
-    pthread_cond_wait (&this->issued, &this->lock);
-    wait = this->pending_revocations
-        && (this->atomic_revokers ? !pthread_equal (this->atomic_revoker_thread, self) : !irrevocable);
   }
 
   this->tickets_granted++;
