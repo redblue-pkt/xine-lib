@@ -2388,8 +2388,8 @@ open_plugin (video_decoder_class_t * class_gen, xine_stream_t * stream)
 
   /* the videoout must be vdpau-capable to support this decoder */
   if (!
-      (stream->video_driver->
-       get_capabilities (stream->video_driver) & VO_CAP_VDPAU_H264))
+      (stream->video_out->
+       get_capabilities (stream->video_out) & VO_CAP_VDPAU_H264))
     return NULL;
 
   /* now check if vdpau has free decoder resource */
