@@ -3111,9 +3111,14 @@ int _x_query_unprocessed_osd_events(xine_stream_t *stream)
 
 int _x_demux_seek (xine_stream_t *s, off_t start_pos, int start_time, int playing) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  if (!stream->demux_plugin)
-    return -1;
-  return stream->demux_plugin->seek(stream->demux_plugin, start_pos, start_time, playing);
+  int ret = -1;
+
+  pthread_mutex_lock( &stream->frontend_lock );
+  if (stream->demux_plugin)
+    ret = stream->demux_plugin->seek(stream->demux_plugin, start_pos, start_time, playing);
+  pthread_mutex_unlock( &stream->frontend_lock );
+
+  return ret;
 }
 
 int _x_continue_stream_processing (xine_stream_t *s) {
