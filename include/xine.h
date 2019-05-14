@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -189,6 +189,14 @@ void xine_exit (xine_t *self) XINE_PROTECTED;
  */
 xine_stream_t *xine_stream_new (xine_t *self,
 				xine_audio_port_t *ao, xine_video_port_t *vo) XINE_PROTECTED;
+
+/*
+ * A side stream is like a side car on a bike. It has its own mrl, input, and demux.
+ * Everything else is handled by the master (play, seek, pause, close, dispose).
+ * This is intended for streams who have separate mrls for audio, video, and subtitle.
+ * Index 0 just returns the master itself, 1 ... 3 are free for side mrls. */
+#define XINE_SIDE_STREAMS 1
+xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) XINE_PROTECTED;
 
 /*
  * Make one stream the slave of another.

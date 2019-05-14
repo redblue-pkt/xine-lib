@@ -327,6 +327,7 @@ typedef struct {
 
   int                        flags;
   int                        network_timeout;
+  uint32_t                   join_av:1;
 
   /* lock controlling speed change access.
    * if we should ever introduce per stream clock and ticket,
@@ -345,7 +346,7 @@ typedef struct {
 # define XINE_LIVE_PAUSE_OFF 0x7ffffffc
 } xine_private_t;
   
-typedef struct {
+typedef struct xine_stream_private_st {
   xine_stream_t              s;
 
   int                        status;
@@ -398,6 +399,10 @@ typedef struct {
   /* lock for public xine player functions */
   pthread_mutex_t            frontend_lock;
 
+#define XINE_NUM_SIDE_STREAMS 4
+  /* HACK: protected by info_lock below. */
+  struct xine_stream_private_st *side_streams[XINE_NUM_SIDE_STREAMS];
+
   /* stream meta information */
   /* Grab lock, or use helpers (see info_helper.c). */
   xine_rwlock_t              info_lock;
@@ -425,6 +430,7 @@ typedef struct {
   int                        header_count_video;
   int                        finished_count_audio;
   int                        finished_count_video;
+  int                        start_buffers_sent;
 
   /* event mechanism */
   xine_list_t               *event_queues;
@@ -435,7 +441,8 @@ typedef struct {
   pthread_mutex_t            demux_lock;
   pthread_mutex_t            demux_action_lock;
   pthread_cond_t             demux_resume;
-  pthread_mutex_t            demux_mutex; /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
+  /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
+  pthread_mutex_t            demux_pair_mutex;
   uint32_t                   demux_action_pending:1;
   uint32_t                   demux_thread_created:1;
   uint32_t                   demux_thread_running:1;
