@@ -418,7 +418,8 @@ typedef struct {
   int             video_discontinuity_count;
   int             audio_discontinuity_count;
   int             discontinuity_handled_count;
-  int             waiting;
+  int             num_video_waiters;
+  int             num_audio_waiters;
   pthread_cond_t  video_discontinuity_reached;
   pthread_cond_t  audio_discontinuity_reached;
 
@@ -697,7 +698,7 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
   }
 
   this->video_discontinuity_count++;
-  if (this->waiting && (this->audio_discontinuity_count <= this->video_discontinuity_count))
+  if (this->num_video_waiters && (this->audio_discontinuity_count <= this->video_discontinuity_count))
     pthread_cond_signal (&this->video_discontinuity_reached);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
@@ -733,9 +734,9 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
         "metronom: waiting for audio discontinuity #%d...\n",
         this->video_discontinuity_count);
 
-      this->waiting = 1;
+      this->num_audio_waiters++;
       pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
-      this->waiting = 0;
+      this->num_audio_waiters--;
       waited = 1;
     }
   }
@@ -931,7 +932,7 @@ static void metronom_handle_audio_discontinuity (metronom_t *this_gen, int type,
   }
 
   this->audio_discontinuity_count++;
-  if (this->waiting && (this->audio_discontinuity_count >= this->video_discontinuity_count))
+  if (this->num_audio_waiters && (this->audio_discontinuity_count >= this->video_discontinuity_count))
     pthread_cond_signal (&this->audio_discontinuity_reached);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
@@ -960,9 +961,9 @@ static void metronom_handle_audio_discontinuity (metronom_t *this_gen, int type,
         "metronom: waiting for video discontinuity #%d...\n",
         this->audio_discontinuity_count);
 
-      this->waiting = 2;
+      this->num_video_waiters++;
       pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
-      this->waiting = 0;
+      this->num_video_waiters--;
       waited = 1;
     }
   } else {
@@ -1230,7 +1231,7 @@ static int64_t metronom_get_option (metronom_t *this_gen, int option) {
         result = this->audio_vpts;
       break;
   case METRONOM_WAITING:
-    result = this->waiting;
+    result = (this->num_audio_waiters ? 1 : 0) | (this->num_video_waiters ? 2 : 0);
     break;
   default:
     result = 0;
@@ -1493,7 +1494,8 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
   this->last_audio_pts              = 0;
   this->audio_vpts_rmndr            = 0;
   this->audio_discontinuity_count   = 0;
-  this->waiting                     = 0;
+  this->num_audio_waiters           = 0;
+  this->num_video_waiters           = 0;
   this->pts_per_smpls               = 0;
   this->spu_vpts                    = 0;
   this->audio_samples               = 0;
