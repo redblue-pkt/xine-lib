@@ -322,8 +322,6 @@ static void *demux_loop (void *stream_gen) {
 
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
   int status;
-  int finished_count_audio = 0;
-  int finished_count_video = 0;
   int non_user;
 
   int iterations = 0;
@@ -334,6 +332,9 @@ static void *demux_loop (void *stream_gen) {
 
   xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
     "demux: starting stream %p.\n", (void *)stream);
+  pthread_mutex_lock (&stream->side_streams[0]->counter_lock);
+  stream->side_streams[0]->num_demuxers_running++;
+  pthread_mutex_unlock (&stream->side_streams[0]->counter_lock);
 
   pthread_mutex_lock( &stream->demux_lock );
   stream->emergency_brake = 0;
@@ -451,48 +452,67 @@ static void *demux_loop (void *stream_gen) {
 
   lprintf ("loop finished (status: %d)\n", status);
 
-  pthread_mutex_lock (&stream->counter_lock);
-  if (stream->audio_thread_created)
-    finished_count_audio = stream->finished_count_audio + 1;
-  if (stream->video_thread_created)
-    finished_count_video = stream->finished_count_video + 1;
-  pthread_mutex_unlock (&stream->counter_lock);
-
   /* demux_thread_running is zero if demux loop has been stopped by user */
   non_user = stream->demux_thread_running;
   stream->demux_thread_running = 0;
 
-  _x_demux_control_end (&stream->s, non_user);
 
-  lprintf ("loop finished, end buffer sent\n");
+  /* do stream end stuff only if this is the last side stream. */
+  {
+    unsigned int n;
+    xine_stream_private_t *m = stream->side_streams[0];
 
-  pthread_mutex_unlock( &stream->demux_lock );
+    pthread_mutex_lock (&m->counter_lock);
+    n = --(m->num_demuxers_running);
+    if (n == 0) {
 
-  pthread_mutex_lock (&stream->counter_lock);
-  unsigned int max_iterations = 0;
-  while ((stream->finished_count_audio < finished_count_audio) ||
-         (stream->finished_count_video < finished_count_video)) {
-    int ret_wait;
-    struct timespec ts = {0, 0};
-    lprintf ("waiting for finisheds.\n");
-    xine_gettime (&ts);
-    ts.tv_sec += 1;
-    ret_wait = pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+      int finished_count_audio = 0;
+      int finished_count_video = 0;
 
-    if (ret_wait == ETIMEDOUT && demux_unstick_ao_loop (&stream->s) && ++max_iterations > 4) {
-      xine_log (stream->s.xine,
-	  XINE_LOG_MSG,_("Stuck in demux_loop(). Taking the emergency exit\n"));
-      stream->emergency_brake = 1;
-      break;
+      if (m->audio_thread_created)
+        finished_count_audio = m->finished_count_audio + 1;
+      if (m->video_thread_created)
+        finished_count_video = m->finished_count_video + 1;
+      pthread_mutex_unlock (&m->counter_lock);
+
+      _x_demux_control_end (&m->s, non_user);
+      lprintf ("loop finished, end buffer sent\n");
+      pthread_mutex_unlock (&stream->demux_lock);
+
+      pthread_mutex_lock (&m->counter_lock);
+      n = 0;
+      while ((m->finished_count_audio < finished_count_audio) ||
+             (m->finished_count_video < finished_count_video)) {
+        int ret_wait;
+        struct timespec ts = {0, 0};
+        lprintf ("waiting for finisheds.\n");
+        xine_gettime (&ts);
+        ts.tv_sec += 1;
+        ret_wait = pthread_cond_timedwait (&m->counter_changed, &m->counter_lock, &ts);
+        if (ret_wait == ETIMEDOUT && demux_unstick_ao_loop (&m->s) && ++n > 4) {
+          xine_log (m->s.xine, XINE_LOG_MSG,_("Stuck in demux_loop(). Taking the emergency exit\n"));
+          m->emergency_brake = 1;
+          break;
+        }
+      }
+      pthread_mutex_unlock (&m->counter_lock);
+
+      _x_handle_stream_end (&m->s, non_user);
+      xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+        "demux: %s last stream %p after %d iterations.\n",
+        non_user ? "finished" : "stopped", (void *)stream, iterations);
+
+    } else {
+
+      pthread_mutex_unlock (&m->counter_lock);
+      pthread_mutex_unlock (&stream->demux_lock);
+      xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+        "demux: %s stream %p after %d iterations.\n",
+        non_user ? "finished" : "stopped", (void *)stream, iterations);
+
     }
   }
-  pthread_mutex_unlock (&stream->counter_lock);
 
-  xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
-    "demux: %s stream %p after %d iterations.\n",
-    non_user ? "finished" : "stopped", (void *)stream, iterations);
-
-  _x_handle_stream_end (&stream->s, non_user);
   return NULL;
 }
 
