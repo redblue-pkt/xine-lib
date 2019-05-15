@@ -852,7 +852,7 @@ static void close_internal (xine_stream_private_t *stream) {
    * XINE_STREAM_INFO_MAX is at least 99 but the info arrays are sparsely used.
    * Save a lot of mutex/free calls.
    */
-  {
+  if (stream == m) {
     int i;
     xine_rwlock_wrlock (&stream->info_lock);
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++)
@@ -1009,6 +1009,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->header_count_video       = 0;
   stream->finished_count_audio     = 0;
   stream->finished_count_video     = 0;
+  stream->num_demuxers_running     = 0;
   stream->start_buffers_sent       = 0;
   stream->err                      = 0;
   stream->broadcaster              = NULL;
@@ -1199,6 +1200,8 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->frontend_lock);
   pthread_mutex_destroy (&stream->index_mutex);
   pthread_mutex_destroy (&stream->demux_pair_mutex);
+  xine_rwlock_destroy   (&stream->meta_lock);
+  xine_rwlock_destroy   (&stream->info_lock);
   */
   pthread_mutex_destroy (&stream->current_extra_info_lock);
   pthread_cond_destroy  (&stream->first_frame_reached);
@@ -1209,8 +1212,6 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   pthread_cond_destroy  (&stream->demux_resume);
   pthread_mutex_destroy (&stream->demux_action_lock);
   pthread_mutex_destroy (&stream->demux_lock);
-  xine_rwlock_destroy   (&stream->meta_lock);
-  xine_rwlock_destroy   (&stream->info_lock);
 
   _x_refcounter_dispose (stream->refcounter);
 
@@ -1330,10 +1331,10 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   }
   pthread_mutex_init (&s->demux_pair_mutex, NULL);
   pthread_mutex_init (&s->index_mutex, NULL);
-  */
-  /* init mutexes and conditions */
   xine_rwlock_init_default (&s->info_lock);
   xine_rwlock_init_default (&s->meta_lock);
+  */
+  /* init mutexes and conditions */
   pthread_mutex_init (&s->demux_lock, NULL);
   pthread_mutex_init (&s->demux_action_lock, NULL);
   pthread_cond_init  (&s->demux_resume, NULL);

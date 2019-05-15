@@ -431,6 +431,7 @@ typedef struct xine_stream_private_st {
   int                        finished_count_audio;
   int                        finished_count_video;
   int                        start_buffers_sent;
+  int                        num_demuxers_running;
 
   /* event mechanism */
   xine_list_t               *event_queues;

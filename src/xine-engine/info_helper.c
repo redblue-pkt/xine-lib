@@ -57,6 +57,7 @@ static int info_valid (xine_stream_private_t *stream, int info) {
  */
 void _x_stream_info_reset (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream = stream->side_streams[0];
   if (info_valid (stream, info)) {
     xine_rwlock_wrlock (&stream->info_lock);
     stream->stream_info[info] = 0;
@@ -76,11 +77,20 @@ void _x_stream_info_public_reset (xine_stream_t *s, int info) {
  * Set private info value.
  */
 void _x_stream_info_set (xine_stream_t *s, int info, int value) {
-  xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  if (info_valid (stream, info)) {
-    xine_rwlock_wrlock (&stream->info_lock);
-    stream->stream_info[info] = value;
-    xine_rwlock_unlock (&stream->info_lock);
+  xine_stream_private_t *stream = (xine_stream_private_t *)s, *m;
+  m = stream->side_streams[0];
+  if (info_valid (m, info)) {
+    xine_rwlock_wrlock (&m->info_lock);
+    if ((m != stream) &&
+      ((info == XINE_STREAM_INFO_HAS_CHAPTERS) ||
+       (info == XINE_STREAM_INFO_HAS_VIDEO) ||
+       (info == XINE_STREAM_INFO_HAS_AUDIO))) {
+      if (m->stream_info[info] == 0)
+        m->stream_info[info] = value;
+    } else {
+      m->stream_info[info] = value;
+    }
+    xine_rwlock_unlock (&m->info_lock);
   }
 }
 
@@ -90,6 +100,7 @@ void _x_stream_info_set (xine_stream_t *s, int info, int value) {
 uint32_t _x_stream_info_get (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   uint32_t stream_info;
+  stream = stream->side_streams[0];
   xine_rwlock_rdlock (&stream->info_lock);
   stream_info = stream->stream_info[info];
   xine_rwlock_unlock (&stream->info_lock);
@@ -102,6 +113,7 @@ uint32_t _x_stream_info_get (xine_stream_t *s, int info) {
 uint32_t _x_stream_info_get_public (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   uint32_t stream_info;
+  stream = stream->side_streams[0];
   xine_rwlock_rdlock (&stream->info_lock);
   stream_info = stream->stream_info[info];
   xine_rwlock_unlock (&stream->info_lock);
@@ -285,6 +297,7 @@ static void _meta_info_set_encoding (xine_stream_private_t *stream, int info, co
  */
 void _x_meta_info_reset (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream = stream->side_streams[0];
   _meta_info_set_utf8 (stream, info, NULL);
 }
 
@@ -293,6 +306,7 @@ void _x_meta_info_reset (xine_stream_t *s, int info) {
  */
 void _x_meta_info_public_reset (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream = stream->side_streams[0];
   if (meta_valid (stream, info)) {
     xine_rwlock_wrlock (&stream->meta_lock);
     if (stream->meta_info_public[info] != stream->meta_info[info])
@@ -306,6 +320,7 @@ void _x_meta_info_public_reset (xine_stream_t *s, int info) {
  */
 void _x_meta_info_set (xine_stream_t *s, int info, const char *str) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream = stream->side_streams[0];
   if (str)
     _meta_info_set_encoding (stream, info, str, NULL);
 }
@@ -315,6 +330,7 @@ void _x_meta_info_set (xine_stream_t *s, int info, const char *str) {
  */
 void _x_meta_info_set_generic (xine_stream_t *s, int info, const char *str, const char *enc) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream = stream->side_streams[0];
   if (str)
     _meta_info_set_encoding (stream, info, str, enc);
 }
@@ -324,6 +340,7 @@ void _x_meta_info_set_generic (xine_stream_t *s, int info, const char *str, cons
  */
 void _x_meta_info_set_utf8 (xine_stream_t *s, int info, const char *str) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream = stream->side_streams[0];
   if (str)
     _meta_info_set_utf8 (stream, info, str);
 }
@@ -333,6 +350,7 @@ void _x_meta_info_set_utf8 (xine_stream_t *s, int info, const char *str) {
  */
 void _x_meta_info_n_set (xine_stream_t *s, int info, const char *buf, int len) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  stream = stream->side_streams[0];
   if (meta_valid (stream, info) && len) {
     char *str = strndup (buf, len);
     _meta_info_set_encoding (stream, info, str, NULL);
@@ -346,6 +364,7 @@ void _x_meta_info_n_set (xine_stream_t *s, int info, const char *buf, int len) {
 void _x_meta_info_set_multi (xine_stream_t *s, int info, ...) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
+  stream = stream->side_streams[0];
   if (meta_valid (stream, info)) {
     va_list   ap;
     char     *args[1025];
@@ -395,6 +414,7 @@ void _x_meta_info_set_multi (xine_stream_t *s, int info, ...) {
 const char *_x_meta_info_get (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   const char *meta_info;
+  stream = stream->side_streams[0];
   xine_rwlock_rdlock (&stream->meta_lock);
   meta_info = stream->meta_info[info];
   xine_rwlock_unlock (&stream->meta_lock);
@@ -407,6 +427,7 @@ const char *_x_meta_info_get (xine_stream_t *s, int info) {
 const char *_x_meta_info_get_public (xine_stream_t *s, int info) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   char *pub_meta_info = NULL;
+  stream = stream->side_streams[0];
   if (meta_valid (stream, info)) {
     xine_rwlock_rdlock (&stream->meta_lock);
     pub_meta_info = stream->meta_info_public[info];
