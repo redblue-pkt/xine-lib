@@ -85,8 +85,10 @@
 # define XINE_DEPRECATED
 #endif
 
-#if defined(SUPPORT_ATTRIBUTE_DEPRECATED) && (!defined(XINE_LIBRARY_COMPILE))
+#if defined(SUPPORT_ATTRIBUTE_DEPRECATED) && (!defined(XINE_LIBRARY_COMPILE)) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5 ))
 # define XINE_PRIVATE_FIELD __attribute__((__deprecated__("this is xine-engine private field")))
+#elif defined(SUPPORT_ATTRIBUTE_DEPRECATED) && (!defined(XINE_LIBRARY_COMPILE))
+# define XINE_PRIVATE_FIELD __attribute__((__deprecated__))
 #else
 # define XINE_PRIVATE_FIELD
 #endif
