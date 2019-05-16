@@ -1010,6 +1010,9 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->finished_count_audio     = 0;
   stream->finished_count_video     = 0;
   stream->num_demuxers_running     = 0;
+  stream->demux_action_pending     = 0;
+  stream->demux_thread_created     = 0;
+  stream->demux_thread_running     = 0;
   stream->start_buffers_sent       = 0;
   stream->err                      = 0;
   stream->broadcaster              = NULL;
@@ -1052,6 +1055,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->audio_source.data   = &stream->s;
   stream->audio_source.rewire = stream_rewire_audio;
 
+  stream->demux_max_seek_bufs        = 0xffffffff;
   stream->s.spu_decoder_streamtype   = -1;
   stream->s.audio_out                = ao;
   stream->audio_channel_user         = -1;
@@ -1253,6 +1257,9 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   s->header_count_video       = 0;
   s->finished_count_audio     = 0;
   s->finished_count_video     = 0;
+  s->demux_action_pending     = 0;
+  s->demux_thread_created     = 0;
+  s->demux_thread_running     = 0;
   s->err                      = 0;
   s->broadcaster              = NULL;
   s->index_array              = NULL;
@@ -1970,10 +1977,11 @@ int xine_open (xine_stream_t *s, const char *mrl) {
     struct stat st;
     size_t nlen;
     xine_stream_private_t *side;
-    const uint8_t *p = (const uint8_t *)mrl, *n, *d;
-    if (!strncasecmp (mrl, "file:/", 6))
-      p += 6;
-    n = d = p;
+    const uint8_t *p, *n, *d;
+    const char *orig = mrl;
+    if (!strncasecmp (orig, "file:/", 6))
+      orig += 6;
+    n = d = p = (const uint8_t *)orig;
     while (1) {
       while (*p >= 0x30)
         p++;
@@ -1989,20 +1997,20 @@ int xine_open (xine_stream_t *s, const char *mrl) {
         p++;
       }
     }
-    nlen = p - (const uint8_t *)mrl;
+    nlen = p - (const uint8_t *)orig;
     if (nlen > sizeof (nbuf) - 1)
       break;
     if ((n + 2 > d) || (d[-2] != '_') || (d[0] != '.'))
       break;
     if ((d[-1] != 'a') && (d[-1] != 'v'))
       break;
-    if (stat (mrl, &st))
+    if (stat (orig, &st))
       break;
     if (!S_ISREG (st.st_mode))
       break;
-    memcpy (nbuf, mrl, nlen);
+    memcpy (nbuf, orig, nlen);
     nbuf[nlen] = 0;
-    nbuf[d - (const uint8_t *)mrl - 1] = d[-1] == 'a' ? 'v' : 'a';
+    nbuf[d - (const uint8_t *)orig - 1] = d[-1] == 'a' ? 'v' : 'a';
     if (stat (nbuf, &st))
       break;
     if (!S_ISREG (st.st_mode))
@@ -2011,7 +2019,7 @@ int xine_open (xine_stream_t *s, const char *mrl) {
     if (!side)
       break;
     xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
-      "xine_open: auto joining \"%s\" with \"%s\".\n", mrl, nbuf);
+      "xine_open: auto joining \"%s\" with \"%s\".\n", orig, nbuf);
     open_internal (side, nbuf);
   } while (0);
 
@@ -2043,7 +2051,7 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   struct {
     xine_stream_private_t *s;
     uint32_t flags;
-  } sides[XINE_NUM_SIDE_STREAMS + 1], *sp;
+  } sides[XINE_NUM_SIDE_STREAMS + 1], *sp, *sp2;
 
   if (stream->s.xine->verbosity >= XINE_VERBOSITY_DEBUG) {
     xine_gettime (&ts1);
@@ -2129,8 +2137,41 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
    * start/seek demux
    */
 
+  pthread_mutex_lock (&stream->demux_pair_mutex);
+  stream->demux_max_seek_bufs = sides[1].s ? 1 : 0xffffffff;
+  pthread_mutex_unlock (&stream->demux_pair_mutex);
+
   /* seek to new position (no data is sent to decoders yet) */
   sp = sides;
+  do {
+    xine_stream_private_t *s;
+    int r;
+    int32_t vtime = 0;
+    if (!sides[1].s)
+      break;
+    sp2 = sides;
+    do {
+      if (sp2->s->demux_plugin->get_capabilities (sp2->s->demux_plugin) & DEMUX_CAP_VIDEO_TIME)
+        break;
+      sp2++;
+    } while (sp2->s);
+    if (!sp2->s)
+      break;
+    s = sp2->s;
+    sp2->s = sides[0].s;
+    sides[0].s = s;
+    sp++;
+    r = sides[0].s->demux_plugin->seek (sides[0].s->demux_plugin,
+      start_pos, start_time, sides[0].s->demux_thread_running);
+    sides[0].flags = r == DEMUX_OK ? 1 : 0;
+    if (r != DEMUX_OK)
+      break;
+    if (sides[0].s->demux_plugin->get_optional_data (sides[0].s->demux_plugin, &vtime,
+        DEMUX_OPTIONAL_DATA_VIDEO_TIME) != DEMUX_OPTIONAL_SUCCESS)
+      break;
+    start_pos = 0;
+    start_time = vtime;
+  } while (0);
   do {
     int r = sp->s->demux_plugin->seek (sp->s->demux_plugin,
       start_pos, start_time, sp->s->demux_thread_running);
@@ -3746,4 +3787,3 @@ int _x_keyframes_set (xine_stream_t *s, xine_keyframes_entry_t *list, int size) 
     "keyframes: got %d of them.\n", stream->index_used);
   return 0;
 }
-

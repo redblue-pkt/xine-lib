@@ -129,6 +129,16 @@ void _x_demux_control_newpts (xine_stream_t *s, int64_t pts, uint32_t flags) {
 
   stream = stream->side_streams[0];
 
+  if (flags & BUF_FLAG_SEEK) {
+    pthread_mutex_lock (&stream->demux_pair_mutex);
+    if (stream->demux_max_seek_bufs == 0) {
+      pthread_mutex_unlock (&stream->demux_pair_mutex);
+      return;
+    }
+    stream->demux_max_seek_bufs--;
+    pthread_mutex_unlock (&stream->demux_pair_mutex);
+  }
+
   bufv = stream->s.video_fifo->buffer_pool_alloc (stream->s.video_fifo);
   bufa = stream->s.audio_fifo->buffer_pool_alloc (stream->s.audio_fifo);
 
