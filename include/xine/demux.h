@@ -222,13 +222,23 @@ struct demux_plugin_s {
 
 #define DEMUX_CAP_STOP                 0x00000100
    
+/*
+ * DEMUX_CAP_VIDEO_TIME:
+ *   demux plugin has video, and it can tell its current video time in milliseconds.
+ *   It can do that especially after a seek by normpos and/or to nearest keyframe.
+ *   This shall be done by calling
+ *   demux_plugin->get_optional_data (demux_plugin, (int32_t *)(&msec), DEMUX_OPTIONAL_DATA_VIDEO_TIME).
+ */
+
+#define DEMUX_CAP_VIDEO_TIME           0x00000200
 
 
 #define DEMUX_OPTIONAL_UNSUPPORTED    0
 #define DEMUX_OPTIONAL_SUCCESS        1
 
-#define DEMUX_OPTIONAL_DATA_AUDIOLANG 2
-#define DEMUX_OPTIONAL_DATA_SPULANG   3
-#define DEMUX_OPTIONAL_DATA_STOP      4
+#define DEMUX_OPTIONAL_DATA_AUDIOLANG  2
+#define DEMUX_OPTIONAL_DATA_SPULANG    3
+#define DEMUX_OPTIONAL_DATA_STOP       4
+#define DEMUX_OPTIONAL_DATA_VIDEO_TIME 5
 
 #endif

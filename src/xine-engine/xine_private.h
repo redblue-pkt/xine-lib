@@ -447,6 +447,8 @@ typedef struct xine_stream_private_st {
   uint32_t                   demux_action_pending:1;
   uint32_t                   demux_thread_created:1;
   uint32_t                   demux_thread_running:1;
+  /* filter out duplicate seek discontinuities from side streams */
+  uint32_t                   demux_max_seek_bufs;
 
   extra_info_t              *current_extra_info;
   pthread_mutex_t            current_extra_info_lock;
