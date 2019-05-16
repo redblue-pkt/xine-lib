@@ -44,7 +44,7 @@
 
 #define ALSA_PCM_NEW_HW_PARAMS_API
 #define ALSA_PCM_NEW_SW_PARAMS_API
-#include <asoundlib.h>
+#include <alsa/asoundlib.h>
 
 #include <sys/ioctl.h>
 #include <inttypes.h>
