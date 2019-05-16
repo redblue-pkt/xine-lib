@@ -4099,8 +4099,8 @@ static int demux_qt_get_stream_length (demux_plugin_t *this_gen) {
 }
 
 static uint32_t demux_qt_get_capabilities(demux_plugin_t *this_gen) {
-  (void)this_gen;
-  return DEMUX_CAP_AUDIOLANG;
+  demux_qt_t *this = (demux_qt_t *) this_gen;
+  return DEMUX_CAP_AUDIOLANG | (this->qt.video_trak >= 0 ? DEMUX_CAP_VIDEO_TIME : 0);
 }
 
 static int demux_qt_get_optional_data(demux_plugin_t *this_gen,
@@ -4130,6 +4130,14 @@ static int demux_qt_get_optional_data(demux_plugin_t *this_gen,
         return DEMUX_OPTIONAL_SUCCESS;
       }
     }
+    break;
+    case DEMUX_OPTIONAL_DATA_VIDEO_TIME:
+      if (data && (this->qt.video_trak >= 0)) {
+        qt_trak *trak = &this->qt.traks[this->qt.video_trak];
+        int32_t vtime = (trak->frames[trak->current_frame].pts + trak->frames[trak->current_frame].ptsoffs) / 90;
+        memcpy (data, &vtime, sizeof (vtime));
+        return DEMUX_OPTIONAL_SUCCESS;
+      }
     break;
     default: ;
   }
