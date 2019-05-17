@@ -408,7 +408,8 @@ typedef struct {
   int             have_video;
   int             have_audio;
 
-  int             bounce_left;
+  int             bounce_left_audio;
+  int             bounce_left_video;
   int             bounce_jumped;
   int64_t         bounce_diff;
   int64_t         bounce_vpts_offs;
@@ -549,7 +550,8 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
       this->video_vpts       = this->prebuffer + cur_time;
       this->audio_vpts       = this->video_vpts;
       this->vpts_offset      = this->video_vpts - disc_off;
-      this->bounce_left      = -1;
+      this->bounce_left_audio = -1;
+      this->bounce_left_video = -1;
       this->bounce_jumped    = 0;
       this->audio_vpts_rmndr = 0;
       this->force_audio_jump = 1;
@@ -591,13 +593,14 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
           this->bounce_vpts_offs = d;
           d -= this->vpts_offset;
           this->bounce_diff = d;
-          this->bounce_left = BOUNCE_MAX;
+          this->bounce_left_audio = BOUNCE_MAX;
+          this->bounce_left_video = BOUNCE_MAX;
           this->last_audio_pts = 0;
           this->last_video_pts = 0;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: pts bounce by %" PRId64 ".\n", d);
           return 0;
         }
-        if (try && (this->bounce_left >= 0))
+        if (try && (this->bounce_left_audio >= 0))
           return 1;
         /* remember current as prev, and set new. */
         this->bounce_vpts_offs = this->vpts_offset;
@@ -605,7 +608,8 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
       this->vpts_offset = vpts_offset;
       this->bounce_diff = this->bounce_vpts_offs - vpts_offset;
       this->video_vpts = video_vpts;
-      this->bounce_left = BOUNCE_MAX;
+      this->bounce_left_audio = BOUNCE_MAX;
+      this->bounce_left_video = BOUNCE_MAX;
       this->bounce_jumped = 1;
       if (mode == 2) {
         /* still frame with audio */
@@ -818,15 +822,16 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
 
     pts += this->vpts_offset;
 
-    if (this->bounce_left >= 0) {
+    if (this->bounce_left_video >= 0) {
       int64_t diff = this->video_vpts - pts;
       if ((abs (diff) > BOUNCE_MAX) && (abs (diff - this->bounce_diff) < BOUNCE_MAX)) {
         pts += this->bounce_diff;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: bounced video frame with pts %" PRId64 ".\n", img->pts);
       }
-      this->bounce_left -= img->duration;
-      if (this->bounce_left < 0) {
-        this->bounce_left = -1;
+      this->bounce_left_video -= img->duration;
+      if (this->bounce_left_video < 0) {
+        this->bounce_left_audio = -1;
+        this->bounce_left_video = -1;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
           "metronom: leaving bounce area at pts %" PRId64 ".\n", img->pts);
       }
@@ -1017,15 +1022,16 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
     vpts = pts + this->vpts_offset;
     diff = this->audio_vpts - vpts;
 
-    if (this->bounce_left >= 0) {
+    if (this->bounce_left_audio >= 0) {
       if ((abs (diff) > BOUNCE_MAX) && (abs (diff - this->bounce_diff) < BOUNCE_MAX)) {
         vpts += this->bounce_diff;
         diff = this->audio_vpts - vpts;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: bounced audio buffer with pts %" PRId64 ".\n", pts);
       }
-      this->bounce_left -= (nsamples * this->pts_per_smpls) >> AUDIO_SAMPLE_LD;
-      if (this->bounce_left < 0) {
-        this->bounce_left = -1;
+      this->bounce_left_audio -= (nsamples * this->pts_per_smpls) >> AUDIO_SAMPLE_LD;
+      if (this->bounce_left_audio < 0) {
+        this->bounce_left_audio = -1;
+        this->bounce_left_video = -1;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
           "metronom: leaving bounce area at pts %" PRId64 ".\n", pts);
       }
@@ -1510,7 +1516,8 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
   this->img_duration                = 0;
   this->video_mode                  = 0;
 #endif
-  this->bounce_left                 = -1;
+  this->bounce_left_audio           = -1;
+  this->bounce_left_video           = -1;
   this->metronom.set_audio_rate             = metronom_set_audio_rate;
   this->metronom.got_video_frame            = metronom_got_video_frame;
   this->metronom.got_audio_samples          = metronom_got_audio_samples;
