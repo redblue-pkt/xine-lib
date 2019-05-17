@@ -3177,22 +3177,16 @@ static void nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch,
 
   int y, x;
 
-  int uv_src_size = height * uv_src_pitch / 2;
-
   for(y = 0; y < height; y++) {
     xine_fast_memcpy(y_dst, y_src, width);
     y_src += y_src_pitch;
     y_dst += y_dst_pitch;
   }
 
-  for(y = 0; y < height; y++) {
-    const uint8_t *uv_src_tmp = uv_src;
-    for(x = 0; x < u_dst_pitch; x++) {
-      if(((y * uv_src_pitch) + x) < uv_src_size) {
-        *(u_dst + x) = *(uv_src_tmp    );
-        *(v_dst + x) = *(uv_src_tmp + 1);
-      }
-      uv_src_tmp += 2;
+  for (y = 0; y < height / 2; y++) {
+    for (x = 0; x < width / 2; x++) {
+      u_dst[x] = uv_src[2*x];
+      v_dst[x] = uv_src[2*x + 1];
     }
     uv_src += uv_src_pitch;
     u_dst += u_dst_pitch;
