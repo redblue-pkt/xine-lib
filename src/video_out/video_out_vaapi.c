@@ -295,9 +295,7 @@ static void nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch,
                          uint8_t *y_dst, int y_dst_pitch,
                          uint8_t *u_dst, int u_dst_pitch,
                          uint8_t *v_dst, int v_dst_pitch,
-                         int src_width, int src_height, 
-                         int dst_width, int dst_height,
-                         int src_data_size);
+                         int width, int height);
 
 static void yv12_to_nv12(const uint8_t *y_src, int y_src_pitch, 
                          const uint8_t *u_src, int u_src_pitch, 
@@ -2943,9 +2941,8 @@ static void vaapi_provide_standard_frame_data (vo_frame_t *this, xine_current_fr
                        base[0], pitches[0],
                        base[1], pitches[1],
                        base[2], pitches[2],
-                       va_image.width,  va_image.height, 
-                       width, height, 
-                       va_image.data_size);
+                       va_image.width  > width  ? width  : va_image.width,
+                       va_image.height > height ? height : va_image.height);
 
         } else {
           printf("vaapi_provide_standard_frame_data unsupported image format\n");
@@ -3171,24 +3168,16 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
   frame->vo_frame.future_frame = NULL;
 }
 
-static void nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch, 
-                         const uint8_t *uv_src, int uv_src_pitch, 
+static void nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch,
+                         const uint8_t *uv_src, int uv_src_pitch,
                          uint8_t *y_dst, int y_dst_pitch,
                          uint8_t *u_dst, int u_dst_pitch,
                          uint8_t *v_dst, int v_dst_pitch,
-                         int src_width, int src_height, 
-                         int dst_width, int dst_height,
-                         int src_data_size) {
+                         int width, int height) {
 
-  int y_src_size  = src_height * y_src_pitch;
   int y, x;
 
-  int uv_src_size = src_height * uv_src_pitch / 2;
-  if((y_src_size + uv_src_size) != (src_data_size))
-    printf("nv12_to_yv12 strange %d\n", (y_src_size + uv_src_size) - (src_data_size));
-
-  int height  = (src_height > dst_height) ? dst_height : src_height;
-  int width   = (src_width > dst_width) ? dst_width : src_width;
+  int uv_src_size = height * uv_src_pitch / 2;
 
   for(y = 0; y < height; y++) {
     xine_fast_memcpy(y_dst, y_src, width);
