@@ -753,7 +753,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 				       "The range of this value is -1 or 0-15. This setting is "
 				       "ignored, when the OSS audio device name is set to \"auto\"."),
 				     10, NULL, NULL);
-  if (devname_val == 0) {
+  if (devname_val == 0 || devname_val > 15) {
     xprintf(class->xine, XINE_VERBOSITY_LOG,
 	    _("audio_oss_out: audio.device.oss_device_name = auto, probing devs\n"));
     if ( ! probe_audio_devices(this)) {  /* Returns zero on fail */
@@ -1003,7 +1003,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
    */
   {
     char mixer_name[32];
-    char mixer_dev[32];
+    char mixer_dev[48];
     int mixer_num;
     int audio_devs;
     char *parse;
@@ -1024,7 +1024,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     if ((parse = strstr(mixer_name, "dsp"))) {
       parse[0] = '\0';
       parse += 3;
-      if (devname_val == 0)
+      if (devname_val == 0 || devname_val > 15)
 	snprintf(mixer_dev, sizeof(mixer_dev), "%smixer%s", mixer_name, parse);
       else if (mixer_num == -1)
 	snprintf(mixer_dev, sizeof(mixer_dev), "%smixer", mixer_name);
