@@ -193,7 +193,7 @@ static void caca_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
         width, height, width * 4);
     } else {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "alert! unsupported image format %04x\n", format);
-      _x_abort();
+      frame->vo_frame.width = frame->width = 0;
     }
   }
 }

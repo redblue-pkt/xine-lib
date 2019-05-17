@@ -765,7 +765,8 @@ static void xvmc_update_frame_format (vo_driver_t *this_gen,
 
   if (format != XINE_IMGFMT_XVMC) {
     xprintf (this->xine, XINE_VERBOSITY_LOG, "xvmc_update_frame_format: frame format %08x not supported\n", format);
-    _x_abort();
+    frame->vo_frame.width = frame->width = 0;
+    return;
   }
 
   lprintf ("xvmc_update_frame_format\n");
