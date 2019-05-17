@@ -2353,6 +2353,18 @@ static void vaapi_frame_dispose (vo_frame_t *vo_img) {
 static vo_frame_t *vaapi_alloc_frame (vo_driver_t *this_gen) {
   vaapi_driver_t  *this = (vaapi_driver_t *) this_gen;
   vaapi_frame_t   *frame;
+  static const struct vaapi_accel_funcs_s accel_funcs = {
+    .vaapi_init                = vaapi_init,
+    .profile_from_imgfmt       = profile_from_imgfmt,
+    .get_context               = get_context,
+    .lock_vaapi                = vaapi_lock_decode,
+    .unlock_vaapi              = vaapi_unlock_decode,
+
+    .get_vaapi_surface         = get_vaapi_surface,
+    .render_vaapi_surface      = render_vaapi_surface,
+    .release_vaapi_surface     = release_vaapi_surface,
+    .guarded_render            = guarded_render,
+  };
 
   frame = (vaapi_frame_t *) calloc(1, sizeof(vaapi_frame_t));
 
@@ -2379,17 +2391,7 @@ static vo_frame_t *vaapi_alloc_frame (vo_driver_t *this_gen) {
   frame->vo_frame.dispose                           = vaapi_frame_dispose;
   frame->vo_frame.driver                            = this_gen;
 
-  frame->vaapi_accel_data.vaapi_init                = &vaapi_init;
-  frame->vaapi_accel_data.profile_from_imgfmt       = &profile_from_imgfmt;
-  frame->vaapi_accel_data.get_context               = &get_context;
-
-  frame->vaapi_accel_data.lock_vaapi                = &vaapi_lock_decode;
-  frame->vaapi_accel_data.unlock_vaapi              = &vaapi_unlock_decode;
-
-  frame->vaapi_accel_data.get_vaapi_surface         = &get_vaapi_surface;
-  frame->vaapi_accel_data.render_vaapi_surface      = &render_vaapi_surface;
-  frame->vaapi_accel_data.release_vaapi_surface     = &release_vaapi_surface;
-  frame->vaapi_accel_data.guarded_render            = &guarded_render;
+  frame->vaapi_accel_data.f = &accel_funcs;
 
   lprintf("alloc frame\n");
 
