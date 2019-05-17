@@ -624,7 +624,7 @@ static XvImage *create_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
     break;
   default:
     xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
-    _x_abort();
+    return NULL;
   }
 
   if (this->use_shm) {
@@ -737,8 +737,9 @@ static XvImage *create_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
       data = malloc (width * height);
       break;
     default:
+      /* not reached */
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "create_ximage: unknown format %08x\n",format);
-      _x_abort();
+      // _x_abort();
     }
 
     image = XvCreateImage (this->display, this->xv_port,
@@ -1139,6 +1140,9 @@ static void xxmc_do_update_frame_xv(vo_driver_t *this_gen,
       || (frame->height != (int)height)
       || (frame->last_sw_format != format)) {
 
+    frame->width  = width;
+    frame->height = height;
+    frame->format = format;
     frame->last_sw_format = format;
     XLockDisplay (this->display);
 
@@ -1153,26 +1157,25 @@ static void xxmc_do_update_frame_xv(vo_driver_t *this_gen,
 
     frame->image = create_ximage (this, &frame->shminfo, width, height, format);
 
-    if(format == XINE_IMGFMT_YUY2) {
+    if( frame->image && format == XINE_IMGFMT_YUY2) {
       frame->vo_frame.pitches[0] = frame->image->pitches[0];
       frame->vo_frame.base[0] = frame->image->data + frame->image->offsets[0];
-    }
-    else {
+    } else if (frame->image && format == XINE_IMGFMT_YV12) {
       frame->vo_frame.pitches[0] = frame->image->pitches[0];
       frame->vo_frame.pitches[1] = frame->image->pitches[2];
       frame->vo_frame.pitches[2] = frame->image->pitches[1];
       frame->vo_frame.base[0] = frame->image->data + frame->image->offsets[0];
       frame->vo_frame.base[1] = frame->image->data + frame->image->offsets[2];
       frame->vo_frame.base[2] = frame->image->data + frame->image->offsets[1];
+    } else {
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "alert! unsupported image format %04x\n", format);
+      frame->vo_frame.width = frame->width = 0;
     }
 
     XUnlockDisplay (this->display);
   }
 
   frame->ratio = ratio;
-  frame->width  = width;
-  frame->height = height;
-  frame->format = format;
   frame->vo_frame.format = frame->format;
 }
 

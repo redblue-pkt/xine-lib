@@ -159,7 +159,7 @@ static void aa_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
       frame->vo_frame.base[0] = xine_mallocz_aligned(frame->vo_frame.pitches[0] * height);
     } else {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "alert! unsupported image format %04x\n", format);
-      _x_abort();
+      frame->vo_frame.width = frame->width = 0;
     }
 
     frame->ratio = ratio;
