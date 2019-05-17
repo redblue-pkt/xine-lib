@@ -62,3 +62,26 @@ void yuy2_to_yuy2
 
   _copy_plane(dst, src, dst_pitch, src_pitch, width*2, height);
 }
+
+void _x_nv12_to_yv12(const uint8_t *restrict y_src,  int y_src_pitch,
+                     const uint8_t *restrict uv_src, int uv_src_pitch,
+                     uint8_t *restrict y_dst, int y_dst_pitch,
+                     uint8_t *restrict u_dst, int u_dst_pitch,
+                     uint8_t *restrict v_dst, int v_dst_pitch,
+                     int width, int height) {
+
+  int y, x;
+
+  _copy_plane(y_dst, y_src, y_dst_pitch, y_src_pitch, width, height);
+
+  for (y = 0; y < height / 2; y++) {
+    for (x = 0; x < width / 2; x++) {
+      u_dst[x] = uv_src[2*x];
+      v_dst[x] = uv_src[2*x + 1];
+    }
+    uv_src += uv_src_pitch;
+    u_dst += u_dst_pitch;
+    v_dst += v_dst_pitch;
+  }
+}
+

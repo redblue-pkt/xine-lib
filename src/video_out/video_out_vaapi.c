@@ -290,13 +290,6 @@ static const char *vaapi_profile_to_string(VAProfile profile);
 static int vaapi_set_property (vo_driver_t *this_gen, int property, int value);
 static void vaapi_show_display_props(vo_driver_t *this_gen);
 
-static void nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch, 
-                         const uint8_t *uv_src, int uv_src_pitch, 
-                         uint8_t *y_dst, int y_dst_pitch,
-                         uint8_t *u_dst, int u_dst_pitch,
-                         uint8_t *v_dst, int v_dst_pitch,
-                         int width, int height);
-
 static void yv12_to_nv12(const uint8_t *y_src, int y_src_pitch, 
                          const uint8_t *u_src, int u_src_pitch, 
                          const uint8_t *v_src, int v_src_pitch,
@@ -2935,8 +2928,7 @@ static void vaapi_provide_standard_frame_data (vo_frame_t *this, xine_current_fr
           base[0] = data->img;
           base[1] = data->img + width * height;
           base[2] = data->img + width * height + width * height / 4;
-
-          nv12_to_yv12((uint8_t *)p_base + va_image.offsets[0], va_image.pitches[0],
+          _x_nv12_to_yv12((uint8_t *)p_base + va_image.offsets[0], va_image.pitches[0],
                        (uint8_t *)p_base + va_image.offsets[1], va_image.pitches[1],
                        base[0], pitches[0],
                        base[1], pitches[1],
@@ -3166,32 +3158,6 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
 
   frame->ratio  = ratio;
   frame->vo_frame.future_frame = NULL;
-}
-
-static void nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch,
-                         const uint8_t *uv_src, int uv_src_pitch,
-                         uint8_t *y_dst, int y_dst_pitch,
-                         uint8_t *u_dst, int u_dst_pitch,
-                         uint8_t *v_dst, int v_dst_pitch,
-                         int width, int height) {
-
-  int y, x;
-
-  for(y = 0; y < height; y++) {
-    xine_fast_memcpy(y_dst, y_src, width);
-    y_src += y_src_pitch;
-    y_dst += y_dst_pitch;
-  }
-
-  for (y = 0; y < height / 2; y++) {
-    for (x = 0; x < width / 2; x++) {
-      u_dst[x] = uv_src[2*x];
-      v_dst[x] = uv_src[2*x + 1];
-    }
-    uv_src += uv_src_pitch;
-    u_dst += u_dst_pitch;
-    v_dst += v_dst_pitch;
-  }
 }
 
 static void yv12_to_nv12(const uint8_t *y_src, int y_src_pitch, 
