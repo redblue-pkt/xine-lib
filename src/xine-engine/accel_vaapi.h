@@ -99,9 +99,7 @@ struct ff_vaapi_surface_s {
 #define IMGFMT_VAAPI_VC1           (IMGFMT_VAAPI|IMGFMT_VAAPI_CODEC_VC1)
 #define IMGFMT_VAAPI_WMV3          (IMGFMT_VAAPI|IMGFMT_VAAPI_CODEC_VC1|1)
 
-struct vaapi_accel_s {
-  unsigned int        index;
-
+struct vaapi_accel_funcs_s {
   int  (*lock_vaapi)(vo_frame_t *frame_gen);
   void (*unlock_vaapi)(vo_frame_t *frame_gen);
 
@@ -112,6 +110,12 @@ struct vaapi_accel_s {
   ff_vaapi_surface_t *(*get_vaapi_surface)(vo_frame_t *frame_gen);
   void (*render_vaapi_surface)(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_surface);
   void (*release_vaapi_surface)(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_surface);
+};
+
+struct vaapi_accel_s {
+  unsigned int        index;
+
+  const struct vaapi_accel_funcs_s *f;
 };
 
 #ifdef __cplusplus
