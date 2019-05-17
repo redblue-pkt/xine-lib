@@ -427,6 +427,7 @@ extern void (*yuy2_to_yv12)
    unsigned char *v_dst, int v_dst_pitch,
    int width, int height) XINE_PROTECTED;
 
+
 /* convert full range rgb to mpeg range yuv */
 #define SCALESHIFT 16
 #define SCALEFACTOR (1<<SCALESHIFT)
@@ -514,6 +515,13 @@ extern void yuy2_to_yuy2
   (const unsigned char *src, int src_pitch,
    unsigned char *dst, int dst_pitch,
    int width, int height) XINE_PROTECTED;
+
+void _x_nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch,
+                     const uint8_t *uv_src, int uv_src_pitch,
+                     uint8_t *y_dst, int y_dst_pitch,
+                     uint8_t *u_dst, int u_dst_pitch,
+                     uint8_t *v_dst, int v_dst_pitch,
+                     int width, int height) XINE_PROTECTED;
 
 /* print a hexdump of the given data */
 void xine_hexdump (const void *buf, int length) XINE_PROTECTED;
