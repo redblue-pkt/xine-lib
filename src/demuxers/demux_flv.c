@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2018 the xine project
+ * Copyright (C) 2004-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -103,6 +103,8 @@ typedef struct {
 
   int                  audiodelay;   /* fine tune a/v sync */
 
+  uint32_t             video_time;
+
   unsigned int         zero_pts_count;
 
 #define TEMPBUFSIZE 4096
@@ -166,7 +168,10 @@ typedef enum {
   VF_SCREEN2, /* v2 */
   VF_H264,    /* MPEG4 part 10, usually with global sequence parameter set */
   VF_H263,
-  VF_MP4      /* MPEG4 part 2, usually with global sequence parameter set */
+  VF_MP4,     /* MPEG4 part 2, usually with global sequence parameter set */
+  VF_reserved10,
+  VF_reserved11,
+  VF_HEVC     /* H265 */
 } vf_t;
 
 /* redefine abs as macro to handle 64-bit diffs.
@@ -195,41 +200,6 @@ static void check_newpts (demux_flv_t *this, int64_t pts, int video) {
     }
   }
   this->last_pts[video] = pts;
-}
-
-/* returns 1 if the FLV file was opened successfully, 0 otherwise */
-static int open_flv_file(demux_flv_t *this) {
-  unsigned char buffer[9];
-
-  if (_x_demux_read_header(this->input, buffer, 9) != 9)
-    return 0;
-
-  if ((buffer[0] != 'F') || (buffer[1] != 'L') || (buffer[2] != 'V'))
-    return 0;
-
-  if (buffer[3] != 0x01) {
-    xprintf(this->xine, XINE_VERBOSITY_LOG,
-      _("unsupported FLV version (%d).\n"), buffer[3]);
-    return 0;
-  }
-
-  this->flags = buffer[4];
-  if ((this->flags & (FLV_FLAG_HAS_VIDEO | FLV_FLAG_HAS_AUDIO)) == 0) {
-    xprintf(this->xine, XINE_VERBOSITY_LOG,
-      _("neither video nor audio stream in this file.\n"));
-    return 0;
-  }
-
-  this->start = _X_BE_32(&buffer[5]);
-  this->size = this->input->get_length(this->input);
-
-  if (this->input->seek(this->input, this->start, SEEK_SET) != this->start)
-    return 0;
-
-  lprintf("  qualified FLV file, repositioned @ offset 0x%" PRIxMAX "\n",
-          (intmax_t)this->start);
-
-  return 1;
 }
 
 #define BE_F64(buf) ({\
@@ -573,9 +543,9 @@ static int read_flv_packet(demux_flv_t *this, int preview) {
        12 .. 14  stream id (usually 0)
        15        codec id / frame type / audio params (A/V only)
        16        right / bottom crop (VP6(F))
-                 frame subtype (AAC, H264, MPEG4)
+                 frame subtype (AAC, H264, MPEG4, HEVC)
        17 .. 19  ?? (VP6F)
-                 pts - dts (H264, MPEG4) */
+                 pts - dts (H264, MPEG4, HEVC) */
     unsigned char  buffer[20];
     /* skip rest, if any */
     if (remaining_bytes)
@@ -695,12 +665,17 @@ static int read_flv_packet(demux_flv_t *this, int preview) {
         switch (this->videocodec) {
           case VF_FLV1:
             buf_type = BUF_VIDEO_FLV1;
+            this->video_time = pts;
           break;
           case VF_H263:
             buf_type = BUF_VIDEO_H263;
+            this->video_time = pts;
           break;
           case VF_MP4:
             buf_type = BUF_VIDEO_MPEG4;
+          goto comm_mpeg4;
+          case VF_HEVC:
+            buf_type = BUF_VIDEO_HEVC;
           goto comm_mpeg4;
           case VF_H264:
             buf_type = BUF_VIDEO_H264;
@@ -711,6 +686,8 @@ static int read_flv_packet(demux_flv_t *this, int preview) {
               continue; /* skip sequence footer */
             if (!buffer[16])
               mp4header = 1;
+            else
+              this->video_time = pts;
             /* pts really is dts here, buffer[17..19] has (pts - dts) signed big endian. */
             ptsoffs = _X_BE_32 (buffer + 16) & 0xffffff;
             if (ptsoffs & 0x800000)
@@ -723,13 +700,16 @@ static int read_flv_packet(demux_flv_t *this, int preview) {
           case VF_VP6:
             buf_type = BUF_VIDEO_VP6F;
             GETBYTES (1);
+            this->video_time = pts;
           break;
           case VF_VP6A:
             buf_type = BUF_VIDEO_VP6F;
             GETBYTES (4);
+            this->video_time = pts;
           break;
           case VF_JPEG:
             buf_type = BUF_VIDEO_JPEG;
+            this->video_time = pts;
           break;
           default:
             lprintf("  unsupported video format (%d)...\n", this->videocodec);
@@ -1014,6 +994,7 @@ static void seek_flv_file (demux_flv_t *this, off_t seek_pos, int seek_pts) {
       if ((buf[4] == FLV_TAG_TYPE_VIDEO) && ((buf[15] >> 4) == 1)) {
         found = pos;
         now = gettimestamp (buf, 8);
+        this->video_time = now;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
           "demux_flv: seek_keyframe (%u.%03u, %"PRId64")\n", now / 1000, now % 1000, (int64_t)found);
         break;
@@ -1127,12 +1108,11 @@ static int demux_flv_get_stream_length (demux_plugin_t *this_gen) {
 }
 
 static uint32_t demux_flv_get_capabilities(demux_plugin_t *this_gen) {
-  (void)this_gen;
-  return DEMUX_CAP_AUDIOLANG;
+  demux_flv_t *this = (demux_flv_t *) this_gen;
+  return DEMUX_CAP_AUDIOLANG | (this->video_time != ~0u ? DEMUX_CAP_VIDEO_TIME : 0);
 }
 
-static int demux_flv_get_optional_data(demux_plugin_t *this_gen,
-                                       void *data, int data_type) {
+static int demux_flv_get_optional_data (demux_plugin_t *this_gen, void *data, int data_type) {
   demux_flv_t *this = (demux_flv_t *) this_gen;
 
   /* be a bit paranoid */
@@ -1140,16 +1120,24 @@ static int demux_flv_get_optional_data(demux_plugin_t *this_gen,
     return DEMUX_OPTIONAL_UNSUPPORTED;
 
   switch (data_type) {
-    case DEMUX_OPTIONAL_DATA_AUDIOLANG: {
-      char *str   = data;
-      int channel = *((int *)data);
-      if (channel != 0) {
-        strcpy (str, "none");
-      } else {
-        strcpy (str, "und");
+    case DEMUX_OPTIONAL_DATA_AUDIOLANG:
+      if (data) {
+        char *str = data;
+        int channel;
+        memcpy (&channel, data, sizeof (channel));
+        if (channel != 0) {
+          strcpy (str, "none");
+        } else {
+          strcpy (str, "und");
+          return DEMUX_OPTIONAL_SUCCESS;
+        }
+      }
+    break;
+    case DEMUX_OPTIONAL_DATA_VIDEO_TIME:
+      if ((this->video_time != ~0u) && data) {
+        memcpy (data, &this->video_time, sizeof (this->video_time));
         return DEMUX_OPTIONAL_SUCCESS;
       }
-    }
     break;
     default: ;
   }
@@ -1159,10 +1147,50 @@ static int demux_flv_get_optional_data(demux_plugin_t *this_gen,
 static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *stream,
                                     input_plugin_t *input) {
   demux_flv_t *this;
+  unsigned char buffer[9];
+  off_t start;
 
-  this         = calloc (1, sizeof (demux_flv_t) + 32 + TEMPBUFSIZE);
+  switch (stream->content_detection_method) {
+    case METHOD_BY_MRL:
+    case METHOD_BY_CONTENT:
+    case METHOD_EXPLICIT:
+      break;
+    default:
+      return NULL;
+  }
+
+  if (_x_demux_read_header (input, buffer, 9) != 9)
+    return NULL;
+
+  if ((buffer[0] != 'F') || (buffer[1] != 'L') || (buffer[2] != 'V'))
+    return NULL;
+  if (buffer[3] != 0x01) {
+    xprintf (stream->xine, XINE_VERBOSITY_LOG,
+      _("unsupported FLV version (%d).\n"), (int)buffer[3]);
+    return NULL;
+  }
+  if ((buffer[4] & (FLV_FLAG_HAS_VIDEO | FLV_FLAG_HAS_AUDIO)) == 0) {
+    xprintf (stream->xine, XINE_VERBOSITY_LOG,
+      _("neither video nor audio stream in this file.\n"));
+    return NULL;
+  }
+
+  this = calloc (1, sizeof (*this) + 32 + TEMPBUFSIZE);
   if (!this)
     return NULL;
+
+  start = _X_BE_32 (buffer + 5);
+  if (input->seek (input, start, SEEK_SET) != start) {
+    input->seek (input, 0, SEEK_SET);
+    free (this);
+    return NULL;
+  }
+  lprintf ("  qualified FLV file, repositioned @ offset 0x%" PRIxMAX "\n", (intmax_t)start);
+
+  this->flags = buffer[4];
+  this->start = start;
+  this->size = input->get_length (input);
+
   this->tempbuf = (uint8_t *)(((uintptr_t)this + sizeof (demux_flv_t) + 31) & ~(uintptr_t)31);
   this->xine   = stream->xine;
   this->stream = stream;
@@ -1178,22 +1206,8 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->demux_plugin.get_optional_data = demux_flv_get_optional_data;
   this->demux_plugin.demux_class       = class_gen;
 
+  this->video_time = ~0u;
   this->status = DEMUX_FINISHED;
-
-  switch (stream->content_detection_method) {
-    case METHOD_BY_MRL:
-    case METHOD_BY_CONTENT:
-    case METHOD_EXPLICIT:
-      if (!open_flv_file(this)) {
-        free (this);
-        return NULL;
-      }
-      break;
-
-    default:
-      free (this);
-      return NULL;
-  }
 
   return &this->demux_plugin;
 }
