@@ -2143,36 +2143,46 @@ void _x_free_demux_plugin (xine_stream_t *stream, demux_plugin_t **pdemux) {
 
 
 const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
-
-  plugin_catalog_t   *catalog;
-  plugin_node_t      *node;
-  int                 list_id, list_size;
-
-  catalog = this->plugin_catalog;
+  const char **last, **end, *test;
+  int list_id, list_size;
+  plugin_catalog_t *catalog = this->plugin_catalog;
 
   pthread_mutex_lock (&catalog->lock);
-
-  catalog->ids[0] = NULL;
+  end = &catalog->ids[0] + sizeof (catalog->ids) / sizeof (catalog->ids[0] - 1);
+  last = &catalog->ids[0];
+  *last = NULL;
+  test = NULL;
 
   list_size = xine_sarray_size (catalog->plugin_lists[PLUGIN_INPUT - 1]);
   for (list_id = 0; list_id < list_size; list_id++) {
-    input_class_t *ic;
 
-    node = xine_sarray_get(catalog->plugin_lists[PLUGIN_INPUT - 1], list_id);
-    if (node->plugin_class || _load_plugin_class(this, node, NULL)) {
-
-      ic = (input_class_t *) node->plugin_class;
-      if (ic->get_autoplay_list) {
-	int i = 0, j;
-
-	while (catalog->ids[i] && strcmp(catalog->ids[i], node->info->id) < 0)
-	  i++;
-	for (j = PLUGIN_MAX - 1; j > i; j--)
-	  catalog->ids[j] = catalog->ids[j - 1];
-
-	catalog->ids[i] = node->info->id;
-      }
+    plugin_node_t *node = xine_sarray_get (catalog->plugin_lists[PLUGIN_INPUT - 1], list_id);
+    input_class_t *ic = node->plugin_class;
+    if (!ic) {
+      _load_plugin_class (this, node, NULL);
+      ic = node->plugin_class;
     }
+    if (ic && ic->get_autoplay_list) {
+      if (!strcasecmp (node->info->id, "TEST")) {
+        /* dont let TEST push user media devices out of xine-ui 1 click list. */
+        test = node->info->id;
+      } else {
+        const char **here = &catalog->ids[0], **p;
+        while (*here && strcasecmp (*here, node->info->id) < 0)
+          here++;
+        last++;
+        for (p = last; p > here; p--)
+          p[0] = p[-1];
+        *here = node->info->id;
+      }
+      if (last >= end)
+        break;
+    }
+    if (last < end) {
+      *last++ = test;
+      *last = NULL;
+    }
+
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -2181,37 +2191,46 @@ const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
 }
 
 const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
-
-
-  plugin_catalog_t   *catalog;
-  plugin_node_t      *node;
-  int                 list_id, list_size;
-
-  catalog = this->plugin_catalog;
+  const char **last, **end, *test;
+  int list_id, list_size;
+  plugin_catalog_t *catalog = this->plugin_catalog;
 
   pthread_mutex_lock (&catalog->lock);
+  end = &catalog->ids[0] + sizeof (catalog->ids) / sizeof (catalog->ids[0] - 1);
+  last = &catalog->ids[0];
+  *last = NULL;
+  test = NULL;
 
-  catalog->ids[0] = NULL;
   list_size = xine_sarray_size (catalog->plugin_lists[PLUGIN_INPUT - 1]);
-
   for (list_id = 0; list_id < list_size; list_id++) {
-    input_class_t *ic;
 
-    node = xine_sarray_get(catalog->plugin_lists[PLUGIN_INPUT - 1], list_id);
-    if (node->plugin_class || _load_plugin_class(this, node, NULL)) {
-
-      ic = (input_class_t *) node->plugin_class;
-      if (ic->get_dir) {
-	int i = 0, j;
-
-	while (catalog->ids[i] && strcmp(catalog->ids[i], node->info->id) < 0)
-	  i++;
-	for (j = PLUGIN_MAX - 1; j > i; j--)
-	  catalog->ids[j] = catalog->ids[j - 1];
-
-	catalog->ids[i] = node->info->id;
-      }
+    plugin_node_t *node = xine_sarray_get (catalog->plugin_lists[PLUGIN_INPUT - 1], list_id);
+    input_class_t *ic = node->plugin_class;
+    if (!ic) {
+      _load_plugin_class (this, node, NULL);
+      ic = node->plugin_class;
     }
+    if (ic && ic->get_dir) {
+      if (!strcasecmp (node->info->id, "TEST")) {
+        /* dont let TEST push user media devices out of xine-ui 1 click list. */
+        test = node->info->id;
+      } else {
+        const char **here = &catalog->ids[0], **p;
+        while (*here && strcasecmp (*here, node->info->id) < 0)
+          here++;
+        last++;
+        for (p = last; p > here; p--)
+          p[0] = p[-1];
+        *here = node->info->id;
+      }
+      if (last >= end)
+        break;
+    }
+    if (last < end) {
+      *last++ = test;
+      *last = NULL;
+    }
+
   }
 
   pthread_mutex_unlock (&catalog->lock);
