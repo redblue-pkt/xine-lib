@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2018 the xine project
+ * Copyright (C) 2012-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -737,7 +737,7 @@ static void *test_init_plugin (xine_t *xine, const void *data) {
 }
 
 static const input_info_t input_info_test = {
-  110                       /* priority */
+  .priority = 110
 };
 
 /*
@@ -753,3 +753,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
 #endif
+
