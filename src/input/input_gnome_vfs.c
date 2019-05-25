@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  * 2002 Bastien Nocera <hadess@hadess.net>
  *
  * This file is part of totem,
@@ -287,7 +287,7 @@ gnomevfs_plugin_open (input_plugin_t *this_gen )
 	return 1;
 }
 
-static const char ignore_scheme[][8] = { "cdda", "file", "ftp", "ftpes", "http", "https", "test", };
+static const char ignore_scheme[][8] = { "cdda:", "file:", "ftp:", "ftpes:", "http:", "https:", "test:", "hls:"};
 
 static input_plugin_t *
 gnomevfs_klass_get_instance (input_class_t *klass_gen, xine_stream_t *stream,
