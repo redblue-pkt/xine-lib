@@ -2178,11 +2178,12 @@ const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
       if (last >= end)
         break;
     }
-    if (last < end) {
-      *last++ = test;
-      *last = NULL;
-    }
 
+  }
+
+  if (last < end) {
+    *last++ = test;
+    *last = NULL;
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -2226,11 +2227,12 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
       if (last >= end)
         break;
     }
-    if (last < end) {
-      *last++ = test;
-      *last = NULL;
-    }
 
+  }
+
+  if (last < end) {
+    *last++ = test;
+    *last = NULL;
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -3361,3 +3363,4 @@ void _x_dispose_plugins (xine_t *this) {
     _x_freep (&this->plugin_catalog);
   }
 }
+
