@@ -27,6 +27,10 @@ if ENABLE_LIBJPEG
 libjpeg_module = xineplug_decode_libjpeg.la
 endif
 
+if ENABLE_LIBPNG
+libpng_module = xineplug_decode_libpng.la
+endif
+
 if ENABLE_OPENHEVC
 libopenhevc_module = xineplug_decode_libopenhevc.la
 endif
@@ -61,6 +65,7 @@ xineplug_LTLIBRARIES = $(image_module) \
 	$(libvpx_module) \
 	$(libmmal_module) \
 	$(libmpeg2_module) \
+	$(libpng_module) \
 	$(vdpau_module) \
 	$(rawvideo_module)
 
@@ -83,6 +88,10 @@ xineplug_decode_gdk_pixbuf_la_CFLAGS = $(AM_CFLAGS) $(GDK_PIXBUF_CFLAGS)
 xineplug_decode_libjpeg_la_SOURCES = libjpeg.c
 xineplug_decode_libjpeg_la_LIBADD = $(XINE_LIB) $(JPEG_LIBS) $(LTLIBINTL)
 xineplug_decode_libjpeg_la_CFLAGS = $(AM_CFLAGS) $(JPEG_CFLAGS)
+
+xineplug_decode_libpng_la_SOURCES = libpng.c
+xineplug_decode_libpng_la_LIBADD = $(XINE_LIB) $(LIBPNG_LIBS) $(LTLIBINTL)
+xineplug_decode_libpng_la_CFLAGS = $(AM_CFLAGS) $(LIBPNG_CFLAGS)
 
 xineplug_decode_libopenhevc_la_SOURCES = libopenhevc.c
 xineplug_decode_libopenhevc_la_LIBADD = $(XINE_LIB) $(OPENHEVC_LIBS) -lm
