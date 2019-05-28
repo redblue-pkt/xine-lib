@@ -723,7 +723,7 @@ static XvImage *create_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
    */
 
   if (!this->use_shm) {
-    char *data;
+    char *data = NULL;
 
     switch (format) {
     case XINE_IMGFMT_YV12:
