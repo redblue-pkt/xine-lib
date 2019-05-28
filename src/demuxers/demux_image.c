@@ -57,13 +57,32 @@ typedef struct demux_image_s {
 } demux_image_t ;
 
 
+static uint32_t _probe(const uint8_t *header)
+{
+  if (memcmp (header, "GIF", 3) == 0) { /* GIF */
+    return BUF_VIDEO_IMAGE;
+  }
+  if (memcmp (header, "BM", 2) == 0) { /* BMP */
+    return BUF_VIDEO_IMAGE;
+  }
+  if (memcmp (header, "\x89PNG", 4) == 0) { /* PNG */
+    return BUF_VIDEO_IMAGE;
+  }
+  if (memcmp (header, "\377\330\377", 3) == 0 || /* JPEG */
+      (_X_BE_16(&header[0]) == 0xffd8) ) { /* another JPEG */
+    return BUF_VIDEO_JPEG;
+  }
+  return 0;
+}
+
+
 static int demux_image_get_status (demux_plugin_t *this_gen) {
   demux_image_t *this = (demux_image_t *) this_gen;
 
   return this->status;
 }
 
-static int demux_image_next (demux_plugin_t *this_gen, int preview, int first_fragment) {
+static int demux_image_next (demux_plugin_t *this_gen, int preview) {
   demux_image_t *this = (demux_image_t *) this_gen;
   buf_element_t *buf = this->video_fifo->buffer_pool_size_alloc (this->video_fifo, this->bytes_left);
 
@@ -80,12 +99,13 @@ static int demux_image_next (demux_plugin_t *this_gen, int preview, int first_fr
     buf->decoder_flags |= BUF_FLAG_FRAME_END;
     this->status = DEMUX_FINISHED;
   } else {
-    if (first_fragment &&
-        ( memcmp (buf->content, "\377\330\377", 3) == 0 || /* JPEG */
-          (_X_BE_16(&buf->content[0]) == 0xffd8))) {        /* another JPEG */
-          this->buf_type = BUF_VIDEO_JPEG;
-        }
-
+    if (!this->buf_type) {
+      this->buf_type = _probe(buf->content);
+      if (!this->buf_type) {
+        /* allow forcing any file to generic image decoders */
+        this->buf_type = BUF_VIDEO_IMAGE;
+      }
+    }
     this->status = DEMUX_OK;
   }
 
@@ -99,7 +119,7 @@ static int demux_image_next (demux_plugin_t *this_gen, int preview, int first_fr
 }
 
 static int demux_image_send_chunk (demux_plugin_t *this_gen) {
-  return demux_image_next(this_gen, 0, 0);
+  return demux_image_next(this_gen, 0);
 }
 
 static void demux_image_send_headers (demux_plugin_t *this_gen) {
@@ -118,8 +138,7 @@ static void demux_image_send_headers (demux_plugin_t *this_gen) {
     this->bytes_left = 0;
 
   /* we can send everything here. this makes image decoder a lot easier */
-  demux_image_next(this_gen, 1, 1);
-  while (demux_image_next(this_gen, 1, 0) == DEMUX_OK);
+  while (demux_image_next(this_gen, 1) == DEMUX_OK);
 
   this->status = DEMUX_OK;
 
@@ -170,7 +189,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 				    input_plugin_t *input) {
 
   demux_image_t *this;
-  int buf_type = BUF_VIDEO_IMAGE;
+  int buf_type = 0;
 
   switch (stream->content_detection_method) {
 
@@ -179,13 +198,9 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     if (_x_demux_read_header(input, header, IMAGE_HEADER_LEN) != IMAGE_HEADER_LEN) {
       return NULL;
     }
-    if (memcmp (header, "GIF", 3) == 0 /* GIF */
-        || memcmp (header, "BM", 2) == 0 /* BMP */
-        || memcmp (header, "\377\330\377", 3) == 0 /* JPEG */
-	|| (_X_BE_16(&header[0]) == 0xffd8) /* another JPEG */
-	|| memcmp (header, "\x89PNG", 4) == 0) { /* PNG */
+    buf_type = _probe(header);
+    if (buf_type)
       break;
-    }
     return NULL;
   }
   break;
