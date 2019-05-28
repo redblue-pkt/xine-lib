@@ -154,6 +154,18 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
     fi
     AM_CONDITIONAL([ENABLE_LIBJPEG], [test x"$have_libjpeg" = x"yes"])
 
+    dnl libpng (optional; enabled by default)
+    AC_ARG_ENABLE([libpng],
+                  [AS_HELP_STRING([--enable-libpng], [Enable libpng support (default: enabled)])],
+                  [test x"$enableval" != x"no" && enable_libpng="yes"])
+    if test x"$enable_libpng" != x"no"; then
+        PKG_CHECK_MODULES([LIBPNG], [libpng >= 1.6.0], [have_libpng=yes], [have_libpng=no])
+        if test x"$enable_libpng" = x"yes" && test x"$have_libpng" != x"yes"; then
+             AC_MSG_ERROR([libpng support requested, but libpng not found])
+        fi
+    fi
+    AM_CONDITIONAL([ENABLE_LIBPNG], [test x"$have_libpng" = x"yes"])
+
     dnl ImageMagick (optional; enabled by default)
     AC_ARG_WITH([imagemagick],
                 [AS_HELP_STRING([--with-imagemagick], [Enable ImageMagick image decoder support (default: enabled)])],
