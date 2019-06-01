@@ -1677,7 +1677,8 @@ static uint32_t opengl2_get_capabilities( vo_driver_t *this_gen )
          VO_CAP_HUE |
          VO_CAP_SATURATION |
          VO_CAP_CONTRAST |
-         VO_CAP_BRIGHTNESS;
+         VO_CAP_BRIGHTNESS |
+         VO_CAP_SHARPNESS;
 }
 
 
