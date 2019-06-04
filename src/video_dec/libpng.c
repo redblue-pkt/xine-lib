@@ -87,7 +87,7 @@ static void _user_read(png_structp png, png_bytep data, png_size_t length)
 {
   dec_data *this = (dec_data *)png_get_io_ptr(png);
 
-  if (this->pos + length > this->size) {
+  if (this->pos + length > (png_size_t)this->size) {
     xprintf(this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
             "not enough data\n");
     return;
@@ -103,7 +103,7 @@ static void _user_read(png_structp png, png_bytep data, png_size_t length)
 
 static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
 {
-  vo_frame_t *img = NULL;
+  vo_frame_t *img;
   int         max_width, max_height;
   uint8_t    *slice_start[3] = {NULL, NULL, NULL};
   int         frame_flags = VO_BOTH_FIELDS;
@@ -111,12 +111,12 @@ static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
   int         cm;
   void       *rgb2yuy2;
 
-  png_uint_32 width, height;
+  png_uint_32 width, height, y;
   png_structp png;
   png_infop   png_info, png_end_info;
   int         color_type, interlace_type, compression_type, filter_type, bit_depth;
   png_bytep  *row_pointers = NULL;
-  int         y, linesize;
+  int         linesize;
 
   dec_data png_data = {
     .xine   = this->stream->xine,
@@ -208,9 +208,9 @@ static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
   max_height = this->stream->video_out->get_property(this->stream->video_out,
                                                      VO_PROP_MAX_VIDEO_HEIGHT);
   /* crop when image is too large for vo */
-  if (max_width > 0 && width > max_width)
+  if (max_width > 0 && width > (png_uint_32)max_width)
     width = max_width;
-  if (max_height > 0 && height > max_height)
+  if (max_height > 0 && height > (png_uint_32)max_height)
     height = max_height;
 
   /* check full range capability */
@@ -246,7 +246,7 @@ static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
 
   rgb2yuy2 = rgb2yuy2_alloc (cm, "rgb");
   if (!rgb2yuy2)
-    goto error;
+    goto error_img;
 
   for (y = 0; y < height; y += 16) {
     int lines = y + 16 <= height ? 16 : height - y;
@@ -287,10 +287,10 @@ static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
 
   img->draw(img, this->stream);
 
+ error_img:
+  img->free(img);
  error:
   png_destroy_read_struct(&png, &png_info, &png_end_info);
-  if (img)
-    img->free(img);
  out:
   this->pts = 0;
 }
@@ -388,6 +388,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
 
 static void *init_class (xine_t *xine, const void *data) {
 
+  (void)xine;
   (void)data;
 
   static video_decoder_class_t decode_video_png_class = {
