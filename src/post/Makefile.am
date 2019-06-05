@@ -240,4 +240,4 @@ xineplug_post_goom_la_SOURCES = \
 	goom/v3d.c \
 	goom/v3d.h \
 	goom/xine_goom.c
-xineplug_post_goom_la_LIBADD = $(XINE_LIB) $(GOOM_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) -lm libpost_goom_asm.la
+xineplug_post_goom_la_LIBADD = $(XINE_LIB) $(GOOM_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(MVEC_LIB) -lm libpost_goom_asm.la
