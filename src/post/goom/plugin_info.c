@@ -185,7 +185,7 @@ void plugin_info_init(PluginInfo *pp, int nbVisuals) {
     pp->main_script_str = GOOM_MAIN_SCRIPT;
     */
 	for (i = 0; i < 0xffff; i++) {
-		pp->sintable[i] = (int) (1024 * sin ((double) i * 360 / (sizeof (pp->sintable) / sizeof (pp->sintable[0]) - 1) * 3.141592 / 180) + .5);
+		pp->sintable[i] = (int) (1024 * sin ((double) i * 360 / (sizeof (pp->sintable) / sizeof (pp->sintable[0]) - 1) * M_PI / 180) + .5);
 		/* sintable [us] = (int)(1024.0f * sin (us*2*3.31415f/0xffff)) ; */
 	}
 }
