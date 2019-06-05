@@ -426,7 +426,6 @@ static int fame_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
 {
   fame_data_t *this = (fame_data_t *)drv->enc;
-  char tmpstr[128];
   ssize_t written;
   int size;
 
@@ -456,7 +455,7 @@ static int fame_on_display_frame(dxr3_driver_t *drv, dxr3_frame_t *frame)
   }
   if (written != size)
     xprintf(drv->class->xine, XINE_VERBOSITY_DEBUG,
-	    "dxr3_mpeg_encoder: Could only write %d of %d mpeg bytes.\n",
+	    "dxr3_mpeg_encoder: Could only write %ld of %d mpeg bytes.\n",
       written, size);
   return 1;
 }

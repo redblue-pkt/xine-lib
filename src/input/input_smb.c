@@ -245,14 +245,14 @@ static xine_mrl_t **smb_class_get_dir (input_class_t *this_gen,
 	int i;
 	struct smbc_dirent  *pdirent;
 	char current_path [XINE_PATH_MAX + 1];
-	char current_path_smb [XINE_PATH_MAX + 1];
+	char current_path_smb [XINE_PATH_MAX + 2];
 	int num_files=0;
 	if (filename != NULL && strlen(filename)>6){
-		snprintf(current_path, XINE_PATH_MAX, "%s",filename);
-		snprintf(current_path_smb, XINE_PATH_MAX, "%s/",current_path);
+		snprintf_buf(current_path, "%s",filename);
+		snprintf_buf(current_path_smb, "%s/",current_path);
 	}else{
-		snprintf(current_path, XINE_PATH_MAX, "smb:/");
-		snprintf(current_path_smb, XINE_PATH_MAX, "smb://");
+		strcpy(current_path, "smb:/");
+		strcpy(current_path_smb, "smb://");
 	}
 
 	if ((dir = smbc_opendir(current_path_smb)) >= 0){

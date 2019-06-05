@@ -561,7 +561,7 @@ static uint32_t file_input_get_file_type (char *filepathname, char *origin, xine
 
   (void)xine;
   if((lstat(filepathname, &pstat)) < 0) {
-    snprintf(buf, sizeof(buf), "%s/%s", origin, filepathname);
+    snprintf_buf(buf, "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0) {
       lprintf ("lstat failed for %s{%s}\n", filepathname, origin);
       file_type |= mrl_unknown;
@@ -604,10 +604,10 @@ static uint32_t file_input_get_file_type (char *filepathname, char *origin, xine
  */
 static off_t file_input_get_file_size (const char *filepathname, const char *origin) {
   struct stat  pstat;
-  char         buf[XINE_PATH_MAX + XINE_NAME_MAX + 1];
+  char         buf[XINE_PATH_MAX * 2 + XINE_NAME_MAX + 3];
 
   if((lstat(filepathname, &pstat)) < 0) {
-    snprintf(buf, sizeof(buf), "%s/%s", origin, filepathname);
+    snprintf_buf(buf, "%s/%s", origin, filepathname);
     if((lstat(buf, &pstat)) < 0)
       return (off_t) 0;
   }
@@ -624,8 +624,8 @@ static xine_mrl_t **file_input_class_get_dir (input_class_t *this_gen, const cha
   DIR                  *pdir;
   xine_mrl_t           *hide_files, *dir_files, *norm_files;
   char                  current_dir[XINE_PATH_MAX + 1];
-  char                  current_dir_slashed[XINE_PATH_MAX + 1];
-  char                  fullfilename[XINE_PATH_MAX + XINE_NAME_MAX + 1];
+  char                  current_dir_slashed[XINE_PATH_MAX + 2];
+  char                  fullfilename[XINE_PATH_MAX + XINE_NAME_MAX + 2];
   int                   num_hide_files  = 0;
   int                   num_dir_files   = 0;
   int                   num_norm_files  = 0;
@@ -643,10 +643,10 @@ static xine_mrl_t **file_input_class_get_dir (input_class_t *this_gen, const cha
    * No origin location, so got the content of the current directory
    */
   if(!filename) {
-    snprintf(current_dir, XINE_PATH_MAX, "%s", this->origin_path);
+    snprintf_buf(current_dir, "%s", this->origin_path);
   }
   else {
-    snprintf(current_dir, XINE_PATH_MAX, "%s", filename);
+    snprintf_buf(current_dir, "%s", filename);
 
     /* Remove exceed '/' */
     while((current_dir[strlen(current_dir) - 1] == '/') && strlen(current_dir) > 1)
@@ -659,7 +659,7 @@ static xine_mrl_t **file_input_class_get_dir (input_class_t *this_gen, const cha
   this->xine->config->update_string(this->xine->config, "media.files.origin_path", current_dir);
 
   if(strcasecmp(current_dir, "/"))
-    snprintf(current_dir_slashed, sizeof(current_dir_slashed), "%s/", current_dir);
+    snprintf_buf(current_dir_slashed, "%s/", current_dir);
   else
     strcpy(current_dir_slashed, "/");
 
@@ -670,7 +670,7 @@ static xine_mrl_t **file_input_class_get_dir (input_class_t *this_gen, const cha
 
     if(!already_tried) {
       /* Try one more time with user homedir */
-      snprintf(current_dir, XINE_PATH_MAX, "%s", xine_get_homedir());
+      snprintf_buf(current_dir, "%s", xine_get_homedir());
       already_tried++;
       goto try_again_from_home;
     }
@@ -685,7 +685,7 @@ static xine_mrl_t **file_input_class_get_dir (input_class_t *this_gen, const cha
   while((pdirent = readdir(pdir)) != NULL) {
 
     memset(fullfilename, 0, sizeof(fullfilename));
-    snprintf(fullfilename, sizeof(fullfilename), "%s/%s", current_dir, pdirent->d_name);
+    snprintf_buf(fullfilename, "%s/%s", current_dir, pdirent->d_name);
 
     if(file_input_is_dir(fullfilename)) {
 

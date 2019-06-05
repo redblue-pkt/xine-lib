@@ -89,6 +89,8 @@
 #endif
 #include <xine/attributes.h>
 
+/* convenience */
+#define snprintf_buf(buffer, ...) snprintf(buffer, sizeof(buffer), __VA_ARGS__)
 
 #if defined(WIN32) || defined(__CYGWIN__)
 #  define XINE_PATH_SEPARATOR_STRING ";"

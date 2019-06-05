@@ -73,6 +73,7 @@
 
 #define SCRATCH_SIZE 1024
 #define MAX_TARGET_LEN 256
+#define MAX_TARGET_LEN_SUFFIXED (MAX_TARGET_LEN + 16)
 #define SEEK_TIMEOUT 2.5
 
 typedef struct {
@@ -551,7 +552,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   input_plugin_t *main_plugin = stream->input_plugin;
   struct stat pstat;
   const char *mode;
-  char target[MAX_TARGET_LEN], target_no[MAX_TARGET_LEN];
+  char target[MAX_TARGET_LEN], target_no[MAX_TARGET_LEN_SUFFIXED];
   char *fnc, *target_basename;
   int i;
 
@@ -616,7 +617,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
       break;
     }
 
-    snprintf(target_no, MAX_TARGET_LEN, "%s.%d", target, i);
+    snprintf_buf(target_no, "%s.%d", target, i);
     i++;
   } while(1);
   free(fnc);
