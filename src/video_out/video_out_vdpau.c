@@ -1644,7 +1644,7 @@ static void vdpau_update_csc_matrix (vdpau_driver_t *this, vdpau_frame_t *frame)
   if ( this->update_csc || this->color_matrix != color_matrix ) {
     VdpStatus st;
     VdpCSCMatrix matrix;
-    float hue = (float)this->hue * 3.14159265359 / 128.0;
+    float hue = (float)this->hue * M_PI / 128.0;
     float saturation = (float)this->saturation / 128.0;
     float contrast = (float)this->contrast / 128.0;
     float brightness = this->brightness;

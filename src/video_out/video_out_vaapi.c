@@ -1654,7 +1654,7 @@ static void vaapi_update_csc (vaapi_driver_t *that, vaapi_frame_t *frame) {
 
     if (that->csc_mode == CSC_MODE_USER_MATRIX) {
       /* WOW - full support */
-      float hue = (vaapi_normalized_prop (that, VO_PROP_HUE) - 1.0) * 3.14159265359;
+      float hue = (vaapi_normalized_prop (that, VO_PROP_HUE) - 1.0) * M_PI;
       float saturation = vaapi_normalized_prop (that, VO_PROP_SATURATION);
       float contrast = vaapi_normalized_prop (that, VO_PROP_CONTRAST);
       float brightness = (vaapi_normalized_prop (that, VO_PROP_BRIGHTNESS) - 1.0) * 128.0;

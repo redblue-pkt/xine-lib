@@ -276,7 +276,6 @@ static const char *bicubic_pass2_frag=
 
 
 
-#define PI 3.14159265359
 #define LUTWIDTH 1000
 #define N_SPLINES 2
 #define CATMULLROM_SPLINE   0
@@ -286,7 +285,7 @@ static float compute_cos_spline( float x )
 {
     if ( x < 0.0 )
         x = -x;
-    return 0.5 * cos( PI * x / 2.0 ) + 0.5;
+    return 0.5 * cos( M_PI * x / 2.0 ) + 0.5;
 }
 
 static float compute_catmullrom_spline( float x )
@@ -854,7 +853,7 @@ static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *
   color_standard = cm_from_frame (&frame->vo_frame);
 
   if ( that->update_csc || that->color_standard != color_standard ) {
-    float hue = (float)that->hue * 3.14159265359 / 128.0;
+    float hue = (float)that->hue * M_PI / 128.0;
     float saturation = (float)that->saturation / 128.0;
     float contrast = (float)that->contrast / 128.0;
     float brightness = that->brightness;

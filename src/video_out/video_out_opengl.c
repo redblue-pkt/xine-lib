@@ -132,8 +132,7 @@
 #  define YUV_SWAP_MODE      0
 #endif
 
-#define MY_PI                3.1415926
-#define MY_2PI               6.2831853
+#define MY_2PI               (M_PI * 2)
 
 
 typedef struct {
