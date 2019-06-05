@@ -618,8 +618,7 @@ static int id3v24_parse_genre(char* dest, const char *src, size_t len) {
   dest[0] = '\0';
   if (sscanf(src, "%u", &index) == 1) {
     if (index < ID3_GENRE_COUNT) {
-      strncpy(dest, id3_genre[index], len);
-      dest[len - 1] = '\0';
+      strlcpy(dest, id3_genre[index], len);
     } else {
       lprintf("invalid index: %u\n", index);
     }

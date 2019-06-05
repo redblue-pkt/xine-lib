@@ -263,7 +263,7 @@ typedef struct {
   char		     *content;
 
   /* Age recommendation. 0 if not available. */
-  int		      rating;
+  short int	      rating;
 
   time_t             starttime;
 
@@ -877,7 +877,7 @@ static channel_t *load_channels(xine_t *xine, xine_stream_t *stream, int *num_ch
   int        num_alloc = 0;
   struct stat st;
 
-  snprintf(filename, BUFSIZE, "%s/"PACKAGE"/channels.conf", xdgConfigHome(&xine->basedir_handle));
+  snprintf_buf(filename, "%s/"PACKAGE"/channels.conf", xdgConfigHome(&xine->basedir_handle));
 
   f = fopen(filename, "r");
   if (!f) {
@@ -1816,7 +1816,6 @@ static void show_program_info(int x, int y, int max_x, int max_y, int* last_y,
   int content_width = 0;
   int text_height = 0;
   int time_height = 0;
-  int prog_rating;
   struct tm* starttime = NULL;
 
   *last_y = y;
@@ -1843,9 +1842,8 @@ static void show_program_info(int x, int y, int max_x, int max_y, int* last_y,
   if (strlen(epg_data->content) > 3) {
     strncpy(buffer, epg_data->content, 94-1);
 
-    prog_rating = epg_data->rating;
-    if (prog_rating > 0) {
-      snprintf(buffer + strlen(buffer), 7, " (%i+)", prog_rating);
+    if (epg_data->rating > 0) {
+      snprintf(buffer + strlen(buffer), 11, " (%i+)", epg_data->rating);
     }
     if (!renderer->set_font(osd, "sans", EPG_CONTENT_FONT_SIZE)) {
 	print_error("Setting content type font failed.");
@@ -2149,7 +2147,7 @@ static int switch_channel(dvb_input_plugin_t *this, int channel) {
 
   xine_event_send (this->stream, &event);
 
-  snprintf (ui_data.str, strlen(this->channels[channel].name)+1, "%s", this->channels[channel].name);
+  strlcpy (ui_data.str, this->channels[channel].name, sizeof(ui_data.str));
   ui_data.str_len = strlen (ui_data.str);
   _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, ui_data.str);
 
@@ -2218,15 +2216,15 @@ static void do_record (dvb_input_plugin_t *this) {
         && strlen(savedir.str_value) > 1) {
 
         if((dir = opendir(savedir.str_value))==NULL){
-          snprintf (filename, 256, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
+          snprintf_buf (filename, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
           xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"savedir is wrong... saving to home directory\n");
         } else {
           closedir(dir);
-          snprintf (filename, 256, "%s/%s_%s.ts",savedir.str_value,this->channels[this->channel].name, dates);
+          snprintf_buf(filename, "%s/%s_%s.ts",savedir.str_value,this->channels[this->channel].name, dates);
           xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"saving to savedir\n");
         }
     } else {
-        snprintf (filename, 256, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
+        snprintf_buf(filename, "%s/%s_%s.ts",xine_get_homedir(),this->channels[this->channel].name, dates);
         xprintf(this->stream->xine,XINE_VERBOSITY_LOG,"Saving to HomeDir\n");
     }
     /* remove spaces from name */
@@ -3025,7 +3023,7 @@ static int dvb_plugin_open(input_plugin_t * this_gen)
     /*
      * init metadata (channel title)
      */
-    snprintf(str, 256, "%s", this->channels[this->channel].name);
+    snprintf_buf(str, "%s", this->channels[this->channel].name);
 
     _x_meta_info_set(this->stream, XINE_META_INFO_TITLE, str);
 

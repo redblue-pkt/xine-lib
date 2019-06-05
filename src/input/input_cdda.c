@@ -1411,7 +1411,7 @@ static void _cdda_mkdir_safe(xine_t *xine, char *path) {
     WIN32_FIND_DATA FileData;
 
     // Get the proper directory path
-    snprintf(szDir, sizeof(szDir), "%s\\*", path);
+    snprintf_buf(szDir, "%s\\*", path);
 
     // Get the first file
     hList = FindFirstFile(szDir, &FileData);
@@ -1633,7 +1633,7 @@ static int _cdda_load_cached_cddb_infos(cdda_input_plugin_t *this) {
     while((pdir = readdir(dir)) != NULL) {
       char discid[9];
 
-      snprintf(discid, sizeof(discid), "%08" PRIx32, this->cddb.disc_id);
+      snprintf_buf(discid, "%08" PRIx32, this->cddb.disc_id);
 
       if(!strcasecmp(pdir->d_name, discid)) {
 	FILE *fd;
@@ -1724,7 +1724,7 @@ static int _cdda_cddb_socket_open(cdda_input_plugin_t *this) {
     char server[2048];
     int port;
     pthread_mutex_lock (&class->mutex);
-    strlcpy (server, class->cddb_server, 2048);
+    strlcpy (server, class->cddb_server, sizeof(server));
     port = class->cddb_port;
     pthread_mutex_unlock (&class->mutex);
     sock = _x_io_tcp_connect (this->stream, server, port);
@@ -1801,7 +1801,7 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
      * that most people don't like.
      */
     memset(&buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer), "cddb hello unknown localhost xine %s\n", VERSION);
+    snprintf_buf(buffer, "cddb hello unknown localhost xine %s\n", VERSION);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_cdda: error while sending cddb hello command.\n");
@@ -1821,7 +1821,7 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     /* For UTF-8 support - use protocol 6 */
 
     memset(&buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer), "proto %d\n", CDDB_PROTOCOL);
+    snprintf_buf(buffer, "proto %d\n", CDDB_PROTOCOL);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_cdda: error while sending cddb protocol command.\n");
@@ -1908,7 +1908,7 @@ static int _cdda_cddb_retrieve(cdda_input_plugin_t *this) {
     }
     /* Send read command */
     memset(&buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer), "cddb read %s %s\n", this->cddb.disc_category, this->cddb.cdiscid);
+    snprintf_buf(buffer, "cddb read %s %s\n", this->cddb.disc_category, this->cddb.cdiscid);
     if ((err = _cdda_cddb_send_command(this, buffer)) <= 0) {
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	      "input_cdda: error while sending cddb read command.\n");
@@ -1985,14 +1985,14 @@ static void _cdda_cdindex(cdda_input_plugin_t *this, cdrom_toc_t *toc) {
 
   sha160_init (&sha);
 
-  snprintf (temp, sizeof(temp), "%02X%02X%08X",
+  snprintf_buf (temp, "%02X%02X%08X",
     toc->first_track,
     toc->last_track - toc->ignore_last_track,
     toc->toc_entries[toc->total_tracks].first_frame); /* + 150 */
   sha160_update (&sha, temp, 12);
 
   for (i = toc->first_track; i <= toc->last_track - toc->ignore_last_track; i++) {
-    snprintf (temp, sizeof(temp), "%08X", toc->toc_entries[i - 1].first_frame);
+    snprintf_buf (temp, "%08X", toc->toc_entries[i - 1].first_frame);
     sha160_update (&sha, temp, 8);
   }
 
@@ -2559,8 +2559,8 @@ static int cdda_plugin_open (input_plugin_t *this_gen ) {
     }
     lprintf("Track %d Title: %s\n", this->track+1, pt);
 
-    char tracknum[4];
-    snprintf(tracknum, 4, "%d", this->track+1);
+    char tracknum[16];
+    snprintf_buf(tracknum, "%d", this->track+1);
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_TRACK_NUMBER, tracknum);
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_TITLE, pt);
   }

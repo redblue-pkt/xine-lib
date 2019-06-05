@@ -634,10 +634,10 @@ static void update_chapter_display (demux_ogg_t *this, int stream_num, ogg_packe
       if (this->meta[XINE_META_INFO_TITLE]) {
         data.str_len = snprintf(data.str, sizeof(data.str), "%s / %s", this->meta[XINE_META_INFO_TITLE], this->chapter_info->entries[chapter].name);
       } else {
-	strncpy(data.str, this->chapter_info->entries[chapter].name, sizeof(data.str)-1);
+	strlcpy(data.str, this->chapter_info->entries[chapter].name, sizeof(data.str));
       }
     } else {
-      strncpy(data.str, this->meta[XINE_META_INFO_TITLE], sizeof(data.str));
+      strlcpy(data.str, this->meta[XINE_META_INFO_TITLE], sizeof(data.str));
     }
     if ( data.str_len == 0 )
       data.str_len = strlen(data.str);
