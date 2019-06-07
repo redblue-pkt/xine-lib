@@ -1279,7 +1279,7 @@ fprintf(stderr, "C =============================================\n");
         result_video_size.height = -1;
         result_video_size.ratio  = 0;
 
-        xine_get_current_frame(this->stream, &result_video_size.width, &result_video_size.height, &result_video_size.ratio, &format, 0);
+        xine_get_current_frame_s(this->stream, &result_video_size.width, &result_video_size.height, &result_video_size.ratio, &format, NULL, NULL);
 
         if (result_video_size.ratio == XINE_VO_ASPECT_SQUARE)
           result_video_size.ratio = 10000;
