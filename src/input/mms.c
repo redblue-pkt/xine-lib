@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002-2018 the xine project
+ * Copyright (C) 2002-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -526,7 +526,7 @@ static int interp_asf_header (mms_t *this) {
 
 static const char mmst_proto_s[][8] = { "mms", "mmst", "" };
 
-static int mmst_valid_proto (char *proto) {
+static int mmst_valid_proto (const char *proto) {
   int i = 0;
 
   lprintf("mmst_valid_proto\n");

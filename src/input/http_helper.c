@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -24,42 +24,346 @@
 #include "config.h"
 #endif
 
+#include <malloc.h>
 #include <string.h>
-#include <ctype.h>
+#include <stdint.h>
 
 #include <xine/xine_internal.h>
 #include "http_helper.h"
 
-static inline int _get_hex(char c)
-{
-  if (c >= '0' && c <= '9')
-    return c - '0';
-  if (c >= 'a' && c <= 'f')
-    return c + 10 - 'a';
-  if (c >= 'A' && c <= 'F')
-    return c + 10 - 'A';
-  return 0;
-}
+static const int8_t tab_unhex[256] = {
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+   0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1,
+  -1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,10,11,12,13,14,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+};
 
-static inline char *unescape(const char *s, size_t len)
-{
-  char *r, *d;
-
-  r = malloc(len + 1);
-  if (r) {
-    for (d = r; *s && len; len--) {
-      if (s[0] == '%' && len >= 3 && isxdigit(s[1]) && isxdigit(s[2])) {
-        *d++ = (_get_hex(s[1]) << 4) | _get_hex(s[2]);
-        s += 3;
-        len -= 2;
-      } else {
-        *d++ = *s++;
+static void unescape (char **d, const char *s, size_t len) {
+  const uint8_t *r = (const uint8_t *)s, *e = r + len;
+  uint8_t *w = (uint8_t *)*d;
+  while (r < e) {
+    if ((r[0] == '%') && (r + 3 <= e)) {
+      int32_t v = ((int32_t)tab_unhex[r[1]] << 4) | (int32_t)tab_unhex[r[2]];
+      if (v >= 0) {
+        *w++ = v;
+        r += 3;
+        continue;
       }
     }
-    *d = 0;
+    *w++ = *r++;
+  }
+  *d = (char *)w;
+}
+
+static const uint8_t tab_esclen[256] = {
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+};
+
+static const uint8_t tab_hex[256] = "0123456789abcdef";
+
+static size_t esclen (const char *s, size_t len) {
+  const uint8_t *r = (const uint8_t *)s, *e = r + len;
+  size_t n = 0;
+  while (r < e)
+    n += tab_esclen[*r++];
+  return n;
+}
+
+static void escape (char **d, const char *s, size_t len) {
+  const uint8_t *r = (const uint8_t *)s, *e = r + len;
+  uint8_t *w = (uint8_t *)*d;
+  while (r < e) {
+    if (tab_esclen[*r] == 3) {
+      *w++ = '%';
+      *w++ = tab_hex[(*r) >> 4];
+      *w++ = tab_hex[(*r) & 15];
+      r++;
+    } else {
+      *w++ = *r++;
+    }
+  }
+  *d = (char *)w;
+}
+
+/* XXX: nullsoft paths start with a ';'. supporting this means:
+ *      no ';' in host names, and escaping ';' in user names and passwords :-/
+ * 0x01  : ; / [ @ ? # end
+ * 0x02  ] end
+ * 0x04  ; / end (unused)
+ * 0x08  ? # end
+ * 0x10  # end
+ * 0x20  end
+ * 0x40  : ; / ? # end
+ * 0x80  ; / ? # end
+ */
+static const uint8_t tab_type[256] = {
+  0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+  0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+     0,   0,   0,0xd9,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0xc5,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0x41,0xc5,   0,   0,   0,0xc9,
+  0x01,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0x01,   0,0x02,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0
+};
+
+typedef struct {
+  uint32_t    prot_start, prot_stop;
+  uint32_t    user_start, user_stop;
+  uint32_t    pass_start, pass_stop;
+  uint32_t    host_start, host_stop;
+  uint32_t    path_start, path_stop;
+  uint32_t    args_start, args_stop;
+  uint32_t    info_start, info_stop;
+  uint32_t    port;
+} mrlp_t;
+
+int _x_url_parse2 (const char *mrl, xine_url_t *url) {
+  mrlp_t res;
+  const uint8_t *r = (const uint8_t *)mrl, *b = r;
+
+  if (!mrl || !url)
+    return 0;
+
+  do {
+    const uint8_t *s = r;
+    /* prot */
+    res.prot_start = res.prot_stop = 0;
+    res.pass_start = 0;
+    while (!(tab_type[*r] & 0x01))
+      r++;
+    if ((r[0] == ':') && (r[1] == '/') && (r[2] == '/')) {
+      res.prot_stop  = r - b;
+      r += 3;
+      s = r;
+      while (!(tab_type[*r] & 0x01))
+        r++;
+    }
+    /* user */
+    res.user_stop = r - b;
+    if (r[0] == ':') {
+      r++;
+      res.pass_start = r - b;
+      while (!(tab_type[*r] & 0x01))
+        r++;
+    }
+    if (r[0] == '@') {
+      res.user_start = s - b;
+      res.pass_stop = r - b;
+      r++;
+      if (res.pass_start == 0)
+        res.user_stop = res.pass_start = res.pass_stop;
+    } else {
+      res.user_start = res.user_stop = 0;
+      res.pass_start = res.pass_stop = 0;
+      r = s;
+    }
+  } while (0);
+
+  /* host */
+  if (r[0] == '[') { /* ip6 */
+    r++;
+    res.host_start = r - b;
+    while (!(tab_type[*r] & 0x02))
+      r++;
+    res.host_stop = r - b;
+    if (r[0] != ']')
+      return 0;
+    r++;
+  } else { /* ip4 */
+    res.host_start = r - b;
+    while (!(tab_type[*r] & 0x40))
+      r++;
+    res.host_stop = r - b;
   }
 
-  return r;
+  /* port */
+  /* res.port_start = r - b; */
+  if (r[0] == ':') {
+    const uint8_t *s;
+    uint32_t v = 0;
+    uint8_t z;
+    r++;
+    s = r;
+    /* res.port_start = r - b; */
+    while ((z = *r ^ '0') < 10)
+      v = v * 10u + z, r++;
+    res.port = v;
+    /* port set but empty */
+    if (r == s)
+      return 0;
+    /* neither path, args, nor info follows */
+    if (!(tab_type[*r] & 0x80))
+      return 0;
+  } else {
+    res.port = 0;
+  }
+  /* res.port_stop = r - b; */
+
+  /* path */
+  res.path_start = r - b;
+  while (!(tab_type[*r] & 0x08))
+    r++;
+  res.path_stop = r - b;
+
+  /* args */
+  res.args_start = r - b;
+  if (r[0] == '?') {
+    r++;
+    res.args_start = r - b;
+    while (!(tab_type[*r] & 0x10))
+      r++;
+  }
+  res.args_stop = r - b;
+
+  /* info */
+  res.info_start = r - b;
+  if (r[0] == '#') {
+    r++;
+    res.info_start = r - b;
+    while (!(tab_type[*r] & 0x20))
+      r++;
+  }
+  res.info_stop = r - b;
+
+  if (res.host_start == res.host_stop) {
+    /* no host needs no prot as well */
+    if (res.prot_start != res.prot_stop)
+      return 0;
+    /* no host and no path?? */
+    if (res.path_start == res.path_stop)
+      return 0;
+  }
+
+  url->port = res.port;
+  {
+    char *q;
+    size_t pathlen = esclen ((const char *)b + res.path_start, res.path_stop - res.path_start);
+    size_t argslen = esclen ((const char *)b + res.args_start, res.args_stop - res.args_start);
+    size_t need = res.prot_stop - res.prot_start + 1
+                + res.host_stop - res.host_start + 1
+                + 2 * pathlen + argslen + 6
+                + res.args_stop - res.args_start + 1
+                + res.user_stop - res.user_start + 1
+                + res.pass_stop - res.pass_start + 1;
+    url->buf = malloc (need);
+    if (!url->buf)
+      return 0;
+    q = url->buf;
+
+    url->proto = q;
+    need = res.prot_stop - res.prot_start;
+    if (need) {
+      memcpy (q, b + res.prot_start, need);
+      q += need;
+    }
+    *q++ = 0;
+
+    url->host = q;
+    need = res.host_stop - res.host_start;
+    if (need) {
+      memcpy (q, b + res.host_start, need);
+      q += need;
+    }
+    *q++ = 0;
+
+    url->path = q;
+    need = res.path_stop - res.path_start;
+    if (need) {
+      /* yet another nullsoft HACK. */
+      if (b[res.path_start] == ';')
+        *q++ = '/';
+      escape (&q, (const char *)b + res.path_start, need);
+    } else {
+      /* empty path default */
+      *q++ = '/';
+    }
+    pathlen = q - url->path;
+    *q++ = 0;
+
+    url->uri = q;
+    if (pathlen) {
+      memcpy (q, url->path, pathlen);
+      q += pathlen;
+    }
+
+    url->args = q;
+    need = res.args_stop - res.args_start;
+    if (need) {
+      *q++ = '?';
+      escape (&q, (const char *)b + res.args_start, need);
+    }
+    *q++ = 0;
+
+    url->user = q;
+    need = res.user_stop - res.user_start;
+    if (need)
+      unescape (&q, (char *)b + res.user_start, need);
+    *q++ = 0;
+
+    url->password = q;
+    need = res.pass_stop - res.pass_start;
+    if (need)
+      unescape (&q, (char *)b + res.pass_start, need);
+    *q++ = 0;
+  }
+
+  return 1;
+}
+
+void _x_url_cleanup (xine_url_t *url) {
+  if (!url)
+    return;
+  url->proto = NULL;
+  url->host  = NULL;
+  url->port  = 0;
+  url->path  = NULL;
+  url->args  = NULL;
+  url->uri   = NULL;
+  url->user  = NULL;
+  if (url->buf && url->password) {
+    size_t n = strlen (url->password);
+    if (n)
+      memset (url->buf + (url->password - (const char *)url->buf), 0, n);
+  }
+  url->password  = NULL;
+  free (url->buf);
+  url->buf = NULL;
 }
 
 const char *_x_url_user_agent (const char *url)
@@ -69,236 +373,34 @@ const char *_x_url_user_agent (const char *url)
   return NULL;
 }
 
-static int _x_parse_url (const char *url,
-                  char **proto, char** host, int *port,
-                  char **user, char **password, char **uri,
-                  const char **user_agent)
-{
-  const char *start      = NULL;
-  const char *authcolon  = NULL;
-  const char *at         = NULL;
-  const char *portcolon  = NULL;
-  const char *slash      = NULL;
-  const char *semicolon  = NULL;
-  const char *end        = NULL;
-  char       *strtol_err = NULL;
-
-  _x_assert (url);
-  _x_assert (proto);
-  _x_assert (user);
-  _x_assert (password);
-  _x_assert (host);
-  _x_assert (port);
-  _x_assert (uri);
-
-  *proto    = NULL;
-  *port     = 0;
-  *user     = NULL;
-  *host     = NULL;
-  *password = NULL;
-  *uri      = NULL;
-
-  /* proto */
-  start = strstr(url, "://");
-  if (!start || (start == url))
-    goto error;
-
-  end  = start + strlen(start) - 1;
-  *proto = strndup(url, start - url);
-
-  if (user_agent)
-    *user_agent = _x_url_user_agent (url);
-
-  /* user:password */
-  start += 3;
-  at = strchr(start, '@');
-  slash = strchr(start, '/');
-
-  /* stupid Nullsoft URL scheme */
-  semicolon = strchr(start, ';');
-  if (semicolon && (!slash || (semicolon < slash)))
-    slash = semicolon;
-
-  if (at && slash && (at > slash))
-    at = NULL;
-
-  if (at) {
-    authcolon = strchr(start, ':');
-    if(authcolon && authcolon < at) {
-      *user = unescape(start, authcolon - start);
-      *password = unescape(authcolon + 1, at - authcolon - 1);
-      if ((authcolon == start) || (at == (authcolon + 1))) goto error;
-    } else {
-      /* no password */
-      *user = unescape(start, at - start);
-      if (at == start) goto error;
-    }
-    start = at + 1;
-  }
-
-  /* host:port (ipv4) */
-  /* [host]:port (ipv6) */
-  if (*start != '[')
-  {
-    /* ipv4*/
-    portcolon = strchr(start, ':');
-    if (slash) {
-      if (portcolon && portcolon < slash) {
-        *host = strndup(start, portcolon - start);
-        if (portcolon == start) goto error;
-        *port = strtol(portcolon + 1, &strtol_err, 10);
-        if ((strtol_err != slash) || (strtol_err == portcolon + 1))
-          goto error;
-      } else {
-        *host = strndup(start, slash - start);
-        if (slash == start) goto error;
-      }
-    } else {
-      if (portcolon) {
-        *host = strndup(start, portcolon - start);
-        if (portcolon < end) {
-          *port = strtol(portcolon + 1, &strtol_err, 10);
-          if (*strtol_err != '\0') goto error;
-        } else {
-          goto error;
-        }
-      } else {
-        if (*start == '\0') goto error;
-        *host = strdup(start);
-      }
-    }
-  } else {
-    /* ipv6*/
-    char *hostendbracket;
-
-    hostendbracket = strchr(start, ']');
-    if (hostendbracket != NULL) {
-      if (hostendbracket == start + 1) goto error;
-      *host = strndup(start + 1, hostendbracket - start - 1);
-
-      if (hostendbracket < end) {
-        /* Might have a trailing port */
-        if (*(hostendbracket + 1) == ':') {
-          portcolon = hostendbracket + 1;
-          if (portcolon < end) {
-            *port = strtol(portcolon + 1, &strtol_err, 10);
-            if ((*strtol_err != '\0') && (*strtol_err != '/')) goto error;
-          } else {
-            goto error;
-          }
-        }
-      }
-    } else {
-      goto error;
-    }
-  }
-
-  /* uri */
-  start = slash;
-  if (start) {
-    /* handle crazy Nullsoft URL scheme */
-    if (*start == ';') {
-      /* ";stream.nsv" => "/;stream.nsv" */
-      *uri = malloc(strlen(start) + 2);
-      *uri[0] = '/';
-      strcpy(*uri + 1, start);
-    } else {
-      static const char toescape[] = " #";
-      const char *itc = start;
-      unsigned int escapechars = 0;
-
-      while( itc && *itc ) {
-	if ( strchr(toescape, *itc) != NULL )
-	  escapechars++;
-	itc++;
-      }
-
-      if ( escapechars == 0 )
-	*uri = strdup(start);
-      else {
-	const size_t len = strlen(start);
-	size_t i;
-        char *it;
-
-	*uri = malloc(len + 1 + escapechars*2);
-	it = *uri;
-
-	for(i = 0; i < len; i++, it++) {
-	  if ( strchr(toescape, start[i]) != NULL ) {
-	    it[0] = '%';
-	    it[1] = ( (start[i] >> 4) > 9 ) ? 'A' + ((start[i] >> 4)-10) : '0' + (start[i] >> 4);
-	    it[2] = ( (start[i] & 0x0f) > 9 ) ? 'A' + ((start[i] & 0x0f)-10) : '0' + (start[i] & 0x0f);
-	    it += 2;
-	  } else
-	    *it = start[i];
-	}
-	*it = '\0';
-      }
-    }
-  } else {
-    *uri = strdup("/");
-  }
-
-  return 1;
-
-error:
-  _x_freep_wipe_string (password);
-  _x_freep (proto);
-  _x_freep (user);
-  _x_freep (host);
-  _x_freep (uri);
-  *port = 0;
-
-  return 0;
-}
-
-int _x_url_parse2(const char *mrl, xine_url_t *url)
-{
-  return _x_parse_url (mrl, &url->proto, &url->host, &url->port,
-                       &url->user, &url->password, &url->uri,
-                       NULL);
-}
-
-void _x_url_cleanup(xine_url_t *url)
-{
-  _x_freep_wipe_string (&url->password); /* no need to leak it */
-  _x_freep (&url->proto);
-  _x_freep (&url->user);
-  _x_freep (&url->host);
-  _x_freep (&url->uri);
-  url->port = 0;
-}
-
 #ifdef TEST_URL
 /*
  * url parser test program
  */
 
-static int check_url(char *url, int ok) {
-  char *proto, *host, *user, *password, *uri;
-  int port;
+static int check_url (char *mrl, int ok) {
+  xine_url_t url;
   int res;
 
   printf("--------------------------------\n");
-  printf("url=%s\n", url);
-  res = _x_parse_url (url,
-                      &proto, &host, &port, &user, &password, &uri, NULL);
+  printf ("url=%s\n", mrl);
+  res = _x_url_parse2 (mrl, &url);
   if (res) {
-    printf("proto=%s, host=%s, port=%d, user=%s, password=%s, uri=%s\n",
-           proto, host, port, user, password, uri);
-    free(proto);
-    free(host);
-    free(user);
-    free(password);
-    free(uri);
+    printf ("proto=%s, host=%s, port=%d, user=%s, password=%s, uri=%s\n",
+        url.proto, url.host, url.port, url.user, url.password, url.uri);
+    free (url.proto);
+    free (url.host);
+    free (url.user);
+    free (url.password);
+    free (url.uri);
   } else {
     printf("bad url\n");
   }
   if (res == ok) {
-    printf("test OK\n", url);
+    printf ("%s test OK\n", mrl);
     return 1;
   } else {
-    printf("test KO\n", url);
+    printf ("%s test KO\n", mrl);
     return 0;
   }
 }
