@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2002-2018 the xine project
+ * Copyright (C) 2002-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -432,7 +432,7 @@ static int interp_header (mmsh_t *this) {
 
 static const char mmsh_proto_s[][8] = { "mms", "mmsh", "" };
 
-static int mmsh_valid_proto (char *proto) {
+static int mmsh_valid_proto (const char *proto) {
   int i = 0;
 
   lprintf("mmsh_valid_proto\n");

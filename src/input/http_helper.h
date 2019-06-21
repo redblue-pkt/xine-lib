@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -47,12 +47,15 @@ const char *_x_url_user_agent (const char *url);
  */
 
 typedef struct {
-  char *proto;
-  char *host;
-  int   port;
-  char *user;
-  char *password;
-  char *uri;
+  const char *proto;
+  const char *host;
+  int         port;
+  const char *path;
+  const char *args;
+  const char *uri;  /* <path>[?<args>] */
+  const char *user;
+  const char *password;
+  char       *buf;
 } xine_url_t;
 
 int _x_url_parse2 (const char *mrl, xine_url_t *url);
