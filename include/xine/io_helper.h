@@ -73,6 +73,23 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) XI
  */
 int _x_io_tcp_connect(xine_stream_t *stream, const char *host, int port) XINE_PROTECTED XINE_USED;
 
+/* connect and handshake. */
+typedef enum {
+  /* return success. */
+  XIO_HANDSHAKE_OK = 1,
+  /* reopen same target, and try a different handshake (eg with/without tls). */
+  XIO_HANDSHAKE_TRY_SAME = 2,
+  /* try next target, if any. */
+  XIO_HANDSHAKE_TRY_NEXT = 3,
+  /* return failure (eg when handshake has hit a -1 EINTR). */
+  XIO_HANDSHAKE_INTR = 4
+} xio_handshake_status_t;
+/* use _x_io_* () below. */
+typedef xio_handshake_status_t (xio_handshake_cb_t)(void *userdata, int fd);
+/* like _x_io_tcp_connect (). */
+int _x_io_tcp_handshake_connect (xine_stream_t *stream, const char *host, int port,
+  xio_handshake_cb_t *handshake_cb, void *userdata) XINE_PROTECTED XINE_USED;
+
 /*
  * wait for finish connection
  *
