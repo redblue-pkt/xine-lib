@@ -42,9 +42,16 @@ typedef struct xine_tls xine_tls_t;
 
 int _x_tls_available(xine_t *xine);
 
+/* open/close by host and port. */
 xine_tls_t *_x_tls_connect(xine_t *xine, xine_stream_t *stream, const char *host, int port);
-xine_tls_t *_x_tls_init(xine_t *xine, xine_stream_t *stream, int fd);
-void        _x_tls_close(xine_tls_t **);  /* note: associated socket is also closed */
+/* also close fd. */
+void        _x_tls_close (xine_tls_t **tlsp);
+
+/* same thing on an existing user file handle.
+ * This is useful when doing _x_io_tcp_handshake_connect () and/or SOCKS4. */
+xine_tls_t *_x_tls_init (xine_t *xine, xine_stream_t *stream, int fd);
+/* do NOT close fd. */
+void        _x_tls_deinit (xine_tls_t **tlsp);
 
 ssize_t _x_tls_part_read(xine_tls_t *, void *data, size_t min, size_t max);
 ssize_t _x_tls_read(xine_tls_t *, void *data, size_t len);
@@ -78,3 +85,4 @@ void _x_tls_shutdown(xine_tls_t *);
 int _x_tls_get_verify_tls_cert(config_values_t *);
 
 #endif /* XINE_INPUT_TLS_H */
+
