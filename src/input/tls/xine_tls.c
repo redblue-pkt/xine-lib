@@ -41,11 +41,9 @@
 struct xine_tls {
   xine_t        *xine;
   xine_stream_t *stream;
+  tls_plugin_t  *tls;
   int            fd;
-
-  tls_plugin_t *tls;
-
-  int enabled;
+  int            enabled;
 };
 
 /*
@@ -138,56 +136,62 @@ void _x_tls_shutdown(xine_tls_t *t)
     t->tls->shutdown(t->tls);
 }
 
-void _x_tls_close(xine_tls_t **pt)
-{
-  xine_tls_t *t = *pt;
-  if (t) {
+void _x_tls_close (xine_tls_t **pt) {
+  xine_tls_t *tls = *pt;
 
-    _x_tls_shutdown(t);
-
-    if (t->tls) {
-      _x_free_tls_plugin(t->xine, &t->tls);
-    }
-    if (t->fd) {
-      _x_io_tcp_close(t->stream, t->fd);
-      t->fd = -1;
-    }
-
-    _x_freep(pt);
+  if (!tls)
+    return;
+  _x_tls_shutdown (tls);
+  if (tls->tls)
+    _x_free_tls_plugin (tls->xine, &tls->tls);
+  if (tls->fd >= 0) {
+    _x_io_tcp_close (tls->stream, tls->fd);
+    tls->fd = -1;
   }
+  _x_freep (pt);
 }
 
-xine_tls_t *_x_tls_init(xine_t *xine, xine_stream_t *stream, int fd)
-{
-  xine_tls_t *t;
+void _x_tls_deinit (xine_tls_t **pt) {
+  xine_tls_t *tls = *pt;
 
-  t = calloc(1, sizeof(*t));
-  if (!t) {
+  if (!tls)
+    return;
+  _x_tls_shutdown (tls);
+  if (tls->tls)
+    _x_free_tls_plugin (tls->xine, &tls->tls);
+  tls->fd = -1;
+  _x_freep (pt);
+}
+
+xine_tls_t *_x_tls_init (xine_t *xine, xine_stream_t *stream, int fd) {
+  xine_tls_t *tls;
+
+  if (fd < 0)
     return NULL;
-  }
-
-  t->stream = stream;
-  t->xine   = xine;
-  t->fd     = fd;
-
-  return t;
+  tls = calloc (1, sizeof (*tls));
+  if (!tls)
+    return NULL;
+  tls->stream = stream;
+  tls->xine   = xine;
+  tls->fd     = fd;
+  return tls;
 }
 
-xine_tls_t *_x_tls_connect(xine_t *xine, xine_stream_t *stream, const char *host, int port)
-{
+xine_tls_t *_x_tls_connect (xine_t *xine, xine_stream_t *stream, const char *host, int port) {
   xine_tls_t *tls;
   int fh;
 
-  fh  = _x_io_tcp_connect(stream, host, port);
-  if (fh == -1) {
+  fh = _x_io_tcp_connect (stream, host, port);
+  if (fh < 0)
+    return NULL;
+  tls = calloc (1, sizeof (*tls));
+  if (!tls) {
+    _x_io_tcp_close (stream, fh);
     return NULL;
   }
-
-  tls = _x_tls_init(xine, stream, fh);
-  if (!tls) {
-    _x_io_tcp_close(stream, fh);
-  }
-
+  tls->stream = stream;
+  tls->xine   = xine;
+  tls->fd     = fh;
   return tls;
 }
 
