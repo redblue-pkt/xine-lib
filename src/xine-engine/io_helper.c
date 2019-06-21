@@ -157,6 +157,11 @@ static const char *sock_strerror (int num) {
 #endif
 
 int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
+  return _x_io_tcp_handshake_connect (stream, host, port, NULL, NULL);
+}
+
+int _x_io_tcp_handshake_connect (xine_stream_t *stream, const char *host, int port,
+  xio_handshake_cb_t *handshake_cb, void *userdata) {
 #ifndef ENABLE_IPV6
   struct hostent *h;
   int i;
@@ -164,6 +169,7 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
   struct addrinfo hints, *res = NULL, *tmpaddr;
 #endif
   xine_private_t *xine = stream ? (xine_private_t *)stream->xine : NULL;
+  int same_retries;
 
   /* resolve host ip(s) */
   xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: resolving %s:%d...\n", host, port);
@@ -199,107 +205,147 @@ int _x_io_tcp_connect (xine_stream_t *stream, const char *host, int port) {
 #endif
 
   /* try to connect ip's */
+  same_retries = 5;
 #ifndef ENABLE_IPV6
-  for (i = 0; h->h_addr_list[i]; i++)
+  i = 0;
 #else
-  for (tmpaddr = res; tmpaddr; tmpaddr = tmpaddr->ai_next)
+  tmpaddr = res;
 #endif
-  {
-    /* make socket */
-    int r, s;
+  while (1) {
+    xio_handshake_status_t status = XIO_HANDSHAKE_OK;
+    int s;
 #ifndef ENABLE_IPV6
-    s = xine_socket_cloexec (PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (!h->h_addr_list[i])
 #else
-    s = xine_socket_cloexec (tmpaddr->ai_family, SOCK_STREAM, IPPROTO_TCP);
+    if (!tmpaddr)
 #endif
-    if (s == -1) {
-      int e = sock_errno;
-      xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
-      _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "failed to create socket", sock_strerror (e), NULL);
-      /* XXX: does it make sense to retry this? */
       break;
-    }
-    /* try to turn off blocking, but dont require that.
-     * main io will work the same with and without, only connect () and close () may hang. */
-#ifndef WIN32
-    if (fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK) == -1)
-#else
-    {
-      unsigned long non_block = 1;
-      r = ioctlsocket (s, FIONBIO, &non_block);
-    }
-    if (r == SOCKET_ERROR)
-#endif
-    {
-      int e = sock_errno;
-      xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: connect: %s (%d).\n", sock_strerror (e), e);
-      _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", sock_strerror (e), NULL);
-    }
-    /* connect now */
+    do {
+      int r;
+      /* make socket */
 #ifndef ENABLE_IPV6
-    {
-      struct in_addr ia;
-      union {
-        struct sockaddr_in sin;
-        struct sockaddr addr;
-      } a;
-      reportIP (stream, "connecting", h->h_addr_list[i], port);
-      memcpy (&ia, h->h_addr_list[i], 4);
-      a.sin.sin_family = AF_INET;
-      a.sin.sin_addr = ia;
-      a.sin.sin_port = htons (port);
-      r = connect (s, &a.addr, sizeof (a.sin));
-    }
+      s = xine_socket_cloexec (PF_INET, SOCK_STREAM, IPPROTO_TCP);
 #else
-    reportIP (stream, "connecting", tmpaddr);
-    r = connect (s, tmpaddr->ai_addr, tmpaddr->ai_addrlen);
+      s = xine_socket_cloexec (tmpaddr->ai_family, SOCK_STREAM, IPPROTO_TCP);
 #endif
-    if (r == -1) {
-      int e = sock_errno;
-      if (e != SOCK_EINPROGRESS) {
+      if (s == -1) {
+        int e = sock_errno;
         xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
-        _x_message (stream, XINE_MSG_CONNECTION_REFUSED, host, sock_strerror (e), NULL);
-        _x_io_tcp_close (NULL, s);
-        continue;
-      }
-    }
-#if 1
-    /* yes _x_io_tcp_connect_finish () does this below.
-     * however, if there are more IPs we can try, test this one now
-     * before we discard any alternatives. */
-#  ifndef ENABLE_IPV6
-    if (stream && h->h_addr_list[i + 1])
-#  else
-    if (stream && tmpaddr->ai_next)
-#  endif
-    {
-      r = _x_io_select (stream, s, XIO_WRITE_READY, xine ? xine->network_timeout * 1000 : 30000);
-      if (r == XIO_ABORTED) {
-        _x_io_tcp_close (NULL, s);
+        _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "failed to create socket", sock_strerror (e), NULL);
+        /* XXX: does it make sense to retry this? */
+        status = XIO_HANDSHAKE_INTR;
         break;
       }
-      if (r != XIO_READY) {
-        _x_io_tcp_close (NULL, s);
-        continue;
-      }
+      /* try to turn off blocking, but dont require that.
+       * main io will work the same with and without, only connect () and close () may hang. */
+#ifndef WIN32
+      if (fcntl (s, F_SETFL, fcntl (s, F_GETFL) | O_NONBLOCK) == -1)
+#else
       {
-        int e;
-        socklen_t len = sizeof (e);
-        if ((getsockopt (s, SOL_SOCKET, SO_ERROR, &e, &len)) == -1)
-          e = sock_errno;
-        if (e) {
-          xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
-          _x_io_tcp_close (NULL, s);
-          continue;
+        unsigned long non_block = 1;
+        r = ioctlsocket (s, FIONBIO, &non_block);
+      }
+      if (r == SOCKET_ERROR)
+#endif
+      {
+        int e = sock_errno;
+        xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: connect: %s (%d).\n", sock_strerror (e), e);
+        _x_message (stream, XINE_MSG_CONNECTION_REFUSED, "can't put socket in non-blocking mode", sock_strerror (e), NULL);
+      }
+      /* connect now */
+#ifndef ENABLE_IPV6
+      {
+        struct in_addr ia;
+        union {
+          struct sockaddr_in sin;
+          struct sockaddr addr;
+        } a;
+        reportIP (stream, "connecting", h->h_addr_list[i], port);
+        memcpy (&ia, h->h_addr_list[i], 4);
+        a.sin.sin_family = AF_INET;
+        a.sin.sin_addr = ia;
+        a.sin.sin_port = htons (port);
+        r = connect (s, &a.addr, sizeof (a.sin));
+      }
+#else
+      reportIP (stream, "connecting", tmpaddr);
+      r = connect (s, tmpaddr->ai_addr, tmpaddr->ai_addrlen);
+#endif
+      if (r == -1) {
+        int e = sock_errno;
+        if (e != SOCK_EINPROGRESS) {
+          xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: socket: %s (%d).\n", sock_strerror (e), e);
+          _x_message (stream, XINE_MSG_CONNECTION_REFUSED, host, sock_strerror (e), NULL);
+          status = XIO_HANDSHAKE_TRY_NEXT;
+          break;
         }
       }
-    }
+#if 1
+      /* yes _x_io_tcp_connect_finish () does this below.
+       * however, if there are more IPs we can try, test this one now
+       * before we discard any alternatives.
+       * handshake_cb will also need this. */
+#  ifndef ENABLE_IPV6
+      if (stream && (handshake_cb || h->h_addr_list[i + 1]))
+#  else
+      if (stream && (handshake_cb || tmpaddr->ai_next))
+#  endif
+      {
+        r = _x_io_select (stream, s, XIO_WRITE_READY, xine ? xine->network_timeout * 1000 : 30000);
+        if (r == XIO_ABORTED) {
+          status = XIO_HANDSHAKE_INTR;
+          break;
+        }
+        if (r != XIO_READY) {
+          status = XIO_HANDSHAKE_TRY_NEXT;
+          break;
+        }
+        {
+          int e;
+          socklen_t len = sizeof (e);
+          if ((getsockopt (s, SOL_SOCKET, SO_ERROR, &e, &len)) == -1)
+            e = sock_errno;
+          if (e) {
+            xprintf (&xine->x, XINE_VERBOSITY_DEBUG, "io_helper: getsockopt: %s (%d).\n", sock_strerror (e), e);
+            status = XIO_HANDSHAKE_TRY_NEXT;
+            break;
+          }
+        }
+      }
 #endif
-    /* done */
+    } while (0);
+    if ((status == XIO_HANDSHAKE_OK) && handshake_cb)
+      status = handshake_cb (userdata, s);
+    if (status == XIO_HANDSHAKE_OK) {
+      /* done */
 #ifdef ENABLE_IPV6
-    freeaddrinfo (res);
+      freeaddrinfo (res);
 #endif
-    return s;
+      return s;
+    }
+    if (s >= 0)
+      _x_io_tcp_close (NULL, s);
+    if (status == XIO_HANDSHAKE_INTR)
+      break;
+    if (status == XIO_HANDSHAKE_TRY_SAME) {
+      if (--same_retries <= 0) {
+        xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
+          "_x_io_tcp_handshake_connect: too many XIO_HANDSHAKE_TRY_SAME, skipping.\n");
+        status = XIO_HANDSHAKE_TRY_NEXT;
+      }
+    }
+    if (status == XIO_HANDSHAKE_TRY_NEXT) {
+      same_retries = 5;
+#ifndef ENABLE_IPV6
+      i++;
+#else
+      tmpaddr = tmpaddr->ai_next;
+#endif
+    } else if (status != XIO_HANDSHAKE_TRY_SAME) {
+      xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
+        "_x_io_tcp_handshake_connect: unknown handshake status %d, leaving.\n", (int)status);
+      break;
+    }
   }
 #ifdef ENABLE_IPV6
   freeaddrinfo (res);
