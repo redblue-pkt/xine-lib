@@ -1827,11 +1827,19 @@ void _x_free_module(xine_t *xine, xine_module_t **pmodule) {
 
 input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
 
-  xine_stream_private_t *s = (xine_stream_private_t *)stream;
-  xine_t           *xine = s->s.xine;
-  plugin_catalog_t *catalog = xine->plugin_catalog;
-  input_plugin_t   *plugin = NULL;
-  uint32_t          n;
+  xine_stream_private_t *s;
+  xine_t *xine;
+  plugin_catalog_t *catalog;
+  input_plugin_t *plugin;
+  uint32_t n;
+
+  if (!stream || !mrl)
+    return NULL;
+
+  s = (xine_stream_private_t *)stream;
+  xine = s->s.xine;
+  catalog = xine->plugin_catalog;
+  plugin = NULL;
 
   pthread_mutex_lock (&catalog->lock);
 
@@ -1869,11 +1877,17 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
 
 
 void _x_free_input_plugin (xine_stream_t *stream, input_plugin_t *input) {
-  plugin_catalog_t *catalog = stream->xine->plugin_catalog;
-  plugin_node_t    *node = input->node;
+  plugin_catalog_t *catalog;
+  plugin_node_t    *node;
 
-  input->dispose(input);
+  if (!input)
+    return;
+  input->dispose (input);
 
+  if (!stream)
+    return;
+  catalog = stream->xine->plugin_catalog;
+  node = input->node;
   if (node) {
     pthread_mutex_lock(&catalog->lock);
     dec_node_ref(node);

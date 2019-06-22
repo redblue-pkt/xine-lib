@@ -98,7 +98,6 @@ void _x_free_audio_driver (xine_t *xine, ao_driver_t **driver) INTERNAL;
 demux_plugin_t *_x_find_demux_plugin_last_probe(xine_stream_t *stream, const char *last_demux_name, input_plugin_t *input) INTERNAL;
 input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *filename) INTERNAL;
 input_plugin_t *_x_cache_plugin_get_instance (xine_stream_t *stream) INTERNAL;
-void _x_free_input_plugin (xine_stream_t *stream, input_plugin_t *input) INTERNAL;
 ///@}
 
 ///@{

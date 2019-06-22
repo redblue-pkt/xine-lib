@@ -373,9 +373,8 @@ struct input_plugin_s {
 /* buffer is an int32_t * where input plugin will store media duration in milliseconds. */
 #define INPUT_OPTIONAL_DATA_DURATION  13
 /* buffer is a const char * holding the new mrl to try.
- * fragment streams can avoid input_plugin->dispose () followed by
- * input_class->get_instance () or _x_find_input_plugin () on a lot of
- * similar mrls. */
+ * fragment streams can avoid input_plugin->dispose () followed by input_class->get_instance (),
+ * or _x_free_input_plugin () followed by _x_find_input_plugin () on a lot of * similar mrls. */
 #define INPUT_OPTIONAL_DATA_NEW_MRL   14
 
 #define MAX_MRL_ENTRIES 255
