@@ -330,17 +330,24 @@ int _x_url_parse2 (const char *mrl, xine_url_t *url) {
     }
     *q++ = 0;
 
-    url->user = q;
+    /* input_ftp wants these NULL if unset. */
     need = res.user_stop - res.user_start;
-    if (need)
+    if (need) {
+      url->user = q;
       unescape (&q, (char *)b + res.user_start, need);
-    *q++ = 0;
+      *q++ = 0;
+    } else {
+      url->user = NULL;
+    }
 
-    url->password = q;
     need = res.pass_stop - res.pass_start;
-    if (need)
+    if (need) {
+      url->password = q;
       unescape (&q, (char *)b + res.pass_start, need);
-    *q++ = 0;
+      *q++ = 0;
+    } else {
+      url->password = NULL;
+    }
   }
 
   return 1;
