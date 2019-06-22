@@ -238,7 +238,7 @@ static int hls_input_switch_mrl (hls_input_plugin_t *this) {
           return 1;
       }
     }
-    this->in1->dispose (this->in1);
+    _x_free_input_plugin (this->stream, this->in1);
   }
   this->in1 = _x_find_input_plugin (this->stream, this->item_mrl.mrl);
   if (!this->in1)
@@ -736,7 +736,7 @@ static const char *hls_input_get_mrl (input_plugin_t *this_gen) {
 static void hls_input_dispose (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
   if (this->in1) {
-    this->in1->dispose (this->in1);
+    _x_free_input_plugin (this->stream, this->in1);
     this->in1 = NULL;
   }
   _x_freep (&this->list_buf);
@@ -840,7 +840,7 @@ static input_plugin_t *hls_input_get_instance (input_class_t *cls_gen, xine_stre
           }
         }
       }
-      in1->dispose (in1);
+      _x_free_input_plugin (stream, in1);
     }
     return NULL;
   } while (0);
