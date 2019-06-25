@@ -139,8 +139,6 @@ typedef struct {
   xine_stream_t   *stream;
   xine_t          *xine;
 
-  char            *mrl;
-
   nbc_t           *nbc;
 
   off_t            curpos;
@@ -205,6 +203,7 @@ typedef struct {
   off_t            preview_size;
   char             preview[MAX_PREVIEW_SIZE];
 
+  char             mrl[4096];
 } http_input_plugin_t;
 
 typedef struct {
@@ -1072,7 +1071,6 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
     this->nbc = NULL;
   }
 
-  _x_freep (&this->mrl);
   _x_freep (&this->mime_type);
   free (this);
 }
@@ -1122,7 +1120,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
   char                 mime_type[256];
 
   {
-    char httpstatus[128], *href = NULL;
+    char httpstatus[128];
     httpstatus[0] = 0;
     mime_type[0] = 0;
     this->again = 0;
@@ -1391,8 +1389,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
               || (this->status == 303) /* see other */
               || (this->status == 307)) { /* temporary redirect */
               lprintf ("trying to open target of redirection: >%s<\n", (char *)p2);
-              free (href);
-              href = _x_canonicalise_url (this->mrl, (char *)p2);
+              _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, (char *)p2);
             }
             break;
           case 0x8: /* server */
@@ -1453,12 +1450,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
     if ((this->status >= 300) && (this->status < 400)) {
       xine_log (this->xine, XINE_LOG_MSG,
         _("input_http: 3xx redirection: >%d %s<\n"), this->status, httpstatus);
-      if (href) {
-        free (this->mrl);
-        this->mrl = href;
-        href = NULL;
-        this->again = 1;
-      }
+      this->again = 1;
     } else if (this->status == 404) { /* not found */
       _x_message (this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
       xine_log (this->xine, XINE_LOG_MSG,
@@ -1485,7 +1477,6 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       _x_tls_deinit (&this->tls);
       return XIO_HANDSHAKE_TRY_NEXT;
     }
-    free (href);
     if (this->smode & MODE_HAS_LENGTH)
       xine_log (this->xine, XINE_LOG_MSG,
         _("input_http: content length = %" PRId64 " bytes\n"), (int64_t)this->contentlength);
@@ -1521,12 +1512,9 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       /* If the newline can't be found, either the 4K buffer is too small, or
        * more likely something is fuzzy. */
       if (newline) {
-        char *href;
         *newline = '\0';
         lprintf ("mpegurl pointing to %s\n", urlbuf);
-        href = _x_canonicalise_url (this->mrl, urlbuf);
-        free (this->mrl);
-        this->mrl = href;
+        _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, urlbuf);
         this->again = 1;
       }
     }
@@ -1693,7 +1681,7 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
         break;
       http_close (this);
       sbuf_reset (this);
-      _x_freep (&this->mrl);
+      this->mrl[0] = 0;
       _x_freep (&this->mime_type);
       _x_freep (&this->user_agent);
       _x_freep (&this->shoutcast_songtitle);
@@ -1708,10 +1696,12 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
       this->preview_size        = 0;
       if ((this->num_msgs < 0) || (this->num_msgs > 8))
         this->num_msgs = 8;
-      if (!strncasecmp ((const char *)data, "peercast://pls/", 15))
-        this->mrl = _x_asprintf ("http://127.0.0.1:7144/stream/%s", (const char *)data + 15);
-      else
-        this->mrl = strdup ((const char *)data);
+      if (!strncasecmp ((const char *)data, "peercast://pls/", 15)) {
+        char *w = this->mrl, *e = w + sizeof (this->mrl);
+        w += strlcpy (w, "http://127.0.0.1:7144/stream/", e - w);
+        strlcpy (w, (const char *)data + 15, e - w);
+      } else
+        strlcpy (this->mrl, (const char *)data, sizeof (this->mrl));
       return INPUT_OPTIONAL_SUCCESS;
   }
 
@@ -1760,9 +1750,11 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
 #endif
 
   if (!strncasecmp (mrl, "peercast://pls/", 15)) {
-    this->mrl = _x_asprintf ("http://127.0.0.1:7144/stream/%s", mrl+15);
+    char *w = this->mrl, *e = w + sizeof (this->mrl);
+    w += strlcpy (w, "http://127.0.0.1:7144/stream/", e - w);
+    strlcpy (w, mrl + 15, e - w);
   } else {
-    this->mrl = strdup (mrl);
+    strlcpy (this->mrl, mrl, sizeof (this->mrl));
   }
 
   this->fh = -1;
@@ -1770,9 +1762,7 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   this->num_msgs = -1;
   this->stream = stream;
   this->xine   = cls->xine;
-  if (stream) {
-    this->nbc  = nbc_init (stream);
-  }
+  this->nbc = stream ? nbc_init (stream) : NULL;
   sbuf_init (this);
 
   this->input_plugin.open              = http_plugin_open;
