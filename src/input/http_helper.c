@@ -86,7 +86,7 @@ static const uint8_t tab_esclen[256] = {
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 };
 
-static const uint8_t tab_hex[256] = "0123456789abcdef";
+static const uint8_t tab_hex[16] = "0123456789abcdef";
 
 static size_t esclen (const char *s, size_t len) {
   const uint8_t *r = (const uint8_t *)s, *e = r + len;
@@ -116,7 +116,7 @@ static void escape (char **d, const char *s, size_t len) {
  *      no ';' in host names, and escaping ';' in user names and passwords :-/
  * 0x01  : ; / [ @ ? # end
  * 0x02  ] end
- * 0x04  ; / end (unused)
+ * 0x04  / ? # end
  * 0x08  ? # end
  * 0x10  # end
  * 0x20  end
@@ -126,8 +126,8 @@ static void escape (char **d, const char *s, size_t len) {
 static const uint8_t tab_type[256] = {
   0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
   0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-     0,   0,   0,0xd9,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0xc5,
-     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0x41,0xc5,   0,   0,   0,0xc9,
+     0,   0,   0,0xdd,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0xc5,
+     0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0x41,0xc1,   0,   0,   0,0xcd,
   0x01,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,0x01,   0,0x02,   0,   0,
      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -353,6 +353,24 @@ int _x_url_parse2 (const char *mrl, xine_url_t *url) {
   return 1;
 }
 
+void _x_url_init (xine_url_t *url) {
+  if (!url)
+    return;
+#ifdef HAVE_ZERO_SAFE_MEM
+  memset (url, 0, sizeof (*url));
+#else
+  url->proto = NULL;
+  url->host  = NULL;
+  url->port  = 0;
+  url->path  = NULL;
+  url->args  = NULL;
+  url->uri   = NULL;
+  url->user  = NULL;
+  url->password  = NULL;
+  url->buf = NULL;
+#endif
+}
+
 void _x_url_cleanup (xine_url_t *url) {
   if (!url)
     return;
@@ -371,6 +389,107 @@ void _x_url_cleanup (xine_url_t *url) {
   url->password  = NULL;
   free (url->buf);
   url->buf = NULL;
+}
+
+size_t _x_merge_mrl (char *dest, size_t dsize, const char *base_mrl, const char *new_mrl) {
+  const uint8_t *b = (const uint8_t *)base_mrl;
+  const uint8_t *n = (const uint8_t *)new_mrl;
+  uint8_t *d;
+  size_t base_len, new_len, ret;
+
+  if (!(n && n[0])) {
+
+    /* "old_stuff" + "" = "old_stuff" */
+    base_len = base_mrl ? strlen (base_mrl) : 0;
+    new_len = 0;
+
+  } else if (!(b && b[0])) {
+
+    /* "" + "new_stuff" = "new_stuff" */
+    base_len = 0;
+    new_len = strlen (new_mrl);
+
+  } else {
+
+    while (!(tab_type[*b] & 0x01))
+      b++;
+    while (!(tab_type[*n] & 0x01))
+      n++;
+    if ((n[0] == ':') && (n[1] == '/') && (n[2] == '/')) {
+
+      base_len = 0;
+      new_len = strlen (new_mrl);
+      if (n == (const uint8_t *)new_mrl) {
+        /* "https://host1/foo" + "://host2/bar" = "https://host2/bar" (no joke) */
+        if ((b[0] == ':') && (b[1] == '/') && (b[2] == '/'))
+          base_len = b - (const uint8_t *)base_mrl;
+        b = (const uint8_t *)base_mrl;
+      } else {
+        /* "old_stuff" + "new_stuff" = "new_stuff" */
+        n = (const uint8_t *)new_mrl;
+      }
+
+    } else {
+
+      /* seek base to path */
+      if ((b[0] == ':') && (b[1] == '/') && (b[2] == '/'))
+        b += 3;
+      if (b[0] == '[') {
+        while (!(tab_type[*b] & 0x02))
+          b++;
+      }
+      while (!(tab_type[*b] & 0x80))
+        b++;
+
+      /* if new is relative path, seek further to last / */
+      n = (const uint8_t *)new_mrl;
+      if ((n[0] != ';') && (n[0] != '/')) {
+        const uint8_t *last_slash = b;
+        while (b[0] == '/') {
+          last_slash = b++;
+          while (!(tab_type[*b] & 0x04))
+            b++;
+        }
+        b = last_slash;
+      } else if (n[0] == '/')
+        n++;
+      if (b[0] == '/')
+        b++;
+
+      base_len = b - (const uint8_t *)base_mrl;
+      new_len = strlen ((const char *)n);
+
+    }
+  }
+
+  /* size paranoia */
+  ret = base_len + new_len;
+  if (ret + 1 > dsize) {
+    if (base_len + 1 > dsize) {
+      base_len = dsize - 1;
+      new_len = 0;
+    } else {
+      new_len = dsize - base_len - 1;
+    }
+  }
+
+  /* no target, just tell size */
+  if (!dest || !dsize)
+    return ret;
+  d = (uint8_t *)dest;
+
+  /* copy base part */
+  if (base_len && ((const char *)dest != base_mrl))
+    memcpy (d, base_mrl, base_len);
+  d += base_len;
+
+  /* copy new part */
+  if (new_len)
+    memcpy (d, n, new_len);
+  d += new_len;
+  *d = 0;
+
+  return ret;
 }
 
 const char *_x_url_user_agent (const char *url)

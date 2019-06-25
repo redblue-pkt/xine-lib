@@ -58,8 +58,18 @@ typedef struct {
   char       *buf;
 } xine_url_t;
 
+void _x_url_init (xine_url_t *url);
 int _x_url_parse2 (const char *mrl, xine_url_t *url);
 void _x_url_cleanup (xine_url_t *);
+
+/** @brief merge a new, possibly relative mrl with a given base. result will always be 0 terminated.
+ *  @param dest     the buffer to write the result to. may be NULL.
+ *  @param dsize    the size of *dest in bytes.
+ *  @param base_mrl the base to fill missing parts with. may be the same as dest, or NULL.
+ *  @param new_mrl  the new mrl. may be NULL.
+ *  @return the string length of result. will be >= dsize when truncated.
+ */
+size_t _x_merge_mrl (char *dest, size_t dsize, const char *base_mrl, const char *new_mrl);
 
 /*
  * canonicalise url, given base
@@ -97,3 +107,4 @@ static inline XINE_MALLOC char *_x_canonicalise_url (const char *base, const cha
 }
 
 #endif /* HTTP_HELPER_H */
+
