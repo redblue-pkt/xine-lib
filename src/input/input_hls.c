@@ -40,6 +40,7 @@
 #include <xine/compat.h>
 #include <xine/input_plugin.h>
 
+#include "http_helper.h"
 #include "input_helper.h"
 #include "group_network.h"
 #include "multirate_pref.c"
@@ -50,156 +51,7 @@ typedef struct {
   multirate_pref_t  pref;
 } hls_input_class_t;
 
-/* https://host:port/path1/path2/item.ext?foo1=bar1&foo2=bar2#display_info
-   ^                ^           ^     ^  ^                   ^            ^
-   0                p           l     e  a                   i            s */
-typedef struct {
-  char    *mrl;
-  uint32_t path;
-  uint32_t last;
-  uint32_t ext;
-  uint32_t args;
-  uint32_t info;
-  uint32_t stop;
-} hls_mrl_t;
-
-static void hls_mrl_split (hls_mrl_t *mrl) {
-#define st 0x01 /* stop */
-#define co 0x02 /* colon : */
-#define sl 0x04 /* slash / */
-#define dt 0x08 /* dot . */
-#define qu 0x10 /* question mark ? */
-#define ha 0x20 /* hash # */
-  static const uint8_t flags[256] = {
-    st,st,st,st,st,st,st,st,st,st,st,st,st,st,st,st,
-    st,st,st,st,st,st,st,st,st,st,st,st,st,st,st,st,
-     0, 0, 0,ha, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,dt,sl,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,co, 0, 0, 0, 0,qu,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-  };
-  const uint8_t *p = (const uint8_t *)mrl->mrl;
-  uint8_t mask;
-  uint32_t f;
-  int32_t skip_host;
-
-  skip_host = -1;
-  mrl->path = mrl->last = 0;
-  mrl->ext = mrl->args = mrl->info = ~0u;
-  mask = st | co | sl | dt | qu | ha;
-  while (1) {
-    while (((f = flags[*p]) & mask) == 0)
-      p++;
-    if (f == st)
-      break;
-    if (f == co) {
-      if (p[1] == '/')
-        p++;
-      mrl->path = p + 1 - (const uint8_t *)mrl->mrl;
-      if (strncasecmp ((const char *)mrl->mrl, "file:", 5))
-        skip_host = 1;
-      mask = st | sl | dt | qu | ha;
-    } else if (f == sl) {
-      mrl->ext = ~0u;
-      mrl->last = p - (const uint8_t *)mrl->mrl;
-      if (skip_host >= 0) {
-        skip_host--;
-        if (skip_host < 0)
-          mrl->path = mrl->last;
-      }
-    } else if (f == dt) {
-      mrl->ext = p + 1 - (const uint8_t *)mrl->mrl;
-    } else if (f == qu) {
-      mrl->args = p - (const uint8_t *)mrl->mrl;
-      mask = st | ha;
-    } else { /* f == ha */
-      mrl->info = p - (const uint8_t *)mrl->mrl;
-      mask = st;
-    }
-    p++;
-  }
-  mrl->stop = p - (const uint8_t *)mrl->mrl;
-  if (mrl->info == ~0u)
-    mrl->info = mrl->stop;
-  if (mrl->args == ~0u)
-    mrl->args = mrl->info;
-  if (mrl->ext == ~0u)
-    mrl->ext = mrl->args;
-#undef st
-#undef co
-#undef sl
-#undef dt
-#undef qu
-#undef ha
-}
-
-static void hls_mrl_join (hls_mrl_t *base, hls_mrl_t *link, hls_mrl_t *res) {
-  if (link->path > 0) {
-    /* full link, just copy */
-    *res = *link;
-    return;
-  }
-  res->path = base->path;
-  if (link->mrl[0] == '/') {
-    /* same source, new absolute path */
-    res->last = base->path + link->last;
-    res->ext  = base->path + link->ext;
-    res->args = base->path + link->args;
-    res->info = base->path + link->info;
-    if (res->info >= res->stop) {
-      res->info = res->stop - 1;
-      if (res->args >= res->stop) {
-        res->args = res->stop - 1;
-        if (res->ext >= res->stop) {
-          res->info = res->stop - 1;
-          if (res->last >= res->stop)
-            res->last = res->stop - 1;
-        }
-      }
-    }
-    res->stop = res->info;
-    memcpy (res->mrl, base->mrl, res->path);
-    if (res->info > res->path)
-      memcpy (res->mrl + res->path, link->mrl, res->info - res->path);
-  } else {
-    /* same source, relative path */
-    uint32_t last;
-    res->last = base->last + 1 + link->last;
-    res->ext  = base->last + 1 + link->ext;
-    res->args = base->last + 1 + link->args;
-    res->info = base->last + 1 + link->info;
-    if (res->info >= res->stop) {
-      res->info = res->stop - 1;
-      if (res->args >= res->stop) {
-        res->args = res->stop - 1;
-        if (res->ext >= res->stop) {
-          res->info = res->stop - 1;
-          if (res->last >= res->stop)
-            res->last = res->stop - 1;
-        }
-      }
-    }
-    last = base->last >= res->stop ? res->stop - 1 : base->last;
-    res->stop = res->info;
-    memcpy (res->mrl, base->mrl, last);
-    res->mrl[last] = '/';
-    if (res->info > last + 1)
-      memcpy (res->mrl + last + 1, link->mrl, res->info - last - 1);
-  }
-  res->mrl[res->info] = 0;
-}
-
-typedef struct {
+  typedef struct {
   uint32_t mrl_offs;
   uint32_t start_msec;
   off_t    byte_size;
@@ -209,7 +61,6 @@ typedef struct {
 typedef struct {
   input_plugin_t    input_plugin;
   xine_stream_t    *stream;
-  hls_mrl_t         list_mrl, item_mrl;
   input_plugin_t   *in1;
   off_t             size1;
   hls_frag_info_t  *frags, *current_frag;
@@ -226,13 +77,14 @@ typedef struct {
   char             *items_mrl[20];
   multirate_pref_t  items[20];
 #define HLS_MAX_MRL 4096
-  char              item_mrl_buf[HLS_MAX_MRL];
+  char              list_mrl[HLS_MAX_MRL];
+  char              item_mrl[HLS_MAX_MRL];
 } hls_input_plugin_t;
 
 static int hls_input_switch_mrl (hls_input_plugin_t *this) {
   if (this->in1) {
     if (this->in1->get_capabilities (this->in1) & INPUT_CAP_NEW_MRL) {
-      if (this->in1->get_optional_data (this->in1, this->item_mrl.mrl,
+      if (this->in1->get_optional_data (this->in1, this->item_mrl,
         INPUT_OPTIONAL_DATA_NEW_MRL) == INPUT_OPTIONAL_SUCCESS) {
         if (this->in1->open (this->in1) > 0)
           return 1;
@@ -240,7 +92,7 @@ static int hls_input_switch_mrl (hls_input_plugin_t *this) {
     }
     _x_free_input_plugin (this->stream, this->in1);
   }
-  this->in1 = _x_find_input_plugin (this->stream, this->item_mrl.mrl);
+  this->in1 = _x_find_input_plugin (this->stream, this->item_mrl);
   if (!this->in1)
     return 0;
   if (this->in1->open (this->in1) <= 0)
@@ -249,17 +101,12 @@ static int hls_input_switch_mrl (hls_input_plugin_t *this) {
 }
 
 static int hls_input_open_item (hls_input_plugin_t *this, uint32_t n) {
-  hls_mrl_t link;
   hls_frag_info_t *frag;
   /* valid index ? */
   if (n >= this->frag_have)
     return 0;
   /* get fragment mrl */
-  link.mrl = this->list_buf + this->frags[n].mrl_offs;
-  hls_mrl_split (&link);
-  this->item_mrl.mrl = this->item_mrl_buf;
-  this->item_mrl.stop = HLS_MAX_MRL;
-  hls_mrl_join (&this->list_mrl, &link, &this->item_mrl);
+  _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->list_buf + this->frags[n].mrl_offs);
   /* get input */
   if (!hls_input_switch_mrl (this))
     return 0;
@@ -730,7 +577,7 @@ static off_t hls_input_get_length (input_plugin_t *this_gen) {
 
 static const char *hls_input_get_mrl (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
-  return this->list_mrl.mrl;
+  return this->list_mrl;
 }
 
 static void hls_input_dispose (input_plugin_t *this_gen) {
@@ -740,14 +587,13 @@ static void hls_input_dispose (input_plugin_t *this_gen) {
     this->in1 = NULL;
   }
   _x_freep (&this->list_buf);
-  _x_freep (&this->list_mrl.mrl);
+  _x_freep (&this->frags);
   free (this);
 }
 
 static int hls_input_open (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
   hls_input_class_t  *cls  = (hls_input_class_t *)this->input_plugin.input_class;
-  hls_mrl_t link;
   int try;
 
   for (try = 8; try > 0; try--) {
@@ -767,14 +613,11 @@ static int hls_input_open (input_plugin_t *this_gen) {
     }
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
       "input_hls: auto selected item #%d.\n", n);
-    link.mrl = this->items_mrl[n];
-    hls_mrl_split (&link);
-    this->item_mrl.mrl = this->item_mrl_buf;
-    this->item_mrl.stop = HLS_MAX_MRL;
-    hls_mrl_join (&this->list_mrl, &link, &this->item_mrl);
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_hls: trying %s.\n", this->item_mrl.mrl);
+    _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->items_mrl[n]);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_hls: trying %s.\n", this->item_mrl);
     if (!hls_input_switch_mrl (this))
       return 0;
+    strcpy (this->list_mrl, this->item_mrl);
   }
 
   if (try <= 0) {
@@ -863,10 +706,7 @@ static input_plugin_t *hls_input_get_instance (input_class_t *cls_gen, xine_stre
 
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_hls: %s.\n", mrl + n);
 
-  this->list_mrl.mrl = strdup (mrl + n);
-  hls_mrl_split (&this->list_mrl);
-  this->item_mrl.mrl = this->item_mrl_buf;
-  this->item_mrl.stop = HLS_MAX_MRL;
+  strlcpy (this->list_mrl, mrl + n, HLS_MAX_MRL);
 
   this->input_plugin.open               = hls_input_open;
   this->input_plugin.get_capabilities   = hls_input_get_capabilities;
@@ -921,3 +761,4 @@ void *input_hls_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
+
