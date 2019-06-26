@@ -55,14 +55,11 @@
 
 #include "opengl/xine_gl.h"
 
-typedef int (*GLXSWAPINTERVALSGI) ( int );
-
 typedef struct {
   vo_frame_t         vo_frame;
   int                width, height, format, flags;
   double             ratio;
 } opengl2_frame_t;
-
 
 
 typedef struct {
@@ -113,7 +110,6 @@ typedef struct {
   GLuint             overlayPBO;
   GLuint             fbo;
   GLuint             videoTex, videoTex2;
-  //GLXSWAPINTERVALSGI mglXSwapInterval;
   int                last_gui_width;
   int                last_gui_height;
 
@@ -1910,8 +1906,6 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   if ( !opengl2_build_program( this, &this->yuv422_program, &yuv422_frag, "yuv422_frag" ) ) {
     goto fail;
   }
-
-  //this->mglXSwapInterval = (GLXSWAPINTERVALSGI)glXGetProcAddressARB( (const GLubyte*)"glXSwapIntervalSGI" );
 
   this->gl->release_current(this->gl);
 
