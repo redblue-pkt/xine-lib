@@ -155,6 +155,8 @@ typedef struct {
 
   xine_tls_t      *tls;
 
+  FILE            *head_dump_file;
+
   int              use_proxy;
   int              use_tls;
   int              again;
@@ -215,9 +217,13 @@ typedef struct {
   const char       *proxyhost;
   int               proxyport;
 
+  int               prot_version;
+
   const char       *proxyuser;
   const char       *proxypassword;
   const char       *noproxylist;
+
+  const char       *head_dump_name;
 } http_input_class_t;
 
 static void sbuf_init (http_input_plugin_t *this) {
@@ -257,6 +263,8 @@ static int32_t sbuf_get_string (http_input_plugin_t *this, uint8_t **buf) {
       /* found */
       if (p != stop) {
         size_t n = p - *buf + 1;
+        if (this->head_dump_file)
+          fwrite (*buf, 1, n, this->head_dump_file);
         this->sdelivered += n;
         n--;
         if (n && (p[-1] == '\r'))
@@ -632,6 +640,18 @@ static void no_proxy_list_change_cb(void *this_gen, xine_cfg_entry_t *cfg) {
   http_input_class_t *this = (http_input_class_t *)this_gen;
 
   this->noproxylist = cfg->str_value;
+}
+
+static void prot_version_change_cb (void *this_gen, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *)this_gen;
+
+  this->prot_version = cfg->num_value;
+}
+
+static void head_dump_name_change_cb (void *this_gen, xine_cfg_entry_t *cfg) {
+  http_input_class_t *this = (http_input_class_t *)this_gen;
+
+  this->head_dump_name = cfg->str_value;
 }
 
 /*
@@ -1071,6 +1091,11 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
     this->nbc = NULL;
   }
 
+  if (this->head_dump_file) {
+    fclose (this->head_dump_file);
+    this->head_dump_file = NULL;
+  }
+
   _x_freep (&this->mime_type);
   free (this);
 }
@@ -1173,6 +1198,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
 #define ADDLIT(s) { static const char ls[] = s; if (q + sizeof (ls) <= e) memcpy (q, s, sizeof (ls)), q += sizeof (ls) - 1; }
       char *q = this->sbuf, *e = q + sizeof (this->sbuf) - 24;
       char strport[16];
+      int vers = this_class->prot_version;
 
       if (this->url.port != DEFAULT_HTTP_PORT) {
         char *t = strport;
@@ -1190,7 +1216,11 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
         ADDSTR (strport);
       }
       ADDSTR (this->url.uri);
-      ADDLIT (" HTTP/1.0\015\012Host: ");
+      if (vers == 1) {
+        ADDLIT (" HTTP/1.1\015\012Host: ");
+      } else {
+        ADDLIT (" HTTP/1.0\015\012Host: ");
+      }
       ADDSTR (this->url.host);
       ADDSTR (strport);
       if (this->curpos > 0) {
@@ -1201,6 +1231,8 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
 /*      uint64_2str (&q, this->contentlength - 1); */
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
           "input_http: requesting restart from offset %" PRId64 "\n", (int64_t)this->curpos);
+      } else if (vers == 1) {
+        ADDLIT ("\015\012Accept-Encoding: gzip,deflate");
       }
       if (this->use_proxy && this_class->proxyuser && this_class->proxyuser[0]) {
         char *proxyauth;
@@ -1222,6 +1254,8 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
         ADDLIT (" ");
       }
       ADDLIT ("xine/" VERSION "\015\012Accept: */*\015\012Icy-MetaData: 1\015\012\015\012");
+      if (this->head_dump_file)
+        fwrite (this->sbuf, 1, (uint8_t *)q - this->sbuf, this->head_dump_file);
       if (_x_tls_write (this->tls, this->sbuf, (uint8_t *)q - this->sbuf) != (uint8_t *)q - this->sbuf) {
         _x_message (this->stream, XINE_MSG_CONNECTION_REFUSED, "couldn't send request", NULL);
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": couldn't send request\n");
@@ -1590,6 +1624,9 @@ static int http_plugin_open (input_plugin_t *this_gen) {
       return this->ret;
   } while (this->again);
 
+  if (this->head_dump_file)
+    fflush (this->head_dump_file);
+
   if (this->curpos > 0) {
     /* restarting after seek */
     this->preview_size = 0;
@@ -1747,6 +1784,7 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   this->proxyurl.user       = NULL;
   this->proxyurl.password   = NULL;
   this->proxyurl.uri        = NULL;
+  this->head_dump_file      = NULL;
 #endif
 
   if (!strncasecmp (mrl, "peercast://pls/", 15)) {
@@ -1764,6 +1802,12 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   this->xine   = cls->xine;
   this->nbc = stream ? nbc_init (stream) : NULL;
   sbuf_init (this);
+
+  if (cls->head_dump_name && cls->head_dump_name[0]) {
+    this->head_dump_file = fopen (cls->head_dump_name, "ab");
+    if (this->head_dump_file)
+      fseek (this->head_dump_file, 0, SEEK_END);
+  }
 
   this->input_plugin.open              = http_plugin_open;
   this->input_plugin.get_capabilities  = http_plugin_get_capabilities;
@@ -1872,5 +1916,23 @@ void *input_http_init_class (xine_t *xine, const void *data) {
       "(full match required)."),
     10, no_proxy_list_change_cb, (void *) this);
 
+  /* protocol version */
+  {
+    static const char * const versions[] = {"http/1.0", "http/1.1", NULL};
+    this->prot_version = config->register_enum (config, "media.network.http_version",
+      0, (char **)versions,
+      _("HTTP protocol version to use"),
+      _("Try these when there are communication problems."),
+      10, prot_version_change_cb, this);
+  }
+
+  /* head dump file */
+  this->head_dump_name = config->register_string (config, "media.network.http_head_dump_file",
+    "",
+    _("Dump HTTP request and response heads to this file"),
+    _("Set this for debugging."),
+    20, head_dump_name_change_cb, this);
+
   return this;
 }
+
