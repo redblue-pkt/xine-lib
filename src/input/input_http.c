@@ -142,10 +142,11 @@ typedef struct {
   nbc_t           *nbc;
 
   off_t            curpos;
-  off_t            contentlength;
-  off_t            range_start;
-  off_t            range_end;
-  off_t            range_total;
+  uint64_t         contentlength;
+  uint64_t         bytes_left;
+  uint64_t         range_start;
+  uint64_t         range_end;
+  uint64_t         range_total;
 
   char            *mime_type;
   const char      *user_agent;
@@ -176,15 +177,17 @@ typedef struct {
   uint32_t         sdelivered;
   uint32_t         schunkleft;
   uint32_t         zgot;
-  uint32_t         zskip;
+  uint32_t         zdelivered;
 #define MODE_CHUNKED     1
 #define MODE_DEFLATED    2
 #define MODE_INFLATING   4
-#define MODE_EOF         8
 #define MODE_DONE       16
 #define MODE_HAS_TYPE   32
 #define MODE_HAS_LENGTH 64
-  uint32_t         smode;
+#define MODE_HAVE_CHUNK 0x100
+#define MODE_HAVE_SBUF  0x200
+#define MODE_HAVE_READ  0x400
+  uint32_t         mode;
   uint32_t         status;
 
   z_stream         z_state;
@@ -228,27 +231,27 @@ typedef struct {
 
 static void sbuf_init (http_input_plugin_t *this) {
   this->zgot = 0;
-  this->zskip = 0;
+  this->zdelivered = 0;
   this->sgot = 0;
   this->sdelivered = 0;
   this->schunkleft = 0;
-  this->smode = 0;
+  this->mode = 0;
 }
 
 static void sbuf_reset (http_input_plugin_t *this) {
   this->zgot = 0;
-  this->zskip = 0;
+  this->zdelivered = 0;
   this->sgot = 0;
   this->sdelivered = 0;
   this->schunkleft = 0;
-  if (this->smode & MODE_INFLATING) {
+  if (this->mode & MODE_INFLATING) {
     this->z_state.next_in = this->sbuf;
     this->z_state.avail_in = 0;
     this->z_state.next_out = this->sbuf;
     this->z_state.avail_out = 0;
     inflateEnd (&this->z_state);
   }
-  this->smode = 0;
+  this->mode = 0;
 }
 
 static int32_t sbuf_get_string (http_input_plugin_t *this, uint8_t **buf) {
@@ -288,21 +291,25 @@ static int32_t sbuf_get_string (http_input_plugin_t *this, uint8_t **buf) {
       this->sdelivered = 0;
     }
     {
+      int32_t r;
       uint32_t n = sizeof (this->sbuf) - this->sgot;
-      /* buffer full */
-      if (!n) {
+      if (n > this->bytes_left)
+        n = this->bytes_left;
+      /* buffer full or no more input */
+      if (n == 0) {
         this->sgot = 0;
         return -1;
       }
       /* refill fast buffer */
-      {
-        int32_t i = _x_tls_part_read (this->tls, p, 1, n);
-        if (i <= 0) {
-          this->smode |= MODE_EOF;
-          return -1;
-        }
-        this->sgot += i;
+      r = _x_tls_part_read (this->tls, p, 1, n);
+      if (r <= 0) {
+        this->mode &= ~MODE_HAVE_READ;
+        this->bytes_left = 0;
+        return -1;
       }
+      this->sgot += r;
+      this->bytes_left -= r;
+      this->mode |= MODE_HAVE_SBUF | MODE_HAVE_READ;
     }
   }
 }
@@ -346,13 +353,15 @@ static int sbuf_skip_gzip_head (uint8_t *buf, uint32_t len) {
   return b - buf;
 }
 
-static int sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t len) {
+static ssize_t sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t len) {
   uint8_t *q = buf;
   size_t left = len;
 
-  switch (this->smode & (MODE_CHUNKED | MODE_DEFLATED)) {
+  switch (this->mode & (MODE_CHUNKED | MODE_DEFLATED)) {
 
     case 0:
+      if (left == 0)
+        break;
       /* get from fast buffer */
       do {
         uint32_t fast = this->sgot - this->sdelivered;
@@ -369,131 +378,159 @@ static int sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t len) 
         this->sgot = this->sdelivered = 0;
       } while (0);
       /* get the usual way */
+      if (left > this->bytes_left)
+        left = this->bytes_left;
       if (left > 0) {
         ssize_t r = _x_tls_read (this->tls, q, left);
-        if (r <= 0)
-          break;
-        q += r;
-        left -= r;
+        if (r > 0) {
+          q += r;
+          this->bytes_left -= r;
+        } else {
+          this->mode &= ~MODE_HAVE_READ;
+          this->bytes_left = 0;
+        }
       }
       break;
 
     case MODE_CHUNKED + MODE_DEFLATED:
-      if (this->smode & MODE_DONE)
+      /* sigh. chunk switches may appear in the middle of a deflate symbol.
+       * we need to remove them before presenting the stream to zlib. */
+      if (this->mode & MODE_DONE)
         return 0;
-      this->z_state.next_out = q;
-      this->z_state.avail_out = left;
       while (left > 0) {
-        if (this->schunkleft == 0) {
-          uint8_t *p;
-          int32_t n = sbuf_get_string (this, &p);
-          if (n == 0)
-            n = sbuf_get_string (this, &p);
-          if (n > 0) {
-            this->schunkleft = hexstr2uint32 (&p);
-            if (this->schunkleft == 0)
-              this->smode |= MODE_EOF;
-          } else {
-            this->smode |= MODE_EOF;
+        uint32_t have = this->zgot - this->zdelivered;
+        /* refill zbuf */
+        if ((have < 128) && (this->mode & (MODE_HAVE_CHUNK | MODE_HAVE_SBUF | MODE_HAVE_READ))) {
+          uint32_t want;
+          /* align */
+          if (this->zdelivered >= 128) {
+            if (have > 0)
+              xine_small_memcpy (this->zbuf, this->zbuf + this->zdelivered, have);
+            this->zgot = have;
+            this->zdelivered = 0;
           }
-        }
-        {
-          uint32_t bytes = this->sgot - this->sdelivered;
-          if (bytes > this->schunkleft)
-            bytes = this->schunkleft;
-          if (bytes > sizeof (this->zbuf) - this->zgot)
-            bytes = sizeof (this->zbuf) - this->zgot;
-          if (bytes > 0) {
-            memcpy (this->zbuf + this->zgot, this->sbuf + this->sdelivered, bytes);
-            this->zgot += bytes;
-            this->sdelivered += bytes;
-            this->schunkleft -= bytes;
+          /* start new chunk */
+          if ((this->schunkleft == 0) && (this->mode & MODE_HAVE_CHUNK)) {
+            uint8_t *p;
+            int32_t n = sbuf_get_string (this, &p);
+            if (n == 0)
+              n = sbuf_get_string (this, &p);
+            if (n > 0) {
+              this->schunkleft = hexstr2uint32 (&p);
+              if (this->schunkleft == 0)
+                this->mode &= ~(MODE_HAVE_CHUNK | MODE_HAVE_READ);
+            } else {
+              this->mode &= ~(MODE_HAVE_CHUNK | MODE_HAVE_READ);
+            }
           }
-          bytes = sizeof (this->zbuf) - this->zgot;
-          if (bytes > this->schunkleft)
-            bytes = this->schunkleft;
-          if (bytes > 0) {
-            int32_t r = _x_tls_read (this->tls, this->zbuf + this->zgot, bytes);
-            if (r > 0)
+          /* refill zbuf from sbuf */
+          want = sizeof (this->zbuf) - this->zgot;
+          if (want > this->schunkleft)
+            want = this->schunkleft;
+          if (this->mode & MODE_HAVE_SBUF) {
+            uint32_t bytes = this->sgot - this->sdelivered;
+            if (bytes > want)
+              bytes = want;
+            if (bytes > 0) {
+              memcpy (this->zbuf + this->zgot, this->sbuf + this->sdelivered, bytes);
+              this->zgot += bytes;
+              this->sdelivered += bytes;
+              this->schunkleft -= bytes;
+              want -= bytes;
+            }
+            if (this->sgot <= this->sdelivered) {
+              this->sgot = 0;
+              this->sdelivered = 0;
+              this->mode &= ~MODE_HAVE_SBUF;
+            }
+          }
+          /* refill zbuf from stream */
+          if ((want > 0) && (this->mode & (MODE_HAVE_SBUF | MODE_HAVE_READ)) == MODE_HAVE_READ) {
+            int32_t r = _x_tls_read (this->tls, this->zbuf + this->zgot, want);
+            if (r > 0) {
               this->zgot += r;
-            else
-              this->smode |= MODE_EOF;
+              this->schunkleft -= r;
+            } else
+              this->mode &= ~MODE_HAVE_READ;
           }
+          /* collect small chunks */
+          if ((this->schunkleft == 0) && (this->mode & MODE_HAVE_CHUNK))
+            continue;
+          /* new size */
+          have = this->zgot - this->zdelivered;
         }
-        if ((this->zgot < sizeof (this->zbuf) - 32) && !(this->smode & MODE_EOF))
-          continue;
-        this->z_state.next_in = this->zbuf;
-        this->z_state.avail_in = this->zgot;
-        if ((this->smode & MODE_INFLATING) == 0) {
+        /* init zlib */
+        if ((this->mode & MODE_INFLATING) == 0) {
           uint32_t head_len = sbuf_skip_gzip_head (this->zbuf, this->zgot);
-          this->zskip = head_len;
-          this->z_state.next_in += head_len;
-          this->z_state.avail_in -= head_len;
+          this->zdelivered += head_len;
+          have -= head_len;
+          this->z_state.next_in = this->zbuf + this->zdelivered;
+          this->z_state.avail_in = have;
+          this->z_state.next_out = q;
+          this->z_state.avail_out = left;
           this->z_state.zalloc = NULL;
           this->z_state.zfree  = NULL;
           this->z_state.opaque = NULL;
           if (inflateInit2 (&this->z_state, -15) != Z_OK) {
-            this->smode |= MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
-          this->smode |= MODE_INFLATING;
+          this->mode |= MODE_INFLATING;
         }
+        /* deflate */
         {
-          int32_t bytes_in = this->z_state.avail_in;
-          int32_t bytes_out = this->z_state.avail_out;
-          int z_ret_code1 = inflate (&this->z_state, Z_SYNC_FLUSH);
+          int32_t bytes;
+          int z_ret_code1;
+          this->z_state.next_in = this->zbuf + this->zdelivered;
+          this->z_state.avail_in = have;
+          this->z_state.next_out = q;
+          this->z_state.avail_out = left;
+          z_ret_code1 = inflate (&this->z_state, Z_SYNC_FLUSH);
           if ((z_ret_code1 != Z_OK) && (z_ret_code1 != Z_STREAM_END)) {
             xprintf (this->xine, XINE_VERBOSITY_DEBUG,
               "input_http: zlib error #%d.\n", z_ret_code1);
-            this->smode |= MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
-          bytes_in -= this->z_state.avail_in;
-          if (bytes_in < 0)
+          bytes = have - this->z_state.avail_in;
+          if (bytes < 0)
             break;
-          bytes_in += this->zskip;
-          if (bytes_in > 0) {
-            int32_t stay = this->zgot - bytes_in;
-            if (stay > 0) {
-              if (stay <= bytes_in)
-                memcpy (this->zbuf, this->zbuf + bytes_in, stay);
-              else
-                memmove (this->zbuf, this->zbuf + bytes_in, stay);
-            }
-            this->zgot = stay;
-            this->zskip = 0;
+          this->zdelivered += bytes;
+          if (this->zdelivered > this->zgot) {
+            xprintf (this->xine, XINE_VERBOSITY_DEBUG, "input_http: zbuf overrun??\n");
+            this->zdelivered = this->zgot = 0;
           }
-          bytes_out -= this->z_state.avail_out;
-          if (bytes_out < 0)
+          bytes = left - this->z_state.avail_out;
+          if (bytes < 0)
             break;
-          q += bytes_out;
-          left -= bytes_out;
+          q += bytes;
+          left -= bytes;
           if (z_ret_code1 == Z_STREAM_END) {
-            this->smode |= MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
         }
       }
-      if ((this->smode & (MODE_DONE | MODE_INFLATING)) == (MODE_DONE | MODE_INFLATING)) {
+      if ((this->mode & (MODE_DONE | MODE_INFLATING)) == (MODE_DONE | MODE_INFLATING)) {
         int bytes_out;
         bytes_out = this->z_state.avail_out;
         inflateEnd (&this->z_state);
         bytes_out -= this->z_state.avail_out;
         if (bytes_out > 0)
           q += bytes_out;
-        this->smode &= ~MODE_INFLATING;
+        this->mode &= ~MODE_INFLATING;
       }
       break;
 
     case MODE_CHUNKED:
-      if (this->smode & MODE_DONE)
+      if (this->mode & MODE_DONE)
         return 0;
       while (left > 0) {
         uint32_t fast, chunkleft;
         if (this->schunkleft == 0) {
           uint8_t *p;
           int32_t n;
-          if (this->smode & MODE_DONE)
+          if (this->mode & MODE_DONE)
             return 0;
           n = sbuf_get_string (this, &p);
           if (n == 0)
@@ -502,7 +539,7 @@ static int sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t len) 
             break;
           this->schunkleft = hexstr2uint32 (&p);
           if (this->schunkleft == 0) {
-            this->smode |= MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
         }
@@ -523,7 +560,7 @@ static int sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t len) 
           /* get the usual way */
           ssize_t r = _x_tls_read (this->tls, q, chunkleft);
           if (r <= 0) {
-            this->smode |= MODE_EOF | MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
           q += r;
@@ -534,78 +571,95 @@ static int sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t len) 
       break;
 
     case MODE_DEFLATED:
-      if (this->smode & MODE_DONE)
+      if (this->mode & MODE_DONE)
         return 0;
-      this->z_state.next_out = q;
-      this->z_state.avail_out = left;
       while (left > 0) {
-        if (this->sdelivered > 0) {
-          uint32_t bytes = this->sgot - this->sdelivered;
-          if (bytes > 0) {
-            if (bytes <= this->sdelivered)
-              memcpy (this->sbuf, this->sbuf + this->sdelivered, bytes);
-            else
-              memmove (this->sbuf, this->sbuf + this->sdelivered, bytes);
+        uint32_t have = this->sgot - this->sdelivered;
+        /* refill sbuf */
+        if ((have < 128) && (this->mode & MODE_HAVE_READ)) {
+          uint32_t want;
+          /* align */
+          if (this->sdelivered >= 128) {
+            if (have > 0)
+              xine_small_memcpy (this->sbuf, this->sbuf + this->sdelivered, have);
+            this->sgot = have;
+            this->sdelivered = 0;
           }
-          this->sgot = bytes;
-          this->sdelivered = 0;
+          /* refill */
+          want = sizeof (this->sbuf) - this->sgot;
+          if (want > this->bytes_left)
+            want = this->bytes_left;
+          if (want == 0) {
+            this->mode &= ~MODE_HAVE_READ;
+            this->bytes_left = 0;
+          } else {
+            int32_t r = _x_tls_read (this->tls, this->sbuf + this->sgot, want);
+            if (r > 0) {
+              this->sgot += r;
+              have += r;
+              this->bytes_left -= want;
+            } else {
+              this->mode &= ~MODE_HAVE_READ;
+              this->bytes_left = 0;
+            }
+          }
         }
-        if ((this->sgot < sizeof (this->sbuf) - 32) && !(this->smode & MODE_EOF)) {
-          ssize_t r = _x_tls_read (this->tls, this->sbuf + this->sgot, sizeof (this->sbuf) - this->sgot);
-          if (r > 0)
-            this->sgot += r;
-          else
-            this->smode |= MODE_EOF;
-        }
-        this->z_state.next_in = this->sbuf;
-        this->z_state.avail_in = this->sgot;
-        if (!(this->smode & MODE_INFLATING)) {
-          uint32_t head_len = sbuf_skip_gzip_head (this->sbuf, this->sgot);
-          this->sdelivered = head_len;
-          this->z_state.next_in += head_len;
-          this->z_state.avail_in -= head_len;
+        /* init zlib */
+        if (!(this->mode & MODE_INFLATING)) {
+          uint32_t head_len = sbuf_skip_gzip_head (this->sbuf + this->sdelivered, have);
+          this->sdelivered += head_len;
+          have -= head_len;
+          this->z_state.next_in = this->sbuf + this->sdelivered;
+          this->z_state.avail_in = have;
+          this->z_state.next_out = q;
+          this->z_state.avail_out = left;
           this->z_state.zalloc = NULL;
           this->z_state.zfree  = NULL;
           this->z_state.opaque = NULL;
           if (inflateInit2 (&this->z_state, -15) != Z_OK) {
-            this->smode |= MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
-          this->smode |= MODE_INFLATING;
+          this->mode |= MODE_INFLATING;
         }
+        /* deflate */
         {
-          int32_t bytes_in = this->z_state.avail_in;
-          int32_t bytes_out = this->z_state.avail_out;
-          int z_ret_code1 = inflate (&this->z_state, Z_SYNC_FLUSH);
+          int z_ret_code1;
+          int32_t bytes;
+          this->z_state.next_in = this->sbuf + this->sdelivered;
+          this->z_state.avail_in = have;
+          this->z_state.next_out = q;
+          this->z_state.avail_out = left;
+          z_ret_code1 = inflate (&this->z_state, Z_SYNC_FLUSH);
           if ((z_ret_code1 != Z_OK) && (z_ret_code1 != Z_STREAM_END)) {
             xprintf (this->xine, XINE_VERBOSITY_DEBUG,
               "input_http: zlib error #%d.\n", z_ret_code1);
-            this->smode |= MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
-          bytes_in -= this->z_state.avail_in;
-          if (bytes_in < 0)
+          bytes = have - this->z_state.avail_in;
+          if (bytes < 0)
             break;
-          this->sdelivered += bytes_in;
-          bytes_out -= this->z_state.avail_out;
-          if (bytes_out < 0)
+          this->sdelivered += bytes;
+          bytes = left - this->z_state.avail_out;
+          if (bytes < 0)
             break;
-          q += bytes_out;
-          left -= bytes_out;
+          q += bytes;
+          left -= bytes;
           if (z_ret_code1 == Z_STREAM_END) {
-            this->smode |= MODE_DONE;
+            this->mode |= MODE_DONE;
             break;
           }
         }
       }
-      if ((this->smode & (MODE_DONE | MODE_INFLATING)) == (MODE_DONE | MODE_INFLATING)) {
+      if ((this->mode & (MODE_DONE | MODE_INFLATING)) == (MODE_DONE | MODE_INFLATING)) {
         int bytes_out;
         bytes_out = this->z_state.avail_out;
         inflateEnd (&this->z_state);
         bytes_out -= this->z_state.avail_out;
         if (bytes_out > 0)
           q += bytes_out;
-        this->smode &= ~MODE_INFLATING;
+        this->mode &= ~MODE_INFLATING;
       }
       break;
   }
@@ -815,14 +869,12 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
 /*
  * Handle shoutcast packets
  */
-static off_t http_plugin_read_int (http_input_plugin_t *this,
-                                   char *buf, off_t total) {
-  int read_bytes = 0;
-  int nlen;
+static ssize_t http_plugin_read_int (http_input_plugin_t *this, char *buf, size_t total) {
+  size_t read_bytes = 0;
 
   lprintf("total=%"PRId64"\n", total);
   while (total) {
-    nlen = total;
+    ssize_t nlen = total;
     if (this->shoutcast_mode &&
         ((this->shoutcast_pos + nlen) >= this->shoutcast_metaint)) {
       nlen = this->shoutcast_metaint - this->shoutcast_pos;
@@ -1217,43 +1269,43 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       }
       ADDSTR (this->url.uri);
       if (vers == 1) {
-        ADDLIT (" HTTP/1.1\015\012Host: ");
+        ADDLIT (" HTTP/1.1\r\nHost: ");
       } else {
-        ADDLIT (" HTTP/1.0\015\012Host: ");
+        ADDLIT (" HTTP/1.0\r\nHost: ");
       }
       ADDSTR (this->url.host);
       ADDSTR (strport);
       if (this->curpos > 0) {
         /* restart from offset */
-        ADDLIT ("\015\012Range: bytes=");
+        ADDLIT ("\r\nRange: bytes=");
         uint64_2str (&q, this->curpos);
         ADDLIT ("-");
 /*      uint64_2str (&q, this->contentlength - 1); */
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
           "input_http: requesting restart from offset %" PRId64 "\n", (int64_t)this->curpos);
       } else if (vers == 1) {
-        ADDLIT ("\015\012Accept-Encoding: gzip,deflate");
+        ADDLIT ("\r\nAccept-Encoding: gzip,deflate");
       }
       if (this->use_proxy && this_class->proxyuser && this_class->proxyuser[0]) {
         char *proxyauth;
         http_plugin_basicauth (this_class->proxyuser, this_class->proxypassword, &proxyauth);
-        ADDLIT ("\015\012Proxy-Authorization: Basic ");
+        ADDLIT ("\r\nProxy-Authorization: Basic ");
         ADDSTR (proxyauth);
         free (proxyauth);
       }
       if (this->url.user && this->url.user[0]) {
         char *auth;
         http_plugin_basicauth (this->url.user, this->url.password, &auth);
-        ADDLIT ("\015\012Authorization: Basic ");
+        ADDLIT ("\r\nAuthorization: Basic ");
         ADDSTR (auth);
         free (auth);
       }
-      ADDLIT ("\015\012User-Agent: ");
+      ADDLIT ("\r\nUser-Agent: ");
       if (this->user_agent) {
         ADDSTR (this->user_agent);
         ADDLIT (" ");
       }
-      ADDLIT ("xine/" VERSION "\015\012Accept: */*\015\012Icy-MetaData: 1\015\012\015\012");
+      ADDLIT ("xine/" VERSION "\r\nAccept: */*\r\nIcy-MetaData: 1\r\n\r\n");
       if (this->head_dump_file)
         fwrite (this->sbuf, 1, (uint8_t *)q - this->sbuf, this->head_dump_file);
       if (_x_tls_write (this->tls, this->sbuf, (uint8_t *)q - this->sbuf) != (uint8_t *)q - this->sbuf) {
@@ -1270,7 +1322,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
 
     /* Response */
     do {
-      this->smode &= ~(MODE_HAS_TYPE | MODE_HAS_LENGTH | MODE_DEFLATED | MODE_CHUNKED);
+      this->mode &= ~(MODE_HAS_TYPE | MODE_HAS_LENGTH | MODE_DEFLATED | MODE_CHUNKED);
       this->range_start = 0;
       this->range_end = 0;
       this->range_total = 0;
@@ -1368,11 +1420,11 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
           case 0x1: /* content-length */
             if (!this->contentlength)
               this->contentlength = str2uint64 (&p2);
-            this->smode |= MODE_HAS_LENGTH;
+            this->mode |= MODE_HAS_LENGTH;
             break;
           case 0x2: /* content type */
             strlcpy (mime_type, (char *)p2, sizeof (mime_type));
-            this->smode |= MODE_HAS_TYPE;
+            this->mode |= MODE_HAS_TYPE;
             if (!strncasecmp ((char *)p2, "audio/x-mpegurl", 15)) {
               lprintf ("Opening an audio/x-mpegurl file, late redirect.");
               mpegurl_redirect = 1;
@@ -1384,7 +1436,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
             break;
           case 0x3: /* content-encoding */
             if ((!memcmp (p2, "gzip", 4)) || (!memcmp (p2, "deflate", 7)))
-              this->smode |= MODE_DEFLATED;
+              this->mode |= MODE_DEFLATED;
             break;
           case 0x4: /* content-range */
             if (!memcmp (p2, "bytes", 5))
@@ -1403,7 +1455,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
             break;
           case 0x5: /* transfer-encoding */
             if ((!memcmp (p2, "chunked", 7)))
-              this->smode |= MODE_CHUNKED;
+              this->mode |= MODE_CHUNKED;
             break;
           case 0x6: /* accept-ranges */
             if (strstr (line + 14, "bytes")) {
@@ -1468,15 +1520,15 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       }
       /* skip non-document content */
       if ((this->status != 200) && (this->status != 206)) while (this->contentlength > 0) {
-        int i = sizeof (this->preview);
-        if (i > this->contentlength) i = this->contentlength;
-        i = sbuf_get_bytes (this, this->sbuf, i);
-        if (i <= 0) break;
-        this->contentlength -= i;
+        ssize_t s = sizeof (this->preview);
+        if ((uint64_t)s > this->contentlength) s = this->contentlength;
+        s = sbuf_get_bytes (this, this->sbuf, s);
+        if (s <= 0) break;
+        this->contentlength -= s;
       }
       /* indicate free content length */
-      if ((this->smode & (MODE_HAS_TYPE | MODE_HAS_LENGTH)) == MODE_HAS_TYPE) this->contentlength = -1;
-      if (this->smode & MODE_CHUNKED) this->contentlength = 0;
+      if ((this->mode & (MODE_HAS_TYPE | MODE_HAS_LENGTH)) == MODE_HAS_TYPE) this->contentlength = ~(uint64_t)0;
+      if (this->mode & MODE_CHUNKED) this->contentlength = ~(uint64_t)0;
     } while (this->status == 102); /* processing */
 
     this->curpos = 0;
@@ -1511,7 +1563,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       _x_tls_deinit (&this->tls);
       return XIO_HANDSHAKE_TRY_NEXT;
     }
-    if (this->smode & MODE_HAS_LENGTH)
+    if (this->mode & MODE_HAS_LENGTH)
       xine_log (this->xine, XINE_LOG_MSG,
         _("input_http: content length = %" PRId64 " bytes\n"), (int64_t)this->contentlength);
     if (this->range_start) {
@@ -1523,7 +1575,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
         this->contentlength = this->range_end + 1;
       } else {
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "input_http: Stream starting at offset %" PRId64 "\n.", this->range_start);
+          "input_http: Stream starting at offset %" PRIu64 "\n.", this->range_start);
       }
     }
 #if 0
@@ -1615,6 +1667,7 @@ static int http_plugin_open (input_plugin_t *this_gen) {
     printf ("\n");
 #endif
 
+    this->bytes_left = ~(uint64_t)0;
     this->ret = -2;
     if (this->use_proxy)
       this->fh = _x_io_tcp_handshake_connect (this->stream, this_class->proxyhost, proxyport, http_plugin_handshake, this);
@@ -1623,6 +1676,19 @@ static int http_plugin_open (input_plugin_t *this_gen) {
     if (this->fh < 0)
       return this->ret;
   } while (this->again);
+
+  this->mode &= ~(MODE_HAVE_CHUNK | MODE_HAVE_SBUF);
+  if (this->mode & MODE_CHUNKED)
+    this->mode |= MODE_HAVE_CHUNK;
+  if (this->sgot > this->sdelivered)
+    this->mode |= MODE_HAVE_SBUF;
+
+  if (this->contentlength != ~(uint64_t)0)
+    this->bytes_left = this->contentlength - this->sgot + this->sdelivered;
+  else
+    this->contentlength = 0;
+  if (this->mode & MODE_DEFLATED)
+    this->contentlength = 0;
 
   if (this->head_dump_file)
     fflush (this->head_dump_file);
@@ -1935,4 +2001,3 @@ void *input_http_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
-
