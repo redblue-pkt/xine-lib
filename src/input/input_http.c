@@ -148,7 +148,6 @@ typedef struct {
   uint64_t         range_end;
   uint64_t         range_total;
 
-  char            *mime_type;
   const char      *user_agent;
 
   xine_url_t       url;
@@ -196,17 +195,19 @@ typedef struct {
   int              num_msgs;
 
   /* ShoutCast */
-  int              shoutcast_metaint;
-  off_t            shoutcast_pos;
+  uint32_t         shoutcast_interval;
+  uint32_t         shoutcast_pos;
   char            *shoutcast_songtitle;
+
+  char             mime_type[128];
 
   uint8_t          zbuf[32 << 10];
   uint8_t          zbuf_pad[4];
   uint8_t          sbuf[32 << 10];
   uint8_t          sbuf_pad[4];
 
-  off_t            preview_size;
-  char             preview[MAX_PREVIEW_SIZE];
+  int32_t          preview_size;
+  uint8_t          preview[MAX_PREVIEW_SIZE];
 
   char             mrl[4096];
 } http_input_plugin_t;
@@ -597,7 +598,7 @@ static ssize_t sbuf_get_bytes (http_input_plugin_t *this, uint8_t *buf, size_t l
             if (r > 0) {
               this->sgot += r;
               have += r;
-              this->bytes_left -= want;
+              this->bytes_left -= r;
             } else {
               this->mode &= ~MODE_HAVE_READ;
               this->bytes_left = 0;
@@ -783,20 +784,24 @@ static int _x_use_proxy(xine_t *xine, http_input_class_t *this, const char *host
   return 1;
 }
 
-static void http_plugin_basicauth (const char *user, const char *password, char** dest) {
-  const size_t totlen = strlen(user) + (password ? strlen(password) : 0) + 1;
-  const size_t enclen = ((totlen + 2) * 4 ) / 3 + 12;
-  char         tmp[totlen + 5];
-
-  snprintf(tmp, totlen + 1, "%s:%s", user, password ? : "");
-
-  *dest = malloc(enclen);
-  xine_base64_encode(tmp, *dest, totlen);
+static size_t http_plugin_basicauth (const char *user, const char *password, char* dest, size_t len) {
+  size_t s1 = (user ? strlen (user) : 0) + (password ? strlen (password) : 0) + 1;
+  size_t s2 = ((s1 + 2) * 4) / 3 + 12;
+  char *e = dest + s2, *q = e - s1 - 1;
+  if (s2 > len)
+    return 0;
+  if (user)
+    q += strlcpy (q, user, e - q);
+  *q += ':';
+  if (password)
+    q += strlcpy (q, password, q - e);
+  *q = 0;
+  return xine_base64_encode ((uint8_t *)dest + s2 - s1 - 1, dest, s1);
 }
 
 static int http_plugin_read_metainf (http_input_plugin_t *this) {
 
-  char metadata_buf[255 * 16];
+  char metadata_buf[256 * 16];
   unsigned char len = 0;
   char *title_end;
   const char *songtitle;
@@ -805,13 +810,13 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
   xine_ui_data_t data;
 
   /* get the length of the metadata */
-  if (sbuf_get_bytes (this, (char*)&len, 1) != 1)
+  if (sbuf_get_bytes (this, (uint8_t *)&len, 1) != 1)
     return 0;
 
   lprintf ("http_plugin_read_metainf: len=%d\n", len);
 
   if (len > 0) {
-    if (sbuf_get_bytes (this, metadata_buf, len * 16) != (len * 16))
+    if (sbuf_get_bytes (this, (uint8_t *)metadata_buf, len * 16) != (len * 16))
       return 0;
 
     metadata_buf[len * 16] = '\0';
@@ -869,58 +874,60 @@ static int http_plugin_read_metainf (http_input_plugin_t *this) {
 /*
  * Handle shoutcast packets
  */
-static ssize_t http_plugin_read_int (http_input_plugin_t *this, char *buf, size_t total) {
+static ssize_t http_plugin_read_int (http_input_plugin_t *this, uint8_t *buf, size_t total) {
   size_t read_bytes = 0;
 
   lprintf("total=%"PRId64"\n", total);
-  while (total) {
-    ssize_t nlen = total;
-    if (this->shoutcast_mode &&
-        ((this->shoutcast_pos + nlen) >= this->shoutcast_metaint)) {
-      nlen = this->shoutcast_metaint - this->shoutcast_pos;
 
-      nlen = sbuf_get_bytes (this, &buf[read_bytes], nlen);
-      if (nlen < 0)
-        goto error;
-
-      if (!http_plugin_read_metainf(this))
-        goto error;
-      this->shoutcast_pos = 0;
-
-    } else {
-      nlen = sbuf_get_bytes (this, &buf[read_bytes], nlen);
-      if (nlen < 0)
-        goto error;
-
-      /* Identify SYNC string for last.fm, this is limited to last.fm
-       * streaming servers to avoid hitting on tracks metadata for other
-       * servers.
-       */
-      if ( this->is_lastfm &&
-           memmem(&buf[read_bytes], nlen, "SYNC", 4) != NULL &&
-           this->stream != NULL) {
-	/* Tell frontend to update the UI */
-	const xine_event_t event = {
-	  .type = XINE_EVENT_UI_CHANNELS_CHANGED,
-	  .stream = this->stream,
-	  .data = NULL,
-	  .data_length = 0
-	};
-
-	lprintf("SYNC from last.fm server received\n");
-
-	xine_event_send(this->stream, &event);
+  if (this->shoutcast_mode) {
+    /* shunt away info inserts */
+    while (total) {
+      ssize_t nlen = total;
+      if (this->shoutcast_pos + nlen >= this->shoutcast_interval) {
+        nlen = this->shoutcast_interval - this->shoutcast_pos;
+        if (nlen)
+          nlen = sbuf_get_bytes (this, buf + read_bytes, nlen);
+        if (nlen < 0)
+          goto error;
+        if (!http_plugin_read_metainf (this))
+          goto error;
+        this->shoutcast_pos = 0;
+      } else {
+        nlen = sbuf_get_bytes (this, buf + read_bytes, nlen);
+        if (nlen < 0)
+          goto error;
+        this->shoutcast_pos += nlen;
+        /* end of file */
+        if (nlen == 0)
+          break;
       }
-
-      this->shoutcast_pos += nlen;
+      read_bytes += nlen;
+      total -= nlen;
     }
-
-    /* end of file */
-    if (nlen == 0)
-      return read_bytes;
-    read_bytes          += nlen;
-    total               -= nlen;
+  } else {
+    /* read as is */
+    ssize_t nlen = sbuf_get_bytes (this, buf, total);
+    if (nlen < 0)
+      goto error;
+    read_bytes += nlen;
   }
+
+  if (this->is_lastfm) {
+    /* Identify SYNC string for last.fm, this is limited to last.fm
+     * streaming servers to avoid hitting on tracks metadata for other servers. */
+    if (read_bytes && memmem (buf, read_bytes, "SYNC", 4) && this->stream) {
+      /* Tell frontend to update the UI */
+      const xine_event_t event = {
+        .type = XINE_EVENT_UI_CHANNELS_CHANGED,
+        .stream = this->stream,
+        .data = NULL,
+        .data_length = 0
+      };
+      lprintf ("SYNC from last.fm server received\n");
+      xine_event_send (this->stream, &event);
+    }
+  }
+
   return read_bytes;
 
 error:
@@ -930,92 +937,39 @@ error:
   return read_bytes;
 }
 
-static off_t http_plugin_read (input_plugin_t *this_gen,
-                               void *buf_gen, off_t nlen) {
+static off_t http_plugin_read (input_plugin_t *this_gen, void *buf_gen, off_t nlen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   char *buf = (char *)buf_gen;
-  off_t n, num_bytes;
-
-  num_bytes = 0;
+  size_t want, num_bytes;
 
   if (nlen < 0)
     return -1;
 
+  want = nlen;
+  if (want == 0)
+    return 0;
+
+  num_bytes = 0;
   if (this->curpos < this->preview_size) {
-
-    if (nlen > (this->preview_size - this->curpos))
-      n = this->preview_size - this->curpos;
-    else
-      n = nlen;
-
-    lprintf ("%"PRId64" bytes from preview (which has %"PRId64" bytes)\n", n, this->preview_size);
-    memcpy (buf, &this->preview[this->curpos], n);
-
-    num_bytes += n;
-    this->curpos += n;
+    uint32_t have = this->preview_size - this->curpos;
+    if (have > want)
+      have = want;
+    lprintf ("%u bytes from preview (which has %u bytes)\n", (unsigned int)have, (unsigned int)this->preview_size);
+    memcpy (buf, this->preview + this->curpos, have);
+    num_bytes += have;
+    want -= have;
+    this->curpos += have;
   }
 
-  n = nlen - num_bytes;
-
-  if (n > 0) {
-    int read_bytes;
-    read_bytes = http_plugin_read_int (this, &buf[num_bytes], n);
-
-    if (read_bytes < 0)
-      return read_bytes;
-
-    num_bytes += read_bytes;
-    this->curpos += read_bytes;
+  if (want > 0) {
+    ssize_t r = http_plugin_read_int (this, (uint8_t *)buf + num_bytes, want);
+    if (r > 0) {
+      num_bytes += r;
+      this->curpos += r;
+    }
   }
 
   return num_bytes;
-}
-
-static int resync_nsv(http_input_plugin_t *this) {
-  uint8_t c;
-  int pos = 0;
-  int read_bytes = 0;
-
-  lprintf("resyncing NSV stream\n");
-  while ((pos < 3) && (read_bytes < (1024*1024))) {
-
-    if (http_plugin_read_int(this, (char*)&c, 1) != 1)
-      return 1;
-
-    this->preview[pos] = c;
-    switch (pos) {
-      case 0:
-        if (c == 'N')
-          pos++;
-        break;
-      case 1:
-        if (c == 'S')
-          pos++;
-        else
-          if (c != 'N')
-            pos = 0;
-        break;
-      case 2:
-        if (c == 'V')
-          pos++;
-        else
-          if (c == 'N')
-            pos = 1;
-          else
-            pos = 0;
-        break;
-    }
-    read_bytes++;
-  }
-  if (pos == 3) {
-    lprintf("NSV stream resynced\n");
-  } else {
-    xprintf(this->xine, XINE_VERBOSITY_DEBUG,
-      "http: cannot resync NSV stream!\n");
-    return 0;
-  }
-
-  return 1;
 }
 
 static off_t http_plugin_get_length (input_plugin_t *this_gen) {
@@ -1148,7 +1102,6 @@ static void http_plugin_dispose (input_plugin_t *this_gen ) {
     this->head_dump_file = NULL;
   }
 
-  _x_freep (&this->mime_type);
   free (this);
 }
 
@@ -1194,7 +1147,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
   http_input_class_t  *this_class = (http_input_class_t *) this->input_plugin.input_class;
   int                  res;
   int                  mpegurl_redirect = 0;
-  char                 mime_type[256];
+  char                 mime_type[128];
 
   {
     char httpstatus[128];
@@ -1248,7 +1201,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
     {
 #define ADDSTR(s) q += strlcpy (q, s, e - q); if (q > e) q = e
 #define ADDLIT(s) { static const char ls[] = s; if (q + sizeof (ls) <= e) memcpy (q, s, sizeof (ls)), q += sizeof (ls) - 1; }
-      char *q = this->sbuf, *e = q + sizeof (this->sbuf) - 24;
+      char *q = (char *)this->sbuf, *e = q + sizeof (this->sbuf) - 24;
       char strport[16];
       int vers = this_class->prot_version;
 
@@ -1287,18 +1240,12 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
         ADDLIT ("\r\nAccept-Encoding: gzip,deflate");
       }
       if (this->use_proxy && this_class->proxyuser && this_class->proxyuser[0]) {
-        char *proxyauth;
-        http_plugin_basicauth (this_class->proxyuser, this_class->proxypassword, &proxyauth);
         ADDLIT ("\r\nProxy-Authorization: Basic ");
-        ADDSTR (proxyauth);
-        free (proxyauth);
+        q += http_plugin_basicauth (this_class->proxyuser, this_class->proxypassword, q, e - q);
       }
       if (this->url.user && this->url.user[0]) {
-        char *auth;
-        http_plugin_basicauth (this->url.user, this->url.password, &auth);
         ADDLIT ("\r\nAuthorization: Basic ");
-        ADDSTR (auth);
-        free (auth);
+        q += http_plugin_basicauth (this->url.user, this->url.password, q, e - q);
       }
       ADDLIT ("\r\nUser-Agent: ");
       if (this->user_agent) {
@@ -1349,7 +1296,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
           if (this->status == 0)
             break;
           while (*p2 == ' ') p2++;
-          strlcpy (httpstatus, p2, sizeof (httpstatus));
+          strlcpy (httpstatus, (char *)p2, sizeof (httpstatus));
           ok = 1;
         } while (0);
         if (!ok) {
@@ -1458,7 +1405,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
               this->mode |= MODE_CHUNKED;
             break;
           case 0x6: /* accept-ranges */
-            if (strstr (line + 14, "bytes")) {
+            if (strstr ((char *)line + 14, "bytes")) {
               xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                 "input_http: Server supports request ranges. Enabling seeking support.\n");
               this->accept_range = 1;
@@ -1511,8 +1458,8 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
             break;
           case 0xd: /* icy-metaint */
             /* metadata interval (in byte) */
-            this->shoutcast_metaint = str2uint32 (&p2);
-            lprintf ("shoutcast_metaint: %d\n", this->shoutcast_metaint);
+            this->shoutcast_interval = str2uint32 (&p2);
+            lprintf ("shoutcast_interval: %d\n", this->shoutcast_interval);
             this->shoutcast_mode = 1;
             this->shoutcast_pos = 0;
             break;
@@ -1522,7 +1469,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       if ((this->status != 200) && (this->status != 206)) while (this->contentlength > 0) {
         ssize_t s = sizeof (this->preview);
         if ((uint64_t)s > this->contentlength) s = this->contentlength;
-        s = sbuf_get_bytes (this, this->sbuf, s);
+        s = sbuf_get_bytes (this, this->preview, s);
         if (s <= 0) break;
         this->contentlength -= s;
       }
@@ -1591,25 +1538,26 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
     lprintf ("end of headers\n");
 
     if (mpegurl_redirect) {
-      char urlbuf[4096] = { 0, };
-      char *newline = NULL;
-      http_plugin_read_int (this, urlbuf, sizeof (urlbuf) - 1);
-      newline = strstr (urlbuf, "\r\n");
-      /* If the newline can't be found, either the 4K buffer is too small, or
-       * more likely something is fuzzy. */
-      if (newline) {
-        *newline = '\0';
-        lprintf ("mpegurl pointing to %s\n", urlbuf);
-        _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, urlbuf);
-        this->again = 1;
+      ssize_t l = sbuf_get_bytes (this, this->preview, sizeof (this->preview) - 1);
+      if (l > 0) {
+        uint8_t *p = this->preview;
+        p[l] = 0;
+        while (p[0] & 0xe0)
+          p++;
+        /* If the newline can't be found, either the 4K buffer is too small, or
+         * more likely something is fuzzy. */
+        if (p < this->preview + l) {
+          *p = 0;
+          lprintf ("mpegurl pointing to %s\n", (char *)this->preview);
+          _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, (char *)this->preview);
+          this->again = 1;
+        }
       }
     }
   }
 
-  if (*mime_type) {
-    free (this->mime_type);
-    this->mime_type = strdup (mime_type);
-  }
+  strcpy (this->mime_type, mime_type);
+
   return XIO_HANDSHAKE_OK;
 }
 
@@ -1700,18 +1648,45 @@ static int http_plugin_open (input_plugin_t *this_gen) {
   }
 
   /* fill preview buffer */
-  this->preview_size = MAX_PREVIEW_SIZE;
+  this->preview_size = http_plugin_read_int (this, this->preview, MAX_PREVIEW_SIZE);
   if (this->is_nsv) {
-    if (!resync_nsv (this)) {
+#define V_NSV (('N' << 24) | ('S' << 16) | ('V' << 8))
+    int32_t max_bytes = 1 << 20;
+    uint32_t v = 0;
+    uint8_t *p = this->preview, *e = p + this->preview_size;
+    lprintf ("resyncing NSV stream\n");
+    while (this->preview_size > 2) {
+      if ((max_bytes -= this->preview_size) <= 0)
+        break;
+      while (p < e) {
+        v = (v | *p++) << 8;
+        if (v == V_NSV)
+          break;
+      }
+      if (v == V_NSV)
+        break;
+      this->preview[0] = e[-2];
+      this->preview[1] = e[-1];
+      this->preview_size = http_plugin_read_int (this, this->preview + 2, MAX_PREVIEW_SIZE - 2);
+      p = this->preview + 2;
+      e = p + this->preview_size;
+    }
+    if (v != V_NSV) {
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "http: cannot resync NSV stream!\n");
       _x_tls_deinit (&this->tls);
       _x_io_tcp_close (this->stream, this->fh);
       this->fh = -1;
       return -11;
     }
-    /* the first 3 chars are "NSV" */
-    this->preview_size = http_plugin_read_int (this, this->preview + 3, MAX_PREVIEW_SIZE - 3);
-  } else {
-    this->preview_size = http_plugin_read_int (this, this->preview, MAX_PREVIEW_SIZE);
+    this->preview_size = e - p + 3;
+    if (p - 3 > this->preview)
+      memmove (this->preview, p - 3, this->preview_size);
+    if (this->preview_size < MAX_PREVIEW_SIZE) {
+      int32_t r = http_plugin_read_int (this, this->preview + this->preview_size, MAX_PREVIEW_SIZE - this->preview_size);
+      if (r > 0)
+        this->preview_size += r;
+    }
+    lprintf ("NSV stream resynced\n");
   }
   if (this->preview_size < 0) {
     this->preview_size = 0;
@@ -1785,7 +1760,7 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
       http_close (this);
       sbuf_reset (this);
       this->mrl[0] = 0;
-      _x_freep (&this->mime_type);
+      this->mime_type[0] = 0;
       _x_freep (&this->user_agent);
       _x_freep (&this->shoutcast_songtitle);
       this->curpos              = 0;
@@ -1794,7 +1769,7 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
       this->is_lastfm           = 0;
       this->shoutcast_mode      = 0;
       this->accept_range        = 0;
-      this->shoutcast_metaint   = 0;
+      this->shoutcast_interval  = 0;
       this->shoutcast_pos       = 0;
       this->preview_size        = 0;
       if ((this->num_msgs < 0) || (this->num_msgs > 8))
@@ -1829,14 +1804,14 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
 #ifndef HAVE_ZERO_SAFE_MEM
   this->curpos              = 0;
   this->contentlength       = 0;
-  this->mime_type           = NULL;
+  this->mime_type[0]        = 0;
   this->user_agent          = NULL;
   this->tls                 = NULL;
   this->is_nsv              = 0;
   this->is_lastfm           = 0;
   this->shoutcast_mode      = 0;
   this->accept_range        = 0;
-  this->shoutcast_metaint   = 0;
+  this->shoutcast_interval  = 0;
   this->shoutcast_pos       = 0;
   this->shoutcast_songtitle = NULL;
   this->preview_size        = 0;
@@ -2001,3 +1976,4 @@ void *input_http_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
+
