@@ -71,7 +71,9 @@
 
 #include "xine_private.h"
 
+#ifdef XINE_MAKE_BUILTINS
 #include "builtins.h"
+#endif
 
 #if 0
 
