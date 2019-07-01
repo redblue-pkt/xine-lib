@@ -159,33 +159,28 @@ typedef struct {
 
   int              use_proxy;
   int              use_tls;
-  int              again;
   int              ret;
   int              fh;
-
-  /* set to 1 if server replied with Accept-Ranges: bytes */
-  uint32_t         accept_range:1;
-  /** Set to 1 if the stream is a NSV stream. */
-  uint32_t         is_nsv:1;
-  /** Set to 1 if the stream comes from last.fm. */
-  uint32_t         is_lastfm:1;
-  /** Set to 1 if the stream is ShoutCast. */
-  uint32_t         shoutcast_mode:1;
 
   uint32_t         sgot;
   uint32_t         sdelivered;
   uint32_t         schunkleft;
   uint32_t         zgot;
   uint32_t         zdelivered;
-#define MODE_CHUNKED     1
-#define MODE_DEFLATED    2
-#define MODE_INFLATING   4
-#define MODE_DONE       16
-#define MODE_HAS_TYPE   32
-#define MODE_HAS_LENGTH 64
-#define MODE_HAVE_CHUNK 0x100
-#define MODE_HAVE_SBUF  0x200
-#define MODE_HAVE_READ  0x400
+#define MODE_CHUNKED    0x0001 /* content sent portion-wise */
+#define MODE_DEFLATED   0x0002 /* content needs inflating */
+#define MODE_HAS_TYPE   0x0004 /* there is (at least the type of) content */
+#define MODE_HAS_LENGTH 0x0008 /* content size is known */
+#define MODE_AGAIN      0x0010 /* follow a redirection */
+#define MODE_INFLATING  0x0020 /* zlib inflater is up */
+#define MODE_DONE       0x0040 /* end of content reached */
+#define MODE_HAVE_CHUNK 0x0100 /* there are content portions left */
+#define MODE_HAVE_SBUF  0x0200 /* there are content bytes in sbuf */
+#define MODE_HAVE_READ  0x0400 /* socket still has data to read */
+#define MODE_SEEKABLE   0x1000 /* server supports byte ranges */
+#define MODE_NSV        0x2000 /* we have a nullsoft stream */
+#define MODE_LASTFM     0x4000 /* we have a last.fm stream */
+#define MODE_SHOUTCAST  0x8000 /* content has info inserts */
   uint32_t         mode;
   uint32_t         status;
 
@@ -196,7 +191,7 @@ typedef struct {
 
   /* ShoutCast */
   uint32_t         shoutcast_interval;
-  uint32_t         shoutcast_pos;
+  uint32_t         shoutcast_left;
   char            *shoutcast_songtitle;
 
   char             mime_type[128];
@@ -236,7 +231,7 @@ static void sbuf_init (http_input_plugin_t *this) {
   this->sgot = 0;
   this->sdelivered = 0;
   this->schunkleft = 0;
-  this->mode = 0;
+  this->mode &= ~(MODE_HAVE_SBUF | MODE_INFLATING);
 }
 
 static void sbuf_reset (http_input_plugin_t *this) {
@@ -252,7 +247,7 @@ static void sbuf_reset (http_input_plugin_t *this) {
     this->z_state.avail_out = 0;
     inflateEnd (&this->z_state);
   }
-  this->mode = 0;
+  this->mode &= ~(MODE_HAVE_SBUF | MODE_INFLATING);
 }
 
 static int32_t sbuf_get_string (http_input_plugin_t *this, uint8_t **buf) {
@@ -785,18 +780,16 @@ static int _x_use_proxy(xine_t *xine, http_input_class_t *this, const char *host
 }
 
 static size_t http_plugin_basicauth (const char *user, const char *password, char* dest, size_t len) {
-  size_t s1 = (user ? strlen (user) : 0) + (password ? strlen (password) : 0) + 1;
-  size_t s2 = ((s1 + 2) * 4) / 3 + 12;
-  char *e = dest + s2, *q = e - s1 - 1;
-  if (s2 > len)
+  size_t s1 = strlen (user);
+  size_t s2 = password ? strlen (password) : 0;
+  size_t s3 = (s1 + s2) * 4 / 3 + 16;
+  if (s3 > len)
     return 0;
-  if (user)
-    q += strlcpy (q, user, e - q);
-  *q += ':';
-  if (password)
-    q += strlcpy (q, password, q - e);
-  *q = 0;
-  return xine_base64_encode ((uint8_t *)dest + s2 - s1 - 1, dest, s1);
+  xine_small_memcpy (dest + s3 - s2 - s1 - 1, user, s1);
+  dest[s3 - s2 - 1] = ':';
+  if (s2)
+    xine_small_memcpy (dest + s3 - s2, password, s2);
+  return xine_base64_encode ((uint8_t *)dest + s3 - s2 - s1 - 1, dest, s1 + s2 + 1);
 }
 
 static int http_plugin_read_metainf (http_input_plugin_t *this) {
@@ -879,40 +872,38 @@ static ssize_t http_plugin_read_int (http_input_plugin_t *this, uint8_t *buf, si
 
   lprintf("total=%"PRId64"\n", total);
 
-  if (this->shoutcast_mode) {
+  if (this->mode & MODE_SHOUTCAST) {
     /* shunt away info inserts */
     while (total) {
-      ssize_t nlen = total;
-      if (this->shoutcast_pos + nlen >= this->shoutcast_interval) {
-        nlen = this->shoutcast_interval - this->shoutcast_pos;
-        if (nlen)
-          nlen = sbuf_get_bytes (this, buf + read_bytes, nlen);
-        if (nlen < 0)
+      ssize_t r;
+      if (total >= this->shoutcast_left) {
+        r = sbuf_get_bytes (this, buf + read_bytes, this->shoutcast_left);
+        if (r < 0)
           goto error;
         if (!http_plugin_read_metainf (this))
           goto error;
-        this->shoutcast_pos = 0;
+        this->shoutcast_left = this->shoutcast_interval;
       } else {
-        nlen = sbuf_get_bytes (this, buf + read_bytes, nlen);
-        if (nlen < 0)
+        r = sbuf_get_bytes (this, buf + read_bytes, total);
+        if (r < 0)
           goto error;
-        this->shoutcast_pos += nlen;
+        this->shoutcast_left -= r;
         /* end of file */
-        if (nlen == 0)
+        if (r == 0)
           break;
       }
-      read_bytes += nlen;
-      total -= nlen;
+      read_bytes += r;
+      total -= r;
     }
   } else {
     /* read as is */
-    ssize_t nlen = sbuf_get_bytes (this, buf, total);
-    if (nlen < 0)
+    ssize_t r = sbuf_get_bytes (this, buf, total);
+    if (r < 0)
       goto error;
-    read_bytes += nlen;
+    read_bytes += r;
   }
 
-  if (this->is_lastfm) {
+  if (this->mode & MODE_LASTFM) {
     /* Identify SYNC string for last.fm, this is limited to last.fm
      * streaming servers to avoid hitting on tracks metadata for other servers. */
     if (read_bytes && memmem (buf, read_bytes, "SYNC", 4) && this->stream) {
@@ -987,7 +978,7 @@ static uint32_t http_plugin_get_capabilities (input_plugin_t *this_gen) {
       !strncmp(this->url.uri + strlen(this->url.uri) - 4, ".nsv", 4))
     caps |= INPUT_CAP_RIP_FORBIDDEN;
 
-  if (this->accept_range) {
+  if (this->mode & MODE_SEEKABLE) {
     caps |= INPUT_CAP_SLOW_SEEKABLE;
   }
   return caps;
@@ -1063,7 +1054,7 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
   abs_offset = _x_input_seek_preview(this_gen, offset, origin,
                                      &this->curpos, this->contentlength, this->preview_size);
 
-  if (abs_offset < 0 && this->accept_range) {
+  if (abs_offset < 0 && (this->mode & MODE_SEEKABLE)) {
 
     abs_offset = _x_input_translate_seek(offset, origin, this->curpos, this->contentlength);
     if (abs_offset < 0) {
@@ -1153,7 +1144,6 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
     char httpstatus[128];
     httpstatus[0] = 0;
     mime_type[0] = 0;
-    this->again = 0;
     sbuf_reset (this);
 
     {
@@ -1199,9 +1189,13 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
 
     /* Request */
     {
+/* total size of string literals: tfi input_http.c -x 0 "ADDLIT%q(%22%r%22)" "%r" -k -L (or just count yourself ;-) */
+#define SIZEOF_LITERALS 205
+/* max size needed for numbers */
+#define SIZEOF_NUMS (1 * 24)
+#define ADDLIT(s) { static const char ls[] = s; memcpy (q, s, sizeof (ls)); q += sizeof (ls) - 1; }
 #define ADDSTR(s) q += strlcpy (q, s, e - q); if (q > e) q = e
-#define ADDLIT(s) { static const char ls[] = s; if (q + sizeof (ls) <= e) memcpy (q, s, sizeof (ls)), q += sizeof (ls) - 1; }
-      char *q = (char *)this->sbuf, *e = q + sizeof (this->sbuf) - 24;
+      char *q = (char *)this->sbuf, *e = q + sizeof (this->sbuf) - SIZEOF_LITERALS - SIZEOF_NUMS - 1;
       char strport[16];
       int vers = this_class->prot_version;
 
@@ -1265,11 +1259,15 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       lprintf ("request sent: >%s<\n", this->sbuf);
 #undef ADDSTR
 #undef ADDLIT
+#undef SIZEOF_LITERALS
+#undef SIZEOF_NUMS
     }
+
+    this->mode &= ~(MODE_DONE | MODE_NSV | MODE_LASTFM | MODE_SHOUTCAST | MODE_AGAIN);
 
     /* Response */
     do {
-      this->mode &= ~(MODE_HAS_TYPE | MODE_HAS_LENGTH | MODE_DEFLATED | MODE_CHUNKED);
+      this->mode &= ~(MODE_HAS_TYPE | MODE_HAS_LENGTH | MODE_DEFLATED | MODE_CHUNKED | MODE_HAVE_CHUNK | MODE_HAVE_SBUF);
       this->range_start = 0;
       this->range_end = 0;
       this->range_total = 0;
@@ -1378,7 +1376,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
             }
             else if (!strncasecmp ((char *)p2, "video/nsv", 9)) {
               lprintf ("shoutcast nsv detected\n");
-              this->is_nsv = 1;
+              this->mode |= MODE_NSV;
             }
             break;
           case 0x3: /* content-encoding */
@@ -1402,17 +1400,17 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
             break;
           case 0x5: /* transfer-encoding */
             if ((!memcmp (p2, "chunked", 7)))
-              this->mode |= MODE_CHUNKED;
+              this->mode |= MODE_CHUNKED | MODE_HAVE_CHUNK;
             break;
           case 0x6: /* accept-ranges */
             if (strstr ((char *)line + 14, "bytes")) {
               xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                 "input_http: Server supports request ranges. Enabling seeking support.\n");
-              this->accept_range = 1;
+              this->mode |= MODE_SEEKABLE;
             } else {
               xprintf (this->xine, XINE_VERBOSITY_LOG,
                 "input_http: Unknown value in header \'%s\'\n", line + 14);
-              this->accept_range = 0;
+              this->mode &= ~MODE_SEEKABLE;
             }
             break;
           case 0x7: /* location */
@@ -1428,7 +1426,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
           case 0x8: /* server */
             if (!strncasecmp ((char *)p2, "last.fm", 7)) {
               lprintf ("last.fm streaming server detected\n");
-              this->is_lastfm = 1;
+              this->mode |= MODE_LASTFM;
             }
             break;
           case 0x9: /* www-authenticate */
@@ -1458,13 +1456,15 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
             break;
           case 0xd: /* icy-metaint */
             /* metadata interval (in byte) */
-            this->shoutcast_interval = str2uint32 (&p2);
+            this->shoutcast_interval = this->shoutcast_left = str2uint32 (&p2);
             lprintf ("shoutcast_interval: %d\n", this->shoutcast_interval);
-            this->shoutcast_mode = 1;
-            this->shoutcast_pos = 0;
+            if (this->shoutcast_interval)
+              this->mode |= MODE_SHOUTCAST;
             break;
         }
       }
+      if (this->sgot > this->sdelivered)
+        this->mode |= MODE_HAVE_SBUF;
       /* skip non-document content */
       if ((this->status != 200) && (this->status != 206)) while (this->contentlength > 0) {
         ssize_t s = sizeof (this->preview);
@@ -1480,36 +1480,47 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
 
     this->curpos = 0;
 
-    if ((this->status >= 300) && (this->status < 400)) {
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("input_http: 3xx redirection: >%d %s<\n"), this->status, httpstatus);
-      this->again = 1;
-    } else if (this->status == 404) { /* not found */
-      _x_message (this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
-      this->ret = -7;
-      _x_tls_deinit (&this->tls);
-      return XIO_HANDSHAKE_INTR;
-    } else if (this->status == 401) {
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
-      /* don't return - there may be a WWW-Authenticate header... */
-    } else if (this->status == 403) {
-      _x_message (this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
-      this->ret = -8;
-      _x_tls_deinit (&this->tls);
-      return XIO_HANDSHAKE_INTR;
-    } else if ((this->status < 200) || (this->status >= 300)) {
-      _x_message (this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ", httpstatus, NULL);
-      xine_log (this->xine, XINE_LOG_MSG,
-        _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
-      this->ret = -9;
-      _x_tls_deinit (&this->tls);
-      return XIO_HANDSHAKE_TRY_NEXT;
+    switch (this->status / 100) {
+      case 2:
+        break;
+      case 3:
+        xine_log (this->xine, XINE_LOG_MSG,
+          _("input_http: 3xx redirection: >%d %s<\n"), this->status, httpstatus);
+        this->mode |= MODE_AGAIN;
+        break;
+      case 4:
+        if (this->status == 404) { /* not found */
+          _x_message (this->stream, XINE_MSG_FILE_NOT_FOUND, this->mrl, NULL);
+          xine_log (this->xine, XINE_LOG_MSG,
+            _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+          this->ret = -7;
+          _x_tls_deinit (&this->tls);
+          return XIO_HANDSHAKE_INTR;
+        }
+        if (this->status == 401) {
+          xine_log (this->xine, XINE_LOG_MSG,
+          _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+            /* don't return - there may be a WWW-Authenticate header... */
+          break;
+        }
+        if (this->status == 403) {
+          _x_message (this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
+          xine_log (this->xine, XINE_LOG_MSG,
+            _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+          this->ret = -8;
+          _x_tls_deinit (&this->tls);
+          return XIO_HANDSHAKE_INTR;
+        }
+        /* fall through */
+      default:
+        _x_message (this->stream, XINE_MSG_CONNECTION_REFUSED, "http status not 2xx: ", httpstatus, NULL);
+        xine_log (this->xine, XINE_LOG_MSG,
+          _("input_http: http status not 2xx: >%d %s<\n"), this->status, httpstatus);
+        this->ret = -9;
+        _x_tls_deinit (&this->tls);
+        return XIO_HANDSHAKE_TRY_NEXT;
     }
+
     if (this->mode & MODE_HAS_LENGTH)
       xine_log (this->xine, XINE_LOG_MSG,
         _("input_http: content length = %" PRId64 " bytes\n"), (int64_t)this->contentlength);
@@ -1550,7 +1561,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
           *p = 0;
           lprintf ("mpegurl pointing to %s\n", (char *)this->preview);
           _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, (char *)this->preview);
-          this->again = 1;
+          this->mode |= MODE_AGAIN;
         }
       }
     }
@@ -1570,7 +1581,6 @@ static int http_plugin_open (input_plugin_t *this_gen) {
     int proxyport, mrl_tls, proxy_tls;
 
     http_close (this);
-    this->again = 0;
 
     if (--redirections <= 0) {
       xprintf (this->xine, XINE_VERBOSITY_LOG,
@@ -1623,16 +1633,10 @@ static int http_plugin_open (input_plugin_t *this_gen) {
       this->fh = _x_io_tcp_handshake_connect (this->stream, this->url.host, this->url.port, http_plugin_handshake, this);
     if (this->fh < 0)
       return this->ret;
-  } while (this->again);
-
-  this->mode &= ~(MODE_HAVE_CHUNK | MODE_HAVE_SBUF);
-  if (this->mode & MODE_CHUNKED)
-    this->mode |= MODE_HAVE_CHUNK;
-  if (this->sgot > this->sdelivered)
-    this->mode |= MODE_HAVE_SBUF;
+  } while (this->mode & MODE_AGAIN);
 
   if (this->contentlength != ~(uint64_t)0)
-    this->bytes_left = this->contentlength - this->sgot + this->sdelivered;
+    this->bytes_left = this->contentlength - this->curpos - this->sgot + this->sdelivered;
   else
     this->contentlength = 0;
   if (this->mode & MODE_DEFLATED)
@@ -1649,7 +1653,7 @@ static int http_plugin_open (input_plugin_t *this_gen) {
 
   /* fill preview buffer */
   this->preview_size = http_plugin_read_int (this, this->preview, MAX_PREVIEW_SIZE);
-  if (this->is_nsv) {
+  if (this->mode & MODE_NSV) {
 #define V_NSV (('N' << 24) | ('S' << 16) | ('V' << 8))
     int32_t max_bytes = 1 << 20;
     uint32_t v = 0;
@@ -1765,12 +1769,9 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
       _x_freep (&this->shoutcast_songtitle);
       this->curpos              = 0;
       this->contentlength       = 0;
-      this->is_nsv              = 0;
-      this->is_lastfm           = 0;
-      this->shoutcast_mode      = 0;
-      this->accept_range        = 0;
+      this->mode                &= ~(MODE_DONE | MODE_SEEKABLE | MODE_NSV | MODE_LASTFM | MODE_SHOUTCAST);
       this->shoutcast_interval  = 0;
-      this->shoutcast_pos       = 0;
+      this->shoutcast_left      = 0;
       this->preview_size        = 0;
       if ((this->num_msgs < 0) || (this->num_msgs > 8))
         this->num_msgs = 8;
@@ -1807,12 +1808,9 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   this->mime_type[0]        = 0;
   this->user_agent          = NULL;
   this->tls                 = NULL;
-  this->is_nsv              = 0;
-  this->is_lastfm           = 0;
-  this->shoutcast_mode      = 0;
-  this->accept_range        = 0;
+  this->mode                = 0;
   this->shoutcast_interval  = 0;
-  this->shoutcast_pos       = 0;
+  this->shoutcast_left      = 0;
   this->shoutcast_songtitle = NULL;
   this->preview_size        = 0;
   this->url.proto           = NULL;
@@ -1976,4 +1974,3 @@ void *input_http_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
-
