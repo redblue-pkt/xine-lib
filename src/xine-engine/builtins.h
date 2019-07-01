@@ -23,16 +23,8 @@
 #ifndef XINE_ENGINE_BUILTINS_H
 #define XINE_ENGINE_BUILTINS_H
 
-#if defined(HAVE_CONFIG_H) && !defined(__XINE_LIB_CONFIG_H__)
-#  error config.h not included
-#endif
-
-#ifdef XINE_MAKE_BUILTINS
-
 #include <xine/xine_internal.h>
 
 extern const plugin_info_t xine_builtin_plugin_info[];
-
-#endif
 
 #endif
