@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -35,8 +35,6 @@
  * Anyway, it requires a certain naming discipline from the participants.
  */
 
-#undef LOG_MODULE
-#include "../input/net_buf_ctrl.c"
 #undef LOG_MODULE
 #include "../input/input_helper.c"
 #undef LOG_MODULE

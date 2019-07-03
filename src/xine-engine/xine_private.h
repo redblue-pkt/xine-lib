@@ -470,6 +470,10 @@ typedef struct xine_stream_private_st {
   pthread_mutex_t            index_mutex;
   int                        index_size, index_used, index_lastadd;
 
+  /* network buffering control. these 2 fields are protected by index_mutex (do we need our own??). */
+  int                        nbc_refs;
+  xine_nbc_t                *nbc;
+
   uint32_t                   disable_decoder_flush_at_discontinuity;
 
   /* _x_find_input_plugin () recursion protection */

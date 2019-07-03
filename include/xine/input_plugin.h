@@ -380,6 +380,12 @@ struct input_plugin_s {
 #define MAX_MRL_ENTRIES 255
 #define MAX_PREVIEW_SIZE 4096
 
+/* network buffering control */
+typedef struct xine_nbc_st xine_nbc_t;
+xine_nbc_t *xine_nbc_init (xine_stream_t *stream) XINE_PROTECTED;
+void xine_nbc_close (xine_nbc_t *nbc) XINE_PROTECTED;
+
+
 /* Types of mrls returned by get_dir() */
 #define mrl_unknown        (0 << 0)
 #define mrl_dvd            (1 << 0)

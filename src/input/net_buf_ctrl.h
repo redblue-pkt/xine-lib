@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -27,13 +27,11 @@
 extern "C" {
 #endif
 
-#include <xine/xine_internal.h>
+#include <xine/input_plugin.h>
 
-typedef struct nbc_s nbc_t;
-
-nbc_t *nbc_init (xine_stream_t *xine);
-
-void nbc_close (nbc_t *nbc);
+#define nbc_t xine_nbc_t
+#define nbc_init(s) xine_nbc_init (s)
+#define nbc_close(nbc) xine_nbc_close (nbc)
 
 #ifdef __cplusplus
 }

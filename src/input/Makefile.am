@@ -25,7 +25,6 @@ noinst_LTLIBRARIES = \
 	http_helper.la \
 	input_helper.la \
 	media_helper.la \
-	net_buf_ctrl.la \
 	xine_tls.la
 
 http_helper_la_SOURCES = http_helper.c http_helper.h
@@ -36,9 +35,6 @@ input_helper_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
 media_helper_la_SOURCES = media_helper.c media_helper.h
 media_helper_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
-
-net_buf_ctrl_la_SOURCES = net_buf_ctrl.c net_buf_ctrl.h
-net_buf_ctrl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(PTHREAD_LIBS)
 
 xine_tls_la_SOURCES = tls/xine_tls.c tls/xine_tls.h tls/xine_tls_plugin.h
 xine_tls_la_CFLAGS = $(AM_CFLAGS)
@@ -51,6 +47,8 @@ xine_tls_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 noinst_LTLIBRARIES += \
         librtsp.la \
         libreal.la
+
+noinst_HEADERS = net_buf_ctrl.h
 
 EXTRA_DIST = multirate_pref.c
 
@@ -205,13 +203,13 @@ xineplug_inp_network_la_SOURCES = \
 	pnm.h
 xineplug_inp_network_la_CPPFLAGS = $(AM_CPPFLAGS) $(ZLIB_CPPFLAGS)
 xineplug_inp_network_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(LTLIBINTL) $(ZLIB_LIBS) \
-	libreal.la librtsp.la http_helper.la input_helper.la net_buf_ctrl.la xine_tls.la
+	libreal.la librtsp.la http_helper.la input_helper.la xine_tls.la
 
 xineplug_inp_rtp_la_SOURCES = input_rtp.c
-xineplug_inp_rtp_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) net_buf_ctrl.la input_helper.la
+xineplug_inp_rtp_la_LIBADD = $(XINE_LIB) $(NET_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) input_helper.la
 
 xineplug_inp_mms_la_SOURCES = input_mms.c mms.c mms.h mmsh.c mmsh.h
-xineplug_inp_mms_la_LIBADD = $(XINE_LIB) $(LTLIBICONV) $(LTLIBINTL) $(ASFHEADER_LIB) http_helper.la net_buf_ctrl.la input_helper.la
+xineplug_inp_mms_la_LIBADD = $(XINE_LIB) $(LTLIBICONV) $(LTLIBINTL) $(ASFHEADER_LIB) http_helper.la input_helper.la
 
 xineplug_inp_vcd_la_SOURCES = vcd/xineplug_inp_vcd.c vcd/vcdplayer.c vcd/vcdplayer.h vcd/vcdio.c vcd/vcdio.h
 xineplug_inp_vcd_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(LIBCDIO_LIBS) $(LIBVCD_LIBS) $(LIBVCDINFO_LIBS) $(LIBISO9660_LIBS) -lm
@@ -222,11 +220,11 @@ xineplug_inp_vcdo_la_SOURCES = input_vcd.c
 xineplug_inp_vcdo_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) media_helper.la
 
 xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c
-xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) net_buf_ctrl.la input_helper.la
+xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) input_helper.la
 
 xineplug_inp_dvb_la_SOURCES = input_dvb.c
 xineplug_inp_dvb_la_DEPS = $(XDG_BASEDIR_DEPS)
-xineplug_inp_dvb_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(LTLIBINTL) $(XDG_BASEDIR_LIBS) net_buf_ctrl.la input_helper.la
+xineplug_inp_dvb_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(LTLIBINTL) $(XDG_BASEDIR_LIBS) input_helper.la
 xineplug_inp_dvb_la_CPPFLAGS = $(AM_CPPFLAGS) $(XDG_BASEDIR_CPPFLAGS)
 
 xineplug_inp_cdda_la_SOURCES = input_cdda.c
@@ -243,7 +241,7 @@ xineplug_inp_v4l2_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(V4L2_LIBS)
 xineplug_inp_v4l2_la_CFLAGS = $(AM_CFLAGS) $(V4L2_CFLAGS)
 
 xineplug_inp_gnome_vfs_la_SOURCES = input_gnome_vfs.c
-xineplug_inp_gnome_vfs_la_LIBADD = $(XINE_LIB) $(GNOME_VFS_LIBS) $(LTLIBINTL) net_buf_ctrl.la
+xineplug_inp_gnome_vfs_la_LIBADD = $(XINE_LIB) $(GNOME_VFS_LIBS) $(LTLIBINTL)
 xineplug_inp_gnome_vfs_la_CFLAGS = $(AM_CFLAGS) $(GNOME_VFS_CFLAGS)
 
 xineplug_inp_smb_la_SOURCES = input_smb.c
@@ -262,7 +260,7 @@ xineplug_inp_nfs_la_LIBADD = $(XINE_LIB) $(LIBNFS_LIBS) $(LTLIBINTL) input_helpe
 xineplug_inp_nfs_la_CFLAGS = $(AM_CFLAGS) $(LIBNFS_CFLAGS)
 
 xineplug_inp_ssh_la_SOURCES = input_ssh.c
-xineplug_inp_ssh_la_LIBADD = $(XINE_LIB) $(LIBSSH2_LIBS) $(LTLIBINTL) http_helper.la input_helper.la net_buf_ctrl.la
+xineplug_inp_ssh_la_LIBADD = $(XINE_LIB) $(LIBSSH2_LIBS) $(LTLIBINTL) http_helper.la input_helper.la
 xineplug_inp_ssh_la_CFLAGS = $(AM_CFLAGS) $(LIBSSH2_CFLAGS)
 
 # TLS provider plugins
@@ -274,4 +272,3 @@ xineplug_tls_gnutls_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(GNUTLS_LIBS)
 xineplug_tls_openssl_la_SOURCES = tls/tls_openssl.c tls/xine_tls_plugin.h
 xineplug_tls_openssl_la_CFLAGS = $(AM_CFLAGS) $(OPENSSL_CFLAGS)
 xineplug_tls_openssl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(OPENSSL_LIBS)
-
