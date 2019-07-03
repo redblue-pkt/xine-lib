@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -36,7 +36,7 @@
 #define LOG
 */
 
-#include "net_buf_ctrl.h"
+#include "xine_private.h"
 
 #ifndef XINE_LIVE_PAUSE_ON
 # define XINE_LIVE_PAUSE_ON 0x7ffffffd
@@ -49,7 +49,7 @@
 #define FIFO_PUT                   0
 #define FIFO_GET                   1
 
-struct nbc_s {
+struct xine_nbc_st {
 
   xine_stream_t   *stream;
 
@@ -112,7 +112,7 @@ static void report_progress (xine_stream_t *stream, int p) {
   xine_event_send (stream, &event);
 }
 
-static void nbc_set_speed_pause (nbc_t *this) {
+static void nbc_set_speed_pause (xine_nbc_t *this) {
   xine_stream_t *stream = this->stream;
 
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_pause\n");
@@ -122,7 +122,7 @@ static void nbc_set_speed_pause (nbc_t *this) {
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
 }
 
-static void nbc_set_speed_normal (nbc_t *this) {
+static void nbc_set_speed_normal (xine_nbc_t *this) {
   xine_stream_t *stream = this->stream;
 
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_normal\n");
@@ -130,7 +130,7 @@ static void nbc_set_speed_normal (nbc_t *this) {
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 }
 
-static void dvbspeed_init (nbc_t *this) {
+static void dvbspeed_init (xine_nbc_t *this) {
   const char *mrl;
   if (this->stream->input_plugin) {
     mrl = this->stream->input_plugin->get_mrl (this->stream->input_plugin);
@@ -166,7 +166,7 @@ static void dvbspeed_init (nbc_t *this) {
   }
 }
 
-static void dvbspeed_close (nbc_t *this) {
+static void dvbspeed_close (xine_nbc_t *this) {
   if ((0xec >> this->dvbspeed) & 1)
     _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
   if (this->dvbspeed)
@@ -174,7 +174,7 @@ static void dvbspeed_close (nbc_t *this) {
   this->dvbspeed = 0;
 }
 
-static void dvbspeed_put (nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
+static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
   int64_t diff, *last;
   int *fill;
   int used, mode;
@@ -246,7 +246,7 @@ static void dvbspeed_put (nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
   }
 }
 
-static void dvbspeed_get (nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
+static void dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
   int64_t diff, *last;
   int *fill;
   int used, mode;
@@ -305,7 +305,7 @@ static void dvbspeed_get (nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
   }
 }
 
-static void display_stats (nbc_t *this) {
+static void display_stats (xine_nbc_t *this) {
   static const char buffering[2][4] = {"   ", "buf"};
   static const char enabled[2][4]   = {"off", "on "};
 
@@ -326,7 +326,7 @@ static void display_stats (nbc_t *this) {
   fflush(stdout);
 }
 
-static void report_stats (nbc_t *this, int type) {
+static void report_stats (xine_nbc_t *this, int type) {
   xine_event_t             event;
   xine_nbc_stats_data_t    bs;
 
@@ -356,7 +356,7 @@ static void report_stats (nbc_t *this, int type) {
  *    else
  *      use the the first and the last pts of the fifo
  */
-static void nbc_compute_fifo_length(nbc_t *this,
+static void nbc_compute_fifo_length(xine_nbc_t *this,
                                     fifo_buffer_t *fifo,
                                     buf_element_t *buf,
                                     int action) {
@@ -459,7 +459,7 @@ static void nbc_compute_fifo_length(nbc_t *this,
 
 /* Alloc callback */
 static void nbc_alloc_cb (fifo_buffer_t *fifo, void *this_gen) {
-  nbc_t *this = (nbc_t*)this_gen;
+  xine_nbc_t *this = this_gen;
 
   lprintf("enter nbc_alloc_cb\n");
   pthread_mutex_lock(&this->mutex);
@@ -484,7 +484,7 @@ static void nbc_alloc_cb (fifo_buffer_t *fifo, void *this_gen) {
  * the fifo mutex is locked */
 static void nbc_put_cb (fifo_buffer_t *fifo,
                         buf_element_t *buf, void *this_gen) {
-  nbc_t *this = (nbc_t*)this_gen;
+  xine_nbc_t *this = this_gen;
   int64_t progress = 0;
   int64_t video_p = 0;
   int64_t audio_p = 0;
@@ -651,7 +651,7 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
  * the fifo mutex is locked */
 static void nbc_get_cb (fifo_buffer_t *fifo,
 			buf_element_t *buf, void *this_gen) {
-  nbc_t *this = (nbc_t*)this_gen;
+  xine_nbc_t *this = this_gen;
   int pause = 0;
 
   lprintf("enter nbc_get_cb\n");
@@ -725,15 +725,43 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
   lprintf("exit nbc_get_cb\n");
 }
 
-nbc_t *nbc_init (xine_stream_t *stream) {
-
-  _x_assert(stream);
-
-  nbc_t *this = calloc(1, sizeof (nbc_t));
-  fifo_buffer_t *video_fifo = stream->video_fifo;
-  fifo_buffer_t *audio_fifo = stream->audio_fifo;
+xine_nbc_t *xine_nbc_init (xine_stream_t *stream) {
+  xine_nbc_t *this;
+  fifo_buffer_t *video_fifo, *audio_fifo;
   double video_fifo_factor, audio_fifo_factor;
   cfg_entry_t *entry;
+
+  if (!stream)
+    return NULL;
+
+  {
+    xine_stream_private_t *s = (xine_stream_private_t *)stream;
+    s = s->side_streams[0];
+    pthread_mutex_lock (&s->index_mutex);
+    if (s->nbc_refs > 0) {
+      int refs;
+      s->nbc_refs += 1;
+      refs = s->nbc_refs;
+      this = s->nbc;
+      pthread_mutex_unlock (&s->index_mutex);
+      xprintf (s->s.xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: add to stream %p (%d refs).\n", (void *)s, refs);
+      return this;
+    }
+    this = calloc (1, sizeof (*this));
+    if (!this) {
+      pthread_mutex_unlock (&s->index_mutex);
+      return this;
+    }
+    s->nbc_refs = 1;
+    s->nbc = this;
+    pthread_mutex_unlock (&s->index_mutex);
+    _x_refcounter_inc (s->refcounter);
+    xprintf (s->s.xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: add to stream %p (1 refs).\n", (void *)s);
+    stream = &s->s;
+  }
+
+  video_fifo = stream->video_fifo;
+  audio_fifo = stream->audio_fifo;
 
   lprintf("nbc_init\n");
   pthread_mutex_init (&this->mutex, NULL);
@@ -773,12 +801,32 @@ nbc_t *nbc_init (xine_stream_t *stream) {
   return this;
 }
 
-void nbc_close (nbc_t *this) {
-  fifo_buffer_t *video_fifo = this->stream->video_fifo;
-  fifo_buffer_t *audio_fifo = this->stream->audio_fifo;
-  xine_t        *xine       = this->stream->xine;
+void xine_nbc_close (xine_nbc_t *this) {
+  fifo_buffer_t *video_fifo, *audio_fifo;
+  xine_t        *xine;
 
-  xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close\n");
+  if (!this)
+    return;
+  xine = this->stream->xine;
+  {
+    xine_stream_private_t *s = (xine_stream_private_t *)this->stream;
+    int refs;
+    pthread_mutex_lock (&s->index_mutex);
+    s->nbc_refs -= 1;
+    refs = s->nbc_refs;
+    if (refs > 0) {
+      pthread_mutex_unlock (&s->index_mutex);
+      xprintf (xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: remove from stream %p (%d refs).\n", (void *)s, refs);
+      return;
+    }
+    s->nbc_refs = 0;
+    s->nbc = NULL;
+    pthread_mutex_unlock (&s->index_mutex);
+  }
+
+  xprintf (xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: remove from stream %p (0 refs).\n", (void *)this->stream);
+  video_fifo = this->stream->video_fifo;
+  audio_fifo = this->stream->audio_fifo;
 
   /* unregister all fifo callbacks */
   /* do not lock the mutex to avoid deadlocks if a decoder calls fifo->get() */
@@ -794,6 +842,11 @@ void nbc_close (nbc_t *this) {
   this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 
   pthread_mutex_destroy(&this->mutex);
-  free (this);
   xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close: done\n");
+
+  {
+    xine_stream_private_t *s = (xine_stream_private_t *)this->stream;
+    free (this);
+    _x_refcounter_dec (s->refcounter);
+  }
 }

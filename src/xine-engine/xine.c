@@ -1021,10 +1021,12 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->slave_is_subtitle        = 0;
   stream->query_input_plugins[0]   = NULL;
   stream->query_input_plugins[1]   = NULL;
+  stream->nbc_refs                 = 0;
+  stream->nbc                      = NULL;
   {
     int i;
     for (i = 1; i < XINE_NUM_SIDE_STREAMS; i++)
-      s->side_streams[i] = NULL;
+      stream->side_streams[i] = NULL;
     for (i = 0; i < XINE_STREAM_INFO_MAX; i++) {
       stream->stream_info[i] = 0;
       stream->meta_info_public[i]   = stream->meta_info[i]   = NULL;
