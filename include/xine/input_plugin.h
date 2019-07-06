@@ -353,6 +353,13 @@ struct input_plugin_s {
  */
 #define INPUT_CAP_NEW_MRL              0x00004000
 
+/*
+ * INPUT_CAP_LIVE:
+ *   Plugin knows it has a real live stream. It runs at a fixed speed that is
+ *   _roughly_ the same as XINE_FINE_SPEED_NORMAL.
+ */
+#define INPUT_CAP_LIVE                  0x00008000
+
 #define INPUT_OPTIONAL_UNSUPPORTED    0
 #define INPUT_OPTIONAL_SUCCESS        1
 
