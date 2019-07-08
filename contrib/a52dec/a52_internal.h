@@ -21,6 +21,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+typedef struct complex_s {
+    sample_t real;
+    sample_t imag;
+} complex_t;
+
 typedef struct {
     uint8_t bai;		/* fine SNR offset, fast gain */
     uint8_t deltbae;		/* delta bit allocation exists */
@@ -86,6 +91,23 @@ struct a52_state_s {
     sample_t * samples;
     void * samples_base;
     int downmixed;
+
+    /* these used to be writable static data in imdct.c. */
+    /* Root values for IFFT */
+    sample_t roots16[3];
+    sample_t roots32[7];
+    sample_t roots64[15];
+    sample_t roots128[31];
+    /* Twiddle factors for IMDCT */
+    complex_t pre1[128];
+    complex_t post1[64];
+    complex_t pre2[64];
+    complex_t post2[32];
+    /* */
+    sample_t a52_imdct_window[256];
+    /* */
+    void (* ifft128) (a52_state_t *a52, complex_t * buf);
+    void (* ifft64) (a52_state_t *a52, complex_t * buf);
 };
 
 #define LEVEL_PLUS6DB 2.0
@@ -116,6 +138,6 @@ void a52_downmix (sample_t * samples, int acmod, int output, sample_t bias,
 		  sample_t clev, sample_t slev);
 void a52_upmix (sample_t * samples, int acmod, int output);
 
-void a52_imdct_init (uint32_t mm_accel);
-void a52_imdct_256 (sample_t * data, sample_t * delay, sample_t bias);
-void a52_imdct_512 (sample_t * data, sample_t * delay, sample_t bias);
+void a52_imdct_init (a52_state_t *a52, uint32_t mm_accel);
+void a52_imdct_256 (a52_state_t *a52, sample_t * data, sample_t * delay, sample_t bias);
+void a52_imdct_512 (a52_state_t *a52, sample_t * data, sample_t * delay, sample_t bias);
