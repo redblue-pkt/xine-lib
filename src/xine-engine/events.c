@@ -47,18 +47,37 @@ xine_event_t *xine_event_get  (xine_event_queue_t *queue) {
 }
 
 static xine_event_t *xine_event_wait_locked (xine_event_queue_t *queue) {
-
   xine_event_t  *event;
   xine_list_iterator_t ite;
 
-  while ( !(ite = xine_list_front (queue->events)) ) {
+  /* wait until there is at least 1 event */
+  while (!(ite = xine_list_front (queue->events)))
     pthread_cond_wait (&queue->new_event, &queue->lock);
-  }
 
+  /* get first */
   event = xine_list_get_value (queue->events, ite);
 
-  xine_list_remove (queue->events, ite);
+  /* calm down bursting progress events pt 2:
+   * if list has exactly 1 such instance, wait for possible update or other stuff. */
+  if (event->type == XINE_EVENT_PROGRESS) {
+    xine_list_iterator_t it2 = xine_list_next (queue->events, ite);
+    if (!it2) {
+      struct timespec ts = {0, 0};
+      xine_gettime (&ts);
+      ts.tv_nsec += 50000000;
+      if (ts.tv_nsec >= 1000000000) {
+        ts.tv_nsec -= 1000000000;
+        ts.tv_sec += 1;
+      }
+      pthread_cond_timedwait (&queue->new_event, &queue->lock, &ts);
+      /* paranoia ? */
+      while (!(ite = xine_list_front (queue->events)))
+        pthread_cond_wait (&queue->new_event, &queue->lock);
+      event = xine_list_get_value (queue->events, ite);
+    }
+  }
 
+  xine_list_remove (queue->events, ite);
   return event;
 }
 
@@ -83,12 +102,35 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   xine_list_iterator_t ite;
   xine_event_queue_t *queue;
+  struct timeval now = {0, 0};
 
+  gettimeofday (&now, NULL);
   pthread_mutex_lock (&stream->event_queues_lock);
 
   ite = NULL;
   while ((queue = xine_list_next_value (stream->event_queues, &ite))) {
     xine_event_t *cevent;
+
+    /* calm down bursting progress events pt 1:
+     * if list tail is an earlier instance, update it without signal. */
+    if ((event->type == XINE_EVENT_PROGRESS) && event->data) {
+      xine_list_iterator_t it2;
+      pthread_mutex_lock (&queue->lock);
+      it2 = xine_list_back (queue->events);
+      if (it2) {
+        xine_event_t *e2 = xine_list_get_value (queue->events, it2);
+        if (e2 && (e2->type == XINE_EVENT_PROGRESS) && e2->data) {
+          xine_progress_data_t *pd1 = event->data, *pd2 = e2->data;
+          if (pd1->description && pd2->description && !strcmp (pd1->description, pd2->description)) {
+            pd2->percent = pd1->percent;
+            e2->tv = now;
+            pthread_mutex_unlock (&queue->lock);
+            continue;
+          }
+        }
+      }
+      pthread_mutex_unlock (&queue->lock);
+    }
 
     cevent = malloc (sizeof (xine_event_t));
     if (!cevent)
@@ -103,7 +145,7 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
     } else {
       cevent->data = NULL;
     }
-    gettimeofday (&cevent->tv, NULL);
+    cevent->tv = now;
 
     pthread_mutex_lock (&queue->lock);
     xine_list_push_back (queue->events, cevent);
