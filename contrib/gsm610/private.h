@@ -235,12 +235,12 @@ extern void Gsm_Update_of_reconstructed_short_time_residual_signal P((
  */
 #ifndef	GSM_TABLE_C
 
-extern word gsm_A[8], gsm_B[8], gsm_MIC[8], gsm_MAC[8];
-extern word gsm_INVA[8];
-extern word gsm_DLB[4], gsm_QLB[4];
-extern word gsm_H[11];
-extern word gsm_NRFAC[8];
-extern word gsm_FAC[8];
+extern const word gsm_A[8], gsm_B[8], gsm_MIC[8], gsm_MAC[8];
+extern const word gsm_INVA[8];
+extern const word gsm_DLB[4], gsm_QLB[4];
+extern const word gsm_H[11];
+extern const word gsm_NRFAC[8];
+extern const word gsm_FAC[8];
 
 #endif	/* GSM_TABLE_C */
 
