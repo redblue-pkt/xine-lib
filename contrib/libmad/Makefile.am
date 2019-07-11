@@ -1,4 +1,7 @@
+include $(top_srcdir)/misc/Makefile.common
+
 AM_CFLAGS = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
+AM_LDFLAGS = $(xineplug_ldflags)
 AM_CPPFLAGS += -DOPT_SPEED
 
 EXTRA_DIST = COPYING
@@ -42,3 +45,5 @@ data_includes =		D.dat imdct_s.dat qc_table.dat rq_table.dat  \
 libmad_la_SOURCES =	version.c fixed.c bit.c timer.c stream.c frame.c  \
 			synth.c decoder.c layer12.c layer3.c huffman.c  \
 			$(headers) $(data_includes)
+
+

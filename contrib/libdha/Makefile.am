@@ -1,5 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
+AM_LDFLAGS = $(xineplug_ldflags)
+
 SUBDIRS = bin oth sysdep
 
 if BUILD_DHA_KMOD

@@ -1,5 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
+AM_LDFLAGS = $(xineplug_ldflags)
+
 SUBDIRS = drivers
 
 AM_CFLAGS   = $(DEFAULT_OCFLAGS)

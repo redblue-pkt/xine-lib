@@ -1,6 +1,7 @@
 include $(top_srcdir)/misc/Makefile.common
 
 AM_CFLAGS = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
+AM_LDFLAGS = $(xineplug_ldflags)
 
 if ENABLE_NOSEFART
 noinst_LTLIBRARIES = libnosefart.la
