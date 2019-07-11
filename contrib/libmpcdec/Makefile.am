@@ -1,4 +1,7 @@
+include $(top_srcdir)/misc/Makefile.common
+
 AM_CFLAGS = $(DEFAULT_OCFLAGS) $(VISIBILITY_FLAG)
+AM_LDFLAGS = $(xineplug_ldflags)
 
 EXTRA_DIST = diff_from_libmpcdec_1.2.5.patch COPYING
 

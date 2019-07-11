@@ -1,3 +1,7 @@
+include $(top_srcdir)/misc/Makefile.common
+
+AM_LDFLAGS = $(xineplug_ldflags)
+
 if !EXTERNAL_LIBXDG_BASEDIR
 noinst_LTLIBRARIES = libxdg-basedir.la
 endif
