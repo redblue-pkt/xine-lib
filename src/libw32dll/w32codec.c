@@ -60,6 +60,7 @@
 #include <xine/buffer.h>
 #include <xine/xineutils.h>
 
+#include "group_w32.h"
 #include "common.c"
 
 static GUID CLSID_Voxware =
@@ -1584,7 +1585,7 @@ static void init_routine(void) {
   w32v_init_rgb_ycc();
 }
 
-static void *init_video_decoder_class (xine_t *xine, const void *data) {
+void *w32v_init_class (xine_t *xine, const void *data) {
   config_values_t *cfg;
   static const video_decoder_class_t this = {
     .open_plugin     = open_video_decoder_plugin,
@@ -1633,7 +1634,7 @@ static audio_decoder_t *open_audio_decoder_plugin (audio_decoder_class_t *class_
 /*
  * audio decoder plugin class
  */
-static void *init_audio_decoder_class (xine_t *xine, const void *data) {
+void *w32a_init_class (xine_t *xine, const void *data) {
   config_values_t *cfg;
   static const audio_decoder_class_t this = {
     .open_plugin     = open_audio_decoder_plugin,
@@ -1649,43 +1650,3 @@ static void *init_audio_decoder_class (xine_t *xine, const void *data) {
   return (audio_decoder_class_t *)&this;
 }
 
-
-/*
- * exported plugin catalog entry
- */
-
-static const uint32_t video_types[] = {
-  BUF_VIDEO_MSMPEG4_V1, BUF_VIDEO_MSMPEG4_V2, BUF_VIDEO_MSMPEG4_V3,
-  BUF_VIDEO_IV50, BUF_VIDEO_IV41, BUF_VIDEO_IV32, BUF_VIDEO_IV31,
-  BUF_VIDEO_CINEPAK, /* BUF_VIDEO_ATIVCR1, */
-  BUF_VIDEO_ATIVCR2, BUF_VIDEO_I263, BUF_VIDEO_MSVC,
-  BUF_VIDEO_DV, BUF_VIDEO_WMV7, BUF_VIDEO_WMV8, BUF_VIDEO_WMV9,
-  BUF_VIDEO_VP31, BUF_VIDEO_MSS1, BUF_VIDEO_TSCC, BUF_VIDEO_UCOD,
-  BUF_VIDEO_VP4, BUF_VIDEO_VP5, BUF_VIDEO_VP6,
-  0
- };
-
-static const decoder_info_t dec_info_video = {
-  video_types,         /* supported types */
-  1                    /* priority        */
-};
-
-static const uint32_t audio_types[] = {
-  BUF_AUDIO_WMAV1, BUF_AUDIO_WMAV2, BUF_AUDIO_WMAPRO, BUF_AUDIO_MSADPCM,
-  BUF_AUDIO_MSIMAADPCM, BUF_AUDIO_MSGSM, BUF_AUDIO_IMC, BUF_AUDIO_LH,
-  BUF_AUDIO_VOXWARE, BUF_AUDIO_ACELPNET, BUF_AUDIO_VIVOG723, BUF_AUDIO_WMAV,
-  BUF_AUDIO_WMALL,
-  0
- };
-
-static const decoder_info_t dec_info_audio = {
-  audio_types,         /* supported types */
-  1                    /* priority        */
-};
-
-const plugin_info_t xine_plugin_info[] EXPORTED = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 19, "win32v", XINE_VERSION_CODE, &dec_info_video, init_video_decoder_class },
-  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 16, "win32a", XINE_VERSION_CODE, &dec_info_audio, init_audio_decoder_class },
-  { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
-};
