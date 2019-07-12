@@ -1561,11 +1561,6 @@ src/dxr3/Makefile
 src/input/Makefile
 src/input/libdvdnav/Makefile
 src/libw32dll/Makefile
-src/libw32dll/wine/Makefile
-src/libw32dll/DirectShow/Makefile
-src/libw32dll/dmo/Makefile
-src/libw32dll/qtx/Makefile
-src/libw32dll/qtx/qtxsdk/Makefile
 src/libreal/Makefile
 src/post/Makefile
 src/spu_dec/Makefile

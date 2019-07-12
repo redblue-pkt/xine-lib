@@ -41,6 +41,7 @@
 #include <xine/xine_internal.h>
 #include <xine/audio_out.h>
 #include <xine/buffer.h>
+#include "group_w32.h"
 
 #include "qtx/qtxsdk/components.h"
 #include "wine/win32.h"
@@ -567,7 +568,7 @@ static audio_decoder_t *qta_open_plugin (audio_decoder_class_t *class_gen,
 /*
  * qta plugin class
  */
-static void *qta_init_class (xine_t *xine, const void *data) {
+void *qta_init_class (xine_t *xine, const void *data) {
   static const audio_decoder_class_t this = {
     .open_plugin     = qta_open_plugin,
     .identifier      = "qta",
@@ -581,17 +582,6 @@ static void *qta_init_class (xine_t *xine, const void *data) {
   return (audio_decoder_class_t *)&this;
 }
 
-static const uint32_t audio_types[] = {
-  BUF_AUDIO_QDESIGN1,
-  BUF_AUDIO_QDESIGN2,
-  BUF_AUDIO_QCLP,
-  0
-};
-
-static const decoder_info_t qta_dec_info = {
-  audio_types,         /* supported types */
-  1                    /* priority        */
-};
 
 /*
  *
@@ -1061,7 +1051,7 @@ static void codec_path_cb (void *data, xine_cfg_entry_t *cfg) {
 }
 #endif
 
-static void *qtv_init_class (xine_t *xine, const void *data) {
+void *qtv_init_class (xine_t *xine, const void *data) {
   static const video_decoder_class_t this = {
     .open_plugin     = qtv_open_plugin,
     .identifier      = "qtvdec",
@@ -1076,20 +1066,3 @@ static void *qtv_init_class (xine_t *xine, const void *data) {
   return (video_decoder_class_t *)&this;
 }
 
-/*
- * exported plugin catalog entry
- */
-
-static const uint32_t qtv_supported_types[] = { BUF_VIDEO_SORENSON_V3, 0 };
-
-static const decoder_info_t qtv_dec_info = {
-  qtv_supported_types,     /* supported types */
-  1                        /* priority        */
-};
-
-const plugin_info_t xine_plugin_info[] EXPORTED = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_DECODER | PLUGIN_MUST_PRELOAD, 19, "qtv", XINE_VERSION_CODE, &qtv_dec_info, qtv_init_class },
-  { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 16, "qta", XINE_VERSION_CODE, &qta_dec_info, qta_init_class },
-  { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
-};
