@@ -623,6 +623,15 @@ fi
 
 CC_CHECK_CFLAGS([-fexpensive-optimizations], [optflags="$optflags -fexpensive-optimizations"])
 
+dnl HACK -- BETTER FIX WANTED!!
+dnl Static archives (lib<name>.a) work whan building an executable, but may not work when building a
+dnl shared library (eg newer x86-64). Try to force a dynamic external lib at least where we have an
+dnl internal fallback. First, test whether the linker understands -l:FILENAME.
+my_shared_lib_prefix=""
+my_shared_lib_postfix=""
+AC_CHECK_LIB([:libz.so], [inflateEnd], [my_shared_lib_prefix=":lib"; my_shared_lib_postfix=".so"])
+AC_DEFUN([MY_SHARED_LIB_NAME], ["$my_shared_lib_prefix""$1""$my_shared_lib_postfix"])
+
 dnl MY_CHECK_CPP_DEFINED - Check for a single (pre)#defined cpp macro.
 dnl Usage: MY_CHECK_CPP_DEFINED([name], [action-if-defined], [action-if-not-defined])
 AC_DEFUN([MY_CHECK_CPP_DEFINED], [
