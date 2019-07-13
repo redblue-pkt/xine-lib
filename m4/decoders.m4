@@ -6,8 +6,9 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
     AC_ARG_ENABLE([a52dec],
                   [AS_HELP_STRING([--enable-a52dec], [Enable support for a52dec decoding library (default: enabled, internal: use internal copy)])])
     if test x"$enable_a52dec" != x"no"; then
+        a52_libname="MY_SHARED_LIB_NAME([a52])"
         if test x"$enable_a52dec" != x"internal"; then
-            AC_CHECK_LIB([a52], [a52_init],
+            AC_CHECK_LIB([$a52_libname], [a52_init],
                          [AC_CHECK_HEADERS([a52dec/a52.h], [have_external_a52dec=yes], [have_external_a52dec=no],
                                            [#ifdef HAVE_SYS_TYPES_H
                                             # include <sys/types.h>
@@ -27,7 +28,7 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
         fi
         if test x"$have_external_a52dec" = x"yes"; then
             A52DEC_CFLAGS=''
-            A52DEC_LIBS='-la52'
+            A52DEC_LIBS=-l"$a52_libname"
             A52DEC_DEPS=''
 	else
             A52DEC_CFLAGS='-I$(top_srcdir)/contrib/a52dec'
