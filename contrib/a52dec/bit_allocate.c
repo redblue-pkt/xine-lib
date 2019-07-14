@@ -28,7 +28,7 @@
 #include "a52.h"
 #include "a52_internal.h"
 
-static const int hthtab[3][50] = {
+static const uint16_t hthtab[3][50] = {
     {0x730, 0x730, 0x7c0, 0x800, 0x820, 0x840, 0x850, 0x850, 0x860, 0x860,
      0x860, 0x860, 0x860, 0x870, 0x870, 0x870, 0x880, 0x880, 0x890, 0x890,
      0x8a0, 0x8a0, 0x8b0, 0x8b0, 0x8c0, 0x8c0, 0x8d0, 0x8e0, 0x8f0, 0x900,
@@ -71,9 +71,11 @@ static const int8_t baptab[305] = {
      0,  0,  0,  0					/* 148 padding elems */
 };
 
-static const int bndtab[30] = {21, 22,  23,  24,  25,  26,  27,  28,  31,  34,
-			 37, 40,  43,  46,  49,  55,  61,  67,  73,  79,
-			 85, 97, 109, 121, 133, 157, 181, 205, 229, 253};
+static const uint8_t bndtab[30] = {
+    21, 22,  23,  24,  25,  26,  27,  28,  31,  34,
+    37, 40,  43,  46,  49,  55,  61,  67,  73,  79,
+    85, 97, 109, 121, 133, 157, 181, 205, 229, 253
+};
 
 static const int8_t latab[256] = {
     -64, -63, -62, -61, -60, -59, -58, -57, -56, -55, -54, -53,
@@ -125,9 +127,9 @@ void a52_bit_allocate (a52_state_t * state, ba_t * ba, int bndstart,
 		       int start, int end, int fastleak, int slowleak,
 		       expbap_t * expbap)
 {
-    static const int slowgain[4] = {0x540, 0x4d8, 0x478, 0x410};
-    static const int dbpbtab[4]  = {0xc00, 0x500, 0x300, 0x100};
-    static const int floortab[8] = {0x910, 0x950, 0x990, 0x9d0,
+    static const uint16_t slowgain[4] = {0x540, 0x4d8, 0x478, 0x410};
+    static const uint16_t dbpbtab[4]  = {0xc00, 0x500, 0x300, 0x100};
+    static const uint16_t floortab[8] = {0x910, 0x950, 0x990, 0x9d0,
 			      0xa10, 0xa90, 0xb10, 0x1400};
 
     int i, j;
@@ -136,7 +138,7 @@ void a52_bit_allocate (a52_state_t * state, ba_t * ba, int bndstart,
     int fdecay, fgain, sdecay, sgain, dbknee, floor, snroffset;
     int psd, mask;
     const int8_t * deltba;
-    const int * hth;
+    const uint16_t * hth;
     int halfrate;
 
     halfrate = state->halfrate;
