@@ -82,11 +82,12 @@ static int demux_image_get_status (demux_plugin_t *this_gen) {
   return this->status;
 }
 
-static int demux_image_next (demux_plugin_t *this_gen, int preview) {
+static int demux_image_next (demux_plugin_t *this_gen, int decoder_flags) {
   demux_image_t *this = (demux_image_t *) this_gen;
   buf_element_t *buf = this->video_fifo->buffer_pool_size_alloc (this->video_fifo, this->bytes_left);
 
   buf->content = buf->mem;
+  buf->decoder_flags = decoder_flags;
 
   buf->size = this->input->read (this->input, (char *)buf->mem, buf->max_size);
 
@@ -110,8 +111,6 @@ static int demux_image_next (demux_plugin_t *this_gen, int preview) {
   }
 
   buf->type = this->buf_type;
-  if (preview)
-    buf->decoder_flags = BUF_FLAG_PREVIEW;
 
   this->video_fifo->put (this->video_fifo, buf);
 
@@ -138,7 +137,7 @@ static void demux_image_send_headers (demux_plugin_t *this_gen) {
     this->bytes_left = 0;
 
   /* we can send everything here. this makes image decoder a lot easier */
-  while (demux_image_next(this_gen, 1) == DEMUX_OK);
+  while (demux_image_next(this_gen, BUF_FLAG_PREVIEW) == DEMUX_OK);
 
   this->status = DEMUX_OK;
 
