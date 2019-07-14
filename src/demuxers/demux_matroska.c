@@ -432,7 +432,7 @@ static int parse_content_encodings (demux_matroska_t *this, matroska_track_t *tr
 static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
   buf_element_t *buf;
 
-  buf = track->fifo->buffer_pool_alloc (track->fifo);
+  buf = track->fifo->buffer_pool_size_alloc (track->fifo, track->codec_private_len);
 
   if (track->codec_private_len > (unsigned int)(buf->max_size)) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -471,7 +471,7 @@ static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
 static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
   buf_element_t *buf;
 
-  buf = track->fifo->buffer_pool_alloc (track->fifo);
+  buf = track->fifo->buffer_pool_size_alloc (track->fifo, track->codec_private_len);
 
   if (track->codec_private_len > (unsigned int)buf->max_size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -514,7 +514,7 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
 static void init_codec_real(demux_matroska_t *this, matroska_track_t * track) {
   buf_element_t *buf;
 
-  buf = track->fifo->buffer_pool_alloc (track->fifo);
+  buf = track->fifo->buffer_pool_size_alloc (track->fifo, track->codec_private_len);
 
   if (track->codec_private_len > (unsigned int)buf->max_size) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -571,7 +571,7 @@ static void init_codec_xiph(demux_matroska_t *this, matroska_track_t *track) {
 
   data = track->codec_private + 3;
   for (i = 0; i < 3; i++) {
-    buf = track->fifo->buffer_pool_alloc (track->fifo);
+    buf = track->fifo->buffer_pool_size_alloc (track->fifo, frame[i]);
 
     if (frame[i] > buf->max_size) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -907,7 +907,7 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
   {
     buf_element_t *buf;
 
-    buf = track->fifo->buffer_pool_alloc(track->fifo);
+    buf = track->fifo->buffer_pool_size_alloc(track->fifo, chunk_tab_size);
 
     if (chunk_tab_size > buf->max_size) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -954,7 +954,7 @@ static void handle_sub_ssa (demux_plugin_t *this_gen, matroska_track_t *track,
     data++; data_len--;
   }
 
-  buf = track->fifo->buffer_pool_alloc(track->fifo);
+  buf = track->fifo->buffer_pool_size_alloc(track->fifo, data_len + 8 + LITERAL_UTF_8_SIZE);
   buf->type = track->buf_type;
   buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL;
   buf->decoder_info[1] = BUF_SPECIAL_CHARSET_ENCODING;
@@ -1019,7 +1019,7 @@ static void handle_sub_utf8 (demux_plugin_t *this_gen, matroska_track_t *track,
   buf_element_t *buf;
   uint32_t *val;
 
-  buf = track->fifo->buffer_pool_alloc(track->fifo);
+  buf = track->fifo->buffer_pool_size_alloc(track->fifo, data_len + 9 + LITERAL_UTF_8_SIZE);
 
   buf->size = data_len + 9;  /* 2 uint32_t + '\0' */
 
@@ -1250,14 +1250,14 @@ static void handle_vobsub (demux_plugin_t *this_gen, matroska_track_t *track,
             (int)track->track_num, data_len);
   }
 
-  buf = track->fifo->buffer_pool_alloc(track->fifo);
+  buf = track->fifo->buffer_pool_size_alloc(track->fifo, data_len);
 
-  buf->size = data_len;
-  if (buf->max_size >= buf->size) {
+  if (buf->max_size >= data_len) {
     buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL;
     buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
     buf->decoder_info[2] = SPU_DVD_SUBTYPE_VOBSUB_PACKAGE;
     buf->type = track->buf_type;
+    buf->size = data_len;
 
     xine_fast_memcpy(buf->content, data, data_len);
 
