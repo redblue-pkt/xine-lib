@@ -76,7 +76,7 @@ sample_t * a52_samples (a52_state_t * state)
 int a52_syncinfo (uint8_t * buf, int * flags,
 		  int * sample_rate, int * bit_rate)
 {
-    static const int rate[] = { 32,  40,  48,  56,  64,  80,  96, 112,
+    static const uint16_t rate[] = { 32,  40,  48,  56,  64,  80,  96, 112,
 			 128, 160, 192, 224, 256, 320, 384, 448,
 			 512, 576, 640};
     static const uint8_t lfeon[8] = {0x10, 0x10, 0x04, 0x04, 0x04, 0x01, 0x04, 0x01};
@@ -551,7 +551,7 @@ static void coeff_get_coupling (a52_state_t * state, int nfchans,
 int a52_block (a52_state_t * state)
 {
     static const uint8_t nfchans_tbl[] = {2, 1, 2, 3, 3, 4, 4, 5, 1, 1, 2};
-    static const int rematrix_band[4] = {25, 37, 61, 253};
+    static const uint8_t rematrix_band[4] = {25, 37, 61, 253};
     int i, nfchans, chaninfo;
     uint8_t cplexpstr, chexpstr[5], lfeexpstr, do_bit_alloc, done_cpl;
     uint8_t blksw[5], dithflag[5];
