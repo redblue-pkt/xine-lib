@@ -175,22 +175,18 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
     /* calm down bursting progress events pt 1:
      * if list tail has an earlier instance, update it without signal. */
     if (((event->type == XINE_EVENT_PROGRESS) || (event->type == XINE_EVENT_NBC_STATS)) && event->data) {
-      xine_list_iterator_t it2;
       xine_event_t *e2;
       pthread_mutex_lock (&queue->q.lock);
       do {
-        e2 = NULL;
-        it2 = xine_list_back (queue->q.events);
+        xine_list_iterator_t it2 = NULL;
+        e2 = xine_list_prev_value (queue->q.events, &it2);
         if (!it2)
           break;
-        e2 = xine_list_get_value (queue->q.events, it2);
         if (e2 && (e2->type == event->type) && e2->data)
           break;
-        e2 = NULL;
-        it2 = xine_list_prev (queue->q.events, it2);
+        e2 = xine_list_prev_value (queue->q.events, &it2);
         if (!it2)
           break;
-        e2 = xine_list_get_value (queue->q.events, it2);
         if (e2 && (e2->type == event->type) && e2->data)
           break;
         e2 = NULL;
