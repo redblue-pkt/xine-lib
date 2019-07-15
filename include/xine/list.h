@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -47,7 +47,7 @@
 typedef struct xine_list_s xine_list_t;
 
 /* List iterator */
-typedef void* xine_list_iterator_t;
+typedef struct xine_list_elem_s *xine_list_iterator_t;
 
 /* Constructor */
 xine_list_t *xine_list_new(void) XINE_MALLOC XINE_PROTECTED;
@@ -99,9 +99,13 @@ xine_list_iterator_t xine_list_next(xine_list_t *list, xine_list_iterator_t ite)
 /* Like xine_list_next () but returns the user value or NULL. */
 void *xine_list_next_value (xine_list_t *list, xine_list_iterator_t *ite) XINE_PROTECTED;
 
-/* Decrements the iterator's value, so it specifies the previous element in the list
+/* If iterator == NULL: same as xine_list_back ().
+   Otherwise, decrements the iterator's value, so it specifies the previous element in the list,
    or NULL at the beginning of the list */
 xine_list_iterator_t xine_list_prev(xine_list_t *list, xine_list_iterator_t ite) XINE_PROTECTED;
+
+/* Like xine_list_prev () but returns the user value or NULL. */
+void *xine_list_prev_value (xine_list_t *list, xine_list_iterator_t *ite) XINE_PROTECTED;
 
 /* Returns the value at the position specified by the iterator */
 void *xine_list_get_value(xine_list_t *list, xine_list_iterator_t ite) XINE_PROTECTED;
