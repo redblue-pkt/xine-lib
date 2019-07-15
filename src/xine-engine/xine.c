@@ -2319,7 +2319,7 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
 
   pthread_mutex_lock (&xine->streams_lock);
   {
-    xine_list_iterator_t *ite = xine_list_find (xine->streams, stream);
+    xine_list_iterator_t ite = xine_list_find (xine->streams, stream);
     if (ite)
       xine_list_remove (xine->streams, ite);
   }
