@@ -65,7 +65,9 @@ typedef struct spucmml_decoder_s {
   spucmml_class_t   *class;
   xine_stream_t     *stream;
 
+#if 0
   xine_event_queue_t *event_queue;
+#endif
 
   int                lines;
   char               text[SUB_MAX_TEXT][SUB_BUFSIZE];
@@ -86,9 +88,6 @@ typedef struct spucmml_decoder_s {
 
   cmml_anchor_t      current_anchor;
 } spucmml_decoder_t;
-
-
-static void video_frame_format_change_callback (void *user_data, const xine_event_t *event);
 
 
 static void update_font_size (spucmml_decoder_t *this) {
@@ -386,6 +385,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   return;
 }
 
+#if 0
 static void video_frame_format_change_callback (void *user_data, const xine_event_t *event)
 {
   /* this doesn't do anything for now: it's a start at attempting to display
@@ -405,6 +405,7 @@ static void video_frame_format_change_callback (void *user_data, const xine_even
       break;
   }
 }
+#endif
 
 static void spudec_reset (spu_decoder_t *this_gen) {
   spucmml_decoder_t *this = (spucmml_decoder_t *) this_gen;
@@ -424,8 +425,10 @@ static void spudec_dispose (spu_decoder_t *this_gen) {
   config->unregister_callback(config, "subtitles.separate.font");
   config->unregister_callback(config, "subtitles.separate.vertical_offset");
 
+#if 0
   if (this->event_queue)
     xine_event_dispose_queue (this->event_queue);
+#endif
 
   if (this->osd) {
     this->stream->osd_renderer->free_object (this->osd);
@@ -471,10 +474,12 @@ static spu_decoder_t *spucmml_class_open_plugin (spu_decoder_class_t *class_gen,
   this->class  = class;
   this->stream = stream;
 
+#if 0
   this->event_queue = xine_event_new_queue (this->stream);
   xine_event_create_listener_thread (this->event_queue,
                                      video_frame_format_change_callback,
                                      this);
+#endif
 
   this->font_size = 24;
   this->subtitle_size = 1;
