@@ -2,24 +2,38 @@ dnl ---------------------------
 dnl Decoder and Demuxer Plugins
 dnl ---------------------------
 AC_DEFUN([XINE_DECODER_PLUGINS], [
+
     dnl a52dec (optional; enabled by default; external version allowed)
-    AC_ARG_ENABLE([a52dec],
-                  [AS_HELP_STRING([--enable-a52dec], [Enable support for a52dec decoding library (default: enabled, internal: use internal copy)])])
+    AC_ARG_ENABLE([a52dec], [AS_HELP_STRING([--enable-a52dec],
+        [Enable support for a52dec decoding library (default: enabled, internal: use internal copy)])])
     if test x"$enable_a52dec" != x"no"; then
+        dnl SIGH. There are 3 major forks of liba52:
+        dnl 1. The original liba52 who stopped development in 2002.
+        dnl 2. Our internal version who adds warning fixes and avoids writable static data.
+        dnl 3. The VideoLAN version from 2003 who adds pkgconfig file, accelerations, fixed point mode,
+        dnl    and an a52_init () with no args. This is found in some distros like OpenSUSE Leap 15.0.
+        have_external_a52dec="no"
         a52_libname="MY_SHARED_LIB_NAME([a52])"
-        if test x"$enable_a52dec" != x"internal"; then
+        if test x"$enable_a52dec" != x"internal" ; then
+            dnl Try to get A52DEC_CFLAGS like -DA52_FIXED
+            A52DEC_CFLAGS=''
+            A52DEC_LIBS=''
+            PKG_CHECK_MODULES([A52DEC], [liba52], [have_external_a52dec="yes"], [have_external_a52dec="no"])
+            dnl Always test for _shared_ lib.
             AC_CHECK_LIB([$a52_libname], [a52_init],
-                         [AC_CHECK_HEADERS([a52dec/a52.h], [have_external_a52dec=yes], [have_external_a52dec=no],
-                                           [#ifdef HAVE_SYS_TYPES_H
-                                            # include <sys/types.h>
-                                            #endif
-                                            #ifdef HAVE_INTTYPES_H
-                                            # include <inttypes.h>
-                                            #endif
-                                            #ifdef HAVE_STDINT_H
-                                            # include <stdint.h>
-                                            #endif
-                                            #include <a52dec/a52.h>])], [have_external_a52dec=no], [-lm])
+                [AC_CHECK_HEADERS([a52dec/a52.h], [have_external_a52dec="yes"], [have_external_a52dec="no"], [
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+#include <a52dec/a52.h>
+                ])],
+                [have_external_a52dec="no"], [-lm])
             if test x"$have_external_a52dec" = x"no"; then
                 AC_MSG_RESULT([*** no usable version of a52dec found, using internal copy ***])
             fi
@@ -27,10 +41,27 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
             AC_MSG_RESULT([Using included a52dec support])
         fi
         if test x"$have_external_a52dec" = x"yes"; then
-            A52DEC_CFLAGS=''
-            A52DEC_LIBS=-l"$a52_libname"
             A52DEC_DEPS=''
-	else
+            test x"$A52DEC_LIBS" = x"" && A52DEC_LIBS=-l"$a52_libname"
+            dnl a52_init (uint32_t mm_accel) went a52_init (void) somewhen.
+            AC_MSG_CHECKING([whether a52_init takes no args])
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+#include <a52dec/a52.h>
+            ]],[[
+a52_init ();
+            ]])], [have_a52_init_void=yes], [have_a52_init_void=no])
+            AC_MSG_RESULT([$have_a52_init_void])
+            test x"$have_a52_init_void" = x"yes" && AC_DEFINE([HAVE_A52_INIT_VOID], [1], [Define to 1 if a52_init () takes no args.])
+        else
             A52DEC_CFLAGS='-I$(top_srcdir)/contrib/a52dec'
             A52DEC_LIBS='$(top_builddir)/contrib/a52dec/liba52.la'
             A52DEC_DEPS='$(top_builddir)/contrib/a52dec/liba52.la'
