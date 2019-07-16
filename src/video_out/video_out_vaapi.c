@@ -1235,7 +1235,7 @@ static int profile_from_imgfmt(vo_frame_t *frame_gen, unsigned format)
 
   static const int mpeg2_profiles[] = { VAProfileMPEG2Main, VAProfileMPEG2Simple, -1 };
   static const int mpeg4_profiles[] = { VAProfileMPEG4Main, VAProfileMPEG4AdvancedSimple, VAProfileMPEG4Simple, -1 };
-  static const int h264_profiles[]  = { VAProfileH264High, VAProfileH264Main, VAProfileH264Baseline, -1 };
+  static const int h264_profiles[]  = { VAProfileH264High, VAProfileH264Main, -1 };
 #if VA_CHECK_VERSION(0, 37, 0)
   static const int hevc_profiles[]  = { VAProfileHEVCMain, VAProfileHEVCMain10, -1 };
   static const int hevc_profiles10[]  = { VAProfileHEVCMain10, -1 };
@@ -1307,7 +1307,6 @@ static const char *vaapi_profile_to_string(VAProfile profile)
       PROFILE(MPEG4Simple);
       PROFILE(MPEG4AdvancedSimple);
       PROFILE(MPEG4Main);
-      PROFILE(H264Baseline);
       PROFILE(H264Main);
       PROFILE(H264High);
       PROFILE(VC1Simple);
