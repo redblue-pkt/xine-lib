@@ -425,18 +425,30 @@ int xine_event_create_listener_thread (xine_event_queue_t *queue,
                                        void *user_data) {
   int err;
 
+  _x_assert(queue != NULL);
+  _x_assert(callback != NULL);
+
+  if (queue->listener_thread) {
+    xprintf (queue->stream->xine, XINE_VERBOSITY_NONE,
+             "events: listener thread already created\n");
+    return 0;
+  }
+
   queue->listener_thread = malloc (sizeof (pthread_t));
+  if (!queue->listener_thread) {
+    return 0;
+  }
+
   queue->callback        = callback;
   queue->user_data       = user_data;
 
-  if (!queue->listener_thread)
-    return 0;
-
   if ((err = pthread_create (queue->listener_thread,
-			     NULL, listener_loop, queue)) != 0) {
+                             NULL, listener_loop, queue)) != 0) {
     xprintf (queue->stream->xine, XINE_VERBOSITY_NONE,
-	     "events: can't create new thread (%s)\n", strerror(err));
+             "events: can't create new thread (%s)\n", strerror(err));
     _x_freep(&queue->listener_thread);
+    queue->callback        = NULL;
+    queue->user_data       = NULL;
     return 0;
   }
 
