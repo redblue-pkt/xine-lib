@@ -223,9 +223,8 @@ static struct decoded_picture* dpb_get_next_out_picture(struct dpb *dpb, int do_
     return NULL;
   }
 
-  xine_list_iterator_t ite = xine_list_back(dpb->output_list);
-  while (ite) {
-    pic = xine_list_get_value(dpb->output_list, ite);
+  xine_list_iterator_t ite = NULL;
+  while ((pic = xine_list_prev_value (dpb->output_list, &ite))) {
 
     int32_t out_top_field_order_cnt = outpic != NULL ?
         outpic->coded_pic[0]->top_field_order_cnt : 0;
@@ -247,8 +246,6 @@ static struct decoded_picture* dpb_get_next_out_picture(struct dpb *dpb, int do_
             outpic->coded_pic[0]->flag_mask & IDR_PIC) {
       outpic = pic;
     }
-
-    ite = xine_list_prev(dpb->output_list, ite);
   }
 
   return outpic;
@@ -583,9 +580,8 @@ static int fill_vdpau_reference_list(struct dpb *dpb, VdpReferenceFrameH264 *ref
   int i = 0;
   int used_refframes = 0;
 
-  xine_list_iterator_t ite = xine_list_back(dpb->reference_list);
-  while (ite) {
-    pic = xine_list_get_value(dpb->reference_list, ite);
+  xine_list_iterator_t ite = NULL;
+  while ((pic = xine_list_prev_value (dpb->reference_list, &ite))) {
     reflist[i].surface = ((vdpau_accel_t*)pic->img->accel_data)->surface;
     reflist[i].is_long_term = pic->coded_pic[0]->used_for_long_term_ref ||
         (pic->coded_pic[1] != NULL && pic->coded_pic[1]->used_for_long_term_ref);
@@ -600,8 +596,6 @@ static int fill_vdpau_reference_list(struct dpb *dpb, VdpReferenceFrameH264 *ref
         pic->coded_pic[1]->bottom_field_order_cnt :
         pic->coded_pic[0]->bottom_field_order_cnt;
     i++;
-
-    ite = xine_list_prev(dpb->reference_list, ite);
   }
 
   used_refframes = i;
