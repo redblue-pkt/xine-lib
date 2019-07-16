@@ -699,6 +699,9 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   if( !this->a52_state ) {
     this->a52_state =
 #ifdef HAVE_A52DEC_A52_H /* External liba52 */
+#  ifdef HAVE_A52_INIT_VOID
+      a52_init ()
+#  else
       /* When using external liba52, enable _all_ capabilities, even
 	 if that might break stuff if they add some new capability
 	 that depends on CPU's caps.
@@ -709,6 +712,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
 	 capabilities themselves?
       */
       a52_init (0xFFFFFFFF)
+#  endif
 #else
       a52_init (xine_mm_accel())
 #endif
