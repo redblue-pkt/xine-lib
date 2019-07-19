@@ -130,10 +130,11 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         fi
     fi
     if test x"$enable_a52dec" != x"no"; then
+        test x"$my_a52dec_math" != x"fixed" && test x"$my_a52dec_math" != x"double" && my_a52dec_math="float"
         if test x"$have_external_a52dec" = x"yes"; then
-            echo "   - A52/ra-dnet (external library)"
+            echo "   - A52/ra-dnet (external library, $my_a52dec_math math)"
         else
-            echo "   - A52/ra-dnet (*INTERNAL* library)"
+            echo "   - A52/ra-dnet (*INTERNAL* library, $my_a52dec_math math)"
         fi
     fi
     if test x"$enable_musepack" != x"no"; then

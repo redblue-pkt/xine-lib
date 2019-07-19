@@ -21,4 +21,4 @@ liba52_la_SOURCES = \
 	parse.c \
 	tables.h
 liba52_la_LIBADD = -lm
-liba52_la_CPPFLAGS = $(AM_CPPFLAGS)
+liba52_la_CPPFLAGS = $(AM_CPPFLAGS) $(A52DEC_MATH)

@@ -9,9 +9,15 @@ AC_DEFUN([XINE_DECODER_PLUGINS], [
     if test x"$enable_a52dec" != x"no"; then
         dnl SIGH. There are 3 major forks of liba52:
         dnl 1. The original liba52 who stopped development in 2002.
-        dnl 2. Our internal version who adds warning fixes and avoids writable static data.
+        dnl 2. Our internal version who adds fixed point mode, warning fixes and avoids writable static data.
         dnl 3. The VideoLAN version from 2003 who adds pkgconfig file, accelerations, fixed point mode,
         dnl    and an a52_init () with no args. This is found in some distros like OpenSUSE Leap 15.0.
+        AC_ARG_WITH([a52dec-math], AS_HELP_STRING([--with-a52dec-math=float|double|fixed],
+            [Select the type of calculatons an external liba52 does use, or the internal liba52 shall use.
+             Defaults to "float".]), [my_a52dec_math="$withval"], [my_a52dec_math=""])
+        A52DEC_MATH=""
+        test x"$my_a52dec_math" = x"fixed" && A52DEC_MATH="-DLIBA52_FIXED"
+        test x"$my_a52dec_math" = x"double" && A52DEC_MATH="-DLIBA52_DOUBLE"
         have_external_a52dec="no"
         a52_libname="MY_SHARED_LIB_NAME([a52])"
         if test x"$enable_a52dec" != x"internal" ; then
@@ -66,6 +72,7 @@ a52_init ();
             A52DEC_LIBS='$(top_builddir)/contrib/a52dec/liba52.la'
             A52DEC_DEPS='$(top_builddir)/contrib/a52dec/liba52.la'
         fi
+        AC_SUBST(A52DEC_MATH)
         AC_SUBST(A52DEC_CFLAGS)
         AC_SUBST(A52DEC_DEPS)
         AC_SUBST(A52DEC_LIBS)
