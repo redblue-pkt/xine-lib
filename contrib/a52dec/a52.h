@@ -24,10 +24,12 @@
 #ifndef A52_H
 #define A52_H
 
-#ifndef LIBA52_DOUBLE
-typedef float sample_t;
-#else
+#if defined(LIBA52_FIXED)
+typedef int32_t sample_t;
+#elif defined(LIBA52_DOUBLE)
 typedef double sample_t;
+#else
+typedef float sample_t;
 #endif
 
 typedef struct a52_state_s a52_state_t;

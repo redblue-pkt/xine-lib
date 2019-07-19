@@ -141,3 +141,68 @@ void a52_upmix (sample_t * samples, int acmod, int output);
 void a52_imdct_init (a52_state_t *a52, uint32_t mm_accel);
 void a52_imdct_256 (a52_state_t *a52, sample_t * data, sample_t * delay, sample_t bias);
 void a52_imdct_512 (a52_state_t *a52, sample_t * data, sample_t * delay, sample_t bias);
+
+#define ROUND(x) ((int)((x) + ((x) > 0 ? 0.5 : -0.5)))
+
+
+#ifndef LIBA52_FIXED
+
+typedef sample_t quantizer_t;
+#  define SAMPLE(x) (x)
+#  define LEVEL(x) (x)
+#  define MUL(a,b) ((a) * (b))
+#  define MUL_L(a,b) ((a) * (b))
+#  define MUL_C(a,b) ((a) * (b))
+#  define DIV(a,b) ((a) / (b))
+
+static inline sample_t minus3db (sample_t v) {
+  return LEVEL_3DB * v;
+}
+
+static inline sample_t minus6db (sample_t v) {
+  return LEVEL_6DB * v;
+}
+
+static inline sample_t plus6db (sample_t v) {
+  return LEVEL_PLUS6DB * v;
+}
+
+#else /* LIBA52_FIXED */
+
+typedef int16_t quantizer_t;
+#  define SAMPLE(x) (sample_t)((x) * (1 << 30))
+#  define LEVEL(x) (sample_t)((x) * (1 << 26))
+#  if 0
+#    define MUL(a,b) ((int)(((int64_t)(a) * (b) + (1 << 29)) >> 30))
+#    define MUL_L(a,b) ((int)(((int64_t)(a) * (b) + (1 << 25)) >> 26))
+#  elif 1
+#    define MUL(a,b) ({ \
+        int32_t _ta=(a), _tb=(b), _tc; \
+        _tc = (_ta & 0xffff) * (_tb >> 16) + (_ta >> 16) * (_tb & 0xffff); \
+        (int32_t)(((_tc >> 14)) + (((_ta >> 16) * (_tb >> 16)) << 2 )); \
+     })
+#    define MUL_L(a,b) ({ \
+        int32_t _ta=(a), _tb=(b), _tc; \
+        _tc = (_ta & 0xffff) * (_tb >> 16) + (_ta >> 16) * (_tb & 0xffff); \
+        (int32_t)((_tc >> 10) + (((_ta >> 16) * (_tb >> 16)) << 6)); \
+     })
+#  else
+#    define MUL(a,b) (((a) >> 15) * ((b) >> 15))
+#    define MUL_L(a,b) (((a) >> 13) * ((b) >> 13))
+#  endif
+#  define MUL_C(a,b) MUL_L (a, LEVEL (b))
+#  define DIV(a,b) ((((int64_t)LEVEL (a)) << 26) / (b))
+
+static inline sample_t minus3db (sample_t v) {
+  return v - (v >> 8) * 0x4b;
+}
+
+static inline sample_t minus6db (sample_t v) {
+  return v >> 1;
+}
+
+static inline sample_t plus6db (sample_t v) {
+  return v << 1;
+}
+
+#endif
