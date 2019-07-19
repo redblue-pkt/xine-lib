@@ -92,6 +92,7 @@ xineplug_decode_a52_la_SOURCES = xine_a52_decoder.c
 xineplug_decode_a52_la_DEPENDENCIES = $(A52DEC_DEPS)
 xineplug_decode_a52_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(A52DEC_LIBS) -lm
 xineplug_decode_a52_la_CFLAGS = $(AM_CFLAGS) $(A52DEC_CFLAGS)
+xineplug_decode_a52_la_CPPFLAGS = $(AM_CPPFLAGS) $(A52DEC_MATH)
 
 xineplug_decode_faad_la_SOURCES = xine_faad_decoder.c
 xineplug_decode_faad_la_DEPENDENCIES = $(FAAD_DEPS)

@@ -54,6 +54,14 @@
 #include <xine/buffer.h>
 #include <xine/xineutils.h>
 
+#if defined(LIBA52_FIXED)
+# define SAMPLE_OFFS 0
+#elif defined(LIBA52_DOUBLE)
+# define SAMPLE_OFFS 48
+#else
+# define SAMPLE_OFFS 384
+#endif
+
 #undef DEBUG_A52
 #ifdef DEBUG_A52
 int a52file;
@@ -63,11 +71,12 @@ typedef struct {
   audio_decoder_class_t   decoder_class;
   config_values_t *config;
 
-  float            a52_level;
+  sample_t         a52_level;
   int              disable_dynrng_compress;
   int              enable_surround_downmix;
 
-  sample_t         lfe_level;
+  sample_t         lfe_level_1;
+  sample_t         lfe_level_2;
 } a52dec_class_t;
 
 typedef struct a52dec_decoder_s {
@@ -175,6 +184,69 @@ static void a52dec_discontinuity (audio_decoder_t *this_gen) {
 /* Note we write to the samples array here.
    This seems OK since liba52 itself does so when downmixing non-lfe channels. */
 
+#if defined(LIBA52_FIXED)
+
+static inline void downmix_lfe_1 (sample_t *target, sample_t *lfe, sample_t gain) {
+  int i;
+  for (i = 0; i < 256; i++)
+    target[i] += (lfe[i] * (int64_t)gain) >> 26;
+}
+
+static inline void downmix_lfe_2 (sample_t *target1, sample_t *target2, sample_t *lfe, sample_t gain) {
+  int i;
+  for (i = 0; i < 256; i++) {
+    sample_t v = (lfe[i] * (int64_t)gain) >> 26;
+    target1[i] += v;
+    target2[i] += v;
+  }
+}
+
+static inline void float_to_int (sample_t *_f, int16_t *s16, int num_channels) {
+  int i;
+  for (i = 0; i < 256; i++) {
+    int32_t v = _f[i] >> (30 - 15);
+    s16[num_channels * i] = (v + 0x8000) & ~0xffff ? (v >> 31) ^ 0x7fff : v;
+  }
+}
+
+#elif defined(LIBA52_DOUBLE)
+
+static inline void downmix_lfe_1 (sample_t *target, sample_t *lfe, sample_t gain) {
+  int i;
+  for (i = 0; i < 256; i++)
+    target[i] += (lfe[i] - 48.0) * gain;
+}
+
+static inline void downmix_lfe_2 (sample_t *target1, sample_t *target2, sample_t *lfe, sample_t gain) {
+  int i;
+  for (i = 0; i < 256; i++) {
+    sample_t v = (lfe[i] - 48.0) * gain;
+    target1[i] += v;
+    target2[i] += v;
+  }
+}
+
+static inline void float_to_int (sample_t *_f, int16_t *s16, int num_channels) {
+  int i;
+  /* HACK: assume IEEE double, then simplify (int32_t)((double)v * (1 << 15)) to
+   * (int32_t)(<reinterpret_cast>(int64_t)((double)v + 48.0) >> 32) - 0x40480000.
+   * This will work with -32.0 < v < 32.0 only, but liba52 hardly sends more than +/- 2.0. */
+  for (i = 0; i < 256; i++) {
+#  ifdef WORDS_BIGENDIAN
+#    define HI_INDEX 0
+#  else
+#    define HI_INDEX 1
+#  endif
+    union {sample_t s; int32_t i[2];} u;
+    int32_t v;
+    u.s = _f[i];
+    v = u.i[HI_INDEX] - 0x40480000;
+    s16[num_channels * i] = (v + 0x8000) & ~0xffff ? (v >> 31) ^ 0x7fff : v;
+  }
+}
+
+#else /* float */
+
 static inline void downmix_lfe_1 (sample_t *target, sample_t *lfe, sample_t gain) {
   int i;
   for (i = 0; i < 256; i++)
@@ -190,24 +262,19 @@ static inline void downmix_lfe_2 (sample_t *target1, sample_t *target2, sample_t
   }
 }
 
-static inline int16_t blah (int32_t i) {
-
-  if (i > 0x43c07fff)
-    return 32767;
-  else if (i < 0x43bf8000)
-    return -32768;
-  else
-    return i - 0x43c00000;
-}
-
-static inline void float_to_int (float * _f, int16_t * s16, int num_channels) {
+static inline void float_to_int (sample_t *_f, int16_t *s16, int num_channels) {
   int i;
-  int32_t * f = (int32_t *) _f;       /* XXX assumes IEEE float format */
-
+  /* XXX assumes IEEE float format, range -2.0 ... 2.0 */
   for (i = 0; i < 256; i++) {
-    s16[num_channels*i] = blah (f[i]);
+    union {sample_t s; int32_t i;} u;
+    int32_t v;
+    u.s = _f[i];
+    v = u.i - 0x43c00000;
+    s16[num_channels * i] = (v + 0x8000) & ~0xffff ? (v >> 31) ^ 0x7fff : v;
   }
 }
+
+#endif
 
 static inline void mute_channel (int16_t * s16, int num_channels) {
   int i;
@@ -245,10 +312,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
       this->a52_flags_map_lfe[this->a52_flags & A52_CHANNEL_MASK] :
       this->a52_flags_map[this->a52_flags];
 
-    if (a52_frame (this->a52_state,
-		   this->frame_buffer,
-		   &a52_output_flags,
-		   &level, 384)) {
+    if (a52_frame (this->a52_state, this->frame_buffer, &a52_output_flags, &level, SAMPLE_OFFS)) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: a52_frame error\n");
       return;
     }
@@ -317,18 +381,18 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
       switch (output_mode) {
       case AO_CAP_MODE_MONO:
 	if (this->have_lfe)
-	  downmix_lfe_1 (&samples[0*256], &samples[-1*256], this->class->lfe_level);
+	  downmix_lfe_1 (&samples[0*256], &samples[-1*256], this->class->lfe_level_1);
 	float_to_int (&samples[0], int_samples+(i*256), 1);
 	break;
       case AO_CAP_MODE_STEREO:
 	if (this->have_lfe)
-	  downmix_lfe_2 (&samples[0*256], &samples[1*256], &samples[-1*256], this->class->lfe_level);
+	  downmix_lfe_2 (&samples[0*256], &samples[1*256], &samples[-1*256], this->class->lfe_level_2);
 	float_to_int (&samples[0*256], int_samples+(i*256*2), 2);
 	float_to_int (&samples[1*256], int_samples+(i*256*2)+1, 2);
 	break;
       case AO_CAP_MODE_4CHANNEL:
 	if (this->have_lfe)
-	  downmix_lfe_2 (&samples[0*256], &samples[1*256], &samples[-1*256], this->class->lfe_level);
+	  downmix_lfe_2 (&samples[0*256], &samples[1*256], &samples[-1*256], this->class->lfe_level_2);
 	float_to_int (&samples[0*256], int_samples+(i*256*4),   4); /*  L */
 	float_to_int (&samples[1*256], int_samples+(i*256*4)+1, 4); /*  R */
 	float_to_int (&samples[2*256], int_samples+(i*256*4)+2, 4); /* RL */
@@ -347,7 +411,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 	break;
       case AO_CAP_MODE_5CHANNEL:
 	if (this->have_lfe)
-	  downmix_lfe_2 (&samples[0*256], &samples[2*256], &samples[-1*256], this->class->lfe_level);
+	  downmix_lfe_2 (&samples[0*256], &samples[2*256], &samples[-1*256], this->class->lfe_level_2);
 	float_to_int (&samples[0*256], int_samples+(i*256*6)+0, 6); /*  L */
         float_to_int (&samples[1*256], int_samples+(i*256*6)+4, 6); /*  C */
 	float_to_int (&samples[2*256], int_samples+(i*256*6)+1, 6); /*  R */
@@ -559,39 +623,33 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	        a52_flags_old       != this->a52_flags ||
                 a52_sample_rate_old != this->a52_sample_rate ||
 		a52_bit_rate_old    != this->a52_bit_rate) {
-
+              const char *s;
               switch (this->a52_flags & A52_CHANNEL_MASK) {
                 case A52_3F2R:
-                  if (this->a52_flags & A52_LFE)
-                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 5.1");
-                  else
-                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 5.0");
+                  s = (this->a52_flags & A52_LFE) ? "A/52 5.1" : "A/52 5.0";
                   break;
                 case A52_3F1R:
                 case A52_2F2R:
-                  if (this->a52_flags & A52_LFE)
-                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 4.1");
-                  else
-                    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 4.0");
+                  s = (this->a52_flags & A52_LFE) ? "A/52 4.1" : "A/52 4.0";
                   break;
                 case A52_2F1R:
                 case A52_3F:
-                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 3.0");
+                  s = "A/52 3.0";
                   break;
                 case A52_STEREO:
-                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 2.0 (stereo)");
+                  s = "A/52 2.0 (stereo)";
                   break;
                 case A52_DOLBY:
-                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 2.0 (dolby)");
+                  s = "A/52 2.0 (dolby)";
                   break;
                 case A52_MONO:
-                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52 1.0");
+                  s = "A/52 1.0";
                   break;
                 default:
-                  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_AUDIOCODEC, "A/52");
+                  s = "A/52";
                   break;
               }
-
+              _x_meta_info_set_utf8 (this->stream, XINE_META_INFO_AUDIOCODEC, s);
               _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->a52_bit_rate);
               _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->a52_sample_rate);
             }
@@ -821,11 +879,23 @@ static void dispose_class (audio_decoder_class_t *this_gen) {
 }
 
 static void lfe_level_change_cb (void *this_gen, xine_cfg_entry_t *entry) {
-  ((a52dec_class_t *)this_gen)->lfe_level = 0.5 * entry->num_value / 100.0;
+  a52dec_class_t *this = (a52dec_class_t *)this_gen;
+#ifdef LIBA52_FIXED
+  this->lfe_level_1 = ((1 << 26) * 0.7 / 100.0) * entry->num_value;
+  this->lfe_level_2 = ((1 << 26) * 0.5 / 100.0) * entry->num_value;
+#else
+  this->lfe_level_1 = (0.7 / 100.0) * entry->num_value;
+  this->lfe_level_2 = (0.5 / 100.0) * entry->num_value;
+#endif
 }
 
 static void a52_level_change_cb (void *this_gen, xine_cfg_entry_t *entry) {
-  ((a52dec_class_t *)this_gen)->a52_level = entry->num_value / 100.0;
+  a52dec_class_t *this = (a52dec_class_t *)this_gen;
+#ifdef LIBA52_FIXED
+  this->a52_level = ((1 << 26) / 100.0) * entry->num_value;
+#else
+  this->a52_level = (1.0 / 100.0) * entry->num_value;
+#endif
 }
 
 static void dynrng_compress_change_cb (void *this_gen, xine_cfg_entry_t *entry) {
@@ -853,13 +923,20 @@ static void *init_plugin (xine_t *xine, const void *data) {
 
   cfg = this->config = xine->config;
 
-  this->a52_level = (float) cfg->register_range (cfg, "audio.a52.level",
-    100, 0, 200,
-    _("A/52 volume"),
-    _("With A/52 audio, you can modify the volume at the decoder level. This has the advantage "
-      "of the audio being already decoded for the specified volume, so later operations like "
-      "channel downmixing will work on an audio stream of the given volume."),
-    10, a52_level_change_cb, this) / 100.0;
+  {
+    int v = cfg->register_range (cfg, "audio.a52.level",
+      100, 0, 200,
+      _("A/52 volume"),
+      _("With A/52 audio, you can modify the volume at the decoder level. This has the advantage "
+        "of the audio being already decoded for the specified volume, so later operations like "
+        "channel downmixing will work on an audio stream of the given volume."),
+      10, a52_level_change_cb, this);
+#ifdef LIBA52_FIXED
+      this->a52_level = ((1 << 26) / 100.0) * v;
+#else
+      this->a52_level = (1.0 / 100.0) * v;
+#endif
+  }
 
   this->disable_dynrng_compress = !cfg->register_bool (cfg, "audio.a52.dynamic_range",
     0,
@@ -877,13 +954,22 @@ static void *init_plugin (xine_t *xine, const void *data) {
       "you should enable this option so that the additional channels are mixed into the stereo signal."),
     0, surround_downmix_change_cb, this);
 
-  this->lfe_level = 0.5 * cfg->register_range (cfg, "audio.a52.lfe_level",
-    100, 0, 200,
-    _("A/52 bass downmix volume"),
-    _("Use this volume to mix in the bass effect,\n"
-      "if you have large stereo speakers\n"
-      "or an analogue subwoofer."),
-   10, lfe_level_change_cb, this) / 100.0;
+  {
+    int v = cfg->register_range (cfg, "audio.a52.lfe_level",
+      100, 0, 200,
+      _("A/52 bass downmix volume"),
+      _("Use this volume to mix in the bass effect,\n"
+        "if you have large stereo speakers\n"
+        "or an analogue subwoofer."),
+      10, lfe_level_change_cb, this);
+#ifdef LIBA52_FIXED
+      this->lfe_level_1 = ((1 << 26) * 0.7 / 100.0) * v;
+      this->lfe_level_2 = ((1 << 26) * 0.5 / 100.0) * v;
+#else
+      this->lfe_level_1 = (0.7 / 100.0) * v;
+      this->lfe_level_2 = (0.5 / 100.0) * v;
+#endif
+  }
 
   lprintf ("init_plugin called\n");
   return this;
@@ -905,3 +991,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_AUDIO_DECODER | PLUGIN_MUST_PRELOAD, 16, "a/52", XINE_VERSION_CODE, &dec_info_audio, init_plugin },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
+
