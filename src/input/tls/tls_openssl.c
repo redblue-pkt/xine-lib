@@ -207,6 +207,8 @@ static ssize_t _openssl_part_read(tls_plugin_t *this_gen, void *buf, size_t min,
   tls_openssl_t *this = (tls_openssl_t *)this_gen;
   int ret;
 
+  (void)min;
+
   if (!this->ssl)
     return -1;
 

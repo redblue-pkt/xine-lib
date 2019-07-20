@@ -126,8 +126,8 @@ static void _draw_image(aom_decoder_t *this, aom_image_t *aom_img)
   /* copy */
 
   /* crop if allocated frame is smaller than requested */
-  width  = (aom_img->d_w > img->width)  ? img->width  : aom_img->d_w;
-  height = (aom_img->d_h > img->height) ? img->height : aom_img->d_h;
+  width  = ((int)aom_img->d_w > img->width)  ? img->width  : (int)aom_img->d_w;
+  height = ((int)aom_img->d_h > img->height) ? img->height : (int)aom_img->d_h;
 
   switch (aom_img->fmt) {
     case AOM_IMG_FMT_I420:

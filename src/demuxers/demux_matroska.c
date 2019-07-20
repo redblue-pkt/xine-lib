@@ -1252,7 +1252,7 @@ static void handle_vobsub (demux_plugin_t *this_gen, matroska_track_t *track,
 
   buf = track->fifo->buffer_pool_size_alloc(track->fifo, data_len);
 
-  if (buf->max_size >= data_len) {
+  if ((size_t)buf->max_size >= data_len) {
     buf->decoder_flags = decoder_flags | BUF_FLAG_SPECIAL;
     buf->decoder_info[1] = BUF_SPECIAL_SPU_DVD_SUBTYPE;
     buf->decoder_info[2] = SPU_DVD_SUBTYPE_VOBSUB_PACKAGE;
