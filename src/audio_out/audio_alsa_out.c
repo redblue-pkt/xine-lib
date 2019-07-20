@@ -1423,55 +1423,55 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
                                  "will increase performance."),
                                10, NULL,
                                NULL);
-  pcm_device = config->register_string(config,
-				       "audio.device.alsa_default_device",
-				       "default",
-				       _("device used for mono output"),
-				       _("xine will use this alsa device to output "
-				         "mono sound.\nSee the alsa documentation "
-				         "for information on alsa devices."),
-				       10, NULL,
-				       NULL);
-  pcm_device = config->register_string(config,
-				       "audio.device.alsa_front_device",
-				       "plug:front:default",
-				       _("device used for stereo output"),
-				       _("xine will use this alsa device to output "
-				         "stereo sound.\nSee the alsa documentation "
-				         "for information on alsa devices."),
-				       10, NULL,
-				       NULL);
-  pcm_device = config->register_string(config,
-				       "audio.device.alsa_surround40_device",
-				       "plug:surround40:0",
-				       _("device used for 4-channel output"),
-				       _("xine will use this alsa device to output "
-				         "4 channel (4.0) surround sound.\nSee the "
-				         "alsa documentation for information on alsa "
-				         "devices."),
-				       10, NULL,
-				       NULL);
-  pcm_device = config->register_string(config,
-				       "audio.device.alsa_surround51_device",
-				       "plug:surround51:0",
-				       _("device used for 5.1-channel output"),
-				       _("xine will use this alsa device to output "
-				         "5 channel plus LFE (5.1) surround sound.\n"
-				         "See the alsa documentation for information "
-				         "on alsa devices."),
-                                       10,  NULL,
-				       NULL);
-  pcm_device = config->register_string(config,
-				       "audio.device.alsa_passthrough_device",
-				       "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
-				       _("device used for 5.1-channel output"),
-				       _("xine will use this alsa device to output "
-				         "undecoded digital surround sound. This can "
-				         "be used be external surround decoders.\nSee the "
-				         "alsa documentation for information on alsa "
-				         "devices."),
-				       10, NULL,
-				       NULL);
+  config->register_string(config,
+                          "audio.device.alsa_default_device",
+                          "default",
+                          _("device used for mono output"),
+                          _("xine will use this alsa device to output "
+                            "mono sound.\nSee the alsa documentation "
+                            "for information on alsa devices."),
+                          10, NULL,
+                          NULL);
+  config->register_string(config,
+                          "audio.device.alsa_front_device",
+                          "plug:front:default",
+                          _("device used for stereo output"),
+                          _("xine will use this alsa device to output "
+                            "stereo sound.\nSee the alsa documentation "
+                            "for information on alsa devices."),
+                          10, NULL,
+                          NULL);
+  config->register_string(config,
+                          "audio.device.alsa_surround40_device",
+                          "plug:surround40:0",
+                          _("device used for 4-channel output"),
+                          _("xine will use this alsa device to output "
+                            "4 channel (4.0) surround sound.\nSee the "
+                            "alsa documentation for information on alsa "
+                            "devices."),
+                          10, NULL,
+                          NULL);
+  config->register_string(config,
+                          "audio.device.alsa_surround51_device",
+                          "plug:surround51:0",
+                          _("device used for 5.1-channel output"),
+                          _("xine will use this alsa device to output "
+                            "5 channel plus LFE (5.1) surround sound.\n"
+                            "See the alsa documentation for information "
+                            "on alsa devices."),
+                          10,  NULL,
+                          NULL);
+  config->register_string(config,
+                          "audio.device.alsa_passthrough_device",
+                          "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
+                          _("device used for 5.1-channel output"),
+                          _("xine will use this alsa device to output "
+                            "undecoded digital surround sound. This can "
+                            "be used be external surround decoders.\nSee the "
+                            "alsa documentation for information on alsa "
+                            "devices."),
+                          10, NULL,
+                          NULL);
 
   /* Use the default device to open first */
   pcm_device = config->lookup_entry(config, "audio.device.alsa_default_device")->str_value;
