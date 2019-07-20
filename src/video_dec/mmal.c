@@ -589,17 +589,19 @@ static void mmal_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
   mmal_decoder_t *this = (mmal_decoder_t *) this_gen;
 
-  if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL)) {
-    return;
-  }
+  if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL | BUF_FLAG_COLOR_MATRIX | BUF_FLAG_STDHEADER)) {
+    if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL)) {
+      return;
+    }
 
-  if (buf->decoder_flags & BUF_FLAG_COLOR_MATRIX) {
-    VO_SET_FLAGS_CM (buf->decoder_info[4], this->frame_flags);
-  }
+    if (buf->decoder_flags & BUF_FLAG_COLOR_MATRIX) {
+      VO_SET_FLAGS_CM (buf->decoder_info[4], this->frame_flags);
+    }
 
-  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
-    handle_header(this, buf);
-    return;
+    if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
+      handle_header(this, buf);
+      return;
+    }
   }
 
   if (!this->decoder_ok) {
