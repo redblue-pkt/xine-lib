@@ -210,13 +210,15 @@ static void _aom_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
   uint8_t *data;
   size_t   size;
 
-  if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL | BUF_FLAG_STDHEADER)) {
-    return;
-  }
+  if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL | BUF_FLAG_STDHEADER | BUF_FLAG_ASPECT)) {
+    if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL | BUF_FLAG_STDHEADER)) {
+      return;
+    }
 
-  if (buf->decoder_flags & BUF_FLAG_ASPECT) {
-    if (buf->decoder_info[2]) {
-      this->ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
+    if (buf->decoder_flags & BUF_FLAG_ASPECT) {
+      if (buf->decoder_info[2]) {
+        this->ratio = (double)buf->decoder_info[1] / (double)buf->decoder_info[2];
+      }
     }
   }
 

@@ -106,22 +106,25 @@ static void vpx_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
   vpx_decoder_t *this = (vpx_decoder_t *) this_gen;
 
-  if (buf->decoder_flags & BUF_FLAG_PREVIEW) {
-    return;
-  }
+  if ((!this->decoder_ok) |
+      (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_COLOR_MATRIX | BUF_FLAG_STDHEADER | BUF_FLAG_SPECIAL))) {
 
-  /* optional demux override (matroska/webm) */
-  if (buf->decoder_flags & BUF_FLAG_COLOR_MATRIX) {
-    VO_SET_FLAGS_CM (buf->decoder_info[4], this->frame_flags);
-  }
+    if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL)) {
+      return;
+    }
 
-  if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
-    vpx_handle_header(this, buf);
-    return;
-  }
+    /* optional demux override (matroska/webm) */
+    if (buf->decoder_flags & BUF_FLAG_COLOR_MATRIX) {
+      VO_SET_FLAGS_CM (buf->decoder_info[4], this->frame_flags);
+    }
 
-  if (!this->decoder_ok || buf->decoder_flags & BUF_FLAG_SPECIAL) {
-    return;
+    if (buf->decoder_flags & BUF_FLAG_STDHEADER) {
+      vpx_handle_header(this, buf);
+      return;
+    }
+
+    if (!this->decoder_ok)
+      return;
   }
 
   /* collect data */
