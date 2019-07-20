@@ -29,7 +29,6 @@
  *
  */
 
-#define XINE_ENGINE_INTERNAL
 #define ARCH_WARN
 
 #ifdef HAVE_CONFIG_H
