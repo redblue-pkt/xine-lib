@@ -1700,7 +1700,7 @@ static int http_plugin_open (input_plugin_t *this_gen) {
     this->fh = -1;
     return -12;
   }
-  lprintf ("preview_size=%"PRId64"\n", this->preview_size);
+  lprintf ("preview_size=%d\n", this->preview_size);
   this->curpos = 0;
 
   this->ret = 1;

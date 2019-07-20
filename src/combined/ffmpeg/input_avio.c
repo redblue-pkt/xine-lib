@@ -71,7 +71,7 @@ static off_t input_avio_read (input_plugin_t *this_gen, void *buf_gen, off_t len
   if (len < 0)
     return -1;
 
-  if (this->curpos < this->preview_size) {
+  if (this->curpos < (off_t)this->preview_size) {
     off_t n = this->preview_size - this->curpos;
     if (n > len)
       n = len;
@@ -145,7 +145,7 @@ static uint32_t input_avio_get_blocksize (input_plugin_t *this_gen) {
 static off_t input_avio_get_current_pos (input_plugin_t *this_gen) {
   avio_input_plugin_t *this = (avio_input_plugin_t *) this_gen;
 
-  if (this->pb && this->curpos >= this->preview_size) {
+  if (this->pb && this->curpos >= (off_t)this->preview_size) {
     this->curpos = avio_tell(this->pb);
   }
 
@@ -184,7 +184,7 @@ static off_t input_avio_seek (input_plugin_t *this_gen, off_t offset, int origin
   /* seek, take care of preview buffer */
 
   newpos = offset;
-  if (offset < this->preview_size) {
+  if (offset < (off_t)this->preview_size) {
     offset = this->preview_size;
   }
 

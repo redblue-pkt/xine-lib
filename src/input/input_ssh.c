@@ -69,7 +69,7 @@ typedef struct {
 
   /* scp */
   LIBSSH2_CHANNEL      *scp_channel;
-  off_t                 preview_size;
+  size_t                preview_size;
   char                  preview[MAX_PREVIEW_SIZE];
 
 } ssh_input_plugin_t;
@@ -299,9 +299,9 @@ static off_t _scp_read (input_plugin_t *this_gen, void *buf_gen, off_t len)
   int rc;
 
   /* handle preview chunk */
-  if (this->curpos < this->preview_size) {
+  if (this->curpos < (off_t)this->preview_size) {
     size_t n = this->preview_size - this->curpos;
-    if (n > len)
+    if ((off_t)n > len)
       n = len;
     memcpy (buf, this->preview + this->curpos, n);
     this->curpos += n;
@@ -546,7 +546,7 @@ static int _scp_fill_preview(ssh_input_plugin_t *this)
   off_t got;
 
   got = _scp_read (&this->input_plugin, this->preview, sizeof(this->preview));
-  if (got < 1 || got > sizeof(this->preview)) {
+  if (got < 1 || got > (off_t)sizeof(this->preview)) {
     xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
             "Unable to read preview data\n");
     return -1;

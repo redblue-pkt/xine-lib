@@ -293,11 +293,11 @@ static void error_callback(const char *file, int line,
   }
 #else
   (void)file;
-  (void)line;
   (void)function;
-  (void)err;
   (void)fmt;
 #endif
+  (void)err;
+  (void)line;
 }
 
 /*
