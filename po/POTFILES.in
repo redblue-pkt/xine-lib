@@ -127,7 +127,6 @@ src/input/media_helper.c
 src/input/mms.c
 src/input/mmsh.c
 src/input/multirate_pref.c
-src/input/net_buf_ctrl.c
 src/input/pnm.c
 src/input/tls/tls_gnutls.c
 src/input/tls/tls_openssl.c
@@ -229,6 +228,7 @@ src/xine-engine/input_rip.c
 src/xine-engine/io_helper.c
 src/xine-engine/load_plugins.c
 src/xine-engine/metronom.c
+src/xine-engine/net_buf_ctrl.c
 src/xine-engine/osd.c
 src/xine-engine/spu.c
 src/xine-engine/video_decoder.c
