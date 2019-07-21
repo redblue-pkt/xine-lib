@@ -1525,7 +1525,6 @@ dnl ---------------------------------------------
 AC_CONFIG_FILES([
 Makefile
 doc/Makefile
-doc/man/Makefile
 doc/man/en/Makefile
 doc/hackersguide/Makefile
 doc/faq/Makefile
