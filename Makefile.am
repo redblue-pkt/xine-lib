@@ -6,7 +6,7 @@ AUTOMAKE_OPTIONS = 1.11 no-dist-gzip dist-xz
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = doc po include lib src contrib misc
+SUBDIRS = doc po lib src contrib misc
 
 DEBFILES = debian/README.Debian debian/changelog debian/control \
 	debian/copyright debian/rules debian/compat \
@@ -24,6 +24,8 @@ EXTRA_DIST = \
 	libtool \
 	ltmain.sh \
 	missing \
+	\
+	include/xine/version.h.in
 	\
 	m4/attributes.m4 \
 	m4/audio_out.m4 \
@@ -102,9 +104,65 @@ m4datadir = $(datadir)/aclocal
 endif
 m4data_DATA = m4/xine.m4
 
+if GENERATED_INTTYPES_H
+inttypes_h = include/inttypes.h
+endif
+noinst_HEADERS = include/config.h
+nodist_noinst_HEADERS = include/configure.h
+nodist_include_HEADERS = $(inttypes_h)
+include_HEADERS = include/xine.h
+xineincludedir = $(includedir)/xine
+xineinclude_HEADERS = \
+	include/xine/alphablend.h	\
+	include/xine/array.h		\
+	include/xine/attributes.h	\
+	include/xine/audio_decoder.h	\
+	include/xine/audio_out.h	\
+	include/xine/broadcaster.h	\
+	include/xine/buffer.h		\
+	include/xine/compat.h		\
+	include/xine/configfile.h	\
+	include/xine/demux.h		\
+	include/xine/info_helper.h	\
+	include/xine/input_plugin.h	\
+	include/xine/io_helper.h	\
+	include/xine/list.h		\
+	include/xine/metronom.h		\
+	include/xine/os_types.h		\
+	include/xine/osd.h		\
+	include/xine/plugin_catalog.h	\
+	include/xine/pool.h		\
+	include/xine/post.h		\
+	include/xine/refcounter.h	\
+	include/xine/resample.h		\
+	include/xine/ring_buffer.h	\
+	include/xine/scratch.h		\
+	include/xine/sorted_array.h	\
+	include/xine/spu.h		\
+	include/xine/spu_decoder.h	\
+	include/xine/tickets.h		\
+	include/xine/vdr.h		\
+	include/xine/version.h		\
+	include/xine/video_decoder.h	\
+	include/xine/video_out.h	\
+	include/xine/video_overlay.h	\
+	include/xine/vo_scale.h		\
+	include/xine/xine_buffer.h	\
+	include/xine/xine_internal.h	\
+	include/xine/xine_module.h	\
+	include/xine/xine_plugin.h	\
+	include/xine/xineintl.h		\
+	include/xine/xineutils.h	\
+	include/xine/xmllexer.h		\
+	include/xine/xmlparser.h
+
 
 CLEANFILES = a.out
-CONFIG_CLEAN_FILES = libtool po/Makevars.extra
+DISTCLEANFILES = include/xine/version.h
+CONFIG_CLEAN_FILES = \
+	libtool \
+	po/Makevars.extra \
+	$(inttypes_h)
 MAINTAINERCLEANFILES = \
 	Makefile.in configure acinclude.m4 aclocal.m4 \
 	stamp-h.in ltconfig ltmain.sh \
