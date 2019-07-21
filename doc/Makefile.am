@@ -1,6 +1,6 @@
 include $(top_srcdir)/misc/Makefile.common
 
-SUBDIRS = man hackersguide faq
+SUBDIRS = man/en hackersguide faq
 
 dist_doc_DATA = README README.dvb README.dxr3 \
 	    README.freebsd README.irix README.network_dvd README.opengl \
