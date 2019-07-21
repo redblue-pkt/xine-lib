@@ -6,22 +6,40 @@ AUTOMAKE_OPTIONS = 1.11 no-dist-gzip dist-xz
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = doc m4 po include lib src win32 contrib misc
+SUBDIRS = doc m4 po include lib src contrib misc
 
 DEBFILES = debian/README.Debian debian/changelog debian/control \
 	debian/copyright debian/rules debian/compat \
 	debian/shlibdeps.sh debian/libxine2-dev.install debian/libxine1.install
 
-EXTRA_DIST = config.rpath autogen.sh \
-	     configure \
-	     config.guess \
-	     config.sub \
-	     INSTALL \
-	     install-sh \
-	     libtool \
-	     ltmain.sh \
-	     missing \
-	     depcomp
+EXTRA_DIST = \
+	autogen.sh \
+	config.rpath \
+	configure \
+	config.guess \
+	config.sub \
+	depcomp \
+	INSTALL \
+	install-sh \
+	libtool \
+	ltmain.sh \
+	missing \
+	\
+	win32/scripts/post_install.bat \
+	win32/scripts/ffmpeg_win32.patch \
+	win32/include/msvc/sys/time.h \
+	win32/include/msvc/config.h \
+	win32/include/msvc/inttypes.h \
+	win32/include/msvc/stdint.h \
+	win32/include/msvc/unistd.h \
+	win32/include/dlfcn.h \
+	win32/config.h \
+	win32/README \
+	win32/libdvdnav.def \
+	win32/libxine.def \
+	win32/libxinesupport.def \
+	win32/xine_plugin.def \
+	win32/xine.dsw
 
 CLEANFILES = a.out
 CONFIG_CLEAN_FILES = libtool po/Makevars.extra
@@ -85,6 +103,7 @@ install-data-hook:
 
 dist-hook:
 	cp -p $(srcdir)/version.sh $(distdir)
+	cp -p $(srcdir)/win32/*.dsp $(distdir)/win32/
 
 
 MOSTLYCLEANFILES = \
