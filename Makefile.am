@@ -6,7 +6,7 @@ AUTOMAKE_OPTIONS = 1.11 no-dist-gzip dist-xz
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = doc m4 po include lib src contrib misc
+SUBDIRS = doc po include lib src contrib misc
 
 DEBFILES = debian/README.Debian debian/changelog debian/control \
 	debian/copyright debian/rules debian/compat \
@@ -25,6 +25,60 @@ EXTRA_DIST = \
 	ltmain.sh \
 	missing \
 	\
+	m4/attributes.m4 \
+	m4/audio_out.m4 \
+	m4/decoders.m4 \
+	m4/directx.m4 \
+	m4/gas.m4 \
+	m4/gettext.m4 \
+	m4/getopt_long.m4 \
+	m4/glibc21.m4 \
+	m4/glibc2.m4 \
+	m4/intmax.m4 \
+	m4/codeset.m4 \
+	m4/iconv.m4 \
+	m4/input.m4 \
+	m4/intldir.m4 \
+	m4/intl.m4 \
+	m4/intlmacosx.m4 \
+	m4/inttypes_h.m4 \
+	m4/inttypes-pri.m4 \
+	m4/intdiv0.m4 \
+	m4/lcmessage.m4 \
+	m4/lib-ld.m4 \
+	m4/lib-link.m4 \
+	m4/lib-prefix.m4 \
+	m4/libFLAC.m4 \
+	m4/libtool.m4 \
+	m4/lock.m4 \
+	m4/longlong.m4 \
+	m4/lt~obsolete.m4 \
+	m4/ltoptions.m4 \
+	m4/ltsugar.m4 \
+	m4/ltversion.m4 \
+	m4/macosx.m4 \
+	m4/misc.m4 \
+	m4/nls.m4 \
+	m4/objc.m4 \
+	m4/package.m4 \
+	m4/pkg.m4 po.m4 \
+	m4/pthreads.m4 \
+	m4/printf-posix.m4 \
+	m4/programs.m4 \
+	m4/progtest.m4 \
+	m4/size_max.m4 \
+	m4/stdint_h.m4 \
+	m4/summary.m4 \
+	m4/symbol.m4 \
+	m4/types.m4 \
+	m4/uintmax_t.m4 \
+	m4/video_out.m4 \
+	m4/visibility.m4 \
+	m4/wchar_t.m4 \
+	m4/wint_t.m4 \
+	m4/xine.m4 \
+	m4/xsize.m4
+	\
 	win32/scripts/post_install.bat \
 	win32/scripts/ffmpeg_win32.patch \
 	win32/include/msvc/sys/time.h \
@@ -40,6 +94,14 @@ EXTRA_DIST = \
 	win32/libxinesupport.def \
 	win32/xine_plugin.def \
 	win32/xine.dsw
+
+if INSTALL_M4
+m4datadir = $(ACLOCAL_DIR)
+else
+m4datadir = $(datadir)/aclocal
+endif
+m4data_DATA = m4/xine.m4
+
 
 CLEANFILES = a.out
 CONFIG_CLEAN_FILES = libtool po/Makevars.extra

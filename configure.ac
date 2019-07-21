@@ -1549,7 +1549,6 @@ contrib/vidix/drivers/Makefile
 include/Makefile
 include/xine/version.h
 lib/Makefile
-m4/Makefile
 misc/Makefile
 misc/Makefile.plugins
 misc/SlackBuild
