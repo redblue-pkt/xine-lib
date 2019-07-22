@@ -1958,13 +1958,8 @@ static void show_eit(dvb_input_plugin_t *this) {
 		      this->proginfo_osd);
     y = y_pos;
 
-    window_width =
-	this->stream->video_out->get_property(
-	    this->stream->video_out, VO_PROP_WINDOW_WIDTH);
-
-    window_height =
-	this->stream->video_out->get_property(
-	    this->stream->video_out, VO_PROP_WINDOW_HEIGHT);
+    window_width = xine_get_param(this->stream, XINE_PARAM_VO_WINDOW_WIDTH);
+    window_height = xine_get_param(this->stream, XINE_PARAM_VO_WINDOW_HEIGHT);
 
     stream_width =
 	xine_get_stream_info(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH);
@@ -2394,16 +2389,12 @@ static void dvb_event_handler (dvb_input_plugin_t *this) {
       /* zoom for cropped 4:3 in a 16:9 window */
       if (!this->zoom_ok) {
        this->zoom_ok = 1;
-       this->stream->video_out->set_property(
-	   this->stream->video_out, VO_PROP_ZOOM_X, 133);
-       this->stream->video_out->set_property(
-	   this->stream->video_out, VO_PROP_ZOOM_Y, 133);
+       xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_X, 133);
+       xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_Y, 133);
       } else {
        this->zoom_ok=0;
-       this->stream->video_out->set_property(
-	   this->stream->video_out, VO_PROP_ZOOM_X, 100);
-       this->stream->video_out->set_property(
-	   this->stream->video_out, VO_PROP_ZOOM_Y, 100);
+       xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_X, 100);
+       xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_Y, 100);
       }
       break;
 
@@ -2679,19 +2670,17 @@ static void
 dvb_zoom_cb (void *this_gen, xine_cfg_entry_t *cfg)
 {
   dvb_input_plugin_t *this = (dvb_input_plugin_t *) this_gen;
+  int factor = 100;
 
   if (!this)
     return;
 
   this->zoom_ok = cfg->num_value;
-
   if (this->zoom_ok) {
-    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 133);
-    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 133);
-  } else {
-    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_X, 100);
-    this->stream->video_out->set_property (this->stream->video_out, VO_PROP_ZOOM_Y, 100);
+    factor = 133;
   }
+  xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_X, factor);
+  xine_set_param(this->stream, XINE_PARAM_VO_ZOOM_Y, factor);
 }
 
 
