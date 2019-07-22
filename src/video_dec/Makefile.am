@@ -1,6 +1,4 @@
 AUTOMAKE_OPTIONS = subdir-objects
-SUBDIRS = \
-	libmpeg2new
 
 include $(top_builddir)/misc/Makefile.plugins
 include $(top_srcdir)/misc/Makefile.common
@@ -46,6 +44,9 @@ xineplug_LTLIBRARIES += xineplug_decode_rawvideo.la
 endif
 if ENABLE_LIBMPEG2
 xineplug_LTLIBRARIES += xineplug_decode_mpeg2.la
+endif
+if ENABLE_MPEG2NEW
+xineplug_LTLIBRARIES += xineplug_decode_mpeg2new.la
 endif
 
 
@@ -146,3 +147,37 @@ xineplug_decode_mpeg2_la_SOURCES = \
 
 xineplug_decode_mpeg2_la_LIBADD = $(XINE_LIB) $(MLIB_LIBS) $(LTLIBINTL) -lm
 xineplug_decode_mpeg2_la_CFLAGS = $(AM_CFLAGS) $(MLIB_CFLAGS)
+
+xineplug_decode_mpeg2new_la_SOURCES = \
+	libmpeg2new/xine_mpeg2new_decoder.c \
+	\
+	libmpeg2new/include/attributes.h \
+	libmpeg2new/include/video_out.h \
+	libmpeg2new/include/mpeg2.h \
+	libmpeg2new/include/mpeg2convert.h \
+	libmpeg2new/libmpeg2/alloc.c \
+	libmpeg2new/libmpeg2/decode.c \
+	libmpeg2new/libmpeg2/header.c \
+	libmpeg2new/libmpeg2/idct.c \
+	libmpeg2new/libmpeg2/motion_comp.c \
+	libmpeg2new/libmpeg2/mpeg2_internal.h \
+	libmpeg2new/libmpeg2/slice.c \
+	libmpeg2new/libmpeg2/vlc.h \
+	\
+	libmpeg2new/include/alpha_asm.h \
+	libmpeg2new/include/mmx.h \
+	libmpeg2new/include/tendra.h \
+	libmpeg2new/include/vis.h \
+	libmpeg2new/libmpeg2/motion_comp_mmx.c \
+	libmpeg2new/libmpeg2/idct_mmx.c \
+	libmpeg2new/libmpeg2/motion_comp_altivec.c \
+	libmpeg2new/libmpeg2/idct_altivec.c \
+	libmpeg2new/libmpeg2/motion_comp_alpha.c \
+	libmpeg2new/libmpeg2/idct_alpha.c \
+	libmpeg2new/libmpeg2/motion_comp_vis.c \
+	libmpeg2new/libmpeg2/cpu_accel.c \
+	libmpeg2new/libmpeg2/cpu_state.c
+
+xineplug_decode_mpeg2new_la_LIBADD = $(XINE_LIB)
+xineplug_decode_mpeg2new_la_CFLAGS = $(AM_CFLAGS) $(MLIB_CFLAGS)
+
