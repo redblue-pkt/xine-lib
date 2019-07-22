@@ -10,68 +10,44 @@ AM_LDFLAGS = $(xineplug_ldflags)
 
 EXTRA_DIST = foovideo.c
 
+xineplug_LTLIBRARIES = 
 if ENABLE_IMAGEMAGICK
-image_module = xineplug_decode_image.la
+xineplug_LTLIBRARIES += xineplug_decode_image.la
 endif
-
 if ENABLE_GDK_PIXBUF
-gdkpixbuf_module = xineplug_decode_gdk_pixbuf.la
+xineplug_LTLIBRARIES += xineplug_decode_gdk_pixbuf.la
 endif
-
 if ENABLE_DAV1D
-dav1d_module = xineplug_decode_dav1d.la
+xineplug_LTLIBRARIES += xineplug_decode_dav1d.la
 endif
-
 if ENABLE_LIBAOM
-libaom_module = xineplug_decode_libaom.la
+xineplug_LTLIBRARIES += xineplug_decode_libaom.la
 endif
-
 if ENABLE_LIBJPEG
-libjpeg_module = xineplug_decode_libjpeg.la
+xineplug_LTLIBRARIES += xineplug_decode_libjpeg.la
 endif
-
 if ENABLE_LIBPNG
-libpng_module = xineplug_decode_libpng.la
+xineplug_LTLIBRARIES += xineplug_decode_libpng.la
 endif
-
 if ENABLE_OPENHEVC
-libopenhevc_module = xineplug_decode_libopenhevc.la
+xineplug_LTLIBRARIES += xineplug_decode_libopenhevc.la
 endif
-
 if ENABLE_VPX
-libvpx_module = xineplug_decode_libvpx.la
+xineplug_LTLIBRARIES += xineplug_decode_libvpx.la
 endif
-
 if ENABLE_MMAL
-libmmal_module = xineplug_decode_libmmal.la
+xineplug_LTLIBRARIES += xineplug_decode_libmmal.la
 endif
-
 if ENABLE_VDPAU
-vdpau_module = xineplug_decode_vdpau.la
-VDPAU_CFLAGS += -D_ISOC99_SOURCE
+xineplug_LTLIBRARIES += xineplug_decode_vdpau.la
 endif
-
 if ENABLE_RAWVIDEO
-rawvideo_module = xineplug_decode_rawvideo.la
+xineplug_LTLIBRARIES += xineplug_decode_rawvideo.la
 endif
-
 if ENABLE_LIBMPEG2
-libmpeg2_module = xineplug_decode_mpeg2.la
+xineplug_LTLIBRARIES += xineplug_decode_mpeg2.la
 endif
 
-xineplug_LTLIBRARIES = $(image_module) \
-	$(gdkpixbuf_module) \
-	$(dav1d_module) \
-	$(libaom_module) \
-	$(libjpeg_module) \
-	$(theora_module) \
-	$(libopenhevc_module) \
-	$(libvpx_module) \
-	$(libmmal_module) \
-	$(libmpeg2_module) \
-	$(libpng_module) \
-	$(vdpau_module) \
-	$(rawvideo_module)
 
 xineplug_decode_rawvideo_la_SOURCES = \
 	group_raw.c \
@@ -137,7 +113,7 @@ xineplug_decode_vdpau_la_SOURCES = \
 	libvdpau/vdpau_mpeg12.c \
 	libvdpau/vdpau_vc1.c \
 	libvdpau/vdpau_mpeg4.c
-xineplug_decode_vdpau_la_CFLAGS = $(AM_CFLAGS) $(VDPAU_CFLAGS)
+xineplug_decode_vdpau_la_CFLAGS = $(AM_CFLAGS) $(VDPAU_CFLAGS) -D_ISOC99_SOURCE
 xineplug_decode_vdpau_la_LIBADD = $(XINE_LIB) -lm
 
 xineplug_decode_mpeg2_la_SOURCES = \
