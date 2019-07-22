@@ -1303,6 +1303,7 @@ if test x"$enable_symbolic" = x"no" ; then
 fi
 LDFLAGS="$symbolic_ldflags $LDFLAGS"
 
+
 dnl -------
 dnl Plugins
 dnl -------
@@ -1488,6 +1489,13 @@ AH_BOTTOM([
 # endif
 #endif
 ])
+
+AC_ARG_ENABLE([lto],
+              [AS_HELP_STRING([--enable-lto], [build with link-time optimization (lto) enabled])],
+              [], [enable_lto="no"])
+if test x"$enable_lto" = x"yes"; then
+    CC_CHECK_CFLAGS_APPEND([-flto])
+fi
 
 dnl Common cflags for all platforms
 CFLAGS="$UNIVERSAL_CFLAGS \$(MULTIPASS_CFLAGS) $miscflags $warnflags $CFLAGS"
