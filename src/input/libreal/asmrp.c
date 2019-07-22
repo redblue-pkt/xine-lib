@@ -413,13 +413,14 @@ static int asmrp_operand (asmrp_t *p) {
     asmrp_get_sym (p);
 
     if (p->sym != ASMRP_SYM_ID) {
-      printf ("error: identifier expected.\n");
-      _x_abort();
+      fprintf (stderr, "asmrp error: identifier expected.\n");
+      //_x_abort();
+      return 0;
     }
 
     i = asmrp_find_id (p, p->str);
     if (i<0) {
-      printf ("error: unknown identifier %s\n", p->str);
+      fprintf (stderr, "asmrp error: unknown identifier %s\n", p->str);
       ret = 0;
       break;
     }
@@ -440,16 +441,18 @@ static int asmrp_operand (asmrp_t *p) {
     ret = asmrp_condition (p);
 
     if (p->sym != ASMRP_SYM_RPAREN) {
-      printf ("error: ) expected.\n");
-      _x_abort();
+      fprintf (stderr, "asmrp error: ) expected.\n");
+      //_x_abort();
+      return 0;
     }
 
     asmrp_get_sym (p);
     break;
 
   default:
-    lprintf ("syntax error, $ number or ( expected\n");
-    _x_abort();
+    fprintf (stderr, "asmrp syntax error, $ number or ( expected\n");
+    //_x_abort();
+    return 0;
   }
 
   lprintf ("operand done, =%d\n", ret);
@@ -544,21 +547,24 @@ static void asmrp_assignment (asmrp_t *p) {
   }
 
   if (p->sym != ASMRP_SYM_ID) {
-    printf ("error: identifier expected\n");
-    _x_abort ();
+    fprintf (stderr, "asmrp error: identifier expected\n");
+    //_x_abort ();
+    return;
   }
   asmrp_get_sym (p);
 
   if (p->sym != ASMRP_SYM_EQUALS) {
-    printf ("error: = expected\n");
-    _x_abort ();
+    fprintf (stderr, "asmrp error: = expected\n");
+    //_x_abort ();
+    return;
   }
   asmrp_get_sym (p);
 
   if ( (p->sym != ASMRP_SYM_NUM) && (p->sym != ASMRP_SYM_STRING)
        && (p->sym != ASMRP_SYM_ID)) {
-    printf ("error: number or string expected\n");
-    _x_abort ();
+    fprintf (stderr, "asmrp error: number or string expected\n");
+    //_x_abort ();
+    return;
   }
   asmrp_get_sym (p);
 
@@ -599,8 +605,9 @@ static int asmrp_rule (asmrp_t *p) {
   lprintf ("rule done = %d\n", ret);
 
   if (p->sym != ASMRP_SYM_SEMICOLON) {
-    printf ("semicolon expected.\n");
-    _x_abort ();
+    fprintf (stderr, "asmrp error: semicolon expected.\n");
+    //_x_abort ();
+    return 0;
   }
 
   asmrp_get_sym (p);
