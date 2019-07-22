@@ -1585,7 +1585,6 @@ src/libreal/Makefile
 src/post/Makefile
 src/spu_dec/Makefile
 src/video_dec/Makefile
-src/video_dec/libmpeg2new/Makefile
 src/video_out/Makefile
 src/video_out/macosx/Makefile
 src/xine-utils/Makefile
