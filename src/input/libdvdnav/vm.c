@@ -869,7 +869,7 @@ video_attr_t vm_get_video_attr(vm_t *vm) {
   case FP_DOMAIN:
     return vm->vmgi->vmgi_mat->vmgm_video_attr;
   default:
-    abort();
+    assert(!"vm_get_video_attr(): unknown domain");
   }
 }
 
@@ -883,7 +883,7 @@ audio_attr_t vm_get_audio_attr(vm_t *vm, int streamN) {
   case FP_DOMAIN:
     return vm->vmgi->vmgi_mat->vmgm_audio_attr;
   default:
-    abort();
+    assert(!"vm_get_audio_attr(): invalid domain");
   }
 }
 
@@ -897,7 +897,7 @@ subp_attr_t vm_get_subp_attr(vm_t *vm, int streamN) {
   case FP_DOMAIN:
     return vm->vmgi->vmgi_mat->vmgm_subp_attr;
   default:
-    abort();
+    assert(!"vm_get_subp_attr(): invalid domain");
   }
 }
 
@@ -1828,7 +1828,7 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
     pgcit = get_MENU_PGCIT(vm, vm->vmgi, (vm->state).registers.SPRM[0]);
     break;
   default:
-    abort();
+    assert(!"get_PGCIT(): invalid domain");
   }
   
   return pgcit;

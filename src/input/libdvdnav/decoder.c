@@ -32,6 +32,8 @@
 
 #include "dvdnav_internal.h"
 
+#include <xine/xineutils.h> /* _x_assert() */
+
 uint32_t vm_getbits(command_t *command, int32_t start, int32_t count) {
   uint64_t result = 0;
   uint64_t bit_mask = 0;
@@ -46,7 +48,7 @@ uint32_t vm_getbits(command_t *command, int32_t start, int32_t count) {
        (count < 0) ||
        (start < 0) ) {
     fprintf(MSG_OUT, "libdvdnav: Bad call to vm_getbits. Parameter out of range\n");
-    abort();
+    return 0;
   }
   /* all ones, please */
   bit_mask = ~bit_mask;
@@ -509,7 +511,7 @@ static int32_t eval_command(uint8_t *bytes, registers_t* registers, link_t *retu
       res = eval_special_instruction(&command, cond);
       if(res == -1) {
 	fprintf(MSG_OUT, "libdvdnav: Unknown Instruction!\n");
-	abort();
+        _x_assert(!"libdvdnav: Unknown Instruction!");
       }
       break;
     case 1: /*  Link/jump instructions */
@@ -563,7 +565,6 @@ static int32_t eval_command(uint8_t *bytes, registers_t* registers, link_t *retu
       break;
     default: /* Unknown command */
       fprintf(MSG_OUT, "libdvdnav: WARNING: Unknown Command=%x\n", vm_getbits(&command, 63, 3));
-      abort();
   }
   /*  Check if there are bits not yet examined */
 
