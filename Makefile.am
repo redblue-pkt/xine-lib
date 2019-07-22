@@ -223,6 +223,7 @@ install-data-hook:
 
 dist-hook:
 	cp -p $(srcdir)/version.sh $(distdir)
+	mkdir $(distdir)/win32/
 	cp -p $(srcdir)/win32/*.dsp $(distdir)/win32/
 
 
