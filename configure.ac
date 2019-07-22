@@ -120,6 +120,9 @@ if test x"$enable_profiling" != x"no"; then
 fi
 AM_CONDITIONAL([PROFILING_BUILD], [test x"$enable_profiling" != x"no"])
 
+AC_ARG_ENABLE([extra-warnings],
+              [AS_HELP_STRING([--enable-extra-warnings], [build with extra warnings enabled])],
+              [], [enable_extra_warnings="no"])
 
 dnl --------------
 dnl Build features
@@ -504,6 +507,9 @@ dnl these warnings should be enabled.  Set these into CFLAGS and OBJCFLAGS
 dnl later after all testing is done.
 
 CC_CHECK_CFLAGS([-Wall], [warnflags="$warnflags -Wall"])
+if test x"$enable_extra_warnings" = x"yes"; then
+    CC_CHECK_CFLAGS([-Wextra], [warnflags="$warnflags -Wextra"])
+fi
 
 CC_CHECK_CFLAGS([-Wformat=2], [wformat="-Wformat=2"],
                 [CC_CHECK_CFLAGS([-Wformat], [wformat="-Wformat"])])
