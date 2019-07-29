@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2018 the xine project
+ * Copyright (C) 2003-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -72,16 +72,17 @@ typedef struct image_decoder_s {
   video_decoder_t   video_decoder;
 
   xine_stream_t    *stream;
+
+  int64_t           pts;
+  vo_frame_t       *vo_frame;
+
+  unsigned char    *buf;
+  int               buf_size;
   int               video_open;
-
-  unsigned char    *image;
-  int               index;
-
 } image_decoder_t;
 
 
-static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
-  image_decoder_t *this = (image_decoder_t *) this_gen;
+static vo_frame_t *_image_decode_data (image_decoder_t *this, unsigned char *data, size_t size) {
 
   if (!this->video_open) {
     lprintf("opening video\n");
@@ -89,10 +90,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->video_open = 1;
   }
 
-  xine_buffer_copyin(this->image, this->index, buf->mem, buf->size);
-  this->index += buf->size;
-
-  if (buf->decoder_flags & BUF_FLAG_FRAME_END) {
+  {
     int                width, height, img_stride;
     int                status;
     MagickWand        *wand;
@@ -111,9 +109,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     MagickWandGenesis();
 #endif
     wand = NewMagickWand();
-    status = MagickReadImageBlob(wand, this->image, this->index);
-
-    this->index = 0;
+    status = MagickReadImageBlob (wand, data, size);
 
     if (!status) {
       DestroyMagickWand(wand);
@@ -123,7 +119,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       MagickWandTerminus();
 #endif
       lprintf("error loading image\n");
-      return;
+      return NULL;
     }
 
     width = MagickGetImageWidth(wand);
@@ -164,7 +160,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
               LOG_MODULE ": get_frame(%dx%d) failed\n", width, height);
       free (img_buf);
-      return;
+      return NULL;
     }
 
     if (width > img->width)
@@ -192,25 +188,76 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     /*
      * draw video frame
      */
-    img->pts = buf->pts;
     img->duration = 3600;
     img->bad_frame = 0;
 
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
 
-    img->draw(img, this->stream);
-    img->free(img);
+    return img;
+  }
+}
+
+static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
+{
+  image_decoder_t *this = (image_decoder_t *) this_gen;
+  vo_frame_t *f = NULL;
+  /* demux_image sends everything as preview at open time,
+   * then an empty buf at play time.
+   * we need to defer output to the latter because
+   * - we want it to get correct vpts,
+   * - we want it marked as first frame after seek, and
+   * - we dont want it flushed by a previous stream stop. */
+
+  if (!(buf->decoder_flags & BUF_FLAG_PREVIEW) && buf->pts)
+    this->pts = buf->pts;
+
+  do {
+    if (buf->size > 0) {
+      if (this->buf_size == 0 && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
+        /* complete frame */
+        f = _image_decode_data(this, buf->content, buf->size);
+        break;
+      }
+      xine_buffer_copyin (this->buf, this->buf_size, buf->mem, buf->size);
+      this->buf_size += buf->size;
+    }
+    if ((buf->decoder_flags & BUF_FLAG_FRAME_END) && (this->buf_size > 0)) {
+      f = _image_decode_data(this, this->buf, this->buf_size);
+      this->buf_size = 0;
+    }
+  } while (0);
+
+  if (f) {
+    if (this->vo_frame) {
+      if (!(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+        this->vo_frame->pts = this->pts;
+        this->vo_frame->draw (this->vo_frame, this->stream);
+      }
+      this->vo_frame->free (this->vo_frame);
+    }
+    this->vo_frame = f;
+  }
+
+  if (this->vo_frame && !(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+    this->vo_frame->pts = this->pts;
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
   }
 }
 
 
 static void image_flush (video_decoder_t *this_gen) {
-  /* image_decoder_t *this = (image_decoder_t *) this_gen; */
-
-  (void)this_gen;
+  image_decoder_t *this = (image_decoder_t *) this_gen;
   /*
    * flush out any frames that are still stored in the decoder
    */
+  if (this->vo_frame) {
+    this->vo_frame->pts = this->pts;
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
 }
 
 
@@ -221,8 +268,12 @@ static void image_reset (video_decoder_t *this_gen) {
    * reset decoder after engine flush (prepare for new
    * video data not related to recently decoded data)
    */
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
 
-  this->index = 0;
+  this->buf_size = 0;
 }
 
 
@@ -239,6 +290,10 @@ static void image_discontinuity (video_decoder_t *this_gen) {
 static void image_dispose (video_decoder_t *this_gen) {
   image_decoder_t *this = (image_decoder_t *) this_gen;
 
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
   if (this->video_open) {
     lprintf("closing video\n");
 
@@ -246,7 +301,7 @@ static void image_dispose (video_decoder_t *this_gen) {
     this->video_open = 0;
   }
 
-  xine_buffer_free(this->image);
+  xine_buffer_free (this->buf);
 
   lprintf("closed\n");
   free (this);
@@ -277,7 +332,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
    * initialisation of privates
    */
 
-  this->image = xine_buffer_init(10240);
+  this->vo_frame = NULL;
+  this->buf = xine_buffer_init (10240);
 
   return &this->video_decoder;
 }
