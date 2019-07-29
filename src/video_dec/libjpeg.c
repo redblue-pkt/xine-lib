@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2018 the xine project
+ * Copyright (C) 2003-2019 the xine project
  * Copyright (C) 2012      Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -51,12 +51,15 @@ typedef struct jpeg_decoder_s {
   video_decoder_t   video_decoder;
 
   xine_stream_t    *stream;
-  int               video_open;
+  int64_t           pts;
+
+  vo_frame_t       *vo_frame;
 
   unsigned char    *image;
   int               index;
 
   int               enable_downscaling;
+  int               video_open;
 
 } jpeg_decoder_t;
 
@@ -118,8 +121,8 @@ static void jpeg_memory_src (j_decompress_ptr cinfo, const JOCTET *data, size_t 
  * xine-lib decoder interface
  */
 
-static void jpeg_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
-  jpeg_decoder_t *this = (jpeg_decoder_t *) this_gen;
+static vo_frame_t *_jpeg_decode_data (jpeg_decoder_t *this, const char *data, size_t size) {
+  vo_frame_t *f = NULL;
 
   if (!this->video_open) {
     lprintf("opening video\n");
@@ -127,17 +130,13 @@ static void jpeg_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     this->video_open = 1;
   }
 
-  xine_buffer_copyin(this->image, this->index, buf->mem, buf->size);
-  this->index += buf->size;
-
-  if (buf->decoder_flags & BUF_FLAG_FRAME_END && this->index > 0) {
+  if (size > 0) {
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
     JSAMPARRAY buffer;
 
     int         i, linesize;
     int         width, height;
-    vo_frame_t *img;
     int         max_width, max_height;
     uint8_t    *slice_start[3] = {NULL, NULL, NULL};
     int         slice_line = 0;
@@ -156,7 +155,7 @@ static void jpeg_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&cinfo);
-    jpeg_memory_src(&cinfo, this->image, this->index);
+    jpeg_memory_src (&cinfo, data, size);
     jpeg_read_header(&cinfo, TRUE);
 
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  cinfo.image_width);
@@ -217,57 +216,54 @@ static void jpeg_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     format = (this->stream->video_out->get_capabilities (this->stream->video_out) & VO_CAP_YUY2) ?
              XINE_IMGFMT_YUY2 : XINE_IMGFMT_YV12;
-    img = this->stream->video_out->get_frame (this->stream->video_out,
-                                              width, height,
-                                              (double)width/(double)height,
-                                              format,
-                                              frame_flags | VO_GET_FRAME_MAY_FAIL );
-    if (!img) {
+    f = this->stream->video_out->get_frame (this->stream->video_out,
+      width, height, (double)width/(double)height, format, frame_flags | VO_GET_FRAME_MAY_FAIL);
+    if (!f) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
               LOG_MODULE ": get_frame(%dx%d) failed\n", width, height);
       jpeg_finish_decompress(&cinfo);
       jpeg_destroy_decompress(&cinfo);
       this->index = 0;
-      return;
+      return NULL;
     }
 
     linesize = cinfo.output_width * cinfo.output_components;
     buffer = (cinfo.mem->alloc_sarray)((void*)&cinfo, JPOOL_IMAGE, linesize, 1);
-    if (img->proc_slice && !(img->height & 0xf)) {
-      slice_start[0] = img->base[0];
-      slice_start[1] = img->base[1];
-      slice_start[2] = img->base[2];
+    if (f->proc_slice && !(f->height & 0xf)) {
+      slice_start[0] = f->base[0];
+      slice_start[1] = f->base[1];
+      slice_start[2] = f->base[2];
     }
 
     /* cut to frame width */
-    if ((int)cinfo.output_width > img->width) {
-      lprintf("cut right border %d pixels\n", cinfo.output_width - img->width);
-      linesize = img->width * 3;
+    if ((int)cinfo.output_width > f->width) {
+      lprintf ("cut right border %d pixels\n", cinfo.output_width - f->width);
+      linesize = f->width * 3;
     }
 
     /* YUV444->YUV422 simple */
     while (cinfo.output_scanline < cinfo.output_height) {
-      uint8_t *dst = img->base[0] + img->pitches[0] * cinfo.output_scanline;
+      uint8_t *dst = f->base[0] + f->pitches[0] * cinfo.output_scanline;
 
       jpeg_read_scanlines(&cinfo, buffer, 1);
 
       /* cut to frame height */
-      if ((int)cinfo.output_scanline > img->height) {
+      if ((int)cinfo.output_scanline > f->height) {
         lprintf("cut bottom scanline %d\n", cinfo.output_scanline - 1);
         continue;
       }
 
-      if (img->format == XINE_IMGFMT_YV12) {
+      if (f->format == XINE_IMGFMT_YV12) {
         if (fullrange) {
           for (i = 0; i < linesize; i += 3) {
             *dst++ = buffer[0][i];
           }
           if (!(cinfo.output_scanline & 1)) {
-            dst = img->base[1] + img->pitches[1] * cinfo.output_scanline / 2;
+            dst = f->base[1] + f->pitches[1] * cinfo.output_scanline / 2;
             for (i = 0; i < linesize; i += 6) {
               *dst++ = buffer[0][i + 1];
             }
-            dst = img->base[2] + img->pitches[2] * cinfo.output_scanline / 2;
+            dst = f->base[2] + f->pitches[2] * cinfo.output_scanline / 2;
             for (i = 0; i < linesize; i += 6) {
               *dst++ = buffer[0][i + 2];
             }
@@ -277,11 +273,11 @@ static void jpeg_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
             *dst++ = ytab[(uint8_t)buffer[0][i]];
           }
           if (!(cinfo.output_scanline & 1)) {
-            dst = img->base[1] + img->pitches[1] * cinfo.output_scanline / 2;
+            dst = f->base[1] + f->pitches[1] * cinfo.output_scanline / 2;
             for (i = 0; i < linesize; i += 6) {
               *dst++ = ctab[(uint8_t)buffer[0][i + 2]];
             }
-            dst = img->base[2] + img->pitches[2] * cinfo.output_scanline / 2;
+            dst = f->base[2] + f->pitches[2] * cinfo.output_scanline / 2;
             for (i = 0; i < linesize; i += 6) {
               *dst++ = ctab[(uint8_t)buffer[0][i + 1]];
             }
@@ -291,74 +287,128 @@ static void jpeg_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
         if (slice_start[0]) {
           slice_line++;
           if (slice_line == 16) {
-            img->proc_slice(img, slice_start);
-            slice_start[0] += 16 * img->pitches[0];
-            slice_start[1] += 8 * img->pitches[1];
-            slice_start[2] += 8 * img->pitches[2];
+            f->proc_slice (f, slice_start);
+            slice_start[0] += 16 * f->pitches[0];
+            slice_start[1] +=  8 * f->pitches[1];
+            slice_start[2] +=  8 * f->pitches[2];
             slice_line = 0;
           }
         }
 
       } else /* XINE_IMGFMT_YUY2 */ {
-      if (fullrange) {
-        for (i = 0; i < linesize; i += 3) {
-          *dst++ = buffer[0][i];
-          if (i & 1) {
-            *dst++ = buffer[0][i + 2];
-          } else {
-            *dst++ = buffer[0][i + 1];
-          }
-        }
-      } else {
-        for (i = 0; i < linesize; i += 3) {
-          /* are these casts paranoid? */
-          *dst++ = ytab[(uint8_t)buffer[0][i]];
-          if (i & 1) {
-            *dst++ = ctab[(uint8_t)buffer[0][i + 2]];
-          } else {
-            *dst++ = ctab[(uint8_t)buffer[0][i + 1]];
-          }
-        }
-      }
 
-      if (slice_start[0]) {
-        slice_line++;
-        if (slice_line == 16) {
-          img->proc_slice(img, slice_start);
-          slice_start[0] += 16 * img->pitches[0];
-          slice_line = 0;
+        if (fullrange) {
+          for (i = 0; i < linesize; i += 3) {
+            *dst++ = buffer[0][i];
+            if (i & 1) {
+              *dst++ = buffer[0][i + 2];
+            } else {
+              *dst++ = buffer[0][i + 1];
+            }
+          }
+        } else {
+          for (i = 0; i < linesize; i += 3) {
+            /* are these casts paranoid? */
+            *dst++ = ytab[(uint8_t)buffer[0][i]];
+            if (i & 1) {
+              *dst++ = ctab[(uint8_t)buffer[0][i + 2]];
+            } else {
+              *dst++ = ctab[(uint8_t)buffer[0][i + 1]];
+            }
+          }
         }
-      }
+
+        if (slice_start[0]) {
+          slice_line++;
+          if (slice_line == 16) {
+            f->proc_slice (f, slice_start);
+            slice_start[0] += 16 * f->pitches[0];
+            slice_line = 0;
+          }
+        }
       }
     }
 
     /* final slice */
     if (slice_start[0] && slice_line) {
-      img->proc_slice(img, slice_start);
+      f->proc_slice (f, slice_start);
     }
 
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
 
-    img->pts       = buf->pts;
-    img->duration  = 3600;
-    img->bad_frame = 0;
+    f->duration  = 3600;
+    f->bad_frame = 0;
 
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
-
-    img->draw(img, this->stream);
-    img->free(img);
+    _x_stream_info_set (this->stream, XINE_STREAM_INFO_FRAME_DURATION, f->duration);
 
     this->index = 0;
+  }
+
+  return f;
+}
+
+static void jpeg_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
+{
+  jpeg_decoder_t *this = (jpeg_decoder_t *) this_gen;
+  vo_frame_t *f = NULL;
+  /* demux_image sends everything as preview at open time,
+   * then an empty buf at play time.
+   * we need to defer output to the latter because
+   * - we want it to get correct vpts,
+   * - we want it marked as first frame after seek, and
+   * - we dont want it flushed by a previous stream stop. */
+
+  if (!(buf->decoder_flags & BUF_FLAG_PREVIEW) && buf->pts)
+    this->pts = buf->pts;
+
+  do {
+    if (buf->size > 0) {
+      if (this->index == 0 && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
+        /* complete frame */
+        f = _jpeg_decode_data (this, buf->content, buf->size);
+        break;
+      }
+      xine_buffer_copyin (this->image, this->index, buf->mem, buf->size);
+      this->index += buf->size;
+    }
+    if ((buf->decoder_flags & BUF_FLAG_FRAME_END) && (this->index > 0)) {
+      f = _jpeg_decode_data (this, this->image, this->index);
+      this->index = 0;
+    }
+  } while (0);
+
+  if (f) {
+    if (this->vo_frame) {
+      if (!(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+        this->vo_frame->pts = this->pts;
+        this->vo_frame->draw (this->vo_frame, this->stream);
+      }
+      this->vo_frame->free (this->vo_frame);
+    }
+    this->vo_frame = f;
+  }
+
+  if (this->vo_frame && !(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+    this->vo_frame->pts = this->pts;
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
   }
 }
 
 
 static void jpeg_flush (video_decoder_t *this_gen) {
-  (void)this_gen;
+  jpeg_decoder_t *this = (jpeg_decoder_t *) this_gen;
   /*
    * flush out any frames that are still stored in the decoder
    */
+  if (this->vo_frame) {
+    this->vo_frame->pts = this->pts;
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
 }
 
 
@@ -369,7 +419,10 @@ static void jpeg_reset (video_decoder_t *this_gen) {
    * reset decoder after engine flush (prepare for new
    * video data not related to recently decoded data)
    */
-
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
   this->index = 0;
 }
 
@@ -385,6 +438,10 @@ static void jpeg_discontinuity (video_decoder_t *this_gen) {
 static void jpeg_dispose (video_decoder_t *this_gen) {
   jpeg_decoder_t *this = (jpeg_decoder_t *) this_gen;
 
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
   if (this->video_open) {
     lprintf("closing video\n");
 
@@ -424,6 +481,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
    * initialisation of privates
    */
 
+  this->vo_frame = NULL;
   this->image = xine_buffer_init(10240);
 
   cfg_entry = stream->xine->config->lookup_entry(stream->xine->config, "video.processing.libjpeg_downscaling");
