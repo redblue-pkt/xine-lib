@@ -49,6 +49,8 @@ typedef struct png_decoder_s {
   xine_stream_t    *stream;
   int64_t           pts;
 
+  vo_frame_t       *vo_frame;
+
   uint8_t          *buf;
   int               buf_size;
 
@@ -101,7 +103,7 @@ static void _user_read(png_structp png, png_bytep data, png_size_t length)
  * decoding
  */
 
-static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
+static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
 {
   vo_frame_t *img;
   int         max_width, max_height;
@@ -279,13 +281,13 @@ static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
 
   /* draw */
 
-  img->pts       = this->pts;
   img->duration  = 3600;
   img->bad_frame = 0;
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
 
-  img->draw(img, this->stream);
+  png_destroy_read_struct(&png, &png_info, &png_end_info);
+  return img;
 
  error_img:
   img->free(img);
@@ -293,6 +295,7 @@ static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
   png_destroy_read_struct(&png, &png_info, &png_end_info);
  out:
   this->pts = 0;
+  return NULL;
 }
 
 /*
@@ -302,36 +305,72 @@ static void _decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
 static void png_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
   png_decoder_t *this = (png_decoder_t *) this_gen;
+  vo_frame_t *f = NULL;
+  /* demux_image sends everything as preview at open time,
+   * then an empty buf at play time.
+   * we need to defer output to the latter because
+   * - we want it to get correct vpts,
+   * - we want it marked as first frame after seek, and
+   * - we dont want it flushed by a previous stream stop. */
 
-  if (buf->pts)
+  if (!(buf->decoder_flags & BUF_FLAG_PREVIEW) && buf->pts)
     this->pts = buf->pts;
 
-  if (buf->size > 0) {
-
-    if (this->buf_size == 0 && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
-      /* complete frame */
-      _decode_data(this, buf->content, buf->size);
-      return;
+  do {
+    if (buf->size > 0) {
+      if (this->buf_size == 0 && (buf->decoder_flags & BUF_FLAG_FRAME_END)) {
+        /* complete frame */
+        f = _png_decode_data(this, buf->content, buf->size);
+        break;
+      }
+      xine_buffer_copyin (this->buf, this->buf_size, buf->mem, buf->size);
+      this->buf_size += buf->size;
     }
+    if ((buf->decoder_flags & BUF_FLAG_FRAME_END) && (this->buf_size > 0)) {
+      f = _png_decode_data(this, this->buf, this->buf_size);
+      this->buf_size = 0;
+    }
+  } while (0);
 
-    xine_buffer_copyin(this->buf, this->buf_size, buf->mem, buf->size);
-    this->buf_size += buf->size;
+  if (f) {
+    if (this->vo_frame) {
+      if (!(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+        this->vo_frame->pts = this->pts;
+        this->vo_frame->draw (this->vo_frame, this->stream);
+      }
+      this->vo_frame->free (this->vo_frame);
+    }
+    this->vo_frame = f;
   }
 
-  if ((buf->decoder_flags & BUF_FLAG_FRAME_END) && (this->buf_size > 0)) {
-    _decode_data(this, this->buf, this->buf_size);
-    this->buf_size = 0;
+  if (this->vo_frame && !(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+    this->vo_frame->pts = this->pts;
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
   }
 }
 
 static void png_flush (video_decoder_t *this_gen)
 {
-  (void)this_gen;
+  png_decoder_t *this = (png_decoder_t *) this_gen;
+
+  if (this->vo_frame) {
+    this->vo_frame->pts = this->pts;
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
 }
 
 static void png_reset (video_decoder_t *this_gen)
 {
   png_decoder_t *this = (png_decoder_t *) this_gen;
+
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
   this->buf_size = 0;
   this->pts = 0;
 }
@@ -346,6 +385,10 @@ static void png_dispose (video_decoder_t *this_gen)
 {
   png_decoder_t *this = (png_decoder_t *) this_gen;
 
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
   if (this->video_open) {
     this->stream->video_out->close(this->stream->video_out, this->stream);
     this->video_open = 0;
@@ -372,6 +415,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   this->video_decoder.discontinuity       = png_discontinuity;
   this->video_decoder.dispose             = png_dispose;
   this->stream                            = stream;
+
+  this->vo_frame = NULL;
 
   this->buf = xine_buffer_init(65536);
   if (!this->buf) {
