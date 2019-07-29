@@ -103,13 +103,6 @@ xineplug_decode_vdpau_la_SOURCES = \
 	libvdpau/alterh264_decode.c \
 	libvdpau/alterh264_decode.h \
 	libvdpau/bits_reader.h \
-	libvdpau/cpb.h \
-	libvdpau/dpb.h \
-	libvdpau/dpb.c \
-	libvdpau/h264_parser.h \
-	libvdpau/h264_parser.c \
-	libvdpau/nal.h \
-	libvdpau/nal.c \
 	libvdpau/vdpau_h264.c \
 	libvdpau/vdpau_mpeg12.c \
 	libvdpau/vdpau_vc1.c \
