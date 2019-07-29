@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2018 the xine project
+ * Copyright (C) 2006-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -50,6 +50,9 @@ typedef struct image_decoder_s {
   video_decoder_t   video_decoder;
 
   xine_stream_t    *stream;
+  vo_frame_t       *vo_frame;
+  int64_t           pts;
+
   int               video_open;
 
   GdkPixbufLoader  *loader;
@@ -60,6 +63,16 @@ typedef struct image_decoder_s {
 static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
   image_decoder_t *this = (image_decoder_t *) this_gen;
   GError *error = NULL;
+  vo_frame_t *f = NULL;
+  /* demux_image sends everything as preview at open time,
+   * then an empty buf at play time.
+   * we need to defer output to the latter because
+   * - we want it to get correct vpts,
+   * - we want it marked as first frame after seek, and
+   * - we dont want it flushed by a previous stream stop. */
+
+  if (!(buf->decoder_flags & BUF_FLAG_PREVIEW) && buf->pts)
+    this->pts = buf->pts;
 
   if (!this->video_open) {
     lprintf("opening video\n");
@@ -84,7 +97,6 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     GdkPixbuf         *pixbuf;
     int                width, height, rowstride, n_channels;
     guchar            *img_buf;
-    vo_frame_t        *img;
     int                color_matrix, flags, format;
     void              *rgb2yuy2;
 
@@ -129,11 +141,9 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
      */
     format = (this->stream->video_out->get_capabilities (this->stream->video_out) & VO_CAP_YUY2) ?
              XINE_IMGFMT_YUY2 : XINE_IMGFMT_YV12;
-    img = this->stream->video_out->get_frame (this->stream->video_out, width, height,
-                                              (double)width / (double)height,
-                                              format,
-                                              flags | VO_GET_FRAME_MAY_FAIL);
-    if (!img) {
+    f = this->stream->video_out->get_frame (this->stream->video_out, width, height,
+      (double)width / (double)height, format, flags | VO_GET_FRAME_MAY_FAIL);
+    if (!f) {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
               LOG_MODULE ": get_frame(%dx%d) failed\n", width, height);
       g_object_unref (pixbuf);
@@ -141,11 +151,11 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     /* crop if allocated frame is smaller than requested */
-    if (width > img->width)
-      width = img->width;
-    if (height > img->height)
-      height = img->height;
-    img->ratio = (double)width / (double)height;
+    if (width > f->width)
+      width = f->width;
+    if (height > f->height)
+      height = f->height;
+    f->ratio = (double)width / (double)height;
 
     /* rgb data -> yuv */
     n_channels = gdk_pixbuf_get_n_channels (pixbuf);
@@ -153,30 +163,28 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
 
     rgb2yuy2 = rgb2yuy2_alloc (color_matrix, n_channels > 3 ? "rgba" : "rgb");
 
-    if (img->format == XINE_IMGFMT_YV12) {
+    if (f->format == XINE_IMGFMT_YV12) {
       rgb2yv12_slice (rgb2yuy2, img_buf, rowstride,
-                      img->base[0], img->pitches[0],
-                      img->base[1], img->pitches[1],
-                      img->base[2], img->pitches[2],
+                      f->base[0], f->pitches[0],
+                      f->base[1], f->pitches[1],
+                      f->base[2], f->pitches[2],
                       width, height);
     } else {
-
-    if (!img->proc_slice || (img->height & 15)) {
-      /* do all at once */
-      rgb2yuy2_slice (rgb2yuy2, img_buf, rowstride, img->base[0], img->pitches[0], width, height);
-    } else {
-      /* sliced */
-      uint8_t *sptr[1];
-      int     y, h = 16;
-      for (y = 0; y < height; y += 16) {
-        if (y + 16 > height)
-          h = height & 15;
-        sptr[0] = img->base[0] + y * img->pitches[0];
-        rgb2yuy2_slice (rgb2yuy2, img_buf + y * rowstride, rowstride, sptr[0], img->pitches[0],
-          width, h);
-        img->proc_slice (img, sptr);
+      if (!f->proc_slice || (f->height & 15)) {
+        /* do all at once */
+        rgb2yuy2_slice (rgb2yuy2, img_buf, rowstride, f->base[0], f->pitches[0], width, height);
+      } else {
+        /* sliced */
+        uint8_t *sptr[1];
+        int y, h = 16;
+        for (y = 0; y < height; y += 16) {
+          if (y + 16 > height)
+            h = height & 15;
+          sptr[0] = f->base[0] + y * f->pitches[0];
+          rgb2yuy2_slice (rgb2yuy2, img_buf + y * rowstride, rowstride, sptr[0], f->pitches[0], width, h);
+          f->proc_slice (f, sptr);
+        }
       }
-    }
     }
     rgb2yuy2_free (rgb2yuy2);
     g_object_unref (pixbuf);
@@ -184,25 +192,42 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     /*
      * draw video frame
      */
-    img->pts = buf->pts;
-    img->duration = 3600;
-    img->bad_frame = 0;
+    f->duration = 3600;
+    f->bad_frame = 0;
 
-    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, f->duration);
+  }
 
-    img->draw(img, this->stream);
-    img->free(img);
+  if (f) {
+    if (this->vo_frame) {
+      if (!(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+        this->vo_frame->pts = this->pts;
+        this->vo_frame->draw (this->vo_frame, this->stream);
+      }
+      this->vo_frame->free (this->vo_frame);
+    }
+    this->vo_frame = f;
+  }
+
+  if (this->vo_frame && !(buf->decoder_flags & BUF_FLAG_PREVIEW)) {
+    this->vo_frame->pts = this->pts;
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
   }
 }
 
 
 static void image_flush (video_decoder_t *this_gen) {
-  /* image_decoder_t *this = (image_decoder_t *) this_gen; */
-
-  (void)this_gen;
+  image_decoder_t *this = (image_decoder_t *) this_gen;
   /*
    * flush out any frames that are still stored in the decoder
    */
+  if (this->vo_frame) {
+    this->vo_frame->draw (this->vo_frame, this->stream);
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
 }
 
 
@@ -213,7 +238,10 @@ static void image_reset (video_decoder_t *this_gen) {
    * reset decoder after engine flush (prepare for new
    * video data not related to recently decoded data)
    */
-
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
   if (this->loader != NULL) {
     gdk_pixbuf_loader_close (this->loader, NULL);
     g_object_unref (G_OBJECT (this->loader));
@@ -235,6 +263,10 @@ static void image_discontinuity (video_decoder_t *this_gen) {
 static void image_dispose (video_decoder_t *this_gen) {
   image_decoder_t *this = (image_decoder_t *) this_gen;
 
+  if (this->vo_frame) {
+    this->vo_frame->free (this->vo_frame);
+    this->vo_frame = NULL;
+  }
   if (this->video_open) {
     lprintf("closing video\n");
 
@@ -278,6 +310,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen,
   /*
    * initialisation of privates
    */
+  this->vo_frame = NULL;
+  this->loader = NULL;
 
   return &this->video_decoder;
 }
