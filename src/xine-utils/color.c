@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1749,14 +1749,14 @@ void init_yuv_conversion(void) {
 }
 
 /* TJ. direct sliced rgb -> yuy2 conversion */
-typedef struct {
+struct rgb2yuy2_s {
   /* unused:1 u:21 v:21 y:21 */
   uint64_t t0[256], t1[256], t2[256];
   /* u:12 v:12 y:8 (rgb_pal8) */
   /* native endian yuyv (other rgb_pal*) */
   uint32_t p[272];
   int cm, fmt, pfmt;
-} rgb2yuy2_t;
+};
 
 typedef enum {
   rgb_bgr = 0, rgb_rgb, rgb_bgra, rgb_argb, rgb_rgba,
@@ -1765,7 +1765,7 @@ typedef enum {
   rgb_pal8, rgb_pal4, rgb_pal2, rgb_pal1
 } rgb_fmt_t;
 
-void *rgb2yuy2_alloc (int color_matrix, const char *format) {
+rgb2yuy2_t *rgb2yuy2_alloc (int color_matrix, const char *format) {
   rgb2yuy2_t *b;
   float kb, kr;
   float _ry, _gy, _by, _yoffs;
@@ -1940,11 +1940,11 @@ void *rgb2yuy2_alloc (int color_matrix, const char *format) {
 }
 
 
-void rgb2yuy2_free (void *rgb2yuy2) {
+void rgb2yuy2_free (rgb2yuy2_t *rgb2yuy2) {
   free (rgb2yuy2);
 }
 
-void rgb2yuy2_palette (void *rgb2yuy2, const uint8_t *pal, int num_colors, int bits_per_pixel) {
+void rgb2yuy2_palette (rgb2yuy2_t *rgb2yuy2, const uint8_t *pal, int num_colors, int bits_per_pixel) {
   rgb2yuy2_t *b = rgb2yuy2;
   uint64_t v;
   uint32_t w, *p;
@@ -2060,7 +2060,7 @@ void rgb2yuy2_palette (void *rgb2yuy2, const uint8_t *pal, int num_colors, int b
 #  define GET_V(v) ((v) >> 34)
 #endif
 
-void rgb2yuy2_slice (void *rgb2yuy2,
+void rgb2yuy2_slice (rgb2yuy2_t *rgb2yuy2,
                      const uint8_t *restrict in,  int ipitch,
                      uint8_t       *restrict out, int opitch,
                      int width, int height) {
@@ -2228,7 +2228,7 @@ void rgb2yuy2_slice (void *rgb2yuy2,
   }
 }
 
-void rgb2yv12_slice(void *rgb2yuy2,
+void rgb2yv12_slice (rgb2yuy2_t *rgb2yuy2,
                     const uint8_t *src, int src_stride,
                     uint8_t *y_dst, int y_pitch,
                     uint8_t *u_dst, int u_pitch,

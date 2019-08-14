@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -492,14 +492,15 @@ extern int v_g_table[256] XINE_PROTECTED;
 extern int v_b_table[256] XINE_PROTECTED;
 
 /* TJ. direct sliced rgb -> yuy2 conversion */
-extern void *rgb2yuy2_alloc (int color_matrix, const char *format) XINE_PROTECTED;
-extern void  rgb2yuy2_free (void *rgb2yuy2) XINE_PROTECTED;
-extern void  rgb2yuy2_slice (void *rgb2yuy2, const uint8_t *in, int ipitch, uint8_t *out, int opitch,
+typedef struct rgb2yuy2_s rgb2yuy2_t;
+extern rgb2yuy2_t *rgb2yuy2_alloc (int color_matrix, const char *format) XINE_PROTECTED;
+extern void  rgb2yuy2_free (rgb2yuy2_t *rgb2yuy2) XINE_PROTECTED;
+extern void  rgb2yuy2_slice (rgb2yuy2_t *rgb2yuy2, const uint8_t *in, int ipitch, uint8_t *out, int opitch,
   int width, int height) XINE_PROTECTED;
-extern void  rgb2yuy2_palette (void *rgb2yuy2, const uint8_t *pal, int num_colors, int bits_per_pixel)
+extern void  rgb2yuy2_palette (rgb2yuy2_t *rgb2yuy2, const uint8_t *pal, int num_colors, int bits_per_pixel)
   XINE_PROTECTED;
 
-extern void rgb2yv12_slice(void *rgb2yuy2, const uint8_t *src, int src_stride,
+extern void rgb2yv12_slice (rgb2yuy2_t *rgb2yuy2, const uint8_t *src, int src_stride,
                            uint8_t *y_dst, int y_pitch,
                            uint8_t *u_dst, int u_pitch,
                            uint8_t *v_dst, int v_pitch,

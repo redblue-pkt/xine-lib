@@ -98,7 +98,7 @@ static void image_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
     int                width, height, rowstride, n_channels;
     guchar            *img_buf;
     int                color_matrix, flags, format;
-    void              *rgb2yuy2;
+    rgb2yuy2_t        *rgb2yuy2;
 
     /*
      * this->image -> rgb data
