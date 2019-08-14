@@ -171,7 +171,7 @@ struct ff_video_decoder_s {
   unsigned char     ytab[1024], ctab[1024];
 
   int               pix_fmt;
-  void             *rgb2yuy2;
+  rgb2yuy2_t       *rgb2yuy2;
 
 #ifdef LOG
   enum PixelFormat  debug_fmt;
@@ -1251,7 +1251,7 @@ static void ff_setup_rgb2yuy2 (ff_video_decoder_t *this, int pix_fmt) {
   }
   if (this->stream->video_out->get_capabilities (this->stream->video_out) & VO_CAP_FULLRANGE)
     cm = 11; /* full range */
-  free (this->rgb2yuy2);
+  rgb2yuy2_free (this->rgb2yuy2);
   this->rgb2yuy2 = rgb2yuy2_alloc (cm, fmt);
   this->pix_fmt = pix_fmt;
   VO_SET_FLAGS_CM (cm, this->frame_flags);

@@ -112,7 +112,7 @@ struct post_plugin_goom_s {
 
 
   yuv_planes_t yuv;
-  void *rgb2yuy2;
+  rgb2yuy2_t *rgb2yuy2;
 
   /* frame skipping */
   int skip_frame;

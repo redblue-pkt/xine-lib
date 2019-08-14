@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -77,7 +77,7 @@ typedef struct rgb_decoder_s {
   int               palette_loaded;
   int               color_matrix;
   const char       *fmtstring;
-  void             *rgb2yuy2;
+  rgb2yuy2_t       *rgb2yuy2;
 
 } rgb_decoder_t;
 

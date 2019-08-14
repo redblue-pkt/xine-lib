@@ -111,7 +111,7 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
   int         frame_flags = VO_BOTH_FIELDS;
   int         format;
   int         cm;
-  void       *rgb2yuy2;
+  rgb2yuy2_t *rgb2yuy2;
 
   png_uint_32 width, height, y;
   png_structp png;

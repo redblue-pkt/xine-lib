@@ -97,7 +97,7 @@ static vo_frame_t *_image_decode_data (image_decoder_t *this, unsigned char *dat
     uint8_t           *img_buf;
     vo_frame_t        *img;
 
-    void              *rgb2yuy2;
+    rgb2yuy2_t        *rgb2yuy2;
     int                frame_flags, cm, format;
 
     /*
