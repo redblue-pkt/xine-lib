@@ -163,16 +163,20 @@ void xine_event_free (xine_event_t *event) {
 }
 
 void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
-  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  xine_stream_private_t *stream = (xine_stream_private_t *)s, *mstream;
   xine_list_iterator_t ite;
   xine_event_queue_private_t *queue;
   struct timeval now = {0, 0};
 
+  if (!stream || !event)
+    return;
+  mstream = stream->side_streams[0];
+
   gettimeofday (&now, NULL);
-  pthread_mutex_lock (&stream->event_queues_lock);
+  pthread_mutex_lock (&mstream->event_queues_lock);
 
   ite = NULL;
-  while ((queue = xine_list_next_value (stream->event_queues, &ite))) {
+  while ((queue = xine_list_next_value (mstream->event_queues, &ite))) {
     xine_event_private_t *new_event;
 
     /* calm down bursting progress events pt 1:
@@ -270,7 +274,7 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
     pthread_mutex_unlock (&queue->q.lock);
   }
 
-  pthread_mutex_unlock (&stream->event_queues_lock);
+  pthread_mutex_unlock (&mstream->event_queues_lock);
 }
 
 
@@ -313,41 +317,50 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *s) {
   queue->q.listener_thread = NULL;
   queue->q.callback_running = 0;
 
-  pthread_mutex_lock (&stream->event_queues_lock);
-  xine_list_push_back (stream->event_queues, &queue->q);
-  pthread_mutex_unlock (&stream->event_queues_lock);
+  {
+    xine_stream_private_t *mstream = stream->side_streams[0];
+    pthread_mutex_lock (&mstream->event_queues_lock);
+    xine_list_push_back (mstream->event_queues, &queue->q);
+    pthread_mutex_unlock (&mstream->event_queues_lock);
+  }
 
   return &queue->q;
 }
 
 void xine_event_dispose_queue (xine_event_queue_t *queue) {
   xine_event_queue_private_t *q = (xine_event_queue_private_t *)queue;
-  xine_stream_private_t *stream = (xine_stream_private_t *)q->q.stream;
+  xine_stream_private_t *stream;
+
+  if (!q)
+    return;
+  stream = (xine_stream_private_t *)q->q.stream;
 
   {
+    xine_stream_private_t *mstream = stream->side_streams[0];
     xine_list_iterator_t  ite;
-    pthread_mutex_lock (&stream->event_queues_lock);
-    ite = xine_list_find (stream->event_queues, q);
+    pthread_mutex_lock (&mstream->event_queues_lock);
+    ite = xine_list_find (mstream->event_queues, q);
     if (!ite) {
-      pthread_mutex_unlock (&stream->event_queues_lock);
+      pthread_mutex_unlock (&mstream->event_queues_lock);
       xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "events: tried to dispose queue which is not in list\n");
       return;
     }
-    xine_list_remove (stream->event_queues, ite);
-    pthread_mutex_unlock (&stream->event_queues_lock);
+    xine_list_remove (mstream->event_queues, ite);
+    pthread_mutex_unlock (&mstream->event_queues_lock);
   }
 
   /*
    * send quit event
    */
   {
-    xine_event_t *qevent = malloc (sizeof (xine_event_t));
+    xine_event_private_t *qevent = malloc (sizeof (*qevent));
     if (qevent) {
-      qevent->type        = XINE_EVENT_QUIT;
-      qevent->stream      = &stream->s;
-      qevent->data        = NULL;
-      qevent->data_length = 0;
-      gettimeofday (&qevent->tv, NULL);
+      qevent->e.type        = XINE_EVENT_QUIT;
+      qevent->e.stream      = &stream->s;
+      qevent->e.data        = NULL;
+      qevent->e.data_length = 0;
+      qevent->queue         = q;
+      gettimeofday (&qevent->e.tv, NULL);
       pthread_mutex_lock (&q->q.lock);
       xine_list_push_back (q->q.events, qevent);
       pthread_cond_signal (&q->q.new_event);
@@ -462,4 +475,49 @@ int xine_event_create_listener_thread (xine_event_queue_t *queue,
   }
 
   return 1;
+}
+
+void _x_flush_events_queues (xine_stream_t *s) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+
+  if (!stream)
+    return;
+  stream = stream->side_streams[0];
+
+  while (1) {
+    xine_event_queue_private_t *queue;
+    xine_list_iterator_t ite = NULL;
+    int list_locked = 1;
+
+    pthread_mutex_lock (&stream->event_queues_lock);
+    while ((queue = xine_list_next_value (stream->event_queues, &ite))) {
+      pthread_mutex_lock (&queue->q.lock);
+      /* we might have been called from the very same function that
+       * processes events, therefore waiting here would cause deadlock.
+       * check only queues with listener threads which are not
+       * currently executing their callback functions. */
+      if (queue->q.listener_thread && !queue->q.callback_running && !xine_list_empty (queue->q.events)) {
+        int refs;
+        /* make sure this queue does not go away, then unlock list to prevent freezes. */
+        queue->refs += 1;
+        pthread_mutex_unlock (&stream->event_queues_lock);
+        do {
+          pthread_cond_wait (&queue->q.events_processed, &queue->q.lock);
+        } while (!xine_list_empty (queue->q.events));
+        queue->refs -= 1;
+        refs = queue->refs;
+        pthread_mutex_unlock (&queue->q.lock);
+        if (refs == 0)
+          xine_event_queue_delete (queue);
+        /* list may have changed, restart. */
+        list_locked = 0;
+        break;
+      }
+      pthread_mutex_unlock (&queue->q.lock);
+    }
+    if (list_locked) {
+      pthread_mutex_unlock (&stream->event_queues_lock);
+      break;
+    }
+  }
 }
