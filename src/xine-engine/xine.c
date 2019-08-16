@@ -1206,6 +1206,7 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->frontend_lock);
   pthread_mutex_destroy (&stream->index_mutex);
   pthread_mutex_destroy (&stream->demux_pair_mutex);
+  pthread_mutex_destroy (&stream->event_queues_lock);
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
   */
@@ -1214,7 +1215,6 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->first_frame_lock);
   pthread_cond_destroy  (&stream->counter_changed);
   pthread_mutex_destroy (&stream->counter_lock);
-  pthread_mutex_destroy (&stream->event_queues_lock);
   pthread_cond_destroy  (&stream->demux_resume);
   pthread_mutex_destroy (&stream->demux_action_lock);
   pthread_mutex_destroy (&stream->demux_lock);
@@ -1340,6 +1340,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   }
   pthread_mutex_init (&s->demux_pair_mutex, NULL);
   pthread_mutex_init (&s->index_mutex, NULL);
+  pthread_mutex_init (&s->event_queues_lock, NULL);
   xine_rwlock_init_default (&s->info_lock);
   xine_rwlock_init_default (&s->meta_lock);
   */
@@ -1347,7 +1348,6 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   pthread_mutex_init (&s->demux_lock, NULL);
   pthread_mutex_init (&s->demux_action_lock, NULL);
   pthread_cond_init  (&s->demux_resume, NULL);
-  pthread_mutex_init (&s->event_queues_lock, NULL);
   pthread_mutex_init (&s->counter_lock, NULL);
   pthread_cond_init  (&s->counter_changed, NULL);
   pthread_mutex_init (&s->first_frame_lock, NULL);
@@ -1456,40 +1456,6 @@ char *_x_mrl_remove_auth(const char *mrl_in)
   }
 
   return mrl;
-}
-
-void _x_flush_events_queues (xine_stream_t *s) {
-  xine_stream_private_t *stream = (xine_stream_private_t *)s;
-
-  xine_list_iterator_t ite;
-  xine_event_queue_t  *queue;
-
-  stream = stream->side_streams[0];
-
-  pthread_mutex_lock (&stream->event_queues_lock);
-
-  /* No events queue? */
-  ite = NULL;
-  while ((queue = xine_list_next_value (stream->event_queues, &ite))) {
-    pthread_mutex_lock (&queue->lock);
-    pthread_mutex_unlock (&stream->event_queues_lock);
-
-    /* we might have been called from the very same function that
-     * processes events, therefore waiting here would cause deadlock.
-     * check only queues with listener threads which are not
-     * currently executing their callback functions.
-     */
-    if (queue->listener_thread != NULL && !queue->callback_running) {
-      while (!xine_list_empty (queue->events)) {
-        pthread_cond_wait (&queue->events_processed, &queue->lock);
-      }
-    }
-
-    pthread_mutex_unlock (&queue->lock);
-    pthread_mutex_lock (&stream->event_queues_lock);
-  }
-
-  pthread_mutex_unlock (&stream->event_queues_lock);
 }
 
 /* 0x01 (end), 0x02 (alpha), 0x04 (alnum - + .), 0x08 (:), 0x10 (;), 0x20 (#)  */
@@ -3789,3 +3755,4 @@ int _x_keyframes_set (xine_stream_t *s, xine_keyframes_entry_t *list, int size) 
     "keyframes: got %d of them.\n", stream->index_used);
   return 0;
 }
+
