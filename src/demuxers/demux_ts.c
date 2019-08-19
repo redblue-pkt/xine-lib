@@ -2758,11 +2758,9 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
  */
 
 static void demux_ts_event_handler (demux_ts_t *this) {
+  xine_event_t *event = NULL;
 
-  xine_event_t *event;
-
-  while ((event = xine_event_get (this->event_queue))) {
-
+  while ((event = xine_event_next (this->event_queue, event))) {
 
     switch (event->type) {
 
@@ -2779,8 +2777,6 @@ static void demux_ts_event_handler (demux_ts_t *this) {
       break;
 
     }
-
-    xine_event_free (event);
   }
 }
 
