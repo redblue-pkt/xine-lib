@@ -2223,8 +2223,13 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) XINE_PROTECTED;
  * use xine_event_free on the events received from these calls
  * when they're no longer needed
  */
+/* get first event or NULL when queue is empty. */
 xine_event_t *xine_event_get  (xine_event_queue_t *queue) XINE_PROTECTED;
+/* free prev_event if not NULL, then same as xine_event_get (). */
+xine_event_t *xine_event_next (xine_event_queue_t *queue, xine_event_t *prev_event) XINE_PROTECTED;
+/* get first event, wait for it if needed. */
 xine_event_t *xine_event_wait (xine_event_queue_t *queue) XINE_PROTECTED;
+/* free or reuse event. may be NULL. */
 void          xine_event_free (xine_event_t *event) XINE_PROTECTED;
 
 /*
@@ -2251,6 +2256,7 @@ int xine_event_create_listener_thread (xine_event_queue_t *queue,
  * *event as soon as xine_event_send returns.
  */
 void xine_event_send (xine_stream_t *stream, const xine_event_t *event) XINE_PROTECTED;
+
 
 
 /*********************************************************************
