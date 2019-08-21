@@ -25,29 +25,11 @@
 #include <unistd.h>
 #endif
 
-/* (stolen from the kernel) */
 #ifdef WORDS_BIGENDIAN
-
-#	define swab32(x) (x)
-
+#  define swab32(x) (x)
 #else
-
-#	if 0 && defined (__i386__)
-
-#	define swab32(x) __i386_swab32(x)
-	static inline const uint32_t __i386_swab32(uint32_t x)
-	{
-		__asm__("bswap %0" : "=r" (x) : "0" (x));
-		return x;
-	}
-
-#	else
-
-#	define swab32(x)\
-((((uint8_t*)&x)[0] << 24) | (((uint8_t*)&x)[1] << 16) |  \
- (((uint8_t*)&x)[2] << 8)  | (((uint8_t*)&x)[3]))
-
-#	endif
+/* TJ. gcc 4+ will recognize this as __builtin_bswap32 (). */
+#  define swab32(x) (((x) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | ((x) >> 24))
 #endif
 
 void a52_bitstream_set_ptr (a52_state_t * state, uint8_t * buf);
@@ -59,7 +41,8 @@ static inline uint32_t bitstream_get (a52_state_t * state, uint32_t num_bits)
     uint32_t result;
 	
     if (num_bits < state->bits_left) {
-	result = (state->current_word << (32 - state->bits_left)) >> (32 - num_bits);
+        result = state->current_word >> (32 - num_bits);
+        state->current_word <<= num_bits;
 	state->bits_left -= num_bits;
 	return result;
     }
@@ -72,7 +55,8 @@ static inline int32_t bitstream_get_2 (a52_state_t * state, uint32_t num_bits)
     int32_t result;
 	
     if (num_bits < state->bits_left) {
-	result = (((int32_t)state->current_word) << (32 - state->bits_left)) >> (32 - num_bits);
+        result = ((int32_t)state->current_word) >> (32 - num_bits);
+        state->current_word <<= num_bits;
 	state->bits_left -= num_bits;
 	return result;
     }
