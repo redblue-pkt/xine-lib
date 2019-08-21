@@ -538,7 +538,7 @@ static video_decoder_t *_open_plugin(video_decoder_class_t *class_gen, xine_stre
   /* multithreading */
   ncpu = xine_cpu_count();
   settings.n_frame_threads = (ncpu > 8) ? 4 : (ncpu < 2) ? 1 : ncpu/2;
-  settings.n_tile_threads = MAX(1, ncpu - settings.n_frame_threads);
+  settings.n_tile_threads = MAX(1, ncpu - settings.n_frame_threads + 1);
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
             "Using %d frame threads, %d tile threads\n",
             settings.n_frame_threads, settings.n_tile_threads);
