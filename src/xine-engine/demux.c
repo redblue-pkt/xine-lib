@@ -425,6 +425,18 @@ static void *demux_loop (void *stream_gen) {
         } while (stream->demux_thread_running && (status == DEMUX_FINISHED));
         break;
       } else {
+        /* there may be no first frame at all here.
+         * make sure xine_play returns first. */
+        pthread_mutex_lock (&stream->first_frame_lock);
+        if (stream->first_frame_flag) {
+          stream->first_frame_flag = 0;
+          pthread_cond_broadcast(&stream->first_frame_reached);
+          pthread_mutex_unlock (&stream->first_frame_lock);
+          xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+            "demux: unblocked xine_play_internal ().\n");
+        } else {
+          pthread_mutex_unlock (&stream->first_frame_lock);
+        }
         /* stream end may well happen during xine_play () (seek close to end).
          * Lets not confuse frontend, and delay that message a bit. */
         ts = seek_time;
@@ -440,14 +452,6 @@ static void *demux_loop (void *stream_gen) {
           break;
         xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
           "demux: very short seek segment, delaying finish message.\n");
-        /* there may be no first frame at all here.
-         * make sure xine_play returns first. */
-        pthread_mutex_lock (&stream->first_frame_lock);
-        if (stream->first_frame_flag) {
-          stream->first_frame_flag = 0;
-          pthread_cond_broadcast(&stream->first_frame_reached);
-        }
-        pthread_mutex_unlock (&stream->first_frame_lock);
       }
       do {
         int e = pthread_cond_timedwait (&stream->demux_resume, &stream->demux_lock, &ts);
