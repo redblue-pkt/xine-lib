@@ -330,7 +330,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *s) {
   }
   queue->free_events = xine_list_new ();
   if (!queue->free_events) {
-    free (queue->q.events);
+    xine_list_delete (queue->q.events);
     free (queue);
     return NULL;
   }
