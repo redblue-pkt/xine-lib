@@ -50,8 +50,10 @@
 
 
 static void update_spu_decoder (xine_stream_t *stream, int type) {
-
   int streamtype = (type>>16) & 0xFF;
+
+  if (!stream)
+    return;
 
   if( stream->spu_decoder_streamtype != streamtype ||
       !stream->spu_decoder_plugin ) {
@@ -63,7 +65,6 @@ static void update_spu_decoder (xine_stream_t *stream, int type) {
     stream->spu_decoder_plugin = _x_get_spu_decoder (stream, streamtype);
 
   }
-  return ;
 }
 
 int _x_spu_decoder_sleep (xine_stream_t *s, int64_t next_spu_vpts) {
@@ -71,6 +72,9 @@ int _x_spu_decoder_sleep (xine_stream_t *s, int64_t next_spu_vpts) {
   xine_private_t *xine = (xine_private_t *)stream->s.xine;
   int64_t time, wait;
   int thread_vacant = 1;
+
+  if (!stream)
+    return 0;
 
   /* we wait until one second before the next SPU is due */
   next_spu_vpts -= 90000;
@@ -532,6 +536,12 @@ static void *video_decoder_loop (void *stream_gen) {
 int _x_video_decoder_init (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
+  if (!stream)
+    return 0;
+  stream = stream->side_streams[0];
+  if (stream->s.video_fifo)
+    return 1;
+
   stream->spu_track_map_entries = 0;
 
   if (stream->s.video_out == NULL) {
@@ -601,6 +611,9 @@ void _x_video_decoder_shutdown (xine_stream_t *s) {
   buf_element_t *buf;
   void          *p;
 
+  if (!stream)
+    return;
+
   lprintf ("shutdown...\n");
 
   if (stream->video_thread_created) {
@@ -623,6 +636,8 @@ void _x_video_decoder_shutdown (xine_stream_t *s) {
 
   }
 
-  stream->s.video_fifo->dispose (stream->s.video_fifo);
-  stream->s.video_fifo = NULL;
+  if (stream->s.video_fifo) {
+    stream->s.video_fifo->dispose (stream->s.video_fifo);
+    stream->s.video_fifo = NULL;
+  }
 }
