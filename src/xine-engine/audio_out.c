@@ -599,6 +599,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       if (n) {
         if ((this->seek_count3 >= 0) && list->stream) {
           xine_stream_private_t *s = (xine_stream_private_t *)list->stream;
+          s = s->side_streams[0];
           pthread_mutex_lock (&s->first_frame_lock);
           s->first_frame_flag = 0;
           pthread_cond_broadcast (&s->first_frame_reached);
@@ -1582,16 +1583,17 @@ static void *ao_loop (void *this_gen) {
             this->ei_read = (this->ei_read + 1) & (EI_RING_SIZE - 1);
           }
           if (found && stream) {
-            pthread_mutex_lock (&stream->current_extra_info_lock);
-            _x_extra_info_merge (stream->current_extra_info, found);
-            pthread_mutex_unlock (&stream->current_extra_info_lock);
+            xine_stream_private_t *m = stream->side_streams[0];
+            pthread_mutex_lock (&m->current_extra_info_lock);
+            _x_extra_info_merge (m->current_extra_info, found);
+            pthread_mutex_unlock (&m->current_extra_info_lock);
             if (found->seek_count == this->seek_count3) {
               xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
-              pthread_mutex_lock (&stream->first_frame_lock);
-              stream->first_frame_flag = 0;
-              pthread_cond_broadcast (&stream->first_frame_reached);
-              pthread_mutex_unlock (&stream->first_frame_lock);
+              pthread_mutex_lock (&m->first_frame_lock);
+              m->first_frame_flag = 0;
+              pthread_cond_broadcast (&m->first_frame_reached);
+              pthread_mutex_unlock (&m->first_frame_lock);
             }
           }
         }
@@ -1672,19 +1674,20 @@ static void *ao_loop (void *this_gen) {
           this->ei_read = (this->ei_read + 1) & (EI_RING_SIZE - 1);
         }
         if (stream) {
-          if (!found && (cur_time - stream->current_extra_info->vpts) > 30000)
+          xine_stream_private_t *m = stream->side_streams[0];
+          if (!found && (cur_time - m->current_extra_info->vpts) > 30000)
             found = in_buf->extra_info;
           if (found) {
-            pthread_mutex_lock (&stream->current_extra_info_lock);
-            _x_extra_info_merge (stream->current_extra_info, found);
-            pthread_mutex_unlock (&stream->current_extra_info_lock);
+            pthread_mutex_lock (&m->current_extra_info_lock);
+            _x_extra_info_merge (m->current_extra_info, found);
+            pthread_mutex_unlock (&m->current_extra_info_lock);
             if (found->seek_count == this->seek_count3) {
               xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
-              pthread_mutex_lock (&stream->first_frame_lock);
-              stream->first_frame_flag = 0;
-              pthread_cond_broadcast (&stream->first_frame_reached);
-              pthread_mutex_unlock (&stream->first_frame_lock);
+              pthread_mutex_lock (&m->first_frame_lock);
+              m->first_frame_flag = 0;
+              pthread_cond_broadcast (&m->first_frame_reached);
+              pthread_mutex_unlock (&m->first_frame_lock);
             }
           }
         }
@@ -2086,8 +2089,11 @@ static int ao_open (xine_audio_port_t *this_gen, xine_stream_t *s,
 		   uint32_t bits, uint32_t rate, int mode) {
 
   aos_t *this = (aos_t *) this_gen;
-  xine_stream_private_t *stream = (xine_stream_private_t *)s;
   int channels;
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+
+  if (stream)
+    stream = stream->side_streams[0];
 
   xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: ao_open (%p)\n", (void*)stream);
 
@@ -2100,7 +2106,7 @@ static int ao_open (xine_audio_port_t *this_gen, xine_stream_t *s,
       ao_out_fifo_loop_flush (this);
     }
 
-    if( !stream->emergency_brake ) {
+    if (stream && !stream->emergency_brake) {
       pthread_mutex_lock( &this->driver_lock );
       ret = ao_change_settings (this, &stream->s, bits, rate, mode);
       pthread_mutex_unlock( &this->driver_lock );
@@ -2170,6 +2176,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
     stream = NULL;
   if (stream) {
     xine_stream_private_t *s = (xine_stream_private_t *)stream;
+    s = s->side_streams[0];
     /* faster than 3x _x_stream_info_get () */
     xine_rwlock_rdlock (&s->info_lock);
     buf->format.bits = s->stream_info[XINE_STREAM_INFO_AUDIO_BITS];

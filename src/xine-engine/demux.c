@@ -329,8 +329,8 @@ void _x_demux_control_nop (xine_stream_t *s, uint32_t flags ) {
 }
 
 static void *demux_loop (void *stream_gen) {
-
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
+  xine_stream_private_t *m = stream->side_streams[0];
   int status;
   int non_user;
 
@@ -342,12 +342,12 @@ static void *demux_loop (void *stream_gen) {
 
   xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
     "demux: starting stream %p.\n", (void *)stream);
-  pthread_mutex_lock (&stream->side_streams[0]->counter_lock);
-  stream->side_streams[0]->num_demuxers_running++;
-  pthread_mutex_unlock (&stream->side_streams[0]->counter_lock);
+  pthread_mutex_lock (&m->counter_lock);
+  m->num_demuxers_running++;
+  pthread_mutex_unlock (&m->counter_lock);
 
   pthread_mutex_lock( &stream->demux_lock );
-  stream->emergency_brake = 0;
+  m->emergency_brake = 0;
 
   /* do-while needed to seek after demux finished */
   do {
@@ -355,8 +355,7 @@ static void *demux_loop (void *stream_gen) {
 
     /* main demuxer loop */
     status = stream->demux_plugin->get_status(stream->demux_plugin);
-    while(status == DEMUX_OK && stream->demux_thread_running &&
-          !stream->emergency_brake) {
+    while (status == DEMUX_OK && stream->demux_thread_running && !m->emergency_brake) {
 
       iterations++;
       status = stream->demux_plugin->send_chunk(stream->demux_plugin);
@@ -390,7 +389,7 @@ static void *demux_loop (void *stream_gen) {
     while(stream->demux_thread_running &&
           ((stream->s.video_fifo->size (stream->s.video_fifo)) ||
            (stream->s.audio_fifo->size (stream->s.audio_fifo))) &&
-          status == DEMUX_FINISHED && !stream->emergency_brake){
+          status == DEMUX_FINISHED && !m->emergency_brake){
       struct timespec ts = {0, 0};
       xine_gettime (&ts);
       ts.tv_nsec += 100000000;
@@ -427,15 +426,15 @@ static void *demux_loop (void *stream_gen) {
       } else {
         /* there may be no first frame at all here.
          * make sure xine_play returns first. */
-        pthread_mutex_lock (&stream->first_frame_lock);
-        if (stream->first_frame_flag) {
-          stream->first_frame_flag = 0;
-          pthread_cond_broadcast(&stream->first_frame_reached);
-          pthread_mutex_unlock (&stream->first_frame_lock);
+        pthread_mutex_lock (&m->first_frame_lock);
+        if (m->first_frame_flag) {
+          m->first_frame_flag = 0;
+          pthread_cond_broadcast (&m->first_frame_reached);
+          pthread_mutex_unlock (&m->first_frame_lock);
           xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
             "demux: unblocked xine_play_internal ().\n");
         } else {
-          pthread_mutex_unlock (&stream->first_frame_lock);
+          pthread_mutex_unlock (&m->first_frame_lock);
         }
         /* stream end may well happen during xine_play () (seek close to end).
          * Lets not confuse frontend, and delay that message a bit. */
@@ -461,8 +460,7 @@ static void *demux_loop (void *stream_gen) {
       } while (stream->demux_thread_running && (status == DEMUX_FINISHED));
     } while (0);
 
-  } while( status == DEMUX_OK && stream->demux_thread_running &&
-           !stream->emergency_brake);
+  } while (status == DEMUX_OK && stream->demux_thread_running && !m->emergency_brake);
 
   lprintf ("loop finished (status: %d)\n", status);
 
@@ -474,7 +472,6 @@ static void *demux_loop (void *stream_gen) {
   /* do stream end stuff only if this is the last side stream. */
   {
     unsigned int n;
-    xine_stream_private_t *m = stream->side_streams[0];
 
     pthread_mutex_lock (&m->counter_lock);
     n = --(m->num_demuxers_running);
@@ -592,12 +589,15 @@ int _x_demux_stop_thread (xine_stream_t *s) {
   /*
    * Wake up xine_play if it's waiting for a frame
    */
-  pthread_mutex_lock (&stream->first_frame_lock);
-  if (stream->first_frame_flag) {
-    stream->first_frame_flag = 0;
-    pthread_cond_broadcast(&stream->first_frame_reached);
+  {
+    xine_stream_private_t *m = stream->side_streams[0];
+    pthread_mutex_lock (&m->first_frame_lock);
+    if (m->first_frame_flag) {
+      m->first_frame_flag = 0;
+      pthread_cond_broadcast (&m->first_frame_reached);
+    }
+    pthread_mutex_unlock (&m->first_frame_lock);
   }
-  pthread_mutex_unlock (&stream->first_frame_lock);
 
   return 0;
 }
@@ -936,3 +936,16 @@ void _x_demux_send_mrl_reference (xine_stream_t *stream, int alternative,
 
   free (data.e);
 }
+
+int _x_demux_seek (xine_stream_t *s, off_t start_pos, int start_time, int playing) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  int ret = -1;
+
+  pthread_mutex_lock (&stream->side_streams[0]->frontend_lock);
+  if (stream->demux_plugin)
+    ret = stream->demux_plugin->seek (stream->demux_plugin, start_pos, start_time, playing);
+  pthread_mutex_unlock (&stream->side_streams[0]->frontend_lock);
+
+  return ret;
+}
+

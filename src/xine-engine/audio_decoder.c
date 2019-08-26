@@ -488,6 +488,12 @@ static void *audio_decoder_loop (void *stream_gen) {
 int _x_audio_decoder_init (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
+  if (!stream)
+    return 0;
+  stream = stream->side_streams[0];
+  if (stream->s.audio_fifo)
+    return 1;
+
   if (stream->s.audio_out == NULL) {
 
     stream->s.audio_fifo = _x_dummy_fifo_buffer_new (5, 8192);
@@ -563,6 +569,9 @@ void _x_audio_decoder_shutdown (xine_stream_t *s) {
   buf_element_t *buf;
   void          *p;
 
+  if (!stream)
+    return;
+
   if (stream->audio_thread_created) {
     /* stream->audio_fifo->clear(stream->audio_fifo); */
 
@@ -574,13 +583,15 @@ void _x_audio_decoder_shutdown (xine_stream_t *s) {
     stream->audio_thread_created = 0;
   }
 
-  stream->s.audio_fifo->dispose (stream->s.audio_fifo);
-  stream->s.audio_fifo = NULL;
+  if (stream->s.audio_fifo) {
+    stream->s.audio_fifo->dispose (stream->s.audio_fifo);
+    stream->s.audio_fifo = NULL;
+  }
 }
 
 int _x_get_audio_channel (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
-  return stream->audio_type & 0xFFFF;
+  return stream ? (stream->audio_type & 0xFFFF) : 0;
 }
 

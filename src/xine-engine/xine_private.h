@@ -399,7 +399,10 @@ typedef struct xine_stream_private_st {
   pthread_mutex_t            frontend_lock;
 
 #define XINE_NUM_SIDE_STREAMS 4
-  /* HACK: protected by info_lock below. */
+  /* HACK: protected by info_lock below.
+   * side_streams[0] always points to the master, which is the stream itself if not a side stream.
+   * It is set by init, and does not change until dispose.
+   * In other words: it may safely be read without lock. */
   struct xine_stream_private_st *side_streams[XINE_NUM_SIDE_STREAMS];
 
   /* stream meta information */

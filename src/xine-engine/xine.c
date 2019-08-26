@@ -1207,14 +1207,14 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->index_mutex);
   pthread_mutex_destroy (&stream->demux_pair_mutex);
   pthread_mutex_destroy (&stream->event_queues_lock);
+  pthread_mutex_destroy (&stream->counter_lock);
+  pthread_mutex_destroy (&stream->current_extra_info_lock);
+  pthread_mutex_destroy (&stream->first_frame_lock);
+  pthread_cond_destroy  (&stream->first_frame_reached);
+  pthread_cond_destroy  (&stream->counter_changed);
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
   */
-  pthread_mutex_destroy (&stream->current_extra_info_lock);
-  pthread_cond_destroy  (&stream->first_frame_reached);
-  pthread_mutex_destroy (&stream->first_frame_lock);
-  pthread_cond_destroy  (&stream->counter_changed);
-  pthread_mutex_destroy (&stream->counter_lock);
   pthread_cond_destroy  (&stream->demux_resume);
   pthread_mutex_destroy (&stream->demux_action_lock);
   pthread_mutex_destroy (&stream->demux_lock);
@@ -1341,6 +1341,11 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   pthread_mutex_init (&s->demux_pair_mutex, NULL);
   pthread_mutex_init (&s->index_mutex, NULL);
   pthread_mutex_init (&s->event_queues_lock, NULL);
+  pthread_mutex_init (&s->counter_lock, NULL);
+  pthread_mutex_init (&s->first_frame_lock, NULL);
+  pthread_mutex_init (&s->current_extra_info_lock, NULL);
+  pthread_cond_init  (&s->counter_changed, NULL);
+  pthread_cond_init  (&s->first_frame_reached, NULL);
   xine_rwlock_init_default (&s->info_lock);
   xine_rwlock_init_default (&s->meta_lock);
   */
@@ -1348,11 +1353,6 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   pthread_mutex_init (&s->demux_lock, NULL);
   pthread_mutex_init (&s->demux_action_lock, NULL);
   pthread_cond_init  (&s->demux_resume, NULL);
-  pthread_mutex_init (&s->counter_lock, NULL);
-  pthread_cond_init  (&s->counter_changed, NULL);
-  pthread_mutex_init (&s->first_frame_lock, NULL);
-  pthread_cond_init  (&s->first_frame_reached, NULL);
-  pthread_mutex_init (&s->current_extra_info_lock, NULL);
 
   /* some user config */
   s->disable_decoder_flush_at_discontinuity = m->disable_decoder_flush_at_discontinuity;
@@ -3535,18 +3535,6 @@ int _x_query_unprocessed_osd_events(xine_stream_t *stream)
   xine->port_ticket->release_nonblocking (xine->port_ticket, 1);
 
   return redraw_needed;
-}
-
-int _x_demux_seek (xine_stream_t *s, off_t start_pos, int start_time, int playing) {
-  xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  int ret = -1;
-
-  pthread_mutex_lock( &stream->frontend_lock );
-  if (stream->demux_plugin)
-    ret = stream->demux_plugin->seek(stream->demux_plugin, start_pos, start_time, playing);
-  pthread_mutex_unlock( &stream->frontend_lock );
-
-  return ret;
 }
 
 int _x_continue_stream_processing (xine_stream_t *s) {
