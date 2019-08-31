@@ -1230,6 +1230,8 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
 
   if (!m || (index < 0) || (index >= XINE_NUM_SIDE_STREAMS))
     return NULL;
+  /* no sub-sides, please. */
+  m = m->side_streams[0];
   xine_rwlock_rdlock (&m->info_lock);
   s = m->side_streams[index];
   xine_rwlock_unlock (&m->info_lock);
