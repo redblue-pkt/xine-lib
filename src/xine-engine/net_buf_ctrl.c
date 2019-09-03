@@ -185,43 +185,55 @@ static void dvbspeed_close (xine_nbc_t *this) {
 }
 
 static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
-  int64_t diff, *last;
-  int *fill;
-  int used, mode;
+  int all_fill, used, mode;
   const char *name;
   /* select vars */
   mode = b->type & BUF_MAJOR_MASK;
   if (mode == BUF_VIDEO_BASE) {
-    last = &this->dvbs_video_in;
-    fill = &this->dvbs_video_fill;
-    mode = 0x71;
-    name = "video";
-  } else if (mode == BUF_AUDIO_BASE) {
-    last = &this->dvbs_audio_in;
-    fill = &this->dvbs_audio_fill;
-    mode = 0x0f;
-    name = "audio";
-  } else return;
-  /* update fifo fill time */
-  if (b->pts) {
-    if (*last) {
-      diff = b->pts - *last;
-      if ((diff > -220000) && (diff < 220000)) *fill += diff;
+    /* update fifo fill time */
+    if (b->pts) {
+      if (this->dvbs_video_in) {
+        int64_t diff = b->pts - this->dvbs_video_in;
+        if ((diff > -220000) && (diff < 220000))
+          this->dvbs_video_fill += diff;
+      }
+      this->dvbs_video_in = b->pts;
     }
-    *last = b->pts;
-  }
+    if ((0x71 >> this->dvbspeed) & 1)
+      return;
+    name = "video";
+    all_fill = this->dvbs_video_fill;
+  } else if (mode == BUF_AUDIO_BASE) {
+    /* update fifo fill time */
+    if (b->pts) {
+      if (this->dvbs_audio_in) {
+        int64_t diff = b->pts - this->dvbs_audio_in;
+        if ((diff > -220000) && (diff < 220000))
+          this->dvbs_audio_fill += diff;
+      }
+      this->dvbs_audio_in = b->pts;
+    }
+    if ((0x0f >> this->dvbspeed) & 1)
+      return;
+    name = "audio";
+    all_fill = this->dvbs_audio_fill;
+    if (_x_lock_port_rewiring (this->stream->xine, 0)) {
+      all_fill += this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
+      _x_unlock_port_rewiring (this->stream->xine);
+    }
+  } else
+    return;
   /* take actions */
-  if ((mode >> this->dvbspeed) & 1) return;
   used = fifo->fifo_size;
   switch (this->dvbspeed) {
     case 1:
     case 4:
-      if ((*fill > this->dvbs_center + this->dvbs_width) ||
+      if ((all_fill > this->dvbs_center + this->dvbs_width) ||
         (100 * used > 98 * fifo->buffer_pool_capacity)) {
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL * 201 / 200);
         this->dvbspeed += 2;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 100.5%% @ %s %d ms %d buffers\n", name, (int)*fill / 90, used);
+          "net_buf_ctrl: dvbspeed 100.5%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
       }
       break;
     case 7:
@@ -244,11 +256,11 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
       /* fall through */
     case 2:
     case 5:
-      if ((*fill > this->dvbs_center) || (100 * used > 73 * fifo->buffer_pool_capacity)) {
+      if ((all_fill > this->dvbs_center) || (100 * used > 73 * fifo->buffer_pool_capacity)) {
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
         this->dvbspeed = (mode & 0x10) ? 1 : 4;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 100%% @ %s %d ms %d buffers\n", name, (int)*fill / 90, used);
+          "net_buf_ctrl: dvbspeed 100%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
         /* dont let low bitrate radio switch speed too often */
         if (used < 30) this->dvbs_width = 135000;
       }
@@ -256,62 +268,112 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
   }
 }
 
-static void dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
-  int64_t diff, *last;
-  int *fill;
-  int used, mode;
+static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
+  int all_fill, used, mode, pause = 0;
   const char *name;
   /* select vars */
   mode = b->type & BUF_MAJOR_MASK;
   if (mode == BUF_VIDEO_BASE) {
-    last = &this->dvbs_video_out;
-    fill = &this->dvbs_video_fill;
-    mode = 0x71;
-    name = "video";
-  } else if (mode == BUF_AUDIO_BASE) {
-    last = &this->dvbs_audio_out;
-    fill = &this->dvbs_audio_fill;
-    mode = 0x0f;
-    name = "audio";
-  } else return;
-  /* update fifo fill time */
-  if (b->pts) {
-    if (*last) {
-      diff = b->pts - *last;
-      if ((diff > -220000) && (diff < 220000)) *fill -= diff;
+    /* update fifo fill time */
+    if (b->pts) {
+      if (this->dvbs_video_out) {
+        int64_t diff = b->pts - this->dvbs_video_out;
+        if ((diff > -220000) && (diff < 220000))
+          this->dvbs_video_fill -= diff;
+      }
+      this->dvbs_video_out = b->pts;
     }
-    *last = b->pts;
-  }
+    if ((0x71 >> this->dvbspeed) & 1)
+      return 0;
+    name = "video";
+    all_fill = this->dvbs_video_fill;
+  } else if (mode == BUF_AUDIO_BASE) {
+    /* update fifo fill time */
+    if (b->pts) {
+      if (this->dvbs_audio_out) {
+        int64_t diff = b->pts - this->dvbs_audio_out;
+        if ((diff > -220000) && (diff < 220000))
+          this->dvbs_audio_fill -= diff;
+      }
+      this->dvbs_audio_out = b->pts;
+    }
+    if ((0x0f >> this->dvbspeed) & 1)
+      return 0;
+    name = "audio";
+    all_fill = this->dvbs_audio_fill;
+  } else
+    return 0;
   /* take actions */
   used = fifo->fifo_size;
-  if ((mode >> this->dvbspeed) & 1) return;
   switch (this->dvbspeed) {
-    case 1:
     case 4:
-      if (*fill && (*fill < this->dvbs_center - this->dvbs_width) &&
+      /* The usual 48kHz stereo mp2 can fill audio out fifo with > 7 seconds!! */
+      if (_x_lock_port_rewiring (this->stream->xine, 0)) {
+        all_fill += this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
+        _x_unlock_port_rewiring (this->stream->xine);
+      }
+      /* fall through */
+    case 1:
+      if (all_fill && (all_fill < this->dvbs_center - this->dvbs_width) &&
         (100 * used < 38 * fifo->buffer_pool_capacity)) {
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL * 199 / 200);
         this->dvbspeed += 1;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 99.5%% @ %s %d ms %d buffers\n", name, (int)*fill / 90, used);
+          "net_buf_ctrl: dvbspeed 99.5%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
       }
     break;
     case 2:
     case 5:
       if (used <= 1) {
         this->dvbspeed = 7;
+        pause = 1;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: signal lost\n");
       }
     break;
-    case 3:
     case 6:
-      if (*fill && (*fill < this->dvbs_center) && (100 * used < 73 * fifo->buffer_pool_capacity)) {
+      if (_x_lock_port_rewiring (this->stream->xine, 0)) {
+        all_fill += this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
+        _x_unlock_port_rewiring (this->stream->xine);
+      }
+      /* fall through */
+    case 3:
+      if (all_fill && (all_fill < this->dvbs_center) && (100 * used < 73 * fifo->buffer_pool_capacity)) {
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
         this->dvbspeed -= 2;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 100%% @ %s %d ms %d buffers\n", name, (int)*fill / 90, used);
+          "net_buf_ctrl: dvbspeed 100%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
       }
     break;
+  }
+  return pause;
+}
+
+void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) {
+  if (stream && (type == XINE_NBC_EVENT_AUDIO_DRY)) {
+    stream = stream->side_streams[0];
+    pthread_mutex_lock (&stream->index_mutex);
+    if (stream->nbc_refs <= 0) {
+      pthread_mutex_unlock (&stream->index_mutex);
+    } else {
+      xine_nbc_t *this = stream->nbc;
+      stream->nbc_refs += 1;
+      pthread_mutex_unlock (&stream->index_mutex);
+      pthread_mutex_lock (&this->mutex);
+      switch (this->dvbspeed) {
+        case 4:
+        case 5:
+        case 6:
+          this->dvbspeed = 7;
+          pthread_mutex_unlock (&this->mutex);
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: signal lost\n");
+          _x_set_fine_speed (this->stream, 0);
+          _x_set_fine_speed (this->stream, XINE_LIVE_PAUSE_ON);
+          break;
+        default:
+          pthread_mutex_unlock (&this->mutex);
+      }
+      xine_nbc_close (this);
+    }
   }
 }
 
@@ -674,7 +736,7 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
     if (this->enabled) {
 
       if (this->dvbspeed)
-        dvbspeed_get (this, fifo, buf);
+        pause = dvbspeed_get (this, fifo, buf);
       else {
         nbc_compute_fifo_length(this, fifo, buf, FIFO_GET);
 

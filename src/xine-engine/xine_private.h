@@ -485,6 +485,10 @@ typedef struct xine_stream_private_st {
   extra_info_t               ei[3];
 } xine_stream_private_t;
 
+/* Nasty net_buf_ctrl helper: inform about something outside its regular callbacks. */
+#define XINE_NBC_EVENT_AUDIO_DRY 1
+void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) INTERNAL;
+
 EXTERN_C_STOP
 
 #endif
