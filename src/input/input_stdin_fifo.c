@@ -60,10 +60,17 @@ typedef struct {
   int              fh;
   off_t            curpos;
 
-  int              num_reads, num_waits;
+  int              num_reads, num_fd_reads, num_fd_waits;
   long int         old_mode, mode;
   int              nonblock;
   int              timeout, requery_timeout;
+
+#define RING_LD 15
+#define RING_SIZE (1 << RING_LD)
+#define RING_MASK (RING_SIZE - 1)
+  int              ring_write;
+  int              ring_read;
+  uint8_t         *ring_buf;
 
   off_t            preview_size;
   char             preview[MAX_PREVIEW_SIZE];
@@ -78,6 +85,7 @@ static int stdin_plugin_wait (stdin_input_plugin_t *this) {
     this->requery_timeout = 1 << 20;
     this->timeout = _x_query_network_timeout (this->xine) * 1000;
   }
+  this->num_fd_waits += 1;
   ret = _x_io_select (this->stream, this->fh, XIO_READ_READY, this->timeout);
   if (ret != XIO_READY) {
     if (ret == XIO_ABORTED) {
@@ -98,7 +106,7 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen, void *buf_gen, off_t l
   stdin_input_plugin_t  *this = (stdin_input_plugin_t *) this_gen;
   char *buf = (char *)buf_gen;
   long int n, rest = len, done;
-  int waited, e;
+  int e;
 
   lprintf ("reading %"PRId64" bytes...\n", len);
   if (rest <= 0)
@@ -123,31 +131,107 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen, void *buf_gen, off_t l
     rest -= n;
   }
 
-  /* Let input_cache handle the demux_len <= done <= cache_fill_len case without wait */
-  waited = 0;
   if (this->nonblock) {
-    while (1) {
-      n = read (this->fh, buf + done, rest);
-      if (n >= 0) {
-        this->curpos += n;
-        done += n;
-        lprintf ("got %ld bytes (%ld/%"PRId64" bytes read)\n", n, done, len);
-        if (this->requery_timeout > 0)
-          this->requery_timeout -= n;
-        this->num_waits += waited;
-        return done;
+    if (this->ring_buf) {
+      while (1) {
+        e = 0;
+        n = 1;
+        /* Get from buf. */
+        {
+          int part = this->ring_write - this->ring_read;
+          if (part < 0) {
+            part = RING_SIZE - this->ring_read;
+            if (part <= rest) {
+              rest -= part;
+              xine_fast_memcpy (buf + done, this->ring_buf + this->ring_read, part);
+              this->ring_read = 0;
+              this->curpos += part;
+              done += part;
+              part = this->ring_write;
+            }
+          }
+          if (part > rest)
+            part = rest;
+          if (part > 0) {
+            xine_fast_memcpy (buf + done, this->ring_buf + this->ring_read, part);
+            this->ring_read += part;
+            this->curpos += part;
+            done += part;
+            rest -= part;
+          }
+        }
+
+        /* Are we done already? */
+        if (rest <= 0) {
+          if (this->requery_timeout > 0)
+            this->requery_timeout -= n;
+          return done;
+        }
+
+        /* Always try an immediate buf refill. Dont fill up all as that would look like buf empty later. */
+        do {
+          int part = this->ring_read - this->ring_write;
+          if (part <= 0) {
+            int room = RING_SIZE + part - 32;
+            if (room <= 0)
+              break;
+            part = RING_SIZE - this->ring_write;
+            if (part > room)
+              part = room;
+            this->num_fd_reads += 1;
+            n = read (this->fh, this->ring_buf + this->ring_write, part);
+            if (n <= 0)
+              break;
+            this->ring_write = (this->ring_write + n) & RING_MASK;
+            if (this->ring_write > 0)
+              break;
+            part = this->ring_read;
+          }
+          part -= 32;
+          if (part <= 0)
+            break;
+          this->num_fd_reads += 1;
+          n = read (this->fh, this->ring_buf + this->ring_write, part);
+          if (n >= 0)
+            this->ring_write += n;
+        } while (0);
+        if (n < 0)
+          e = errno;
+
+        /* Continue / Wait / Bail out. */
+        if (n == 0)
+          return done;
+        if (n < 0) {
+          if (e != EAGAIN)
+            break;
+          if (stdin_plugin_wait (this) != XIO_READY)
+            return done;
+        }
       }
-      e = errno;
-      if (e != EAGAIN)
-        break;
-      waited = 1;
-      if (stdin_plugin_wait (this) != XIO_READY)
-        return done;
+    } else {
+      /* Let input_cache handle the demux_len <= done <= cache_fill_len case without wait */
+      while (1) {
+        this->num_fd_reads += 1;
+        n = read (this->fh, buf + done, rest);
+        if (n >= 0) {
+          this->curpos += n;
+          done += n;
+          lprintf ("got %ld bytes (%ld/%"PRId64" bytes read)\n", n, done, len);
+          if (this->requery_timeout > 0)
+            this->requery_timeout -= n;
+          return done;
+        }
+        e = errno;
+        if (e != EAGAIN)
+          break;
+        if (stdin_plugin_wait (this) != XIO_READY)
+          return done;
+      }
     }
   } else {
-    waited = 1;
     if (stdin_plugin_wait (this) != XIO_READY)
       return done;
+    this->num_fd_reads += 1;
     n = read (this->fh, buf + done, rest);
     if (n >= 0) {
       this->curpos += n;
@@ -155,7 +239,6 @@ static off_t stdin_plugin_read (input_plugin_t *this_gen, void *buf_gen, off_t l
       lprintf ("got %ld bytes (%ld/%"PRId64" bytes read)\n", n, done, len);
       if (this->requery_timeout > 0)
         this->requery_timeout -= n;
-      this->num_waits += waited;
       return done;
     }
     e = errno;
@@ -206,8 +289,11 @@ static const char* stdin_plugin_get_mrl (input_plugin_t *this_gen) {
 static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
   stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
 
-  xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": waited %d of %d reads.\n",
-    this->num_waits, this->num_reads);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    LOG_MODULE ": %d reads, %d fd reads, %d fd waits.\n",
+    this->num_reads, this->num_fd_reads, this->num_fd_waits);
+
+  free (this->ring_buf);
 
   if (this->nbc)
     nbc_close (this->nbc);
@@ -228,8 +314,9 @@ static void stdin_plugin_dispose (input_plugin_t *this_gen ) {
 }
 
 static uint32_t stdin_plugin_get_capabilities (input_plugin_t *this_gen) {
-  (void)this_gen;
-  return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW;
+  stdin_input_plugin_t *this = (stdin_input_plugin_t *) this_gen;
+
+  return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW | ((this && this->ring_buf) ? INPUT_CAP_NO_CACHE : 0);
 }
 
 static int stdin_plugin_get_optional_data (input_plugin_t *this_gen,
@@ -277,6 +364,15 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
       return 0;
     }
   }
+
+  this->num_reads = 0;
+  this->num_fd_reads = 0;
+  this->num_fd_waits = 0;
+
+  this->ring_write = 0;
+  this->ring_read = 0;
+  _x_freep (&this->ring_buf);
+
 #ifdef WIN32
   else setmode(this->fh, FILE_FLAGS);
 #else
@@ -286,6 +382,8 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
     this->mode = fcntl (this->fh, F_GETFL);
     this->nonblock = !!(this->mode & O_NONBLOCK);
   }
+  if (this->nonblock)
+    this->ring_buf = malloc (RING_SIZE);
 #endif
 
   /* mrl accepted and opened successfully at this point */
@@ -339,15 +437,22 @@ static input_plugin_t *stdin_class_get_instance (input_class_t *class_gen,
     return NULL;
   }
 
+#ifndef HAVE_ZERO_SAFE_MEM
+  this->num_reads       = 0;
+  this->num_fd_reads    = 0;
+  this->num_fd_waits    = 0;
+  this->ring_write      = 0;
+  this->ring_read       = 0;
+  this->ring_buf        = NULL;
+  this->curpos          = 0;
+  this->requery_timeout = 0;
+#endif
+
   this->stream          = stream;
   this->mrl             = strdup (data);
   this->fh              = fh;
   this->xine            = stream->xine;
-  this->curpos          = 0;
-  this->num_reads       = 0;
-  this->num_waits       = 0;
   this->timeout         = 30000;
-  this->requery_timeout = 0;
 
   this->input_plugin.open              = stdin_plugin_open;
   this->input_plugin.get_capabilities  = stdin_plugin_get_capabilities;
@@ -397,4 +502,3 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
 #endif
-
