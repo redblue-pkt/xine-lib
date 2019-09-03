@@ -258,6 +258,7 @@ typedef struct {
 
   audio_fifo_t    free_fifo;
   audio_fifo_t    out_fifo;
+  uint32_t        pts_in_out_fifo;
 
   /* protected by out_fifo.mutex */
   struct timespec wake_time;            /* time to drop next buf in trick play mode without sound */
@@ -523,6 +524,8 @@ static void ao_out_fifo_append (aos_t *this, audio_buffer_t *buf, int is_first) 
   if (is_first)
     this->seek_count1 = buf->extra_info->seek_count;
   ao_fifo_append_int (&this->out_fifo, buf);
+  if (buf->format.rate)
+    this->pts_in_out_fifo += (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
   if (this->out_fifo.num_waiters && (this->out_fifo.first == buf))
     pthread_cond_signal (&this->out_fifo.not_empty);
   pthread_mutex_unlock (&this->out_fifo.mutex);
@@ -562,6 +565,7 @@ static void ao_out_fifo_signal (aos_t *this) {
 }
 
 static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
+  int dry = 0;
 
   pthread_mutex_lock (&this->out_fifo.mutex);
   while (1) {
@@ -595,6 +599,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
         this->out_fifo.first = NULL;
         this->out_fifo.add = &this->out_fifo.first;
         this->out_fifo.num_buffers = 0;
+        this->pts_in_out_fifo = 0;
       }
       if (n) {
         if ((this->seek_count3 >= 0) && list->stream) {
@@ -630,7 +635,10 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
         } else {
           this->out_fifo.add = &this->out_fifo.first;
           this->out_fifo.num_buffers = 0;
+          dry = 1;
         }
+        if (buf->format.rate)
+          this->pts_in_out_fifo -= (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
       }
     }
     if (buf && !this->use_wake_time)
@@ -685,6 +693,10 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
 
   this->wake_now = 0;
   pthread_mutex_unlock (&this->out_fifo.mutex);
+
+  if (dry)
+    xine_nbc_event ((xine_stream_private_t *)buf->stream, XINE_NBC_EVENT_AUDIO_DRY);
+
   return buf;
 }
 
@@ -766,6 +778,7 @@ static void ao_out_fifo_manual_flush (aos_t *this) {
     this->out_fifo.first = NULL;
     this->out_fifo.add = &this->out_fifo.first;
     this->out_fifo.num_buffers = 0;
+    this->pts_in_out_fifo = 0;
     pthread_mutex_lock (&this->free_fifo.mutex);
     this->free_fifo.num_buffers = n + (this->free_fifo.first ? this->free_fifo.num_buffers : 0);
     *(this->free_fifo.add) = list;
@@ -2438,6 +2451,12 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     ret = this->last_gap;
     break;
 
+  case AO_PROP_PTS_IN_FIFO:
+    pthread_mutex_lock (&this->out_fifo.mutex);
+    ret = this->pts_in_out_fifo;
+    pthread_mutex_unlock (&this->out_fifo.mutex);
+    break;
+
   default:
     ao_driver_lock (this);
     ret = this->driver->get_property(this->driver, property);
@@ -2541,6 +2560,12 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
   case AO_PROP_CLOCK_SPEED:
     /* We no longer need this and that speed paranoia hack, and latch on that clock directly instead. */
     ret = value;
+    break;
+
+  case AO_PROP_PTS_IN_FIFO:
+    pthread_mutex_lock (&this->out_fifo.mutex);
+    ret = this->pts_in_out_fifo;
+    pthread_mutex_unlock (&this->out_fifo.mutex);
     break;
 
   default:
@@ -2709,6 +2734,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->resend_max             = 0;
   this->resend_frame_size      = 0;
   this->resend_buf             = NULL;
+  this->pts_in_out_fifo        = 0;
 #endif
 
   this->driver        = driver;

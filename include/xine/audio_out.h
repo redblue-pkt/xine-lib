@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -340,7 +340,8 @@ int _x_ao_channels2mode( int channels ) XINE_PROTECTED;
 #define AO_PROP_BUFS_TOTAL     21 /* read-only */
 #define AO_PROP_BUFS_FREE      22 /* read-only */
 #define AO_PROP_DRIVER_DELAY   23 /* read-only */
-#define AO_NUM_PROPERTIES      24
+#define AO_PROP_PTS_IN_FIFO    24 /* read only */
+#define AO_NUM_PROPERTIES      25
 
 /* audio device control ops */
 #define AO_CTRL_PLAY_PAUSE	0
