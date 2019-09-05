@@ -258,7 +258,7 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
     case 5:
       if ((all_fill > this->dvbs_center) || (100 * used > 73 * fifo->buffer_pool_capacity)) {
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
-        this->dvbspeed = (mode & 0x10) ? 1 : 4;
+        this->dvbspeed = (mode == BUF_VIDEO_BASE) ? 1 : 4;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
           "net_buf_ctrl: dvbspeed 100%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
         /* dont let low bitrate radio switch speed too often */
