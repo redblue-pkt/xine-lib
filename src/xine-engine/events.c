@@ -195,11 +195,13 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s, *mstream;
   xine_list_iterator_t ite;
   xine_event_queue_private_t *queue;
+  void *data;
   struct timeval now = {0, 0};
 
   if (!stream || !event)
     return;
   mstream = stream->side_streams[0];
+  data = (event->data_length <= 0) ? NULL : event->data;
 
   gettimeofday (&now, NULL);
   pthread_mutex_lock (&mstream->event_queues_lock);
@@ -208,9 +210,38 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
   while ((queue = xine_list_next_value (mstream->event_queues, &ite))) {
     xine_event_private_t *new_event;
 
+    /* XINE_EVENT_VDR_DISCONTINUITY: .data == NULL, .data_length == DISC_* */
+    if (!data) {
+      xine_list_iterator_t it2 = NULL;
+      pthread_mutex_lock (&queue->q.lock);
+      new_event = xine_list_next_value (queue->free_events, &it2);
+      if (new_event) {
+        xine_list_remove (queue->free_events, it2);
+        queue->refs += 1;
+      } else {
+        new_event = malloc (sizeof (*new_event));
+        if (!new_event) {
+          pthread_mutex_unlock (&queue->q.lock);
+          continue;
+        }
+        queue->num_alloc += 1;
+      }
+      new_event->e.data        = NULL;
+      new_event->queue         = queue;
+      new_event->e.type        = event->type;
+      new_event->e.data_length = event->data_length;
+      new_event->e.stream      = &stream->s;
+      new_event->e.tv          = now;
+      queue->num_all += 1;
+      xine_list_push_back (queue->q.events, new_event);
+      pthread_cond_signal (&queue->q.new_event);
+      pthread_mutex_unlock (&queue->q.lock);
+      continue;
+    }
+
     /* calm down bursting progress events pt 1:
      * if list tail has an earlier instance, update it without signal. */
-    if (((event->type == XINE_EVENT_PROGRESS) || (event->type == XINE_EVENT_NBC_STATS)) && event->data) {
+    if ((event->type == XINE_EVENT_PROGRESS) || (event->type == XINE_EVENT_NBC_STATS)) {
       xine_event_t *e2;
       pthread_mutex_lock (&queue->q.lock);
       do {
@@ -229,7 +260,7 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
       } while (0);
       if (e2) {
         if (event->type == XINE_EVENT_PROGRESS) {
-          xine_progress_data_t *pd1 = event->data, *pd2 = e2->data;
+          xine_progress_data_t *pd1 = data, *pd2 = e2->data;
           if (pd1->description && pd2->description && !strcmp (pd1->description, pd2->description)) {
             pd2->percent = pd1->percent;
             e2->tv = now;
@@ -240,7 +271,7 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
           }
         } else { /* XINE_EVENT_NBC_STATS */
           size_t l = event->data_length < e2->data_length ? event->data_length : e2->data_length;
-          memcpy (e2->data, event->data, l);
+          memcpy (e2->data, data, l);
           e2->tv = now;
           queue->num_all += 1;
           queue->num_skip += 1;
@@ -258,16 +289,12 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
       if (new_event) {
         xine_list_remove (queue->free_events, it2);
         queue->refs += 1;
-        if (event->data_length > 0) {
-          new_event->e.data = (uint8_t *)new_event + sizeof (*new_event);
-          xine_small_memcpy (new_event->e.data, event->data, event->data_length);
-        } else {
-          new_event->e.data = NULL;
-        }
+        new_event->e.data = (uint8_t *)new_event + sizeof (*new_event);
+        xine_small_memcpy (new_event->e.data, data, event->data_length);
         new_event->queue         = queue;
         new_event->e.type        = event->type;
-        new_event->e.stream      = &stream->s;
         new_event->e.data_length = event->data_length;
+        new_event->e.stream      = &stream->s;
         new_event->e.tv          = now;
         queue->num_all += 1;
         xine_list_push_back (queue->q.events, new_event);
@@ -278,22 +305,15 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
       pthread_mutex_unlock (&queue->q.lock);
     }
 
-    if ((event->data_length > 0) && (event->data)) {
-      new_event = malloc (sizeof (*new_event) + event->data_length);
-      if (!new_event)
-        continue;
-      new_event->e.data = (uint8_t *)new_event + sizeof (*new_event);
-      memcpy (new_event->e.data, event->data, event->data_length);
-    } else {
-      new_event = malloc (sizeof (*new_event));
-      if (!new_event)
-        continue;
-      new_event->e.data = NULL;
-    }
+    new_event = malloc (sizeof (*new_event) + event->data_length);
+    if (!new_event)
+      continue;
+    new_event->e.data = (uint8_t *)new_event + sizeof (*new_event);
+    memcpy (new_event->e.data, data, event->data_length);
     new_event->queue         = queue;
     new_event->e.type        = event->type;
-    new_event->e.stream      = &stream->s;
     new_event->e.data_length = event->data_length;
+    new_event->e.stream      = &stream->s;
     new_event->e.tv          = now;
     pthread_mutex_lock (&queue->q.lock);
     queue->num_all += 1;
