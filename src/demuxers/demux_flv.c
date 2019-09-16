@@ -865,6 +865,7 @@ static void seek_flv_file (demux_flv_t *this, off_t seek_pos, int seek_pts) {
     this->input->seek(this->input, this->start, SEEK_SET);
     this->cur_pts = 0;
     this->zero_pts_count = 0;
+    this->video_time = ~0u;
     return;
   }
  
@@ -879,19 +880,25 @@ static void seek_flv_file (demux_flv_t *this, off_t seek_pos, int seek_pts) {
     x = &this->index[a];
     if ((x->offset >= this->start + 4) && (x->offset + 15 < size)) {
       if (this->input->seek (this->input, x->offset, SEEK_SET) == x->offset) {
-      if (this->input->read (this->input, (char *)buf, 15) == 15) {
-      if (!buf[8] && !buf[9] && !buf[10] && (
-        ((buf[0] == FLV_TAG_TYPE_VIDEO) && ((buf[11] >> 4) == 1)) ||
-        (buf[0] == FLV_TAG_TYPE_AUDIO)
-        )) {
-        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "demux_flv: seek_index (%u.%03u, %"PRId64")\n",
-          x->pts / 1000, x->pts % 1000, (int64_t)x->offset);
-        this->input->seek (this->input, x->offset - 4, SEEK_SET);
-        this->cur_pts = x->pts;
-        return;
-      }
-      }
+        if (this->input->read (this->input, (char *)buf, 15) == 15) {
+          if (!buf[8] && !buf[9] && !buf[10] && (
+             ((buf[0] == FLV_TAG_TYPE_VIDEO) && ((buf[11] >> 4) == 1)) ||
+              (buf[0] == FLV_TAG_TYPE_AUDIO)
+          )) {
+            uint32_t found_pts = gettimestamp (buf, 4);
+            if (found_pts == 0)
+              found_pts = x->pts;
+            if ((found_pts < x->pts + 1000) && (x->pts < found_pts + 1000)) {
+              xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+                "demux_flv: seek_index (%u.%03u, %"PRId64")\n",
+                found_pts / 1000, found_pts % 1000, (int64_t)x->offset);
+              this->input->seek (this->input, x->offset - 4, SEEK_SET);
+              this->cur_pts = found_pts;
+              this->video_time = buf[0] == FLV_TAG_TYPE_VIDEO ? found_pts : ~0u;
+              return;
+            }
+          }
+        }
       }
     }
     xprintf (this->xine, XINE_VERBOSITY_LOG, _("demux_flv: Not using broken seek index.\n"));
