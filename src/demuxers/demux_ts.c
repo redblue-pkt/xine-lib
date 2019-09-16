@@ -468,6 +468,9 @@ typedef struct {
   unsigned int     counter;
   uint16_t         descriptor_tag; /* +0x100 for PES stream IDs (no available TS descriptor tag?) */
   uint8_t          keep;           /* used by demux_ts_dynamic_pmt_*() */
+#define PES_FLUSHED 1
+#define PES_RESUME  2
+  uint8_t          resume;
   int              corrupted_pes;
   int              pes_bytes_left; /* butes left if PES packet size is known */
 
@@ -682,6 +685,7 @@ static int demux_ts_dynamic_pmt_find (demux_ts_t *this,
     m->corrupted_pes  = 1;
     m->pts            = 0;
     m->keep           = 1;
+    m->resume         = 0;
     if (type == BUF_AUDIO_BASE) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: new audio pid %d\n", pid);
       /* allocate new audio track as well */
@@ -1089,6 +1093,7 @@ static void demux_ts_send_buffer (demux_ts_t *this, demux_ts_media *m, int flags
 }
 
 static void demux_ts_flush_media (demux_ts_t *this, demux_ts_media *m) {
+  m->resume |= PES_FLUSHED;
   demux_ts_send_buffer (this, m, BUF_FLAG_FRAME_END);
 }
 
@@ -1334,7 +1339,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
 
   const uint8_t *p;
   uint32_t       header_len;
-  int64_t        pts;
+  int64_t        pts, old_pts;
   uint32_t       stream_id;
 
   if (this->stream->xine->verbosity == 4)
@@ -1421,7 +1426,8 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
      DTS = 0;
   */
 
-  m->pts       = pts;
+  old_pts = pts;
+  m->pts = pts;
 
   if ((m->pid == this->videoPid) && this->get_frametype) {
     frametype_t t = this->get_frametype (p + header_len, packet_len - header_len);
@@ -1436,8 +1442,34 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
     }
   }
 
+  /* TJ. p[4,5] has the payload size in bytes. This is limited to roughly 64k.
+   * For video frames larger than that, it usually is just 0, and payload extends
+   * to the beginning of the next one.
+   * However, I found an hls live stream that always sets size like this:
+   * (1) [4,5] == 0xffd2, [6] == 0x84; (2) [4,5] == 0xffd2, [6] == 0x80; (3) [4,5] == 0x1288, [6] == 0x80;
+   * I dont know whether [6] & 0x04 is reliable elsewhere. So lets try this HACK:
+   * If [4,5] is > 0xff00, wait for a possible resume,
+   * Accept a resume if it has same pts.
+   */
   m->pes_bytes_left = (int)(p[4] << 8 | p[5]) - header_len + 6;
   lprintf("PES packet payload left: %d bytes\n", m->pes_bytes_left);
+  if (!(m->resume & PES_RESUME)) {
+    if (!(m->resume & PES_FLUSHED))
+      demux_ts_flush_media (this, m);
+    if (m->pes_bytes_left > 0xff00)
+      m->resume |= PES_RESUME;
+  } else {
+    if ((m->pts != old_pts) && m->pts) {
+      m->resume &= ~PES_RESUME;
+      if (!(m->resume & PES_FLUSHED))
+        demux_ts_flush_media (this, m);
+    } else if (m->pes_bytes_left <= 0xff00) {
+      m->resume &= ~PES_RESUME;
+    }
+  }
+  /* allocate the buffer here, as pes_header needs a valid buf for dvbsubs */
+  if (!m->buf)
+    m->buf = m->fifo->buffer_pool_alloc (m->fifo);
 
   p += header_len;
   packet_len -= header_len;
@@ -1611,11 +1643,6 @@ static void demux_ts_buffer_pes (demux_ts_t*this, const uint8_t *ts,
   if (tsp_head & TSP_payload_unit_start) { /* new PES packet */
     int pes_header_len;
 
-    demux_ts_flush_media (this, m);
-
-    /* allocate the buffer here, as pes_header needs a valid buf for dvbsubs */
-    m->buf = m->fifo->buffer_pool_alloc(m->fifo);
-
     pes_header_len = demux_ts_parse_pes_header (this, m, ts, len);
 
     if (pes_header_len <= 0) {
@@ -1626,6 +1653,8 @@ static void demux_ts_buffer_pes (demux_ts_t*this, const uint8_t *ts,
               "demux_ts: PID %u: corrupted pes encountered\n", m->pid);
     } else {
       m->corrupted_pes = 0;
+      if (m->pes_bytes_left > 0)
+        m->pes_bytes_left += m->buf->size;
       /* skip PES header */
       ts  += pes_header_len;
       len -= pes_header_len;
@@ -1642,6 +1671,7 @@ static void demux_ts_buffer_pes (demux_ts_t*this, const uint8_t *ts,
     int room = m->buf->max_size - m->buf->size;
 
     /* append data */
+    m->resume &= ~PES_FLUSHED;
     if ((int)len > room) {
       buf_element_t *new_buf;
       new_buf = m->fifo->buffer_pool_realloc (m->buf, m->buf->size + len);
@@ -1673,6 +1703,8 @@ static void demux_ts_buffer_pes (demux_ts_t*this, const uint8_t *ts,
         m->pes_bytes_left -= m->buf->size;
         /* skip rest data - there shouldn't be any */
         m->corrupted_pes = 1;
+        if (m->resume & PES_RESUME)
+          return;
         break;
       }
       /* If video data ends to sequence end code, flush buffer. */
@@ -3033,6 +3065,7 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
     m->counter        = INVALID_CC;
     m->corrupted_pes  = 1;
     m->pts            = 0;
+    m->resume         = 0;
   }
 
   if( !playing ) {
