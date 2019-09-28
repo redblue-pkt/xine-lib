@@ -120,6 +120,7 @@ typedef struct {
 
   /* The flush protocol, protected by display_img_buf_queue.mutex. */
   int                       discard_frames;
+  int                       flushed;
   int                       flush_extra;
   int                       num_flush_waiters;
   pthread_cond_t            done_flushing;
@@ -1351,7 +1352,22 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
   if (&stream->s == XINE_ANON_STREAM) stream = NULL;
 
   if (stream) {
+    /* Grabbing display_img_buf_queue.mutex / first_frame_lock when testing
+     * discard_frames / first_frame_flag is safe but slow. Most of the time these flags
+     * will be 0. Lets try without lock first, and look closer after a flush only. */
     first_frame_flag = stream->side_streams[0]->first_frame_flag;
+    if (this->flushed) {
+      pthread_mutex_lock (&this->display_img_buf_queue.mutex);
+      if (this->flushed) {
+        this->flushed = 0;
+        pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+        pthread_mutex_lock (&stream->side_streams[0]->first_frame_lock);
+        first_frame_flag = stream->side_streams[0]->first_frame_flag;
+        pthread_mutex_unlock (&stream->side_streams[0]->first_frame_lock);
+      } else {
+        pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+      }
+    }
     if (first_frame_flag >= 2) {
       /* Frame reordering and/or multithreaded deoders feature an initial delay.
        * Even worse: mpeg-ts does not seek to keyframes, as that would need quite some 
@@ -2587,11 +2603,13 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
       pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
     } else if (this->discard_frames) {
       pthread_mutex_lock (&this->display_img_buf_queue.mutex);
-      if ((this->discard_frames == 1) && this->video_loop_running &&
-        (this->flush_extra || this->display_img_buf_queue.first)) {
-        /* Usually, render thread already did that in the meantime. Anyway, make sure display queue
-           is empty, and more importantly, there are free frames for decoding when discard gets lifted. */
-        vo_wait_flush (this);
+      if (this->discard_frames == 1) {
+        if (this->video_loop_running && (this->flush_extra || this->display_img_buf_queue.first)) {
+          /* Usually, render thread already did that in the meantime. Anyway, make sure display queue
+             is empty, and more importantly, there are free frames for decoding when discard gets lifted. */
+          vo_wait_flush (this);
+        }
+        this->flushed = 1;
       }
       this->discard_frames--;
       pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
@@ -2943,6 +2961,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
   this->xine   = (xine_private_t *)xine;
   this->clock  = xine->clock;
   this->driver = driver;
+  this->flushed = 1;
 
   this->vo.open                  = vo_open;
   this->vo.get_frame             = vo_get_frame;
