@@ -206,7 +206,14 @@ typedef struct {
 
   int                       keyframe_mode;
 
-  /* frame stream refs */
+  /* frame stream refs, protected by display_img_buf_queue.mutex.
+   * we need to ref a stream for at least as long as it has frames flying around.
+   * at first sight, it would be nice to unref as early as puossible, so the
+   * stream can dispose itself. however, that would be a performance killer.
+   * also, it may not have the desired effect when the stream itself gets reused,
+   * and/or some frames are held by driver and this->last_frame.
+   * instead, let the natural flow clean up for us in vo_display_reref_append (),
+   * and * check manually now and then while running idle. */
   vo_frame_t              **frames;
   xine_stream_private_t   **img_streams;
 
@@ -299,83 +306,91 @@ static void vo_streams_unregister (vos_t *this, xine_stream_private_t *s) {
  *******************************************************************/
 
 static void vo_reref (vos_t *this, vo_frame_t *img) {
+  xine_stream_private_t **s, *olds, *news;
   /* Paranoia? */
-  if ((img->id >= 0) && (img->id < this->frames_total)) {
-    xine_stream_private_t **s = this->img_streams + img->id;
-    if (img->stream != &(*s)->s) {
-      if (*s)
-        _x_refcounter_dec ((*s)->refcounter);
-      *s = (xine_stream_private_t *)img->stream;
-      if (*s)
-        _x_refcounter_inc ((*s)->refcounter);
-    }
-  }
-}
-
-static void vo_unref_frame (vos_t *this, vo_frame_t *img) {
-  img->stream = NULL;
-  /* Paranoia? */
-  if ((img->id >= 0) && (img->id < this->frames_total)) {
-    xine_stream_private_t **s = this->img_streams + img->id;
-    if (*s) {
-      _x_refcounter_dec ((*s)->refcounter);
-      *s = NULL;
-    }
+  s = ((img->id >= 0) && (img->id < this->frames_total))
+    ? this->img_streams + img->id
+    : &news;
+  news = (xine_stream_private_t *)img->stream;
+  pthread_mutex_lock (&this->display_img_buf_queue.mutex);
+  olds = *s;
+  if (olds != news) {
+    *s = news;
+    pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+    if (news)
+      _x_refcounter_inc (news->refcounter); /* this is fast. */
+    if (olds)
+      _x_refcounter_dec (olds->refcounter); /* this may involve stream dispose. */
+  } else {
+    pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
   }
 }
 
 static void vo_unref_list (vos_t *this, vo_frame_t *img) {
-  while (img) {
+  xine_stream_private_t *d[128], **a = d;
+
+  pthread_mutex_lock (&this->display_img_buf_queue.mutex);
+  for (; img; img = img->next) {
     img->stream = NULL;
     /* Paranoia? */
     if ((img->id >= 0) && (img->id < this->frames_total)) {
       xine_stream_private_t **s = this->img_streams + img->id;
       if (*s) {
-        _x_refcounter_dec ((*s)->refcounter);
+        *a++ = *s;
         *s = NULL;
+        if (a > d + sizeof (d) / sizeof (d[0]) - 2)
+          break;
       }
     }
-    img = img->next;
   }
+  pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+  *a = NULL;
+
+  for (a = d; *a; a++)
+    _x_refcounter_dec ((*a)->refcounter); /* this may involve stream dispose. */
 }
 
-static void vo_unref_all (vos_t *this) {
-  vo_frame_t *img;
-  int n = this->frames_total;
-  pthread_mutex_lock (&this->free_img_buf_queue.mutex);
-  for (img = this->free_img_buf_queue.first; img; img = img->next) {
-    vo_unref_frame (this, img);
-    n--;
-  }
-  pthread_mutex_unlock (&this->free_img_buf_queue.mutex);
-  if (n > 0)
-    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-      "video_out: unref_all: %d frames still in use.\n", n);
-}
+static void vo_unref_obsolete (vos_t *this) {
+  int i;
+  xine_stream_private_t *d[128], **a = d;
 
-static void vo_force_unref_all (vos_t *this) {
-  vo_frame_t *img;
-  pthread_mutex_lock (&this->free_img_buf_queue.mutex);
-  for (img = this->free_img_buf_queue.first; img; img = img->next) {
-    int i;
-    vo_unref_frame (this, img);
-    for (i = 0; i < this->frames_total; i++) {
-      if (this->frames[i] == img) {
-        this->frames[i] = NULL;
+  xine_rwlock_rdlock (&this->streams_lock);
+  pthread_mutex_lock (&this->display_img_buf_queue.mutex);
+
+  for (i = 0; i < this->frames_total; i++) {
+    vo_frame_t *f;
+    xine_stream_private_t *img_stream = this->img_streams[i], **open_stream;
+    if (!img_stream)
+      continue;
+    for (open_stream = this->streams; *open_stream; open_stream++) {
+      if (img_stream == *open_stream)
         break;
-      }
     }
+    if (*open_stream)
+      continue;
+    f = this->frames[i];
+    if (pthread_mutex_trylock (&f->mutex))
+      continue;
+    if ((f->lock_counter != 0) || (f->id != i)) {
+      pthread_mutex_unlock (&f->mutex);
+      continue;
+    }
+    pthread_mutex_unlock (&f->mutex);
+    this->img_streams[i] = NULL;
+    *a++ = img_stream;
+    if (a > d + sizeof (d) / sizeof (d[0]) - 2)
+      break;
   }
-  pthread_mutex_unlock (&this->free_img_buf_queue.mutex);
-  {
-    int i;
-    for (i = 0; i < this->frames_total; i++) {
-      if (this->frames[i]) {
-        xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-          "video_out: BUG: frame #%d (%p) still in use (%d refs).\n",
-          i, (void*)this->frames[i], this->frames[i]->lock_counter);
-      }
-    }
+  *a = NULL;
+
+  pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+  xine_rwlock_unlock (&this->streams_lock);
+
+  if (a > d) {
+    for (a = d; *a; a++)
+      _x_refcounter_dec ((*a)->refcounter);
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
+      "video_out: freed %d obsolete stream refs.\n", (int)(a - d));
   }
 }
 
@@ -407,21 +422,24 @@ static void vo_queue_close (img_buf_fifo_t *queue) {
   pthread_cond_destroy  (&queue->not_empty);
 }
 
-static void vo_queue_dispose_all (img_buf_fifo_t *queue) {
-  vo_frame_t *f;
+static vo_frame_t *vo_queue_get_all (img_buf_fifo_t *queue) {
+  vo_frame_t *list;
 
   pthread_mutex_lock (&queue->mutex);
-  f = queue->first;
+  list = queue->first;
   queue->first = NULL;
   queue->add   = &queue->first;
   queue->num_buffers = 0;
   pthread_mutex_unlock (&queue->mutex);
+  return list;
+}
 
-  while (f) {
-    vo_frame_t *next = f->next;
-    f->next = NULL;
-    f->dispose (f);
-    f = next;
+static void vo_dispose_list (vo_frame_t *list) {
+  while (list) {
+    vo_frame_t *next = list->next;
+    list->next = NULL;
+    list->dispose (list);
+    list = next;
   }
 }
 
@@ -447,35 +465,67 @@ static void vo_ticket_revoked (void *user_data, int flags) {
   xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: port ticket revoked%s%s.\n", s1, s2);
 }
 
-static void vo_queue_append (img_buf_fifo_t *queue, vo_frame_t *img) {
+static void vo_display_reref_append (vos_t *this, vo_frame_t *img) {
+  xine_stream_private_t **s, *olds, *news;
+  /* img already enqueue? (serious leak) */
+  _x_assert (img->next == NULL);
+  img->next = NULL;
+  /* Paranoia? */
+  s = ((img->id >= 0) && (img->id < this->frames_total))
+    ? this->img_streams + img->id
+    : &news;
+  news = (xine_stream_private_t *)img->stream;
+  pthread_mutex_lock (&this->display_img_buf_queue.mutex);
+  olds = *s;
+  if (olds != news) {
+    int n;
+    *s = news;
+    if (news)
+      _x_refcounter_inc (news->refcounter); /* this is fast. */
+    n = (this->display_img_buf_queue.first ? this->display_img_buf_queue.num_buffers : 0) + 1;
+    *(this->display_img_buf_queue.add) = img;
+    this->display_img_buf_queue.add    = &img->next;
+    this->display_img_buf_queue.num_buffers = n;
+    if (this->display_img_buf_queue.num_buffers_max < n)
+      this->display_img_buf_queue.num_buffers_max = n;
+    if (n > this->display_img_buf_queue.locked_for_read)
+      pthread_cond_signal (&this->display_img_buf_queue.not_empty);
+    pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+    if (olds)
+      _x_refcounter_dec (olds->refcounter); /* this may involve stream dispose. */
+  } else {
+    int n = (this->display_img_buf_queue.first ? this->display_img_buf_queue.num_buffers : 0) + 1;
+    *(this->display_img_buf_queue.add) = img;
+    this->display_img_buf_queue.add    = &img->next;
+    this->display_img_buf_queue.num_buffers = n;
+    if (this->display_img_buf_queue.num_buffers_max < n)
+      this->display_img_buf_queue.num_buffers_max = n;
+    if (n > this->display_img_buf_queue.locked_for_read)
+      pthread_cond_signal (&this->display_img_buf_queue.not_empty);
+    pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+  }
+}
+
+static void vo_free_append (vos_t *this, vo_frame_t *img) {
   int n;
 
   /* img already enqueue? (serious leak) */
   _x_assert (img->next==NULL);
 
-  pthread_mutex_lock (&queue->mutex);
-
+  pthread_mutex_lock (&this->free_img_buf_queue.mutex);
   img->next = NULL;
-
-  n = (queue->first ? queue->num_buffers : 0) + 1;
-  *(queue->add) = img;
-  queue->add    = &img->next;
-  queue->num_buffers = n;
-  if (queue->num_buffers_max < n)
-    queue->num_buffers_max = n;
-
-  if (n > queue->locked_for_read)
-    pthread_cond_signal (&queue->not_empty);
-
-  pthread_mutex_unlock (&queue->mutex);
+  n = (this->free_img_buf_queue.first ? this->free_img_buf_queue.num_buffers : 0) + 1;
+  *(this->free_img_buf_queue.add) = img;
+  this->free_img_buf_queue.add    = &img->next;
+  this->free_img_buf_queue.num_buffers = n;
+  if (n > this->free_img_buf_queue.locked_for_read)
+    pthread_cond_signal (&this->free_img_buf_queue.not_empty);
+  pthread_mutex_unlock (&this->free_img_buf_queue.mutex);
 }
 
 static void vo_free_append_list (vos_t *this, vo_frame_t *img, vo_frame_t **add, int n) {
   if (!img)
     return;
-
-  if (!this->num_streams)
-    vo_unref_list (this, img);
 
   pthread_mutex_lock (&this->free_img_buf_queue.mutex);
 
@@ -484,8 +534,6 @@ static void vo_free_append_list (vos_t *this, vo_frame_t *img, vo_frame_t **add,
 
   n += this->free_img_buf_queue.num_buffers;
   this->free_img_buf_queue.num_buffers = n;
-  if (this->free_img_buf_queue.num_buffers_max < n)
-    this->free_img_buf_queue.num_buffers_max = n;
 
   if (n > this->free_img_buf_queue.locked_for_read)
     pthread_cond_broadcast (&this->free_img_buf_queue.not_empty);
@@ -821,9 +869,7 @@ static void vo_frame_dec_lock (vo_frame_t *img) {
   img->lock_counter--;
   if (!img->lock_counter) {
     vos_t *this = (vos_t *) img->port;
-    if (!this->num_streams)
-      vo_unref_frame (this, img);
-    vo_queue_append (&this->free_img_buf_queue, img);
+    vo_free_append (this, img);
   } else
   if (img->lock_counter == 2) {
     vos_t *this = (vos_t *)img->port;
@@ -852,9 +898,7 @@ static int vo_frame_dec2_lock_int (vos_t *this, vo_frame_t *img) {
 
 static void vo_frame_dec2_lock (vos_t *this, vo_frame_t *img) {
   if (!vo_frame_dec2_lock_int (this, img)) {
-    if (!this->num_streams)
-      vo_unref_frame (this, img);
-    vo_queue_append (&this->free_img_buf_queue, img);
+    vo_free_append (this, img);
   }
 }
 
@@ -1310,7 +1354,7 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
       _("video_out: found an unusable frame (%dx%d, format %0x08x) - no memory??\n"),
       width, height, img->format);
     img->lock_counter = 0;
-    vo_queue_append (&this->free_img_buf_queue, img);
+    vo_free_append (this, img);
 
     /* check if we're allowed to return NULL */
     if (flags & VO_GET_FRAME_MAY_FAIL)
@@ -1409,7 +1453,6 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
     }
 #endif
   }
-  vo_reref (this, img);
   this->current_width = img->width;
   this->current_height = img->height;
   this->current_duration = img->duration;
@@ -1523,9 +1566,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
      */
     img->is_first = 0;
     if (first_frame_flag >= 2) {
-      /* We can always do the frame's native stream here.
-       * We know its there, and we vo_reref()ed it above.
-       */
+      /* We can always do the frame's native stream here. We know its there. */
       xine_stream_private_t *m = stream->side_streams[0];
       pthread_mutex_lock (&m->first_frame_lock);
       if (m->first_frame_flag >= 2) {
@@ -1569,7 +1610,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
 
     if (!img_already_locked)
       vo_frame_inc2_lock (img);
-    vo_queue_append (&this->display_img_buf_queue, img);
+    vo_display_reref_append (this, img);
 
     if (img->is_first && (this->display_img_buf_queue.first == img)) {
       /* wake up render thread */
@@ -1708,7 +1749,6 @@ static vo_frame_t *duplicate_frame (vos_t *this, vo_frame_t *img) {
   dupl->overlay_offset_y = img->overlay_offset_y;
 
   dupl->stream = img->stream;
-  vo_reref (this, dupl);
 
   this->driver->update_frame_format (this->driver, dupl, dupl->width, dupl->height,
 				     dupl->ratio, dupl->format, dupl->flags);
@@ -1721,7 +1761,7 @@ static vo_frame_t *duplicate_frame (vos_t *this, vo_frame_t *img) {
       _("video_out: found an unusable frame (%dx%d, format %0x08x) - no memory??\n"),
       img->width, img->height, img->format);
     dupl->lock_counter = 0;
-    vo_queue_append (&this->free_img_buf_queue, dupl);
+    vo_free_append (this, dupl);
     return NULL;
   }
 
@@ -2112,6 +2152,7 @@ static void paused_loop( vos_t *this, int64_t vpts )
         if (this->redraw_needed) {
           f = duplicate_frame (this, this->last_frame);
           if (f) {
+            vo_reref (this, f);
             f->vpts = vpts;
             overlay_and_display_frame (this, f, vpts);
           }
@@ -2217,6 +2258,7 @@ static void *video_out_loop (void *this_gen) {
           /* keep playing still frames */
           img = duplicate_frame (this, this->last_frame);
           if (img) {
+            vo_reref (this, img);
             img->vpts = vpts;
             overlay_and_display_frame (this, img, vpts);
           }
@@ -2455,6 +2497,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
   this->video_opened = 1;
   pthread_mutex_lock (&this->display_img_buf_queue.mutex);
   this->discard_frames = 0;
+  this->flushed = 1; /* see vo_frame_draw () */
   pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
   this->last_delivery_pts = 0;
   this->warn_threshold_event_sent = this->warn_threshold_exceeded = 0;
@@ -2463,6 +2506,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
     this->overlay_enabled = 1;
 
   vo_streams_register (this, (xine_stream_private_t *)stream);
+  vo_unref_obsolete (this);
 }
 
 static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
@@ -2470,8 +2514,6 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
   vos_t      *this = (vos_t *) this_gen;
 
   xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: vo_close (%p)\n", (void*)stream);
-
-  vo_unref_all (this);
 
   /* this will make sure all hide events were processed */
   if (this->overlay_source)
@@ -2716,19 +2758,6 @@ static int vo_status (xine_video_port_t *this_gen, xine_stream_t *s,
   return 0;
 }
 
-static void vo_free_img_buffers (vos_t *this) {
-  /* print frame usage stats */
-  xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
-    _("video_out: max frames used: %d of %d\n"),
-    this->frames_peak_used, this->frames_total);
-  xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
-    _("video_out: early wakeups: %d of %d\n"),
-    this->wakeups_early, this->wakeups_total);
-
-  vo_queue_dispose_all (&this->free_img_buf_queue);
-  vo_queue_dispose_all (&this->display_img_buf_queue);
-}
-
 static void vo_exit (xine_video_port_t *this_gen) {
 
   vos_t      *this = (vos_t *) this_gen;
@@ -2752,8 +2781,38 @@ static void vo_exit (xine_video_port_t *this_gen) {
         "video_out: returned %d held frames from driver.\n", n);
   }
 
-  vo_force_unref_all (this);
-  vo_free_img_buffers (this);
+  {
+    vo_frame_t *list = vo_queue_get_all (&this->free_img_buf_queue), *img;
+    vo_unref_list (this, list);
+    for (img = list; img; img = img->next) {
+      int i;
+      for (i = 0; i < this->frames_total; i++) {
+        if (this->frames[i] == img) {
+          this->frames[i] = NULL;
+          break;
+        }
+      }
+    }
+    vo_dispose_list (list);
+  }
+  {
+    int i;
+    for (i = 0; i < this->frames_total; i++) {
+      if (this->frames[i]) {
+        xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
+          "video_out: BUG: frame #%d (%p) still in use (%d refs).\n",
+          i, (void*)this->frames[i], this->frames[i]->lock_counter);
+      }
+    }
+  }
+  vo_dispose_list (vo_queue_get_all (&this->display_img_buf_queue));
+
+  /* print frame usage stats */
+  xprintf (&this->xine->x, XINE_VERBOSITY_LOG, _("video_out: max frames used: %d of %d\n"),
+    this->frames_peak_used, this->frames_total);
+  xprintf (&this->xine->x, XINE_VERBOSITY_LOG, _("video_out: early wakeups: %d of %d\n"),
+    this->wakeups_early, this->wakeups_total);
+
 
   _x_free_video_driver(&this->xine->x, &this->driver);
 
@@ -2913,7 +2972,6 @@ static vo_frame_t * crop_frame( xine_video_port_t *this_gen, vo_frame_t *img ) {
   dupl->is_first  = img->is_first;
 
   dupl->stream    = img->stream;
-  vo_reref ((vos_t *)this_gen, dupl);
 
   memcpy( dupl->extra_info, img->extra_info, sizeof(extra_info_t) );
 
