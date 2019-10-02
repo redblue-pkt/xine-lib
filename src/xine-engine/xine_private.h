@@ -64,6 +64,104 @@
 
 EXTERN_C_START
 
+#if defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 7)))
+
+typedef struct {
+  int refs;
+  void (*destructor) (void *object);
+  void *object;
+} xine_refs_t;
+
+static inline void xine_refs_init (xine_refs_t *refs,
+  void (*destructor) (void *object), void *object) {
+  refs->destructor = destructor;
+  refs->object = object;
+  refs->refs = 1;
+}
+
+static inline int xine_refs_add (xine_refs_t *refs, int n) {
+  return __atomic_add_fetch (&refs->refs, n, __ATOMIC_CONSUME);
+}
+
+static inline int xine_refs_sub (xine_refs_t *refs, int n) {
+  int v = __atomic_add_fetch (&refs->refs, -n, __ATOMIC_CONSUME);
+  if (v == 0) {
+    if (refs->destructor)
+      refs->destructor (refs->object);
+  }
+  return v;
+}
+
+#elif defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4)))
+
+typedef struct {
+  int refs;
+  void (*destructor) (void *object);
+  void *object;
+} xine_refs_t;
+
+static inline void xine_refs_init (xine_refs_t *refs,
+  void (*destructor) (void *object), void *object) {
+  refs->destructor = destructor;
+  refs->object = object;
+  refs->refs = 1;
+}
+
+static inline int xine_refs_add (xine_refs_t *refs, int n) {
+  return __sync_add_and_fetch (&refs->refs, n);
+}
+
+static inline int xine_refs_sub (xine_refs_t *refs, int n) {
+  int v = __sync_add_and_fetch (&refs->refs, -n);
+  if (v == 0) {
+    if (refs->destructor)
+      refs->destructor (refs->object);
+  }
+  return v;
+}
+
+#else
+
+typedef struct {
+  pthread_mutex_t mutex;
+  int refs;
+  void (*destructor) (void *object);
+  void *object;
+} xine_refs_t;
+
+static inline void xine_refs_init (xine_refs_t *refs,
+  void (*destructor) (void *object), void *object) {
+  refs->destructor = destructor;
+  refs->object = object;
+  refs->refs = 1;
+  pthread_mutex_init (&refs->mutex, NULL);
+}
+
+static inline int xine_refs_add (xine_refs_t *refs, int n) {
+  int v;
+  pthread_mutex_lock (&refs->mutex);
+  refs->refs += n;
+  v = refs->refs;
+  pthread_mutex_unlock (&refs->mutex);
+  return v;
+}
+
+static inline int xine_refs_sub (xine_refs_t *refs, int n) {
+  int v;
+  pthread_mutex_lock (&refs->mutex);
+  refs->refs -= n;
+  v = refs->refs;
+  pthread_mutex_unlock (&refs->mutex);
+  if (v == 0) {
+    pthread_mutex_destroy (&refs->mutex);
+    if (refs->destructor)
+      refs->destructor (refs->object);
+  }
+  return v;
+}
+
+#endif
+
 /**
  * @defgroup load_plugins Plugins loading
  * @brief Functions related with plugins loading.
@@ -467,7 +565,7 @@ typedef struct xine_stream_private_st {
 
   broadcaster_t             *broadcaster;
 
-  refcounter_t              *refcounter;
+  xine_refs_t                refs;
 
   xine_keyframes_entry_t    *index_array;
   pthread_mutex_t            index_mutex;

@@ -118,10 +118,10 @@ static vo_frame_t *post_intercept_video_frame (post_video_port_t *port, vo_frame
     new_frame->frame.stream && (new_frame->stream != new_frame->frame.stream)) {
     xine_stream_private_t *s;
     s = (xine_stream_private_t *)new_frame->frame.stream;
-    _x_refcounter_inc (s->refcounter);
+    xine_refs_add (&s->refs, 1);
     if (new_frame->stream) {
       s = (xine_stream_private_t *)new_frame->stream;
-      _x_refcounter_dec (s->refcounter);
+      xine_refs_sub (&s->refs, 1);
     }
     new_frame->stream = new_frame->frame.stream;
   }
@@ -161,7 +161,7 @@ static vo_frame_t *post_restore_video_frame (vo_frame_t *frame, post_video_port_
     vf_alias_t *f = (vf_alias_t *)frame;
     if (f->stream) {
       xine_stream_private_t *s = (xine_stream_private_t *)f->stream;
-      _x_refcounter_dec (s->refcounter);
+      xine_refs_sub (&s->refs, 1);
        f->stream = NULL;
     }
   }
@@ -381,7 +381,7 @@ static void post_video_close(xine_video_port_t *port_gen, xine_stream_t *stream)
     while (f) {
       if ((f->frame.free == post_frame_free) && f->stream) {
         xine_stream_private_t *s = (xine_stream_private_t *)f->stream;
-        _x_refcounter_dec (s->refcounter);
+        xine_refs_sub (&s->refs, 1);
         f->stream = NULL;
       }
       f = (vf_alias_t *)f->frame.next;
@@ -661,10 +661,10 @@ void _x_post_frame_copy_down(vo_frame_t *from, vo_frame_t *to) {
     if (f->frame.stream && (f->frame.stream != f->stream)) {
       xine_stream_private_t *s;
       s = (xine_stream_private_t *)f->frame.stream;
-      _x_refcounter_inc (s->refcounter);
+      xine_refs_add (&s->refs, 1);
       if (f->stream) {
         s = (xine_stream_private_t *)f->stream;
-        _x_refcounter_dec (s->refcounter);
+        xine_refs_sub (&s->refs, 1);
       }
       f->stream = f->frame.stream;
     }
@@ -696,10 +696,10 @@ void _x_post_frame_copy_up(vo_frame_t *to, vo_frame_t *from) {
     if (f->frame.stream && (f->frame.stream != f->stream)) {
       xine_stream_private_t *s;
       s = (xine_stream_private_t *)f->frame.stream;
-      _x_refcounter_inc (s->refcounter);
+      xine_refs_add (&s->refs, 1);
       if (f->stream) {
         s = (xine_stream_private_t *)f->stream;
-        _x_refcounter_dec (s->refcounter);
+        xine_refs_sub (&s->refs, 1);
       }
       f->stream = f->frame.stream;
     }
@@ -720,10 +720,10 @@ void _x_post_frame_u_turn(vo_frame_t *frame, xine_stream_t *stream) {
     if (f->frame.stream && (f->frame.stream != f->stream)) {
       xine_stream_private_t *s;
       s = (xine_stream_private_t *)f->frame.stream;
-      _x_refcounter_inc (s->refcounter);
+      xine_refs_add (&s->refs, 1);
       if (f->stream) {
         s = (xine_stream_private_t *)f->stream;
-        _x_refcounter_dec (s->refcounter);
+        xine_refs_sub (&s->refs, 1);
       }
       f->stream = f->frame.stream;
     }
@@ -1101,7 +1101,7 @@ int _x_post_dispose(post_plugin_t *this) {
               vf_alias_t *next = (vf_alias_t *)f->frame.next;
               if ((f->frame.free == post_frame_free) && f->stream) {
                 xine_stream_private_t *s = (xine_stream_private_t *)f->stream;
-                _x_refcounter_dec (s->refcounter);
+                xine_refs_sub (&s->refs, 1);
               }
               free (f);
               n++;
