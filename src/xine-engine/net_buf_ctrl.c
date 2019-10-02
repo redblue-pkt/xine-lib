@@ -795,7 +795,7 @@ xine_nbc_t *xine_nbc_init (xine_stream_t *stream) {
     s->nbc_refs = 1;
     s->nbc = this;
     pthread_mutex_unlock (&s->index_mutex);
-    _x_refcounter_inc (s->refcounter);
+    xine_refs_add (&s->refs, 1);
     xprintf (s->s.xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: add to stream %p (1 refs).\n", (void *)s);
     stream = &s->s;
   }
@@ -887,7 +887,7 @@ void xine_nbc_close (xine_nbc_t *this) {
   {
     xine_stream_private_t *s = (xine_stream_private_t *)this->stream;
     free (this);
-    _x_refcounter_dec (s->refcounter);
+    xine_refs_sub (&s->refs, 1);
   }
 }
 

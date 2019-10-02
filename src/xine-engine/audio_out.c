@@ -423,10 +423,10 @@ static int ao_reref (aos_t *this, audio_buffer_t *buf) {
     xine_stream_private_t **s = this->buf_streams + (buf - this->base_buf);
     if (buf->stream != &(*s)->s) {
       if (*s)
-        _x_refcounter_dec ((*s)->refcounter);
+        xine_refs_sub (&(*s)->refs, 1);
       *s = (xine_stream_private_t *)buf->stream;
       if (*s)
-        _x_refcounter_inc ((*s)->refcounter);
+        xine_refs_add (&(*s)->refs, 1);
       return 1;
     }
   }
@@ -439,7 +439,7 @@ static int ao_unref_buf (aos_t *this, audio_buffer_t *buf) {
     xine_stream_private_t **s = this->buf_streams + (buf - this->base_buf);
     buf->stream = NULL;
     if (*s) {
-      _x_refcounter_dec ((*s)->refcounter);
+      xine_refs_sub (&(*s)->refs, 1);
       *s = NULL;
       return 1;
     }

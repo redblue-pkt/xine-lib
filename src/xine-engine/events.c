@@ -357,7 +357,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *s) {
   for (n = 0; n < MAX_REUSE_EVENTS; n++)
     xine_list_push_back (queue->free_events, &queue->revents[n]);
 
-  _x_refcounter_inc(stream->refcounter);
+  xine_refs_add (&stream->refs, 1);
 
   pthread_mutex_init (&queue->q.lock, NULL);
   pthread_cond_init (&queue->q.new_event, NULL);
@@ -467,7 +467,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
       (void *)stream, num_all, num_alloc, num_skip, num_left, refs);
   }
 
-  _x_refcounter_dec (stream->refcounter);
+  xine_refs_sub (&stream->refs, 1);
 }
 
 

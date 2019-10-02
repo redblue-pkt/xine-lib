@@ -318,9 +318,9 @@ static void vo_reref (vos_t *this, vo_frame_t *img) {
     *s = news;
     pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
     if (news)
-      _x_refcounter_inc (news->refcounter); /* this is fast. */
+      xine_refs_add (&news->refs, 1); /* this is fast. */
     if (olds)
-      _x_refcounter_dec (olds->refcounter); /* this may involve stream dispose. */
+      xine_refs_sub (&olds->refs, 1); /* this may involve stream dispose. */
   } else {
     pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
   }
@@ -347,7 +347,7 @@ static void vo_unref_list (vos_t *this, vo_frame_t *img) {
   *a = NULL;
 
   for (a = d; *a; a++)
-    _x_refcounter_dec ((*a)->refcounter); /* this may involve stream dispose. */
+    xine_refs_sub (&(*a)->refs, 1); /* this may involve stream dispose. */
 }
 
 static void vo_unref_obsolete (vos_t *this) {
@@ -388,7 +388,7 @@ static void vo_unref_obsolete (vos_t *this) {
 
   if (a > d) {
     for (a = d; *a; a++)
-      _x_refcounter_dec ((*a)->refcounter);
+      xine_refs_sub (&(*a)->refs, 1);
     xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
       "video_out: freed %d obsolete stream refs.\n", (int)(a - d));
   }
@@ -481,7 +481,7 @@ static void vo_display_reref_append (vos_t *this, vo_frame_t *img) {
     int n;
     *s = news;
     if (news)
-      _x_refcounter_inc (news->refcounter); /* this is fast. */
+      xine_refs_add (&news->refs, 1); /* this is fast. */
     n = (this->display_img_buf_queue.first ? this->display_img_buf_queue.num_buffers : 0) + 1;
     *(this->display_img_buf_queue.add) = img;
     this->display_img_buf_queue.add    = &img->next;
@@ -492,7 +492,7 @@ static void vo_display_reref_append (vos_t *this, vo_frame_t *img) {
       pthread_cond_signal (&this->display_img_buf_queue.not_empty);
     pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
     if (olds)
-      _x_refcounter_dec (olds->refcounter); /* this may involve stream dispose. */
+      xine_refs_sub (&olds->refs, 1); /* this may involve stream dispose. */
   } else {
     int n = (this->display_img_buf_queue.first ? this->display_img_buf_queue.num_buffers : 0) + 1;
     *(this->display_img_buf_queue.add) = img;

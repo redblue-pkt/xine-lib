@@ -1137,16 +1137,14 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
     stream->s.osd_renderer = NULL;
 
   /* create a reference counter */
-  stream->refcounter = _x_new_refcounter (&stream->s, (refcounter_destructor)xine_dispose_internal);
-  if (!stream->refcounter)
-    goto err_audio;
+  xine_refs_init (&stream->refs, (void (*)(void *))xine_dispose_internal, &stream->s);
 
   /* register stream */
   xine_list_push_back (this->streams, &stream->s);
   pthread_mutex_unlock (&this->streams_lock);
   return &stream->s;
 
-  err_audio:
+  /* err_audio: */
   _x_audio_decoder_shutdown (&stream->s);
 
   err_video:
@@ -1199,7 +1197,7 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
     }
     xine_rwlock_unlock (&m->info_lock);
     if (u < XINE_NUM_SIDE_STREAMS)
-      _x_refcounter_dec (m->refcounter);
+      xine_refs_sub (&m->refs, 1);
   }
 
   /* these are not used in side streams.
@@ -1218,8 +1216,6 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   pthread_cond_destroy  (&stream->demux_resume);
   pthread_mutex_destroy (&stream->demux_action_lock);
   pthread_mutex_destroy (&stream->demux_lock);
-
-  _x_refcounter_dispose (stream->refcounter);
 
   free (stream->index_array);
   free (stream);
@@ -1288,11 +1284,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   */
 
   /* create a reference counter */
-  s->refcounter = _x_new_refcounter (&s->s, (refcounter_destructor)xine_side_dispose_internal);
-  if (!s->refcounter) {
-    free (s);
-    return NULL;
-  }
+  xine_refs_init (&s->refs, (void (*)(void *))xine_side_dispose_internal, &s->s);
 
   s->current_extra_info       = m->current_extra_info;
   s->audio_decoder_extra_info = m->audio_decoder_extra_info;
@@ -1368,7 +1360,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   s->s.osd_renderer = m->s.osd_renderer;
 
   /* register stream */
-  _x_refcounter_inc (m->refcounter);
+  xine_refs_add (&m->refs, 1);
   xine_rwlock_wrlock (&m->info_lock);
   m->side_streams[index] = s;
   xine_rwlock_unlock (&m->info_lock);
@@ -2312,8 +2304,6 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
 
   xine_list_delete(stream->event_queues);
 
-  _x_refcounter_dispose(stream->refcounter);
-
   free (stream->index_array);
   free (stream);
 }
@@ -2347,7 +2337,7 @@ void xine_dispose (xine_stream_t *s) {
     for (u = 1; u < XINE_NUM_SIDE_STREAMS; u++) {
       xine_stream_private_t *side = stream->side_streams[u];
       if (side)
-        _x_refcounter_dec (side->refcounter);
+        xine_refs_sub (&side->refs, 1);
     }
   }
 
@@ -2368,7 +2358,7 @@ void xine_dispose (xine_stream_t *s) {
     stream->s.osd_renderer->close (stream->s.osd_renderer);
 
   /* Remove the reference that the stream was created with. */
-  _x_refcounter_dec(stream->refcounter);
+  xine_refs_sub (&stream->refs, 1);
 }
 
 #ifdef WIN32
@@ -2379,7 +2369,7 @@ void xine_exit (xine_t *this_gen) {
   xine_private_t *this = (xine_private_t *)this_gen;
   if (this->x.streams) {
     int n = 10;
-    /* XXX: streams kill themselves via their refcounter hook. */
+    /* XXX: streams kill themselves via their refs hook. */
     while (n--) {
       xine_stream_private_t *stream = NULL;
       xine_list_iterator_t ite;
@@ -2397,7 +2387,7 @@ void xine_exit (xine_t *this_gen) {
       }
       /* stream->refcounter->lock might be taken already */
       {
-        int i = stream->refcounter->count;
+        int i = xine_refs_add (&stream->refs, 0);
         pthread_mutex_unlock (&this->x.streams_lock);
         xprintf (&this->x, XINE_VERBOSITY_LOG,
                  "xine_exit: BUG: stream %p still open (%d refs), waiting.\n",
