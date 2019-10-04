@@ -1061,6 +1061,51 @@ AC_DEFINE_UNQUOTED([ATTR_NO_FAST_VECTOR_MATH], [$fast_math_hack], [Define to a f
 dnl end of -ffast-math stuff
 
 
+dnl Various atomic vars. gcc says these may yield external library calls but does not tell what lib to link...
+my_atomic_mode=0
+
+AC_MSG_CHECKING([for stdatomic.h support])
+my_atomic_res="no"
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <stdatomic.h>
+]],[[
+atomic_int v = 8;
+int r = atomic_fetch_add_explicit (&v, -1, memory_order_acq_rel);
+printf ("%d\n", r);
+]])], [my_atomic_mode=1; my_atomic_res="yes"])
+AC_MSG_RESULT([$my_atomic_res])
+
+if test x"$my_atomic_res" != x"yes" ; then
+    AC_MSG_CHECKING([for __atomic_* compiler builtins])
+    my_atomic_res="no"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+    ]],[[
+int v = 8;
+int r = __atomic_fetch_add (&v, -1, __ATOMIC_ACQ_REL);
+printf ("%d\n", r);
+    ]])], [my_atomic_mode=2; my_atomic_res="yes"])
+    AC_MSG_RESULT([$my_atomic_res])
+fi
+
+if test x"$my_atomic_res" != x"yes" ; then
+    AC_MSG_CHECKING([for __sync_* compiler builtins])
+    my_atomic_res="no"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+    ]],[[
+int v = 8;
+int r = __sync_fetch_and_add (&v, -1);
+printf ("%d\n", r);
+    ]])], [my_atomic_mode=3; my_atomic_res="yes"])
+    AC_MSG_RESULT([$my_atomic_res])
+fi
+
+AC_DEFINE_UNQUOTED([HAVE_ATOMIC_VARS], [$my_atomic_mode], [0 = none, 1 = stdatomic.h, 2 = __atomic_*, 3 = __sync_*])
+dnl end of atomic stuff
+
+
 AC_SUBST(O1_CFLAGS)
 AC_SUBST(O2_CFLAGS)
 AC_SUBST(O3_CFLAGS)

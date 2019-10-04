@@ -64,10 +64,25 @@
 
 EXTERN_C_START
 
-#if defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 7)))
+/* HAVE_ATOMIC_VARS: 0 = none, 1 = stdatomic.h, 2 = __atomic_*, 3 = __sync_* */
+#if (HAVE_ATOMIC_VARS > 0)
+#  if (HAVE_ATOMIC_VARS == 1)
+#    include <stdatomic.h>
+#    define XINE_ATINT_T atomic_int
+#    define XINE_ATINIT(xatfa_refs,xatfa_n) atomic_init (&(xatfa_refs), (xatfa_n))
+#    define XINE_ATFA(xatfa_refs,xatfa_n) atomic_fetch_add_explicit (&(xatfa_refs), (xatfa_n), memory_order_acq_rel)
+#  elif (HAVE_ATOMIC_VARS == 2)
+#    define XINE_ATINT_T int
+#    define XINE_ATINIT(xatfa_refs,xatfa_n) __atomic_store_n (&(xatfa_refs), (xatfa_n), __ATOMIC_RELAXED)
+#    define XINE_ATFA(xatfa_refs,xatfa_n) __atomic_fetch_add (&(xatfa_refs), (xatfa_n), __ATOMIC_ACQ_REL)
+#  else /* HAVE_ATOMIC_VARS == 3 */
+#    define XINE_ATINT_T int
+#    define XINE_ATINIT(xatfa_refs,xatfa_n) xatfa_refs = xatfa_n
+#    define XINE_ATFA(xatfa_refs,xatfa_n) __sync_fetch_and_add (&(xatfa_refs), (xatfa_n))
+#  endif
 
 typedef struct {
-  int refs;
+  XINE_ATINT_T refs;
   void (*destructor) (void *object);
   void *object;
 } xine_refs_t;
@@ -76,47 +91,17 @@ static inline void xine_refs_init (xine_refs_t *refs,
   void (*destructor) (void *object), void *object) {
   refs->destructor = destructor;
   refs->object = object;
-  refs->refs = 1;
+  XINE_ATINIT (refs->refs, 1);
 }
 
 static inline int xine_refs_add (xine_refs_t *refs, int n) {
-  return __atomic_add_fetch (&refs->refs, n, __ATOMIC_CONSUME);
+  return XINE_ATFA (refs->refs, n) + n;
 }
 
 static inline int xine_refs_sub (xine_refs_t *refs, int n) {
-  int v = __atomic_add_fetch (&refs->refs, -n, __ATOMIC_CONSUME);
-  if (v == 0) {
-    if (refs->destructor)
-      refs->destructor (refs->object);
-  }
-  return v;
-}
-
-#elif defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4)))
-
-typedef struct {
-  int refs;
-  void (*destructor) (void *object);
-  void *object;
-} xine_refs_t;
-
-static inline void xine_refs_init (xine_refs_t *refs,
-  void (*destructor) (void *object), void *object) {
-  refs->destructor = destructor;
-  refs->object = object;
-  refs->refs = 1;
-}
-
-static inline int xine_refs_add (xine_refs_t *refs, int n) {
-  return __sync_add_and_fetch (&refs->refs, n);
-}
-
-static inline int xine_refs_sub (xine_refs_t *refs, int n) {
-  int v = __sync_add_and_fetch (&refs->refs, -n);
-  if (v == 0) {
-    if (refs->destructor)
-      refs->destructor (refs->object);
-  }
+  int v = XINE_ATFA (refs->refs, -n) - n;
+  if (v == 0)
+    refs->destructor (refs->object);
   return v;
 }
 
@@ -154,8 +139,7 @@ static inline int xine_refs_sub (xine_refs_t *refs, int n) {
   pthread_mutex_unlock (&refs->mutex);
   if (v == 0) {
     pthread_mutex_destroy (&refs->mutex);
-    if (refs->destructor)
-      refs->destructor (refs->object);
+    refs->destructor (refs->object);
   }
   return v;
 }
