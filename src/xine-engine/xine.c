@@ -2057,7 +2057,9 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   /* hint demuxer thread we want to interrupt it */
   sp = sides;
   do {
-    _x_action_raise (&sp->s->s);
+    pthread_mutex_lock (&sp->s->demux_action_lock);
+    sp->s->demux_action_pending += 0x10001;
+    pthread_mutex_unlock (&sp->s->demux_action_lock);
     sp++;
   } while (sp->s);
 
@@ -2083,8 +2085,10 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   sp = sides;
   do {
     pthread_mutex_lock (&sp->s->demux_lock);
-    /* demux_lock taken. now demuxer is suspended */
-    _x_action_lower (&sp->s->s);
+    /* demux_lock taken. now demuxer is suspended. unblock io for seeking. */
+    pthread_mutex_lock (&sp->s->demux_action_lock);
+    sp->s->demux_action_pending -= 0x00001;
+    pthread_mutex_unlock (&sp->s->demux_action_lock);
     sp++;
   } while (sp->s);
 
@@ -2170,6 +2174,12 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   do {
     sp->flags |= sp->s->demux_thread_running ? 2 : 0;
     pthread_mutex_unlock (&sp->s->demux_lock);
+    /* now that demux lock is released, resume demux. */
+    pthread_mutex_lock (&sp->s->demux_action_lock);
+    sp->s->demux_action_pending -= 0x10000;
+    if (sp->s->demux_action_pending <= 0)
+      pthread_cond_signal (&sp->s->demux_resume);
+    pthread_mutex_unlock (&sp->s->demux_action_lock);
     /* seek OK but not running? try restart. */
     if (sp->flags == 1) {
       if (_x_demux_start_thread (&sp->s->s) >= 0)
