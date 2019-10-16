@@ -321,9 +321,16 @@ static void *video_decoder_loop (void *stream_gen) {
           int t;
 
           case BUFTYPE_SUB (BUF_CONTROL_HEADERS_DONE):
+
             pthread_mutex_lock (&stream->counter_lock);
             stream->header_count_video++;
-            pthread_cond_broadcast (&stream->counter_changed);
+            if (stream->audio_thread_created) {
+              /* avoid useless wakes on an incomplete pair */
+              if (stream->header_count_video <= stream->header_count_audio)
+                pthread_cond_broadcast (&stream->counter_changed);
+            } else {
+              pthread_cond_broadcast (&stream->counter_changed);
+            }
             pthread_mutex_unlock (&stream->counter_lock);
             break;
 
@@ -399,15 +406,20 @@ static void *video_decoder_loop (void *stream_gen) {
             pthread_mutex_lock (&stream->counter_lock);
             stream->finished_count_video++;
             lprintf ("reached end marker # %d\n", stream->finished_count_video);
-            pthread_cond_broadcast (&stream->counter_changed);
             if (stream->audio_thread_created) {
-              while (stream->finished_count_video > stream->finished_count_audio) {
-                struct timespec ts = {0, 0};
-                xine_gettime (&ts);
-                ts.tv_sec += 1;
-                /* use timedwait to workaround buggy pthread broadcast implementations */
-                pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+              if (stream->finished_count_video > stream->finished_count_audio) {
+                do {
+                  struct timespec ts = {0, 0};
+                  xine_gettime (&ts);
+                  ts.tv_sec += 1;
+                  /* use timedwait to workaround buggy pthread broadcast implementations */
+                  pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+                } while (stream->finished_count_video > stream->finished_count_audio);
+              } else if (stream->finished_count_video == stream->finished_count_audio) {
+                pthread_cond_broadcast (&stream->counter_changed);
               }
+            } else {
+              pthread_cond_broadcast (&stream->counter_changed);
             }
             pthread_mutex_unlock (&stream->counter_lock);
             /* Wake up xine_play if it's waiting for a frame */
@@ -641,3 +653,5 @@ void _x_video_decoder_shutdown (xine_stream_t *s) {
     stream->s.video_fifo = NULL;
   }
 }
+
+
