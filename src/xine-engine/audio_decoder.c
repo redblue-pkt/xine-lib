@@ -259,7 +259,13 @@ static void *audio_decoder_loop (void *stream_gen) {
           case BUFTYPE_SUB (BUF_CONTROL_HEADERS_DONE):
             pthread_mutex_lock (&stream->counter_lock);
             stream->header_count_audio++;
-            pthread_cond_broadcast (&stream->counter_changed);
+            if (stream->video_thread_created) {
+              /* avoid useless wakes on an incomplete pair */
+              if (stream->header_count_audio <= stream->header_count_video)
+                pthread_cond_broadcast (&stream->counter_changed);
+            } else {
+              pthread_cond_broadcast (&stream->counter_changed);
+            }
             pthread_mutex_unlock (&stream->counter_lock);
             break;
 
@@ -314,15 +320,20 @@ static void *audio_decoder_loop (void *stream_gen) {
             pthread_mutex_lock (&stream->counter_lock);
             stream->finished_count_audio++;
             lprintf ("reached end marker # %d\n", stream->finished_count_audio);
-            pthread_cond_broadcast (&stream->counter_changed);
             if (stream->video_thread_created) {
-              while (stream->finished_count_video < stream->finished_count_audio) {
-                struct timespec ts = {0, 0};
-                xine_gettime (&ts);
-                ts.tv_sec += 1;
-                /* use timedwait to workaround buggy pthread broadcast implementations */
-                pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+              if (stream->finished_count_audio > stream->finished_count_video) {
+                do {
+                  struct timespec ts = {0, 0};
+                  xine_gettime (&ts);
+                  ts.tv_sec += 1;
+                  /* use timedwait to workaround buggy pthread broadcast implementations */
+                  pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
+                } while (stream->finished_count_audio > stream->finished_count_video);
+              } else if (stream->finished_count_audio == stream->finished_count_video) {
+                pthread_cond_broadcast (&stream->counter_changed);
               }
+            } else {
+              pthread_cond_broadcast (&stream->counter_changed);
             }
             pthread_mutex_unlock (&stream->counter_lock);
             stream->s.audio_channel_auto = -1;
