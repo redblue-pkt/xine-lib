@@ -333,8 +333,7 @@ static void *demux_loop (void *stream_gen) {
   xine_stream_private_t *m = stream->side_streams[0];
   int status;
   int non_user;
-
-  int iterations = 0;
+  int iterations = 0, seeks = 0;
 
   struct timespec seek_time = {0, 0};
 
@@ -361,16 +360,20 @@ static void *demux_loop (void *stream_gen) {
       status = stream->demux_plugin->send_chunk(stream->demux_plugin);
 
       /* someone may want to interrupt us */
-      if (_x_action_pending (&stream->s)) {
-        struct timespec ts = {0, 0};
-        xine_gettime (&ts);
-        ts.tv_nsec += 100000000;
-        if (ts.tv_nsec >= 1000000000) {
-          ts.tv_nsec -= 1000000000;
-          ts.tv_sec  += 1;
+      if (stream->demux_action_pending > 0) {
+        pthread_mutex_lock (&stream->demux_action_lock);
+        if (stream->demux_action_pending > 0) {
+          pthread_mutex_unlock (&stream->demux_lock);
+          do {
+            pthread_cond_wait (&stream->demux_resume, &stream->demux_action_lock);
+          } while (stream->demux_action_pending > 0);
+          pthread_mutex_unlock (&stream->demux_action_lock);
+          pthread_mutex_lock (&stream->demux_lock);
+          xine_gettime (&seek_time);
+          seeks++;
+        } else {
+          pthread_mutex_unlock (&stream->demux_action_lock);
         }
-        pthread_cond_timedwait (&stream->demux_resume, &stream->demux_lock, &ts);
-        xine_gettime (&seek_time);
       }
     }
 
@@ -510,16 +513,16 @@ static void *demux_loop (void *stream_gen) {
 
       _x_handle_stream_end (&m->s, non_user);
       xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
-        "demux: %s last stream %p after %d iterations.\n",
-        non_user ? "finished" : "stopped", (void *)stream, iterations);
+        "demux: %s last stream %p after %d iterations and %d seeks.\n",
+        non_user ? "finished" : "stopped", (void *)stream, iterations, seeks);
 
     } else {
 
       pthread_mutex_unlock (&m->counter_lock);
       pthread_mutex_unlock (&stream->demux_lock);
       xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
-        "demux: %s stream %p after %d iterations.\n",
-        non_user ? "finished" : "stopped", (void *)stream, iterations);
+        "demux: %s stream %p after %d iterations and %d seeks.\n",
+        non_user ? "finished" : "stopped", (void *)stream, iterations, seeks);
 
     }
   }
@@ -691,63 +694,57 @@ int _x_demux_check_extension (const char *mrl, const char *extensions){
  * aborts with zero if no data is available and demux_action_pending is set
  */
 off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) {
+  size_t have, left;
 
-  off_t ret, total;
+  if (todo <= 0)
+    return 0;
+  left = todo;
+  have = 0;
 
-  total = 0;
+  while (left) {
 
-  while (total < todo) {
-
-    fd_set rset;
-    struct timeval timeout;
-
-    while(1) {
+    while (1) {
+      fd_set rset;
+      struct timeval timeout;
 
       FD_ZERO (&rset);
       FD_SET  (fd, &rset);
-
       timeout.tv_sec  = 0;
       timeout.tv_usec = 50000;
 
-      if( select (fd+1, &rset, NULL, NULL, &timeout) <= 0 ) {
-        /* aborts current read if action pending. otherwise xine
-         * cannot be stopped when no more data is available.
-         */
-        if (_x_action_pending(stream))
-          return total;
-      } else {
+      if (select (fd + 1, &rset, NULL, NULL, &timeout) > 0)
         break;
-      }
+      /* aborts current read if action pending. otherwise xine
+       * cannot be stopped when no more data is available. */
+      if (_x_action_pending (stream))
+        return have;
     }
 
+    {
+      ssize_t r;
 #ifndef WIN32
-    ret = read (fd, &buf[total], todo - total);
-
-    /* check EOF */
-    if (!ret)
-      break;
-
-    /* check errors */
-    if(ret < 0) {
-      if(errno == EAGAIN)
-        continue;
-
-      perror("_x_read_abort");
-      return ret;
-    }
+      r = read (fd, buf + have, left);
+      if (r <= 0) {
+        if (r == 0) /* EOF */
+          break;
+        if (errno == EAGAIN)
+          continue;
+        perror ("_x_read_abort");
+        return r;
+      }
 #else
-    ret = recv (fd, &buf[total], todo - total, 0);
-    if (ret <= 0)
-	{
-      perror("_x_read_abort");
-	  return ret;
-	}
+      r = recv (fd, buf + have, left, 0);
+      if (r <= 0) {
+        perror ("_x_read_abort");
+        return r;
+      }
 #endif
-
-    total += ret;
+      have += r;
+      left -= r;
+    }
   }
 
-  return total;
+  return have;
 }
 
 int _x_action_pending (xine_stream_t *s) {
@@ -755,7 +752,7 @@ int _x_action_pending (xine_stream_t *s) {
   int a;
   if (!stream)
     return 0;
-  a = stream->demux_action_pending;
+  a = stream->demux_action_pending & 0xffff;
   if (a) {
     /* On seek, xine_play_internal () sets this, waits for demux to stop,
      * grabs demux lock, resets this again, performs the seek, and finally
@@ -763,7 +760,7 @@ int _x_action_pending (xine_stream_t *s) {
      * still see this set for some time, and abort input for no real reason.
      * Avoid that trap by checking again with lock here. */
     pthread_mutex_lock (&stream->demux_action_lock);
-    a = stream->demux_action_pending;
+    a = stream->demux_action_pending & 0xffff;
     pthread_mutex_unlock (&stream->demux_action_lock);
   }
   return a;
@@ -772,18 +769,19 @@ int _x_action_pending (xine_stream_t *s) {
 /* set demux_action_pending in a thread-safe way */
 void _x_action_raise (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->demux_action_lock);
-  stream->demux_action_pending++;
-  pthread_mutex_unlock(&stream->demux_action_lock);
+  pthread_mutex_lock (&stream->demux_action_lock);
+  stream->demux_action_pending += 0x10001;
+  pthread_mutex_unlock (&stream->demux_action_lock);
 }
 
 /* reset demux_action_pending in a thread-safe way */
 void _x_action_lower (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  pthread_mutex_lock(&stream->demux_action_lock);
-  stream->demux_action_pending--;
-  pthread_mutex_unlock(&stream->demux_action_lock);
-  pthread_cond_signal(&stream->demux_resume);
+  pthread_mutex_lock (&stream->demux_action_lock);
+  stream->demux_action_pending -= 0x10001;
+  if (stream->demux_action_pending <= 0)
+    pthread_cond_signal (&stream->demux_resume);
+  pthread_mutex_unlock (&stream->demux_action_lock);
 }
 
 /*
