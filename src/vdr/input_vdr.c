@@ -751,6 +751,12 @@ break;
         _x_demux_seek(this->stream, 0, 0, 0);
 /* fprintf(stderr, "=== CLEAR(%d.3)\n", data->n); */
 
+        /* XXX: why is this needed? */
+        pthread_mutex_lock (&this->metronom.mutex);
+        this->metronom.audio_seek = 1;
+        this->metronom.video_seek = 1;
+        pthread_mutex_unlock (&this->metronom.mutex);
+
         _x_stream_info_reset(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE);
 /* fprintf(stderr, "=== CLEAR(%d.4)\n", data->n); */
 	_x_meta_info_reset(this->stream, XINE_META_INFO_AUDIOCODEC);
