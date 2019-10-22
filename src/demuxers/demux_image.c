@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2018 the xine project
+ * Copyright (C) 2003-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -57,20 +57,19 @@ typedef struct demux_image_s {
 } demux_image_t ;
 
 
-static uint32_t _probe(const uint8_t *header)
-{
+static uint32_t _probe (xine_t *xine, const uint8_t *header) {
   if (memcmp (header, "GIF", 3) == 0) { /* GIF */
-    return BUF_VIDEO_IMAGE;
-  }
-  if (memcmp (header, "BM", 2) == 0) { /* BMP */
-    return BUF_VIDEO_IMAGE;
-  }
-  if (memcmp (header, "\x89PNG", 4) == 0) { /* PNG */
-    return BUF_VIDEO_PNG;
-  }
-  if (memcmp (header, "\377\330\377", 3) == 0 || /* JPEG */
-      (_X_BE_16(&header[0]) == 0xffd8) ) { /* another JPEG */
-    return BUF_VIDEO_JPEG;
+    if (_x_decoder_available (xine, BUF_VIDEO_IMAGE))
+      return BUF_VIDEO_IMAGE;
+  } else if (memcmp (header, "BM", 2) == 0) { /* BMP */
+    if (_x_decoder_available (xine, BUF_VIDEO_IMAGE))
+      return BUF_VIDEO_IMAGE;
+  } else if (memcmp (header, "\x89PNG", 4) == 0) { /* PNG */
+    if (_x_decoder_available (xine, BUF_VIDEO_PNG))
+      return BUF_VIDEO_PNG;
+  } else if (memcmp (header, "\xff\xd8", 2) == 0) { /* JPEG */
+    if (_x_decoder_available (xine, BUF_VIDEO_JPEG))
+      return BUF_VIDEO_JPEG;
   }
   return 0;
 }
@@ -101,7 +100,7 @@ static int demux_image_next (demux_plugin_t *this_gen, int decoder_flags) {
     this->status = DEMUX_FINISHED;
   } else {
     if (!this->buf_type) {
-      this->buf_type = _probe(buf->content);
+      this->buf_type = _probe (this->stream->xine, buf->content);
       if (!this->buf_type) {
         /* allow forcing any file to generic image decoders */
         this->buf_type = BUF_VIDEO_IMAGE;
@@ -197,7 +196,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
     if (_x_demux_read_header(input, header, IMAGE_HEADER_LEN) != IMAGE_HEADER_LEN) {
       return NULL;
     }
-    buf_type = _probe(header);
+    buf_type = _probe (stream->xine, header);
     if (buf_type)
       break;
     return NULL;
@@ -254,7 +253,23 @@ static void *init_class (xine_t *xine, const void *data) {
     .description     = N_("image demux plugin"),
     .identifier      = "imagedmx",
     .mimetypes       = NULL,
-    .extensions      = "png gif jpg jpeg bmp",
+    /* NOTE: a leading, trailing, or double space would add the empty extension "" to the list. Avoid that.
+     * FIXME: this frozen at build time. */
+    .extensions      = ""
+#if defined(HAVE_GDK_PIXBUF) || defined(HAVE_IMAGEMAGICK)
+        "bmp gif jpg jpeg png"
+#else
+#  if defined(HAVE_LIBJPEG)
+        "jpg jpeg"
+#  endif
+#  if defined(HAVE_LIBJPEG) && defined(HAVE_LIBPNG)
+        " "
+#  endif
+#  if defined(HAVE_LIBPNG)
+        "png"
+#  endif
+#endif
+    ,
     .dispose         = NULL,
   };
 
@@ -273,3 +288,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_DEMUX, 27, "image", XINE_VERSION_CODE, &demux_info_image, init_class },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
+

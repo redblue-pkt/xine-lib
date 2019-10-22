@@ -176,6 +176,7 @@ a52_init ();
         fi
     fi
     AM_CONDITIONAL([ENABLE_GDK_PIXBUF], [test x"$have_gdkpixbuf" = x"yes"])
+    test x"$have_gdkpixbuf" = x"yes" && AC_DEFINE([HAVE_GDK_PIXBUF], [], [Define to 1 if you have gdkpixbuf.])
 
     dnl libjpeg (optional; enabled by default)
     AC_ARG_ENABLE([libjpeg],
@@ -192,6 +193,7 @@ a52_init ();
         fi
     fi
     AM_CONDITIONAL([ENABLE_LIBJPEG], [test x"$have_libjpeg" = x"yes"])
+    test x"$have_libjpeg" = x"yes" && AC_DEFINE([HAVE_LIBJPEG], [1], [Define to 1 if you have libjpg.])
 
     dnl libpng (optional; enabled by default)
     AC_ARG_ENABLE([libpng],
@@ -204,6 +206,7 @@ a52_init ();
         fi
     fi
     AM_CONDITIONAL([ENABLE_LIBPNG], [test x"$have_libpng" = x"yes"])
+    test x"$have_libpng" = x"yes" && ([HAVE_LIBPNG], [1], [Define to 1 if you have libpng.])
 
     dnl ImageMagick (optional; enabled by default)
     AC_ARG_WITH([imagemagick],
@@ -236,7 +239,7 @@ a52_init ();
         CPPFLAGS="$ac_save_CPPFLAGS"
     fi
     AM_CONDITIONAL([ENABLE_IMAGEMAGICK], [test x"$have_imagemagick" = x"yes"])
-
+    test x"$have_imagemagick" = x"yes" && AC_DEFINE([HAVE_IMAGEMAGICK], [1], [Define to 1 if you have ImageMagick.])
 
     dnl libdts (optional; enabled by default; external version allowed)
     AC_ARG_ENABLE([dts],
@@ -746,6 +749,6 @@ a52_init ();
     fi
     AM_CONDITIONAL([ENABLE_MMAL], [test x"$have_mmal" = x"yes"])
 
-    dnl Only enable building dmx image if either gdk_pixbuf or ImageMagick are enabled
-    AM_CONDITIONAL([BUILD_DMX_IMAGE], [test x"$have_imagemagick" = x"yes" -o x"$have_gdkpixbuf" = x"yes"])
+    dnl Only enable building dmx image if at least 1 image decoder is available.
+    AM_CONDITIONAL([BUILD_DMX_IMAGE], [test x"$have_imagemagick" = x"yes" || test x"$have_gdkpixbuf" = x"yes" || test x"$have_libjpeg" = x"yes" || test x"$have_libpng" = x"yes"])
 ])
