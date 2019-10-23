@@ -176,7 +176,7 @@ a52_init ();
         fi
     fi
     AM_CONDITIONAL([ENABLE_GDK_PIXBUF], [test x"$have_gdkpixbuf" = x"yes"])
-    test x"$have_gdkpixbuf" = x"yes" && AC_DEFINE([HAVE_GDK_PIXBUF], [], [Define to 1 if you have gdkpixbuf.])
+    test x"$have_gdkpixbuf" = x"yes" && AC_DEFINE([HAVE_GDK_PIXBUF], [1], [Define to 1 if you have gdkpixbuf.])
 
     dnl libjpeg (optional; enabled by default)
     AC_ARG_ENABLE([libjpeg],
@@ -206,7 +206,7 @@ a52_init ();
         fi
     fi
     AM_CONDITIONAL([ENABLE_LIBPNG], [test x"$have_libpng" = x"yes"])
-    test x"$have_libpng" = x"yes" && ([HAVE_LIBPNG], [1], [Define to 1 if you have libpng.])
+    test x"$have_libpng" = x"yes" && AC_DEFINE([HAVE_LIBPNG], [1], [Define to 1 if you have libpng.])
 
     dnl ImageMagick (optional; enabled by default)
     AC_ARG_WITH([imagemagick],
