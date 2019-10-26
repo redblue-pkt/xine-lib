@@ -2772,39 +2772,6 @@ void _x_select_spu_channel (xine_stream_t *s, int channel) {
   pthread_mutex_unlock (&stream->frontend_lock);
 }
 
-static int get_current_position (xine_stream_private_t *stream) {
-
-  int pos;
-
-  pthread_mutex_lock (&stream->frontend_lock);
-
-  if (!stream->s.input_plugin) {
-    lprintf ("no input source\n");
-    pthread_mutex_unlock (&stream->frontend_lock);
-    return -1;
-  }
-
-  if ( (!stream->video_decoder_plugin && !stream->audio_decoder_plugin) ) {
-    if (_x_stream_info_get (&stream->s, XINE_STREAM_INFO_HAS_VIDEO))
-      _x_extra_info_merge( stream->current_extra_info, stream->video_decoder_extra_info );
-    else
-      _x_extra_info_merge( stream->current_extra_info, stream->audio_decoder_extra_info );
-  }
-
-  if ( stream->current_extra_info->seek_count != stream->video_seek_count ) {
-    pthread_mutex_unlock (&stream->frontend_lock);
-    return -1; /* position not yet known */
-  }
-
-  pthread_mutex_lock( &stream->current_extra_info_lock );
-  pos = stream->current_extra_info->input_normpos;
-  pthread_mutex_unlock( &stream->current_extra_info_lock );
-
-  pthread_mutex_unlock (&stream->frontend_lock);
-
-  return pos;
-}
-
 void _x_get_current_info (xine_stream_t *s, extra_info_t *extra_info, int size) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
 
@@ -2929,45 +2896,63 @@ int _x_get_speed (xine_stream_t *stream) {
  * time measurement / seek
  */
 
-static int get_stream_length (xine_stream_private_t *stream) {
-
-  /* pthread_mutex_lock( &stream->demux_lock ); */
-
-  if (stream->demux_plugin) {
-    int len = stream->demux_plugin->get_stream_length (stream->demux_plugin);
-    /* pthread_mutex_unlock( &stream->demux_lock ); */
-
-    return len;
-  }
-
-  /* pthread_mutex_unlock( &stream->demux_lock ); */
-
-  return 0;
-}
-
 int xine_get_pos_length (xine_stream_t *s, int *pos_stream, int *pos_time, int *length_time) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  int pos;
+  int normpos, timepos;
 
   stream = stream->side_streams[0];
+  pthread_mutex_lock (&stream->frontend_lock);
 
-  pos = get_current_position (stream); /* force updating extra_info */
-  if (pos == -1)
+  if (!stream->s.input_plugin) {
+    lprintf ("no input source\n");
+    pthread_mutex_unlock (&stream->frontend_lock);
     return 0;
+  }
+
+  if ((!stream->video_decoder_plugin && !stream->audio_decoder_plugin)) {
+    /* rare case: no decoders available. */
+    xine_rwlock_rdlock (&stream->info_lock);
+    if (stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]) {
+      xine_rwlock_unlock (&stream->info_lock);
+      pthread_mutex_lock (&stream->current_extra_info_lock);
+      _x_extra_info_merge (stream->current_extra_info, stream->video_decoder_extra_info);
+    } else {
+      xine_rwlock_unlock (&stream->info_lock);
+      pthread_mutex_lock (&stream->current_extra_info_lock);
+      _x_extra_info_merge (stream->current_extra_info, stream->audio_decoder_extra_info);
+    }
+  } else {
+    pthread_mutex_lock (&stream->current_extra_info_lock);
+  }
+  if (stream->current_extra_info->seek_count != stream->video_seek_count) {
+    pthread_mutex_unlock (&stream->current_extra_info_lock);
+    pthread_mutex_unlock (&stream->frontend_lock);
+    return 0; /* position not yet known */
+  }
+  normpos = stream->current_extra_info->input_normpos;
+  timepos = stream->current_extra_info->input_time;
+  pthread_mutex_unlock (&stream->current_extra_info_lock);
+
+  if (length_time) {
+    int length = 0;
+    /* frontend lock prevents demux unload. To be very precise, we would need to
+     * suspend demux here as well, and trash performance :-/
+     * Well. Demux either knows length from the start, and value is constant.
+     * Or, it grows with current position. We can do that, too. */
+    if (stream->demux_plugin)
+      length = stream->demux_plugin->get_stream_length (stream->demux_plugin);
+    pthread_mutex_unlock (&stream->frontend_lock);
+    if ((length > 0) && (length < timepos))
+      length = timepos;
+    *length_time = length;
+  } else {
+    pthread_mutex_unlock (&stream->frontend_lock);
+  }
 
   if (pos_stream)
-    *pos_stream  = pos;
-  if (pos_time) {
-    pthread_mutex_lock( &stream->current_extra_info_lock );
-    *pos_time    = stream->current_extra_info->input_time;
-    pthread_mutex_unlock( &stream->current_extra_info_lock );
-  }
-  if (length_time) {
-    pthread_mutex_lock( &stream->frontend_lock );
-    *length_time = get_stream_length (stream);
-    pthread_mutex_unlock( &stream->frontend_lock );
-  }
-
+    *pos_stream = normpos;
+  if (pos_time)
+    *pos_time = timepos;
   return 1;
 }
 
