@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -181,28 +181,44 @@ static void demux_mpeg_block_parse_pack (demux_mpeg_block_t *this, int preview_m
     return ;
   }
 
-  /* If this is not a block for the demuxer, pass it
-   * straight through. */
+  /* If this is not a block for the demuxer, pass it straight through to who might need it. */
   if (buf->type != BUF_DEMUX_BLOCK) {
-    buf_element_t *cbuf;
-
-    this->video_fifo->put (this->video_fifo, buf);
-
-    /* duplicate goes to audio fifo */
-
-    if (this->audio_fifo) {
-      cbuf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-
-      cbuf->type = buf->type;
-      cbuf->decoder_flags = buf->decoder_flags;
-      memcpy( cbuf->decoder_info, buf->decoder_info, sizeof(cbuf->decoder_info) );
-      memcpy( cbuf->decoder_info_ptr, buf->decoder_info_ptr, sizeof(cbuf->decoder_info_ptr) );
-
-      this->audio_fifo->put (this->audio_fifo, cbuf);
-    }
-
+    uint32_t stype = buf->type & BUF_MAJOR_MASK;
     lprintf ("type %08x != BUF_DEMUX_BLOCK\n", buf->type);
-
+    if (stype == BUF_CONTROL_BASE) {
+      stype = buf->type & (BUF_MAJOR_MASK | BUF_DECODER_MASK);
+      if (stype == BUF_CONTROL_SPU_CHANNEL)
+        stype = 1;
+      else if (stype == BUF_CONTROL_AUDIO_CHANNEL)
+        stype = 2;
+      else
+        stype = 3;
+    } else if (stype == BUF_AUDIO_BASE) {
+      stype = 2;
+    } else { /* (stype = BUF_VIDEO_BASE) || (stype == BUF_SPU_BASE) */
+      stype = 1;
+    }
+    switch (stype) {
+      case 2:
+        if (this->audio_fifo)
+          this->audio_fifo->put (this->audio_fifo, buf);
+        else
+          buf->free_buffer (buf);
+        break;
+      case 3:
+        if (this->audio_fifo) {
+          /* duplicate goes to audio fifo */
+          buf_element_t *abuf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+          memcpy (abuf->decoder_info, buf->decoder_info, sizeof (buf->decoder_info));
+          memcpy (abuf->decoder_info_ptr, buf->decoder_info_ptr, sizeof (buf->decoder_info_ptr));
+          abuf->type = buf->type;
+          abuf->decoder_flags = buf->decoder_flags;
+          this->audio_fifo->put (this->audio_fifo, abuf);
+        }
+        /* fall through */
+      case 1:
+        this->video_fifo->put (this->video_fifo, buf);
+    }
     return;
   }
 
