@@ -601,6 +601,8 @@ int vm_get_current_menu(vm_t *vm, int *menuid) {
   int pgcn;
   pgcn = (vm->state).pgcN;
   pgcit = get_PGCIT(vm);
+  if (!pgcit)
+    return 0;
   *menuid = pgcit->pgci_srp[pgcn - 1].entry_id & 0xf ;
   return 1;
 }
@@ -861,8 +863,6 @@ int vm_get_video_scale_permission(vm_t *vm) {
 
 video_attr_t vm_get_video_attr(vm_t *vm) {
   switch ((vm->state).domain) {
-  case VTS_DOMAIN:
-    return vm->vtsi->vtsi_mat->vts_video_attr;
   case VTSM_DOMAIN:
     return vm->vtsi->vtsi_mat->vtsm_video_attr;
   case VMGM_DOMAIN:
@@ -870,13 +870,14 @@ video_attr_t vm_get_video_attr(vm_t *vm) {
     return vm->vmgi->vmgi_mat->vmgm_video_attr;
   default:
     assert(!"vm_get_video_attr(): unknown domain");
+    /* fall through */
+  case VTS_DOMAIN:
+    return vm->vtsi->vtsi_mat->vts_video_attr;
   }
 }
 
 audio_attr_t vm_get_audio_attr(vm_t *vm, int streamN) {
   switch ((vm->state).domain) {
-  case VTS_DOMAIN:
-    return vm->vtsi->vtsi_mat->vts_audio_attr[streamN];
   case VTSM_DOMAIN:
     return vm->vtsi->vtsi_mat->vtsm_audio_attr;
   case VMGM_DOMAIN:
@@ -884,13 +885,14 @@ audio_attr_t vm_get_audio_attr(vm_t *vm, int streamN) {
     return vm->vmgi->vmgi_mat->vmgm_audio_attr;
   default:
     assert(!"vm_get_audio_attr(): invalid domain");
+    /* fall through */
+  case VTS_DOMAIN:
+    return vm->vtsi->vtsi_mat->vts_audio_attr[streamN];
   }
 }
 
 subp_attr_t vm_get_subp_attr(vm_t *vm, int streamN) {
   switch ((vm->state).domain) {
-  case VTS_DOMAIN:
-    return vm->vtsi->vtsi_mat->vts_subp_attr[streamN];
   case VTSM_DOMAIN:
     return vm->vtsi->vtsi_mat->vtsm_subp_attr;
   case VMGM_DOMAIN:
@@ -898,6 +900,9 @@ subp_attr_t vm_get_subp_attr(vm_t *vm, int streamN) {
     return vm->vmgi->vmgi_mat->vmgm_subp_attr;
   default:
     assert(!"vm_get_subp_attr(): invalid domain");
+    /* fall through */
+  case VTS_DOMAIN:
+    return vm->vtsi->vtsi_mat->vts_subp_attr[streamN];
   }
 }
 
@@ -1629,6 +1634,8 @@ static int set_PGCN(vm_t *vm, int pgcN) {
   
   pgcit = get_PGCIT(vm);
   assert(pgcit != NULL);  /* ?? Make this return -1 instead */
+  if (!pgcit)
+    return 0;
 
   if(pgcN < 1 || pgcN > pgcit->nr_of_pgci_srp) {
 #ifdef TRACE
@@ -1730,6 +1737,8 @@ static int get_ID(vm_t *vm, int id) {
   /* Relies on state to get the correct pgcit. */
   pgcit = get_PGCIT(vm);
   assert(pgcit != NULL);
+  if (!pgcit)
+    return 0;
 #ifdef TRACE
   fprintf(MSG_OUT, "libdvdnav: ** Searching for menu (0x%x) entry PGC\n", id);
 #endif
@@ -1828,6 +1837,7 @@ static pgcit_t* get_PGCIT(vm_t *vm) {
     pgcit = get_MENU_PGCIT(vm, vm->vmgi, (vm->state).registers.SPRM[0]);
     break;
   default:
+    pgcit = NULL;
     assert(!"get_PGCIT(): invalid domain");
   }
   
