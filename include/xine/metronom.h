@@ -133,7 +133,9 @@ struct metronom_s {
    * DISC_RELATIVE    : typically a wrap-around, expect pts with
    *                    a specified offset from the former ones soon
    * DISC_ABSOLUTE    : typically a new menu stream (nav packets)
-   *                    pts will start from given value soon
+   *                    pts will start from given value soon.
+   *                    this will try a seamless transition even if decoder
+   *                    reorders frames around it.
    * DISC_STREAMSEEK  : used by video and audio decoder loop,
    *                    when a buffer with BUF_FLAG_SEEK set is encountered;
    *                    applies the necessary vpts offset for the seek in
@@ -184,6 +186,9 @@ struct metronom_s {
 #define METRONOM_LOCK             9
 /* Returns 0 (not waiting), 1 (waiting for audio discontinuity), 2 (waiting for video discontinuity). */
 #define METRONOM_WAITING          10
+/* Nasty input_vdr helper. Inserts an immediate absolute discontinuity,
+ * old style without pts reorder fix. */
+#define METRONOM_VDR_TRICK_PTS    11
 #define METRONOM_NO_LOCK          0x8000
 
 typedef void xine_speed_change_cb_t (void *user_data, int new_speed);

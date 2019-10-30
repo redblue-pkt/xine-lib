@@ -681,6 +681,37 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
   }
 }
 
+static void metronom_handle_vdr_trick_pts (metronom_impl_t *this, int64_t pts) {
+  int64_t cur_time = this->xine->clock->get_current_time (this->xine->clock);
+  if (this->video_vpts < cur_time) {
+    if (this->audio_vpts >= cur_time) {
+      /* still frame with audio */
+      this->video_vpts = this->audio_vpts;
+    } else {
+      /* still frame, no audio */
+      this->audio_vpts =
+      this->video_vpts = this->prebuffer + cur_time;
+      this->audio_vpts_rmndr = 0;
+      this->force_video_jump = 1;
+      this->force_audio_jump = 1;
+      this->video_drift = 0;
+    }
+  } else {
+    if (this->audio_vpts < cur_time) {
+      /* video, no sound */
+      this->audio_vpts = this->video_vpts;
+      this->audio_vpts_rmndr = 0;
+    }
+  }
+  this->vpts_offset = this->video_vpts - pts;
+  this->bounce_diff = this->bounce_vpts_offs - this->vpts_offset;
+  this->bounce_left_audio = -1;
+  this->bounce_left_video = -1;
+  this->bounce_jumped = 0;
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    "metronom: vdr trick pts %" PRId64 ", vpts %" PRId64 ".\n", pts, this->video_vpts);
+}
+
 static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
                                                  int64_t disc_off) {
   metronom_impl_t *this = (metronom_impl_t *)this_gen;
@@ -1167,6 +1198,9 @@ static void metronom_set_option (metronom_t *this_gen, int option, int64_t value
     xprintf (this->xine, XINE_VERBOSITY_LOG,
       "metronom: prebuffer=%" PRId64 " pts.\n", this->prebuffer);
     break;
+  case METRONOM_VDR_TRICK_PTS:
+    metronom_handle_vdr_trick_pts (this, value);
+    break;
   default:
     xprintf(this->xine, XINE_VERBOSITY_NONE,
       "metronom: unknown option in set_option: %d.\n", option);
@@ -1238,6 +1272,9 @@ static int64_t metronom_get_option (metronom_t *this_gen, int option) {
       break;
   case METRONOM_WAITING:
     result = (this->num_audio_waiters ? 1 : 0) | (this->num_video_waiters ? 2 : 0);
+    break;
+  case METRONOM_VDR_TRICK_PTS:
+    result = this->video_vpts;
     break;
   default:
     result = 0;
