@@ -256,11 +256,21 @@ void _x_demux_control_headers_done (xine_stream_t *s) {
 void _x_demux_control_start (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   buf_element_t *bufa, *bufv;
-  uint32_t flags;
+  uint32_t flags, id_flag;
 
+  id_flag = stream->id_flag;
   stream = stream->side_streams[0];
-  if (stream->start_buffers_sent)
+
+  /* if an _other_ side stream already sent this, skip our duplicate.
+   * the _same_ side is supposed to know what it is doing (input_vdr). */
+  pthread_mutex_lock (&stream->demux_pair_mutex);
+  if (stream->start_buffers_sent & (~id_flag)) {
+    pthread_mutex_unlock (&stream->demux_pair_mutex);
+    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+      "demux: stream %p: skipping duplicate start buffers.\n", (void *)stream);
     return;
+  }
+  pthread_mutex_unlock (&stream->demux_pair_mutex);
 
   flags = (stream->gapless_switch || stream->finished_naturally) ? BUF_FLAG_GAPLESS_SW : 0;
 
@@ -277,7 +287,7 @@ void _x_demux_control_start (xine_stream_t *s) {
   bufa->decoder_flags = flags;
   stream->s.audio_fifo->put (stream->s.audio_fifo, bufa);
 
-  stream->start_buffers_sent = 1;
+  stream->start_buffers_sent |= id_flag;
 
   pthread_mutex_unlock (&stream->demux_pair_mutex);
 }
