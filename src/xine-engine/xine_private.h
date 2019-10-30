@@ -486,6 +486,8 @@ typedef struct xine_stream_private_st {
    * It is set by init, and does not change until dispose.
    * In other words: it may safely be read without lock. */
   struct xine_stream_private_st *side_streams[XINE_NUM_SIDE_STREAMS];
+  /* 1 << side_stream_index (1, 2, 4, 8) */
+  uint32_t                   id_flag;
 
   /* stream meta information */
   /* Grab lock, or use helpers (see info_helper.c). */
@@ -514,7 +516,8 @@ typedef struct xine_stream_private_st {
   int                        header_count_video;
   int                        finished_count_audio;
   int                        finished_count_video;
-  int                        start_buffers_sent;
+  /* set of id_flag values */
+  uint32_t                   start_buffers_sent;
   int                        num_demuxers_running;
 
   /* event mechanism */

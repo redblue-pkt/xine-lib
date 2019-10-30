@@ -1044,6 +1044,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->video_decoder_extra_info = &stream->ei[2];
 
   stream->side_streams[0]       = stream;
+  stream->id_flag               = 1 << 0;
   stream->s.xine                = this;
   stream->status                = XINE_STATUS_IDLE;
 
@@ -1291,6 +1292,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   s->video_decoder_extra_info = m->video_decoder_extra_info;
 
   s->side_streams[0] = m;
+  s->id_flag         = 1 << index;
   s->s.xine = m->s.xine;
   s->status = XINE_STATUS_IDLE;
 
