@@ -117,6 +117,7 @@ static void *video_decoder_loop (void *stream_gen) {
   xine_ticket_t   *running_ticket = xine->port_ticket;
   buf_element_t   *buf;
   int              running = 1;
+  int              restart = 1;
   int              streamtype;
   int              prof_video_decode = -1;
   int              prof_spu_decode = -1;
@@ -172,6 +173,21 @@ static void *video_decoder_loop (void *stream_gen) {
           break;
         if (_x_stream_info_get (&stream->s, XINE_STREAM_INFO_IGNORE_VIDEO))
           break;
+
+        /* at first frame contents after start or seek, read first_frame_flag.
+         * this way, video_port.draw () need not grab lock for _every_ frame. */
+        if (restart) {
+          if (!(buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_HEADER))) {
+            int first_frame_flag;
+            restart = 0;
+            pthread_mutex_lock (&stream->first_frame_lock);
+            first_frame_flag = stream->first_frame_flag;
+            pthread_mutex_unlock (&stream->first_frame_lock);
+            /* use first_frame_flag here, so gcc does not optimize it away. */
+            xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+              "video_decoder: first_frame_flag = %d.\n", first_frame_flag);
+          }
+        }
 
         xine_profiler_start_count (prof_video_decode);
 
@@ -332,6 +348,7 @@ static void *video_decoder_loop (void *stream_gen) {
               pthread_cond_broadcast (&stream->counter_changed);
             }
             pthread_mutex_unlock (&stream->counter_lock);
+            restart = 1;
             break;
 
           case BUFTYPE_SUB (BUF_CONTROL_START):
@@ -354,6 +371,7 @@ static void *video_decoder_loop (void *stream_gen) {
               running_ticket->acquire (running_ticket, 0);
             }
             buftype_unknown = 0;
+            restart = 1;
             break;
 
           case BUFTYPE_SUB (BUF_CONTROL_SPU_CHANNEL):
@@ -653,5 +671,4 @@ void _x_video_decoder_shutdown (xine_stream_t *s) {
     stream->s.video_fifo = NULL;
   }
 }
-
 
