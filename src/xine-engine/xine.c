@@ -2065,6 +2065,16 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
     sp++;
   } while (sp->s);
 
+  /* WTF??
+   * TJ. OK these calls involve lock/unlock of the fifo mutexes.
+   * Demux will do that again later by fifo->put ().
+   * At least with x86 Linux, such a sequence forces a data cache sync from this thread
+   * to the demux thread. This way, demux will see demux_action_pending > 0 early,
+   * without the need to grab demux_action_lock for every iteration.
+   * Reduces response delay by average 20ms. */
+  (void)stream->s.video_fifo->size (stream->s.video_fifo);
+  (void)stream->s.audio_fifo->size (stream->s.audio_fifo);
+
   /* ignore speed changes (net_buf_ctrl causes deadlocks while seeking ...) */
   lock_run (stream);
 
@@ -2093,6 +2103,14 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
     pthread_mutex_unlock (&sp->s->demux_action_lock);
     sp++;
   } while (sp->s);
+
+  if (stream->s.xine->verbosity >= XINE_VERBOSITY_DEBUG) {
+    int diff;
+    xine_gettime (&ts2);
+    diff = (int)(ts2.tv_nsec - ts1.tv_nsec) / 1000000;
+    diff += (ts2.tv_sec - ts1.tv_sec) * 1000;
+    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "play_internal: ...demux suspended after %dms.\n", diff);
+  }
 
   /* set normal speed again (now that demuxer/input pair is suspended)
    * some input plugin may have changed speed by itself, we must ensure
