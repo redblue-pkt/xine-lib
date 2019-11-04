@@ -723,9 +723,9 @@ static uint32_t fifo_buffer_data_size (fifo_buffer_t *this) {
 static int fifo_buffer_num_free (fifo_buffer_t *this) {
   int buffer_pool_num_free;
 
-  pthread_mutex_lock(&this->mutex);
+  pthread_mutex_lock (&this->buffer_pool_mutex);
   buffer_pool_num_free = this->buffer_pool_num_free;
-  pthread_mutex_unlock(&this->mutex);
+  pthread_mutex_unlock (&this->buffer_pool_mutex);
 
   return buffer_pool_num_free;
 }
