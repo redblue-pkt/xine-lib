@@ -1339,7 +1339,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
 
   const uint8_t *p;
   uint32_t       header_len;
-  int64_t        pts, old_pts;
+  int64_t        pts;
   uint32_t       stream_id;
 
   if (this->stream->xine->verbosity == 4)
@@ -1426,9 +1426,6 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
      DTS = 0;
   */
 
-  old_pts = pts;
-  m->pts = pts;
-
   if ((m->pid == this->videoPid) && this->get_frametype) {
     frametype_t t = this->get_frametype (p + header_len, packet_len - header_len);
     if (t == FRAMETYPE_I) {
@@ -1459,7 +1456,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
     if (m->pes_bytes_left > 0xff00)
       m->resume |= PES_RESUME;
   } else {
-    if ((m->pts != old_pts) && m->pts) {
+    if ((pts != m->pts) && pts) {
       m->resume &= ~PES_RESUME;
       if (!(m->resume & PES_FLUSHED))
         demux_ts_flush_media (this, m);
@@ -1467,6 +1464,8 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
       m->resume &= ~PES_RESUME;
     }
   }
+  /* now that finished previous buf is sent, set new pts. */
+  m->pts = pts;
   /* allocate the buffer here, as pes_header needs a valid buf for dvbsubs */
   if (!m->buf)
     m->buf = m->fifo->buffer_pool_alloc (m->fifo);
