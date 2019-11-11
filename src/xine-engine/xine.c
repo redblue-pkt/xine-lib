@@ -718,15 +718,21 @@ static void stop_internal (xine_stream_private_t *stream) {
   lprintf ("done\n");
 }
 
-/* force engine to run at normal speed. */
+/* force engine to run at normal speed. if you are about to grab a ticket,
+ * do wait for the rare case of a set_fine_speed (0) in progress. */
 
-static void lock_run (xine_stream_private_t *stream) {
+static void lock_run (xine_stream_private_t *stream, int wait) {
   xine_private_t *xine = (xine_private_t *)stream->s.xine;
 
   pthread_mutex_lock (&xine->speed_change_lock);
   if (xine->speed_change_flags & SPEED_FLAG_CHANGING) {
     xine->speed_change_flags |= SPEED_FLAG_IGNORE_CHANGE | SPEED_FLAG_WANT_NEW;
     xine->speed_change_new_speed = XINE_FINE_SPEED_NORMAL;
+    if (wait) {
+      do {
+        pthread_cond_wait (&xine->speed_change_done, &xine->speed_change_lock);
+      } while (xine->speed_change_flags & SPEED_FLAG_CHANGING);
+    }
     pthread_mutex_unlock (&xine->speed_change_lock);
     return;
   }
@@ -760,7 +766,7 @@ void xine_stop (xine_stream_t *s) {
   pthread_cleanup_push (mutex_cleanup, (void *) &m->frontend_lock);
 
   /* make sure that other threads cannot change the speed, especially pauseing the stream */
-  lock_run (m);
+  lock_run (m, 1);
 
   xine->port_ticket->acquire (xine->port_ticket, 1);
 
@@ -801,10 +807,12 @@ static void close_internal (xine_stream_private_t *stream) {
     }
   }
 
-  if (flush) {
-    /* make sure that other threads cannot change the speed, especially pauseing the stream */
-    lock_run (m);
+  /* make sure that other threads cannot change the speed.
+   * especially pauseing the stream may hold demux waiting for fifo pool or ticket,
+   * and thus freeze stop_internal () -> _x_demux_stop_thread () below. */
+  lock_run (m, flush);
 
+  if (flush) {
     xine->port_ticket->acquire (xine->port_ticket, 1);
 
     if (m->s.audio_out)
@@ -822,8 +830,9 @@ static void close_internal (xine_stream_private_t *stream) {
       m->s.audio_out->set_property (m->s.audio_out, AO_PROP_DISCARD_BUFFERS, 0);
 
     xine->port_ticket->release (xine->port_ticket, 1);
-    unlock_run (m);
   }
+
+  unlock_run (m);
 
   if (stream == m) {
     unsigned int u;
@@ -2076,7 +2085,7 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   (void)stream->s.audio_fifo->size (stream->s.audio_fifo);
 
   /* ignore speed changes (net_buf_ctrl causes deadlocks while seeking ...) */
-  lock_run (stream);
+  lock_run (stream, 1);
 
   xine->port_ticket->acquire (xine->port_ticket, 1);
 
@@ -2457,6 +2466,7 @@ void xine_exit (xine_t *this_gen) {
   if(this->port_ticket)
     this->port_ticket->dispose(this->port_ticket);
 
+  pthread_cond_destroy (&this->speed_change_done);
   pthread_mutex_destroy (&this->speed_change_lock);
 
   {
@@ -2495,6 +2505,7 @@ xine_t *xine_new (void) {
 #endif
 
   pthread_mutex_init (&this->speed_change_lock, NULL);
+  pthread_cond_init (&this->speed_change_done, NULL);
 
 #ifdef ENABLE_NLS
   /*
@@ -2863,6 +2874,8 @@ void _x_set_fine_speed (xine_stream_t *s, int speed) {
     speed_change_flags = xine->speed_change_flags;
     if (!(speed_change_flags & (SPEED_FLAG_WANT_LIVE | SPEED_FLAG_WANT_NEW))) {
       xine->speed_change_flags = speed_change_flags & ~(SPEED_FLAG_CHANGING | SPEED_FLAG_WANT_LIVE | SPEED_FLAG_WANT_NEW);
+      if (speed_change_flags & SPEED_FLAG_IGNORE_CHANGE)
+        pthread_cond_broadcast (&xine->speed_change_done);
       pthread_mutex_unlock (&xine->speed_change_lock);
       return;
     }
