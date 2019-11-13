@@ -2724,27 +2724,33 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
     if (value) {
       pthread_mutex_lock (&this->display_img_buf_queue.mutex);
       this->discard_frames++;
-      pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
-    } else if (this->discard_frames) {
-      pthread_mutex_lock (&this->display_img_buf_queue.mutex);
-      if (this->discard_frames == 1) {
-        if (this->video_loop_running && (this->flush_extra || this->display_img_buf_queue.first)) {
-          /* Usually, render thread already did that in the meantime. Anyway, make sure display queue
-             is empty, and more importantly, there are free frames for decoding when discard gets lifted. */
-          vo_wait_flush (this);
-        }
-        this->flushed = 1;
+      ret = this->discard_frames;
+      if (this->grab_only) {
+        /* discard buffers here because we have no output thread. */
+        vo_manual_flush (this);
       }
-      this->discard_frames--;
       pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
-    } else
-      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-	       "vo_set_property: discard_frames is already zero\n");
-    ret = this->discard_frames;
-
-    /* discard buffers here because we have no output thread */
-    if (this->grab_only && this->discard_frames)
-      vo_manual_flush (this);
+    } else {
+      pthread_mutex_lock (&this->display_img_buf_queue.mutex);
+      if (this->discard_frames) {
+        if (this->discard_frames == 1) {
+          if (this->video_loop_running && (this->flush_extra || this->display_img_buf_queue.first)) {
+            /* Usually, render thread already did that in the meantime. Anyway, make sure display queue
+               is empty, and more importantly, there are free frames for decoding when discard gets lifted. */
+            vo_wait_flush (this);
+          }
+          this->flushed = 1;
+        }
+        this->discard_frames--;
+        ret = this->discard_frames;
+        pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+      } else {
+        pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+        xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
+          "vo_set_property: discard_frames is already zero\n");
+        ret = 0;
+      }
+    }
     break;
 
   /*
