@@ -208,7 +208,6 @@ typedef struct {
   int                  dreqs_wait;
   pthread_mutex_t      driver_lock;
 
-  uint32_t             driver_open:1;
   uint32_t             audio_loop_running:1;
   uint32_t             grab_only:1; /* => do not start thread, frontend will consume samples */
   uint32_t             do_resample:1;
@@ -216,6 +215,7 @@ typedef struct {
   uint32_t             do_amp:1;
   uint32_t             amp_mute:1;
   uint32_t             do_equ:1;
+  uint32_t             driver_open:1;
 
   int                  num_driver_actions; /* number of threads, that wish to call
                                             * functions needing driver_lock */
@@ -277,7 +277,6 @@ typedef struct {
   int16_t        *zero_space;
 
   int             passthrough_offset, ptoffs;
-  int             flush_audio_driver;
   int             discard_buffers;
 
   int             dropped;
@@ -330,6 +329,44 @@ typedef struct {
   audio_buffer_t  base_buf[NUM_AUDIO_BUFFERS + 2];
   extra_info_t    base_ei[EI_RING_SIZE + NUM_AUDIO_BUFFERS + 2];
 } aos_t;
+
+static inline void ao_driver_lock (aos_t *this) {
+  if (pthread_mutex_trylock (&this->driver_lock)) {
+    pthread_mutex_lock (&this->driver_action_lock);
+    this->num_driver_actions++;
+    pthread_mutex_unlock (&this->driver_action_lock);
+
+    pthread_mutex_lock (&this->driver_lock);
+    this->dreqs_wait++;
+
+    pthread_mutex_lock (&this->driver_action_lock);
+    this->num_driver_actions--;
+    /* indicate the change to ao_loop() */
+    pthread_cond_broadcast (&this->driver_action_cond);
+    pthread_mutex_unlock (&this->driver_action_lock);
+  }
+  this->dreqs_all++;
+}
+
+
+static inline void ao_driver_unlock (aos_t *this) {
+  pthread_mutex_unlock (&this->driver_lock);
+}
+
+static void ao_flush_driver (aos_t *this) {
+  if (this->current_speed == XINE_SPEED_PAUSE)
+    return;
+  ao_driver_lock (this);
+  if (this->driver_open) {
+    if (this->driver->delay (this->driver) > 0) {
+      this->driver->control (this->driver, AO_CTRL_FLUSH_BUFFERS, NULL);
+      ao_driver_unlock (this);
+      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: flushed driver.\n");
+      return;
+    }
+  }
+  ao_driver_unlock (this);
+}
 
 static int ao_set_property (xine_audio_port_t *this_gen, int property, int value);
 
@@ -610,16 +647,15 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       this->seek_count1 = -1;
     }
 
-    if (this->flush_audio_driver) {
-      this->ei_read = this->ei_write = 0;
-      this->ao.control (&this->ao, AO_CTRL_FLUSH_BUFFERS, NULL);
-      this->flush_audio_driver--;
-      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: flushed driver.\n");
-    }
-
     if (this->discard_buffers) {
-      audio_buffer_t *list = NULL, **add = &list;
-      int n = 0;
+      audio_buffer_t *list, **add;
+      int n;
+
+      this->ei_read = this->ei_write = 0;
+
+      list = NULL;
+      add = &list;
+      n = 0;
       if (buf) {
         *add = buf;
         add = &buf->next;
@@ -829,17 +865,22 @@ static void ao_out_fifo_manual_flush (aos_t *this) {
 }
 
 static void ao_out_fifo_loop_flush (aos_t *this) {
+  int n;
   pthread_mutex_lock (&this->out_fifo.mutex);
   this->discard_buffers++;
   while (this->out_fifo.first) {
     /* i think it's strange to send not_empty signal here (beside the enqueue
-     * function), but it should do no harm. [MF] */
+     * function), but it should do no harm. [MF]
+     * TJ. and its needed now that ao loop no longer polls. */
     if (this->out_fifo.num_waiters)
       pthread_cond_signal (&this->out_fifo.not_empty);
     pthread_cond_wait (&this->out_fifo.empty, &this->out_fifo.mutex);
   }
   this->discard_buffers--;
+  n = this->discard_buffers;
   pthread_mutex_unlock (&this->out_fifo.mutex);
+  if (n == 0)
+    ao_flush_driver (this);
 }
 
 
@@ -2109,30 +2150,6 @@ static int ao_change_settings (aos_t *this, xine_stream_t *stream, uint32_t bits
 }
 
 
-static inline void ao_driver_lock (aos_t *this) {
-  if (pthread_mutex_trylock (&this->driver_lock)) {
-    pthread_mutex_lock (&this->driver_action_lock);
-    this->num_driver_actions++;
-    pthread_mutex_unlock (&this->driver_action_lock);
-
-    pthread_mutex_lock (&this->driver_lock);
-    this->dreqs_wait++;
-
-    pthread_mutex_lock (&this->driver_action_lock);
-    this->num_driver_actions--;
-    /* indicate the change to ao_loop() */
-    pthread_cond_broadcast (&this->driver_action_cond);
-    pthread_mutex_unlock (&this->driver_action_lock);
-  }
-  this->dreqs_all++;
-}
-
-
-static inline void ao_driver_unlock (aos_t *this) {
-  pthread_mutex_unlock (&this->driver_lock);
-}
-
-
 /*
  * open the audio device for writing to
  */
@@ -2301,6 +2318,7 @@ static void ao_close(xine_audio_port_t *this_gen, xine_stream_t *stream) {
 
 static void ao_speed_change_cb (void *this_gen, int new_speed) {
   aos_t *this = (aos_t *)this_gen;
+
   /* something to do? */
   if (new_speed == (int)(this->current_speed))
     return;
@@ -2310,24 +2328,35 @@ static void ao_speed_change_cb (void *this_gen, int new_speed) {
      not release current speed lock long enough to wake us up here.
      So tell loop to enter unpause waiting _before_ we wait. */
   this->current_speed = new_speed;
-  /*
-   * slow motion / fast forward does not play sound, drop buffered
-   * samples from the sound driver (check slow_fast_audio flag)
-   */
-  if ((new_speed != XINE_FINE_SPEED_NORMAL) &&
-      (new_speed != XINE_SPEED_PAUSE) &&
-      !this->slow_fast_audio)
-    this->ao.control (&this->ao, AO_CTRL_FLUSH_BUFFERS, NULL);
 
-  if (new_speed == XINE_SPEED_PAUSE) {
-    /* current_speed_lock is here to make sure the ao_loop will pause in a safe place.
-     * that is, we cannot pause writing to device, filling gaps etc. */
-    pthread_mutex_lock (&this->current_speed_lock);
-    this->ao.control (&this->ao, AO_CTRL_PLAY_PAUSE, NULL);
-    pthread_mutex_unlock (&this->current_speed_lock);
-  } else {
-    this->ao.control (&this->ao, AO_CTRL_PLAY_RESUME, NULL);
+  if (!this->grab_only) {
+    if (new_speed == XINE_SPEED_PAUSE) {
+      /* current_speed_lock is here to make sure the ao_loop will pause in a safe place.
+       * that is, we cannot pause writing to device, filling gaps etc. */
+      pthread_mutex_lock (&this->current_speed_lock);
+      ao_driver_lock (this);
+      if (this->driver_open) {
+        /* Some simple drivers misunderstand AO_CTRL_PLAY_PAUSE as "wait for running dry first".
+         * Lets try this flush HACK. See also unpause resend buffer. */
+        if (this->driver->get_capabilities (this->driver) & AO_CAP_NO_UNPAUSE)
+          this->driver->control (this->driver, AO_CTRL_FLUSH_BUFFERS, NULL);
+        this->driver->control (this->driver, AO_CTRL_PLAY_PAUSE, NULL);
+      }
+      ao_driver_unlock (this);
+      pthread_mutex_unlock (&this->current_speed_lock);
+    } else {
+      ao_driver_lock (this);
+      if (this->driver_open) {
+        /* slow motion / fast forward does not play sound, drop buffered
+         * samples from the sound driver (check slow_fast_audio flag) */
+        if ((new_speed != XINE_FINE_SPEED_NORMAL) && !this->slow_fast_audio)
+          this->driver->control (this->driver, AO_CTRL_FLUSH_BUFFERS, NULL);
+        this->driver->control (this->driver, AO_CTRL_PLAY_RESUME, NULL);
+      }
+      ao_driver_unlock (this);
+    }
   }
+
   ao_update_resample_factor (this);
   ao_out_fifo_signal (this);
 }
@@ -2585,10 +2614,17 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
       pthread_mutex_lock (&this->out_fifo.mutex);
       if (this->discard_buffers) {
         if (this->discard_buffers == 1) {
-          if (!this->grab_only && this->audio_loop_running && this->out_fifo.first) {
-            /* Usually, output thread already did that in the meantime.
-             * If not, do it here and avoid extra context switches. */
-            ao_out_fifo_manual_flush (this);
+          if (!this->grab_only) {
+            if (this->audio_loop_running && this->out_fifo.first) {
+              /* Usually, output thread already did that in the meantime.
+               * If not, do it here and avoid extra context switches. */
+              ao_out_fifo_manual_flush (this);
+            }
+            this->discard_buffers = ret = 0;
+            pthread_mutex_unlock (&this->out_fifo.mutex);
+            /* flush driver at last lift, so user can hear this seek segment longer. */
+            ao_flush_driver (this);
+            break;
           }
         }
         this->discard_buffers--;
@@ -2660,12 +2696,8 @@ static void ao_flush (xine_audio_port_t *this_gen) {
   xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
            "audio_out: ao_flush (loop running: %d)\n", this->audio_loop_running);
 
-  if( this->audio_loop_running ) {
-    /* do not try this in paused mode */
-    if (this->current_speed != XINE_SPEED_PAUSE)
-      this->flush_audio_driver++;
+  if (this->audio_loop_running)
     ao_out_fifo_loop_flush (this);
-  }
 }
 
 static int ao_status (xine_audio_port_t *this_gen, xine_stream_t *stream,
@@ -2753,7 +2785,6 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->dreqs_all              = 0;
   this->dreqs_wait             = 0;
   this->audio_loop_running     = 0;
-  this->flush_audio_driver     = 0;
   this->discard_buffers        = 0;
   this->step                   = 0;
   this->last_gap               = 0;
@@ -3007,4 +3038,3 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->xine->x.clock->register_speed_change_callback (this->xine->x.clock, ao_speed_change_cb, this);
   return &this->ao;
 }
-
