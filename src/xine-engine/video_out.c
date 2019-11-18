@@ -2728,8 +2728,17 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
       if (this->grab_only) {
         /* discard buffers here because we have no output thread. */
         vo_manual_flush (this);
+        pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+      } else {
+        pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
+        if (ret == 1) {
+          /* render thread will grab this mutex after each frame.
+           * taking it here triggers a data cache sync, and makes it see discard_frames early. */
+          pthread_mutex_lock (&this->trigger_drawing_mutex);
+          this->trigger_drawing = 1;
+          pthread_mutex_unlock (&this->trigger_drawing_mutex);
+        }
       }
-      pthread_mutex_unlock (&this->display_img_buf_queue.mutex);
     } else {
       pthread_mutex_lock (&this->display_img_buf_queue.mutex);
       if (this->discard_frames) {

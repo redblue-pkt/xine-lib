@@ -177,7 +177,8 @@ static void *video_decoder_loop (void *stream_gen) {
         /* at first frame contents after start or seek, read first_frame_flag.
          * this way, video_port.draw () need not grab lock for _every_ frame. */
         if (restart) {
-          if (!(buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_HEADER))) {
+          /* a 4 byte buf may be a generated sequence end code from mpeg-ts. */
+          if (!(buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_HEADER)) && (buf->size != 4)) {
             int first_frame_flag;
             restart = 0;
             pthread_mutex_lock (&stream->first_frame_lock);
@@ -671,4 +672,3 @@ void _x_video_decoder_shutdown (xine_stream_t *s) {
     stream->s.video_fifo = NULL;
   }
 }
-
