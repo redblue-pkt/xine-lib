@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -54,6 +54,9 @@
 #define PTS_AUDIO 0
 #define PTS_VIDEO 1
 
+/* disabled for now.
+#define PTS_BOUNCE
+*/
 
 /* redefine abs as macro to handle 64-bit diffs.
    i guess llabs may not be available everywhere */
@@ -67,6 +70,7 @@ typedef struct demux_mpeg_pes_s {
   fifo_buffer_t        *video_fifo;
 
   input_plugin_t       *input;
+  int                   is_vdr;
 
   int                   status;
 
@@ -75,6 +79,10 @@ typedef struct demux_mpeg_pes_s {
   int64_t               nav_last_end_pts;
   int64_t               nav_last_start_pts;
   int64_t               last_pts[2];
+#ifdef PTS_BOUNCE
+  int64_t               apts, bpts;
+  int32_t               bounce_left;
+#endif
   int64_t               scr;
   uint32_t              packet_len;
   uint32_t              stream_id;
@@ -119,6 +127,61 @@ static int32_t parse_IEC14496_SL_packetized_stream(demux_mpeg_pes_t *this, uint8
 static int32_t parse_IEC14496_FlexMux_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf);
 static int32_t parse_program_stream_directory(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf);
 static int32_t parse_program_stream_pack_header(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf);
+
+#ifdef PTS_BOUNCE
+#define ts_abs(x) (((x) < 0) ? -(x) : (x))
+/* bounce detection like in metronom. looks like double work but saves
+ * up to 80 discontinuity messages. */
+static void check_newpts (demux_mpeg_pes_t *this, int64_t pts, int video) {
+#ifdef TS_LOG
+  printf ("demux_mpeg_pes: check_newpts %lld, send_newpts %d, buf_flag_seek %d\n",
+    pts, this->send_newpts, this->buf_flag_seek);
+#endif
+/*if (pts)*/
+  {
+    int64_t diff;
+    do {
+      this->last_pts[video] = pts;
+      if (!this->apts) {
+        diff = 0;
+        this->apts = pts;
+        break;
+      }
+      diff = pts - this->apts;
+      if (ts_abs (diff) <= WRAP_THRESHOLD) {
+        this->apts = pts;
+        break;
+      }
+      if (this->bpts) {
+        diff = pts - this->bpts;
+        if (ts_abs (diff) <= WRAP_THRESHOLD) {
+          this->bpts = pts;
+          break;
+        }
+      }
+      this->bpts = this->apts;
+      this->apts = pts;
+      this->bounce_left = WRAP_THRESHOLD;
+      _x_demux_control_newpts (this->stream, pts, this->buf_flag_seek ? BUF_FLAG_SEEK : 0);
+      this->send_newpts = 0;
+      this->buf_flag_seek = 0;
+      return;
+    } while (0);
+    if (this->bounce_left) {
+      this->bounce_left -= diff;
+      if (this->bounce_left <= 0) {
+        this->bpts = 0;
+        this->bounce_left = 0;
+      }
+    }
+    if (this->send_newpts || this->buf_flag_seek) {
+      _x_demux_control_newpts (this->stream, pts, this->buf_flag_seek ? BUF_FLAG_SEEK : 0);
+      this->send_newpts = 0;
+      this->buf_flag_seek = 0;
+    }
+  }
+}
+#else /* !PTS_BOUNCE */
 
 static int detect_pts_discontinuity( demux_mpeg_pes_t *this, int64_t pts, int video )
 {
@@ -217,6 +280,7 @@ static void check_newpts( demux_mpeg_pes_t *this, int64_t pts, int video )
   if( pts )
     this->last_pts[video] = pts;
 }
+#endif
 
 static off_t read_data(demux_mpeg_pes_t *this, uint8_t *buf, off_t nlen)
 {
@@ -413,12 +477,31 @@ static void demux_mpeg_pes_parse_pack (demux_mpeg_pes_t *this, int preview_mode)
   return;
 }
 
+static void demux_mpeg_pes_vdr_seek_0 (demux_mpeg_pes_t *this, int n) {
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "demux_mpeg_pes: vdr sync point #%d.\n", n);
+  this->last_cell_time = 0;
+  this->send_newpts = 1;
+  this->buf_flag_seek = 0;
+  this->nav_last_end_pts = this->nav_last_start_pts = 0;
+  this->status   = DEMUX_OK ;
+  this->last_pts[0]   = 0;
+  this->last_pts[1]   = 0;
+#ifdef PTS_BOUNCE
+  this->apts = this->bpts = 0;
+  this->bounce_left = 0;
+#endif
+}
+
 static int32_t parse_padding_stream(demux_mpeg_pes_t *this, uint8_t *p, buf_element_t *buf) {
   /* Just skip padding. */
   int todo = 6 + this->packet_len;
   int done = buf->size;
 
   (void)p;
+
+  if (this->is_vdr && (buf->content[4] == 0xff))
+    demux_mpeg_pes_vdr_seek_0 (this, buf->content[5]);
 
   while (done < todo)
   {
@@ -1587,6 +1670,10 @@ static int demux_mpeg_pes_seek (demux_plugin_t *this_gen,
     this->status   = DEMUX_OK ;
     this->last_pts[0]   = 0;
     this->last_pts[1]   = 0;
+#ifdef PTS_BOUNCE
+    this->apts = this->bpts = 0;
+    this->bounce_left = 0;
+#endif
   } else {
     this->buf_flag_seek = 1;
     this->nav_last_end_pts = this->nav_last_start_pts = 0;
@@ -1684,6 +1771,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   this->stream = stream;
   this->input  = input;
   this->status = DEMUX_FINISHED;
+
+  this->is_vdr = 0;
+  if (input->input_class->identifier && !strcmp (input->input_class->identifier, "VDR"))
+    this->is_vdr = 1;
 
   /* Don't start demuxing stream until we see a program_stream_pack_header */
   /* We need to system header in order to identify is the stream is mpeg1 or mpeg2. */
