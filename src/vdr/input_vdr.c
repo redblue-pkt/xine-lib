@@ -123,6 +123,7 @@ struct vdr_input_plugin_s
   xine_stream_t      *stream;
   xine_stream_t      *stream_external;
 
+  int                 is_netvdr;
   int                 fh;
   int                 fh_control;
   int                 fh_result;
@@ -765,50 +766,63 @@ break;
         "input_vdr: clear (%d, %d, %u)\n", (int)data->n, (int)data->s, (unsigned int)data->i);
 
       {
+        /* make sure engine is not paused. */
         int orig_speed = xine_get_param(this->stream, XINE_PARAM_FINE_SPEED);
-        if (orig_speed <= 0)
-          xine_set_param(this->stream, XINE_PARAM_FINE_SPEED, XINE_FINE_SPEED_NORMAL);
-/* fprintf(stderr, "+++ CLEAR(%d%c): sync point: %02x\n", data->n, data->s ? 'b' : 'a', data->i); */
-        if (!data->s)
-        {
-          pthread_mutex_lock(&this->find_sync_point_lock);
+        if (orig_speed <= XINE_FINE_SPEED_NORMAL / 3)
+          xine_set_param (this->stream, XINE_PARAM_FINE_SPEED, XINE_FINE_SPEED_NORMAL);
+
+        /* server seems to always send this 2 times: with s == 0, then again with s == 1.
+         * lets try and ignore the latter. */
+        if (!data->s) {
+          /* let vdr_plugin_read () seek (skip) to server generated pes padding of 6 + 0xff00 + i bytes:
+           * 00 00 01 be ff <i> ...
+           * this flushes the main pipe, and tells demux about this. */
+          pthread_mutex_lock (&this->find_sync_point_lock);
           this->find_sync_point = data->i;
-          pthread_mutex_unlock(&this->find_sync_point_lock);
-        }
+          pthread_mutex_unlock (&this->find_sync_point_lock);
 /*
-        if (!this->dont_change_xine_volume)
-          xine_set_param(this->stream, XINE_PARAM_AUDIO_VOLUME, 0);
+          if (!this->dont_change_xine_volume)
+            xine_set_param(this->stream, XINE_PARAM_AUDIO_VOLUME, 0);
 */
-        _x_demux_flush_engine(this->stream);
+          /* start buffers are needed at least to reset audio track map.
+           * demux_pes does pass pes audio id as track verbatim, and a
+           * switch from a52 to mp2 or back would add a new track instead
+           * of replacing the old one.
+           * start bufs will force metronom DISC_STREAMSTART wait later.
+           * we need to make sure vdr does not pause inbetween, and freeze.
+           * workaround: send start first, then flush. flush will keep the
+           * start bufs, and wait until both decoders have seen all this. */
 /* fprintf(stderr, "=== CLEAR(%d.1)\n", data->n); */
-        vdr_start_buffers (this);
+          vdr_start_buffers (this);
+          _x_demux_flush_engine (this->stream);
 /* fprintf(stderr, "=== CLEAR(%d.2)\n", data->n); */
-        _x_demux_seek(this->stream, 0, 0, 0);
+          /* _x_demux_seek (this->stream, 0, 0, 0); */
 /* fprintf(stderr, "=== CLEAR(%d.3)\n", data->n); */
 
-        /* XXX: why is this needed? */
-        pthread_mutex_lock (&this->metronom.mutex);
-        this->metronom.audio_seek = 1;
-        this->metronom.video_seek = 1;
-        pthread_mutex_unlock (&this->metronom.mutex);
-        pthread_mutex_lock (&this->vpts_offset_queue_lock);
-        this->last_disc_type = DISC_STREAMSTART;
-        pthread_mutex_unlock (&this->vpts_offset_queue_lock);
+          /* XXX: why is this needed? */
+          pthread_mutex_lock (&this->metronom.mutex);
+          this->metronom.audio_seek = 1;
+          this->metronom.video_seek = 1;
+          pthread_mutex_unlock (&this->metronom.mutex);
+          pthread_mutex_lock (&this->vpts_offset_queue_lock);
+          this->last_disc_type = DISC_STREAMSTART;
+          pthread_mutex_unlock (&this->vpts_offset_queue_lock);
 
-        _x_stream_info_reset(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE);
+          _x_stream_info_reset(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE);
 /* fprintf(stderr, "=== CLEAR(%d.4)\n", data->n); */
-	_x_meta_info_reset(this->stream, XINE_META_INFO_AUDIOCODEC);
+          _x_meta_info_reset (this->stream, XINE_META_INFO_AUDIOCODEC);
 /* fprintf(stderr, "=== CLEAR(%d.5)\n", data->n); */
 
-        _x_trigger_relaxed_frame_drop_mode(this->stream);
+          _x_trigger_relaxed_frame_drop_mode(this->stream);
 /*        _x_reset_relaxed_frame_drop_mode(this->stream); */
 /*
-        if (!this->dont_change_xine_volume)
-          xine_set_param(this->stream, XINE_PARAM_AUDIO_VOLUME, this->last_volume);
+          if (!this->dont_change_xine_volume)
+            xine_set_param(this->stream, XINE_PARAM_AUDIO_VOLUME, this->last_volume);
 */
+        }
 /* fprintf(stderr, "--- CLEAR(%d%c)\n", data->n, data->s ? 'b' : 'a'); */
-        if (orig_speed <= 0)
-          xine_set_param(this->stream, XINE_PARAM_FINE_SPEED, orig_speed);
+        if (orig_speed <= XINE_FINE_SPEED_NORMAL / 3)
+          xine_set_param (this->stream, XINE_PARAM_FINE_SPEED, orig_speed);
       }
     }
     break;
@@ -1589,91 +1603,132 @@ static int internal_write_event_discontinuity(vdr_input_plugin_t *this, int32_t 
   return 0;
 }
 
-static off_t vdr_plugin_read(input_plugin_t *this_gen,
-                             void *buf_gen, off_t len)
-{
+static ssize_t vdr_main_read (vdr_input_plugin_t *this, uint8_t *buf, ssize_t len) {
+  ssize_t have = 0, n = 0;
+
+  if (this->is_netvdr) {
+
+    n = _x_io_tcp_read (this->stream, this->fh, buf + have, len - have);
+    if (n >= 0) {
+      this->curpos += n;
+      have += n;
+#ifdef LOG_READ
+      lprintf ("got %d bytes (%d/%d bytes read)\n", (int)n, (int)have, (int)len);
+#endif
+    }
+
+  } else {
+
+    int retries = 0;
+    while (have < len) {
+      n = read (this->fh, buf + have, len - have);
+      if (n > 0) {
+        retries = 0;
+        this->curpos += n;
+        have += n;
+#ifdef LOG_READ
+        lprintf ("got %d bytes (%d/%d bytes read)\n", (int)n, (int)have, (int)len);
+#endif
+        continue;
+      }
+      if (n < 0) {
+        int e = errno;
+        if (e == EINTR)
+          continue;
+        if (e != EAGAIN)
+          break;
+        do {
+          fd_set rset;
+          struct timeval timeout;
+          if (_x_action_pending (this->stream) || this->stream_external || !_x_continue_stream_processing (this->stream)) {
+            errno = EINTR;
+            break;
+          }
+          FD_ZERO (&rset);
+          FD_SET (this->fh, &rset);
+          timeout.tv_sec  = 0;
+          timeout.tv_usec = 50000;
+          e = select (this->fh + 1, &rset, NULL, NULL, &timeout);
+        } while (e == 0);
+        if (e < 0)
+          break;
+      } else { /* n == 0 (pipe not yet open for writing) */
+        struct timeval timeout;
+        if (_x_action_pending (this->stream) || this->stream_external || !_x_continue_stream_processing (this->stream)) {
+          errno = EINTR;
+          break;
+        }
+        if (++retries >= 200) { /* 200 * 50ms */
+          errno = ETIMEDOUT;
+          break;
+        }
+        lprintf ("read 0, retries: %d\n", retries);
+        timeout.tv_sec  = 0;
+        timeout.tv_usec = 50000;
+        select (0, NULL, NULL, NULL, &timeout);
+      }
+    }
+
+  }
+  if ((n < 0) && (errno != EINTR))
+    _x_message (this->stream, XINE_MSG_READ_ERROR, NULL);
+  return have;
+}
+
+static off_t vdr_plugin_read (input_plugin_t *this_gen, void *buf_gen, off_t len) {
   vdr_input_plugin_t  *this = (vdr_input_plugin_t *) this_gen;
   uint8_t *buf = (uint8_t *)buf_gen;
-  off_t n, total;
+  ssize_t have;
 #ifdef LOG_READ
-  lprintf ("reading %lld bytes...\n", len);
+  lprintf ("reading %d bytes...\n", (int)len);
 #endif
-  total=0;
 
-  if( len > 0 )
-  {
-    int retries = 0;
-    do
-    {
-      n = vdr_read_abort (this->stream, this->fh, (char *)&buf[total], len-total);
-      if (0 == n)
-        lprintf("read 0, retries: %d\n", retries);
-    }
-    while (0 == n
-           && !this->stream_external
-           && _x_continue_stream_processing(this->stream)
-           && 200 > retries++); /* 200 * 50ms */
-#ifdef LOG_READ
-    lprintf ("got %lld bytes (%lld/%lld bytes read)\n",
-            n,total,len);
-#endif
-    if (n < 0)
-    {
-      _x_message(this->stream, XINE_MSG_READ_ERROR, NULL);
-      return 0;
-    }
+  have = vdr_main_read (this, buf, len);
 
-    this->curpos += n;
-    total += n;
-  }
+  /* HACK: demux_pes always reads 6 byte pes heads. */
+  if (have == 6) {
+    pthread_mutex_lock (&this->find_sync_point_lock);
 
-  if (this->find_sync_point
-    && total == 6)
-  {
-    pthread_mutex_lock(&this->find_sync_point_lock);
-
-    while (this->find_sync_point
-      && total == 6
-      && buf[0] == 0x00
-      && buf[1] == 0x00
-      && buf[2] == 0x01)
-    {
-      int l, sp;
-
-      if (buf[3] == 0xbe
-        && buf[4] == 0xff)
-      {
-/* fprintf(stderr, "------- seen sync point: %02x, waiting for: %02x\n", buf[5], this->find_sync_point); */
-        if (buf[5] == this->find_sync_point)
-        {
+    while (this->find_sync_point && (have == 6) && (buf[0] == 0x00) && (buf[1] == 0x00) && (buf[2] == 0x01)) {
+      int l;
+      /* sync point? */
+      if ((buf[3] == 0xbe) && (buf[4] == 0xff)) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "input_vdr: found sync point %d.\n", (int)buf[5]);
+        if (buf[5] == this->find_sync_point) {
           this->find_sync_point = 0;
           break;
         }
       }
-
-      if ((buf[3] & 0xf0) != 0xe0
-        && (buf[3] & 0xe0) != 0xc0
-        && buf[3] != 0xbd
-        && buf[3] != 0xbe)
-      {
+      /* unknown packet type? */
+      if (((buf[3] & 0xf0) != 0xe0) && ((buf[3] & 0xe0) != 0xc0) && (buf[3] != 0xbd) && (buf[3] != 0xbe))
         break;
-      }
-
-      l = buf[4] * 256 + buf[5];
+      /* payload size */
+      l = ((uint32_t)buf[4] << 8) + buf[5];
       if (l <= 0)
          break;
-
-      sp = this->find_sync_point;
-      this->find_sync_point = 0;
-      this_gen->seek(this_gen, l, SEEK_CUR);
-      total = this_gen->read(this_gen, buf, 6);
-      this->find_sync_point = sp;
+      /* skip this */
+      while (l >= (int)sizeof (this->seek_buf)) {
+        int n = vdr_main_read (this, this->seek_buf, sizeof (this->seek_buf));
+        if (n <= 0)
+          break;
+        l -= n;
+      }
+      if (l >= (int)sizeof (this->seek_buf))
+        break;
+      if (l > 0) {
+        int n = vdr_main_read (this, this->seek_buf, l);
+        if (n < l)
+          break;
+      }
+      /* get next head */
+      have = vdr_main_read (this, buf, 6);
     }
 
     pthread_mutex_unlock(&this->find_sync_point_lock);
   }
 
-  return total;
+  return have;
 }
 
 static buf_element_t *vdr_plugin_read_block(input_plugin_t *this_gen, fifo_buffer_t *fifo,
@@ -1749,7 +1804,7 @@ static off_t vdr_plugin_get_length(input_plugin_t *this_gen)
 static uint32_t vdr_plugin_get_capabilities(input_plugin_t *this_gen)
 {
   (void)this_gen;
-  return INPUT_CAP_PREVIEW;
+  return INPUT_CAP_PREVIEW | INPUT_CAP_NO_CACHE;
 }
 
 static uint32_t vdr_plugin_get_blocksize(input_plugin_t *this_gen)
@@ -2161,21 +2216,18 @@ static int vdr_plugin_open(input_plugin_t *this_gen)
   {
     int err = 0;
 
-    if (!strncasecmp(&this->mrl[0], "vdr:/", 5))
-    {
-      if (!vdr_plugin_open_fifo_mrl(this_gen))
+    if (!strncasecmp (&this->mrl[0], "vdr:/", 5)) {
+      this->is_netvdr = 0;
+      if (!vdr_plugin_open_fifo_mrl (this_gen))
         return 0;
-    }
-    else if (!strncasecmp(&this->mrl[0], "netvdr:/", 8))
-    {
-      if (!vdr_plugin_open_socket_mrl(this_gen))
+    } else if (!strncasecmp (&this->mrl[0], "netvdr:/", 8)) {
+      this->is_netvdr = 1;
+      if (!vdr_plugin_open_socket_mrl (this_gen))
         return 0;
-    }
-    else
-    {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-              _("%s: MRL (%s) invalid! MRL should start with vdr://path/to/fifo/stream or netvdr://host:port where ':port' is optional.\n"), LOG_MODULE,
-              strerror(err));
+    } else {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        _("%s: MRL (%s) invalid! MRL should start with vdr://path/to/fifo/stream or netvdr://host:port where ':port' is optional.\n"),
+        LOG_MODULE, strerror (err));
       return 0;
     }
 
