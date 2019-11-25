@@ -4,18 +4,43 @@ xine-lib (1.2.10) ????-??-??
   * Add libavcodec v58 compatibility.
   * Add avio seek support.
   * Make libpostproc optional.
-  * Add libaom and lavc AV1 video decoders.
+  * Add libdav1d, libaom and lavc AV1 video decoders.
+  * Add libvpx multithreading.
+  * Add libpng decoder.
+  * Add a52 double and fixed point modes.
   * Add Opus audio support to ogg demuxer.
   * Add AV1 video support to matroska demuxer.
   * Add ivf demuxer.
+  * Add mpeg-ts split payload support.
   * Add TLS support using gnutls or OpenSSL.
   * Add ftp input plugin (ftp://) with TLS support (ftpes://)
   * Add tls:// input plugin (raw TLS over TCP).
   * Add libnfs NFS input plugin.
   * Add ftp/http seek support.
   * Add scp forward seek support.
-  * Add mp4 http streaming support.
+  * Add mp4 http streaming support (plain and fragment modes).
+  * Add HLS streaming support.
+  * Add HTTP 1.1 support.
+  * Add OpenGL EGL and Wayland support.
+  * Add generic bitrate estimation.
+  * Add side stream feature.
+  * Optimize demux_qt.
+  * Optimize OSD.
+  * Optimize output layers.
+  * Optimize decoder threads.
+  * Optimize event handling.
+  * Optimize stream info.
+  * Optimize TCP/TLS/HTTP network input.
+  * Optimize network buffering control.
+  * Alsa/oss startup optimization.
+  * Optimize input_stdin_fifo.
+  * Optimize internal liba52.
+  * Optimize user seek.
+  * Build optimizations.
+  * Simply user config.
   * Better support for audio out drivers that cannot resume after pause.
+  * Better support for mpeg pts jumps.
+  * Better bluray seek.
   * XML parser fixes.
   * Fix midstream audio mode switch.
   * Fix FLAC audio playback via ffmpeg.
@@ -29,14 +54,13 @@ xine-lib (1.2.10) ????-??-??
   * Fix opengl2 freeze after X server failure.
   * Fix tvtime deinterlacer crash.
   * Fix/optimize overlay.
+  * Fix/optimize old VDR plugin.
   * Fix xine-ui freeze when opening a playlist while paused.
   * Security fixes.
   * Build fixes (C99 mode, vaapi, ImageMagick, libmvec, less warnings).
   * Many small fixes.
   * More error handling instead of aborting.
-  * Build optimizations.
-  * Engine optimizations.
-  * Alsa/oss startup optimization.
+  * Update german translation.
 
 xine-lib (1.2.9) 2018-01-11
   * Add LIBXINE_VERBOSITY environment var override.
