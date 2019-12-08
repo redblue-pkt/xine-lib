@@ -1433,7 +1433,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
     if (input->seek (input, 0, SEEK_SET) != 0)
       return NULL;
     lprintf ("open_plugin:Accepting detection_method XINE_DEMUX_CONTENT_STRATEGY blocksize=%d\n",
-      this->blocksize);
+             blocksize);
   }
   break;
 
