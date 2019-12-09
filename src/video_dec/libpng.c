@@ -286,12 +286,21 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
 
   _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
 
+  png_free(png, row_pointers[0]);
+  png_free(png, row_pointers);
+
   png_destroy_read_struct(&png, &png_info, &png_end_info);
   return img;
 
  error_img:
   img->free(img);
  error:
+  if (row_pointers) {
+    if (row_pointers[0]) {
+      png_free(png, row_pointers[0]);
+    }
+    png_free(png, row_pointers);
+  }
   png_destroy_read_struct(&png, &png_info, &png_end_info);
  out:
   this->pts = 0;
