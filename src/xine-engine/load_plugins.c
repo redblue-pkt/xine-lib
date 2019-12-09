@@ -1882,12 +1882,12 @@ void _x_free_input_plugin (xine_stream_t *stream, input_plugin_t *input) {
 
   if (!input)
     return;
+  node = input->node;
   input->dispose (input);
 
   if (!stream)
     return;
   catalog = stream->xine->plugin_catalog;
-  node = input->node;
   if (node) {
     pthread_mutex_lock(&catalog->lock);
     dec_node_ref(node);
