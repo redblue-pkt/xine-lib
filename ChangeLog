@@ -1,4 +1,4 @@
-xine-lib (1.2.10) ????-??-??
+xine-lib (1.2.10) 2019-12-13
   * Add first Android support.
   * Add (xcb)xv yuy2 emulation.
   * Add libavcodec v58 compatibility.
