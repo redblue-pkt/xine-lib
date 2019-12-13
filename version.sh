@@ -30,14 +30,14 @@
 
 XINE_VERSION_MAJOR=1
 XINE_VERSION_MINOR=2
-XINE_VERSION_SUB=9
+XINE_VERSION_SUB=10
 XINE_VERSION_PATCH=
 # Release series number (usually $XINE_MAJOR.$XINE_MINOR)
 XINE_VERSION_SERIES=1.2
 
-XINE_LT_CURRENT=9
+XINE_LT_CURRENT=10
 XINE_LT_REVISION=0
-XINE_LT_AGE=7
+XINE_LT_AGE=8
 
 if [ -f "`dirname $0`/.cvsversion" ]; then
     HG_REV="`hg summary | sed -e '1s/^parent: \([0-9]*\):.*$/\1/;1q'`"
