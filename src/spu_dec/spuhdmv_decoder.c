@@ -356,6 +356,8 @@ static subtitle_clut_t *segbuf_decode_palette(segment_buffer_t *buf)
                     len, (5 * entries), entries);
     return NULL;
   }
+
+  (void)palette_version_number;
   XINE_HDMV_TRACE("decode_palette: %zd items (id %d, version %d)\n",
                   entries, palette_id, palette_version_number);
 
@@ -457,6 +459,7 @@ static subtitle_object_t *segbuf_decode_object(segment_buffer_t *buf, subtitle_o
   uint8_t  version   = segbuf_get_u8 (buf);
   uint8_t  seq_desc  = segbuf_get_u8 (buf);
 
+  (void)version;
   XINE_HDMV_TRACE("  decode_object: object_id %d, version %d, seq 0x%x\n",
                   object_id, version, seq_desc);
 
@@ -557,6 +560,7 @@ static window_def_t *segbuf_decode_window_definition(segment_buffer_t *buf)
 {
   window_def_t *wnd;
   uint8_t a;
+
   wnd = calloc(1, sizeof(window_def_t));
   if (!wnd)
     return NULL;
@@ -568,6 +572,7 @@ static window_def_t *segbuf_decode_window_definition(segment_buffer_t *buf)
   wnd->width  = segbuf_get_u16 (buf);
   wnd->height = segbuf_get_u16 (buf);
 
+  (void)a;
   XINE_HDMV_TRACE("  window: [%02x %d]  %d,%d %dx%d\n", a,
                   wnd->id, wnd->xpos, wnd->ypos, wnd->width, wnd->height);
 
@@ -585,6 +590,9 @@ static int segbuf_decode_video_descriptor(segment_buffer_t *buf)
   uint16_t height     = segbuf_get_u16(buf);
   uint8_t  frame_rate = segbuf_get_u8 (buf);
 
+  (void)width;
+  (void)height;
+  (void)frame_rate;
   XINE_HDMV_TRACE("  video_descriptor: %dx%d fps %d\n", width, height, frame_rate);
 
   return buf->error;
