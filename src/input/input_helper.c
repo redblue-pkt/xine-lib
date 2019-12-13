@@ -21,6 +21,10 @@
  * input plugin helper functions
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdlib.h>
 
 #include <xine/xine_internal.h>

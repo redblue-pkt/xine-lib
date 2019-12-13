@@ -22,6 +22,10 @@
  * simple video inverter plugin
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "planar.h"
 
 #include <xine/xine_internal.h>

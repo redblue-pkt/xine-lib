@@ -22,6 +22,10 @@
  * frame scaler plugin for VDR
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define LOG_MODULE "vdr_video"
 /*
 #define LOG
