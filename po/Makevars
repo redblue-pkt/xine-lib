@@ -34,6 +34,7 @@ XGETTEXT_FORMAT_FLAGS = \
 
 # These options get passed to xgettext.
 XGETTEXT_OPTIONS = --keyword=_ --keyword=N_ --from-code=UTF-8 \
+		   --add-location=file \
 		   $(XGETTEXT_FORMAT_FLAGS_PRIVATE) \
 		   $(XGETTEXT_FORMAT_FLAGS)		 
 
