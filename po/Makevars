@@ -45,7 +45,7 @@ XGETTEXT_OPTIONS = --keyword=_ --keyword=N_ --from-code=UTF-8 \
 # or entity, or to disclaim their copyright.  The empty string stands for
 # the public domain; in this case the translators are expected to disclaim
 # their copyright.
-COPYRIGHT_HOLDER = Copyright (C) 2000-2006 the xine project
+COPYRIGHT_HOLDER = Copyright (C) 2000-2019 the xine project
 
 # This is the email address or URL to which the translators shall report
 # bugs in the untranslated strings:
