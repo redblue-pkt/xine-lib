@@ -28,6 +28,10 @@
  * colorkey support by Yann Vernier
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

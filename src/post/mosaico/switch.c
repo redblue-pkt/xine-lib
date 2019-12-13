@@ -22,6 +22,10 @@
  * simple switch video post plugin
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <pthread.h>
 
 #define LOG_MODULE "switch"

@@ -22,6 +22,10 @@
  * some helper functions for post plugins
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define POST_INTERNAL
 
 #include <xine/post.h>

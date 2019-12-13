@@ -23,6 +23,10 @@
  * global time reference.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/ioctl.h>
 #if defined(__sun)
 #include <sys/ioccom.h>

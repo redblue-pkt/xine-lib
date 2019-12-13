@@ -20,6 +20,10 @@
  * xine interface to libwavpack by Diego Pettenò <flameeyes@gmail.com>
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <xine/xine_internal.h>
 #include "wavpack_combined.h"
 
