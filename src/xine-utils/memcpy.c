@@ -47,6 +47,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h> /* clock_gettime */
 
 #define LOG_MODULE "memcpy"
 #define LOG_VERBOSE

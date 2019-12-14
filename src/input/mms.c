@@ -34,6 +34,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <time.h>
 
 #if defined(HAVE_ICONV) && defined(HAVE_NL_LANGINFO)
 #define USE_ICONV

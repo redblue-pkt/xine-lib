@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define LOG_MODULE "demux_flv"
 #define LOG_VERBOSE
