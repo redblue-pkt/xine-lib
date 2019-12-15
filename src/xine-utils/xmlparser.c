@@ -145,7 +145,7 @@ static void xml_parser_free_props(xml_property_t *current_property) {
 }
 
 static void xml_parser_free_tree_rec(xml_node_t *current_node, int free_next) {
-  lprintf("xml_parser_free_tree_rec: %s\n", current_node ? current_node->name : NULL);
+  lprintf("xml_parser_free_tree_rec: %s\n", current_node ? current_node->name : "(null)");
 
   if (current_node) {
     /* properties */
