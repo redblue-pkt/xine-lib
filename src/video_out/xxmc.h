@@ -49,8 +49,6 @@
 #include "config.h"
 #endif
 
-#ifdef HAVE_XV
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -299,5 +297,4 @@ extern void xxmc_xvmc_proc_macro_block(int x, int y, int mb_type, int motion_typ
 				       int second_field, int (*f_mot_pmv)[2],
 				       int (*b_mot_pmv)[2]);
 
-#endif
 #endif
