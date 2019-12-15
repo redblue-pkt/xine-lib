@@ -1,26 +1,26 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+//#ifdef HAVE_CONFIG_H
+//#include "config.h"
+//#endif
+//
+//#if WORDS_BIGENDIAN
+//#define COLOR_ARGB
+//#else
+//#define COLOR_BGRA
+//#endif
 
-#if WORDS_BIGENDIAN
-#define COLOR_ARGB
-#else
-#define COLOR_BGRA
-#endif
-
-#if 1
+//#if 1
 /* ndef COLOR_BGRA */
 /** position des composantes **/
     #define BLEU 0
     #define VERT 1
     #define ROUGE 2
     #define ALPHA 3
-#else
-    #define ROUGE 1
-    #define BLEU 3
-    #define VERT 2
-    #define ALPHA 0
-#endif
+//#else
+//    #define ROUGE 1
+//    #define BLEU 3
+//    #define VERT 2
+//    #define ALPHA 0
+//#endif
 
 #ifndef guint32
 #define guint8 unsigned char
