@@ -423,9 +423,9 @@ typedef struct {
   pthread_mutex_t            speed_change_lock;
   pthread_cond_t             speed_change_done;
   /* set when pauseing with port ticket granted, for XINE_PARAM_VO_SINGLE_STEP. */
-  /* special values for set_speed_internal () */
-# define XINE_LIVE_PAUSE_ON 0x7ffffffd
-# define XINE_LIVE_PAUSE_OFF 0x7ffffffc
+  /* special values for set_speed_internal (). now defined in xine/xine_internal.h. */
+  /* # define XINE_LIVE_PAUSE_ON 0x7ffffffd */
+  /* # define XINE_LIVE_PAUSE_OFF 0x7ffffffc */
 } xine_private_t;
   
 typedef struct xine_stream_private_st {
