@@ -353,6 +353,10 @@ void _x_set_speed (xine_stream_t *stream, int speed) XINE_PROTECTED;
 
 int _x_get_speed (xine_stream_t *stream) XINE_PROTECTED;
 
+/* set when pauseing with port ticket granted, for XINE_PARAM_VO_SINGLE_STEP. */
+/* special values for fine speed. */
+# define XINE_LIVE_PAUSE_ON 0x7ffffffd
+# define XINE_LIVE_PAUSE_OFF 0x7ffffffc
 void _x_set_fine_speed (xine_stream_t *stream, int speed) XINE_PROTECTED;
 
 int _x_get_fine_speed (xine_stream_t *stream) XINE_PROTECTED;
