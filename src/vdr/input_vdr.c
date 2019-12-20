@@ -834,8 +834,12 @@ break;
 */
         }
 /* fprintf(stderr, "--- CLEAR(%d%c)\n", data->n, data->s ? 'b' : 'a'); */
-        if (orig_speed <= XINE_FINE_SPEED_NORMAL / 3)
+        if (orig_speed <= XINE_FINE_SPEED_NORMAL / 3) {
           xine_set_param (this->stream, XINE_PARAM_FINE_SPEED, orig_speed);
+          if (orig_speed == 0)
+            /* make sure decoders are responsive. */
+            xine_set_param (this->stream, XINE_PARAM_FINE_SPEED, XINE_LIVE_PAUSE_ON);
+        }
       }
     }
     break;
@@ -1116,8 +1120,12 @@ break;
 
       lprintf("... got SETSPEED %d\n", data->speed);
 
-      if (data->speed != xine_get_param(this->stream, XINE_PARAM_FINE_SPEED))
-        xine_set_param(this->stream, XINE_PARAM_FINE_SPEED, data->speed);
+      if (data->speed != xine_get_param (this->stream, XINE_PARAM_FINE_SPEED)) {
+        xine_set_param (this->stream, XINE_PARAM_FINE_SPEED, data->speed);
+        if (data->speed == 0)
+          /* make sure decoders are responsive. */
+          xine_set_param (this->stream, XINE_PARAM_FINE_SPEED, XINE_LIVE_PAUSE_ON);
+      }
     }
     break;
 
