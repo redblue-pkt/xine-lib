@@ -43,6 +43,10 @@
  * note: see also libdvdcss-1.2.6-network.patch
  */
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -56,11 +60,21 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <dlfcn.h>
+#ifdef HAVE_SYS_SOCKET_H
+#  include <sys/socket.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#  include <netinet/in.h>
+#endif
+#ifdef HAVE_ARPA_INET_H 1
+#  include <arpa/inet.h>
+#endif
+#ifdef HAVE_NETDB_H
+#  include <netdb.h>
+#endif
+#ifdef HAVE_DLFCN_H
+#  include <dlfcn.h>
+#endif
 
 #define QLEN 5    /* maximum connection queue length */
 #define _BUFSIZ 300
