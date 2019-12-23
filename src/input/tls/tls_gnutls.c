@@ -41,7 +41,9 @@
 #endif
 
 #ifndef XINE_GNUTLS_3
-#  include <malloc.h>
+#  ifdef HAVE_MALLOC_H
+#    include <malloc.h>
+#  endif
 #  include <string.h>
 #  include <sys/stat.h>
 #  include <dirent.h>
