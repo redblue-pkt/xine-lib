@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2012 the xine project
+ * Copyright (C) 2001-2019 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -34,12 +34,18 @@
  * unicode stuff        : (C) 2003 by Frantisek Dvorak
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/param.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <zlib.h>
 #include <iconv.h>
 
