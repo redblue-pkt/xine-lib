@@ -37,6 +37,7 @@ extern "C" {
 
 #include <string.h>    /* memcmp */
 #include <sys/types.h> /* pthread_* */
+#include <pthread.h> /* clang systems seem to need this */
 
 #include <xine/os_types.h>
 #include <xine/attributes.h>
