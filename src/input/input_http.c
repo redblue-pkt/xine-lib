@@ -30,6 +30,9 @@
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
 #include <ctype.h>
 #include <errno.h>
 #include <zlib.h>
