@@ -11,7 +11,10 @@ for DLL to know too much about its environment.
 
 ************************************************************/
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
 #include <xine/attributes.h>
 
 #define QTX
