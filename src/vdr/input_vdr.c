@@ -71,7 +71,8 @@
 #include <xine/vdr.h>
 #include "combined_vdr.h"
 
-
+#define VDR_DISC_START (('V' << 24) | ('D' << 16) | ('R' << 8) | 1)
+#define VDR_DISC_STOP  (('V' << 24) | ('D' << 16) | ('R' << 8) | 0)
 
 #define VDR_MAX_NUM_WINDOWS 16
 #define VDR_ABS_FIFO_DIR "/tmp/vdr-xine"
@@ -95,13 +96,13 @@ typedef struct {
   metronom_t         *stream_metronom;
   vdr_input_plugin_t *input;
   pthread_mutex_t     mutex;
-  int                 disc_num_audio;
-  int                 disc_num_video;
-  int                 audio_seek;
-  int                 video_seek;
+  struct {
+    int               disc_num;
+    int               seek;
+    int               on;
+  } audio, video;
   /* -1 = unset, 0 = off, 1 = on, 2 = first disc sent. */
   int                 trick_new_mode, trick_mode;
-  int                 trick_locked;
 }
 vdr_metronom_t;
 
@@ -814,8 +815,8 @@ break;
 
           /* XXX: why is this needed? */
           pthread_mutex_lock (&this->metronom.mutex);
-          this->metronom.audio_seek = 1;
-          this->metronom.video_seek = 1;
+          this->metronom.audio.seek = 1;
+          this->metronom.video.seek = 1;
           pthread_mutex_unlock (&this->metronom.mutex);
           pthread_mutex_lock (&this->vpts_offset_queue_lock);
           this->last_disc_type = DISC_STREAMSTART;
@@ -923,7 +924,7 @@ break;
         "input_vdr: trick_speed_mode (%d)\n", (int)data->on);
 
       pthread_mutex_lock (&this->metronom.mutex);
-      if (this->metronom.trick_locked) {
+      if (this->metronom.audio.disc_num != this->metronom.video.disc_num) {
         this->metronom.trick_new_mode = data->on;
         pthread_mutex_unlock (&this->metronom.mutex);
       } else {
@@ -1926,6 +1927,7 @@ static void vdr_plugin_dispose(input_plugin_t *this_gen)
 
   free(this->mrl);
 
+  /* unset metronom */
   this->stream->metronom = this->metronom.stream_metronom;
   this->metronom.stream_metronom = NULL;
 
@@ -2409,138 +2411,128 @@ static void event_handler(void *user_data, const xine_event_t *event)
 
 static void vdr_metronom_handle_audio_discontinuity (metronom_t *self, int type, int64_t disc_off) {
   vdr_metronom_t *metr = (vdr_metronom_t *)self;
-  int diff, relay_type = type, trick_new_mode = -1;
+  int diff, num, trick_mode, trick_new_mode, add, relay_type = type;
 
+  /* just 1 finite time lock session. */
   pthread_mutex_lock (&metr->mutex);
+  /* make sure we dont respond too early. */
+  if (!metr->audio.on) {
+    if ((type != DISC_STREAMSEEK) || (disc_off != VDR_DISC_START)) {
+      pthread_mutex_unlock (&metr->mutex);
+      metr->stream_metronom->handle_audio_discontinuity (metr->stream_metronom, type, disc_off);
+      return;
+    }
+    metr->audio.on = 1;
+    pthread_mutex_unlock (&metr->mutex);
+    xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
+      "input_vdr: audio discontinuity handling now on.\n");
+    return;
+  }
   /* Demux knows nothing about vdr seek. It just sees a pts jump, and sends a plain absolute
    * discontinuity. That will make metronom try a seamless append, leaving a 1..2s gap there.
    * Thus, after a seek, manually upgrade first "absolute" to "streamseek" here. */
   if (type == DISC_STREAMSTART) {
-    metr->audio_seek = 1;
-  } else if ((type == DISC_ABSOLUTE) && metr->audio_seek) {
-    metr->audio_seek = 0;
+    metr->audio.seek = 1;
+  } else if ((type == DISC_ABSOLUTE) && metr->audio.seek) {
+    metr->audio.seek = 0;
     relay_type = DISC_STREAMSEEK;
   }
-  metr->disc_num_audio += 1;
-  diff = metr->disc_num_audio - metr->disc_num_video;
 
-  if (metr->trick_mode) {
+  trick_mode = metr->trick_mode;
+  trick_new_mode = metr->trick_new_mode;
+  metr->audio.disc_num += 1;
+  num = metr->audio.disc_num;
+  add = diff = metr->audio.disc_num - metr->video.disc_num;
 
-    if (diff > 0) { /* we are ahead */
-      metr->trick_locked += 1;
-    } else {
-      if ((type == DISC_ABSOLUTE) && (metr->trick_mode == 1))
-        metr->trick_mode = 2;
-      else
-        diff = 1;
-      metr->trick_locked -= 1;
-      if (!metr->trick_locked && (metr->trick_new_mode >= 0)) {
-        trick_new_mode = metr->trick_mode = metr->trick_new_mode;
-        metr->trick_new_mode = -1;
-      }
-    }
-    pthread_mutex_unlock (&metr->mutex);
-    xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
-      "input_vdr: trick play audio discontinuity #%d, type is %d, disc off %" PRId64 ".\n",
-      metr->disc_num_audio, type, disc_off);
-    if (diff <= 0)
-      vdr_vpts_offset_queue_add (metr->input, type, disc_off);
-    if (trick_new_mode >= 0)
-      trick_speed_send_event (metr->input, trick_new_mode);
+  if ((diff <= 0) && (type == DISC_ABSOLUTE) && (trick_mode == 1))
+    metr->trick_mode = 2;
+  else
+    add = 1;
 
+  if ((diff == 0) && (trick_new_mode >= 0)) {
+    metr->trick_mode = trick_new_mode;
+    metr->trick_new_mode = -1;
   } else {
-
-    metr->trick_locked += 1;
-    pthread_mutex_unlock (&metr->mutex);
-    xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
-      "input_vdr: audio discontinuity #%d, type is %d, disc off %" PRId64 ".\n",
-      metr->disc_num_audio, type, disc_off);
-    metr->stream_metronom->handle_audio_discontinuity (metr->stream_metronom, relay_type, disc_off);
-    if (diff > 0) {
-      /* we are ahaed: relay, and return. */ ;
-    } else {
-      /* we are behind: complete this pair. */
-      vdr_vpts_offset_queue_add (metr->input, type, disc_off);
-      pthread_mutex_lock (&metr->mutex);
-      metr->trick_locked -= 2;
-      if (!metr->trick_locked && (metr->trick_new_mode >= 0)) {
-        trick_new_mode = metr->trick_mode = metr->trick_new_mode;
-        metr->trick_new_mode = -1;
-      }
-      pthread_mutex_unlock (&metr->mutex);
-      if (trick_new_mode >= 0)
-        trick_speed_send_event (metr->input, trick_new_mode);
-    }
-
+    trick_new_mode = -1;
   }
+  pthread_mutex_unlock (&metr->mutex);
+
+  /* report */
+  xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_vdr: %s audio discontinuity #%d, type is %d, disc off %" PRId64 ".\n",
+    trick_mode ? "trick play" : "", num, type, disc_off);
+  /* relay */
+  if (!trick_mode)
+    metr->stream_metronom->handle_audio_discontinuity (metr->stream_metronom, relay_type, disc_off);
+  /* if we are behind: complete this pair. */
+  if (add <= 0)
+    vdr_vpts_offset_queue_add (metr->input, type, disc_off);
+  /* new trick mode */
+  if (trick_new_mode >= 0)
+    trick_speed_send_event (metr->input, trick_new_mode);
 }
 
 static void vdr_metronom_handle_video_discontinuity (metronom_t *self, int type, int64_t disc_off) {
   vdr_metronom_t *metr = (vdr_metronom_t *)self;
-  int diff, relay_type = type, trick_new_mode = -1;
+  int diff, num, trick_mode, trick_new_mode, add, relay_type = type;
 
+  /* just 1 finite time lock session. */
   pthread_mutex_lock (&metr->mutex);
+  /* make sure we dont respond too early. */
+  if (!metr->video.on) {
+    if ((type != DISC_STREAMSEEK) || (disc_off != VDR_DISC_START)) {
+      pthread_mutex_unlock (&metr->mutex);
+      metr->stream_metronom->handle_video_discontinuity (metr->stream_metronom, type, disc_off);
+      return;
+    }
+    metr->video.on = 1;
+    pthread_mutex_unlock (&metr->mutex);
+    xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
+      "input_vdr: video discontinuity handling now on.\n");
+    return;
+  }
   /* Demux knows nothing about vdr seek. It just sees a pts jump, and sends a plain absolute
    * discontinuity. That will make metronom try a seamless append, leaving a 1..2s gap there.
    * Thus, after a seek, manually upgrade first "absolute" to "streamseek" here. */
   if (type == DISC_STREAMSTART) {
-    metr->video_seek = 1;
-  } else if ((type == DISC_ABSOLUTE) && metr->video_seek) {
-    metr->video_seek = 0;
+    metr->video.seek = 1;
+  } else if ((type == DISC_ABSOLUTE) && metr->video.seek) {
+    metr->video.seek = 0;
     relay_type = DISC_STREAMSEEK;
   }
-  metr->disc_num_video += 1;
-  diff = metr->disc_num_video - metr->disc_num_audio;
 
-  if (metr->trick_mode) {
+  trick_mode = metr->trick_mode;
+  trick_new_mode = metr->trick_new_mode;
+  metr->video.disc_num += 1;
+  num = metr->video.disc_num;
+  add = diff = metr->video.disc_num - metr->audio.disc_num;
 
-    if (diff > 0) { /* we are ahead */
-      metr->trick_locked += 1;
-    } else {
-      if ((type == DISC_ABSOLUTE) && (metr->trick_mode == 1))
-        metr->trick_mode = 2;
-      else
-        diff = 1;
-      metr->trick_locked -= 1;
-      if (!metr->trick_locked && (metr->trick_new_mode >= 0)) {
-        trick_new_mode = metr->trick_mode = metr->trick_new_mode;
-        metr->trick_new_mode = -1;
-      }
-    }
-    pthread_mutex_unlock (&metr->mutex);
-    xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
-      "input_vdr: trick play video discontinuity #%d, type is %d, disc off %" PRId64 ".\n",
-      metr->disc_num_video, type, disc_off);
-    if (diff <= 0)
-      vdr_vpts_offset_queue_add (metr->input, type, disc_off);
-    if (trick_new_mode >= 0)
-      trick_speed_send_event (metr->input, trick_new_mode);
+  if ((diff <= 0) && (type == DISC_ABSOLUTE) && (trick_mode == 1))
+    metr->trick_mode = 2;
+  else
+    add = 1;
 
+  if ((diff == 0) && (trick_new_mode >= 0)) {
+    metr->trick_mode = trick_new_mode;
+    metr->trick_new_mode = -1;
   } else {
-
-    metr->trick_locked += 1;
-    pthread_mutex_unlock (&metr->mutex);
-    xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
-      "input_vdr: video discontinuity #%d, type is %d, disc off %" PRId64 ".\n",
-      metr->disc_num_video, type, disc_off);
-    metr->stream_metronom->handle_video_discontinuity (metr->stream_metronom, relay_type, disc_off);
-    if (diff > 0) {
-      /* we are ahaed: relay, and return. */ ;
-    } else {
-      /* we are behind: complete this pair. */
-      vdr_vpts_offset_queue_add (metr->input, type, disc_off);
-      pthread_mutex_lock (&metr->mutex);
-      metr->trick_locked -= 2;
-      if (!metr->trick_locked && (metr->trick_new_mode >= 0)) {
-        trick_new_mode = metr->trick_mode = metr->trick_new_mode;
-        metr->trick_new_mode = -1;
-      }
-      pthread_mutex_unlock (&metr->mutex);
-      if (trick_new_mode >= 0)
-        trick_speed_send_event (metr->input, trick_new_mode);
-    }
-
+    trick_new_mode = -1;
   }
+  pthread_mutex_unlock (&metr->mutex);
+
+  /* report */
+  xprintf (metr->input->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_vdr: %s video discontinuity #%d, type is %d, disc off %" PRId64 ".\n",
+    trick_mode ? "trick play" : "", num, type, disc_off);
+  /* relay */
+  if (!trick_mode)
+    metr->stream_metronom->handle_video_discontinuity (metr->stream_metronom, relay_type, disc_off);
+  /* if we are behind: complete this pair. */
+  if (add <= 0)
+    vdr_vpts_offset_queue_add (metr->input, type, disc_off);
+  /* new trick mode */
+  if (trick_new_mode >= 0)
+    trick_speed_send_event (metr->input, trick_new_mode);
 }
 
 static void vdr_metronom_got_video_frame(metronom_t *self, vo_frame_t *frame)
@@ -2667,12 +2659,13 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   this->image4_3_zoom_y          = 0;
   this->image16_9_zoom_x         = 0;
   this->image16_9_zoom_y         = 0;
-  this->metronom.audio_seek      = 0;
-  this->metronom.video_seek      = 0;
-  this->metronom.disc_num_audio  = 0;
-  this->metronom.disc_num_video  = 0;
+  this->metronom.audio.on        = 0;
+  this->metronom.audio.seek      = 0;
+  this->metronom.audio.disc_num  = 0;
+  this->metronom.video.on        = 0;
+  this->metronom.video.seek      = 0;
+  this->metronom.video.disc_num  = 0;
   this->metronom.trick_mode      = 0;
-  this->metronom.trick_locked    = 0;
   this->vpts_offset_read         = 0;
   this->vpts_offset_write        = 0;
 #endif
@@ -2723,10 +2716,16 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   pthread_mutex_init (&this->find_sync_point_lock, NULL);
   pthread_mutex_init (&this->adjust_zoom_lock, NULL);
 
+  pthread_mutex_init (&this->vpts_offset_queue_lock, NULL);
+  pthread_cond_init (&this->vpts_offset_queue_changed_cond, NULL);
+
+  vdr_vpts_offset_queue_init (this);
+
   this->event_queue = xine_event_new_queue(this->stream);
   if (this->event_queue)
     xine_event_create_listener_thread(this->event_queue, event_handler, this);
 
+  /* init metronom */
   this->metronom.input = this;
   this->metronom.metronom.set_audio_rate             = vdr_metronom_set_audio_rate;
   this->metronom.metronom.got_video_frame            = vdr_metronom_got_video_frame;
@@ -2740,12 +2739,10 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   this->metronom.metronom.exit                       = vdr_metronom_exit;
   this->metronom.stream_metronom                     = stream->metronom;
   pthread_mutex_init (&this->metronom.mutex, NULL);
-  stream->metronom                                   = &this->metronom.metronom;
-
-  pthread_mutex_init (&this->vpts_offset_queue_lock, NULL);
-  pthread_cond_init (&this->vpts_offset_queue_changed_cond, NULL);
-
-  vdr_vpts_offset_queue_init (this);
+  /* set metronom */
+  stream->metronom = &this->metronom.metronom;
+  /* send start discontinuities */
+  _x_demux_control_newpts (stream, VDR_DISC_START, BUF_FLAG_SEEK);
 
   return &this->input_plugin;
 }
