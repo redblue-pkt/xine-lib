@@ -2444,10 +2444,12 @@ static void vdr_metronom_handle_audio_discontinuity (metronom_t *self, int type,
   num = metr->audio.disc_num;
   add = diff = metr->audio.disc_num - metr->video.disc_num;
 
-  if ((diff <= 0) && (type == DISC_ABSOLUTE) && (trick_mode == 1))
-    metr->trick_mode = 2;
-  else
-    add = 1;
+  if (trick_mode && (type == DISC_ABSOLUTE) && (diff <= 0)) {
+    if (trick_mode == 1)
+      metr->trick_mode = 2;
+    else
+      add = 1;
+  }
 
   if ((diff == 0) && (trick_new_mode >= 0)) {
     metr->trick_mode = trick_new_mode;
@@ -2507,10 +2509,12 @@ static void vdr_metronom_handle_video_discontinuity (metronom_t *self, int type,
   num = metr->video.disc_num;
   add = diff = metr->video.disc_num - metr->audio.disc_num;
 
-  if ((diff <= 0) && (type == DISC_ABSOLUTE) && (trick_mode == 1))
-    metr->trick_mode = 2;
-  else
-    add = 1;
+  if (trick_mode && (type == DISC_ABSOLUTE) && (diff <= 0)) {
+    if (trick_mode == 1)
+      metr->trick_mode = 2;
+    else
+      add = 1;
+  }
 
   if ((diff == 0) && (trick_new_mode >= 0)) {
     metr->trick_mode = trick_new_mode;
