@@ -3238,7 +3238,6 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->bpts               = 0;
   this->last_pts[0]        = 0;
   this->last_pts[1]        = 0;
-  this->newpts_fifo        = NULL;
 #  if TS_PACKET_READER == 2
   this->buf_pos            = 0;
   this->buf_size           = 0;
