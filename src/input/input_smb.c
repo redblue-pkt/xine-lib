@@ -537,7 +537,7 @@ static void
 }
 
 static const input_info_t input_info_smb = {
-  0                       /* priority */
+  .priority = 0,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {

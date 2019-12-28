@@ -582,7 +582,7 @@ static void *nfs_init_class(xine_t *xine, const void *data)
  */
 
 static const input_info_t input_info_nfs = {
-  10,   /* priority */
+  .priority = 10,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
