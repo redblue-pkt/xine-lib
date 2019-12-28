@@ -914,11 +914,11 @@ static void *sftp_init_class(xine_t *xine, const void *data)
  */
 
 const input_info_t input_info_sftp = {
-  100,   /* priority */
+  .priority = 100,
 };
 
 const input_info_t input_info_scp = {
-  100,   /* priority */
+  .priority = 100,
 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
