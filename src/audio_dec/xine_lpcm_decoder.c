@@ -78,8 +78,7 @@ static void lpcm_reset (audio_decoder_t *this_gen) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
 
-  free (this->buf);
-  this->buf = NULL;
+  _x_freep (&this->buf);
 }
 
 static void lpcm_discontinuity (audio_decoder_t *this_gen) {
@@ -357,7 +356,7 @@ static void lpcm_dispose (audio_decoder_t *this_gen) {
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
-  free (this->buf);
+  _x_freep (&this->buf);
 
   free (this_gen);
 }
