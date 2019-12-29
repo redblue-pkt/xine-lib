@@ -90,7 +90,7 @@ static void lpcm_discontinuity (audio_decoder_t *this_gen) {
 static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
-  int16_t        *sample_buffer=(int16_t *)buf->content;
+  uint8_t        *sample_buffer = buf->content;
   int             buf_size = buf->size;
   int             stream_be;
   audio_buffer_t *audio_buffer;
@@ -240,7 +240,7 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       if (!frame_end)
         return;
 
-      sample_buffer = (int16_t*)this->buf;
+      sample_buffer = this->buf;
       buf_size = this->buffered_bytes;
       this->buffered_bytes = 0;
     }
@@ -259,7 +259,7 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       memcpy (audio_buffer->mem, sample_buffer, buf_size);
   }
   else if( this->bits_per_sample == 20 ) {
-    uint8_t *s = (uint8_t *)sample_buffer;
+    uint8_t *s = sample_buffer;
     uint8_t *d = (uint8_t *)audio_buffer->mem;
     int n = buf_size;
 
@@ -279,7 +279,7 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       }
     }
   } else if( this->bits_per_sample == 24 ) {
-    uint8_t *s = (uint8_t *)sample_buffer;
+    uint8_t *s = sample_buffer;
     uint8_t *d = (uint8_t *)audio_buffer->mem;
     int n = buf_size;
 
