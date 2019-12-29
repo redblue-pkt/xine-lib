@@ -98,13 +98,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef LOG_DEBUG
     printf("libspudec: SPU CLUT\n");
 #endif
-    if (buf->content[0]) { /* cheap endianess detection */
-      xine_fast_memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
-    } else {
+    memcpy(this->state.clut, buf->content, sizeof(uint32_t)*16);
+    if (!buf->content[0]) { /* cheap endianess detection */
       int i;
-      uint32_t *clut = (uint32_t*) buf->content;
       for (i = 0; i < 16; i++)
-        this->state.clut[i] = bswap_32(clut[i]);
+        this->state.clut[i] = bswap_32(this->state.clut[i]);
     }
     this->state.need_clut = 0;
     return;
