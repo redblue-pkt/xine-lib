@@ -189,7 +189,7 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
         }
       }
       spudec_clear_nav_list(this);
-      xine_fast_memcpy(&this->pci_cur.pci, &pci, sizeof(pci_t));
+      memcpy(&this->pci_cur.pci, &pci, sizeof(pci_t));
       /* incoming SPUs will be plain subtitles */
       this->event.object.object_type = 0;
       if (this->button_filter) {
@@ -220,11 +220,11 @@ void spudec_decode_nav(spudec_decoder_t *this, buf_element_t *buf) {
 	node->next = malloc(sizeof(pci_node_t));
 	node->next->vpts = this->stream->metronom->got_spu_packet(this->stream->metronom, pci.hli.hl_gi.hli_s_ptm);
 	node->next->next = NULL;
-	xine_fast_memcpy(&node->next->pci, &pci, sizeof(pci_t));
+        memcpy(&node->next->pci, &pci, sizeof(pci_t));
       } else {
         spudec_clear_nav_list(this);
         /* menu ahead, remember PCI for later use */
-        xine_fast_memcpy(&this->pci_cur.pci, &pci, sizeof(pci_t));
+        memcpy(&this->pci_cur.pci, &pci, sizeof(pci_t));
         spudec_process_nav(this);
       }
       break;
@@ -288,7 +288,7 @@ void spudec_update_nav(spudec_decoder_t *this)
 
   if (this->pci_cur.next && (int64_t)this->pci_cur.next->vpts <= clock->get_current_time(clock)) {
     pci_node_t *node = this->pci_cur.next;
-    xine_fast_memcpy(&this->pci_cur, this->pci_cur.next, sizeof(pci_node_t));
+    memcpy(&this->pci_cur, this->pci_cur.next, sizeof(pci_node_t));
     spudec_process_nav(this);
     free(node);
   }
