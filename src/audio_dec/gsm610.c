@@ -221,8 +221,7 @@ static void gsm610_dispose (audio_decoder_t *this_gen) {
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
-  if (this->buf)
-    free(this->buf);
+  _x_freep(&this->buf);
 
   free (this_gen);
 }

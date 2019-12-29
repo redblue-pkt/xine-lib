@@ -957,15 +957,11 @@ static void faad_dispose (audio_decoder_t *this_gen) {
 
   faad_close_output (this);
 
-  if( this->buf )
-    free(this->buf);
-  this->buf = NULL;
+  _x_freep(&this->buf);
   this->size = 0;
   this->max_audio_src_size = 0;
 
-  if( this->dec_config )
-    free(this->dec_config);
-  this->dec_config = NULL;
+  _x_freep(&this->dec_config);
   this->dec_config_size = 0;
 
   if( this->faac_dec )

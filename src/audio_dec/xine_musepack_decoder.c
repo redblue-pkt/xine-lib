@@ -480,7 +480,7 @@ static void mpc_dispose (audio_decoder_t *this_gen) {
   this->output_open = 0;
 
   /* free anything that was allocated during operation */
-  free(this->buf);
+  _x_freep(&this->buf);
 #ifdef HAVE_MPC_MPCDEC_H
   if (this->decoder)
     mpc_demux_exit(this->decoder);

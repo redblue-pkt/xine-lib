@@ -328,8 +328,8 @@ static void dvaudio_dispose (audio_decoder_t *this_gen) {
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
   this->output_open = 0;
 
-  free(this->buf);
-  free(this->decode_buffer);
+  _x_freep(&this->buf);
+  _x_freep(&this->decode_buffer);
 
   free (this_gen);
 }
