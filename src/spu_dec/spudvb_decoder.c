@@ -1108,7 +1108,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
         pthread_mutex_unlock(&this->dvbsub_osd_mutex);
       }
       else {
-	xine_fast_memcpy (this->spu_descriptor, buf->decoder_info_ptr[2], buf->decoder_info[2]);
+        memcpy (this->spu_descriptor, buf->decoder_info_ptr[2], buf->decoder_info[2]);
       }
     }
     return;

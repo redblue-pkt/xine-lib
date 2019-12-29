@@ -349,7 +349,7 @@ static spu_decoder_t *open_plugin (spu_decoder_class_t *class_gen, xine_stream_t
   }
 
 /* FIXME:Do we really need a default clut? */
-  xine_fast_memcpy(this->state.clut, default_clut, sizeof(this->state.clut));
+  memcpy(this->state.clut, default_clut, sizeof(this->state.clut));
   this->state.need_clut = 1;
   this->state.vobsub = 0;
 
