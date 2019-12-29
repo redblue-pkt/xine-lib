@@ -291,7 +291,7 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
 	    "libspudec:xine_decoder.c:spudec_event_listener:HIDE ????\n");
     printf("We dropped out here for some reason");
-    _x_abort();
+    _x_assert(show > 0);
     overlay_event->object.handle = this->menu_handle;
     overlay_event->event_type = OVERLAY_EVENT_HIDE;
   }
