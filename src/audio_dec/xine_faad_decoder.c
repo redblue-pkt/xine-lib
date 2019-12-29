@@ -385,7 +385,7 @@ static int faad_open_dec (faad_decoder_t *this) {
 
 static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
   int used, decoded, framecount;
-  const uint8_t *sample_buffer;
+  const void *sample_buffer;
   uint8_t *inbuf;
 
 #define ADTS_FAKE_CFG
@@ -621,7 +621,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
 #define GET2(i,j)    v = ((int64_t)g1 * (int64_t)(p[i] + p[i + 1])) >> 32; q[j] = sat16 (v)
 #define GET1M(i,j)   v = (m + (int64_t)g1 * (int64_t)p[i]) >> 32; q[j] = sat16 (v)
 #define GET2M(i,j,l) v = ((int64_t)g1 * (int64_t)p[i] + (int64_t)g2 * (int64_t)(m + p[j])) >> 32; q[l] = sat16 (v)
-          const int32_t *p = (const int32_t *)sample_buffer;
+          const int32_t *p = sample_buffer;
           int16_t *q = (int16_t *)audio_buffer->mem;
           int n = done;
           if (this->in_channels < 6) {
@@ -702,7 +702,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
               }
             }
           }
-          sample_buffer = (const uint8_t *)p;
+          sample_buffer = p;
 #undef GET1
 #undef GET2
 #undef GET1M
@@ -793,7 +793,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
               }
             }
           }
-          sample_buffer = (const uint8_t *)p;
+          sample_buffer = p;
 #undef GET1
 #undef GET2
 #undef GET1M
