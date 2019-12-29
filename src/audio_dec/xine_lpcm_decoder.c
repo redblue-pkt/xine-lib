@@ -230,7 +230,8 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     int frame_end = buf->decoder_flags & BUF_FLAG_FRAME_END;
     if (this->buffered_bytes || !frame_end) {
       if (this->buf_size < this->buffered_bytes + buf->size) {
-        this->buf_size *= 2;
+        while (this->buf_size < this->buffered_bytes + buf->size)
+          this->buf_size *= 2;
         this->buf = realloc(this->buf, this->buf_size);
       }
 
