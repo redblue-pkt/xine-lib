@@ -40,6 +40,8 @@
 #include <xine/xineutils.h>
 #include <xine/osd.h>
 
+#include "xine-engine/bswap.h"
+
 #include "sputext_demuxer.h"
 
 #define SUB_MAX_TEXT  5      /* lines */
@@ -806,7 +808,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   int64_t start_vpts, end_vpts;
   int64_t spu_offset;
   int i;
-  uint32_t *val;
   char *str;
   extra_info_t extra_info;
   int master_status, slave_status;
@@ -834,10 +835,11 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
 
     this->ogm = 1;
     uses_time = 1;
-    val = (uint32_t * )buf->content;
-    start = *val++;
-    end = *val++;
-    str = (char *)val;
+
+    start = _X_ME_32(buf->content);
+    end   = _X_ME_32(buf->content + 4);
+
+    str = buf->content + 8;
 
     if (!*str) return;
     /* Empty ogm packets (as created by ogmmux) clears out old messages. We already respect the end time. */
@@ -870,13 +872,14 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   } else {
 
     this->ogm = 0;
-    val = (uint32_t * )buf->content;
 
-    this->lines = *val++;
-    uses_time = *val++;
-    start = *val++;
-    end = *val++;
-    str = (char *)val;
+    this->lines = _X_ME_32(buf->content);
+    uses_time   = _X_ME_32(buf->content + 4);
+    start       = _X_ME_32(buf->content + 8);
+    end         = _X_ME_32(buf->content + 12);
+
+    str = buf->content + 16;
+
     for (i = 0; i < this->lines; i++, str += strlen(str) + 1) {
       strncpy( this->text[i], str, SUB_BUFSIZE - 1);
       this->text[i][SUB_BUFSIZE - 1] = '\0';
