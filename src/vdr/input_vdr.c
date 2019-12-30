@@ -184,11 +184,13 @@ struct vdr_input_plugin_s
 #define OFFS_RING_LD 7
 #define OFFS_RING_NUM (1 << OFFS_RING_LD)
 #define OFFS_RING_MASK (OFFS_RING_NUM - 1)
-  vdr_vpts_offset_t   vpts_offsets[OFFS_RING_NUM];
-  int                 vpts_offset_read;
-  int                 vpts_offset_write;
-  pthread_mutex_t     vpts_offset_queue_lock;
-  pthread_cond_t      vpts_offset_queue_changed_cond;
+  struct {
+    vdr_vpts_offset_t items[OFFS_RING_NUM];
+    int               read;
+    int               write;
+    pthread_mutex_t   lock;
+    pthread_cond_t    changed;
+  } vpts_offs_queue;
 
   int                         video_window_active;
   vdr_set_video_window_data_t video_window_event_data;
@@ -382,45 +384,54 @@ static void adjust_zoom(vdr_input_plugin_t *this)
 
 
 static void vdr_vpts_offset_queue_init (vdr_input_plugin_t *this) {
-  this->vpts_offset_read = 0;
-  this->vpts_offset_write = 1;
-  this->vpts_offsets[0].offset = this->metronom.stream_metronom->get_option (this->metronom.stream_metronom, METRONOM_VPTS_OFFSET);
-  this->vpts_offsets[0].vpts = xine_get_current_vpts (this->stream);
+  pthread_mutex_init (&this->vpts_offs_queue.lock, NULL);
+  pthread_cond_init (&this->vpts_offs_queue.changed, NULL);
+  this->metronom.stream_metronom = this->stream->metronom;
+  this->vpts_offs_queue.read = 0;
+  this->vpts_offs_queue.write = 1;
+  this->vpts_offs_queue.items[0].offset = this->metronom.stream_metronom->get_option (this->metronom.stream_metronom,
+    METRONOM_VPTS_OFFSET);
+  this->vpts_offs_queue.items[0].vpts = xine_get_current_vpts (this->stream);
+}
+
+static void vdr_vpts_offset_queue_deinit (vdr_input_plugin_t *this) {
+  pthread_cond_destroy (&this->vpts_offs_queue.changed);
+  pthread_mutex_destroy (&this->vpts_offs_queue.lock);
 }
 
 static void vdr_vpts_offset_queue_process (vdr_input_plugin_t *this, int64_t vpts) {
-  int i = this->vpts_offset_read;
+  int i = this->vpts_offs_queue.read;
   while (1) {
     int j = (i + 1) & OFFS_RING_MASK;
-    if (j == this->vpts_offset_write)
+    if (j == this->vpts_offs_queue.write)
       break;
-    if (this->vpts_offsets[j].vpts > vpts)
+    if (this->vpts_offs_queue.items[j].vpts > vpts)
       break;
     i = j;
   }
-  this->vpts_offset_read = i;
+  this->vpts_offs_queue.read = i;
 }
 
 static void vdr_vpts_offset_queue_add_int (vdr_input_plugin_t *this, int64_t pts) {
   int64_t offset = this->metronom.stream_metronom->get_option (this->metronom.stream_metronom, METRONOM_VPTS_OFFSET);
   int64_t vpts = pts + offset;
-  this->vpts_offsets[this->vpts_offset_write].offset = offset;
-  this->vpts_offsets[this->vpts_offset_write].vpts = vpts;
-  this->vpts_offset_write = (this->vpts_offset_write + 1) & OFFS_RING_MASK;
+  this->vpts_offs_queue.items[this->vpts_offs_queue.write].offset = offset;
+  this->vpts_offs_queue.items[this->vpts_offs_queue.write].vpts = vpts;
+  this->vpts_offs_queue.write = (this->vpts_offs_queue.write + 1) & OFFS_RING_MASK;
   /* queue full, make some room */
-  if (this->vpts_offset_write == this->vpts_offset_read)
+  if (this->vpts_offs_queue.write == this->vpts_offs_queue.read)
     vdr_vpts_offset_queue_process (this, xine_get_current_vpts (this->stream));
 }
 
 static int vdr_vpts_offset_queue_ask (vdr_input_plugin_t *this, int64_t *pts) {
   int64_t vpts = xine_get_current_vpts (this->stream);
   vdr_vpts_offset_queue_process (this, vpts);
-  *pts = vpts - this->vpts_offsets[this->vpts_offset_read].offset;
-  return ((this->vpts_offset_write - this->vpts_offset_read) & OFFS_RING_MASK) > 1;
+  *pts = vpts - this->vpts_offs_queue.items[this->vpts_offs_queue.read].offset;
+  return ((this->vpts_offs_queue.write - this->vpts_offs_queue.read) & OFFS_RING_MASK) > 1;
 }
 
 static void vdr_vpts_offset_queue_purge (vdr_input_plugin_t *this) {
-  this->vpts_offset_read = (this->vpts_offset_write - 1) & OFFS_RING_MASK;
+  this->vpts_offs_queue.read = (this->vpts_offs_queue.write - 1) & OFFS_RING_MASK;
 }
 
 
@@ -818,9 +829,9 @@ break;
           this->metronom.audio.seek = 1;
           this->metronom.video.seek = 1;
           pthread_mutex_unlock (&this->metronom.mutex);
-          pthread_mutex_lock (&this->vpts_offset_queue_lock);
+          pthread_mutex_lock (&this->vpts_offs_queue.lock);
           this->last_disc_type = DISC_STREAMSTART;
-          pthread_mutex_unlock (&this->vpts_offset_queue_lock);
+          pthread_mutex_unlock (&this->vpts_offs_queue.lock);
 
           _x_stream_info_reset(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE);
 /* fprintf(stderr, "=== CLEAR(%d.4)\n", data->n); */
@@ -1258,7 +1269,7 @@ break;
         result_get_pts.header.func = data->header.func;
         result_get_pts.header.len = sizeof (result_get_pts);
 
-        pthread_mutex_lock(&this->vpts_offset_queue_lock);
+        pthread_mutex_lock(&this->vpts_offs_queue.lock);
 
         if (this->last_disc_type == DISC_STREAMSTART
           && data->ms_timeout > 0)
@@ -1281,7 +1292,7 @@ break;
           }
 
           while (this->last_disc_type == DISC_STREAMSTART) {
-            if (0 != pthread_cond_timedwait (&this->vpts_offset_queue_changed_cond, &this->vpts_offset_queue_lock, &abstime))
+            if (0 != pthread_cond_timedwait (&this->vpts_offs_queue.changed, &this->vpts_offs_queue.lock, &abstime))
               break;
           }
         }
@@ -1298,7 +1309,7 @@ break;
 /* fprintf(stderr, "vpts: %12ld, stc: %12ld, offset: %12ld\n", vpts, result_get_pts.pts, offset); */
         }
 
-        pthread_mutex_unlock(&this->vpts_offset_queue_lock);
+        pthread_mutex_unlock(&this->vpts_offs_queue.lock);
 
         if (sizeof (result_get_pts) != vdr_write(this->fh_result, &result_get_pts, sizeof (result_get_pts)))
           return -1;
@@ -1931,9 +1942,8 @@ static void vdr_plugin_dispose(input_plugin_t *this_gen)
   this->stream->metronom = this->metronom.stream_metronom;
   this->metronom.stream_metronom = NULL;
 
-  vdr_vpts_offset_queue_purge(this);
-  pthread_cond_destroy(&this->vpts_offset_queue_changed_cond);
-  pthread_mutex_destroy(&this->vpts_offset_queue_lock);
+  vdr_vpts_offset_queue_purge (this);
+  vdr_vpts_offset_queue_deinit (this);
 
   pthread_mutex_destroy (&this->metronom.mutex);
 
@@ -2194,15 +2204,15 @@ static int vdr_plugin_open_socket_mrl(input_plugin_t *this_gen)
 }
 
 static void vdr_vpts_offset_queue_add (vdr_input_plugin_t *this, int type, int64_t disc_off) {
-  pthread_mutex_lock (&this->vpts_offset_queue_lock);
+  pthread_mutex_lock (&this->vpts_offs_queue.lock);
   if ((type == DISC_ABSOLUTE) || (type == DISC_STREAMSTART))
     vdr_vpts_offset_queue_add_int (this, disc_off);
   else
     vdr_vpts_offset_queue_purge(this);
   this->last_disc_type = type;
   if (type != DISC_STREAMSTART)
-    pthread_cond_broadcast (&this->vpts_offset_queue_changed_cond);
-  pthread_mutex_unlock (&this->vpts_offset_queue_lock);
+    pthread_cond_broadcast (&this->vpts_offs_queue.changed);
+  pthread_mutex_unlock (&this->vpts_offs_queue.lock);
 
   if (!this->metronom.trick_mode)
   {
@@ -2670,8 +2680,6 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   this->metronom.video.seek      = 0;
   this->metronom.video.disc_num  = 0;
   this->metronom.trick_mode      = 0;
-  this->vpts_offset_read         = 0;
-  this->vpts_offset_write        = 0;
 #endif
 
   this->stream     = stream;
@@ -2720,9 +2728,6 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   pthread_mutex_init (&this->find_sync_point_lock, NULL);
   pthread_mutex_init (&this->adjust_zoom_lock, NULL);
 
-  pthread_mutex_init (&this->vpts_offset_queue_lock, NULL);
-  pthread_cond_init (&this->vpts_offset_queue_changed_cond, NULL);
-
   vdr_vpts_offset_queue_init (this);
 
   this->event_queue = xine_event_new_queue(this->stream);
@@ -2741,7 +2746,6 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   this->metronom.metronom.get_option                 = vdr_metronom_get_option;
   this->metronom.metronom.set_master                 = vdr_metronom_set_master;
   this->metronom.metronom.exit                       = vdr_metronom_exit;
-  this->metronom.stream_metronom                     = stream->metronom;
   pthread_mutex_init (&this->metronom.mutex, NULL);
   /* set metronom */
   stream->metronom = &this->metronom.metronom;
