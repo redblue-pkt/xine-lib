@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -185,6 +185,7 @@ static const sIIRCoefficients iir_cf[] = {
   { EQ_REAL(2.4201241845e-01), EQ_REAL(3.7899379077e-01), EQ_REAL(-8.0847117831e-01) },
 };
 
+/* XXX: Apart from the typedef in include/xine/audio_out.h, this is used nowhere in xine. */
 struct audio_fifo_s {
   audio_buffer_t    *first;
   audio_buffer_t   **add;
@@ -256,16 +257,31 @@ typedef struct {
   int             resample_conf;
   uint32_t        force_rate;           /* force audio output rate to this value if non-zero */
 
-  audio_fifo_t    free_fifo;
-  audio_fifo_t    out_fifo;
-  uint32_t        pts_in_out_fifo;
-  xine_stream_private_t *buf_streams[NUM_AUDIO_BUFFERS];
+  struct {
+    pthread_mutex_t  mutex;
+    pthread_cond_t   not_empty;
+    audio_buffer_t  *first;
+    audio_buffer_t **add;
+    int              num_buffers;
+    int              num_buffers_max;
+    int              num_waiters;
+  } free_fifo;
 
-  /* protected by out_fifo.mutex */
-  struct timespec wake_time;            /* time to drop next buf in trick play mode without sound */
-  int             use_wake_time;        /* 0 (play), 1 (wake_time or event), 2 (event) */
-  int             wake_now;             /* immediate response requested (speed change, shutdown) */
-  int             seek_count1;
+  struct {
+    pthread_mutex_t  mutex;
+    pthread_cond_t   not_empty;
+    pthread_cond_t   empty;
+    audio_buffer_t  *first;
+    audio_buffer_t **add;
+    int              num_buffers;
+    int              num_waiters;
+    uint32_t         pts_fill;
+    int              seek_count1;
+    struct timespec  wake_time;            /* time to drop next buf in trick play mode without sound */
+    int              use_wake_time;        /* 0 (play), 1 (wake_time or event), 2 (event) */
+    int              wake_now;             /* immediate response requested (speed change, shutdown) */
+    xine_stream_private_t *buf_streams[NUM_AUDIO_BUFFERS];
+  } out_fifo;
 
   int64_t         last_audio_vpts;
   pthread_mutex_t current_speed_lock;
@@ -467,7 +483,7 @@ static void ao_unref_obsolete (aos_t *this) {
     /* Paranoia? */
     if (PTR_IN_RANGE (buf, this->base_buf, NUM_AUDIO_BUFFERS * sizeof (*buf))) {
       int i = buf - this->base_buf;
-      xine_stream_private_t *buf_stream = this->buf_streams[i], **open_stream;
+      xine_stream_private_t *buf_stream = this->out_fifo.buf_streams[i], **open_stream;
       if (!buf_stream)
         continue;
       for (open_stream = this->streams; *open_stream; open_stream++) {
@@ -476,8 +492,8 @@ static void ao_unref_obsolete (aos_t *this) {
       }
       if (*open_stream)
         continue;
-      *a++ = this->buf_streams[i];
-      this->buf_streams[i] = NULL;
+      *a++ = this->out_fifo.buf_streams[i];
+      this->out_fifo.buf_streams[i] = NULL;
       if (a > d + sizeof (d) / sizeof (d[0]) - 2)
         break;
     }
@@ -503,9 +519,9 @@ static void ao_force_unref_all (aos_t *this, int lock) {
   if (lock)
     pthread_mutex_lock (&this->out_fifo.mutex);
   for (i = 0; i < NUM_AUDIO_BUFFERS; i++) {
-    if (this->buf_streams[i]) {
-      *a++ = this->buf_streams[i];
-      this->buf_streams[i] = NULL;
+    if (this->out_fifo.buf_streams[i]) {
+      *a++ = this->out_fifo.buf_streams[i];
+      this->out_fifo.buf_streams[i] = NULL;
     }
   }
   if (lock)
@@ -524,30 +540,70 @@ static void ao_force_unref_all (aos_t *this, int lock) {
  * frame queue (fifo)                                               *
  *******************************************************************/
 
-static void ao_fifo_open (audio_fifo_t *fifo) {
+static void ao_free_fifo_open (aos_t *this) {
 #ifndef HAVE_ZERO_SAFE_MEM
-  fifo->first           = NULL;
-  fifo->num_buffers     = 0;
-  fifo->num_buffers_max = 0;
-  fifo->num_waiters     = 0;
+  this->free_fifo.first           = NULL;
+  this->free_fifo.num_buffers     = 0;
+  this->free_fifo.num_buffers_max = 0;
+  this->free_fifo.num_waiters     = 0;
 #endif
-  fifo->add             = &fifo->first;
-  pthread_mutex_init (&fifo->mutex, NULL);
-  pthread_cond_init  (&fifo->not_empty, NULL);
-  pthread_cond_init  (&fifo->empty, NULL);
+  this->free_fifo.add             = &this->free_fifo.first;
+  pthread_mutex_init (&this->free_fifo.mutex, NULL);
+  pthread_cond_init  (&this->free_fifo.not_empty, NULL);
 }
 
-static void ao_fifo_close (audio_fifo_t *fifo) {
-#if 0 /* not yet needed */
-  fifo->first           = NULL;
-  fifo->add             = &fifo->first;
-  fifo->num_buffers     = 0;
-  fifo->num_buffers_max = 0;
-  fifo->num_waiters     = 0;
+static void ao_out_fifo_open (aos_t *this) {
+#ifndef HAVE_ZERO_SAFE_MEM
+  int i;
+  for (i = 0; i < NUM_AUDIO_BUFFERS; i++)
+    this->out_fifo.buf_streams[i]  = NULL;
+  this->out_fifo.first             = NULL;
+  this->out_fifo.num_buffers       = 0;
+  this->out_fifo.num_waiters       = 0;
+  this->out_fifo.pts_fill          = 0;
+  this->out_fifo.wake_time.tv_sec  = 0;
+  this->out_fifo.wake_time.tv_nsec = 0;
+  this->out_fifo.use_wake_time     = 0;
+  this->out_fifo.wake_now          = 0;
 #endif
-  pthread_mutex_destroy (&fifo->mutex);
-  pthread_cond_destroy  (&fifo->not_empty);
-  pthread_cond_destroy  (&fifo->empty);
+  this->out_fifo.add         = &this->out_fifo.first;
+  this->out_fifo.seek_count1 = -1;
+  pthread_mutex_init (&this->out_fifo.mutex, NULL);
+  pthread_cond_init  (&this->out_fifo.not_empty, NULL);
+  pthread_cond_init  (&this->out_fifo.empty, NULL);
+}
+
+static void ao_free_fifo_close (aos_t *this) {
+#if 0 /* not yet needed */
+  this->free_fifo.first           = NULL;
+  this->free_fifo.add             = &this->free_fifo.first;
+  this->free_fifo.num_buffers     = 0;
+  this->free_fifo.num_buffers_max = 0;
+  this->free_fifo.num_waiters     = 0;
+#endif
+  pthread_mutex_destroy (&this->free_fifo.mutex);
+  pthread_cond_destroy (&this->free_fifo.not_empty);
+}
+
+static void ao_out_fifo_close (aos_t *this) {
+#if 0 /* not yet needed */
+  int i;
+  for (i = 0; i < NUM_AUDIO_BUFFERS; i++)
+    this->out_fifo.buf_streams[i]  = NULL;
+  this->out_fifo.first             = NULL;
+  this->out_fifo.add               = &this->out_fifo.first;
+  this->out_fifo.num_buffers       = 0;
+  this->out_fifo.num_waiters       = 0;
+  this->out_fifo.pts_fill          = 0;
+  this->out_fifo.wake_time.rv_sec  = 0;
+  this->out_fifo.wake_time.tv_nsec = 0;
+  this->out_fifo.use_wake_time     = 0;
+  this->out_fifo.wake_now          = 0;
+  this->out_fifo.seek_count1       = -1;
+#endif
+  pthread_mutex_destroy (&this->out_fifo.mutex);
+  pthread_cond_destroy (&this->out_fifo.not_empty);
+  pthread_cond_destroy (&this->out_fifo.empty);
 }
 
 static void ao_out_fifo_reref_append (aos_t *this, audio_buffer_t *buf, int is_first) {
@@ -558,7 +614,7 @@ static void ao_out_fifo_reref_append (aos_t *this, audio_buffer_t *buf, int is_f
 
   /* Paranoia? */
   s = PTR_IN_RANGE (buf, this->base_buf, NUM_AUDIO_BUFFERS * sizeof (*buf))
-    ? this->buf_streams + (buf - this->base_buf) : &news;
+    ? this->out_fifo.buf_streams + (buf - this->base_buf) : &news;
   news = (xine_stream_private_t *)buf->stream;
   pthread_mutex_lock (&this->out_fifo.mutex);
   olds = *s;
@@ -570,14 +626,12 @@ static void ao_out_fifo_reref_append (aos_t *this, audio_buffer_t *buf, int is_f
     this->out_fifo.num_buffers = (this->out_fifo.first ? this->out_fifo.num_buffers : 0) + 1;
     *(this->out_fifo.add)      = buf;
     this->out_fifo.add         = &buf->next;
-    if (this->out_fifo.num_buffers_max < this->out_fifo.num_buffers)
-      this->out_fifo.num_buffers_max = this->out_fifo.num_buffers;
     if (buf->format.rate)
-      this->pts_in_out_fifo += (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
+      this->out_fifo.pts_fill += (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
     if (this->out_fifo.num_waiters && (this->out_fifo.first == buf))
       pthread_cond_signal (&this->out_fifo.not_empty);
     if (is_first)
-      this->seek_count1 = buf->extra_info->seek_count;
+      this->out_fifo.seek_count1 = buf->extra_info->seek_count;
     pthread_mutex_unlock (&this->out_fifo.mutex);
     if (olds)
       xine_refs_sub (&olds->refs, 1); /* this may involve stream dispose. */
@@ -587,14 +641,12 @@ static void ao_out_fifo_reref_append (aos_t *this, audio_buffer_t *buf, int is_f
     this->out_fifo.num_buffers = (this->out_fifo.first ? this->out_fifo.num_buffers : 0) + 1;
     *(this->out_fifo.add)      = buf;
     this->out_fifo.add         = &buf->next;
-    if (this->out_fifo.num_buffers_max < this->out_fifo.num_buffers)
-      this->out_fifo.num_buffers_max = this->out_fifo.num_buffers;
     if (buf->format.rate)
-      this->pts_in_out_fifo += (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
+      this->out_fifo.pts_fill += (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
     if (this->out_fifo.num_waiters && (this->out_fifo.first == buf))
       pthread_cond_signal (&this->out_fifo.not_empty);
     if (is_first)
-      this->seek_count1 = buf->extra_info->seek_count;
+      this->out_fifo.seek_count1 = buf->extra_info->seek_count;
     pthread_mutex_unlock (&this->out_fifo.mutex);
 
   }
@@ -613,22 +665,22 @@ static void ao_free_fifo_append (aos_t *this, audio_buffer_t *buf) {
   pthread_mutex_unlock (&this->free_fifo.mutex);
 }
 
-static audio_buffer_t *ao_fifo_pop_int (audio_fifo_t *fifo) {
+static audio_buffer_t *ao_out_fifo_pop_int (aos_t *this) {
   audio_buffer_t *buf;
-  buf         = fifo->first;
-  fifo->first = buf->next;
-  buf->next   = NULL;
-  fifo->num_buffers--;
-  if (!fifo->first) {
-    fifo->add         = &fifo->first;
-    fifo->num_buffers = 0;
+  buf                  = this->out_fifo.first;
+  this->out_fifo.first = buf->next;
+  buf->next            = NULL;
+  this->out_fifo.num_buffers--;
+  if (!this->out_fifo.first) {
+    this->out_fifo.add         = &this->out_fifo.first;
+    this->out_fifo.num_buffers = 0;
   }
   return buf;
 }
 
 static void ao_out_fifo_signal (aos_t *this) {
   pthread_mutex_lock (&this->out_fifo.mutex);
-  this->wake_now = 1;
+  this->out_fifo.wake_now = 1;
   if (this->out_fifo.num_waiters)
     pthread_cond_signal (&this->out_fifo.not_empty);
   pthread_mutex_unlock (&this->out_fifo.mutex);
@@ -640,11 +692,11 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
   pthread_mutex_lock (&this->out_fifo.mutex);
   while (1) {
 
-    if (this->seek_count1 >= 0) {
-      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 2.\n", this->seek_count1);
+    if (this->out_fifo.seek_count1 >= 0) {
+      xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 2.\n", this->out_fifo.seek_count1);
       this->seek_count2 =
-      this->seek_count3 = this->seek_count1;
-      this->seek_count1 = -1;
+      this->seek_count3 = this->out_fifo.seek_count1;
+      this->out_fifo.seek_count1 = -1;
     }
 
     if (this->discard_buffers) {
@@ -668,7 +720,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
         this->out_fifo.first = NULL;
         this->out_fifo.add = &this->out_fifo.first;
         this->out_fifo.num_buffers = 0;
-        this->pts_in_out_fifo = 0;
+        this->out_fifo.pts_fill = 0;
       }
       if (n) {
         if ((this->seek_count3 >= 0) && list->stream) {
@@ -707,17 +759,17 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
           dry = 1;
         }
         if (buf->format.rate)
-          this->pts_in_out_fifo -= (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
+          this->out_fifo.pts_fill -= (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
       }
     }
-    if (buf && !this->use_wake_time)
+    if (buf && !this->out_fifo.use_wake_time)
       break;
 
-    if (this->wake_now || !this->audio_loop_running)
+    if (this->out_fifo.wake_now || !this->audio_loop_running)
       break;
 
     /* no more bufs for now... */
-    if (!this->use_wake_time && this->driver_open) {
+    if (!this->out_fifo.use_wake_time && this->driver_open) {
       int n;
       xine_rwlock_rdlock (&this->streams_lock);
       n = this->num_null_streams + this->num_anon_streams + this->num_streams;
@@ -757,16 +809,16 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
     }
 
     this->out_fifo.num_waiters++;
-    if (this->use_wake_time == 1) {
-      pthread_cond_timedwait (&this->out_fifo.not_empty, &this->out_fifo.mutex, &this->wake_time);
+    if (this->out_fifo.use_wake_time == 1) {
+      pthread_cond_timedwait (&this->out_fifo.not_empty, &this->out_fifo.mutex, &this->out_fifo.wake_time);
     } else {
       pthread_cond_wait (&this->out_fifo.not_empty, &this->out_fifo.mutex);
     }
-    this->use_wake_time = 0;
+    this->out_fifo.use_wake_time = 0;
     this->out_fifo.num_waiters--;
   }
 
-  this->wake_now = 0;
+  this->out_fifo.wake_now = 0;
   pthread_mutex_unlock (&this->out_fifo.mutex);
 
   if (dry)
@@ -799,7 +851,7 @@ static audio_buffer_t *ao_free_fifo_get (aos_t *this) {
       if (this->clock->speed == XINE_SPEED_PAUSE) {
         pthread_mutex_lock (&this->out_fifo.mutex);
         if (this->out_fifo.first) {
-          buf = ao_fifo_pop_int (&this->out_fifo);
+          buf = ao_out_fifo_pop_int (this);
           pthread_mutex_unlock (&this->out_fifo.mutex);
           xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: try unblocking decoder.\n");
           return buf;
@@ -853,7 +905,7 @@ static void ao_out_fifo_manual_flush (aos_t *this) {
     this->out_fifo.first = NULL;
     this->out_fifo.add = &this->out_fifo.first;
     this->out_fifo.num_buffers = 0;
-    this->pts_in_out_fifo = 0;
+    this->out_fifo.pts_fill = 0;
     pthread_mutex_lock (&this->free_fifo.mutex);
     this->free_fifo.num_buffers = n + (this->free_fifo.first ? this->free_fifo.num_buffers : 0);
     *(this->free_fifo.add) = list;
@@ -1694,16 +1746,16 @@ static void *ao_loop (void *this_gen) {
         if (this->current_speed != XINE_SPEED_PAUSE) {
           int wait = (in_buf->vpts - cur_time) * XINE_FINE_SPEED_NORMAL / this->current_speed;
           wait /= 90;
-          xine_gettime (&this->wake_time);
-          this->use_wake_time = 1;
-          this->wake_time.tv_sec  +=  wait / 1000;
-          this->wake_time.tv_nsec += (wait % 1000) * 1000000;
-          if (this->wake_time.tv_nsec >= 1000000000) {
-            this->wake_time.tv_nsec -= 1000000000;
-            this->wake_time.tv_sec  += 1;
+          xine_gettime (&this->out_fifo.wake_time);
+          this->out_fifo.use_wake_time = 1;
+          this->out_fifo.wake_time.tv_sec  +=  wait / 1000;
+          this->out_fifo.wake_time.tv_nsec += (wait % 1000) * 1000000;
+          if (this->out_fifo.wake_time.tv_nsec >= 1000000000) {
+            this->out_fifo.wake_time.tv_nsec -= 1000000000;
+            this->out_fifo.wake_time.tv_sec  += 1;
           }
         } else {
-          this->use_wake_time = 2;
+          this->out_fifo.use_wake_time = 2;
         }
         pthread_mutex_unlock (&this->current_speed_lock);
         continue;
@@ -2003,7 +2055,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
 
   }
 
-  in_buf = ao_fifo_pop_int (&this->out_fifo);
+  in_buf = ao_out_fifo_pop_int (this);
   pthread_mutex_unlock(&this->out_fifo.mutex);
 
   if  ((in_buf->format.bits != this->input.bits)
@@ -2425,8 +2477,8 @@ static void ao_exit(xine_audio_port_t *this_gen) {
   pthread_cond_destroy  (&this->done_stepping);
 
   ao_force_unref_all (this, 1);
-  ao_fifo_close (&this->free_fifo);
-  ao_fifo_close (&this->out_fifo);
+  ao_free_fifo_close (this);
+  ao_out_fifo_close (this);
 
   _x_freep (&this->frame_buf[0]->mem);
   _x_freep (&this->frame_buf[1]->mem);
@@ -2520,7 +2572,7 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
 
   case AO_PROP_PTS_IN_FIFO:
     pthread_mutex_lock (&this->out_fifo.mutex);
-    ret = this->pts_in_out_fifo;
+    ret = this->out_fifo.pts_fill;
     pthread_mutex_unlock (&this->out_fifo.mutex);
     break;
 
@@ -2654,7 +2706,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
 
   case AO_PROP_PTS_IN_FIFO:
     pthread_mutex_lock (&this->out_fifo.mutex);
-    ret = this->pts_in_out_fifo;
+    ret = this->out_fifo.pts_fill;
     pthread_mutex_unlock (&this->out_fifo.mutex);
     break;
 
@@ -2789,10 +2841,6 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->step                   = 0;
   this->last_gap               = 0;
   this->last_sgap              = 0;
-  this->wake_time.tv_sec       = 0;
-  this->wake_time.tv_nsec      = 0;
-  this->use_wake_time          = 0;
-  this->wake_now               = 0;
   this->compression_factor_max = 0.0;
   this->do_compress            = 0;
   this->do_amp                 = 0;
@@ -2819,7 +2867,6 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->resend_max             = 0;
   this->resend_frame_size      = 0;
   this->resend_buf             = NULL;
-  this->pts_in_out_fifo        = 0;
 #endif
 
   this->driver        = driver;
@@ -2937,8 +2984,8 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
    * pre-allocate memory for samples
    */
 
-  ao_fifo_open (&this->free_fifo);
-  ao_fifo_open (&this->out_fifo);
+  ao_free_fifo_open (this);
+  ao_out_fifo_open (this);
 
   {
     audio_buffer_t *buf = this->base_buf, *list = NULL, **add = &list;
@@ -2976,7 +3023,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
     this->frame_buf[1] = buf;
   }
 
-  this->seek_count1 = -1;
+  this->out_fifo.seek_count1 = -1;
   this->seek_count2 = -1;
   this->seek_count3 = -1;
 
