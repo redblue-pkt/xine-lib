@@ -49,8 +49,16 @@ static const unsigned char xor_table[] = {
     0x63, 0x11, 0x03, 0x71, 0x08, 0x08, 0x70, 0x02,
     0x10, 0x57, 0x05, 0x18, 0x54, 0x00, 0x00, 0x00 };
 
-#define _X_BE_32C(x,y) do { *(uint32_t *)(x) = be2me_32((y)); } while(0)
-#define _X_LE_32C(x,y) do { *(uint32_t *)(x) = le2me_32((y)); } while(0)
+#define _X_BE_32C(x,y)                 \
+  do {                                 \
+    uint32_t X = be2me_32((y));        \
+    memcpy((x), &X, sizeof(uint32_t)); \
+  } while(0)
+#define _X_LE_32C(x,y)                 \
+  do {                                 \
+    uint32_t X = le2me_32((y));        \
+    memcpy((x), &X, sizeof(uint32_t)); \
+  } while(0)
 
 static void hash(uint8_t *field, const uint8_t *param) {
 
