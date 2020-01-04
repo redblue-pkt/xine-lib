@@ -1797,7 +1797,8 @@ static void put_int (uint8_t **dest, int value) {
 
 static void put_string (uint8_t **dest, const char *value, uint32_t value_len) {
   put_int (dest, value_len);
-  memcpy (*dest, value, value_len);
+  if (value_len > 0)
+    memcpy (*dest, value, value_len);
   *dest += value_len;
 }
 
