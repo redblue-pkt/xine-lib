@@ -219,8 +219,8 @@ static unsigned int pnm_get_chunk(pnm_t *p,
 
   max -= PREAMBLE_SIZE;
 
-  *chunk_type = be2me_32(*((uint32_t *)data));
-  chunk_size = be2me_32(*((uint32_t *)(data+4)));
+  *chunk_type = _X_BE_32(data);
+  chunk_size  = _X_BE_32(data + 4);
 
   switch (*chunk_type) {
     case PNA_TAG:
@@ -260,7 +260,7 @@ static unsigned int pnm_get_chunk(pnm_t *p,
           max -= 1;
 
 	  /* two bytes of message length*/
-	  n=be2me_16(*(uint16_t*)(ptr+1));
+          n = _X_BE_16(ptr + 1);
 
 	  /* message itself */
           if( max < n )
