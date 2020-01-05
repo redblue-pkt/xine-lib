@@ -1033,7 +1033,9 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
       demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
 
       buf->decoder_info[2] = sizeof(lang->desc);
-      buf->decoder_info_ptr[2] = &(lang->desc);
+      buf->decoder_info_ptr[2] = buf->content;
+      memcpy(buf->content, &lang->desc, sizeof(lang->desc));
+
       buf->type |= this->current_spu_channel;
 
       this->spu_pid = lang->pid;
