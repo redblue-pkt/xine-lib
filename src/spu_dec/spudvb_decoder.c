@@ -246,7 +246,7 @@ typedef struct dvb_spu_decoder_s {
 
   xine_stream_t        *stream;
 
-  spu_dvb_descriptor_t *spu_descriptor;
+  spu_dvb_descriptor_t spu_descriptor;
 
   /* dvbsub_osd_mutex should be locked around all calls to this->osd_renderer->show()
      and this->osd_renderer->hide() */
@@ -1108,7 +1108,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
         pthread_mutex_unlock(&this->dvbsub_osd_mutex);
       }
       else {
-        memcpy (this->spu_descriptor, buf->decoder_info_ptr[2], buf->decoder_info[2]);
+        memcpy (&this->spu_descriptor, buf->decoder_info_ptr[2], buf->decoder_info[2]);
       }
     }
     return;
@@ -1177,7 +1177,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 	if(new_i > (this->pes_pkt_wrptr - this->pes_pkt))
 	  break;
 	/* verify we've the right segment */
-	if(this->dvbsub->page.page_id==this->spu_descriptor->comp_page_id){
+        if (this->dvbsub->page.page_id == this->spu_descriptor.comp_page_id) {
 	  /* SEGMENT_DATA_FIELD */
 	  switch (segment_type & 0xff) {
 	    case 0x10:
@@ -1244,8 +1244,6 @@ static void spudec_dispose_internal (dvb_spu_decoder_t * this, int thread_runnin
   }
   pthread_mutex_destroy(&this->dvbsub_osd_mutex);
   pthread_cond_destroy(&this->dvbsub_restart_timeout);
-
-  _x_freep(&this->spu_descriptor);
 
   for ( i=0; i<MAX_REGIONS; i++ ) {
     _x_freep( &this->dvbsub->regions[i].img );
@@ -1319,9 +1317,8 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   pthread_cond_init(&this->dvbsub_restart_timeout, NULL);
 
   this->pes_pkt        = calloc(65, 1024);
-  this->spu_descriptor = calloc(1, sizeof(spu_dvb_descriptor_t));
   this->dvbsub         = calloc(1, sizeof (dvbsub_func_t));
-  if (!this->pes_pkt || !this->spu_descriptor || !this->dvbsub) {
+  if (!this->pes_pkt || !this->dvbsub) {
     spudec_dispose_internal(this, 0);
     return NULL;
   }
