@@ -2852,7 +2852,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   /* check for codec support */
   video_type = BUF_VIDEO_BASE | (_x_get_video_streamtype(stream) << 16);
-  for (i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++) {
+  for (i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_video_lookup[0]); i++) {
     if(ff_video_lookup[i].type == video_type) {
       pthread_mutex_lock(&ffmpeg_lock);
       codec = avcodec_find_decoder(ff_video_lookup[i].id);
