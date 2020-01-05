@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 the xine project
+ * Copyright (C) 2001-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -39,10 +39,9 @@
  * common initialisation
  */
 
-pthread_once_t once_control = PTHREAD_ONCE_INIT;
 pthread_mutex_t ffmpeg_lock;
 
-void init_once_routine(void) {
+static void _init_once_routine(void) {
   pthread_mutex_init(&ffmpeg_lock, NULL);
   XFF_AVCODEC_INIT();
   XFF_AVCODEC_REGISTER_ALL();
@@ -53,6 +52,12 @@ void init_once_routine(void) {
 # endif
   avformat_network_init();
 #endif
+}
+
+void init_once_routine(void) {
+  static pthread_once_t once_control = PTHREAD_ONCE_INIT;
+
+  pthread_once( &once_control, _init_once_routine );
 }
 
 /*

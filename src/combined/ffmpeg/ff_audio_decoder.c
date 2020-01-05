@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 the xine project
+ * Copyright (C) 2001-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1356,7 +1356,7 @@ void *init_audio_plugin (xine_t *xine, const void *data) {
 
   this->xine = xine;
 
-  pthread_once( &once_control, init_once_routine );
+  init_once_routine();
 
   this->gain = (float)0x7fff * powf ((float)10, (float)
     xine->config->register_num (xine->config,

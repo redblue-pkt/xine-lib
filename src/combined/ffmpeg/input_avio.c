@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013-2019 the xine project
- * Copyright (C) 2013 Petri Hintukainen <phintuka@users.sourceforge.net>
+ * Copyright (C) 2013-2020 the xine project
+ * Copyright (C) 2013-2020 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
  *
@@ -312,7 +312,7 @@ static input_plugin_t *input_avio_get_instance (input_class_t *cls_gen, xine_str
     mrl += proto_len;
   }
 
-  pthread_once( &once_control, init_once_routine );
+  init_once_routine();
 
   if (!is_avio_supported_protocol(stream->xine, mrl)) {
     return NULL;
