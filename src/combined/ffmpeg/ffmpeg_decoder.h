@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 the xine project
+ * Copyright (C) 2001-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -64,7 +64,6 @@ extern const input_info_t   input_info_avio;
 #define INPUT_AVIO_ID     "avio"
 #define DEMUX_AVFORMAT_ID "avformat"
 
-extern pthread_once_t once_control;
 void init_once_routine(void);
 
 extern pthread_mutex_t ffmpeg_lock;

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013-2018 the xine project
- * Copyright (C) 2013 Petri Hintukainen <phintuka@users.sourceforge.net>
+ * Copyright (C) 2013-2020 the xine project
+ * Copyright (C) 2013-2020 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
  *
@@ -257,7 +257,7 @@ void *init_avformat_input_plugin (xine_t *xine, const void *data) {
     return NULL;
   }
 
-  pthread_once( &once_control, init_once_routine );
+  init_once_routine();
 
   this->get_instance      = input_avformat_get_instance;
   this->description       = N_("libavformat input plugin");
