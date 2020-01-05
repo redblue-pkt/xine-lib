@@ -46,10 +46,10 @@ avcodec_audio.list: AV_CODECS:=/CODEC_ID_PCM_S16LE/,/CODEC_ID_DVD_SUBTITLE/
 avcodec_video.list: AV_CODECS:=/CODEC_ID_MPEG1VIDEO/,/CODEC_ID_PCM_S16LE/
 
 # that weird shell call just yields full path of the avcodec.h file
-avcodec_audio.list avcodec_video.list: $(shell \
- (echo '#include "config.h"' ; echo '#include "$(srcdir)/ffmpeg_decoder.h"') | $(AV_CPP) -M - |\
+avcodec_audio.list avcodec_video.list: Makefile $(shell \
+ echo -e '#include "config.h"\n#ifdef HAVE_FFMPEG_AVUTIL_H\n#include <avcodec.h>\n#else\n#include <libavcodec/avcodec.h>\n#endif' | $(AV_CPP) -M - |\
  sed -e '/avcodec\.h/! d; s%^.* \([^ ]*/avcodec\.h\) .*%\1%')
-	$(AM_V_GEN)(echo '#include "config.h"' ; echo '#include "$(srcdir)/ffmpeg_decoder.h"') | $(AV_CPP) - |\
+	$(AM_V_GEN)echo -e '#include "config.h"\n#ifdef HAVE_FFMPEG_AVUTIL_H\n#include <avcodec.h>\n#else\n#include <libavcodec/avcodec.h>\n#endif' | $(AV_CPP) - |\
 	  sed -e $(AV_CODECS)'! d; s/^[ \t]*//; s/[=,].*//; /^$$/ d' >$@
 
 # Generate the mappings. These are #included where needed.
