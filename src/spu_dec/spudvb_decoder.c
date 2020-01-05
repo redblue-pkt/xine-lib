@@ -1108,7 +1108,13 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
         pthread_mutex_unlock(&this->dvbsub_osd_mutex);
       }
       else {
-        memcpy (&this->spu_descriptor, buf->decoder_info_ptr[2], buf->decoder_info[2]);
+        if (buf->decoder_info[2] < sizeof(this->spu_descriptor)) {
+          xprintf (this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": too small spu_descriptor, ignoring\n");
+        } else {
+          if (buf->decoder_info[2] > sizeof(this->spu_descriptor))
+            xprintf (this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": too large spu_descriptor\n");
+          memcpy (&this->spu_descriptor, buf->decoder_info_ptr[2], sizeof(this->spu_descriptor));
+        }
       }
     }
     return;
