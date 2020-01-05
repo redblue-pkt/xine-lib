@@ -312,6 +312,8 @@ static input_plugin_t *input_avio_get_instance (input_class_t *cls_gen, xine_str
     mrl += proto_len;
   }
 
+  pthread_once( &once_control, init_once_routine );
+
   if (!is_avio_supported_protocol(stream->xine, mrl)) {
     return NULL;
   }
@@ -362,7 +364,7 @@ void *init_avio_input_plugin (xine_t *xine, const void *data) {
   for (iter = NULL; NULL != (protocol = avio_enum_protocols(&iter, 0)); ) {
     xprintf (xine, XINE_VERBOSITY_DEBUG, LOG_MODULE": found avio protocol '%s'\n", protocol);
   }
-  pthread_once( &once_control, init_once_routine );
+
   return (input_class_t *)&this;
 }
 
