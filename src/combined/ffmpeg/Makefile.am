@@ -47,9 +47,9 @@ avcodec_video.list: AV_CODECS:=/CODEC_ID_MPEG1VIDEO/,/CODEC_ID_PCM_S16LE/
 
 # that weird shell call just yields full path of the avcodec.h file
 avcodec_audio.list avcodec_video.list: $(shell \
- echo '#include "$(srcdir)/ffmpeg_decoder.h"' | $(AV_CPP) -M - |\
+ (echo '#include "config.h"' ; echo '#include "$(srcdir)/ffmpeg_decoder.h"') | $(AV_CPP) -M - |\
  sed -e '/avcodec\.h/! d; s%^.* \([^ ]*/avcodec\.h\) .*%\1%')
-	$(AM_V_GEN)echo '#include "$(srcdir)/ffmpeg_decoder.h"' | $(AV_CPP) - |\
+	$(AM_V_GEN)(echo '#include "config.h"' ; echo '#include "$(srcdir)/ffmpeg_decoder.h"') | $(AV_CPP) - |\
 	  sed -e $(AV_CODECS)'! d; s/^[ \t]*//; s/[=,].*//; /^$$/ d' >$@
 
 # Generate the mappings. These are #included where needed.

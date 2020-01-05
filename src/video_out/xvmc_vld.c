@@ -23,6 +23,10 @@
  * Author: Thomas Hellström, (2004)
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "xxmc.h"
 #include <unistd.h>
 
