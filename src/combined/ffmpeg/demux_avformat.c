@@ -322,7 +322,7 @@ static void check_newpts(avformat_demux_plugin_t *this, int64_t pts) {
 static uint32_t video_codec_lookup(avformat_demux_plugin_t *this, unsigned id) {
 
   size_t i;
-  for (i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_codec_t); i++) {
+  for (i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_video_lookup[0]); i++) {
     if (ff_video_lookup[i].id == id) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                LOG_MODULE": found video codec '%s'\n", ff_video_lookup[i].name);
@@ -336,7 +336,7 @@ static uint32_t video_codec_lookup(avformat_demux_plugin_t *this, unsigned id) {
 static uint32_t audio_codec_lookup(avformat_demux_plugin_t *this, unsigned id) {
 
   size_t i;
-  for (i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_codec_t); i++) {
+  for (i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_audio_lookup[0]); i++) {
     if (ff_audio_lookup[i].id == id) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
                LOG_MODULE": found audio codec '%s'\n", ff_audio_lookup[i].name);

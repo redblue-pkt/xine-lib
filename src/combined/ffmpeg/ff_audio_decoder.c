@@ -246,7 +246,7 @@ static void ff_audio_init_codec(ff_audio_decoder_t *this, unsigned int codec_typ
 
   this->codec = NULL;
 
-  for(i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_codec_t); i++)
+  for (i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_audio_lookup[0]); i++)
     if(ff_audio_lookup[i].type == codec_type) {
       this->buftype = codec_type;
       ff_aac_mode_set (this, 1);
