@@ -1371,7 +1371,7 @@ void *init_audio_plugin (xine_t *xine, const void *data) {
 }
 
 const decoder_info_t dec_info_ffmpeg_audio = {
-  supported_audio_types,   /* supported types */
-  7                        /* priority        */
+  .supported_types = supported_audio_types,
+  .priority = 7,
 };
 
