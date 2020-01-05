@@ -21,8 +21,8 @@
 #ifndef HAVE_XINE_DECODER_H
 #define HAVE_XINE_DECODER_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#if defined(HAVE_CONFIG_H) && !defined(__XINE_LIB_CONFIG_H__)
+#  error config.h not included
 #endif
 
 #ifdef HAVE_FFMPEG_AVUTIL_H

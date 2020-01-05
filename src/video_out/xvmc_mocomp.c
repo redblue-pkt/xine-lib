@@ -20,6 +20,10 @@
  * XvMC image support by Jack Kelliher
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "xxmc.h"
 
 
