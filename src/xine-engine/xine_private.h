@@ -247,6 +247,39 @@ static inline int xine_gettime (struct timespec *ts) {
 }
 #endif
 
+#if (defined(__GNUC__) || defined(__clang__)) && defined(ARCH_X86)
+static inline uint32_t xine_uint_mul_div (uint32_t num, uint32_t mul, uint32_t den) {
+  register uint32_t eax = num, edx;
+  /* if result > 0xffffffff, return 0xffffffff without math exception. */
+  __asm__ __volatile__ (
+      "mull\t%2\n"
+    "\tmovl\t%3, %2\n"
+    "\tsarl\t%2\n"
+    "\taddl\t%2, %0\n"
+    "\tadcl\t$0, %1\n"
+    "\tcmpl\t%1, %3\n"
+    "\tjbe\t1f\n"
+    "\tdivl\t%3\n"
+    "\tjmp\t2f\n"
+    "1:\n"
+    "\txorl\t%0, %0\n"
+    "\tnotl\t%0\n"
+    "2:\n"
+    : "=a" (eax), "=d" (edx), "=r" (mul), "=g" (den)
+    : "0"  (eax),             "2"  (mul), "3"  (den)
+    : "cc"
+  );
+  (void)mul;
+  (void)den;
+  (void)edx;
+  return eax;
+}
+#else
+static inline uint32_t xine_uint_mul_div (uint32_t num, uint32_t mul, uint32_t den) {
+  return ((uint64_t)num * mul + (den >> 1)) / den;
+}
+#endif
+
 static inline int32_t xine_str2int32 (const char **s) {
   const uint8_t *p = (const uint8_t *)*s;
   uint8_t z;
@@ -578,3 +611,4 @@ void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) INTERNAL;
 EXTERN_C_STOP
 
 #endif
+
