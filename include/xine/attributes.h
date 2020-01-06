@@ -27,7 +27,9 @@
 #define ATTRIBUTE_H_
 
 #ifdef XINE_COMPILE
-# include "configure.h"
+# if defined(HAVE_CONFIG_H) && !defined(__XINE_LIB_CONFIG_H__)
+#  error config.h not included in source file !
+# endif
 #else
 # if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95 )
 #  define SUPPORT_ATTRIBUTE_PACKED 1
