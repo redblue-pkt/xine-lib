@@ -1155,7 +1155,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   return &stream->s;
 
   /* err_audio: */
-  _x_audio_decoder_shutdown (&stream->s);
+  /* _x_audio_decoder_shutdown (&stream->s); */
 
   err_video:
   _x_video_decoder_shutdown (&stream->s);
