@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -56,6 +56,7 @@
 #include "net_buf_ctrl.h"
 #include "group_network.h"
 #include "input_helper.h"
+#include "http_helper.h"
 
 #define NET_BS_LEN 2324
 
@@ -180,34 +181,40 @@ static void net_plugin_dispose (input_plugin_t *this_gen ) {
 
 static int net_plugin_open (input_plugin_t *this_gen ) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
-  char *filename;
-  char *pptr;
-  int port = 7658;
+  xine_url_t url;
+  int gopher = !strncasecmp(this->mrl, "gopher", 6);
   int toread = MAX_PREVIEW_SIZE;
   int trycount = 0;
 
-  filename = strdup(strstr(this->mrl, "://") + 3);
-  if (!filename)
-    return 0;
-
-  pptr=strrchr(filename, ':');
-  if(pptr) {
-    *pptr++ = 0;
-    sscanf(pptr,"%d", &port);
-  }
+  _x_url_init (&url);
+  if (!_x_url_parse2 (this->mrl, &url))
+    goto fail;
+  if (!url.host)
+    goto fail;
+  url.port = url.port ? url.port : (gopher ? 70 : 7658);
 
   this->curpos = 0;
 
-  this->tls = _x_tls_connect(this->stream->xine, this->stream, filename, port);
+  this->tls = _x_tls_connect(this->stream->xine, this->stream, url.host, url.port);
   if (!this->tls)
     goto fail;
 
   if (!strncasecmp(this->mrl, "tls", 3)) {
-    if (_x_tls_handshake(this->tls, filename, -1) < 0)
+    if (_x_tls_handshake(this->tls, url.host, -1) < 0)
       goto fail;
   }
 
-  free(filename);
+  if (gopher) {
+    if (url.path) {
+      ssize_t len = strlen(url.path);
+      if (len != _x_tls_write (this->tls, url.path, len))
+        goto fail;
+    }
+    if (2 != _x_tls_write (this->tls, "\r\n", 2))
+      goto fail;
+  }
+
+  _x_url_cleanup (&url);
 
   /*
    * fill preview buffer
@@ -226,7 +233,7 @@ static int net_plugin_open (input_plugin_t *this_gen ) {
   return 1;
 
  fail:
-  free(filename);
+   _x_url_cleanup (&url);
   return 0;
 }
 
@@ -237,6 +244,7 @@ static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stre
   const char *filename;
 
   if (!strncasecmp (mrl, "tcp://", 6) ||
+      !strncasecmp (mrl, "gopher://", 9) ||
       !strncasecmp (mrl, "tls://", 6)) {
 
     nbc = nbc_init (stream);
@@ -266,6 +274,11 @@ static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stre
   this->curpos        = 0;
   this->nbc           = nbc;
   this->preview_size  = 0;
+
+  if (!this->mrl) {
+    free(this);
+    return NULL;
+  }
 
   this->input_plugin.open              = net_plugin_open;
   this->input_plugin.get_capabilities  = _x_input_get_capabilities_preview;
@@ -321,4 +334,22 @@ void *input_tls_init_class (xine_t *xine, const void *data) {
   (void)data;
 
   return (void *)&input_tls_class;
+}
+
+void *input_gopher_init_class (xine_t *xine, const void *data) {
+
+  static const input_class_t input_gopher_class = {
+    .get_instance      = net_class_get_instance,
+    .description       = N_("gopher input plugin"),
+    .identifier        = "gopher",
+    .get_dir           = NULL,
+    .get_autoplay_list = NULL,
+    .dispose           = NULL,
+    .eject_media       = NULL,
+  };
+
+  (void)xine;
+  (void)data;
+
+  return (void *)&input_gopher_class;
 }

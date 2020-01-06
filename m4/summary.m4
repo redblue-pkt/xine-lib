@@ -15,6 +15,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "   - http          - ftp"
     test x"$have_tls" = x"yes"       && echo "   - https         - ftpes"
     test x"$have_libssh2" = x"yes"   && echo "   - sftp          - scp"
+    echo "   - gopher"
     test x"$have_tls" = x"yes"       && echo "   - tls"
     test x"$have_libnfs" = x"yes"    && echo "   - nfs"
     test x"$enable_mms" != x"no"     && echo "   - mms"
