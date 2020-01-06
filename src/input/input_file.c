@@ -682,6 +682,7 @@ static xine_mrl_t **file_input_class_get_dir (input_class_t *this_gen, const cha
   hide_files = (xine_mrl_t *) calloc(MAXFILES, sizeof(xine_mrl_t));
   norm_files = (xine_mrl_t *) calloc(MAXFILES, sizeof(xine_mrl_t));
 
+  if (dir_files && hide_files && norm_files)
   while((pdirent = readdir(pdir)) != NULL) {
 
     memset(fullfilename, 0, sizeof(fullfilename));

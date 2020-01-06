@@ -1770,7 +1770,9 @@ static input_plugin_t *bluray_class_get_instance (input_class_t *cls_gen, xine_s
   if (strncasecmp(mrl, "bluray:", 7) && strncasecmp(mrl, "bd:", 3))
     return NULL;
 
-  this = (bluray_input_plugin_t *) calloc(1, sizeof (bluray_input_plugin_t));
+  this = calloc(1, sizeof (bluray_input_plugin_t));
+  if (!this)
+    return NULL;
 
   this->stream = stream;
   this->class  = (bluray_input_class_t*)cls_gen;

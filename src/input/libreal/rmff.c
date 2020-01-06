@@ -340,6 +340,9 @@ static rmff_mdpr_t *rmff_scan_mdpr(const char *data)
 {
   rmff_mdpr_t *mdpr = calloc(sizeof(rmff_mdpr_t), 1);
 
+  if (!mdpr)
+    return NULL;
+
   mdpr->object_id=_X_BE_32(data);
   mdpr->size=_X_BE_32(&data[4]);
   if (mdpr->size < 46)
@@ -443,6 +446,9 @@ rmff_header_t *rmff_scan_header(const char *data) {
   const char    *ptr=data;
   unsigned int   i;
 
+  if (!header)
+    return NULL;
+
   header->fileheader=NULL;
 	header->prop=NULL;
 	header->cont=NULL;
@@ -477,8 +483,10 @@ rmff_header_t *rmff_scan_header(const char *data) {
       break;
     case MDPR_TAG:
       mdpr=rmff_scan_mdpr(ptr);
-      chunk_size=mdpr->size;
-      header->streams[mdpr->stream_number]=mdpr;
+      if (mdpr) {
+        chunk_size=mdpr->size;
+        header->streams[mdpr->stream_number]=mdpr;
+      }
       break;
     case CONT_TAG:
       header->cont=rmff_scan_cont(ptr);

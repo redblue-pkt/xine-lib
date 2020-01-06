@@ -613,6 +613,10 @@ static void rtp_plugin_dispose (input_plugin_t *this_gen ) {
 
   if (this->fh != -1) close(this->fh);
 
+  pthread_mutex_destroy(&this->buffer_ring_mut);
+  pthread_cond_destroy(&this->reader_cond);
+  pthread_cond_destroy(&this->writer_cond);
+
   _x_freep(&this->buffer);
   _x_freep(&this->mrl);
   free(this);
@@ -666,6 +670,9 @@ static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
 
 
   mrl = strdup(data);
+  if (!mrl)
+    return NULL;
+
   if (!strncasecmp (mrl, "rtp://", 6)) {
     address = &mrl[6];
     is_rtp = 1;
@@ -702,6 +709,11 @@ static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
   }
 
   this = calloc(1, sizeof(rtp_input_plugin_t));
+  if (!this) {
+    free(mrl);
+    return NULL;
+  }
+
   this->stream       = stream;
   this->mrl          = mrl;
   this->address      = address;
@@ -738,6 +750,10 @@ static input_plugin_t *rtp_class_get_instance (input_class_t *cls_gen,
 
   this->nbc = NULL;
   this->nbc = nbc_init(this->stream);
+
+  if (!this->buffer) {
+    rtp_plugin_dispose(&this->input_plugin);
+  }
 
   return &this->input_plugin;
 }

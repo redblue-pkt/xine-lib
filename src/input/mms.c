@@ -673,6 +673,8 @@ mms_t *mms_connect (xine_stream_t *stream, const char *url, int bandwidth) {
     return NULL;
 
   this = calloc(1, sizeof (mms_t));
+  if (!this)
+    return NULL;
 
   this->stream          = stream;
   this->s               = -1;

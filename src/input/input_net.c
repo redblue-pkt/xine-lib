@@ -261,6 +261,9 @@ static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stre
   }
 
   this = calloc(1, sizeof(net_input_plugin_t));
+  if (!this)
+    return NULL;
+
   this->mrl           = strdup(mrl);
   this->host_port     = strdup(filename);
   this->stream        = stream;

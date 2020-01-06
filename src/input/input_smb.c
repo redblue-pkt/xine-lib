@@ -260,6 +260,13 @@ static xine_mrl_t **smb_class_get_dir (input_class_t *this_gen,
 		xine_mrl_t *norm_files = (xine_mrl_t *) calloc(MAXFILES, sizeof(xine_mrl_t));
 		int num_dir_files=0;
 		int num_norm_files=0;
+                if (!dir_files || !norm_files) {
+                  free(dir_files);
+                  free(norm_files);
+                  smbc_closedir(dir);
+                  *nFiles = 0;
+                  return NULL;
+                }
 		while ((pdirent = smbc_readdir(dir)) != NULL){
 			if (pdirent->smbc_type == SMBC_WORKGROUP){
 				dir_files[num_dir_files].link   = NULL;
@@ -466,6 +473,8 @@ smb_class_get_instance (input_class_t *class_gen, xine_stream_t *stream,
 		return NULL;
 
 	this = calloc(1, sizeof(smb_input_t));
+        if (!this)
+          return NULL;
 	this->stream = stream;
 	this->mrl = strdup (mrl);
 	this->fd = -1;

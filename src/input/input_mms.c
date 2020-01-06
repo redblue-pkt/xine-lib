@@ -328,6 +328,9 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   }
 
   this = calloc(1, sizeof (mms_input_plugin_t));
+  if (!this)
+    return NULL;
+
   this->stream   = stream;
   this->mms      = NULL;
   this->mmsh     = NULL;
