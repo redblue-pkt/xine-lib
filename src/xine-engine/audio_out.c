@@ -253,6 +253,8 @@ typedef struct {
   int             resample_sync_method; /* fix sound card clock drift by resampling */
 
   int             gap_tolerance;
+  int             small_gap;            /* gap_tolerance * sqrt (speed) / sqrt (XINE_FINE_SPEED_NORMAL),
+                                         * to avoid nervous metronom syncing in trick mode. */
 
   ao_format_t     input, output;        /* format conversion done at audio_out.c */
   double          frame_rate_factor;
@@ -1935,7 +1937,7 @@ static void *ao_loop (void *this_gen) {
           ao_resend_fill (this, gap, in_buf->vpts);
         pthread_mutex_unlock (&this->driver.mutex);
 
-      } else if ((abs ((int)gap) > this->gap_tolerance) &&
+      } else if ((abs ((int)gap) > this->small_gap) &&
                  (cur_time > next_sync_time) &&
                  (bufs_since_sync >= SYNC_BUF_INTERVAL) &&
                  !this->resample_sync_method) {
@@ -2147,6 +2149,18 @@ void xine_free_audio_frame (xine_audio_port_t *this_gen, xine_audio_frame_t *fra
     ao_free_fifo_append (this, buf);
 }
 
+static uint32_t uint_sqrt (uint32_t v) {
+  uint32_t b = 0, e = 0xffff;
+  do {
+    uint32_t m = (b + e) >> 1;
+    if (m * m >= v)
+      e = m;
+    else
+      b = m + 1;
+  } while (b < e);
+  return b;
+}
+
 static int ao_update_resample_factor(aos_t *this) {
   unsigned int eff_input_rate;
 
@@ -2165,7 +2179,7 @@ static int ao_update_resample_factor(aos_t *this) {
     /* Always set up trick play mode here. If turned off by user, it simply has no effect right now,
      * but it can be turned on any time later. */
     if ((this->rp.speed != XINE_FINE_SPEED_NORMAL) && (this->rp.speed != XINE_SPEED_PAUSE))
-      eff_input_rate = (uint64_t)eff_input_rate * this->rp.speed / XINE_FINE_SPEED_NORMAL;
+      eff_input_rate = xine_uint_mul_div (eff_input_rate, this->rp.speed, XINE_FINE_SPEED_NORMAL);
     this->do_resample = eff_input_rate != this->output.rate;
   }
 
@@ -2173,13 +2187,19 @@ static int ao_update_resample_factor(aos_t *this) {
     xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
       "audio_out: will resample audio from %u to %d.\n", eff_input_rate, this->output.rate);
 
-  if (this->rp.speed == XINE_SPEED_PAUSE)
-    this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
-  else
-    this->frame_rate_factor = ( XINE_FINE_SPEED_NORMAL / (double)this->rp.speed ) * ((double)(this->output.rate)) / ((double)(this->input.rate));
+  this->small_gap = this->gap_tolerance;
+  this->frame_rate_factor = ((double)(this->output.rate)) / ((double)(this->input.rate));
+  if (this->rp.speed != XINE_SPEED_PAUSE) {
+    this->small_gap = this->gap_tolerance * uint_sqrt (this->rp.speed) / uint_sqrt (XINE_FINE_SPEED_NORMAL);
+    this->frame_rate_factor *= (double)XINE_FINE_SPEED_NORMAL / (double)this->rp.speed;
+  }
 
-  this->out_frames_per_kpts = (this->output.rate * 1024 + 45000) / 90000;
-  this->out_pts_per_kframe  = (90000 * 1024 + (this->output.rate >> 1)) / this->output.rate;
+  /* XINE_FINE_SPEED_NORMAL == 1000000; 1024 * 1000000 / 90000 == 1024 * 100 / 9; */
+  this->out_frames_per_kpts = this->rp.speed > 0
+                            ? xine_uint_mul_div (this->output.rate, 1024 * 100, this->rp.speed * 9)
+                            : (this->output.rate * 1024 + 45000) / 90000;
+  /* XINE_FINE_SPEED_NORMAL == 1000000; 90000 * 1024 / 1000000 == 9 * 256 / 25; */
+  this->out_pts_per_kframe  = xine_uint_mul_div (9 * 256, this->rp.speed, this->output.rate * 25);
   this->out_channels        = _x_ao_mode2channels (this->output.mode);
   this->in_channels         = _x_ao_mode2channels (this->input.mode);
 
