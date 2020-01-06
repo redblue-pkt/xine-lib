@@ -621,6 +621,9 @@ char *lexer_decode_entities (const char *tok)
   char *bp = buf;
   char c;
 
+  if (!buf)
+    return NULL;
+
   while ((c = *tok++))
   {
     if (c != '&')

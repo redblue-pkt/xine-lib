@@ -38,6 +38,8 @@ refcounter_t* _x_new_refcounter(void *object, void (*destructor)(void *))
   refcounter_t *new_refcounter;
 
   new_refcounter = (refcounter_t *) calloc(1, sizeof(refcounter_t));
+  if (!new_refcounter)
+    return NULL;
   new_refcounter->count      = 1;
   new_refcounter->object     = object;
   new_refcounter->destructor = destructor;
