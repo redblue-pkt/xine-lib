@@ -66,7 +66,6 @@ typedef struct {
 
   xine_tls_t      *tls;
   char            *mrl;
-  char            *host_port;
 
   off_t            curpos;
 
@@ -111,7 +110,7 @@ static off_t net_plugin_read (input_plugin_t *this_gen,
     xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "input_net: got %" PRIdMAX " bytes (%" PRIdMAX "/%" PRIdMAX " bytes read)\n", (intmax_t)n, (intmax_t)total, (intmax_t)len);
 
     if (n < 0) {
-      _x_message(this->stream, XINE_MSG_READ_ERROR, this->host_port, NULL);
+      _x_message(this->stream, XINE_MSG_READ_ERROR, this->mrl, NULL);
       return 0;
     }
 
@@ -170,7 +169,6 @@ static void net_plugin_dispose (input_plugin_t *this_gen ) {
   _x_tls_close (&this->tls);
 
   _x_freep (&this->mrl);
-  _x_freep (&this->host_port);
 
   if (this->nbc) {
     nbc_close (this->nbc);
@@ -182,13 +180,16 @@ static void net_plugin_dispose (input_plugin_t *this_gen ) {
 
 static int net_plugin_open (input_plugin_t *this_gen ) {
   net_input_plugin_t *this = (net_input_plugin_t *) this_gen;
-  const char *filename;
+  char *filename;
   char *pptr;
   int port = 7658;
   int toread = MAX_PREVIEW_SIZE;
   int trycount = 0;
 
-  filename = this->host_port;
+  filename = strdup(strstr(this->mrl, "://") + 3);
+  if (!filename)
+    return 0;
+
   pptr=strrchr(filename, ':');
   if(pptr) {
     *pptr++ = 0;
@@ -198,14 +199,15 @@ static int net_plugin_open (input_plugin_t *this_gen ) {
   this->curpos = 0;
 
   this->tls = _x_tls_connect(this->stream->xine, this->stream, filename, port);
-  if (!this->tls) {
-    return 0;
-  }
+  if (!this->tls)
+    goto fail;
 
   if (!strncasecmp(this->mrl, "tls", 3)) {
     if (_x_tls_handshake(this->tls, filename, -1) < 0)
-      return 0;
+      goto fail;
   }
+
+  free(filename);
 
   /*
    * fill preview buffer
@@ -222,6 +224,10 @@ static int net_plugin_open (input_plugin_t *this_gen ) {
   this->curpos       = 0;
 
   return 1;
+
+ fail:
+  free(filename);
+  return 0;
 }
 
 static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream, const char *mrl) {
@@ -233,30 +239,20 @@ static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stre
   if (!strncasecmp (mrl, "tcp://", 6) ||
       !strncasecmp (mrl, "tls://", 6)) {
 
-    filename = &mrl[6];
-
-    if((!filename) || (strlen(filename) == 0)) {
-      return NULL;
-    }
-
     nbc = nbc_init (stream);
 
   } else if (!strncasecmp (mrl, "slave://", 8)) {
-
-    filename = &mrl[8];
-
-    if((!filename) || (strlen(filename) == 0)) {
-      return NULL;
-    }
 
     /* the only difference for slave:// is that network buffering control
      * is not used. otherwise, dvd still menus are not displayed (it freezes
      * with "buffering..." all the time)
      */
-
-    nbc = NULL;
-
   } else {
+    return NULL;
+  }
+
+  filename = strchr(mrl, '/') + 2;
+  if (!filename[0]) {
     return NULL;
   }
 
@@ -265,7 +261,6 @@ static input_plugin_t *net_class_get_instance (input_class_t *cls_gen, xine_stre
     return NULL;
 
   this->mrl           = strdup(mrl);
-  this->host_port     = strdup(filename);
   this->stream        = stream;
   this->tls           = NULL;
   this->curpos        = 0;
