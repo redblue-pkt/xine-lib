@@ -121,6 +121,7 @@ static uint32_t xine_buffer_get_length(void *const this_gen) {
 }
 
 static int xine_buffer_can_seek(void *const this_gen) {
+  (void)this_gen;
   return 1;
 }
 
@@ -142,7 +143,7 @@ static void wavpack_reset (audio_decoder_t *const this_gen)
 static void wavpack_discontinuity (audio_decoder_t *const this_gen)
 {
   /* wavpack_decoder_t *this = (wavpack_decoder_t *) this_gen; */
-
+  (void)this_gen;
   lprintf("Discontinuity!\n");
 }
 
@@ -292,7 +293,9 @@ static void wavpack_dispose (audio_decoder_t *this_gen) {
 }
 
 static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
-  wavpack_decoder_t * const this = calloc(1, sizeof (wavpack_decoder_t));
+    wavpack_decoder_t * const this = calloc(1, sizeof (wavpack_decoder_t));
+
+    (void)class_gen;
 
     if (!this)
       return NULL;
