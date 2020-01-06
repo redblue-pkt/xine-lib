@@ -2164,7 +2164,7 @@ const char *const *xine_get_autoplay_input_plugin_ids(xine_t *this) {
   plugin_catalog_t *catalog = this->plugin_catalog;
 
   pthread_mutex_lock (&catalog->lock);
-  end = &catalog->ids[0] + sizeof (catalog->ids) / sizeof (catalog->ids[0] - 1);
+  end = &catalog->ids[0] + sizeof (catalog->ids) / sizeof (catalog->ids[0]) - 1;
   last = &catalog->ids[0];
   *last = NULL;
   test = NULL;
@@ -2213,7 +2213,7 @@ const char *const *xine_get_browsable_input_plugin_ids(xine_t *this) {
   plugin_catalog_t *catalog = this->plugin_catalog;
 
   pthread_mutex_lock (&catalog->lock);
-  end = &catalog->ids[0] + sizeof (catalog->ids) / sizeof (catalog->ids[0] - 1);
+  end = &catalog->ids[0] + sizeof (catalog->ids) / sizeof (catalog->ids[0]) - 1;
   last = &catalog->ids[0];
   *last = NULL;
   test = NULL;
