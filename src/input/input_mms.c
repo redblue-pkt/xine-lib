@@ -312,20 +312,18 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
 
   mms_input_class_t  *cls = (mms_input_class_t *) cls_gen;
   mms_input_plugin_t *this;
-  char               *mrl  = strdup(data);
   xine_cfg_entry_t    bandwidth_entry;
   int                 protocol;
 
-  lprintf ("trying to open '%s'\n", mrl);
+  lprintf ("trying to open '%s'\n", data);
 
-  if (!strncasecmp (mrl, "mms://", 6)) {
+  if (!strncasecmp (data, "mms://", 6)) {
     protocol = cls->protocol;
-  } else if (!strncasecmp (mrl, "mmst://", 7)) {
+  } else if (!strncasecmp (data, "mmst://", 7)) {
     protocol =   PROTOCOL_MMST;
-  } else if (!strncasecmp (mrl, "mmsh://", 7)) {
+  } else if (!strncasecmp (data, "mmsh://", 7)) {
     protocol =   PROTOCOL_MMSH;
   } else {
-    free (mrl);
     return NULL;
   }
 
@@ -334,7 +332,7 @@ static input_plugin_t *mms_class_get_instance (input_class_t *cls_gen, xine_stre
   this->mms      = NULL;
   this->mmsh     = NULL;
   this->protocol = protocol;
-  this->mrl      = mrl;
+  this->mrl      = strdup(data);
   this->nbc      = nbc_init (this->stream);
 
   if (xine_config_lookup_entry (stream->xine, "media.network.bandwidth",
