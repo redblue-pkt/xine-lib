@@ -152,11 +152,8 @@ static void rtsp_plugin_dispose (input_plugin_t *this_gen) {
     this->nbc = NULL;
   }
 
-  if(this->mrl)
-    free(this->mrl);
-
-  if(this->public_mrl)
-    free(this->public_mrl);
+  _x_freep(&this->mrl);
+  _x_freep(&this->public_mrl);
 
   free (this);
 }
@@ -212,6 +209,8 @@ static input_plugin_t *rtsp_class_get_instance (input_class_t *cls_gen, xine_str
     return NULL;
 
   this = calloc(1, sizeof (rtsp_input_plugin_t));
+  if (!this)
+    return NULL;
 
   this->stream  = stream;
   this->rtsp    = NULL;

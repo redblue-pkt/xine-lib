@@ -81,9 +81,19 @@ static void sdpplin_free_stream(sdpplin_stream_t **pp)
 
 static sdpplin_stream_t *XINE_MALLOC sdpplin_parse_stream(char **data) {
 
-  sdpplin_stream_t *desc = calloc(1, sizeof(sdpplin_stream_t));
-  char      *buf=xine_buffer_init(32);
+  sdpplin_stream_t *desc;
+  char      *buf;
   int       handled;
+
+  desc = calloc(1, sizeof(sdpplin_stream_t));
+  if (!desc)
+    return NULL;
+
+  buf = xine_buffer_init(32);
+  if (!buf) {
+    free(desc);
+    return NULL;
+  }
 
   if (filter(*data, "m=", &buf)) {
     desc->id = strdup(buf);

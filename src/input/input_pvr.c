@@ -375,6 +375,8 @@ static pvrscr_t *XINE_MALLOC pvrscr_init (void) {
   pvrscr_t *this;
 
   this = calloc(1, sizeof(pvrscr_t));
+  if (!this)
+    return NULL;
 
   this->scr.interface_version = 3;
   this->scr.get_priority      = pvrscr_get_priority;
@@ -1448,12 +1450,16 @@ static int pvr_plugin_open (input_plugin_t *this_gen ) {
   _x_assert(this->scr == NULL);
   time = this->stream->xine->clock->get_current_time(this->stream->xine->clock);
   this->scr = pvrscr_init();
+  if (!this->scr)
+    return 0;
   this->scr->scr.start(&this->scr->scr, time);
   this->stream->xine->clock->register_scr(this->stream->xine->clock, &this->scr->scr);
   this->scr_tunning = 0;
 
   _x_assert(this->event_queue == NULL);
   this->event_queue = xine_event_new_queue (this->stream);
+  if (!this->event_queue)
+    return 0;
 
   /* enable resample method */
   this->stream->xine->config->update_num(this->stream->xine->config,"audio.synchronization.av_sync_method",1);
@@ -1479,20 +1485,21 @@ static input_plugin_t *pvr_class_get_instance (input_class_t *cls_gen, xine_stre
 				    const char *data) {
 
   pvr_input_plugin_t  *this;
-  char                *mrl;
   char                *aux;
 
   if (strncasecmp (data, "pvr:/", 5))
     return NULL;
 
-  mrl = strdup(data);
-  aux = &mrl[5];
-
   this = calloc(1, sizeof (pvr_input_plugin_t));
+  if (!this)
+    return NULL;
+
   this->stream       = stream;
   this->dev_fd       = -1;
-  this->mrl          = mrl;
+  this->mrl          = strdup(data);
   this->max_page_age = 3;
+
+  aux = &this->mrl[5];
 
   /* decode configuration options from mrl */
   if( strlen(aux) ) {

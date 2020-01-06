@@ -96,6 +96,9 @@ rtsp_session_t *rtsp_session_start(xine_stream_t *stream, const char *mrl) {
   int bandwidth_id;
   uint32_t bandwidth;
 
+  if (!rtsp_session)
+    return NULL;
+
   bandwidth_id = xine->config->register_enum(xine->config, "media.network.bandwidth", 10,
 			      (char **)rtsp_bandwidth_strs,
 			      _("network bandwidth"),
