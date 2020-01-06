@@ -208,6 +208,8 @@ static uint32_t directfb_get_capabilities (vo_driver_t *this_gen) {
 
 static void directfb_frame_field (vo_frame_t *vo_img, int which_field) {
   /* not needed */
+  (void)vo_img;
+  (void)which_field;
 }
 
 static void directfb_frame_dispose (vo_frame_t *vo_img) {
@@ -253,6 +255,8 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
   directfb_driver_t     *this   = (directfb_driver_t *) this_gen;
   directfb_frame_t      *frame  = (directfb_frame_t *) frame_gen;
   DFBSurfacePixelFormat  format = (fmt == XINE_IMGFMT_YUY2) ? DSPF_YUY2 : DSPF_YV12;
+
+  (void)flags;
 
   if (frame->surface == NULL   ||
       frame->width   != width  ||
@@ -580,6 +584,8 @@ static void directfb_overlay_blend (vo_driver_t *this_gen,
 
 static void directfb_overlay_end (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   directfb_driver_t *this = (directfb_driver_t *) this_gen;
+
+  (void)frame_gen;
 
   if (this->ovl_changed) {
 #ifdef DIRECTFB_X11
@@ -1751,6 +1757,9 @@ static void directfb_frame_output_cb (void *user_data, int video_width, int vide
                                       double *dest_pixel_aspect, int *win_x, int *win_y) {
   directfb_driver_t *this = (directfb_driver_t *) user_data;
 
+  (void)video_width;
+  (void)video_height;
+
   *dest_x            = 0;
   *dest_y            = 0;
   *dest_width        = this->screen_width;
@@ -1922,6 +1931,8 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
 static void *init_class_fb (xine_t *xine, const void *visual_gen) {
   directfb_class_t *this;
   const char       *error;
+
+  (void)visual_gen;
 
   /* check DirectFB version */
   error = DirectFBCheckVersion( DIRECTFB_MAJOR_VERSION,

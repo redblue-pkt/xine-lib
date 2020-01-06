@@ -286,6 +286,9 @@ static int demux_wv_seek (demux_plugin_t *this_gen,
                            off_t start_pos, int start_time, int playing) {
   demux_wv_t *const this = (demux_wv_t *) this_gen;
 
+  (void)start_pos;
+  (void)start_time;
+
   /* If thread is not running, initialize demuxer */
   if( !playing ) {
 
@@ -312,11 +315,15 @@ static int demux_wv_get_stream_length (demux_plugin_t *const this_gen) {
 }
 
 static uint32_t demux_wv_get_capabilities(demux_plugin_t *const this_gen) {
+  (void)this_gen;
   return DEMUX_CAP_NOCAP;
 }
 
 static int demux_wv_get_optional_data(demux_plugin_t *const this_gen,
                                       void *data, const int data_type) {
+  (void)this_gen;
+  (void)data;
+  (void)data_type;
   return DEMUX_OPTIONAL_UNSUPPORTED;
 }
 
