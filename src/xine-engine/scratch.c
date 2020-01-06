@@ -112,9 +112,13 @@ scratch_buffer_t *_x_new_scratch_buffer (int num_lines) {
   scratch_buffer_t *this;
 
   this = calloc(1, sizeof(scratch_buffer_t));
+  if (!this)
+    return NULL;
 
   this->lines   = calloc ((num_lines + 1), sizeof(char*));
   this->ordered = calloc ((num_lines + 1), sizeof(char*));
+  if (!this->lines || !this->ordered)
+    goto fail;
 
   this->scratch_printf = scratch_printf;
   this->get_content    = scratch_get_content;
@@ -124,4 +128,10 @@ scratch_buffer_t *_x_new_scratch_buffer (int num_lines) {
   pthread_mutex_init (&this->lock, NULL);
 
   return this;
+
+ fail:
+  free(this->lines);
+  free(this->ordered);
+  free(this);
+  return NULL;
 }

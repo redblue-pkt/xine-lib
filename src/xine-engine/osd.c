@@ -328,7 +328,11 @@ static void osd_set_video_window (osd_object_t *osd, int window_x, int window_y,
 
 static argb_layer_t *argb_layer_create() {
 
-  argb_layer_t *argb_layer = (argb_layer_t *)calloc(1, sizeof (argb_layer_t));
+  argb_layer_t *argb_layer;
+
+  argb_layer = calloc(1, sizeof (argb_layer_t));
+  if (!argb_layer)
+    return NULL;
 
   pthread_mutex_init(&argb_layer->mutex, NULL);
   return argb_layer;
