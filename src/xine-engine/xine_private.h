@@ -254,7 +254,7 @@ static inline uint32_t xine_uint_mul_div (uint32_t num, uint32_t mul, uint32_t d
   __asm__ __volatile__ (
       "mull\t%2\n"
     "\tmovl\t%3, %2\n"
-    "\tsarl\t%2\n"
+    "\tshrl\t%2\n"
     "\taddl\t%2, %0\n"
     "\tadcl\t$0, %1\n"
     "\tcmpl\t%1, %3\n"
