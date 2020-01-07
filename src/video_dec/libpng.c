@@ -43,6 +43,14 @@
 #include <xine/buffer.h>
 #include <xine/xine_buffer.h>
 
+/* decoder input data */
+typedef struct {
+  xine_t           *xine;
+  const uint8_t    *image;
+  int               size;
+  int               pos;
+} dec_data;
+
 typedef struct png_decoder_s {
   video_decoder_t   video_decoder;
 
@@ -56,15 +64,19 @@ typedef struct png_decoder_s {
 
   uint8_t           error;
   uint8_t           video_open;
-} png_decoder_t;
 
-/* decoder input data */
-typedef struct {
-  xine_t           *xine;
-  const uint8_t    *image;
-  int               size;
-  int               pos;
-} dec_data;
+  /* private to _png_decode_data (). we place it here just to prevent setjump () /
+   * longjump () from resetting values. */
+  struct {
+    png_structp     png;
+    png_infop       png_info, png_end_info;
+    png_bytep      *row_pointers;
+    dec_data        png_data;
+    rgb2yuy2_t     *rgb2yuy2;
+    vo_frame_t     *img, *free_img;
+  } pdd;
+
+} png_decoder_t;
 
 /*
  * libpng callbacks
@@ -105,206 +117,208 @@ static void _user_read(png_structp png, png_bytep data, png_size_t length)
 
 static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, size_t size)
 {
-  vo_frame_t *img;
-  int         max_width, max_height;
-  uint8_t    *slice_start[3] = {NULL, NULL, NULL};
-  int         frame_flags = VO_BOTH_FIELDS;
-  int         format;
-  int         cm;
-  rgb2yuy2_t *rgb2yuy2;
+  this->pdd.rgb2yuy2 = NULL;
+  this->pdd.img      = NULL;
+  this->pdd.free_img = NULL;
 
-  png_uint_32 width, height, y;
-  png_structp png;
-  png_infop   png_info, png_end_info;
-  int         color_type, interlace_type, compression_type, filter_type, bit_depth;
-  png_bytep  *row_pointers = NULL;
-  int         linesize;
+  this->pdd.row_pointers   = NULL;
 
-  dec_data png_data = {
-    .xine   = this->stream->xine,
-    .image  = data,
-    .size   = size,
-    .pos    = 0,
-  };
+  this->pdd.png_data.xine  = this->stream->xine;
+  this->pdd.png_data.image = data;
+  this->pdd.png_data.size  = size;
+  this->pdd.png_data.pos   = 0;
 
   if (!this->video_open) {
     (this->stream->video_out->open) (this->stream->video_out, this->stream);
     this->video_open = 1;
   }
 
-  /* set up decoding */
+  do {
+    vo_frame_t     *img;
+    uint8_t        *slice_start[3] = {NULL, NULL, NULL};
+    png_uint_32     width, height, y;
+    int             max_width, max_height;
+    int             frame_flags = VO_BOTH_FIELDS;
+    int             format;
+    int             cm;
+    int             color_type, interlace_type, compression_type, filter_type, bit_depth;
+    int             linesize;
 
-  png = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
-  if (!png) {
-    goto out;
-  }
+    /* set up decoding */
+    this->pdd.png = png_create_read_struct (PNG_LIBPNG_VER_STRING, 0, 0, 0);
+    if (!this->pdd.png)
+      break;
+    this->pdd.png_end_info = NULL;
+    this->pdd.png_info = png_create_info_struct (this->pdd.png);
+    if (!this->pdd.png_info)
+      break;
+    this->pdd.png_end_info = png_create_info_struct (this->pdd.png);
+    if (!this->pdd.png_end_info)
+      break;
 
-  png_info = png_create_info_struct(png);
-  if (!png_info) {
-    png_destroy_read_struct(&png, NULL, NULL);
-    goto out;
-  }
+    /* libpng bail out path */
+    if (setjmp (png_jmpbuf (this->pdd.png)))
+      break;
 
-  png_end_info = png_create_info_struct(png);
-  if(!png_end_info) {
-    png_destroy_read_struct(&png, &png_info, NULL);
-    goto out;
-  }
+    png_set_read_fn (this->pdd.png, &this->pdd.png_data, _user_read);
+    png_set_error_fn (this->pdd.png, this, _user_error, _user_warning);
 
-  if (setjmp(png_jmpbuf(png)))
-    goto error;
+    /* parse header */
 
-  png_set_read_fn(png, &png_data, _user_read);
-  png_set_error_fn(png, this, _user_error, _user_warning);
+    png_read_info (this->pdd.png, this->pdd.png_info);
+    if (this->error)
+      break;
 
-  /* parse header */
+    png_get_IHDR (this->pdd.png, this->pdd.png_info, &width, &height,
+      &bit_depth, &color_type, &interlace_type, &compression_type, &filter_type);
+    if (this->error)
+      break;
 
-  png_read_info(png, png_info);
-  if (this->error)
-    goto error;
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  width);
+    _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, height);
 
-  png_get_IHDR(png, png_info, &width, &height,
-               &bit_depth, &color_type, &interlace_type,
-               &compression_type, &filter_type);
-  if (this->error)
-    goto error;
 
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  width);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, height);
+    /* set up libpng csc */
 
-  /* set up libpng csc */
+    if (color_type == PNG_COLOR_TYPE_PALETTE) {
+      png_set_palette_to_rgb (this->pdd.png);
+    }
+    if (color_type == PNG_COLOR_TYPE_GRAY ||
+        color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
+      png_set_gray_to_rgb (this->pdd.png);
+    }
+    if (bit_depth == 16) {
+      png_set_scale_16 (this->pdd.png);
+    }
+    if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8) {
+      png_set_expand_gray_1_2_4_to_8 (this->pdd.png);
+    }
+    png_set_strip_alpha (this->pdd.png);
 
-  if (color_type == PNG_COLOR_TYPE_PALETTE) {
-    png_set_palette_to_rgb(png);
-  }
-  if (color_type == PNG_COLOR_TYPE_GRAY ||
-      color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
-    png_set_gray_to_rgb(png);
-  }
-  if (bit_depth == 16) {
-    png_set_scale_16(png);
-  }
-  if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8) {
-    png_set_expand_gray_1_2_4_to_8(png);
-  }
-  png_set_strip_alpha(png);
+    /* alloc decoder image */
 
-  /* alloc decoder image */
+    this->pdd.row_pointers = png_malloc (this->pdd.png, height * sizeof (*this->pdd.row_pointers));
+    if (!this->pdd.row_pointers)
+      break;
+    linesize = png_get_rowbytes (this->pdd.png, this->pdd.png_info);
+    this->pdd.row_pointers[0] = png_malloc (this->pdd.png, height * linesize);
+    if (!this->pdd.row_pointers[0])
+      break;
+    for (y = 1; y < height; y++) {
+      this->pdd.row_pointers[y] = this->pdd.row_pointers[y - 1] + linesize;
+    }
 
-  row_pointers = png_malloc(png, height * sizeof(*row_pointers));
-  if (!row_pointers)
-    goto error;
-  linesize = png_get_rowbytes(png, png_info);
-  row_pointers[0] = png_malloc(png, height * linesize);
-  if (!row_pointers[0])
-    goto error;
-  for (y = 1; y < height; y++) {
-    row_pointers[y] = row_pointers[y - 1] + linesize;
-  }
+    /* check output capabilities */
 
-  /* check output capabilities */
+    /* check max. image size */
+    max_width = this->stream->video_out->get_property (this->stream->video_out, VO_PROP_MAX_VIDEO_WIDTH);
+    max_height = this->stream->video_out->get_property (this->stream->video_out, VO_PROP_MAX_VIDEO_HEIGHT);
+    /* crop when image is too large for vo */
+    if (max_width > 0 && width > (png_uint_32)max_width)
+      width = max_width;
+    if (max_height > 0 && height > (png_uint_32)max_height)
+      height = max_height;
 
-  /* check max. image size */
-  max_width = this->stream->video_out->get_property(this->stream->video_out,
-                                                    VO_PROP_MAX_VIDEO_WIDTH);
-  max_height = this->stream->video_out->get_property(this->stream->video_out,
-                                                     VO_PROP_MAX_VIDEO_HEIGHT);
-  /* crop when image is too large for vo */
-  if (max_width > 0 && width > (png_uint_32)max_width)
-    width = max_width;
-  if (max_height > 0 && height > (png_uint_32)max_height)
-    height = max_height;
+    /* check full range capability */
+    cm = 10; /* mpeg range ITU-R 601 */
+    if (this->stream->video_out->get_capabilities (this->stream->video_out) & VO_CAP_FULLRANGE)
+      cm = 11; /* full range */
+    VO_SET_FLAGS_CM (cm, frame_flags);
 
-  /* check full range capability */
-  cm = 10; /* mpeg range ITU-R 601 */
-  if (this->stream->video_out->get_capabilities (this->stream->video_out) & VO_CAP_FULLRANGE)
-    cm = 11; /* full range */
-  VO_SET_FLAGS_CM (cm, frame_flags);
+    /* check output format - prefer YUY2 */
+    format = (this->stream->video_out->get_capabilities (this->stream->video_out) & VO_CAP_YUY2) ?
+      XINE_IMGFMT_YUY2 : XINE_IMGFMT_YV12;
 
-  /* check output format - prefer YUY2 */
-  format = (this->stream->video_out->get_capabilities (this->stream->video_out) & VO_CAP_YUY2) ?
-           XINE_IMGFMT_YUY2 : XINE_IMGFMT_YV12;
+    /* allocate output frame and set up slices */
 
-  /* allocate output frame and set up slices */
+    this->pdd.img =
+    this->pdd.free_img =
+    img = this->stream->video_out->get_frame (this->stream->video_out,
+      width, height, (double)width / (double)height, format, frame_flags | VO_GET_FRAME_MAY_FAIL);
+    if (!img) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        LOG_MODULE ": get_frame (%dx%d) failed\n", width, height);
+      break;
+    }
+    /* init slices */
+    if (img->proc_slice && !(img->height & 0xf)) {
+      slice_start[0] = img->base[0];
+      slice_start[1] = img->base[1];
+      slice_start[2] = img->base[2];
+    }
 
-  img = this->stream->video_out->get_frame (this->stream->video_out,
-                                            width, height,
-                                            (double)width/(double)height,
-                                            format,
-                                            frame_flags | VO_GET_FRAME_MAY_FAIL );
-  if (!img) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
-            "get_frame(%dx%d) failed\n", width, height);
-    goto error;
-  }
-  /* init slices */
-  if (img->proc_slice && !(img->height & 0xf)) {
-    slice_start[0] = img->base[0];
-    slice_start[1] = img->base[1];
-    slice_start[2] = img->base[2];
-  }
+    /* decode and convert in slices */
 
-  /* decode and convert in slices */
+    this->pdd.rgb2yuy2 = rgb2yuy2_alloc (cm, "rgb");
+    if (!this->pdd.rgb2yuy2)
+      break;
 
-  rgb2yuy2 = rgb2yuy2_alloc (cm, "rgb");
-  if (!rgb2yuy2)
-    goto error_img;
-
-  for (y = 0; y < height; y += 16) {
-    int lines = y + 16 <= height ? 16 : height - y;
-    png_read_rows(png, &row_pointers[y], NULL, lines);
-    if (img->format == XINE_IMGFMT_YV12) {
-      rgb2yv12_slice (rgb2yuy2, row_pointers[y], png_get_rowbytes(png, png_info),
-                      img->base[0] + y * img->pitches[0], img->pitches[0],
-                      img->base[1] + (y/2) * img->pitches[1], img->pitches[1],
-                      img->base[2] + (y/2) * img->pitches[2], img->pitches[2],
-                      width, lines);
-      if (slice_start[0]) {
-        img->proc_slice(img, slice_start);
-        slice_start[0] += 16 * img->pitches[0];
-        slice_start[1] += 8 * img->pitches[1];
-        slice_start[2] += 8 * img->pitches[2];
-      }
-    } else {
-      rgb2yuy2_slice (rgb2yuy2, row_pointers[y], png_get_rowbytes(png, png_info),
-                      img->base[0] + y * img->pitches[0], img->pitches[0],
-                      width, lines);
-      if (slice_start[0]) {
-        img->proc_slice(img, slice_start);
-        slice_start[0] += 16 * img->pitches[0];
+    for (y = 0; y < height; y += 16) {
+      int lines = y + 16 <= height ? 16 : height - y;
+      png_read_rows (this->pdd.png, &this->pdd.row_pointers[y], NULL, lines);
+      if (img->format == XINE_IMGFMT_YV12) {
+        rgb2yv12_slice (this->pdd.rgb2yuy2, this->pdd.row_pointers[y],
+          png_get_rowbytes (this->pdd.png, this->pdd.png_info),
+          img->base[0] + y * img->pitches[0], img->pitches[0],
+          img->base[1] + (y / 2) * img->pitches[1], img->pitches[1],
+          img->base[2] + (y / 2) * img->pitches[2], img->pitches[2],
+          width, lines);
+        if (slice_start[0]) {
+          img->proc_slice (img, slice_start);
+          slice_start[0] += 16 * img->pitches[0];
+          slice_start[1] += 8 * img->pitches[1];
+          slice_start[2] += 8 * img->pitches[2];
+        }
+      } else {
+        rgb2yuy2_slice (this->pdd.rgb2yuy2, this->pdd.row_pointers[y],
+          png_get_rowbytes (this->pdd.png, this->pdd.png_info),
+          img->base[0] + y * img->pitches[0], img->pitches[0],
+          width, lines);
+        if (slice_start[0]) {
+          img->proc_slice (img, slice_start);
+          slice_start[0] += 16 * img->pitches[0];
+        }
       }
     }
+
+    /* from here, always return valid image. */
+    img->duration  = 3600;
+    img->bad_frame = 0;
+    _x_stream_info_set (this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
+    this->pdd.free_img = NULL;
+
+    png_read_end (this->pdd.png, this->pdd.png_end_info);
+  } while (0);
+
+  /* joint exit path */
+
+  if (this->pdd.rgb2yuy2) {
+    rgb2yuy2_free (this->pdd.rgb2yuy2);
+    this->pdd.rgb2yuy2 = NULL;
   }
-  rgb2yuy2_free (rgb2yuy2);
 
-  png_read_end(png, png_end_info);
+  if (this->pdd.free_img) {
+    this->pdd.free_img->free (this->pdd.free_img);
+    this->pdd.img = NULL;
+    this->pdd.free_img = NULL;
+  }
 
-  /* draw */
-
-  img->duration  = 3600;
-  img->bad_frame = 0;
-
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_FRAME_DURATION, img->duration);
-
-  png_free(png, row_pointers[0]);
-  png_free(png, row_pointers);
-
-  png_destroy_read_struct(&png, &png_info, &png_end_info);
-  return img;
-
- error_img:
-  img->free(img);
- error:
-  if (row_pointers) {
-    if (row_pointers[0]) {
-      png_free(png, row_pointers[0]);
+  if (this->pdd.row_pointers) {
+    if (this->pdd.row_pointers[0]) {
+      png_free (this->pdd.png, this->pdd.row_pointers[0]);
+      this->pdd.row_pointers[0] = NULL;
     }
-    png_free(png, row_pointers);
+    png_free (this->pdd.png, this->pdd.row_pointers);
+    this->pdd.row_pointers = NULL;
   }
-  png_destroy_read_struct(&png, &png_info, &png_end_info);
- out:
-  this->pts = 0;
-  return NULL;
+
+  if (this->pdd.png)
+    png_destroy_read_struct (&this->pdd.png, &this->pdd.png_info, &this->pdd.png_end_info);
+
+  if (!this->pdd.img)
+    this->pts = 0;
+
+  return this->pdd.img;
 }
 
 /*
