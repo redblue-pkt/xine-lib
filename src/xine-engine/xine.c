@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2632,14 +2632,19 @@ static void network_timeout_cb (void *this_gen, xine_cfg_entry_t *entry) {
   this->network_timeout = entry->num_value;
 }
 
+#ifdef ENABLE_IPV6
+static void ip_pref_cb (void *this_gen, xine_cfg_entry_t *entry) {
+  xine_private_t *this = (xine_private_t *)this_gen;
+  this->ip_pref = entry->num_value;
+}
+#endif
+
 static void join_av_cb (void *this_gen, xine_cfg_entry_t *entry) {
   xine_private_t *this = (xine_private_t *)this_gen;
   this->join_av = entry->num_value;
 }
 
 void xine_init (xine_t *this_gen) {
-  static const char *const demux_strategies[] = {"default", "reverse", "content",
-						 "extension", NULL};
   xine_private_t *this = (xine_private_t *)this_gen;
 
   /* First of all, initialise libxdg-basedir as it's used by plugins. */
@@ -2683,7 +2688,9 @@ void xine_init (xine_t *this_gen) {
   /*
    * content detection strategy
    */
-  this->x.demux_strategy  = this->x.config->register_enum (
+  {
+    static const char *const demux_strategies[] = {"default", "reverse", "content", "extension", NULL};
+    this->x.demux_strategy = this->x.config->register_enum (
       this->x.config, "engine.demux.strategy", 0,
       (char **)demux_strategies,
       _("media format detection strategy"),
@@ -2698,6 +2705,7 @@ void xine_init (xine_t *this_gen) {
 	"extension\n"
 	"Detect by file name extension only.\n"),
       20, config_demux_strategy_cb, this);
+  }
 
   /*
    * save directory
@@ -2738,6 +2746,22 @@ void xine_init (xine_t *this_gen) {
         "bandwidth is occupied, too high values will freeze the player if the "
         "connection is lost."),
       0, network_timeout_cb, this);
+
+#ifdef ENABLE_IPV6
+  /*
+   * network ip version
+   */
+  {
+    static const char *const ip_versions[] = {"auto", "IPv4", "IPv4, IPv6", "IPv6, IPv4", NULL};
+    this->ip_pref = this->x.config->register_enum (
+      this->x.config, "media.network.ip_version", 1,
+      (char **)ip_versions,
+      _("Internet Protocol version(s) to use"),
+      _("\"auto\" just tries what the name query returned.\n"
+        "Otherwise, IPv4 may offer more compatibility and privacy."),
+      20, ip_pref_cb, this);
+  }
+#endif
 
   /*
    * auto join separate audio/video files (testing the side stream feature).

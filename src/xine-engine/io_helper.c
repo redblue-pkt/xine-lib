@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project,
+ * Copyright (C) 2000-2020 the xine project,
  *
  * This file is part of xine, a free video player.
  *
@@ -167,6 +167,7 @@ int _x_io_tcp_handshake_connect (xine_stream_t *stream, const char *host, int po
   int i;
 #else
   struct addrinfo hints, *res = NULL, *tmpaddr;
+  int ip_version;
 #endif
   xine_private_t *xine = stream ? (xine_private_t *)stream->xine : NULL;
   int same_retries;
@@ -202,6 +203,12 @@ int _x_io_tcp_handshake_connect (xine_stream_t *stream, const char *host, int po
     for (tmpaddr = res; tmpaddr; tmpaddr = tmpaddr->ai_next)
       reportIP (stream, "found IP", tmpaddr);
   }
+  if (xine) {
+    static const uint8_t modes[4] = {0, 4, (6 << 4) | 4, (4 << 4) | 6};
+    ip_version = modes[xine->ip_pref & 3];
+  } else {
+    ip_version = 4;
+  }
 #endif
 
   /* try to connect ip's */
@@ -216,10 +223,23 @@ int _x_io_tcp_handshake_connect (xine_stream_t *stream, const char *host, int po
     int s;
 #ifndef ENABLE_IPV6
     if (!h->h_addr_list[i])
-#else
-    if (!tmpaddr)
-#endif
       break;
+#else
+    if (!tmpaddr) {
+      ip_version >>= 4;
+      if (ip_version) {
+        tmpaddr = res;
+        continue;
+      }
+      break;
+    }
+    if (ip_version) {
+      if (((ip_version & 15) == 4) == (tmpaddr->ai_family != AF_INET)) {
+        tmpaddr = tmpaddr->ai_next;
+        continue;
+      }
+    }
+#endif
     do {
       int r;
       /* make socket */

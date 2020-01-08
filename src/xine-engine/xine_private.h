@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -441,6 +441,13 @@ typedef struct {
 
   int                        flags;
   int                        network_timeout;
+  enum {
+    XINE_IP_PREF_AUTO = 0,
+    XINE_IP_PREF_4,
+    XINE_IP_PREF_4_6,
+    XINE_IP_PREF_6_4
+  }                          ip_pref;
+
   uint32_t                   join_av:1;
 
   /* lock controlling speed change access.
