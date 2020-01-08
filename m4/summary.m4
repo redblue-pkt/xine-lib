@@ -19,6 +19,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_libnfs" = x"yes"    && echo "   - nfs"
     test x"$enable_mms" != x"no"     && echo "   - mms"
     test x"$have_samba" = x"yes"     && echo "   - smb"
+    test x"$enable_ipv6" = x"yes"    && echo "   - IPv6"
     dnl optical discs
     echo "   - cdda"
     if test x"$enable_vcd" != x"no"; then
