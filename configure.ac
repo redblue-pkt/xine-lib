@@ -128,12 +128,6 @@ dnl --------------
 dnl Build features
 dnl --------------
 
-AC_ARG_ENABLE([ipv6],
-              [AS_HELP_STRING([--enable-ipv6], [enable use of IPv6])],
-              [if test x"$enableval" != x"no"; then
-                   AC_DEFINE([ENABLE_IPV6], 1, [Enable this when IPv6 is requested])
-               fi])
-
 AC_ARG_ENABLE([antialiasing],
               [AS_HELP_STRING([--enable-antialiasing], [enable font antialiasing])],
               [if test x"$enableval" != x"no"; then
@@ -1256,6 +1250,33 @@ AC_GETOPT_LONG
 dnl --------------------------
 dnl checks for system services
 dnl --------------------------
+
+AC_ARG_ENABLE([ipv6], [AS_HELP_STRING([--enable-ipv6], [user configurable IPv6 support, default: auto])], [], [enable_ipv6=try])
+if test x"$enable_ipv6" != x"no" ; then
+    AC_MSG_CHECKING([for IPv6])
+    AC_COMPILE_IFELSE([
+        AC_LANG_PROGRAM([[
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
+        ]], [[
+  struct addrinfo hints, *res;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_family = AF_INET6;
+  getaddrinfo ("localhost", "80", &hints, &res);
+  freeaddrinfo (res);
+        ]])], [enable_ipv6=yes], [test x"$enable_ipv6" = x"yes" && enable_ipv6=fail])
+    AC_MSG_RESULT([$enable_ipv6])
+    test x"$enable_ipv6" = x"fail" && AC_MSG_ERROR([IPv6 requested but not supported!])
+fi
+test x"$enable_ipv6" = x"yes" && AC_DEFINE([ENABLE_IPV6], 1, [Enable this when IPv6 support is requested])
+
 
 dnl Even as of 2.61, autoconf is not smart enough to find the X include
 dnl and library paths on Mac OS X, so seed them automatically if they're
