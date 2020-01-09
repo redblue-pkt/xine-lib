@@ -462,6 +462,8 @@ static void dts_dispose (audio_decoder_t *this_gen) {
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);
 
+  dca_free(this->dts_state);
+  this->dts_state = NULL;
   free (this);
 }
 
