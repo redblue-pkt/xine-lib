@@ -70,7 +70,7 @@ typedef struct png_decoder_s {
   struct {
     png_structp     png;
     png_infop       png_info, png_end_info;
-    png_bytep      *row_pointers;
+    png_bytep       row_pointers[16];
     dec_data        png_data;
     rgb2yuy2_t     *rgb2yuy2;
     vo_frame_t     *img, *free_img;
@@ -121,7 +121,7 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
   this->pdd.img      = NULL;
   this->pdd.free_img = NULL;
 
-  this->pdd.row_pointers   = NULL;
+  this->pdd.row_pointers[0] = NULL;
 
   this->pdd.png_data.xine  = this->stream->xine;
   this->pdd.png_data.image = data;
@@ -197,14 +197,11 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
 
     /* alloc decoder image */
 
-    this->pdd.row_pointers = png_malloc (this->pdd.png, height * sizeof (*this->pdd.row_pointers));
-    if (!this->pdd.row_pointers)
-      break;
     linesize = png_get_rowbytes (this->pdd.png, this->pdd.png_info);
-    this->pdd.row_pointers[0] = png_malloc (this->pdd.png, height * linesize);
+    this->pdd.row_pointers[0] = png_malloc (this->pdd.png, 16 * linesize);
     if (!this->pdd.row_pointers[0])
       break;
-    for (y = 1; y < height; y++) {
+    for (y = 1; y < 16; y++) {
       this->pdd.row_pointers[y] = this->pdd.row_pointers[y - 1] + linesize;
     }
 
@@ -255,16 +252,16 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
 
     for (y = 0; y < height; y += 16) {
       int lines = y + 16 <= height ? 16 : height - y;
-      png_read_rows (this->pdd.png, &this->pdd.row_pointers[y], NULL, lines);
+      png_read_rows (this->pdd.png, &this->pdd.row_pointers[0], NULL, lines);
       if (img->format == XINE_IMGFMT_YV12) {
-        rgb2yv12_slice (this->pdd.rgb2yuy2, this->pdd.row_pointers[y],
+        rgb2yv12_slice (this->pdd.rgb2yuy2, this->pdd.row_pointers[0],
           png_get_rowbytes (this->pdd.png, this->pdd.png_info),
           img->base[0] + y * img->pitches[0], img->pitches[0],
           img->base[1] + (y / 2) * img->pitches[1], img->pitches[1],
           img->base[2] + (y / 2) * img->pitches[2], img->pitches[2],
           width, lines);
       } else {
-        rgb2yuy2_slice (this->pdd.rgb2yuy2, this->pdd.row_pointers[y],
+        rgb2yuy2_slice (this->pdd.rgb2yuy2, this->pdd.row_pointers[0],
           png_get_rowbytes (this->pdd.png, this->pdd.png_info),
           img->base[0] + y * img->pitches[0], img->pitches[0],
           width, lines);
@@ -299,13 +296,9 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
     this->pdd.free_img = NULL;
   }
 
-  if (this->pdd.row_pointers) {
-    if (this->pdd.row_pointers[0]) {
-      png_free (this->pdd.png, this->pdd.row_pointers[0]);
-      this->pdd.row_pointers[0] = NULL;
-    }
-    png_free (this->pdd.png, this->pdd.row_pointers);
-    this->pdd.row_pointers = NULL;
+  if (this->pdd.row_pointers[0]) {
+    png_free (this->pdd.png, this->pdd.row_pointers[0]);
+    this->pdd.row_pointers[0] = NULL;
   }
 
   if (this->pdd.png)
