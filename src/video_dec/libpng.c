@@ -263,21 +263,17 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
           img->base[1] + (y / 2) * img->pitches[1], img->pitches[1],
           img->base[2] + (y / 2) * img->pitches[2], img->pitches[2],
           width, lines);
-        if (slice_start[0]) {
-          img->proc_slice (img, slice_start);
-          slice_start[0] += 16 * img->pitches[0];
-          slice_start[1] += 8 * img->pitches[1];
-          slice_start[2] += 8 * img->pitches[2];
-        }
       } else {
         rgb2yuy2_slice (this->pdd.rgb2yuy2, this->pdd.row_pointers[y],
           png_get_rowbytes (this->pdd.png, this->pdd.png_info),
           img->base[0] + y * img->pitches[0], img->pitches[0],
           width, lines);
-        if (slice_start[0]) {
-          img->proc_slice (img, slice_start);
-          slice_start[0] += 16 * img->pitches[0];
-        }
+      }
+      if (slice_start[0]) {
+        img->proc_slice (img, slice_start);
+        slice_start[0] += 16 * img->pitches[0];
+        slice_start[1] += 8 * img->pitches[1];
+        slice_start[2] += 8 * img->pitches[2];
       }
     }
 
