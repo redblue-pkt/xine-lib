@@ -64,7 +64,6 @@ typedef struct {
   audio_decoder_t  audio_decoder;
 
   xine_stream_t    *stream;
-  audio_decoder_class_t *class;
 
   dts_state_t     *dts_state;
   int64_t          pts;
@@ -470,6 +469,8 @@ static void dts_dispose (audio_decoder_t *this_gen) {
 static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
   dts_decoder_t *this ;
 
+  (void)class_gen;
+
   lprintf("open_plugin\n");
 
   this = calloc(1, sizeof (dts_decoder_t));
@@ -555,7 +556,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
     }
   }
   this->stream        = stream;
-  this->class         = class_gen;
   this->output_open   = 0;
 
   return &this->audio_decoder;
