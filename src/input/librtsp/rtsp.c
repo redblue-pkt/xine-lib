@@ -433,7 +433,7 @@ static void rtsp_basicauth (const char *user, const char *password, char** dest)
   const size_t enclen = ((totlen + 2) * 4 ) / 3 + 12;
   char         tmp[totlen + 4];
 
-  snprintf(tmp, totlen + 1, "%s:%s", user, password ? : "");
+  snprintf(tmp, totlen + 1, "%s:%s", user, password ? password : "");
 
   *dest = malloc(enclen);
   xine_base64_encode ((unsigned char *)tmp, *dest, totlen);
