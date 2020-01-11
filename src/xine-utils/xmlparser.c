@@ -23,10 +23,6 @@
 #include "config.h"
 #endif
 
-#ifdef XINE_COMPILE
-# include "config.h"
-#endif
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
