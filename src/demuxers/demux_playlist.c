@@ -398,15 +398,19 @@ static void parse_smi (demux_playlist_t *this, char *data, int length) {
         if (!strcmp (node->name, "body")) {
           for (tmp = node->child; tmp; tmp = tmp->next) {
             if (!strcmp (tmp->name, "audio") || !strcmp (tmp->name, "video")) {
-              const char *src, *title;
+              const char *src, *title, *starts, *ends;
               int         start, end;
 
               src   = xml_parser_get_property (tmp, "src");
               title = xml_parser_get_property (tmp, "title");
-              start = parse_time (xml_parser_get_property (tmp, "clipBegin") ? :
-                                  xml_parser_get_property (tmp, "clip-begin"));
-              end   = parse_time (xml_parser_get_property (tmp, "clipEnd") ? :
-                                  xml_parser_get_property (tmp, "clip-end"));
+              starts = xml_parser_get_property (tmp, "clipBegin");
+              if (!starts)
+                starts = xml_parser_get_property (tmp, "clip-begin");
+              ends = xml_parser_get_property (tmp, "clipEnd");
+              if (!ends)
+                ends = xml_parser_get_property (tmp, "clip-end");
+              start = parse_time (starts);
+              end   = parse_time (ends);
 
               if (src) {
                 lprintf ("mrl:'%s'\n", src);

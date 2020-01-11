@@ -194,7 +194,9 @@ static int open_ra_file(demux_ra_t *this) {
   this->audio_type = _x_formattag_to_buf_audio(this->fourcc);
 
   if (version == 4) {
-    const uint16_t sps = _X_BE_16 (this->header+44) ? : 1;
+    uint16_t sps = _X_BE_16 (this->header+44);
+    if (!sps)
+      sps = 1;
     this->w           = _X_BE_16 (this->header+42);
     this->h           = _X_BE_16 (this->header+40);
     this->cfs         = _X_BE_32 (this->header+24);

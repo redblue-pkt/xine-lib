@@ -412,7 +412,7 @@ static int ogm_render_line_internal(sputext_decoder_t *this, int x, int y, const
     }
 
     char letter[5];
-    const char *const encoding = this->buf_encoding ? : this->class->src_encoding;
+    const char *const encoding = this->buf_encoding ? this->buf_encoding : this->class->src_encoding;
     const int isutf8 = !strcmp(encoding, "utf-8");
     const size_t shift = isutf8 ? parse_utf8_size (&text[i]) : 1;
     memcpy(letter,&text[i],shift);
@@ -581,7 +581,7 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
 
   int font_size = this->font_size;
 
-  const char *const encoding = this->buf_encoding ? : this->class->src_encoding;
+  const char *const encoding = this->buf_encoding ? this->buf_encoding : this->class->src_encoding;
   this->renderer->set_encoding(this->osd, encoding);
 
   int rebuild_all = 0;

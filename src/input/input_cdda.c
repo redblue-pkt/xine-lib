@@ -1438,7 +1438,9 @@ static void _cdda_mkdir_recursive_safe (xine_t *xine, char *path)
 
   char buf[strlen (path) + 1];
   strcpy (buf, path);
-  char *p = strchr (buf, '/') ? : buf;
+  char *p = strchr (buf, '/');
+  if (!p)
+    p = buf;
 
   do
   {
