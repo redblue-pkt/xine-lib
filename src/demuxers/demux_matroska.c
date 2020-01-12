@@ -448,8 +448,6 @@ static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
 
   if (buf->size)
     xine_fast_memcpy (buf->content, track->codec_private, buf->size);
-  else
-    buf->content = NULL;
 
   if(track->default_duration) {
     buf->decoder_flags   |= BUF_FLAG_FRAMERATE;
@@ -501,8 +499,6 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
 
   if (buf->size)
     xine_fast_memcpy (buf->content, track->codec_private, buf->size);
-  else
-    buf->content = NULL;
 
   buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER | BUF_FLAG_FRAME_END;
   buf->type          = track->buf_type;
@@ -531,8 +527,6 @@ static void init_codec_real(demux_matroska_t *this, matroska_track_t * track) {
 
   if (buf->size)
     xine_fast_memcpy (buf->content, track->codec_private, buf->size);
-  else
-    buf->content = NULL;
 
   if(track->default_duration) {
     buf->decoder_flags   |= BUF_FLAG_FRAMERATE;
@@ -851,9 +845,7 @@ static void init_codec_dvbsub(demux_matroska_t *this, matroska_track_t *track) {
   desc->comp_page_id = _X_BE_16(track->codec_private);
   desc->aux_page_id  = _X_BE_16(track->codec_private + 2);
 
-  buf->size = 0;
   buf->type = track->buf_type;
-  buf->content = buf->mem;
   buf->decoder_flags = BUF_FLAG_SPECIAL;
   buf->decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR;
   buf->decoder_info[2] = sizeof(*desc);
@@ -869,8 +861,6 @@ static void init_codec_spu(demux_matroska_t *this, matroska_track_t *track) {
   (void)this;
 
   buf = track->fifo->buffer_pool_alloc (track->fifo);
-
-  buf->size = 0;
   buf->type = track->buf_type;
 
   track->fifo->put (track->fifo, buf);
@@ -922,7 +912,6 @@ static void handle_realvideo (demux_plugin_t *this_gen, matroska_track_t *track,
     buf->decoder_info[2] = chunks;
     buf->decoder_info_ptr[2] = buf->content;
 
-    buf->size = 0;
     buf->type = track->buf_type;
 
     xine_fast_memcpy(buf->decoder_info_ptr[2], data + 1, chunk_tab_size);
