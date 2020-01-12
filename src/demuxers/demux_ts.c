@@ -1365,13 +1365,19 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
   }
 
   stream_id &= 0xff;
-  header_len = p[8] + 9;
 
-  /* sometimes corruption on header_len causes segfault in memcpy below */
-  if ((int)header_len > packet_len) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-             "demux_ts: illegal value for PES_header_data_length (0x%x)\n", header_len - 9);
-    return 0;
+  if (stream_id == PRIVATE_STREAM2 && this->hdmv) {
+    header_len = 6;
+
+  } else {
+    header_len = p[8] + 9;
+
+    /* sometimes corruption on header_len causes segfault in memcpy below */
+    if ((int)header_len > packet_len) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+               "demux_ts: illegal value for PES_header_data_length (0x%x)\n", header_len - 9);
+      return 0;
+    }
   }
 
 #ifdef TS_LOG
@@ -1400,7 +1406,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
   }
 #endif
 
-  if (p[7] & 0x80) { /* pts avail */
+  if (header_len > 7 && p[7] & 0x80) { /* pts avail */
     uint32_t v;
 
     if (header_len < 14) {
