@@ -1138,7 +1138,7 @@ static void demux_ts_flush(demux_ts_t *this)
  *
  * We can cope with the stupidity of SPTSs which contain NITs.
  */
-static void demux_ts_parse_pat (demux_ts_t*this, const uint8_t *pkt, unsigned int pusi, int len) {
+static void demux_ts_parse_pat (demux_ts_t*this, const uint8_t *pkt, unsigned int pusi, unsigned int len) {
 #ifdef TS_PAT_LOG
   uint32_t       table_id;
   uint32_t       version_number;
@@ -1158,16 +1158,17 @@ static void demux_ts_parse_pat (demux_ts_t*this, const uint8_t *pkt, unsigned in
 
   /* reassemble the section */
   if (pusi) {
+    unsigned int pointer = (unsigned int)pkt[0] + 1;
     this->pat_write_pos = 0;
     /* offset the section by n + 1 bytes. this is sometimes used to let it end
        at an exact TS packet boundary */
-    len -= (unsigned int)pkt[0] + 1;
-    pkt += (unsigned int)pkt[0] + 1;
-    if (len < 1) {
+    if (len <= pointer) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
         "demux_ts: demux error! PAT with invalid pointer\n");
       return;
     }
+    len -= pointer;
+    pkt += pointer;
   } else {
     if (!this->pat_write_pos)
       return;
@@ -1798,7 +1799,7 @@ static uint32_t demux_ts_get_reg_desc (demux_ts_t *this, const uint8_t *data, in
  * FIXME: Implement support for multi section PMT.
  */
 static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
-  unsigned int pusi, int plen, uint32_t program_count, uint32_t pid) {
+  unsigned int pusi, unsigned int plen, uint32_t program_count, uint32_t pid) {
 
 #ifdef TS_PMT_LOG
   uint32_t       table_id;
@@ -1834,16 +1835,17 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
   }
   /* reassemble the section */
   if (pusi) {
+    unsigned int pointer = (unsigned int)pkt[0] + 1;
     pmt->write_pos = 0;
     /* offset the section by n + 1 bytes. this is sometimes used to let it end
        at an exact TS packet boundary */
-    plen -= (unsigned int)pkt[0] + 1;
-    pkt += (unsigned int)pkt[0] + 1;
-    if (plen < 1) {
+    if (plen <= pointer) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
         "demux_ts: demux error! PMT with invalid pointer\n");
       return;
     }
+    plen -= pointer;
+    pkt += pointer;
   } else {
     if (!pmt->write_pos)
       return;
