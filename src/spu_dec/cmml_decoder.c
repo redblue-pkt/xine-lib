@@ -122,15 +122,15 @@ static void update_font_size (spucmml_decoder_t *this) {
 
   llprintf (LOG_OSD,
       "pre new_object: osd=%p, osd_renderer=%p, width=%d, height=%d\n",
-      this->osd,
-      this->stream->osd_renderer,
+      (void*)this->osd,
+      (void*)this->stream->osd_renderer,
       this->cached_width,
       SUB_MAX_TEXT * this->line_height);
 
   this->osd = this->stream->osd_renderer->new_object (this->stream->osd_renderer,
           this->cached_width, SUB_MAX_TEXT * this->line_height);
 
-  llprintf (LOG_OSD, "post new_object: osd is %p\n", this->osd);
+  llprintf (LOG_OSD, "post new_object: osd is %p\n", (void*)this->osd);
 
   if(this->stream->osd_renderer) {
     this->stream->osd_renderer->set_font (this->osd, this->font, this->font_size);
@@ -368,7 +368,7 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
     if( this->stream->video_out->status(this->stream->video_out, NULL,
           &this->cached_width, &this->cached_height, &this->cached_img_duration )) {
       if( this->cached_width && this->cached_height && this->cached_img_duration ) {
-        lprintf("this->stream->osd_renderer is %p\n", this->stream->osd_renderer);
+        lprintf("this->stream->osd_renderer is %p\n", (void*)this->stream->osd_renderer);
       }
     }
   }
@@ -498,7 +498,7 @@ static spu_decoder_t *spucmml_class_open_plugin (spu_decoder_class_t *class_gen,
 
   this->current_anchor.href = NULL;
 
-  lprintf ("video_out is at %p\n", this->stream->video_out);
+  lprintf ("video_out is at %p\n", (void*)this->stream->video_out);
 
   return (spu_decoder_t *) this;
 }
