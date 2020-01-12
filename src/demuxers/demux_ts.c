@@ -501,7 +501,7 @@ typedef struct {
   uint32_t pid;
   uint32_t length;
   uint32_t crc;
-  int      write_pos;
+  unsigned write_pos;
   uint8_t  buf[4098];
 } demux_ts_pmt;
 
@@ -528,9 +528,9 @@ typedef struct {
   demux_ts_media   media[MAX_PIDS];
 
   /* PAT */
-  int              pat_length;
+  unsigned int     pat_length;
   uint32_t         pat_crc;
-  int              pat_write_pos;
+  unsigned int     pat_write_pos;
   uint32_t         transport_stream_id;
   /* seek helpers */
   int64_t          last_pat_time;
@@ -1144,7 +1144,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, const uint8_t *pkt, unsigned in
   uint32_t       version_number;
 #endif
   uint32_t       section_syntax_indicator;
-  int32_t        section_length;
+  uint32_t       section_length;
   uint32_t       transport_stream_id;
   uint32_t       current_next_indicator;
   uint32_t       section_number;
@@ -1190,7 +1190,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, const uint8_t *pkt, unsigned in
   /* and it should fit into buf */
   if (section_length > PAT_BUF_SIZE) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-      "demux_ts: PAT too large (%d bytes)\n", section_length);
+      "demux_ts: PAT too large (%u bytes)\n", section_length);
     this->pat_write_pos = 0;
     return;
   }
@@ -1241,7 +1241,7 @@ static void demux_ts_parse_pat (demux_ts_t*this, const uint8_t *pkt, unsigned in
 #ifdef TS_PAT_LOG
   printf ("demux_ts: PAT table_id: %.2x\n", table_id);
   printf ("              section_syntax: %d\n", section_syntax_indicator);
-  printf ("              section_length: %d (%#.3x)\n", section_length, section_length);
+  printf ("              section_length: %u (%#.3x)\n", section_length, section_length);
   printf ("              transport_stream_id: %#.4x\n", transport_stream_id);
   printf ("              version_number: %d\n", version_number);
   printf ("              c/n indicator: %d\n", current_next_indicator);
@@ -1848,7 +1848,7 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
     if (!pmt->write_pos)
       return;
   }
-  if (plen > (int)sizeof (pmt->buf) - pmt->write_pos)
+  if (plen > sizeof (pmt->buf) - pmt->write_pos)
     plen = sizeof (pmt->buf) - pmt->write_pos;
   xine_small_memcpy (pmt->buf + pmt->write_pos, pkt, plen);
   pmt->write_pos += plen;
@@ -1865,7 +1865,7 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
   }
 
   /* lets see if we got the section complete */
-  if (pmt->write_pos < (int)section_length)
+  if (pmt->write_pos < section_length)
     return;
 
   /* same crc means either same table, or wrong crc - both are reason for skipping. */
