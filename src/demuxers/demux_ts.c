@@ -513,8 +513,6 @@ typedef struct {
 
   xine_stream_t   *stream;
 
-  config_values_t *config;
-
   fifo_buffer_t   *audio_fifo;
   fifo_buffer_t   *video_fifo;
 
@@ -524,10 +522,7 @@ typedef struct {
   int              status;
 
   int              hdmv;       /* -1 = unknown, 0 = mpeg-ts, 1 = hdmv/m2ts */
-  int              pkt_size;   /* TS packet size */
-  int              pkt_offset; /* TS packet offset */
 
-  int              blockSize;
   int              rate;
   unsigned int     media_num;
   demux_ts_media   media[MAX_PIDS];
@@ -581,6 +576,8 @@ typedef struct {
   xine_event_queue_t *event_queue;
 
 #if TS_PACKET_READER == 1
+  int     pkt_size;   /* TS packet size */
+  int     pkt_offset; /* TS packet offset */
   /* For syncronisation */
   int32_t packet_number;
   /* NEW: var to keep track of number of last read packets */
@@ -3315,8 +3312,10 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   /* HDMV */
   this->hdmv       = hdmv;
+#if TS_PACKET_READER == 1
   this->pkt_offset = (hdmv > 0) ? 4 : 0;
   this->pkt_size   = PKT_SIZE + this->pkt_offset;
+#endif
 
 #ifdef DUMP_VIDEO_HEADS
   this->vhdfile = fopen ("video_heads.log", "rb+");
