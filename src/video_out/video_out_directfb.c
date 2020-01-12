@@ -1764,7 +1764,7 @@ static void directfb_frame_output_cb (void *user_data, int video_width, int vide
   *dest_y            = 0;
   *dest_width        = this->screen_width;
   *dest_height       = this->screen_height;
-  *dest_pixel_aspect = video_pixel_aspect ? video_pixel_aspect :
+  *dest_pixel_aspect = (video_pixel_aspect > 0.01) ? video_pixel_aspect :
                        (double)this->screen_width/(double)this->screen_height;
   *win_x             = 0;
   *win_y             = 0;
