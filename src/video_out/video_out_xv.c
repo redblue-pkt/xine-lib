@@ -171,8 +171,8 @@ typedef struct {
 
 static int gX11Fail;
 
-VIDEO_DEVICE_XV_DECL_BICUBIC_TYPES;
-VIDEO_DEVICE_XV_DECL_PREFER_TYPES;
+VIDEO_DEVICE_XV_DECL_BICUBIC_TYPES
+VIDEO_DEVICE_XV_DECL_PREFER_TYPES
 
 static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
   xv_driver_t *this = (xv_driver_t *) this_gen;
