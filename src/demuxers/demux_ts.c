@@ -1368,6 +1368,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
 
   if (stream_id == PRIVATE_STREAM2 && this->hdmv) {
     header_len = 6;
+    pts = 0;
 
   } else {
     header_len = p[8] + 9;
@@ -1378,6 +1379,34 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
                "demux_ts: illegal value for PES_header_data_length (0x%x)\n", header_len - 9);
       return 0;
     }
+
+    if (p[7] & 0x80) { /* pts avail */
+      uint32_t v;
+
+      if (header_len < 14) {
+        return 0;
+      }
+
+      pts = (uint64_t)(p[9] & 0x0e) << 29;
+      v = _X_BE_32 (p + 10);
+      v = ((v >> 1) & 0x7fff) | ((v >> 2) & 0x3fff8000);
+      pts |= v;
+
+    } else
+      pts = 0;
+
+    /* code works but not used in xine
+       if ((p[7] & 0x40) && (header_len >= 19)) {
+
+       DTS  = (p[14] & 0x0E) << 29 ;
+       DTS |=  p[15]         << 22 ;
+       DTS |= (p[16] & 0xFE) << 14 ;
+       DTS |=  p[17]         <<  7 ;
+       DTS |= (p[18] & 0xFE) >>  1 ;
+
+       } else
+       DTS = 0;
+    */
   }
 
 #ifdef TS_LOG
@@ -1405,34 +1434,6 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
     fwrite (sb, 1, q - sb, this->vhdfile);
   }
 #endif
-
-  if (header_len > 7 && p[7] & 0x80) { /* pts avail */
-    uint32_t v;
-
-    if (header_len < 14) {
-      return 0;
-    }
-
-    pts = (uint64_t)(p[9] & 0x0e) << 29;
-    v = _X_BE_32 (p + 10);
-    v = ((v >> 1) & 0x7fff) | ((v >> 2) & 0x3fff8000);
-    pts |= v;
-
-  } else
-    pts = 0;
-
-  /* code works but not used in xine
-     if ((p[7] & 0x40) && (header_len >= 19)) {
-
-     DTS  = (p[14] & 0x0E) << 29 ;
-     DTS |=  p[15]         << 22 ;
-     DTS |= (p[16] & 0xFE) << 14 ;
-     DTS |=  p[17]         <<  7 ;
-     DTS |= (p[18] & 0xFE) >>  1 ;
-
-     } else
-     DTS = 0;
-  */
 
   if ((m->pid == this->videoPid) && this->get_frametype) {
     frametype_t t = this->get_frametype (p + header_len, packet_len - header_len);
