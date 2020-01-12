@@ -523,7 +523,7 @@ typedef struct {
 
   int              hdmv;       /* -1 = unknown, 0 = mpeg-ts, 1 = hdmv/m2ts */
 
-  int              rate;
+  unsigned int     rate;
   unsigned int     media_num;
   demux_ts_media   media[MAX_PIDS];
 
@@ -3088,7 +3088,7 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
 static int demux_ts_get_stream_length (demux_plugin_t *this_gen) {
 
   demux_ts_t*this = (demux_ts_t*)this_gen;
-  int rate = this->rate;
+  unsigned int rate = this->rate;
 
   if (rate)
     return (int)((int64_t) this->input->get_length (this->input)
