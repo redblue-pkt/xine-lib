@@ -49,8 +49,8 @@ static void xxmc_frame_updates(xxmc_driver_t *driver, xxmc_frame_t *frame,
 static void dispose_ximage (xxmc_driver_t *this, XShmSegmentInfo *shminfo,
 			    XvImage *myimage);
 
-VIDEO_DEVICE_XV_DECL_BICUBIC_TYPES;
-VIDEO_DEVICE_XV_DECL_PREFER_TYPES;
+VIDEO_DEVICE_XV_DECL_BICUBIC_TYPES
+VIDEO_DEVICE_XV_DECL_PREFER_TYPES
 
 /*
  * Acceleration level priority. Static for now. It may well turn out that IDCT
