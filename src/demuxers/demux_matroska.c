@@ -678,7 +678,8 @@ static int vobsub_parse_size(matroska_track_t *t, const char *start) {
 }
 
 static int vobsub_parse_palette(matroska_track_t *t, const char *start) {
-  int i, r, g, b, y, u, v, tmp;
+  int i, r, g, b, y, u, v;
+  unsigned tmp;
 
   start += 8;
   while (isspace(*start))
