@@ -267,7 +267,7 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
     DFBResult             ret;
 
     lprintf ("frame %p: format changed to %dx%d %s.\n",
-             frame, width, height, (format == DSPF_YUY2) ? "YUY2" : "YV12");
+             (void*)frame, width, height, (format == DSPF_YUY2) ? "YUY2" : "YV12");
 
     if (frame->surface) {
       if (frame->locked)

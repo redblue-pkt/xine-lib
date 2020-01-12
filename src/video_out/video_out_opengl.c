@@ -1245,8 +1245,8 @@ static void *render_run (opengl_driver_t *this) {
 	xprintf (this->xine, XINE_VERBOSITY_NONE,
 		 "video_out_opengl: no OpenGL support available (glXChooseVisual)\n");
       else
-        lprintf ("* visual %p id %lx depth %d\n", this->vinfo->visual,
-		 this->vinfo->visualid, this->vinfo->depth);
+        lprintf ("* visual %p id %lx depth %d\n", (void*)this->vinfo->visual,
+                 this->vinfo->visualid, this->vinfo->depth);
       pthread_cond_signal  (&this->render_return_cond);
       pthread_mutex_unlock (&this->render_action_mutex);
       break;

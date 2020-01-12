@@ -296,7 +296,7 @@ static osd_object_t *osd_new_object (osd_renderer_t *this, int width, int height
   this->osds = osd;
   pthread_mutex_unlock (&this->osd_mutex);
 
-  lprintf("osd=%p size: %dx%d\n", osd, width, height);
+  lprintf("osd=%p size: %dx%d\n", (void*)osd, width, height);
 
   return osd;
 }
@@ -386,7 +386,7 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   int x, y;
   uint8_t *c;
 
-  lprintf("osd=%p vpts=%"PRId64"\n", osd, vpts);
+  lprintf("osd=%p vpts=%"PRId64"\n", (void*)osd, vpts);
 
   xine->port_ticket->acquire (xine->port_ticket, 1);
 
@@ -408,7 +408,7 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
   CLIP0MAX (osd->y2, osd->height);
 
 #ifdef DEBUG_RLE
-  lprintf("osd_show %p rle starts\n", osd);
+  lprintf("osd_show %p rle starts\n", (void*)osd);
 #endif
 
   /* check if osd is valid (something drawn on it) */
@@ -455,7 +455,7 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
 
       for( y = osd->y1; y < osd->y2; y++ ) {
 #ifdef DEBUG_RLE
-        lprintf("osd_show %p y = %d: ", osd, y);
+        lprintf("osd_show %p y = %d: ", (void*)osd, y);
 #endif
         c = osd->area + y * osd->width + osd->x1;
 
@@ -485,7 +485,7 @@ static int _osd_show (osd_object_t *osd, int64_t vpts, int unscaled ) {
         this->event.object.overlay->num_rle++;
       }
 #ifdef DEBUG_RLE
-      lprintf("osd_show %p rle ends\n", osd);
+      lprintf("osd_show %p rle ends\n", (void*)osd);
 #endif
       lprintf("num_rle = %d\n", this->event.object.overlay->num_rle);
 
@@ -534,7 +534,7 @@ static int _osd_hide (osd_object_t *osd, int64_t vpts) {
   osd_renderer_t *this = osd->renderer;
   video_overlay_manager_t *ovl_manager;
 
-  lprintf("osd=%p vpts=%"PRId64"\n",osd, vpts);
+  lprintf("osd=%p vpts=%"PRId64"\n", (void*)osd, vpts);
 
   if( osd->handle < 0 )
     return 0;
@@ -578,7 +578,7 @@ static int osd_hide (osd_object_t *osd, int64_t vpts) {
  */
 
 static void osd_clear (osd_object_t *osd) {
-  lprintf("osd=%p\n",osd);
+  lprintf("osd=%p\n", (void*)osd);
 
   if (osd->area_touched) {
     osd->area_touched = 0;
@@ -620,7 +620,7 @@ static void _update_clipping(osd_object_t *osd, int x1, int y1, int x2, int y2)
 static void osd_point (osd_object_t *osd, int x, int y, int color) {
   uint8_t *c;
 
-  lprintf("osd=%p (%d x %d)\n", osd, x, y);
+  lprintf("osd=%p (%d x %d)\n", (void*)osd, x, y);
 
   if (x < 0 || x >= osd->width)
     return;
@@ -645,7 +645,7 @@ static void osd_line (osd_object_t *osd,
   int swap_x = 0;
   int swap_y = 0;
 
-  lprintf("osd=%p (%d,%d)-(%d,%d)\n",osd, x1,y1, x2,y2 );
+  lprintf("osd=%p (%d,%d)-(%d,%d)\n", (void*)osd, x1,y1, x2,y2 );
 
   /* sort line */
   if (x2 < x1) {
@@ -775,7 +775,7 @@ static void osd_filled_rect (osd_object_t *osd,
 
   int x, y, dx, dy;
 
-  lprintf("osd=%p (%d,%d)-(%d,%d)\n",osd, x1,y1, x2,y2 );
+  lprintf("osd=%p (%d,%d)-(%d,%d)\n", (void*)osd, x1,y1, x2,y2 );
 
   /* sort rectangle */
   x  = MIN( x1, x2 );
@@ -1262,7 +1262,7 @@ static int osd_set_font_freetype2( osd_object_t *osd, const char *fontname, int 
 static int osd_set_font( osd_object_t *osd, const char *fontname, int size) {
   int ret = 1;
 
-  lprintf("osd=%p font '%s'\n", osd, fontname);
+  lprintf("osd=%p font '%s'\n", (void*)osd, fontname);
 
   pthread_mutex_lock (&osd->renderer->osd_mutex);
 
@@ -1379,7 +1379,7 @@ static int osd_set_encoding (osd_object_t *osd, const char *encoding) {
 
   osd_free_encoding(osd);
 
-  lprintf("osd=%p, encoding=%s\n", osd, encoding ? (encoding[0] ? encoding : "locale") : "no conversion");
+  lprintf("osd=%p, encoding=%s\n", (void*)osd, encoding ? (encoding[0] ? encoding : "locale") : "no conversion");
   /* no conversion, use latin1 */
   if (!encoding) return 1;
   /* get encoding from system */
@@ -1421,7 +1421,7 @@ static int osd_render_text (osd_object_t *osd, int x1, int y1,
   uint16_t unicode;
   size_t inbytesleft;
 
-  lprintf("osd=%p (%d,%d) \"%s\"\n", osd, x1, y1, text);
+  lprintf("osd=%p (%d,%d) \"%s\"\n", (void*)osd, x1, y1, text);
 
   /* some sanity checks for the color indices */
   if( color_base < 0 )
@@ -1690,7 +1690,7 @@ static int osd_get_text_size(osd_object_t *osd, const char *text, int *width, in
   uint16_t unicode;
   size_t inbytesleft;
 
-  lprintf("osd=%p \"%s\"\n", osd, text);
+  lprintf("osd=%p \"%s\"\n", (void*)osd, text);
   inbuf = text;
   inbytesleft = strlen (text);
   *width = 0;
@@ -1920,7 +1920,7 @@ static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
 {
   int y, x;
 
-  lprintf("osd=%p at (%d,%d) %dx%d\n",osd, x1,y1, width,height );
+  lprintf("osd=%p at (%d,%d) %dx%d\n", (void*)osd, x1,y1, width,height );
 
   _update_clipping(osd, x1, y1, x1 + width, y1 + height);
 

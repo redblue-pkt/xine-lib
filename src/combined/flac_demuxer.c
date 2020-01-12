@@ -632,7 +632,7 @@ open_plugin (demux_class_t *class_gen,
     /* Get a new FLAC decoder and hook up callbacks */
 #ifdef LEGACY_FLAC
     this->flac_decoder = FLAC__seekable_stream_decoder_new();
-    lprintf("this->flac_decoder: %p\n", this->flac_decoder);
+    lprintf("this->flac_decoder: %p\n", (void*)this->flac_decoder);
 
     FLAC__seekable_stream_decoder_set_md5_checking  (this->flac_decoder, false);
     FLAC__seekable_stream_decoder_set_read_callback (this->flac_decoder,
@@ -657,7 +657,7 @@ open_plugin (demux_class_t *class_gen,
     FLAC__seekable_stream_decoder_init (this->flac_decoder);
 #else
     this->flac_decoder = FLAC__stream_decoder_new();
-    lprintf("this->flac_decoder: %p\n", this->flac_decoder);
+    lprintf("this->flac_decoder: %p\n", (void*)this->flac_decoder);
 
     if ( ! this->flac_decoder ) {
       free(this);

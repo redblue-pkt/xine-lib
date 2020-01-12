@@ -191,7 +191,7 @@ static void speex_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   char *const buf_content = (char*)buf->content;
 
   llprintf (LOG_BUFFERS, "decode buf=%8p content=%8p flags=%08x\n",
-            buf, buf->content, buf->decoder_flags);
+            (void*)buf, (void*)buf->content, buf->decoder_flags);
 
   if ( (buf->decoder_flags & BUF_FLAG_HEADER) &&
        !(buf->decoder_flags & BUF_FLAG_STDHEADER) ) {
