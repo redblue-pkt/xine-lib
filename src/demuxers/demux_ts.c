@@ -2153,18 +2153,12 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
       if (this->hdmv > 0)
         /* ignore BluRay menu streams */
         break;
-    case HDMV_SPU_TEXT:
-      if (this->hdmv > 0) {
-        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                "demux_ts: Skipping unsupported HDMV subtitle stream_type: 0x%.2x pid: 0x%.4x\n",
-                stream[0], pid);
-        break;
-      }
       /* fall thru */
 
+    case HDMV_SPU_TEXT:
     case HDMV_SPU_BITMAP:
       if (this->hdmv > 0) {
-	if (pid >= 0x1200 && pid < 0x1300) {
+        if ((pid >= 0x1200 && pid < 0x1300) || pid == 0x1800) {
 	  /* HDMV Presentation Graphics / SPU */
 
 	  if (this->spu_langs_count >= MAX_SPU_LANGS) {
@@ -2181,9 +2175,17 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
 	  memset(lang->desc.lang, 0, sizeof(lang->desc.lang));
 	  lang->pid = pid;
 	  lang->media_index = mi;
-	  demux_send_special_spu_buf( this, BUF_SPU_HDMV, this->spu_langs_count );
-          this->media[mi].type = BUF_SPU_HDMV | this->spu_langs_count;
-          this->media[mi].sure_type = BUF_SPU_HDMV | this->spu_langs_count;
+
+          if (stream[0] == HDMV_SPU_TEXT) {
+            /* This is the only stream in the mux */
+            this->media[mi].type = BUF_SPU_HDMV_TEXT;
+            this->spu_pid = pid;
+          } else {
+            this->media[mi].type = BUF_SPU_HDMV;
+          }
+          demux_send_special_spu_buf( this, this->media[mi].type, this->spu_langs_count );
+          this->media[mi].type |= this->spu_langs_count;
+          this->media[mi].sure_type = this->media[mi].type;
 	  this->spu_langs_count++;
 #ifdef TS_PMT_LOG
 	  printf("demux_ts: HDMV subtitle stream_type: 0x%.2x pid: 0x%.4x\n",
@@ -2968,6 +2970,15 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
     /* and thus freezing video out. */
     if (this->videoPid != INVALID_PID && this->stream->video_fifo)
       post_sequence_end (this->stream->video_fifo, this->media[this->videoMedia].type);
+  }
+
+  if (this->stream->master != this->stream) {
+    if (this->media_num == 1 && this->spu_langs_count == 1 &&
+        this->media[this->spu_langs[0].media_index].type == BUF_SPU_HDMV_TEXT) {
+      /* this stream is used as subtitle slave stream. Need to seek to 0. */
+      start_pos = 0;
+      start_time = 0;
+    }
   }
 
   caps = this->input->get_capabilities (this->input);
