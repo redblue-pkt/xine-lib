@@ -1503,13 +1503,6 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
     return header_len;
   }
 
-  if (m->descriptor_tag == HDMV_SPU_BITMAP) {
-    m->type |= BUF_SPU_HDMV;
-    m->buf->decoder_info[2] = m->pes_bytes_left;
-    return header_len;
-
-  } else
-
   if (stream_id == 0xbd || stream_id == 0xfd /* HDMV */) {
 
     int spu_id;
@@ -2175,15 +2168,14 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
 	  mi = demux_ts_dynamic_pmt_find (this, pid, BUF_SPU_BASE, stream[0]);
 	  if (mi < 0) break;
 
-
 	  demux_ts_spu_lang *lang = &this->spu_langs[this->spu_langs_count];
 
 	  memset(lang->desc.lang, 0, sizeof(lang->desc.lang));
-	  /*memcpy(lang->desc.lang, &stream[pos], 3);*/
-	  /*lang->desc.lang[3] = 0;*/
 	  lang->pid = pid;
 	  lang->media_index = mi;
 	  demux_send_special_spu_buf( this, BUF_SPU_HDMV, this->spu_langs_count );
+          this->media[mi].type = BUF_SPU_HDMV | this->spu_langs_count;
+          this->media[mi].sure_type = BUF_SPU_HDMV | this->spu_langs_count;
 	  this->spu_langs_count++;
 #ifdef TS_PMT_LOG
 	  printf("demux_ts: HDMV subtitle stream_type: 0x%.2x pid: 0x%.4x\n",
