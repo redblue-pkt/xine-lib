@@ -2130,10 +2130,14 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
       break;
 
     case HDMV_SPU_INTERACTIVE:
+      if (this->hdmv > 0)
+        /* ignore BluRay menu streams */
+        break;
     case HDMV_SPU_TEXT:
       if (this->hdmv > 0) {
-        printf("demux_ts: Skipping unsupported HDMV subtitle stream_type: 0x%.2x pid: 0x%.4x\n",
-               stream[0], pid);
+        xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                "demux_ts: Skipping unsupported HDMV subtitle stream_type: 0x%.2x pid: 0x%.4x\n",
+                stream[0], pid);
         break;
       }
       /* fall thru */
