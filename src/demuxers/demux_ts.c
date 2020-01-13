@@ -570,7 +570,6 @@ typedef struct {
 
   /* DVBSUB */
   unsigned int      spu_pid;
-  unsigned int      spu_media;
   demux_ts_spu_lang spu_langs[MAX_SPU_LANGS];
   int               spu_langs_count;
   int               current_spu_channel;
@@ -835,7 +834,6 @@ static void demux_ts_dynamic_pmt_clear (demux_ts_t *this) {
   this->audio_tracks_count = 0;
   this->spu_pid = INVALID_PID;
   this->spu_langs_count = 0;
-  this->spu_media = 0;
 
   this->pcr_pid = INVALID_PID;
 
@@ -1017,6 +1015,7 @@ static void demux_send_special_spu_buf( demux_ts_t *this, uint32_t spu_type, int
 static void demux_ts_update_spu_channel(demux_ts_t *this)
 {
   buf_element_t *buf;
+  unsigned spu_media = -1;
 
   this->current_spu_channel = this->stream->spu_channel;
 
@@ -1039,7 +1038,7 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
       buf->type |= this->current_spu_channel;
 
       this->spu_pid = lang->pid;
-      this->spu_media = lang->media_index;
+      spu_media = lang->media_index;
 
       /* multiple spu langs can share same media descriptor */
       this->media[lang->media_index].type =
@@ -1060,7 +1059,8 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
 #endif
     }
 
-  if ((this->media[this->spu_media].type & (BUF_MAJOR_MASK | BUF_DECODER_MASK)) == BUF_SPU_HDMV) {
+  if (spu_media >= 0 &&
+      (this->media[spu_media].type & (BUF_MAJOR_MASK | BUF_DECODER_MASK)) == BUF_SPU_HDMV) {
     buf->type = BUF_SPU_HDMV;
     buf->type |= this->current_spu_channel;
   }
