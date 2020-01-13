@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -294,6 +294,9 @@
       HDMV_SPU_BITMAP      = 0x90,
       HDMV_SPU_INTERACTIVE = 0x91,
       HDMV_SPU_TEXT        = 0x92,
+
+      HDMV_AUDIO_A1_EAC3_SEC  = 0xa1, /* Dolby Digital plus, secondary audio */
+      HDMV_AUDIO_A2_DTSHD_SEC = 0xa2, /* DTS HD, secondary audio */
 
       /* pseudo tags */
       STREAM_AUDIO_EAC3    = (DESCRIPTOR_EAC3 << 8),
@@ -2169,6 +2172,17 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
 #endif
 	  break;
 	}
+      }
+      /* fall thru */
+    case HDMV_AUDIO_A1_EAC3_SEC:
+    case HDMV_AUDIO_A2_DTSHD_SEC:
+      if (this->hdmv > 0) {
+        if (pid >= 0x1a00 && pid < 0x1a20) {
+          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
+                  "demux_ts: Skipping unsupported HDMV secondary audio stream_type: 0x%.2x pid: 0x%.4x\n",
+                  stream[0], pid);
+          break;
+        }
       }
       /* fall thru */
     default:
