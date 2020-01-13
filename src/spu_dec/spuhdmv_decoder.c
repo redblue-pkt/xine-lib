@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
- * Copyright (C) 2009 Petri Hintukainen <phintuka@users.sourceforge.net>
+ * Copyright (C) 2009-2020 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a unix video player.
  *
@@ -710,6 +710,7 @@ typedef struct spuhdmv_decoder_s {
 
   int overlay_handles[MAX_OBJECTS];
 
+  uint32_t              current_spu_channel;
   int64_t               pts;
 
 } spuhdmv_decoder_t;
@@ -1008,6 +1009,12 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 
   if (buf->size < 1)
     return;
+
+  if (this->current_spu_channel != buf->type) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "spuhdmv: reset (spu channel changed)\n");
+    this_gen->reset(this_gen);
+    this->current_spu_channel = buf->type;
+  }
 
   if (buf->pts)
     this->pts = buf->pts;
