@@ -1001,8 +1001,6 @@ static void demux_send_special_spu_buf( demux_ts_t *this, uint32_t spu_type, int
 
   buf = this->video_fifo->buffer_pool_alloc( this->video_fifo );
   buf->type = spu_type|spu_channel;
-  buf->content = buf->mem;
-  buf->size = 0;
   this->video_fifo->put( this->video_fifo, buf );
 }
 
@@ -1021,10 +1019,8 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
 
   buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
   buf->type = BUF_SPU_DVB;
-  buf->content = buf->mem;
   buf->decoder_flags = BUF_FLAG_SPECIAL;
   buf->decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR;
-  buf->size = 0;
 
   if (this->current_spu_channel >= 0
       && this->current_spu_channel < this->spu_langs_count)
