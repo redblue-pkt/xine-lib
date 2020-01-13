@@ -1004,6 +1004,16 @@ static void demux_send_special_spu_buf( demux_ts_t *this, uint32_t spu_type, int
   this->video_fifo->put( this->video_fifo, buf );
 }
 
+static void demux_ts_flush_media (demux_ts_t *this, demux_ts_media *m);
+static void _flush_spu_channel(demux_ts_t *this, int channel)
+{
+  if (channel >= 0 && channel < this->spu_langs_count) {
+    unsigned int mi = this->spu_langs[channel].media_index;
+    demux_ts_flush_media (this, &this->media[mi]);
+    this->media[mi].corrupted_pes = 1;
+  }
+}
+
 /*
  * demux_ts_update_spu_channel
  *
@@ -1014,6 +1024,7 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
 {
   buf_element_t *buf;
   unsigned spu_media = -1;
+  int old_spu_channel = this->current_spu_channel;
 
   this->current_spu_channel = this->stream->spu_channel;
 
@@ -1027,13 +1038,18 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
     {
       demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
 
+      if (this->spu_pid != INVALID_PID && this->spu_pid != lang->pid) {
+        /* PID changed, flush old buffer */
+        _flush_spu_channel(this, old_spu_channel);
+      }
+      this->spu_pid = lang->pid;
+
       buf->decoder_info[2] = sizeof(lang->desc);
       buf->decoder_info_ptr[2] = buf->content;
       memcpy(buf->content, &lang->desc, sizeof(lang->desc));
 
       buf->type |= this->current_spu_channel;
 
-      this->spu_pid = lang->pid;
       spu_media = lang->media_index;
 
       /* multiple spu langs can share same media descriptor */
@@ -1047,6 +1063,9 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
   else
     {
       buf->decoder_info_ptr[2] = NULL;
+
+      if (this->spu_pid != INVALID_PID)
+        _flush_spu_channel(this, old_spu_channel);
 
       this->spu_pid = INVALID_PID;
 
