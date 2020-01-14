@@ -900,11 +900,13 @@ static void process_object_data_segment (dvbsub_func_t *dvbsub)
   }
 }
 
+#if 0
 static void process_display_definition_segment(dvb_spu_decoder_t *this)
 {
   /* FIXME: not implemented. */
   (void)this;
 }
+#endif
 
 static void unlock_mutex_cancellation_func(void *mutex_gen)
 {
@@ -1163,7 +1165,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
               process_object_data_segment (this->dvbsub);
               break;
             case 0x14:
-              process_display_definition_segment(this);
+              //process_display_definition_segment(this);
               break;
             case 0x80:          /* Page is now completely rendered */
               recalculate_trans(this);
