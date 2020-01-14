@@ -190,27 +190,27 @@ static void sparse_array_unset (sparse_array_t *sa, uint32_t key, uint32_t mask)
 /* ! sparse_array */
 
 typedef struct {
-  int			x, y;
-  unsigned char	is_visible;
+  int                   x, y;
+  unsigned char         is_visible;
 } visible_region_t;
 
 typedef struct {
-  int			page_time_out;
-  int			page_version_number;
-  int			page_state;
-  int			page_id;
-  visible_region_t	regions[MAX_REGIONS];
+  int                   page_time_out;
+  int                   page_version_number;
+  int                   page_state;
+  int                   page_id;
+  visible_region_t      regions[MAX_REGIONS];
 } page_t;
 
 typedef struct {
   int                   version_number;
-  int			width, height;
+  int                   width, height;
   int                   empty;
-  int			depth;
-  int			CLUT_id;
-  int			objects_start;
-  int			objects_end;
-  unsigned char	*img;
+  int                   depth;
+  int                   CLUT_id;
+  int                   objects_start;
+  int                   objects_end;
+  unsigned char         *img;
   osd_object_t          *osd;
 } region_t;
 
@@ -221,28 +221,28 @@ typedef union {
 
 typedef struct {
 /* dvbsub stuff */
-  int			x;
-  int			y;
-  unsigned int		curr_obj;
-  unsigned int		curr_reg[64];
-  uint8_t	       *buf;
-  int			i;
-  int			i_bits;
-  int			in_scanline;
-  int			compat_depth;
+  int                   x;
+  int                   y;
+  unsigned int          curr_obj;
+  unsigned int          curr_reg[64];
+  uint8_t              *buf;
+  int                   i;
+  int                   i_bits;
+  int                   in_scanline;
+  int                   compat_depth;
   int                   max_regions;
-  page_t		page;
-  region_t		regions[MAX_REGIONS];
-  clut_union_t		colours[MAX_REGIONS*256];
-  unsigned char		trans[MAX_REGIONS*256];
+  page_t                page;
+  region_t              regions[MAX_REGIONS];
+  clut_union_t          colours[MAX_REGIONS*256];
+  unsigned char         trans[MAX_REGIONS*256];
   struct {
-    unsigned char	  lut24[4], lut28[4], lut48[16];
-  }			lut[MAX_REGIONS];
-  sparse_array_t	object_pos;
+    unsigned char         lut24[4], lut28[4], lut48[16];
+  }                     lut[MAX_REGIONS];
+  sparse_array_t        object_pos;
 } dvbsub_func_t;
 
 typedef struct dvb_spu_decoder_s {
-  spu_decoder_t	spu_decoder;
+  spu_decoder_t spu_decoder;
 
   xine_stream_t        *stream;
 
@@ -250,20 +250,20 @@ typedef struct dvb_spu_decoder_s {
 
   /* dvbsub_osd_mutex should be locked around all calls to this->osd_renderer->show()
      and this->osd_renderer->hide() */
-  pthread_mutex_t	dvbsub_osd_mutex;
+  pthread_mutex_t       dvbsub_osd_mutex;
 
-  char		       *pes_pkt;
+  char                 *pes_pkt;
   char                 *pes_pkt_wrptr;
-  unsigned int	pes_pkt_size;
+  unsigned int          pes_pkt_size;
 
-  int64_t		vpts;
-  int64_t		end_vpts;
+  int64_t               vpts;
+  int64_t               end_vpts;
 
-  pthread_t	dvbsub_timer_thread;
+  pthread_t             dvbsub_timer_thread;
   struct timespec       dvbsub_hide_timeout;
   pthread_cond_t        dvbsub_restart_timeout;
   dvbsub_func_t        *dvbsub;
-  int			show;
+  int                   show;
 } dvb_spu_decoder_t;
 
 static clut_t default_clut[256];
@@ -527,8 +527,8 @@ static void decode_4bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int 
     {
       run_length = next_datum (this, 3);
       if (!run_length)
-	/* end-of-string */
-	break;
+        /* end-of-string */
+        break;
 
       /* run length, 3 to 9 pixels, colour 0 */
       plot (this, r, run_length + 2, lut[0]);
@@ -601,7 +601,7 @@ static void decode_8bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int 
     {
       /* run length, 3 to 127 pixels, colour given */
       if (run_length > 2)
-	plot (this, r, run_length + 4, dvbsub->buf[dvbsub->i++]);
+        plot (this, r, run_length + 4, dvbsub->buf[dvbsub->i++]);
       continue;
     }
 
@@ -786,7 +786,7 @@ static void process_page_composition_segment (dvb_spu_decoder_t * this)
 
   while (dvbsub->i < j) {
     region_id = dvbsub->buf[dvbsub->i++];
-    dvbsub->i++;		/* reserved */
+    dvbsub->i++;                /* reserved */
     region_x = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
     dvbsub->i += 2;
     region_y = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
@@ -913,24 +913,24 @@ static void process_object_data_segment (dvb_spu_decoder_t * this)
     if (dvbsub->regions[r].img) {
       uint32_t pos;
       if (sparse_array_get (&dvbsub->object_pos, (r << 16) | object_id, &pos)) {
-	dvbsub->i = old_i;
-	if (object_coding_method == 0) {
-	  top_field_data_block_length = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
-	  dvbsub->i += 2;
-	  bottom_field_data_block_length = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
-	  dvbsub->i += 2;
+        dvbsub->i = old_i;
+        if (object_coding_method == 0) {
+          top_field_data_block_length = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
+          dvbsub->i += 2;
+          bottom_field_data_block_length = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
+          dvbsub->i += 2;
 
-	  process_pixel_data_sub_block (this, r, object_id, pos, 0, top_field_data_block_length);
+          process_pixel_data_sub_block (this, r, object_id, pos, 0, top_field_data_block_length);
 
-	  if (bottom_field_data_block_length == 0)
-	  {
-	    /* handle bottom field == top field */
-	    bottom_field_data_block_length = top_field_data_block_length;
-	    dvbsub->i =  old_i + 4;
-	  }
+          if (bottom_field_data_block_length == 0)
+          {
+            /* handle bottom field == top field */
+            bottom_field_data_block_length = top_field_data_block_length;
+            dvbsub->i =  old_i + 4;
+          }
 
-	  process_pixel_data_sub_block (this, r, object_id, pos, 1, bottom_field_data_block_length);
-	}
+          process_pixel_data_sub_block (this, r, object_id, pos, 1, bottom_field_data_block_length);
+        }
       }
     }
   }
@@ -986,12 +986,12 @@ static void* dvbsub_timer_func(void *this_gen)
          Hide the OSD, then wait until we're signalled. */
       if(this->stream && this->stream->osd_renderer)
       {
-	for ( i=0; i<this->dvbsub->max_regions; i++ ) {
-	  if ( this->dvbsub->regions[i].osd ) {
-	    this->stream->osd_renderer->hide( this->dvbsub->regions[i].osd, 0 );
-	    lprintf("thread hiding = %d\n",i);
-	  }
-	}
+        for ( i=0; i<this->dvbsub->max_regions; i++ ) {
+          if ( this->dvbsub->regions[i].osd ) {
+            this->stream->osd_renderer->hide( this->dvbsub->regions[i].osd, 0 );
+            lprintf("thread hiding = %d\n",i);
+          }
+        }
       }
       pthread_cond_wait(&this->dvbsub_restart_timeout, &this->dvbsub_osd_mutex);
     }
@@ -1038,25 +1038,25 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
     if (this->dvbsub->regions[r].img) {
       if (this->dvbsub->page.regions[r].is_visible && !this->dvbsub->regions[r].empty) {
         update_osd( this, r );
-	if ( !this->dvbsub->regions[r].osd )
-	  continue;
+        if ( !this->dvbsub->regions[r].osd )
+          continue;
         /* clear osd */
         this->stream->osd_renderer->clear( this->dvbsub->regions[r].osd );
         if ( this->dvbsub->regions[r].width>dest_width && !(this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_CUSTOM_EXTENT_OVERLAY)) {
-	  downscale_region_image(&this->dvbsub->regions[r], tmp, dest_width);
-	  reg = tmp;
-	  reg_width = dest_width;
-	}
-	else {
-	  reg = this->dvbsub->regions[r].img;
-	  reg_width = this->dvbsub->regions[r].width;
-	}
+          downscale_region_image(&this->dvbsub->regions[r], tmp, dest_width);
+          reg = tmp;
+          reg_width = dest_width;
+        }
+        else {
+          reg = this->dvbsub->regions[r].img;
+          reg_width = this->dvbsub->regions[r].width;
+        }
         /* All DVB subs I have seen so far use same color matrix as main video. */
         _X_SET_CLUT_CM (&this->dvbsub->colours[this->dvbsub->regions[r].CLUT_id*256].u32, 4);
-	this->stream->osd_renderer->set_palette( this->dvbsub->regions[r].osd,
+        this->stream->osd_renderer->set_palette( this->dvbsub->regions[r].osd,
                                                  &this->dvbsub->colours[this->dvbsub->regions[r].CLUT_id*256].u32,
                                                  &this->dvbsub->trans[this->dvbsub->regions[r].CLUT_id*256]);
-	this->stream->osd_renderer->draw_bitmap( this->dvbsub->regions[r].osd, reg, 0, 0, reg_width, this->dvbsub->regions[r].height, NULL );
+        this->stream->osd_renderer->draw_bitmap( this->dvbsub->regions[r].osd, reg, 0, 0, reg_width, this->dvbsub->regions[r].height, NULL );
       }
     }
   }
@@ -1101,10 +1101,10 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       if (buf->decoder_info[2] == 0) {
         /* Hide the osd - note that if the timeout thread times out, it'll rehide, which is harmless */
         pthread_mutex_lock(&this->dvbsub_osd_mutex);
-	for ( i=0; i<this->dvbsub->max_regions; i++ ) {
-	  if ( this->dvbsub->regions[i].osd )
-	    this->stream->osd_renderer->hide( this->dvbsub->regions[i].osd, 0 );
-	}
+        for ( i=0; i<this->dvbsub->max_regions; i++ ) {
+          if ( this->dvbsub->regions[i].osd )
+            this->stream->osd_renderer->hide( this->dvbsub->regions[i].osd, 0 );
+        }
         pthread_mutex_unlock(&this->dvbsub_osd_mutex);
       }
       else {
@@ -1171,23 +1171,23 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       /*subtitle_stream_id = this->dvbsub->buf[*/this->dvbsub->i++/*]*/;
 
       while (this->dvbsub->i <= (PES_packet_length)) {
-	/* SUBTITLING SEGMENT */
-	this->dvbsub->i++;
-	segment_type = this->dvbsub->buf[this->dvbsub->i++];
+        /* SUBTITLING SEGMENT */
+        this->dvbsub->i++;
+        segment_type = this->dvbsub->buf[this->dvbsub->i++];
 
-	this->dvbsub->page.page_id = (this->dvbsub->buf[this->dvbsub->i] << 8) | this->dvbsub->buf[this->dvbsub->i + 1];
-	segment_length = (this->dvbsub->buf[this->dvbsub->i + 2] << 8) | this->dvbsub->buf[this->dvbsub->i + 3];
-	new_i = this->dvbsub->i + segment_length + 4;
+        this->dvbsub->page.page_id = (this->dvbsub->buf[this->dvbsub->i] << 8) | this->dvbsub->buf[this->dvbsub->i + 1];
+        segment_length = (this->dvbsub->buf[this->dvbsub->i + 2] << 8) | this->dvbsub->buf[this->dvbsub->i + 3];
+        new_i = this->dvbsub->i + segment_length + 4;
 
-	/* only process complete segments */
-	if(new_i > (this->pes_pkt_wrptr - this->pes_pkt))
-	  break;
-	/* verify we've the right segment */
+        /* only process complete segments */
+        if(new_i > (this->pes_pkt_wrptr - this->pes_pkt))
+          break;
+        /* verify we've the right segment */
         if (this->dvbsub->page.page_id == this->spu_descriptor.comp_page_id) {
-	  /* SEGMENT_DATA_FIELD */
-	  switch (segment_type & 0xff) {
-	    case 0x10:
-	      process_page_composition_segment (this);
+          /* SEGMENT_DATA_FIELD */
+          switch (segment_type & 0xff) {
+            case 0x10:
+              process_page_composition_segment (this);
               break;
             case 0x11:
               process_region_composition_segment (this);
@@ -1201,18 +1201,18 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
             case 0x14:
               process_display_definition_segment(this);
               break;
-            case 0x80:		/* Page is now completely rendered */
+            case 0x80:          /* Page is now completely rendered */
               recalculate_trans(this);
-	      draw_subtitles( this );
+              draw_subtitles( this );
               break;
-            case 0xFF:		/* stuffing */
+            case 0xFF:          /* stuffing */
               break;
             default:
               return;
               break;
           }
-	}
-	this->dvbsub->i = new_i;
+        }
+        this->dvbsub->i = new_i;
       }
 }
 
