@@ -2118,6 +2118,7 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
             mi = demux_ts_dynamic_pmt_find (this, pid, BUF_SPU_BASE, stream[0]);
             if (mi < 0) break;
 
+            this->media[mi].type = (this->media[mi].type & 0xff) | BUF_SPU_DVB;
             for (pos = i + 2;
                  pos + 8 <= (int)i + 2 + stream[i + 1]
                    && this->spu_langs_count < MAX_SPU_LANGS;
