@@ -2565,7 +2565,7 @@ static const uint8_t *sync_next (demux_ts_t *this) {
   while (1) {
     const uint8_t *p = this->buf + this->buf_pos;
     int left = this->buf_size - this->buf_pos;
-    if (this->hdmv) {
+    if (this->hdmv > 0) {
       /* next packet already there? */
       if ((left >= 192) && (p[0] == SYNC_BYTE)) {
         this->buf_pos += 192;
