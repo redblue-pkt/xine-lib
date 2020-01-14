@@ -948,15 +948,13 @@ static void* dvbsub_timer_func(void *this_gen)
     {
       /* We timed out, and no-one changed the timeout underneath us.
          Hide the OSD, then wait until we're signalled. */
-      if(this->stream && this->stream->osd_renderer)
-      {
         for ( i=0; i<this->dvbsub->max_regions; i++ ) {
           if ( this->dvbsub->regions[i].osd ) {
             this->stream->osd_renderer->hide( this->dvbsub->regions[i].osd, 0 );
             lprintf("thread hiding = %d\n",i);
           }
         }
-      }
+
       pthread_cond_wait(&this->dvbsub_restart_timeout, &this->dvbsub_osd_mutex);
     }
   }
