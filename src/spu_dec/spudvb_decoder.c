@@ -228,7 +228,6 @@ typedef struct {
   uint8_t              *buf;
   int                   i;
   int                   i_bits;
-  int                   in_scanline;
   int                   compat_depth;
   int                   max_regions;
   page_t                page;
@@ -257,7 +256,6 @@ typedef struct dvb_spu_decoder_s {
   unsigned int          pes_pkt_size;
 
   int64_t               vpts;
-  int64_t               end_vpts;
 
   pthread_t             dvbsub_timer_thread;
   struct timespec       dvbsub_hide_timeout;
@@ -435,9 +433,6 @@ static void decode_2bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int 
   (void)object_id;
   (void)ofs;
 
-  if (dvbsub->in_scanline == 0)
-    dvbsub->in_scanline = 1;
-
   dvbsub->i_bits = 0;
   j = dvbsub->i + n;
 
@@ -503,9 +498,6 @@ static void decode_4bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int 
 
   (void)object_id;
   (void)ofs;
-
-  if (dvbsub->in_scanline == 0)
-    dvbsub->in_scanline = 1;
 
   dvbsub->i_bits = 0;
   j = dvbsub->i + n;
@@ -576,9 +568,6 @@ static void decode_8bit_pixel_code_string (dvb_spu_decoder_t * this, int r, int 
 
   (void)object_id;
   (void)ofs;
-
-  if (dvbsub->in_scanline == 0)
-    dvbsub->in_scanline = 1;
 
   j = dvbsub->i + n;
 
@@ -743,7 +732,6 @@ static void process_pixel_data_sub_block (dvb_spu_decoder_t * this, int r, int o
       dvbsub->i += 16;
       break;
     case 0xf0:
-      dvbsub->in_scanline = 0;
       dvbsub->x = pos >> 16;
       dvbsub->y += 2;
       break;
@@ -1090,7 +1078,6 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
   int new_i;
   /*int data_identifier, subtitle_stream_id;*/
   int segment_length, segment_type;
-  int PES_packet_length;
   int i;
 
   if((buf->type & 0xffff0000)!=BUF_SPU_DVB)
@@ -1161,8 +1148,6 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 
   /* process the pes section */
 
-      PES_packet_length = this->pes_pkt_size;
-
       this->dvbsub->buf = this->pes_pkt;
 
       this->dvbsub->i = 0;
@@ -1170,7 +1155,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
       /*data_identifier = this->dvbsub->buf[*/this->dvbsub->i++/*]*/;
       /*subtitle_stream_id = this->dvbsub->buf[*/this->dvbsub->i++/*]*/;
 
-      while (this->dvbsub->i <= (PES_packet_length)) {
+      while (this->dvbsub->i <= (int)this->pes_pkt_size) {
         /* SUBTITLING SEGMENT */
         this->dvbsub->i++;
         segment_type = this->dvbsub->buf[this->dvbsub->i++];
