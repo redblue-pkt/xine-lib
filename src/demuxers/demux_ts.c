@@ -1393,7 +1393,8 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
   if (stream_id == PRIVATE_STREAM2 && this->hdmv) {
     header_len = 6;
     pts = 0;
-
+  } else if (stream_id == PADDING_STREAM) {
+    return 0;
   } else {
     header_len = p[8] + 9;
 
