@@ -466,6 +466,7 @@ typedef struct {
   buf_element_t   *buf;
   uint32_t         audio_type;     /* defaults from pmt */
   uint32_t         video_type;
+  uint32_t         spu_type;
   uint32_t         hdmv_type;
   uint32_t         sure_type;
   unsigned int     counter;
@@ -570,6 +571,7 @@ typedef struct {
 
   /* DVBSUB */
   unsigned int      spu_pid;
+  unsigned int      spu_media_index;
   demux_ts_spu_lang spu_langs[MAX_SPU_LANGS];
   int               spu_langs_count;
   int               current_spu_channel;
@@ -678,6 +680,7 @@ static int demux_ts_dynamic_pmt_find (demux_ts_t *this,
     m->type           = type;
     m->audio_type     = BUF_AUDIO_MPEG;
     m->video_type     = BUF_VIDEO_MPEG;
+    m->spu_type       = 0;
     m->hdmv_type      = 0;
     m->sure_type      = 0;
     m->counter        = INVALID_CC;
@@ -1004,93 +1007,6 @@ static void demux_send_special_spu_buf( demux_ts_t *this, uint32_t spu_type, int
   this->video_fifo->put( this->video_fifo, buf );
 }
 
-static void demux_ts_flush_media (demux_ts_t *this, demux_ts_media *m);
-static void _flush_spu_channel(demux_ts_t *this, int channel)
-{
-  if (channel >= 0 && channel < this->spu_langs_count) {
-    unsigned int mi = this->spu_langs[channel].media_index;
-    demux_ts_flush_media (this, &this->media[mi]);
-    this->media[mi].corrupted_pes = 1;
-  }
-}
-
-/*
- * demux_ts_update_spu_channel
- *
- * Send a BUF_SPU_DVB with BUF_SPECIAL_SPU_DVB_DESCRIPTOR to tell
- * the decoder to reset itself on the new channel.
- */
-static void demux_ts_update_spu_channel(demux_ts_t *this)
-{
-  buf_element_t *buf;
-  int old_spu_channel = this->current_spu_channel;
-  int old_is_dvb = 0, new_is_dvb = 0;
-
-  this->current_spu_channel = this->stream->spu_channel;
-
-  /* Update PID. If changed, flush old buffer */
-  if (this->current_spu_channel >= 0 && this->current_spu_channel < this->spu_langs_count) {
-    demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
-
-    if (this->spu_pid != INVALID_PID && this->spu_pid != lang->pid) {
-      _flush_spu_channel(this, old_spu_channel);
-    }
-    this->spu_pid = lang->pid;
-  } else {
-    if (this->spu_pid != INVALID_PID) {
-      _flush_spu_channel(this, old_spu_channel);
-    }
-    this->spu_pid = INVALID_PID;
-  }
-
-  /* bail out if DVBSUB is not in use */
-  if (old_spu_channel >= 0 && old_spu_channel < this->spu_langs_count) {
-    unsigned old_type = this->media[this->spu_langs[old_spu_channel].media_index].type;
-    old_is_dvb = ((old_type & (BUF_MAJOR_MASK | BUF_DECODER_MASK)) == BUF_SPU_DVB);
-  }
-  if (this->current_spu_channel >= 0 && this->current_spu_channel < this->spu_langs_count) {
-    unsigned new_type = this->media[this->spu_langs[this->current_spu_channel].media_index].type;
-    new_is_dvb = ((new_type & (BUF_MAJOR_MASK | BUF_DECODER_MASK)) == BUF_SPU_DVB);
-  }
-  if (!old_is_dvb && !new_is_dvb) {
-    return;
-  }
-
-  /* Update DVBSUB decoder */
-  buf = this->video_fifo->buffer_pool_alloc(this->video_fifo);
-  buf->type = BUF_SPU_DVB;
-  buf->decoder_flags = BUF_FLAG_SPECIAL;
-  buf->decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR;
-
-  if (this->current_spu_channel >= 0
-      && this->current_spu_channel < this->spu_langs_count)
-    {
-      demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
-
-      buf->decoder_info[2] = sizeof(lang->desc);
-      buf->decoder_info_ptr[2] = buf->content;
-      memcpy(buf->content, &lang->desc, sizeof(lang->desc));
-
-      buf->type |= this->current_spu_channel;
-
-      /* multiple spu langs can share same media descriptor */
-      this->media[lang->media_index].type =
-        (this->media[lang->media_index].type & ~0xff) | this->current_spu_channel;
-#ifdef TS_LOG
-      printf("demux_ts: DVBSUB: selecting lang: %s  page %ld %ld\n",
-             lang->desc.lang, lang->desc.comp_page_id, lang->desc.aux_page_id);
-#endif
-    }
-  else
-    {
-#ifdef TS_LOG
-      printf("demux_ts: DVBSUB: deselecting lang\n");
-#endif
-    }
-
-  this->video_fifo->put(this->video_fifo, buf);
-}
-
 static void demux_ts_send_buffer (demux_ts_t *this, demux_ts_media *m, int flags) {
   if (m->buf) {
     /* test/tell discontinuity right before sending it.
@@ -1120,6 +1036,85 @@ static void demux_ts_send_buffer (demux_ts_t *this, demux_ts_media *m, int flags
 static void demux_ts_flush_media (demux_ts_t *this, demux_ts_media *m) {
   m->resume |= PES_FLUSHED;
   demux_ts_send_buffer (this, m, BUF_FLAG_FRAME_END);
+}
+
+/*
+ * demux_ts_update_spu_channel
+ *
+ * Normally, we would handle spu like audio - send all we got, with
+ * channel numbers, and let decoder loop do the rest.
+ * However:
+ * 1. We like to reduce video fifo load, and more importantly,
+ * 2. There may be joint packets with multiple spus of same type,
+ *    to be selected by decoder.
+ * NOTE: there are 2 reasons for calling this:
+ * a) pmt change, called while both old and new media descriptors are valid.
+ * b) user channel change.
+ *
+ * Send a BUF_SPU_DVB with BUF_SPECIAL_SPU_DVB_DESCRIPTOR to tell
+ * the decoder to reset itself on the new channel.
+ */
+static void demux_ts_update_spu_channel(demux_ts_t *this)
+{
+  unsigned int old_mi = this->spu_media_index;
+
+  this->current_spu_channel = this->stream->spu_channel;
+
+  if ((this->current_spu_channel >= 0) && (this->current_spu_channel < this->spu_langs_count)) {
+    demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
+
+    this->spu_pid = lang->pid;
+    this->spu_media_index = lang->media_index;
+
+    /* same media -> skip flushing old buf. */
+    if (old_mi == lang->media_index)
+      old_mi = 0xffffffff;
+
+    this->media[lang->media_index].type =
+      this->media[lang->media_index].spu_type | this->current_spu_channel;
+
+#ifdef TS_LOG
+    printf ("demux_ts: DVBSUB: selecting lang: %s  page %ld %ld\n",
+      lang->desc.lang, lang->desc.comp_page_id, lang->desc.aux_page_id);
+#endif
+  } else {
+    this->spu_pid = INVALID_PID;
+    this->spu_media_index = 0xffffffff;
+
+#ifdef TS_LOG
+    printf ("demux_ts: DVBSUB: deselecting lang\n");
+#endif
+  }
+
+  if (old_mi < this->media_num) {
+    demux_ts_flush_media (this, this->media + old_mi);
+    this->media[old_mi].corrupted_pes = 1;
+
+    if ((this->media[old_mi].type & (BUF_MAJOR_MASK | BUF_DECODER_MASK)) == BUF_SPU_DVB) {
+      buf_element_t *buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+
+      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR;
+      buf->decoder_info[2] = 0;
+      buf->decoder_info_ptr[2] = NULL;
+      buf->type = this->media[old_mi].type;
+      this->video_fifo->put (this->video_fifo, buf);
+    }
+  }
+    
+  if (this->spu_media_index < this->media_num) {
+    if ((this->media[this->spu_media_index].type & (BUF_MAJOR_MASK | BUF_DECODER_MASK)) == BUF_SPU_DVB) {
+      buf_element_t *buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
+
+      buf->decoder_flags = BUF_FLAG_SPECIAL;
+      buf->decoder_info[1] = BUF_SPECIAL_SPU_DVB_DESCRIPTOR;
+      buf->decoder_info[2] = sizeof (this->spu_langs[0].desc);
+      buf->decoder_info_ptr[2] = buf->content;
+      memcpy (buf->content, &this->spu_langs[this->current_spu_channel].desc, sizeof (this->spu_langs[0].desc));
+      buf->type = this->media[this->spu_media_index].type;
+      this->video_fifo->put (this->video_fifo, buf);
+    }
+  }
 }
 
 static void post_sequence_end(fifo_buffer_t *fifo, uint32_t video_type) {
@@ -1532,7 +1527,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
 
     if (m->descriptor_tag == HDMV_AUDIO_83_TRUEHD) {
       /* TODO: separate AC3 and TrueHD streams ... */
-      m->type |= BUF_AUDIO_A52;
+      m->type = (m->type & 0xff) | BUF_AUDIO_A52;
       return header_len;
 
     } else if (packet_len < 2) {
@@ -1544,7 +1539,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
         return 0;
       }
 
-      m->type   |= BUF_AUDIO_LPCM_BE;
+      m->type = (m->type & 0xff) | BUF_AUDIO_LPCM_BE;
 
       m->buf->decoder_flags  |= BUF_FLAG_SPECIAL;
       m->buf->decoder_info[1] = BUF_SPECIAL_LPCM_CONFIG;
@@ -1556,12 +1551,12 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
     } else if (m->descriptor_tag == ISO_13818_PES_PRIVATE
              && p[0] == 0x20 && p[1] == 0x00) {
       /* DVBSUB */
-      m->type |= BUF_SPU_DVB;
+      m->type = (m->type & 0xff) | BUF_SPU_DVB;
       m->buf->decoder_info[2] = m->pes_bytes_left;
       return header_len;
 
     } else if (p[0] == 0x0B && p[1] == 0x77) { /* ac3 - syncword */
-      m->type |= BUF_AUDIO_A52;
+      m->type = (m->type & 0xff) | BUF_AUDIO_A52;
       return header_len;
 
     } else if ((p[0] & 0xE0) == 0x20) {
@@ -1577,7 +1572,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
         return 0;
       }
 
-      m->type      |= BUF_AUDIO_A52;
+      m->type = (m->type & 0xff) | BUF_AUDIO_A52;
       m->pes_bytes_left -= 4;
       return header_len + 4;
 
@@ -2081,6 +2076,8 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
         }
       }
 
+      /* FIXME: We may have multiple streams in this pid.
+       * For now, we only handle 1 per base type (a/v/s). */
       for (i = 5; i < coded_length; i += stream[i+1] + 2) {
 
         if ((stream[i] == DESCRIPTOR_AC3) || (stream[i] == DESCRIPTOR_EAC3) || (stream[i] == DESCRIPTOR_DTS)) {
@@ -2120,7 +2117,9 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
             mi = demux_ts_dynamic_pmt_find (this, pid, BUF_SPU_BASE, stream[0]);
             if (mi < 0) break;
 
-            this->media[mi].type = (this->media[mi].type & 0xff) | BUF_SPU_DVB;
+            /* set this early for demux_ts_update_spu_channel () below. */
+            this->media[mi].spu_type = BUF_SPU_DVB;
+
             for (pos = i + 2;
                  pos + 8 <= (int)i + 2 + stream[i + 1]
                    && this->spu_langs_count < MAX_SPU_LANGS;
@@ -2187,6 +2186,7 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
             this->media[mi].type = BUF_SPU_HDMV;
           }
           demux_send_special_spu_buf( this, this->media[mi].type, this->spu_langs_count );
+          this->media[mi].spu_type = this->media[mi].type;
           this->media[mi].type |= this->spu_langs_count;
           this->media[mi].sure_type = this->media[mi].type;
           this->spu_langs_count++;
@@ -2256,8 +2256,6 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
     section_length -= coded_length;
   }
 
-  demux_ts_dynamic_pmt_clean (this);
-
   /*
    * Get the current PCR PID.
    */
@@ -2271,6 +2269,8 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
 
   if ( this->stream->spu_channel>=0 && this->spu_langs_count>0 )
     demux_ts_update_spu_channel( this );
+
+  demux_ts_dynamic_pmt_clean (this);
 
   demux_ts_tbre_reset (this);
 
@@ -3354,6 +3354,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   /* DVBSUB */
   this->spu_pid = INVALID_PID;
+  this->spu_media_index = 0xffffffff;
   this->current_spu_channel = -1;
 
   /* dvb */
