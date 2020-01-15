@@ -997,9 +997,9 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
     region_t *reg = &this->dvbsub.regions[r];
     if (reg->img) {
       if (this->dvbsub.page.regions[r].is_visible && !reg->empty) {
-        unsigned char tmp[dest_width*576];
-        unsigned char *img;
-        int img_width;
+        uint8_t *tmp = NULL;
+        const uint8_t *img = reg->img;
+        int img_width = reg->width;
 
         update_osd( this, reg );
         if (!reg->osd)
@@ -1007,20 +1007,22 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
         /* clear osd */
         this->stream->osd_renderer->clear( reg->osd );
         if (reg->width > dest_width && !(this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_CUSTOM_EXTENT_OVERLAY)) {
-          downscale_region_image(reg, tmp, dest_width);
-          img = tmp;
-          img_width = dest_width;
-        }
-        else {
-          img = reg->img;
-          img_width = reg->width;
+          lprintf("downscaling region, width %d->%d\n", reg->width, dest_width);
+          tmp = malloc(dest_width*576);
+          if (tmp) {
+            downscale_region_image(reg, tmp, dest_width);
+            img = tmp;
+            img_width = dest_width;
+          }
         }
         /* All DVB subs I have seen so far use same color matrix as main video. */
         _X_SET_CLUT_CM (&this->dvbsub.colours[reg->CLUT_id * 256].u32, 4);
         this->stream->osd_renderer->set_palette( reg->osd,
                                                  &this->dvbsub.colours[reg->CLUT_id * 256].u32,
                                                  &this->dvbsub.trans[reg->CLUT_id * 256]);
+        lprintf("draw region %d: %dx%d\n", r, img_width, reg->height);
         this->stream->osd_renderer->draw_bitmap( reg->osd, img, 0, 0, img_width, reg->height, NULL );
+        free(tmp);
       }
     }
   }
