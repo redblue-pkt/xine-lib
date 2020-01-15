@@ -555,7 +555,7 @@ typedef struct {
   unsigned int     videoMedia;
 
   demux_ts_audio_track audio_tracks[MAX_AUDIO_TRACKS];
-  int              audio_tracks_count;
+  unsigned int      audio_tracks_count;
 
   int64_t          last_pts[2], apts, bpts;
   int32_t          bounce_left;
@@ -573,7 +573,7 @@ typedef struct {
   unsigned int      spu_pid;
   unsigned int      spu_media_index;
   demux_ts_spu_lang spu_langs[MAX_SPU_LANGS];
-  int               spu_langs_count;
+  unsigned int      spu_langs_count;
   int               current_spu_channel;
 
   /* dvb */
@@ -748,12 +748,12 @@ static int demux_ts_dynamic_pmt_find (demux_ts_t *this,
 }
 
 static void demux_ts_dynamic_pmt_clean (demux_ts_t *this) {
-  int i, count = 0, tracks = 0, spus = 0;
+  unsigned int i, count = 0, tracks = 0, spus = 0;
   /* densify media table */
-  for (i = 0; i < (int)this->media_num; i++) {
+  for (i = 0; i < this->media_num; i++) {
     demux_ts_media *m = &this->media[i];
-    int type = m->type & BUF_MAJOR_MASK;
-    int chan = m->type & 0xff;
+    unsigned int type = m->type & BUF_MAJOR_MASK;
+    unsigned int chan = m->type & 0xff;
     if (m->keep) {
       m->keep = 0;
       if (type == BUF_VIDEO_BASE) {
@@ -774,6 +774,8 @@ static void demux_ts_dynamic_pmt_clean (demux_ts_t *this) {
           this->spu_langs[spus].media_index = count;
           spus++;
         }
+        if (i == this->spu_media_index)
+          this->spu_media_index = count;
       }
       if (i > count) {
         this->pid_index[m->pid & 0x1fff] = count;
@@ -808,7 +810,7 @@ static void demux_ts_dynamic_pmt_clean (demux_ts_t *this) {
   }
 #ifdef LOG_DYNAMIC_PMT
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-    "demux_ts: using %d pids, %d audio %d subtitle channels\n", count, tracks, spus);
+    "demux_ts: using %u pids, %u audio %u subtitle channels\n", count, tracks, spus);
 #endif
   /* adjust table sizes */
   this->media_num = count;
@@ -1060,7 +1062,7 @@ static void demux_ts_update_spu_channel(demux_ts_t *this)
 
   this->current_spu_channel = this->stream->spu_channel;
 
-  if ((this->current_spu_channel >= 0) && (this->current_spu_channel < this->spu_langs_count)) {
+  if ((this->current_spu_channel >= 0) && ((unsigned int)this->current_spu_channel < this->spu_langs_count)) {
     demux_ts_spu_lang *lang = &this->spu_langs[this->current_spu_channel];
 
     this->spu_pid = lang->pid;
@@ -2267,8 +2269,8 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
     }
   }
 
-  if ( this->stream->spu_channel>=0 && this->spu_langs_count>0 )
-    demux_ts_update_spu_channel( this );
+  if (this->stream->spu_channel >= 0)
+    demux_ts_update_spu_channel (this);
 
   demux_ts_dynamic_pmt_clean (this);
 
@@ -3168,7 +3170,7 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
       {
         char *str = data;
         int channel = *((int *)data);
-        if ((channel >= 0) && (channel < this->audio_tracks_count)) {
+        if ((channel >= 0) && ((unsigned int)channel < this->audio_tracks_count)) {
           if (this->audio_tracks[channel].lang[0]) {
             strcpy (str, this->audio_tracks[channel].lang);
           } else {
@@ -3188,7 +3190,7 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
         {
           char *str = data;
           int channel = *((int *)data);
-          if ((channel >= 0) && (channel < this->spu_langs_count)) {
+          if ((channel >= 0) && ((unsigned int)channel < this->spu_langs_count)) {
             if (this->spu_langs[channel].desc.lang[0]) {
               strcpy (str, this->spu_langs[channel].desc.lang);
           } else {
