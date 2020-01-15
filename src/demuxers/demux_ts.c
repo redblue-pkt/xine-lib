@@ -1400,7 +1400,7 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
     /* sometimes corruption on header_len causes segfault in memcpy below */
     if ((int)header_len > packet_len) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-               "demux_ts: illegal value for PES_header_data_length (0x%x)\n", header_len - 9);
+               "demux_ts: illegal value for PES_header_data_length (0x%x)\n", p[8]);
       return 0;
     }
 
@@ -1671,7 +1671,8 @@ static void demux_ts_buffer_pes (demux_ts_t*this, const uint8_t *ts,
     pes_header_len = demux_ts_parse_pes_header (this, m, ts, len);
 
     if (pes_header_len <= 0) {
-      m->buf->free_buffer(m->buf);
+      if (m->buf)
+        m->buf->free_buffer(m->buf);
       m->buf = NULL;
       m->corrupted_pes = 1;
       xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
