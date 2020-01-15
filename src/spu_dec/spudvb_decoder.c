@@ -208,8 +208,6 @@ typedef struct {
   int                   empty;
   int                   depth;
   int                   CLUT_id;
-  int                   objects_start;
-  int                   objects_end;
   unsigned char         *img;
   osd_object_t          *osd;
 } region_t;
@@ -824,9 +822,6 @@ static void process_region_composition_segment (dvbsub_func_t *dvbsub)
   update_region (&dvbsub->regions[region_id], region_id, region_width, region_height, region_fill_flag, region_4_bit_pixel_code);
   if ( CLUT_id<MAX_REGIONS )
     dvbsub->regions[region_id].CLUT_id = CLUT_id;
-
-  dvbsub->regions[region_id].objects_start = dvbsub->i;
-  dvbsub->regions[region_id].objects_end = j;
 
   sparse_array_unset (&dvbsub->object_pos, region_id << 16, 0xff0000);
 
