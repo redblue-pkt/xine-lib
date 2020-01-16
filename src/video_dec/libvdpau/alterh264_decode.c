@@ -697,9 +697,17 @@ vui_parameters (sequence_t * seq, vui_param_t * vui)
     lprintf ("num_units_in_tick = %u\n", vui->num_units_in_tick);
     vui->time_scale = read_bits (br, 32);
     lprintf ("time_scale = %u\n", vui->time_scale);
-    if (vui->time_scale > 0)
-      seq->video_step =
-	180000. * (double) vui->num_units_in_tick / (double) vui->time_scale;
+    if (vui->time_scale > 0) {
+      /* good: 2 * 1001 / 48000. */
+      seq->video_step = (uint64_t)90000 * 2
+                      * vui->num_units_in_tick / vui->time_scale;
+      if (seq->video_step < 90) {
+        /* bad: 2 * 1 / 60000. seen this once from broken h.264 video usability info (VUI).
+         * VAAPI seems to apply a similar HACK.*/
+        seq->video_step = (uint64_t)90000000 * 2
+                        * vui->num_units_in_tick / vui->time_scale;
+      }
+    }
   }
 }
 

@@ -3899,10 +3899,19 @@ static int vdpau_decoder_render(video_decoder_t *this_gen, VdpBitstreamBuffer *v
   struct seq_parameter_set_rbsp *sps = &this->completed_pic->sps_nal->sps;
   struct slice_header *slc = &this->completed_pic->slc_nal->slc;
 
-  if(sps->vui_parameters_present_flag &&
-      sps->vui_parameters.timing_info_present_flag &&
-      this->video_step == 0) {
-    this->video_step = 2*90000/(1/((double)sps->vui_parameters.num_units_in_tick/(double)sps->vui_parameters.time_scale));
+  if ((this->video_step == 0) &&
+       sps->vui_parameters_present_flag &&
+       sps->vui_parameters.timing_info_present_flag &&
+       sps->vui_parameters.time_scale) {
+    /* good: 2 * 1001 / 48000. */
+    this->video_step = (uint64_t)90000 * 2
+                     * sps->vui_parameters.num_units_in_tick / sps->vui_parameters.time_scale;
+    if (this->video_step < 90) {
+      /* bad: 2 * 1 / 60000. seen this once from broken h.264 video usability info (VUI).
+       * VAAPI seems to apply a similar HACK.*/
+      this->video_step = (uint64_t)90000000 * 2
+                       * sps->vui_parameters.num_units_in_tick / sps->vui_parameters.time_scale;
+    }
   }
 
   /* go and decode a frame */
@@ -4403,4 +4412,3 @@ void *h264_init_plugin (xine_t *xine, const void *data) {
 
   return (void *)&decode_video_vdpau_h264_class;
 }
-
