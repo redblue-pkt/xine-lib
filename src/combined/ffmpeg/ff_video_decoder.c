@@ -2136,6 +2136,25 @@ static void ff_postprocess (ff_video_decoder_t *this, AVFrame *av_frame, vo_fram
 }
 #endif /* HAVE_POSTPROC */
 
+static int ff_video_step_get (ff_video_decoder_t *this) {
+  /* use externally provided video_step or fall back to stream's time_base otherwise */
+  int step = this->video_step;
+  if (step || !this->context->time_base.den)
+    return step;
+
+  /* good: 2 * 1001 / 48000. */
+  step = (int64_t)90000 * this->context->ticks_per_frame
+       * this->context->time_base.num / this->context->time_base.den;
+  if (step >= 90)
+    return step;
+
+  /* bad: 2 * 1 / 60000. seen this once from broken h.264 video usability info (VUI).
+   * VAAPI seems to apply a similar HACK.*/
+  step = (int64_t)90000000 * this->context->ticks_per_frame
+       * this->context->time_base.num / this->context->time_base.den;
+  return step;
+}
+
 static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
   uint8_t *chunk_buf = this->buf;
   AVRational avr00 = {0, 1};
@@ -2273,12 +2292,7 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         }
       }
 
-      /* use externally provided video_step or fall back to stream's time_base otherwise */
-      video_step_to_use = (this->video_step || !this->context->time_base.den)
-                        ? this->video_step
-                        : (int)(90000ll
-                                * this->context->ticks_per_frame
-                                * this->context->time_base.num / this->context->time_base.den);
+      video_step_to_use = ff_video_step_get (this);
 
       /* aspect ratio provided by ffmpeg, override previous setting */
       if ((this->aspect_ratio_prio < 2) &&
@@ -2547,10 +2561,7 @@ static void ff_flush_internal (ff_video_decoder_t *this, int display) {
     }
 
     /* All that jizz just to view the last 2 frames of a stream ;-) */
-    video_step_to_use = this->video_step || !this->context->time_base.den ?
-      this->video_step :
-      90000ll * this->context->ticks_per_frame * this->context->time_base.num /
-        this->context->time_base.den;
+    video_step_to_use = ff_video_step_get (this);
 
     if ((this->aspect_ratio_prio < 2) && av_cmp_q (this->context->sample_aspect_ratio, avr00)) {
       if (!this->bih.biWidth || !this->bih.biHeight) {
