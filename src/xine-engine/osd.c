@@ -1914,9 +1914,9 @@ static void update_text_palette(void *this_gen, xine_cfg_entry_t *entry)
   lprintf("palette will be '%s'\n", textpalettes_str[this->textpalette] );
 }
 
-static void osd_draw_bitmap(osd_object_t *osd, uint8_t *bitmap,
+static void osd_draw_bitmap(osd_object_t *osd, const uint8_t *bitmap,
 			    int x1, int y1, int width, int height,
-			    uint8_t *palette_map)
+                            const uint8_t *palette_map)
 {
   int y, x;
 
