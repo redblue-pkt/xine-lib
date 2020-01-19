@@ -206,9 +206,9 @@ struct osd_renderer_s {
   /*
    * paste a bitmap with optional palette mapping
    */
-  void (*draw_bitmap) (osd_object_t *osd, uint8_t *bitmap,
+  void (*draw_bitmap) (osd_object_t *osd, const uint8_t *bitmap,
 		       int x1, int y1, int width, int height,
-		       uint8_t *palette_map);
+                       const uint8_t *palette_map);
 
   /*
    * send the osd to be displayed (unscaled) at given pts (0=now)
