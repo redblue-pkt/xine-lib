@@ -27,7 +27,9 @@
 #ifndef _NSF_H_
 #define _NSF_H_
 
-#include "config.h"
+#if defined(HAVE_CONFIG_H) && !defined(__XINE_LIB_CONFIG_H__)
+#  error config.h not included
+#endif
 
 #include "osd.h"
 #include "nes6502.h"
