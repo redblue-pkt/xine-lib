@@ -25,3 +25,5 @@
 void *vorbis_init_plugin (xine_t *xine, const void *data);
 void *speex_init_plugin (xine_t *xine, const void *data);
 void *theora_init_plugin (xine_t *xine, const void *data);
+void *anx_init_class (xine_t *xine, const void *data);
+void *ogg_init_class (xine_t *xine, const void *data);

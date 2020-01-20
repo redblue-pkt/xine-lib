@@ -392,12 +392,3 @@ void *vorbis_init_plugin (xine_t *xine, const void *data) {
 
   return this;
 }
-
-static const uint32_t audio_types[] = {
-  BUF_AUDIO_VORBIS, 0
- };
-
-const decoder_info_t dec_info_vorbis = {
-  audio_types,         /* supported types */
-  5                    /* priority        */
-};
