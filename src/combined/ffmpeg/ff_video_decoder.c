@@ -32,6 +32,13 @@
 #include <math.h>
 #include <assert.h>
 
+#ifdef HAVE_FFMPEG_AVUTIL_H
+#  include <avcodec.h>
+#else
+#  include <libavcodec/avcodec.h>
+#  include <libavutil/mem.h>
+#endif
+
 #define LOG_MODULE "ffmpeg_video_dec"
 #define LOG_VERBOSE
 /*
@@ -750,8 +757,6 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
 
 #endif /* ENABLE_DR1 */
 
-
-#include "ff_video_list.h"
 
 static const char *const skip_loop_filter_enum_names[] = {
   "default", /* AVDISCARD_DEFAULT */
@@ -2863,7 +2868,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   /* check for codec support */
   video_type = BUF_VIDEO_BASE | (_x_get_video_streamtype(stream) << 16);
-  for (i = 0; i < sizeof(ff_video_lookup)/sizeof(ff_video_lookup[0]); i++) {
+  for (i = 0; i < ff_video_lookup_entries; i++) {
     if(ff_video_lookup[i].type == video_type) {
       pthread_mutex_lock(&ffmpeg_lock);
       codec = avcodec_find_decoder(ff_video_lookup[i].id);

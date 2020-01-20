@@ -21,26 +21,28 @@
 #ifndef HAVE_XINE_DECODER_H
 #define HAVE_XINE_DECODER_H
 
-#if defined(HAVE_CONFIG_H) && !defined(__XINE_LIB_CONFIG_H__)
-#  error config.h not included
-#endif
+#include <sys/types.h>
 
-#ifdef HAVE_FFMPEG_AVUTIL_H
-#  include <avcodec.h>
-#else
-#  include <libavcodec/avcodec.h>
-#  include <libavutil/mem.h>
-#endif
+#include <xine.h>
+
+#if defined LIBAVCODEC_VERSION_INT
 
 typedef struct ff_codec_s {
   uint32_t          type;
-#if defined LIBAVCODEC_VERSION_INT && LIBAVCODEC_VERSION_INT >= ((54<<16)|(25<<8))
+# if LIBAVCODEC_VERSION_INT >= ((54<<16)|(25<<8))
   enum AVCodecID    id;
-#else
+# else
   enum CodecID      id;
-#endif
+# endif
   const char       *name;
 } ff_codec_t;
+
+extern const ff_codec_t ff_audio_lookup[];
+extern const ff_codec_t ff_video_lookup[];
+extern const size_t ff_video_lookup_entries;
+extern const size_t ff_audio_lookup_entries;
+
+#endif
 
 void *init_audio_plugin (xine_t *xine, const void *data);
 void *init_video_plugin (xine_t *xine, const void *data);

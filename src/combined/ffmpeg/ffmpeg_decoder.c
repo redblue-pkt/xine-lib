@@ -26,19 +26,30 @@
 
 #include <pthread.h>
 
-#include <xine/xine_internal.h>
-#include <xine/xine_plugin.h>
-
-#include "ffmpeg_decoder.h"
-
+#ifdef HAVE_FFMPEG_AVUTIL_H
+#  include <avcodec.h>
+#else
+#  include <libavcodec/avcodec.h>
+#  include <libavutil/mem.h>
+#endif
 #ifdef HAVE_AVFORMAT
-#include <libavformat/avformat.h> // av_register_all()
+#  include <libavformat/avformat.h> // av_register_all()
 #endif
 
 #include "ffmpeg_compat.h"
 
+#include <xine.h>
+#include <xine/xine_internal.h>  // XINE_VERSION_CODE
+#include <xine/xine_plugin.h>
+#include <xine/buffer.h>
+
+#include "ffmpeg_decoder.h"
+
 #include "ff_audio_list.h"
 #include "ff_video_list.h"
+
+const size_t ff_video_lookup_entries = sizeof(ff_video_lookup) / sizeof(ff_video_lookup[0]);
+const size_t ff_audio_lookup_entries = sizeof(ff_audio_lookup) / sizeof(ff_audio_lookup[0]);
 
 /*
  * common initialisation
