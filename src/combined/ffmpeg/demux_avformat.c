@@ -171,6 +171,8 @@ static input_plugin_t *input_avformat_get_instance (input_class_t *cls_gen, xine
     return NULL;
   }
 
+  init_once_routine();
+
   /* always accept own protocol */
   /* avformat+http://... --> use avformat instead of xine native input/demux plugins */
   if (!strncasecmp (mrl, DEMUX_AVFORMAT_ID"+", proto_len)) {
@@ -253,8 +255,6 @@ void *init_avformat_input_plugin (xine_t *xine, const void *data) {
   if (!this) {
     return NULL;
   }
-
-  init_once_routine();
 
   this->get_instance      = input_avformat_get_instance;
   this->description       = N_("libavformat input plugin");
@@ -844,6 +844,8 @@ static AVFormatContext *get_format_context(xine_stream_t *stream, input_plugin_t
 static demux_plugin_t *open_demux_avformat_plugin (demux_class_t *class_gen,
                                                    xine_stream_t *stream,
                                                    input_plugin_t *input) {
+
+  init_once_routine();
 
   /* get AVFormatContext */
   AVFormatContext *fmt_ctx = get_format_context(stream, input);

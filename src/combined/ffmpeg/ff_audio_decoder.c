@@ -1285,6 +1285,8 @@ static audio_decoder_t *ff_audio_open_plugin (audio_decoder_class_t *class_gen, 
   if (!this)
     return NULL;
 
+  init_once_routine();
+
 #ifndef HAVE_ZERO_SAFE_MEM
   /* Do these first, when compiler still knows stream is all zeroed.
    * Let it optimize away this on most systems where clear mem
@@ -1360,8 +1362,6 @@ void *init_audio_plugin (xine_t *xine, const void *data) {
   this->decoder_class.dispose         = dispose_audio_class;
 
   this->xine = xine;
-
-  init_once_routine();
 
   this->gain = (float)0x7fff * powf ((float)10, (float)
     xine->config->register_num (xine->config,
