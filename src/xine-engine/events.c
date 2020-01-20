@@ -26,6 +26,7 @@
 
 #include <pthread.h>
 #include <sys/time.h>
+#include <errno.h>
 
 #include <xine/xine_internal.h>
 #include "xine_private.h"
@@ -44,6 +45,8 @@ struct xine_event_queue_private_s {
   xine_event_queue_t  q;
   xine_list_t        *free_events;
   int                 refs;
+  int                 flush;
+  struct timeval      lasttime;
   int                 num_all;
   int                 num_alloc;
   int                 num_skip;
@@ -55,6 +58,7 @@ struct xine_event_queue_private_s {
 #else
   /* skip that mutex fallback. we already have a mutex. */
 #endif
+  pthread_t           handler;
   struct {
     xine_event_private_t e;
     uint8_t data[MAX_REUSE_DATA];
@@ -393,6 +397,9 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *s) {
     return NULL;
 
   q->refs = 1;
+  q->flush = 0;
+  q->lasttime.tv_sec = 0;
+  q->lasttime.tv_usec = 0;
   q->num_all = 0;
   q->num_alloc = 0;
   q->num_skip = 0;
@@ -496,7 +503,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   if (q->q.listener_thread) {
     void *p;
     pthread_join (*q->q.listener_thread, &p);
-    _x_freep (&q->q.listener_thread);
+    q->q.listener_thread = NULL;
   }
 
   /*
@@ -519,6 +526,7 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
       }
     }
     xine_list_clear (q->q.events);
+    q->flush = 0;
     pthread_cond_signal (&q->q.events_processed);
     num_all = q->num_all;
     num_alloc = q->num_alloc;
@@ -541,6 +549,7 @@ static void *listener_loop (void *queue_gen) {
 
   do {
     xine_event_t *event = xine_event_wait_locked (q);
+    q->lasttime = event->tv;
     q->q.callback_running = 1;
     pthread_mutex_unlock (&q->q.lock);
     last_type = event->type;
@@ -557,10 +566,17 @@ static void *listener_loop (void *queue_gen) {
       pthread_mutex_lock (&q->q.lock);
     }
     q->q.callback_running = 0;
-    if (xine_list_empty (q->q.events))
-      pthread_cond_signal (&q->q.events_processed);
+    if (q->flush > 0) {
+      q->flush -= 1;
+      if (q->flush <= 0)
+        pthread_cond_signal (&q->q.events_processed);
+    }
   } while (last_type != XINE_EVENT_QUIT);
 
+  if (q->flush > 0) {
+    q->flush = 0;
+    pthread_cond_signal (&q->q.events_processed);
+  }
   pthread_mutex_unlock (&q->q.lock);
   return NULL;
 }
@@ -569,32 +585,28 @@ static void *listener_loop (void *queue_gen) {
 int xine_event_create_listener_thread (xine_event_queue_t *queue,
                                        xine_event_listener_cb_t callback,
                                        void *user_data) {
+  xine_event_queue_private_t *q = (xine_event_queue_private_t *)queue;
   int err;
 
   _x_assert(queue != NULL);
   _x_assert(callback != NULL);
 
-  if (queue->listener_thread) {
-    xprintf (queue->stream->xine, XINE_VERBOSITY_NONE,
+  if (q->q.listener_thread) {
+    xprintf (q->q.stream->xine, XINE_VERBOSITY_NONE,
              "events: listener thread already created\n");
     return 0;
   }
 
-  queue->listener_thread = malloc (sizeof (pthread_t));
-  if (!queue->listener_thread) {
-    return 0;
-  }
+  q->q.listener_thread = &q->handler;
+  q->q.callback        = callback;
+  q->q.user_data       = user_data;
 
-  queue->callback        = callback;
-  queue->user_data       = user_data;
-
-  if ((err = pthread_create (queue->listener_thread,
-                             NULL, listener_loop, queue)) != 0) {
-    xprintf (queue->stream->xine, XINE_VERBOSITY_NONE,
+  if ((err = pthread_create (q->q.listener_thread, NULL, listener_loop, q)) != 0) {
+    xprintf (q->q.stream->xine, XINE_VERBOSITY_NONE,
              "events: can't create new thread (%s)\n", strerror(err));
-    _x_freep(&queue->listener_thread);
-    queue->callback        = NULL;
-    queue->user_data       = NULL;
+    q->q.listener_thread = NULL;
+    q->q.callback        = NULL;
+    q->q.user_data       = NULL;
     return 0;
   }
 
@@ -603,10 +615,17 @@ int xine_event_create_listener_thread (xine_event_queue_t *queue,
 
 void _x_flush_events_queues (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  pthread_t self = pthread_self ();
+  struct timespec ts = {0, 0};
+  struct timeval tv;
 
   if (!stream)
     return;
   stream = stream->side_streams[0];
+  xine_gettime (&ts);
+  tv.tv_sec = ts.tv_sec;
+  tv.tv_usec = ts.tv_nsec / 1000;
+  ts.tv_sec += 1;
 
   while (1) {
     xine_event_queue_private_t *q;
@@ -616,21 +635,44 @@ void _x_flush_events_queues (xine_stream_t *s) {
     pthread_mutex_lock (&stream->event_queues_lock);
     while ((q = xine_list_next_value (stream->event_queues, &ite))) {
       pthread_mutex_lock (&q->q.lock);
-      /* we might have been called from the very same function that
-       * processes events, therefore waiting here would cause deadlock.
-       * check only queues with listener threads which are not
-       * currently executing their callback functions. */
-      if (q->q.listener_thread && !q->q.callback_running && !xine_list_empty (q->q.events)) {
-        /* make sure this queue does not go away, then unlock list to prevent freezes. */
-        q->refs += 1;
-        pthread_mutex_unlock (&stream->event_queues_lock);
-        do {
-          pthread_cond_wait (&q->q.events_processed, &q->q.lock);
-        } while (!xine_list_empty (q->q.events));
-        xine_event_queue_unref_unlock (q);
-        /* list may have changed, restart. */
-        list_locked = 0;
-        break;
+      /* never wait for self. */
+      if (q->q.listener_thread && !pthread_equal (self, q->handler) && (q->flush == 0)) {
+        /* count pending past events */
+        if ((q->lasttime.tv_sec < tv.tv_sec) ||
+            ((q->lasttime.tv_sec == tv.tv_sec) && (q->lasttime.tv_usec <= tv.tv_usec))) {
+          xine_list_iterator_t ite2 = NULL;
+          q->flush = q->q.callback_running ? 1 : 0;
+          while (1) {
+            xine_event_t *e = xine_list_next_value (q->q.events, &ite2);
+            if (!ite2)
+              break;
+            if ((e->tv.tv_sec > tv.tv_sec) ||
+                ((e->tv.tv_sec == tv.tv_sec) && (e->tv.tv_usec > tv.tv_usec)))
+              break;
+            q->flush += 1;
+          }
+        }
+        if (q->flush > 0) {
+          int err, n = q->flush;
+          /* make sure this queue does not go away, then unlock list to prevent freezes. */
+          q->refs += 1;
+          pthread_mutex_unlock (&stream->event_queues_lock);
+          do {
+            /* paranoia: cyclic wait? */
+            err = pthread_cond_timedwait (&q->q.events_processed, &q->q.lock, &ts);
+          } while ((q->flush > 0) && (err != ETIMEDOUT));
+          xine_event_queue_unref_unlock (q);
+          if (err == ETIMEDOUT) {
+            xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+              "events: warning: _x_flush_events_queues (%p) timeout.\n", (void *)stream);
+          } else {
+            xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+              "events: flushed %d events for stream %p.\n", n, (void *)stream);
+          }
+          /* list may have changed, restart. */
+          list_locked = 0;
+          break;
+        }
       }
       pthread_mutex_unlock (&q->q.lock);
     }
@@ -640,4 +682,3 @@ void _x_flush_events_queues (xine_stream_t *s) {
     }
   }
 }
-
