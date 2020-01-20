@@ -59,7 +59,7 @@ static int32_t xine_buffer_read_bytes(void *const this_gen, void *const data,
   if ( bcount <= 0 )
     return 0;
 
-  if ( bcount > (this->buf_size - this->buf_pos) )
+  if ( (size_t)bcount > (this->buf_size - this->buf_pos) )
     bcount = (this->buf_size - this->buf_pos);
 
   xine_fast_memcpy(data, this->buf + this->buf_pos, bcount);
@@ -79,7 +79,7 @@ static int xine_buffer_set_pos_rel(void *const this_gen, const int32_t delta,
 
   switch(mode) {
   case SEEK_SET:
-    if ( delta < 0 || delta > this->buf_size )
+    if ( delta < 0 || (size_t)delta > this->buf_size )
       return -1;
 
     this->buf_pos = delta;
@@ -91,7 +91,7 @@ static int xine_buffer_set_pos_rel(void *const this_gen, const int32_t delta,
     this->buf_pos += delta;
     return 0;
   case SEEK_END:
-    if ( delta < 0 || delta > this->buf_size )
+    if ( delta < 0 || (size_t)delta > this->buf_size )
       return -1;
 
     this->buf_pos = this->buf_size - delta;
@@ -210,7 +210,7 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
 	WavpackContext *ctx = NULL;
 	/* Current version of wavpack (4.40) does not write more than this */
 	char error[256] = { 0, };
-	int32_t samples_left; uint32_t samples_total;
+	uint32_t samples_left; /*uint32_t samples_total;*/
 	const wvheader_t *header = (const wvheader_t*)this->buf;
 
 	this->buf_pos = 0;
@@ -224,15 +224,15 @@ static void wavpack_decode_data (audio_decoder_t *const this_gen, buf_element_t 
 	  return;
 	}
 
-	samples_left = samples_total = header->samples_count;
+	samples_left = /*samples_total =*/ header->samples_count;
 	while ( samples_left > 0 ) {
 	  uint32_t buf_samples, decoded_count;
 	  audio_buffer_t *audio_buffer = this->stream->audio_out->get_buffer(this->stream->audio_out);
 	  int32_t *decoded;
-	  int i;
+          unsigned int i;
 
 	  buf_samples = audio_buffer->mem_size / (this->channels * (this->bits_per_sample/8));
-	  if ( buf_samples > samples_left ) buf_samples = samples_left;
+          if ( buf_samples > samples_left ) buf_samples = samples_left;
 
 	  decoded = alloca(buf_samples * this->channels * sizeof(int32_t));
 
