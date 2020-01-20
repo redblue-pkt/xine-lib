@@ -396,12 +396,3 @@ void *speex_init_plugin (xine_t *xine, const void *data) {
 
   return (void*)&decode_speex_class;
 }
-
-static const uint32_t audio_types[] = {
-  BUF_AUDIO_SPEEX, 0
-};
-
-const decoder_info_t dec_info_speex = {
-  .supported_types = audio_types,
-  .priority = 5,
-};

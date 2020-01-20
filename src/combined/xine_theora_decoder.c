@@ -421,14 +421,3 @@ void *theora_init_plugin (xine_t *xine, const void *data) {
 
   return (void *)&decode_theora_class;
 }
-
-/*
- * exported plugin catalog entry
- */
-
-static const uint32_t supported_types[] = { BUF_VIDEO_THEORA, 0 };
-
-const decoder_info_t dec_info_theora = {
-  .supported_types = supported_types,
-  .priority = 5,
-};

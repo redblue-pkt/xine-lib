@@ -2224,7 +2224,7 @@ static demux_plugin_t *ogg_open_plugin (demux_class_t *class_gen,
 /*
  * Annodex demuxer class
  */
-static void *anx_init_class (xine_t *xine, const void *data) {
+void *anx_init_class (xine_t *xine, const void *data) {
   demux_anx_class_t     *this;
 
   (void)xine;
@@ -2252,7 +2252,7 @@ static void *anx_init_class (xine_t *xine, const void *data) {
 /*
  * ogg demuxer class
  */
-static void *ogg_init_class (xine_t *xine, const void *data) {
+void *ogg_init_class (xine_t *xine, const void *data) {
   demux_ogg_class_t     *this;
 
   (void)xine;
@@ -2280,34 +2280,3 @@ static void *ogg_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
-
-/*
- * exported plugin catalog entry
- */
-static const demuxer_info_t demux_info_anx = {
-  .priority = 20,
-};
-
-static const demuxer_info_t demux_info_ogg = {
-  .priority = 10,
-};
-
-extern const decoder_info_t dec_info_vorbis;
-extern const decoder_info_t dec_info_speex;
-extern const decoder_info_t dec_info_theora;
-
-const plugin_info_t xine_plugin_info[] EXPORTED = {
-  /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 27, "ogg", XINE_VERSION_CODE, &demux_info_ogg, ogg_init_class },
-  { PLUGIN_DEMUX, 27, "anx", XINE_VERSION_CODE, &demux_info_anx, anx_init_class },
-#ifdef HAVE_VORBIS
-  { PLUGIN_AUDIO_DECODER, 16, "vorbis", XINE_VERSION_CODE, &dec_info_vorbis, vorbis_init_plugin },
-#endif
-#ifdef HAVE_SPEEX
-  { PLUGIN_AUDIO_DECODER, 16, "speex", XINE_VERSION_CODE, &dec_info_speex, speex_init_plugin },
-#endif
-#ifdef HAVE_THEORA
-  { PLUGIN_VIDEO_DECODER, 19, "theora", XINE_VERSION_CODE, &dec_info_theora, theora_init_plugin },
-#endif
-  { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
-};
