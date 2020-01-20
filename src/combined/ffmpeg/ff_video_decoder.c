@@ -3082,28 +3082,3 @@ void *init_video_plugin (xine_t *xine, const void *data) {
 
   return this;
 }
-
-static const uint32_t wmv8_video_types[] = {
-  BUF_VIDEO_WMV8,
-  0
-};
-
-static const uint32_t wmv9_video_types[] = {
-  BUF_VIDEO_WMV9,
-  0
-};
-
-const decoder_info_t dec_info_ffmpeg_video = {
-  .supported_types = supported_video_types,
-  .priority = 6,
-};
-
-const decoder_info_t dec_info_ffmpeg_wmv8 = {
-  .supported_types = wmv8_video_types,
-  .priority = 0,
-};
-
-const decoder_info_t dec_info_ffmpeg_wmv9 = {
-  .supported_types = wmv9_video_types,
-  .priority = 0,
-};

@@ -48,14 +48,6 @@ void *init_avio_input_plugin (xine_t *xine, const void *data);
 void *init_avformat_input_plugin (xine_t *xine, const void *data);
 void *init_avformat_demux_plugin (xine_t *xine, const void *data);
 
-extern const decoder_info_t dec_info_ffmpeg_video;
-extern const decoder_info_t dec_info_ffmpeg_wmv8;
-extern const decoder_info_t dec_info_ffmpeg_wmv9;
-extern const decoder_info_t dec_info_ffmpeg_audio;
-extern const demuxer_info_t demux_info_avformat;
-extern const input_info_t   input_info_avformat;
-extern const input_info_t   input_info_avio;
-
 /* communication between avio/avformat input and avformat demux plugins */
 #define INPUT_OPTIONAL_DATA_pb         0x1000
 #define INPUT_OPTIONAL_DATA_fmt_ctx    0x1001
