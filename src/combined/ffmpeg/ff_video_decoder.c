@@ -2866,6 +2866,8 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 
   lprintf ("open_plugin\n");
 
+  init_once_routine();
+
   /* check for codec support */
   video_type = BUF_VIDEO_BASE | (_x_get_video_streamtype(stream) << 16);
   for (i = 0; i < ff_video_lookup_entries; i++) {
@@ -3017,8 +3019,6 @@ void *init_video_plugin (xine_t *xine, const void *data) {
   this->decoder_class.description     = N_("ffmpeg based video decoder plugin");
   this->decoder_class.dispose         = dispose_video_class;
   this->xine                          = xine;
-
-  init_once_routine();
 
   /* Configuration for post processing quality - default to mid (3) for the
    * moment */

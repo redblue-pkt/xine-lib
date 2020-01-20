@@ -306,13 +306,13 @@ static input_plugin_t *input_avio_get_instance (input_class_t *cls_gen, xine_str
     return NULL;
   }
 
+  init_once_routine();
+
   /* always accept own protocol */
   /* avio+http:// ... --> use avio instead of xine native http plugin */
   if (!strncasecmp (mrl, INPUT_AVIO_ID"+", proto_len)) {
     mrl += proto_len;
   }
-
-  init_once_routine();
 
   if (!is_avio_supported_protocol(stream->xine, mrl)) {
     return NULL;
