@@ -270,10 +270,6 @@ void *init_avformat_input_plugin (xine_t *xine, const void *data) {
   return this;
 }
 
-const input_info_t input_info_avformat = {
-  .priority = -2,
-};
-
 /*
  * avformat demux plugin
  */
@@ -912,7 +908,3 @@ void *init_avformat_demux_plugin (xine_t *xine, const void *data) {
   (void)data;
   return (demux_class_t *)&this;
 }
-
-const demuxer_info_t demux_info_avformat = {
-  .priority = -1,
-};

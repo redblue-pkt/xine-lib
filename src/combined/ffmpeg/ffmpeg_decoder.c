@@ -27,13 +27,18 @@
 #include <pthread.h>
 
 #include <xine/xine_internal.h>
+#include <xine/xine_plugin.h>
 
 #include "ffmpeg_decoder.h"
-#include "ffmpeg_compat.h"
 
 #ifdef HAVE_AVFORMAT
 #include <libavformat/avformat.h> // av_register_all()
 #endif
+
+#include "ffmpeg_compat.h"
+
+#include "ff_audio_list.h"
+#include "ff_video_list.h"
 
 /*
  * common initialisation
@@ -63,6 +68,50 @@ void init_once_routine(void) {
 /*
  * exported plugin catalog entry
  */
+
+#ifdef HAVE_AVFORMAT
+static const input_info_t input_info_avio = {
+  .priority = -1,
+};
+
+static const input_info_t input_info_avformat = {
+  .priority = -2,
+};
+
+static const demuxer_info_t demux_info_avformat = {
+  .priority = -1,
+};
+#endif /* HAVE_AVFORMAT */
+
+static const decoder_info_t dec_info_ffmpeg_audio = {
+  .supported_types = supported_audio_types,
+  .priority = 7,
+};
+
+static const uint32_t wmv8_video_types[] = {
+  BUF_VIDEO_WMV8,
+  0
+};
+
+static const decoder_info_t dec_info_ffmpeg_wmv8 = {
+  .supported_types = wmv8_video_types,
+  .priority = 0,
+};
+
+static const uint32_t wmv9_video_types[] = {
+  BUF_VIDEO_WMV9,
+  0
+};
+
+static const decoder_info_t dec_info_ffmpeg_wmv9 = {
+  .supported_types = wmv9_video_types,
+  .priority = 0,
+};
+
+static const decoder_info_t dec_info_ffmpeg_video = {
+  .supported_types = supported_video_types,
+  .priority = 6,
+};
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */

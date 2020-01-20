@@ -367,7 +367,3 @@ void *init_avio_input_plugin (xine_t *xine, const void *data) {
 
   return (input_class_t *)&this;
 }
-
-const input_info_t input_info_avio = {
-  .priority = -1,
-};
