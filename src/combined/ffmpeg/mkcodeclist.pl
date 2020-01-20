@@ -68,7 +68,7 @@ if ($w) {
   # Write the C source code for the codec lists
   open LIST, "> $out" or die $!;
   print LIST "#ifndef AV_VERSION_INT\n# define AV_VERSION_INT(a,b,c) 0x7FFFFFFF\n#endif\n" or die $!;
-  print LIST "static const ff_codec_t ff_${type}_lookup[] = {\n" or die $!;
+  print LIST "const ff_codec_t ff_${type}_lookup[] = {\n" or die $!;
   foreach $line (@known) {
     next if $line->[0] eq '!';
     next unless defined $codecs{$line->[1]};

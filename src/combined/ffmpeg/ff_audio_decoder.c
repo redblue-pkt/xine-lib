@@ -31,6 +31,13 @@
 #include <pthread.h>
 #include <math.h>
 
+#ifdef HAVE_FFMPEG_AVUTIL_H
+#  include <avcodec.h>
+#else
+#  include <libavcodec/avcodec.h>
+#  include <libavutil/mem.h>
+#endif
+
 #define LOG_MODULE "ffmpeg_audio_dec"
 #define LOG_VERBOSE
 /*
@@ -110,8 +117,6 @@ typedef struct ff_audio_decoder_s {
 
 } ff_audio_decoder_t;
 
-
-#include "ff_audio_list.h"
 
 static void ff_aac_mode_set (ff_audio_decoder_t *this, int reset) {
   if ((this->buftype == BUF_AUDIO_AAC) || (this->buftype == BUF_AUDIO_AAC_LATM)) {
@@ -246,7 +251,7 @@ static void ff_audio_init_codec(ff_audio_decoder_t *this, unsigned int codec_typ
 
   this->codec = NULL;
 
-  for (i = 0; i < sizeof(ff_audio_lookup)/sizeof(ff_audio_lookup[0]); i++)
+  for (i = 0; i < ff_audio_lookup_entries; i++)
     if(ff_audio_lookup[i].type == codec_type) {
       this->buftype = codec_type;
       ff_aac_mode_set (this, 1);
