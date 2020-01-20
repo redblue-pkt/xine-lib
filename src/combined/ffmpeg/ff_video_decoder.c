@@ -190,7 +190,7 @@ struct ff_video_decoder_s {
   int                   vaapi_width, vaapi_height;
   int                   vaapi_profile;
   struct vaapi_context  vaapi_context;
-  vaapi_accel_t         *accel;
+  const struct vaapi_accel_funcs_s *accel;
   vo_frame_t            *accel_img;
 #endif
 
@@ -403,7 +403,7 @@ static void release_frame (void *saved_frame, uint8_t *data) {
       return;
 #  ifdef ENABLE_VAAPI
     if (ffsf->va_surface)
-      ffsf->this->accel->f->release_vaapi_surface (ffsf->this->accel_img, ffsf->va_surface);
+      ffsf->this->accel->release_vaapi_surface (ffsf->this->accel_img, ffsf->va_surface);
 #  endif
     if (ffsf->vo_frame)
       ffsf->vo_frame->free (ffsf->vo_frame);
@@ -416,10 +416,10 @@ static void release_buffer(struct AVCodecContext *context, AVFrame *av_frame){
 
 #  ifdef ENABLE_VAAPI
   if( this->context->pix_fmt == PIX_FMT_VAAPI_VLD ) {
-    if(this->accel->f->guarded_render(this->accel_img)) {
+    if(this->accel->guarded_render(this->accel_img)) {
       ff_vaapi_surface_t *va_surface = (ff_vaapi_surface_t *)av_frame->data[0];
       if(va_surface != NULL) {
-        this->accel->f->release_vaapi_surface(this->accel_img, va_surface);
+        this->accel->release_vaapi_surface(this->accel_img, va_surface);
         lprintf("release_buffer: va_surface_id 0x%08x\n", (unsigned int)av_frame->data[3]);
       }
     }
@@ -477,10 +477,10 @@ static int get_buffer_vaapi_vld (AVCodecContext *context, AVFrame *av_frame)
 
     this->vaapi_width  = width;
     this->vaapi_height = height;
-    status = this->accel->f->vaapi_init (this->accel_img, this->vaapi_profile, width, height);
+    status = this->accel->vaapi_init (this->accel_img, this->vaapi_profile, width, height);
 
     if (status == VA_STATUS_SUCCESS) {
-      ff_vaapi_context_t *va_context = this->accel->f->get_context (this->accel_img);
+      ff_vaapi_context_t *va_context = this->accel->get_context (this->accel_img);
 
       if (va_context) {
         this->vaapi_context.config_id  = va_context->va_config_id;
@@ -490,7 +490,7 @@ static int get_buffer_vaapi_vld (AVCodecContext *context, AVFrame *av_frame)
     }
   }
 
-  if(!this->accel->f->guarded_render(this->accel_img)) {
+  if(!this->accel->guarded_render(this->accel_img)) {
     vo_frame_t *img;
     img = this->stream->video_out->get_frame (this->stream->video_out,
                                               width,
@@ -508,7 +508,7 @@ static int get_buffer_vaapi_vld (AVCodecContext *context, AVFrame *av_frame)
     }
     ffsf->vo_frame = img;
   } else {
-    ff_vaapi_surface_t *va_surface = this->accel->f->get_vaapi_surface(this->accel_img);
+    ff_vaapi_surface_t *va_surface = this->accel->get_vaapi_surface(this->accel_img);
 
     if(va_surface) {
       av_frame->data[0] = (void *)va_surface;//(void *)(uintptr_t)va_surface->va_surface_id;
@@ -611,7 +611,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
   }
 
   if(this->accel)
-    guarded_render = this->accel->f->guarded_render(this->accel_img);
+    guarded_render = this->accel->guarded_render(this->accel_img);
 # endif /* ENABLE_VAAPI */
 
   /* The alignment rhapsody */
@@ -834,7 +834,7 @@ static enum PixelFormat get_format(struct AVCodecContext *context, const enum Pi
     return avcodec_default_get_format(context, fmt);
   }
 
-  vaapi_accel_t *accel = (vaapi_accel_t*)this->accel_img->accel_data;
+  const struct vaapi_accel_funcs_s *accel = this->accel;
 
   for (i = 0; fmt[i] != PIX_FMT_NONE; i++) {
     if (fmt[i] != PIX_FMT_VAAPI_VLD)
@@ -845,7 +845,7 @@ static enum PixelFormat get_format(struct AVCodecContext *context, const enum Pi
       continue;
     }
 
-    this->vaapi_profile = accel->f->profile_from_imgfmt (this->accel_img, format);
+    this->vaapi_profile = accel->profile_from_imgfmt (this->accel_img, format);
 
     if (this->vaapi_profile >= 0) {
       int width  = context->width;
@@ -858,10 +858,10 @@ static enum PixelFormat get_format(struct AVCodecContext *context, const enum Pi
       }
       this->vaapi_width  = width;
       this->vaapi_height = height;
-      status = accel->f->vaapi_init (this->accel_img, this->vaapi_profile, width, height);
+      status = accel->vaapi_init (this->accel_img, this->vaapi_profile, width, height);
 
       if( status == VA_STATUS_SUCCESS ) {
-        ff_vaapi_context_t *va_context = accel->f->get_context(this->accel_img);
+        ff_vaapi_context_t *va_context = accel->get_context(this->accel_img);
 
         if(!va_context)
           break;
@@ -942,7 +942,7 @@ static void init_video_codec (ff_video_decoder_t *this, unsigned int codec_type)
 #ifdef ENABLE_VAAPI
   if( this->class->enable_vaapi ) {
     uint32_t format = vaapi_pixfmt2imgfmt(PIX_FMT_VAAPI_VLD, this->codec->id, -1);
-    if (format && this->accel->f->profile_from_imgfmt (this->accel_img, format) >= 0) {
+    if (format && this->accel->profile_from_imgfmt (this->accel_img, format) >= 0) {
       use_vaapi = 1;
     } else {
       xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
@@ -1294,9 +1294,9 @@ static void ff_convert_frame(ff_video_decoder_t *this, vo_frame_t *img, AVFrame 
 
 #ifdef ENABLE_VAAPI
   if (this->context->pix_fmt == PIX_FMT_VAAPI_VLD) {
-    if (this->accel->f->guarded_render(this->accel_img)) {
+    if (this->accel->guarded_render(this->accel_img)) {
       ff_vaapi_surface_t *va_surface = (ff_vaapi_surface_t *)av_frame->data[0];
-      this->accel->f->render_vaapi_surface (img, va_surface);
+      this->accel->render_vaapi_surface (img, va_surface);
     }
     return;
   }
@@ -1851,7 +1851,7 @@ static int decode_video_wrapper (ff_video_decoder_t *this,
 #if ENABLE_VAAPI
   int locked = 0;
   if (this->accel) {
-    locked = this->accel->f->lock_vaapi(this->accel_img);
+    locked = this->accel->lock_vaapi(this->accel_img);
   }
 #endif /* ENABLE_VAAPI */
 
@@ -1930,7 +1930,7 @@ static int decode_video_wrapper (ff_video_decoder_t *this,
 
 #if ENABLE_VAAPI
   if (locked) {
-    this->accel->f->unlock_vaapi(this->accel_img);
+    this->accel->unlock_vaapi(this->accel_img);
   }
 #endif /* ENABLE_VAAPI */
 
@@ -2976,7 +2976,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
                                                      VO_BOTH_FIELDS | VO_GET_FRAME_MAY_FAIL );
 
     if( this->accel_img ) {
-      this->accel = (vaapi_accel_t*)this->accel_img->accel_data;
+      this->accel = ((vaapi_accel_t*)this->accel_img->accel_data)->f;
       xprintf(this->class->xine, XINE_VERBOSITY_LOG, _("ffmpeg_video_dec: VAAPI Enabled in config.\n"));
     } else {
       this->class->enable_vaapi = 0;
