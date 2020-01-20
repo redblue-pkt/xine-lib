@@ -71,14 +71,17 @@ EXTERN_C_START
 #    define XINE_ATINT_T atomic_int
 #    define XINE_ATINIT(xatfa_refs,xatfa_n) atomic_init (&(xatfa_refs), (xatfa_n))
 #    define XINE_ATFA(xatfa_refs,xatfa_n) atomic_fetch_add_explicit (&(xatfa_refs), (xatfa_n), memory_order_acq_rel)
+#    define XINE_ATGET(xatfa_refs) atomic_load_explicit (&(xatfa_refs), memory_order_acquire)
 #  elif (HAVE_ATOMIC_VARS == 2)
 #    define XINE_ATINT_T int
 #    define XINE_ATINIT(xatfa_refs,xatfa_n) __atomic_store_n (&(xatfa_refs), (xatfa_n), __ATOMIC_RELAXED)
 #    define XINE_ATFA(xatfa_refs,xatfa_n) __atomic_fetch_add (&(xatfa_refs), (xatfa_n), __ATOMIC_ACQ_REL)
+#    define XINE_ATGET(xatfa_refs) __atomic_load_n (&(xatfa_refs), __ATOMIC_ACQUIRE)
 #  else /* HAVE_ATOMIC_VARS == 3 */
 #    define XINE_ATINT_T int
 #    define XINE_ATINIT(xatfa_refs,xatfa_n) xatfa_refs = xatfa_n
 #    define XINE_ATFA(xatfa_refs,xatfa_n) __sync_fetch_and_add (&(xatfa_refs), (xatfa_n))
+#    define XINE_ATGET(xatfa_refs) __sync_fetch_and_add (&(xatfa_refs), 0)
 #  endif
 
 typedef struct {
@@ -103,6 +106,10 @@ static inline int xine_refs_sub (xine_refs_t *refs, int n) {
   if (v == 0)
     refs->destructor (refs->object);
   return v;
+}
+
+static inline int xine_refs_get (xine_refs_t *refs) {
+  return XINE_ATGET (refs->refs);
 }
 
 #else
@@ -141,6 +148,14 @@ static inline int xine_refs_sub (xine_refs_t *refs, int n) {
     pthread_mutex_destroy (&refs->mutex);
     refs->destructor (refs->object);
   }
+  return v;
+}
+
+static inline int xine_refs_get (xine_refs_t *refs) {
+  int v;
+  pthread_mutex_lock (&refs->mutex);
+  v = refs->refs;
+  pthread_mutex_unlock (&refs->mutex);
   return v;
 }
 
