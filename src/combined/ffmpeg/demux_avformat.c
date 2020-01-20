@@ -246,25 +246,17 @@ static input_plugin_t *input_avformat_get_instance (input_class_t *cls_gen, xine
 
 void *init_avformat_input_plugin (xine_t *xine, const void *data) {
 
-  input_class_t  *this;
+  static const input_class_t input_class = {
+    .get_instance      = input_avformat_get_instance,
+    .description       = N_("libavformat input plugin"),
+    .identifier        = DEMUX_AVFORMAT_ID,
+    .dispose           = NULL,
+  };
 
   (void)xine;
   (void)data;
 
-  this = calloc(1, sizeof(input_class_t));
-  if (!this) {
-    return NULL;
-  }
-
-  this->get_instance      = input_avformat_get_instance;
-  this->description       = N_("libavformat input plugin");
-  this->identifier        = DEMUX_AVFORMAT_ID;
-  this->get_dir           = NULL;
-  this->get_autoplay_list = NULL;
-  this->dispose           = default_input_class_dispose;
-  this->eject_media       = NULL;
-
-  return this;
+  return (void *)&input_class;
 }
 
 /*
