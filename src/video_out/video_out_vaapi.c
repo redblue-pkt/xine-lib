@@ -270,6 +270,13 @@ struct vaapi_driver_s {
   int                 csc_mode;
   int                 have_user_csc_matrix;
   float               user_csc_matrix[12];
+
+  /* */
+  ff_vaapi_context_t  va_context_storage;
+  VASurfaceID         va_soft_surface_ids_storage[SOFT_SURFACES + 1];
+  VAImage             va_soft_images_storage[SOFT_SURFACES + 1];
+  ff_vaapi_surface_t  va_render_surfaces_storage[RENDER_SURFACES + 1];
+  VASurfaceID         va_surface_ids_storage[RENDER_SURFACES + 1];
 };
 
 /* import common color matrix stuff */
@@ -3836,15 +3843,7 @@ static void vaapi_dispose_locked (vaapi_driver_t *this) {
 
   vaapi_terminate(va_context);
 
-  _x_freep(&va_context->va_surface_ids);
-  _x_freep(&va_context->va_render_surfaces);
-
-  _x_freep(&this->va_context);
-
   _x_freep(&this->overlay_bitmap);
-
-  _x_freep(&this->va_soft_surface_ids);
-  _x_freep(&this->va_soft_images);
 
   if (this->window != None) {
     vaapi_x11_trap_errors();
@@ -3966,7 +3965,7 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   this->screen                  = visual->screen;
   this->drawable                = visual->d;
 
-  this->va_context              = calloc(1, sizeof(ff_vaapi_context_t));
+  this->va_context              = &this->va_context_storage;
 
 #ifdef LOCKDISPLAY
   guarded_display     = visual->display;
@@ -4015,10 +4014,10 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
 
   this->num_frame_buffers               = 0;
 
-  this->va_context->va_render_surfaces  = calloc(RENDER_SURFACES + 1, sizeof(ff_vaapi_surface_t));
-  this->va_context->va_surface_ids      = calloc(RENDER_SURFACES + 1, sizeof(VASurfaceID));
-  this->va_soft_surface_ids             = calloc(SOFT_SURFACES + 1, sizeof(VASurfaceID));
-  this->va_soft_images                  = calloc(SOFT_SURFACES + 1, sizeof(VAImage));
+  this->va_soft_surface_ids             = this->va_soft_surface_ids_storage;
+  this->va_soft_images                  = this->va_soft_images_storage;
+  this->va_context->va_render_surfaces  = this->va_render_surfaces_storage;
+  this->va_context->va_surface_ids      = this->va_surface_ids_storage;
 
   for (i = 0; i < SOFT_SURFACES; i++) {
     this->va_soft_surface_ids[i]        = VA_INVALID_SURFACE;
