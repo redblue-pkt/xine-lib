@@ -247,7 +247,7 @@ struct vaapi_driver_s {
   int                 va_subpic_height;
   unsigned int        last_sub_image_fmt;
 
-  int                  num_frame_buffers;
+  unsigned int        num_frame_buffers;
   vaapi_frame_t       *frames[RENDER_SURFACES];
 
   pthread_mutex_t     vaapi_lock;
@@ -2329,6 +2329,12 @@ static vo_frame_t *vaapi_alloc_frame (vo_driver_t *this_gen) {
     .release_vaapi_surface     = release_vaapi_surface,
     .guarded_render            = guarded_render,
   };
+
+  if (this->num_frame_buffers >= sizeof(this->frames) / sizeof(this->frames[0])) {
+    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " alloc_frame: "
+            "frame limit (%u) exceeded\n", this->num_frame_buffers);
+    return NULL;
+  }
 
   frame = (vaapi_frame_t *) calloc(1, sizeof(vaapi_frame_t));
 
