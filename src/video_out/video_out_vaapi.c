@@ -220,7 +220,6 @@ struct vaapi_driver_s {
 #ifdef ENABLE_VA_GLX
   int                 opengl_render;
   unsigned int        init_opengl_render;
-  int                 valid_opengl_context;
   int                 opengl_use_tfp;
 
   GLuint              gl_texture;
@@ -914,15 +913,13 @@ static void destroy_glx(vaapi_driver_t *this)
 
   if(this->gl_context) {
     glXDestroyContext(this->display, this->gl_context);
-    this->gl_context = 0;
+    this->gl_context = NULL;
   }
 
   if(this->gl_vinfo) {
     XFree(this->gl_vinfo);
     this->gl_vinfo = NULL;
   }
-
-  this->valid_opengl_context = 0;
 }
 
 static GLXFBConfig *get_fbconfig_for_depth(vaapi_driver_t *this, int depth)
@@ -1160,12 +1157,10 @@ static int vaapi_glx_config_glx(vaapi_driver_t *this, unsigned int width, unsign
 
   lprintf("vaapi_glx_config_glx : GL setup done\n");
 
-  this->valid_opengl_context = 1;
   return 1;
 
 error:
   destroy_glx(this);
-  this->valid_opengl_context = 0;
   return 0;
 }
 
@@ -2739,7 +2734,7 @@ static void myGluPerspective (GLdouble fovy, GLdouble aspect,
 #endif
 static void vaapi_resize_glx_window (vaapi_driver_t *this, int width, int height) {
 
-  if(this->valid_opengl_context) {
+  if (this->gl_context) {
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -3326,7 +3321,7 @@ static VAStatus vaapi_hardware_render_frame (vaapi_driver_t *this, vo_frame_t *f
     return VA_STATUS_ERROR_UNKNOWN;
 
 #ifdef ENABLE_VA_GLX
-  if(this->opengl_render && !this->valid_opengl_context)
+  if(this->opengl_render && !this->gl_context)
     return VA_STATUS_ERROR_UNKNOWN;
 #endif
 
@@ -4016,7 +4011,7 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   }
   DO_UNLOCKDISPLAY;
 
-  this->valid_opengl_context            = 0;
+  this->gl_context                      = NULL;
   this->gl_vinfo                        = NULL;
   this->gl_pixmap                       = None;
   this->gl_image_pixmap                 = None;
