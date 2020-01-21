@@ -2788,7 +2788,7 @@ static void vaapi_provide_standard_frame_data (vo_frame_t *this, xine_current_fr
   uint8_t   *base[3];
 
   if (this->format != XINE_IMGFMT_VAAPI) {
-    xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE "vaapi_provide_standard_frame_data: unexpected frame format 0x%08x!\n", this->format);
+    xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_provide_standard_frame_data: unexpected frame format 0x%08x!\n", this->format);
     return;
   }
 
@@ -2936,12 +2936,12 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
       va_surface_this->va_surface_id, va_surface_orig->va_surface_id);
 
   if (orig->vo_frame.format != XINE_IMGFMT_VAAPI) {
-    xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE "vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", orig->format);
+    xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", orig->format);
     return;
   }
 
   if (this->vo_frame.format != XINE_IMGFMT_VAAPI) {
-    xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE "vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", this->format);
+    xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", this->format);
     return;
   }
 
