@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -378,42 +378,50 @@ typedef struct {
   /*
    * metronom internal stuff
    */
+  /* general */
   xine_t         *xine;
-
   metronom_t     *master;
+  pthread_mutex_t lock;
+  int64_t         vpts_offset;
+  int64_t         prebuffer;
 
+  /* audio */
   int64_t         pts_per_smpls;
-
-  int64_t         video_vpts;
-  int64_t         spu_vpts;
+  int64_t         last_audio_pts;
   int64_t         audio_vpts;
   int64_t         audio_vpts_rmndr;  /* the remainder for integer division */
-
-  int64_t         vpts_offset;
-
-  int64_t         video_drift;
-  int64_t         video_drift_step;
-
-  int             base_av_offset;
-
+  int             audio_drift_step;
   int             audio_samples;
-  int64_t         audio_drift_step;
+  int             audio_seek;
+  int             force_audio_jump;
+  int             vdr_hack;
 
-  int64_t         prebuffer;
+  /* video */
+  int64_t         last_video_pts;
+  int64_t         video_vpts;
   int64_t         av_offset;
+  int             video_drift;
+  int             video_drift_step;
+  int             base_av_offset;
+  int             force_video_jump;
+  int             img_duration;
+  int             img_cpt;
+  int             video_mode;
+
+  /* subtitle */
+  int64_t         spu_vpts;
   int64_t         spu_offset;
 
-  pthread_mutex_t lock;
-
-  int             have_video;
-  int             have_audio;
-
+  /* bounce hack */
+  int64_t         bounce_diff;
+  int64_t         bounce_vpts_offs;
   int             bounce_left_audio;
   int             bounce_left_video;
   int             bounce_jumped;
-  int64_t         bounce_diff;
-  int64_t         bounce_vpts_offs;
 
+  /* discontinuity handling */
+  int             have_video;
+  int             have_audio;
   int64_t         last_discontinuity_offs;
   int             last_discontinuity_type;
   int             video_discontinuity_count;
@@ -424,17 +432,31 @@ typedef struct {
   pthread_cond_t  video_discontinuity_reached;
   pthread_cond_t  audio_discontinuity_reached;
 
-  int             force_video_jump;
-  int             force_audio_jump;
-
-  int64_t         last_audio_pts;
-
-  int64_t         last_video_pts;
-  int64_t         img_duration;
-  int             img_cpt;
-  int             video_mode;
-
 } metronom_impl_t;
+
+/* detect vdr_xineliboutput from this sequence:
+   metronom_handle_*_discontinuity (this, DISC_STREAMSEEK, 0);
+   metronom_set_option (this, METRONOM_PREBUFFER, 2000);
+   metronom_set_option (this, METRONOM_PREBUFFER, 14400);
+   apply audio jump fix after
+   metronom_handle_*_discontinuity (this, DISC_STREAMSEEK, != 0);
+   */
+
+static void metronom_vdr_hack_disc (metronom_impl_t *this, int64_t pts_offs) {
+  if (pts_offs == 0) {
+    this->vdr_hack = 0;
+  } else {
+    this->audio_seek = (this->vdr_hack == 2);
+  }
+}
+
+static void metronom_vdr_hack_prebuffer (metronom_impl_t *this, int64_t pts) {
+  if (pts == 2000) {
+    this->vdr_hack = (this->vdr_hack == 0) ? 1 : 0;
+  } else if (pts == 14400) {
+    this->vdr_hack = (this->vdr_hack == 1) || (this->vdr_hack == 2) ? 2 : 0;
+  }
+}
 
 static void metronom_set_audio_rate (metronom_t *this_gen, int64_t pts_per_smpls) {
   metronom_impl_t *this = (metronom_impl_t *)this_gen;
@@ -559,6 +581,7 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
       this->video_drift      = 0;
       this->last_video_pts   = 0;
       this->last_audio_pts   = 0;
+      metronom_vdr_hack_disc (this, disc_off);
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
         "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n", this->video_vpts);
       lprintf("video_vpts: %" PRId64 ", audio_vpts: %" PRId64 "\n", this->video_vpts, this->audio_vpts);
@@ -568,6 +591,7 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
       int64_t d, video_vpts, vpts_offset;
       int mode;
       lprintf ("DISC_ABSOLUTE\n");
+      this->audio_seek = 0;
       /* calculate but dont set yet */
       mode = ((this->video_vpts < cur_time) << 1) | (this->audio_vpts < cur_time);
       video_vpts = (mode == 3) ? this->prebuffer + cur_time
@@ -837,7 +861,7 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
        */
       if (this->last_video_pts && this->img_cpt) {
         this->img_duration = (pts - this->last_video_pts) / this->img_cpt;
-        lprintf("computed frame_duration = %" PRId64 "\n", this->img_duration );
+        lprintf("computed frame_duration = %d\n", this->img_duration );
       }
     }
     this->img_cpt = 0;
@@ -886,20 +910,20 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
       } else {
         /* TJ. Drift into new value over the next 32 frames.
          * Dont fall into the asymptote trap of bringing down step with remaining drift.
-         * BTW. video_drift* is int64_t but merely uses 17 bits.
+         * BTW. video_drift* merely uses 17 bits.
          */
         this->video_drift = diff;
         if (diff < 0) {
           int step = ((int)diff - 31) >> 5;
-          if ((int)this->video_drift_step > step)
+          if (this->video_drift_step > step)
             this->video_drift_step = step;
-          else if ((int)this->video_drift_step < (int)diff)
+          else if (this->video_drift_step < (int)diff)
             this->video_drift_step = diff;
         } else {
           int step = ((int)diff + 31) >> 5;
-          if ((int)this->video_drift_step < step)
+          if (this->video_drift_step < step)
             this->video_drift_step = step;
-          else if ((int)this->video_drift_step > (int)diff)
+          else if (this->video_drift_step > (int)diff)
             this->video_drift_step = diff;
         }
       }
@@ -919,19 +943,19 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
   this->video_vpts += this->img_duration - this->video_drift_step;
 
   if (this->video_mode == VIDEO_PREDICTION_MODE) {
-    lprintf("video vpts for %10"PRId64" : %10"PRId64" (duration:%d drift:%" PRId64 " step:%" PRId64 ")\n",
+    lprintf("video vpts for %10"PRId64" : %10"PRId64" (duration:%d drift:%d step:%d)\n",
       img->pts, this->video_vpts, img->duration, this->video_drift, this->video_drift_step );
 
     /* reset drift compensation if work is done after this frame */
-    if ((int)this->video_drift_step < 0) {
+    if (this->video_drift_step < 0) {
       this->video_drift -= this->video_drift_step;
-      if ((int)this->video_drift >= 0) {
+      if (this->video_drift >= 0) {
         this->video_drift      = 0;
         this->video_drift_step = 0;
       }
-    } else if ((int)this->video_drift_step > 0) {
+    } else if (this->video_drift_step > 0) {
       this->video_drift -= this->video_drift_step;
-      if ((int)this->video_drift <= 0) {
+      if (this->video_drift <= 0) {
         this->video_drift      = 0;
         this->video_drift_step = 0;
       }
@@ -1052,6 +1076,18 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
     this->last_audio_pts = pts;
     vpts = pts + this->vpts_offset;
     diff = this->audio_vpts - vpts;
+
+    /* Attempt to fix that mpeg-ts "video ahead of audio" issue with vdr-libxineoutput. */
+    if (this->audio_seek) {
+      this->audio_seek = 0;
+      if ((diff >= 45000) && (diff < 220000)) {
+        vpts += diff;
+        this->vpts_offset += diff;
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+          "metronom: fixing seek jump by %" PRId64 " pts.\n", diff);
+        diff = 0;
+      }
+    }
 
     if (this->bounce_left_audio >= 0) {
       if ((abs (diff) > BOUNCE_MAX) && (abs (diff - this->bounce_diff) < BOUNCE_MAX)) {
@@ -1195,6 +1231,7 @@ static void metronom_set_option (metronom_t *this_gen, int option, int64_t value
     break;
   case METRONOM_PREBUFFER:
     this->prebuffer = value;
+    metronom_vdr_hack_prebuffer (this, value);
     xprintf (this->xine, XINE_VERBOSITY_LOG,
       "metronom: prebuffer=%" PRId64 " pts.\n", this->prebuffer);
     break;
@@ -1541,6 +1578,8 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
   this->num_video_waiters           = 0;
   this->pts_per_smpls               = 0;
   this->spu_vpts                    = 0;
+  this->vdr_hack                    = 0;
+  this->audio_seek                  = 0;
   this->audio_samples               = 0;
   this->audio_drift_step            = 0;
   this->bounce_jumped               = 0;
