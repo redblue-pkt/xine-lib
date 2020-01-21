@@ -2176,7 +2176,7 @@ static void demux_ts_parse_pmt (demux_ts_t *this, const uint8_t *pkt,
 
           demux_ts_spu_lang *lang = &this->spu_langs[this->spu_langs_count];
 
-          memset(lang->desc.lang, 0, sizeof(lang->desc.lang));
+          strcpy(lang->desc.lang, "und");
           lang->pid = pid;
           lang->media_index = mi;
 
