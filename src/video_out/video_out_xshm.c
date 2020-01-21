@@ -39,7 +39,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
-#include <X11/cursorfont.h>
 #include <errno.h>
 
 #include <X11/extensions/XShm.h>
