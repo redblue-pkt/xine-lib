@@ -224,7 +224,6 @@ struct vaapi_driver_s {
 
   GLuint              gl_texture;
   GLXContext          gl_context;
-  XVisualInfo         *gl_vinfo;
   Pixmap              gl_pixmap;
   Pixmap              gl_image_pixmap;
   /* OpenGL surface */
@@ -915,11 +914,6 @@ static void destroy_glx(vaapi_driver_t *this)
     glXDestroyContext(this->display, this->gl_context);
     this->gl_context = NULL;
   }
-
-  if(this->gl_vinfo) {
-    XFree(this->gl_vinfo);
-    this->gl_vinfo = NULL;
-  }
 }
 
 static GLXFBConfig *get_fbconfig_for_depth(vaapi_driver_t *this, int depth)
@@ -1059,15 +1053,17 @@ static int vaapi_glx_config_glx(vaapi_driver_t *this, unsigned int width, unsign
 {
   ff_vaapi_context_t    *va_context = this->va_context;
   int                    gl_visual_attr[] = VAAPI_GLX_VISUAL_ATTR;
+  XVisualInfo           *gl_vinfo;
 
-  this->gl_vinfo = glXChooseVisual(this->display, this->screen, gl_visual_attr);
-  if(!this->gl_vinfo) {
+  gl_vinfo = glXChooseVisual(this->display, this->screen, gl_visual_attr);
+  if(!gl_vinfo) {
     xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_glx_config_glx : error glXChooseVisual\n");
     this->opengl_render = 0;
   }
 
   glXMakeCurrent(this->display, None, NULL);
-  this->gl_context = glXCreateContext (this->display, this->gl_vinfo, NULL, True);
+  this->gl_context = glXCreateContext (this->display, gl_vinfo, NULL, True);
+  XFree(gl_vinfo);
   if (this->gl_context) {
     if(!glXMakeCurrent (this->display, this->window, this->gl_context)) {
       xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_glx_config_glx : error glXMakeCurrent\n");
@@ -4012,7 +4008,6 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   DO_UNLOCKDISPLAY;
 
   this->gl_context                      = NULL;
-  this->gl_vinfo                        = NULL;
   this->gl_pixmap                       = None;
   this->gl_image_pixmap                 = None;
   this->gl_texture                      = GL_NONE;
