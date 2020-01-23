@@ -558,8 +558,9 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
         if ((t <= 0) || (t > 135000))
           return 0;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "metronom: gapless switch: wait %"PRId64" pts.\n", t);
-        xine_usec_sleep ((int)((t * XINE_FINE_SPEED_NORMAL) / (speed * 90)) * 1000);
+          "metronom: gapless switch: wait %u pts.\n", (unsigned int)t);
+        /* XINE_FINE_SPEED_NORMAL == 1000000; 1000000 * 1000 / 90 == 100000000 / 9; */
+        xine_usec_sleep (xine_uint_mul_div (t, 100000000, speed * 9));
       }
       return 0;
 
