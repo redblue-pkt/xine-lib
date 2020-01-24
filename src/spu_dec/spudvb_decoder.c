@@ -412,13 +412,10 @@ static unsigned char next_datum (dvbsub_func_t *dvbsub, int width)
   return x;
 }
 
-static void decode_2bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int object_id, int ofs, int n)
+static void decode_2bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int n)
 {
   int j;
   const uint8_t *lut = lookup_lut (dvbsub, r);
-
-  (void)object_id;
-  (void)ofs;
 
   dvbsub->i_bits = 0;
   j = dvbsub->i + n;
@@ -477,13 +474,10 @@ static void decode_2bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int obj
   }
 }
 
-static void decode_4bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int object_id, int ofs, int n)
+static void decode_4bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int n)
 {
   int j;
   const uint8_t *lut = lookup_lut (dvbsub, r);
-
-  (void)object_id;
-  (void)ofs;
 
   dvbsub->i_bits = 0;
   j = dvbsub->i + n;
@@ -547,12 +541,9 @@ static void decode_4bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int obj
   }
 }
 
-static void decode_8bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int object_id, int ofs, int n)
+static void decode_8bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int n)
 {
   int j;
-
-  (void)object_id;
-  (void)ofs;
 
   j = dvbsub->i + n;
 
@@ -671,7 +662,7 @@ static void process_CLUT_definition_segment(dvbsub_func_t *dvbsub) {
   }
 }
 
-static void process_pixel_data_sub_block (dvbsub_func_t *dvbsub, int r, int o, unsigned int pos, int ofs, int n)
+static void process_pixel_data_sub_block (dvbsub_func_t *dvbsub, int r, unsigned int pos, int ofs, int n)
 {
   int data_type;
   int j;
@@ -687,13 +678,13 @@ static void process_pixel_data_sub_block (dvbsub_func_t *dvbsub, int r, int o, u
     case 0:
       dvbsub->i++;
     case 0x10:
-      decode_2bit_pixel_code_string (dvbsub, r, o, ofs, n - 1);
+      decode_2bit_pixel_code_string (dvbsub, r, n - 1);
       break;
     case 0x11:
-      decode_4bit_pixel_code_string (dvbsub, r, o, ofs, n - 1);
+      decode_4bit_pixel_code_string (dvbsub, r, n - 1);
       break;
     case 0x12:
-      decode_8bit_pixel_code_string (dvbsub, r, o, ofs, n - 1);
+      decode_8bit_pixel_code_string (dvbsub, r, n - 1);
       break;
     case 0x20: /* 2-to-4bit colour index map */
       /* should this be implemented since we have an 8-bit overlay? */
@@ -881,7 +872,7 @@ static void process_object_data_segment (dvbsub_func_t *dvbsub)
           bottom_field_data_block_length = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
           dvbsub->i += 2;
 
-          process_pixel_data_sub_block (dvbsub, r, object_id, pos, 0, top_field_data_block_length);
+          process_pixel_data_sub_block (dvbsub, r, pos, 0, top_field_data_block_length);
 
           if (bottom_field_data_block_length == 0)
           {
@@ -890,7 +881,7 @@ static void process_object_data_segment (dvbsub_func_t *dvbsub)
             dvbsub->i =  old_i + 4;
           }
 
-          process_pixel_data_sub_block (dvbsub, r, object_id, pos, 1, bottom_field_data_block_length);
+          process_pixel_data_sub_block (dvbsub, r, pos, 1, bottom_field_data_block_length);
         }
       }
     }
