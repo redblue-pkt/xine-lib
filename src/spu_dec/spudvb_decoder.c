@@ -190,24 +190,24 @@ static void sparse_array_unset (sparse_array_t *sa, uint32_t key, uint32_t mask)
 /* ! sparse_array */
 
 typedef struct {
-  int                   x, y;
+  uint16_t              x, y;
   unsigned char         is_visible;
 } visible_region_t;
 
 typedef struct {
-  int                   page_time_out;
-  int                   page_version_number;
-  int                   page_state;
-  int                   page_id;
+  uint8_t               page_time_out;
+  uint8_t               page_version_number;
+  uint8_t               page_state;
+  uint16_t              page_id;
   visible_region_t      regions[MAX_REGIONS];
 } page_t;
 
 typedef struct {
-  int                   version_number;
-  int                   width, height;
-  int                   empty;
-  int                   depth;
-  int                   CLUT_id;
+  uint8_t               version_number;
+  uint8_t               empty;
+  uint8_t               depth;
+  uint8_t               CLUT_id;
+  uint16_t              width, height;
   unsigned char         *img;
   osd_object_t          *osd;
 } region_t;
@@ -227,7 +227,7 @@ typedef struct {
   int                   i;
   int                   i_bits;
   int                   compat_depth;
-  int                   max_regions;
+  unsigned int          max_regions;
   page_t                page;
   region_t              regions[MAX_REGIONS];
   clut_union_t          colours[MAX_REGIONS*256];
@@ -270,7 +270,7 @@ static int default_colours_init = 0;
 
 static void reset_clut (dvbsub_func_t *dvbsub)
 {
-  int i, r;
+  unsigned int i, r;
 
   /* Reset the colour LUTs */
   for (r = 0; r < MAX_REGIONS; ++r)
@@ -354,7 +354,7 @@ static void update_region (region_t *reg, int region_id, int region_width, int r
 
 static void do_plot (region_t *reg, int x, int y, unsigned char pixel)
 {
-  int i;
+  unsigned int i;
 
   i = (y * reg->width) + x;
   /* do some clipping */
@@ -364,7 +364,7 @@ static void do_plot (region_t *reg, int x, int y, unsigned char pixel)
   }
 }
 
-static void plot (dvbsub_func_t *dvbsub, int r, int run_length, unsigned char pixel)
+static void plot (dvbsub_func_t *dvbsub, int r, unsigned int run_length, unsigned char pixel)
 {
   int x2 = dvbsub->x + run_length;
 
@@ -425,8 +425,8 @@ static void decode_2bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int obj
 
   while (dvbsub->i < j)
   {
-    int next_bits = next_datum (dvbsub, 2);
-    int run_length;
+    unsigned int next_bits = next_datum (dvbsub, 2);
+    unsigned int run_length;
 
     if (next_bits)
     {
@@ -490,8 +490,8 @@ static void decode_4bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int obj
 
   while (dvbsub->i < j)
   {
-    int next_bits = next_datum (dvbsub, 4);
-    int run_length;
+    unsigned int next_bits = next_datum (dvbsub, 4);
+    unsigned int run_length;
 
     if (next_bits)
     {
@@ -558,8 +558,8 @@ static void decode_8bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int obj
 
   while (dvbsub->i < j)
   {
-    int next_bits = dvbsub->buf[dvbsub->i++];
-    int run_length;
+    unsigned int next_bits = dvbsub->buf[dvbsub->i++];
+    unsigned int run_length;
 
     if (next_bits)
     {
@@ -592,7 +592,7 @@ static void recalculate_trans (dvb_spu_decoder_t *this)
 {
   dvbsub_func_t *const dvbsub = &this->dvbsub;
   xine_spu_opacity_t opacity;
-  int i;
+  unsigned int i;
 
   _x_spu_get_opacity (this->stream->xine, &opacity);
   for (i = 0; i < dvbsub->max_regions * 256; ++i) {
@@ -726,7 +726,7 @@ static void process_pixel_data_sub_block (dvbsub_func_t *dvbsub, int r, int o, u
 static void process_page_composition_segment (dvbsub_func_t *dvbsub)
 {
   int segment_length;
-  int region_id, region_x, region_y;
+  unsigned int region_id, region_x, region_y;
 
   dvbsub->page.page_id = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
   dvbsub->i += 2;
@@ -746,7 +746,7 @@ static void process_page_composition_segment (dvbsub_func_t *dvbsub)
   dvbsub->page.page_state = (dvbsub->buf[dvbsub->i] & 0x0c) >> 2;
   dvbsub->i++;
 
-  int r;
+  unsigned int r;
   for (r=0; r<dvbsub->max_regions; r++) { /* reset */
     dvbsub->page.regions[r].is_visible = 0;
   }
@@ -774,12 +774,12 @@ static void process_page_composition_segment (dvbsub_func_t *dvbsub)
 
 static void process_region_composition_segment (dvbsub_func_t *dvbsub)
 {
-  int segment_length,
+  unsigned int segment_length,
     region_id,
     region_version_number,
     region_fill_flag, region_width, region_height, region_level_of_compatibility, region_depth, CLUT_id,
     /*region_8_bit_pixel_code,*/ region_4_bit_pixel_code /*, region_2_bit_pixel_code*/;
-  int object_id, object_type, /*object_provider_flag,*/ object_x, object_y /*, foreground_pixel_code, background_pixel_code*/;
+  unsigned int object_id, object_type, /*object_provider_flag,*/ object_x, object_y /*, foreground_pixel_code, background_pixel_code*/;
   int j;
 
   dvbsub->page.page_id = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
@@ -847,12 +847,12 @@ static void process_region_composition_segment (dvbsub_func_t *dvbsub)
 
 static void process_object_data_segment (dvbsub_func_t *dvbsub)
 {
-  int /*segment_length,*/ object_id/*, object_version_number*/, object_coding_method/*, non_modifying_colour_flag*/;
+  unsigned int /*segment_length,*/ object_id/*, object_version_number*/, object_coding_method/*, non_modifying_colour_flag*/;
 
   int top_field_data_block_length, bottom_field_data_block_length;
 
   int old_i;
-  int r;
+  unsigned int r;
 
   dvbsub->page.page_id = (dvbsub->buf[dvbsub->i] << 8) | dvbsub->buf[dvbsub->i + 1];
   dvbsub->i += 2;
@@ -928,7 +928,6 @@ static void* dvbsub_timer_func(void *this_gen)
 {
   dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
   pthread_mutex_lock(&this->dvbsub_osd_mutex);
-  int i;
 
  /* If we're cancelled via pthread_cancel, unlock the mutex */
   pthread_cleanup_push(unlock_mutex_cancellation_func, &this->dvbsub_osd_mutex);
@@ -947,6 +946,7 @@ static void* dvbsub_timer_func(void *this_gen)
     {
       /* We timed out, and no-one changed the timeout underneath us.
          Hide the OSD, then wait until we're signalled. */
+        unsigned int i;
         for (i = 0; i < this->dvbsub.max_regions; i++) {
           if (this->dvbsub.regions[i].osd) {
             this->stream->osd_renderer->hide( this->dvbsub.regions[i].osd, 0 );
@@ -975,7 +975,7 @@ static void downscale_region_image( region_t *reg, unsigned char *dest, int dest
 
 static void draw_subtitles (dvb_spu_decoder_t * this)
 {
-  int r;
+  unsigned int r;
   int display=0;
   int64_t dum;
   int dest_width=0, dest_height;
@@ -1066,7 +1066,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
     if (buf->decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR) {
       if (buf->decoder_info[2] == 0) {
         /* Hide the osd - note that if the timeout thread times out, it'll rehide, which is harmless */
-        int i;
+        unsigned int i;
         pthread_mutex_lock(&this->dvbsub_osd_mutex);
         for (i = 0; i < this->dvbsub.max_regions; i++) {
           if (this->dvbsub.regions[i].osd)
@@ -1184,7 +1184,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 static void spudec_reset (spu_decoder_t * this_gen)
 {
   dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
-  int i;
+  unsigned int i;
 
   /* Hide the osd - if the timeout thread times out, it'll rehide harmlessly */
   pthread_mutex_lock(&this->dvbsub_osd_mutex);
@@ -1207,7 +1207,7 @@ static void spudec_discontinuity (spu_decoder_t * this_gen)
 
 static void spudec_dispose_stopped (dvb_spu_decoder_t * this)
 {
-  int i;
+  unsigned int i;
 
   pthread_mutex_destroy(&this->dvbsub_osd_mutex);
   pthread_cond_destroy(&this->dvbsub_restart_timeout);
@@ -1236,7 +1236,7 @@ static void spudec_dispose (spu_decoder_t * this_gen)
 static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen, xine_stream_t * stream)
 {
   dvb_spu_decoder_t *this;
-  int i;
+  unsigned int i;
 
   (void)class_gen;
   this = calloc(1, sizeof (dvb_spu_decoder_t));
