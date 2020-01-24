@@ -386,51 +386,61 @@ typedef struct {
   int64_t         prebuffer;
 
   /* audio */
-  int64_t         pts_per_smpls;
-  int64_t         last_audio_pts;
-  int64_t         audio_vpts;
-  int64_t         audio_vpts_rmndr;  /* the remainder for integer division */
-  int             audio_drift_step;
-  int             audio_samples;
-  int             audio_seek;
-  int             force_audio_jump;
-  int             vdr_hack;
+  struct {
+    int64_t       pts_per_smpls;
+    int64_t       last_pts;
+    int64_t       vpts;
+    int           vpts_rmndr;  /* the remainder for integer division */
+    int           drift_step;
+    int           samples;
+    int           seek;
+    int           force_jump;
+    int           vdr_hack;
+  } audio;
 
   /* video */
-  int64_t         last_video_pts;
-  int64_t         video_vpts;
-  int64_t         av_offset;
-  int             video_drift;
-  int             video_drift_step;
-  int             base_av_offset;
-  int             force_video_jump;
-  int             img_duration;
-  int             img_cpt;
-  int             video_mode;
+  struct {
+    int64_t       last_pts;
+    int64_t       vpts;
+    int64_t       av_offset;
+    int           drift;
+    int           drift_step;
+    int           base_av_offset;
+    int           force_jump;
+    int           img_duration;
+    int           img_cpt;
+    int           mode;
+  } video;
 
   /* subtitle */
-  int64_t         spu_vpts;
-  int64_t         spu_offset;
+  struct {
+    int64_t       vpts;
+    int64_t       offset;
+  } spu;
 
   /* bounce hack */
-  int64_t         bounce_diff;
-  int64_t         bounce_vpts_offs;
-  int             bounce_left_audio;
-  int             bounce_left_video;
-  int             bounce_jumped;
+  struct {
+    int64_t       diff;
+    int64_t       vpts_offs;
+    int           left_audio;
+    int           left_video;
+    int           jumped;
+  } bounce;
 
   /* discontinuity handling */
-  int             have_video;
-  int             have_audio;
-  int64_t         last_discontinuity_offs;
-  int             last_discontinuity_type;
-  int             video_discontinuity_count;
-  int             audio_discontinuity_count;
-  int             discontinuity_handled_count;
-  int             num_video_waiters;
-  int             num_audio_waiters;
-  pthread_cond_t  video_discontinuity_reached;
-  pthread_cond_t  audio_discontinuity_reached;
+  struct {
+    int             have_video;
+    int             have_audio;
+    int64_t         last_offs;
+    int             last_type;
+    int             video_count;
+    int             audio_count;
+    int             handled_count;
+    int             num_video_waiters;
+    int             num_audio_waiters;
+    pthread_cond_t  video_reached;
+    pthread_cond_t  audio_reached;
+  } disc;
 
 } metronom_impl_t;
 
@@ -444,17 +454,17 @@ typedef struct {
 
 static void metronom_vdr_hack_disc (metronom_impl_t *this, int64_t pts_offs) {
   if (pts_offs == 0) {
-    this->vdr_hack = 0;
+    this->audio.vdr_hack = 0;
   } else {
-    this->audio_seek = (this->vdr_hack == 2);
+    this->audio.seek = (this->audio.vdr_hack == 2);
   }
 }
 
 static void metronom_vdr_hack_prebuffer (metronom_impl_t *this, int64_t pts) {
   if (pts == 2000) {
-    this->vdr_hack = (this->vdr_hack == 0) ? 1 : 0;
+    this->audio.vdr_hack = (this->audio.vdr_hack == 0) ? 1 : 0;
   } else if (pts == 14400) {
-    this->vdr_hack = (this->vdr_hack == 1) || (this->vdr_hack == 2) ? 2 : 0;
+    this->audio.vdr_hack = (this->audio.vdr_hack == 1) || (this->audio.vdr_hack == 2) ? 2 : 0;
   }
 }
 
@@ -463,7 +473,7 @@ static void metronom_set_audio_rate (metronom_t *this_gen, int64_t pts_per_smpls
 
   pthread_mutex_lock (&this->lock);
 
-  this->pts_per_smpls = pts_per_smpls;
+  this->audio.pts_per_smpls = pts_per_smpls;
 
   pthread_mutex_unlock (&this->lock);
 
@@ -480,16 +490,16 @@ static int64_t metronom_got_spu_packet (metronom_t *this_gen, int64_t pts) {
     this->master->set_option(this->master, METRONOM_LOCK, 1);
 
     this->vpts_offset = this->master->get_option(this->master, METRONOM_VPTS_OFFSET | METRONOM_NO_LOCK);
-    this->spu_offset  = this->master->get_option(this->master, METRONOM_SPU_OFFSET | METRONOM_NO_LOCK);
+    this->spu.offset  = this->master->get_option(this->master, METRONOM_SPU_OFFSET | METRONOM_NO_LOCK);
   }
 
-  vpts = pts + this->vpts_offset + this->spu_offset;
+  vpts = pts + this->vpts_offset + this->spu.offset;
 
   /* no vpts going backwards please */
-  if( vpts < this->spu_vpts )
-    vpts = this->spu_vpts;
+  if( vpts < this->spu.vpts )
+    vpts = this->spu.vpts;
 
-  this->spu_vpts = vpts;
+  this->spu.vpts = vpts;
 
   if (this->master) {
     this->master->set_option(this->master, METRONOM_LOCK, 0);
@@ -531,7 +541,7 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
   int type, int try, int64_t disc_off) {
   int64_t cur_time;
 
-  /* video_vpts and audio_vpts adjustements */
+  /* video.vpts and audio.vpts adjustements */
   cur_time = this->xine->clock->get_current_time(this->xine->clock);
 
   switch (type) {
@@ -552,7 +562,7 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
         if (speed <= 0)
           return 0;
         pthread_mutex_lock (&this->lock);
-        t = this->video_vpts > this->audio_vpts ? this->video_vpts : this->audio_vpts;
+        t = this->video.vpts > this->audio.vpts ? this->video.vpts : this->audio.vpts;
         t -= this->prebuffer + cur_time;
         pthread_mutex_unlock (&this->lock);
         if ((t <= 0) || (t > 135000))
@@ -570,34 +580,34 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
       /* fall through */
     case DISC_STREAMSEEK:
       lprintf ("DISC_STREAMSEEK\n");
-      this->video_vpts       = this->prebuffer + cur_time;
-      this->audio_vpts       = this->video_vpts;
-      this->vpts_offset      = this->video_vpts - disc_off;
-      this->bounce_left_audio = -1;
-      this->bounce_left_video = -1;
-      this->bounce_jumped    = 0;
-      this->audio_vpts_rmndr = 0;
-      this->force_audio_jump = 1;
-      this->force_video_jump = 1;
-      this->video_drift      = 0;
-      this->last_video_pts   = 0;
-      this->last_audio_pts   = 0;
+      this->video.vpts       = this->prebuffer + cur_time;
+      this->audio.vpts       = this->video.vpts;
+      this->vpts_offset      = this->video.vpts - disc_off;
+      this->bounce.left_audio = -1;
+      this->bounce.left_video = -1;
+      this->bounce.jumped    = 0;
+      this->audio.vpts_rmndr = 0;
+      this->audio.force_jump = 1;
+      this->video.force_jump = 1;
+      this->video.drift      = 0;
+      this->video.last_pts   = 0;
+      this->audio.last_pts   = 0;
       metronom_vdr_hack_disc (this, disc_off);
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-        "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n", this->video_vpts);
-      lprintf("video_vpts: %" PRId64 ", audio_vpts: %" PRId64 "\n", this->video_vpts, this->audio_vpts);
+        "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n", this->video.vpts);
+      lprintf("video.vpts: %" PRId64 ", audio.vpts: %" PRId64 "\n", this->video.vpts, this->audio.vpts);
       return 0;
 
     case DISC_ABSOLUTE: {
       int64_t d, video_vpts, vpts_offset;
       int mode;
       lprintf ("DISC_ABSOLUTE\n");
-      this->audio_seek = 0;
+      this->audio.seek = 0;
       /* calculate but dont set yet */
-      mode = ((this->video_vpts < cur_time) << 1) | (this->audio_vpts < cur_time);
+      mode = ((this->video.vpts < cur_time) << 1) | (this->audio.vpts < cur_time);
       video_vpts = (mode == 3) ? this->prebuffer + cur_time
-                 : (mode == 2) ? this->audio_vpts
-                 : this->video_vpts;
+                 : (mode == 2) ? this->audio.vpts
+                 : this->video.vpts;
       vpts_offset = video_vpts - disc_off;
       /* where are we? */
       d = vpts_offset - this->vpts_offset;
@@ -608,97 +618,97 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
         ;
       } else {
         /* big step. */
-        d = vpts_offset - this->bounce_vpts_offs;
+        d = vpts_offset - this->bounce.vpts_offs;
         if (d < 0)
           d = -d;
         if (d < BOUNCE_MAX) {
           /* near old previous, swap with it. */
           d = this->vpts_offset;
-          this->vpts_offset = this->bounce_vpts_offs;
-          this->bounce_vpts_offs = d;
+          this->vpts_offset = this->bounce.vpts_offs;
+          this->bounce.vpts_offs = d;
           d -= this->vpts_offset;
-          this->bounce_diff = d;
-          this->bounce_left_audio = BOUNCE_MAX;
-          this->bounce_left_video = BOUNCE_MAX;
-          this->last_audio_pts = 0;
-          this->last_video_pts = 0;
+          this->bounce.diff = d;
+          this->bounce.left_audio = BOUNCE_MAX;
+          this->bounce.left_video = BOUNCE_MAX;
+          this->audio.last_pts = 0;
+          this->video.last_pts = 0;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: pts bounce by %" PRId64 ".\n", d);
           return 0;
         }
-        if (try && (this->bounce_left_audio >= 0))
+        if (try && (this->bounce.left_audio >= 0))
           return 1;
         /* remember current as prev, and set new. */
-        this->bounce_vpts_offs = this->vpts_offset;
+        this->bounce.vpts_offs = this->vpts_offset;
       }
       this->vpts_offset = vpts_offset;
-      this->bounce_diff = this->bounce_vpts_offs - vpts_offset;
-      this->video_vpts = video_vpts;
-      this->bounce_left_audio = BOUNCE_MAX;
-      this->bounce_left_video = BOUNCE_MAX;
-      this->bounce_jumped = 1;
+      this->bounce.diff = this->bounce.vpts_offs - vpts_offset;
+      this->video.vpts = video_vpts;
+      this->bounce.left_audio = BOUNCE_MAX;
+      this->bounce.left_video = BOUNCE_MAX;
+      this->bounce.jumped = 1;
       if (mode == 2) {
         /* still frame with audio */
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "metronom: video vpts adjusted to audio vpts %" PRId64 ".\n", this->video_vpts);
+          "metronom: video vpts adjusted to audio vpts %" PRId64 ".\n", this->video.vpts);
       } else if (mode == 3) {
         /* still frame, no audio */
-        this->audio_vpts = video_vpts;
-        this->audio_vpts_rmndr = 0;
-        this->force_video_jump = 1;
-        this->force_audio_jump = 1;
-        this->video_drift = 0;
+        this->audio.vpts = video_vpts;
+        this->audio.vpts_rmndr = 0;
+        this->video.force_jump = 1;
+        this->audio.force_jump = 1;
+        this->video.drift = 0;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n", this->video_vpts);
+          "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n", this->video.vpts);
       } else if (mode == 1) {
         /* video, no sound */
-        this->audio_vpts = video_vpts;
-        this->audio_vpts_rmndr = 0;
+        this->audio.vpts = video_vpts;
+        this->audio.vpts_rmndr = 0;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "metronom: audio vpts adjusted to video vpts %" PRId64 ".\n", this->video_vpts);
+          "metronom: audio vpts adjusted to video vpts %" PRId64 ".\n", this->video.vpts);
       }
     }
-    this->last_video_pts = 0;
-    this->last_audio_pts = 0;
-    lprintf ("video_vpts: %" PRId64 ", audio_vpts: %" PRId64 "\n", this->video_vpts, this->audio_vpts);
+    this->video.last_pts = 0;
+    this->audio.last_pts = 0;
+    lprintf ("video.vpts: %" PRId64 ", audio.vpts: %" PRId64 "\n", this->video.vpts, this->audio.vpts);
     return 0;
 
     case DISC_RELATIVE:
       lprintf ("DISC_RELATIVE\n");
-      if (this->video_vpts < cur_time) {
+      if (this->video.vpts < cur_time) {
         /* still frame */
-        if (this->audio_vpts > cur_time) {
+        if (this->audio.vpts > cur_time) {
           /* still frame with audio */
-          this->video_vpts = this->audio_vpts;
+          this->video.vpts = this->audio.vpts;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-            "metronom: video vpts adjusted to audio vpts %" PRId64 ".\n", this->video_vpts);
+            "metronom: video vpts adjusted to audio vpts %" PRId64 ".\n", this->video.vpts);
         } else {
           /* still frame, no audio */
-          this->video_vpts = this->prebuffer + cur_time;
-          this->audio_vpts = this->video_vpts;
-          this->audio_vpts_rmndr = 0;
-          this->force_video_jump = 1;
-          this->force_audio_jump = 1;
-          this->video_drift = 0;
+          this->video.vpts = this->prebuffer + cur_time;
+          this->audio.vpts = this->video.vpts;
+          this->audio.vpts_rmndr = 0;
+          this->video.force_jump = 1;
+          this->audio.force_jump = 1;
+          this->video.drift = 0;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG,
             "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n",
-	    this->video_vpts);
+	    this->video.vpts);
         }
       } else {
         /* video */
-        if (this->audio_vpts < cur_time) {
+        if (this->audio.vpts < cur_time) {
           /* video, no sound */
-          this->audio_vpts = this->video_vpts;
-          this->audio_vpts_rmndr = 0;
+          this->audio.vpts = this->video.vpts;
+          this->audio.vpts_rmndr = 0;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-            "metronom: audio vpts adjusted to video vpts %" PRId64 ".\n", this->video_vpts);
+            "metronom: audio vpts adjusted to video vpts %" PRId64 ".\n", this->video.vpts);
         } else {
           /* video + audio */
         }
       }
       this->vpts_offset = this->vpts_offset - disc_off;
-      this->last_video_pts = 0;
-      this->last_audio_pts = 0;
-      lprintf ("video_vpts: %" PRId64 ", audio_vpts: %" PRId64 "\n", this->video_vpts, this->audio_vpts);
+      this->video.last_pts = 0;
+      this->audio.last_pts = 0;
+      lprintf ("video.vpts: %" PRId64 ", audio.vpts: %" PRId64 "\n", this->video.vpts, this->audio.vpts);
       return 0;
 
     default:
@@ -708,33 +718,33 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
 
 static void metronom_handle_vdr_trick_pts (metronom_impl_t *this, int64_t pts) {
   int64_t cur_time = this->xine->clock->get_current_time (this->xine->clock);
-  if (this->video_vpts < cur_time) {
-    if (this->audio_vpts >= cur_time) {
+  if (this->video.vpts < cur_time) {
+    if (this->audio.vpts >= cur_time) {
       /* still frame with audio */
-      this->video_vpts = this->audio_vpts;
+      this->video.vpts = this->audio.vpts;
     } else {
       /* still frame, no audio */
-      this->audio_vpts =
-      this->video_vpts = this->prebuffer + cur_time;
-      this->audio_vpts_rmndr = 0;
-      this->force_video_jump = 1;
-      this->force_audio_jump = 1;
-      this->video_drift = 0;
+      this->audio.vpts =
+      this->video.vpts = this->prebuffer + cur_time;
+      this->audio.vpts_rmndr = 0;
+      this->video.force_jump = 1;
+      this->audio.force_jump = 1;
+      this->video.drift = 0;
     }
   } else {
-    if (this->audio_vpts < cur_time) {
+    if (this->audio.vpts < cur_time) {
       /* video, no sound */
-      this->audio_vpts = this->video_vpts;
-      this->audio_vpts_rmndr = 0;
+      this->audio.vpts = this->video.vpts;
+      this->audio.vpts_rmndr = 0;
     }
   }
-  this->vpts_offset = this->video_vpts - pts;
-  this->bounce_diff = this->bounce_vpts_offs - this->vpts_offset;
-  this->bounce_left_audio = -1;
-  this->bounce_left_video = -1;
-  this->bounce_jumped = 0;
+  this->vpts_offset = this->video.vpts - pts;
+  this->bounce.diff = this->bounce.vpts_offs - this->vpts_offset;
+  this->bounce.left_audio = -1;
+  this->bounce.left_video = -1;
+  this->bounce.jumped = 0;
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-    "metronom: vdr trick pts %" PRId64 ", vpts %" PRId64 ".\n", pts, this->video_vpts);
+    "metronom: vdr trick pts %" PRId64 ", vpts %" PRId64 ".\n", pts, this->video.vpts);
 }
 
 static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
@@ -757,22 +767,22 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
     return;
   }
 
-  this->video_discontinuity_count++;
-  if (this->num_video_waiters && (this->audio_discontinuity_count <= this->video_discontinuity_count))
-    pthread_cond_signal (&this->video_discontinuity_reached);
+  this->disc.video_count++;
+  if (this->disc.num_video_waiters && (this->disc.audio_count <= this->disc.video_count))
+    pthread_cond_signal (&this->disc.video_reached);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
     "metronom: video discontinuity #%d, type is %d, disc_off %" PRId64 ".\n",
-    this->video_discontinuity_count, type, disc_off);
+    this->disc.video_count, type, disc_off);
 
-  if (this->video_discontinuity_count <= this->discontinuity_handled_count) {
+  if (this->disc.video_count <= this->disc.handled_count) {
     pthread_mutex_unlock (&this->lock);
     return;
   }
 
   if (type == DISC_ABSOLUTE) {
     if (!metronom_handle_discontinuity (this, type, 1, disc_off)) {
-      this->discontinuity_handled_count = this->video_discontinuity_count;
+      this->disc.handled_count = this->disc.video_count;
       pthread_mutex_unlock (&this->lock);
       return;
     }
@@ -782,28 +792,28 @@ static void metronom_handle_video_discontinuity (metronom_t *this_gen, int type,
    * effect. Previous code did this by letting audio wait even if
    * video came first. Lets drop that unnecessary wait, and pass
    * over params instead. */
-  this->last_discontinuity_type = type;
-  this->last_discontinuity_offs = disc_off;
+  this->disc.last_type = type;
+  this->disc.last_offs = disc_off;
 
   waited = 0;
-  if (this->have_audio) {
-    while (this->audio_discontinuity_count <
-	   this->video_discontinuity_count) {
+  if (this->disc.have_audio) {
+    while (this->disc.audio_count <
+	   this->disc.video_count) {
 
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
         "metronom: waiting for audio discontinuity #%d...\n",
-        this->video_discontinuity_count);
+        this->disc.video_count);
 
-      this->num_audio_waiters++;
-      pthread_cond_wait (&this->audio_discontinuity_reached, &this->lock);
-      this->num_audio_waiters--;
+      this->disc.num_audio_waiters++;
+      pthread_cond_wait (&this->disc.audio_reached, &this->lock);
+      this->disc.num_audio_waiters--;
       waited = 1;
     }
   }
 
   if (!waited) {
     metronom_handle_discontinuity (this, type, 0, disc_off);
-    this->discontinuity_handled_count++;
+    this->disc.handled_count++;
   }
 
   pthread_mutex_unlock (&this->lock);
@@ -819,58 +829,58 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
   if (this->master) {
     this->master->set_option(this->master, METRONOM_LOCK, 1);
 
-    if (!this->discontinuity_handled_count) {
+    if (!this->disc.handled_count) {
       /* we are not initialized yet */
 
-      this->video_vpts = this->audio_vpts = this->master->get_option(this->master, METRONOM_VPTS | METRONOM_NO_LOCK);
+      this->video.vpts = this->audio.vpts = this->master->get_option(this->master, METRONOM_VPTS | METRONOM_NO_LOCK);
 
       /* when being attached to the first master, do not drift into
        * his vpts values but adopt at once */
-      this->force_audio_jump = 1;
-      this->force_video_jump = 1;
-      this->discontinuity_handled_count++;
+      this->audio.force_jump = 1;
+      this->video.force_jump = 1;
+      this->disc.handled_count++;
     }
 
     this->vpts_offset = this->master->get_option(this->master, METRONOM_VPTS_OFFSET | METRONOM_NO_LOCK);
-    this->av_offset   = this->master->get_option(this->master, METRONOM_AV_OFFSET | METRONOM_NO_LOCK);
+    this->video.av_offset   = this->master->get_option(this->master, METRONOM_AV_OFFSET | METRONOM_NO_LOCK);
   }
 
   lprintf("got_video_frame pts = %" PRId64 ", duration = %d\n", pts, img->duration);
 
-  this->img_cpt++;
+  this->video.img_cpt++;
 
   /* 1000 fps usually means unknown or variable frame rate */
   if (img->duration > 90) {
-    this->video_mode = VIDEO_PREDICTION_MODE;
-    this->img_duration = img->duration;
+    this->video.mode = VIDEO_PREDICTION_MODE;
+    this->video.img_duration = img->duration;
   } else {
     /* will skip the whole predicted vpts stuff */
-    this->video_mode = VIDEO_PTS_MODE;
+    this->video.mode = VIDEO_PTS_MODE;
   }
 
   /* goom likes to deliver all zero pts sometimes. Give a chance to follow
      at least sound card drift */
-  if (!pts && img->duration && !(this->img_cpt & 0x7f))
-    pts = this->last_video_pts + this->img_cpt * img->duration;
+  if (!pts && img->duration && !(this->video.img_cpt & 0x7f))
+    pts = this->video.last_pts + this->video.img_cpt * img->duration;
 
-  if (pts && pts != this->last_video_pts) {
+  if (pts && pts != this->video.last_pts) {
 
     if (!img->duration) {
       /* Compute the duration of previous frames using this formula:
        * duration = (curent_pts - last_pts) / (frame count between the 2 pts)
        * This duration will be used to predict the next frame vpts.
        */
-      if (this->last_video_pts && this->img_cpt) {
-        this->img_duration = (pts - this->last_video_pts) / this->img_cpt;
-        lprintf("computed frame_duration = %d\n", this->img_duration );
+      if (this->video.last_pts && this->video.img_cpt) {
+        this->video.img_duration = (pts - this->video.last_pts) / this->video.img_cpt;
+        lprintf("computed frame_duration = %d\n", this->video.img_duration );
       }
     }
-    this->img_cpt = 0;
-    this->last_video_pts = pts;
+    this->video.img_cpt = 0;
+    this->video.last_pts = pts;
 
 
     /*
-     * compare predicted (this->video_vpts) and given (pts+vpts_offset)
+     * compare predicted (this->video.vpts) and given (pts+vpts_offset)
      * pts values - hopefully they will be the same
      * if not, for small diffs try to interpolate
      *         for big diffs: jump
@@ -878,87 +888,87 @@ static void metronom_got_video_frame (metronom_t *this_gen, vo_frame_t *img) {
 
     pts += this->vpts_offset;
 
-    if (this->bounce_left_video >= 0) {
-      int64_t diff = this->video_vpts - pts;
-      if ((abs (diff) > BOUNCE_MAX) && (abs (diff - this->bounce_diff) < BOUNCE_MAX)) {
-        pts += this->bounce_diff;
+    if (this->bounce.left_video >= 0) {
+      int64_t diff = this->video.vpts - pts;
+      if ((abs (diff) > BOUNCE_MAX) && (abs (diff - this->bounce.diff) < BOUNCE_MAX)) {
+        pts += this->bounce.diff;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: bounced video frame with pts %" PRId64 ".\n", img->pts);
       }
-      this->bounce_left_video -= img->duration;
-      if (this->bounce_left_video < 0) {
-        this->bounce_left_audio = -1;
-        this->bounce_left_video = -1;
+      this->bounce.left_video -= img->duration;
+      if (this->bounce.left_video < 0) {
+        this->bounce.left_audio = -1;
+        this->bounce.left_video = -1;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
           "metronom: leaving bounce area at pts %" PRId64 ".\n", img->pts);
       }
     }
 
-    if (this->video_mode == VIDEO_PREDICTION_MODE) {
+    if (this->video.mode == VIDEO_PREDICTION_MODE) {
 
-      int64_t diff = this->video_vpts - pts;
+      int64_t diff = this->video.vpts - pts;
 
-      lprintf("video diff is %" PRId64 " (predicted %" PRId64 ", given %" PRId64 ")\n", diff, this->video_vpts, pts);
+      lprintf("video diff is %" PRId64 " (predicted %" PRId64 ", given %" PRId64 ")\n", diff, this->video.vpts, pts);
 
-      if ((abs (diff) > VIDEO_DRIFT_TOLERANCE) || (this->force_video_jump)) {
+      if ((abs (diff) > VIDEO_DRIFT_TOLERANCE) || (this->video.force_jump)) {
 
 
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: video jump by %"PRId64" pts.\n", -diff);
-        this->force_video_jump = 0;
-        this->video_vpts       = pts;
-        this->video_drift      = 0;
-        this->video_drift_step = 0;
+        this->video.force_jump = 0;
+        this->video.vpts       = pts;
+        this->video.drift      = 0;
+        this->video.drift_step = 0;
 
       } else {
         /* TJ. Drift into new value over the next 32 frames.
          * Dont fall into the asymptote trap of bringing down step with remaining drift.
-         * BTW. video_drift* merely uses 17 bits.
+         * BTW. video.drift* merely uses 17 bits.
          */
-        this->video_drift = diff;
+        this->video.drift = diff;
         if (diff < 0) {
           int step = ((int)diff - 31) >> 5;
-          if (this->video_drift_step > step)
-            this->video_drift_step = step;
-          else if (this->video_drift_step < (int)diff)
-            this->video_drift_step = diff;
+          if (this->video.drift_step > step)
+            this->video.drift_step = step;
+          else if (this->video.drift_step < (int)diff)
+            this->video.drift_step = diff;
         } else {
           int step = ((int)diff + 31) >> 5;
-          if (this->video_drift_step < step)
-            this->video_drift_step = step;
-          else if (this->video_drift_step > (int)diff)
-            this->video_drift_step = diff;
+          if (this->video.drift_step < step)
+            this->video.drift_step = step;
+          else if (this->video.drift_step > (int)diff)
+            this->video.drift_step = diff;
         }
       }
     } else {
       /* VIDEO_PTS_MODE: do not use the predicted value */
-      this->video_vpts       = pts;
-      this->video_drift      = 0;
-      this->video_drift_step = 0;
+      this->video.vpts       = pts;
+      this->video.drift      = 0;
+      this->video.drift_step = 0;
     }
   }
 
-  img->vpts = this->video_vpts + this->av_offset + this->base_av_offset;
+  img->vpts = this->video.vpts + this->video.av_offset + this->video.base_av_offset;
 
-  /* We need to update this->video_vpts is both modes.
-   * this->video_vpts is used as the next frame vpts if next frame pts=0
+  /* We need to update this->video.vpts is both modes.
+   * this->video.vpts is used as the next frame vpts if next frame pts=0
    */
-  this->video_vpts += this->img_duration - this->video_drift_step;
+  this->video.vpts += this->video.img_duration - this->video.drift_step;
 
-  if (this->video_mode == VIDEO_PREDICTION_MODE) {
+  if (this->video.mode == VIDEO_PREDICTION_MODE) {
     lprintf("video vpts for %10"PRId64" : %10"PRId64" (duration:%d drift:%d step:%d)\n",
-      img->pts, this->video_vpts, img->duration, this->video_drift, this->video_drift_step );
+      img->pts, this->video.vpts, img->duration, this->video.drift, this->video.drift_step );
 
     /* reset drift compensation if work is done after this frame */
-    if (this->video_drift_step < 0) {
-      this->video_drift -= this->video_drift_step;
-      if (this->video_drift >= 0) {
-        this->video_drift      = 0;
-        this->video_drift_step = 0;
+    if (this->video.drift_step < 0) {
+      this->video.drift -= this->video.drift_step;
+      if (this->video.drift >= 0) {
+        this->video.drift      = 0;
+        this->video.drift_step = 0;
       }
-    } else if (this->video_drift_step > 0) {
-      this->video_drift -= this->video_drift_step;
-      if (this->video_drift <= 0) {
-        this->video_drift      = 0;
-        this->video_drift_step = 0;
+    } else if (this->video.drift_step > 0) {
+      this->video.drift -= this->video.drift_step;
+      if (this->video.drift <= 0) {
+        this->video.drift      = 0;
+        this->video.drift_step = 0;
       }
     }
   }
@@ -992,52 +1002,52 @@ static void metronom_handle_audio_discontinuity (metronom_t *this_gen, int type,
     return;
   }
 
-  this->audio_discontinuity_count++;
-  if (this->num_audio_waiters && (this->audio_discontinuity_count >= this->video_discontinuity_count))
-    pthread_cond_signal (&this->audio_discontinuity_reached);
+  this->disc.audio_count++;
+  if (this->disc.num_audio_waiters && (this->disc.audio_count >= this->disc.video_count))
+    pthread_cond_signal (&this->disc.audio_reached);
 
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
     "metronom: audio discontinuity #%d, type is %d, disc_off %" PRId64 ".\n",
-    this->audio_discontinuity_count, type, disc_off);
+    this->disc.audio_count, type, disc_off);
 
-  if (this->audio_discontinuity_count <= this->discontinuity_handled_count) {
+  if (this->disc.audio_count <= this->disc.handled_count) {
     pthread_mutex_unlock (&this->lock);
     return;
   }
 
   if (type == DISC_ABSOLUTE) {
     if (!metronom_handle_discontinuity (this, type, 1, disc_off)) {
-      this->discontinuity_handled_count = this->audio_discontinuity_count;
+      this->disc.handled_count = this->disc.audio_count;
       pthread_mutex_unlock (&this->lock);
       return;
     }
   }
 
   waited = 0;
-  if (this->have_video) {
-    while ( this->audio_discontinuity_count >
-            this->video_discontinuity_count ) {
+  if (this->disc.have_video) {
+    while ( this->disc.audio_count >
+            this->disc.video_count ) {
 
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
         "metronom: waiting for video discontinuity #%d...\n",
-        this->audio_discontinuity_count);
+        this->disc.audio_count);
 
-      this->num_video_waiters++;
-      pthread_cond_wait (&this->video_discontinuity_reached, &this->lock);
-      this->num_video_waiters--;
+      this->disc.num_video_waiters++;
+      pthread_cond_wait (&this->disc.video_reached, &this->lock);
+      this->disc.num_video_waiters--;
       waited = 1;
     }
   } else {
-    this->last_discontinuity_type = type;
-    this->last_discontinuity_offs = disc_off;
+    this->disc.last_type = type;
+    this->disc.last_offs = disc_off;
   }
 
   if (!waited) {
-    metronom_handle_discontinuity (this, this->last_discontinuity_type, 0, this->last_discontinuity_offs);
-    this->discontinuity_handled_count++;
+    metronom_handle_discontinuity (this, this->disc.last_type, 0, this->disc.last_offs);
+    this->disc.handled_count++;
   }
-  this->audio_samples = 0;
-  this->audio_drift_step = 0;
+  this->audio.samples = 0;
+  this->audio.drift_step = 0;
 
   pthread_mutex_unlock (&this->lock);
 }
@@ -1048,40 +1058,40 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
   metronom_impl_t *this = (metronom_impl_t *)this_gen;
   int64_t vpts;
 
-  lprintf("got %d audio samples, pts is %" PRId64 ", last pts = %" PRId64 "\n", nsamples, pts, this->last_audio_pts);
-  lprintf("AUDIO pts from last= %" PRId64 "\n", pts-this->last_audio_pts);
+  lprintf("got %d audio samples, pts is %" PRId64 ", last pts = %" PRId64 "\n", nsamples, pts, this->audio.last_pts);
+  lprintf("AUDIO pts from last= %" PRId64 "\n", pts-this->audio.last_pts);
 
   pthread_mutex_lock (&this->lock);
 
   if (this->master) {
     this->master->set_option(this->master, METRONOM_LOCK, 1);
 
-    if (!this->discontinuity_handled_count) {
+    if (!this->disc.handled_count) {
       /* we are not initialized yet */
 
-      this->video_vpts = this->audio_vpts = this->master->get_option(this->master, METRONOM_VPTS | METRONOM_NO_LOCK);
+      this->video.vpts = this->audio.vpts = this->master->get_option(this->master, METRONOM_VPTS | METRONOM_NO_LOCK);
 
-      this->audio_vpts_rmndr = 0;
+      this->audio.vpts_rmndr = 0;
       /* when being attached to the first master, do not drift into
        * his vpts values but adopt at once */
-      this->force_audio_jump = 1;
-      this->force_video_jump = 1;
-      this->discontinuity_handled_count++;
+      this->audio.force_jump = 1;
+      this->video.force_jump = 1;
+      this->disc.handled_count++;
     }
 
     this->vpts_offset = this->master->get_option(this->master, METRONOM_VPTS_OFFSET | METRONOM_NO_LOCK);
   }
 
-  if (pts && pts != this->last_audio_pts) {
+  if (pts && pts != this->audio.last_pts) {
     int64_t diff;
-    this->last_audio_pts = pts;
+    this->audio.last_pts = pts;
     vpts = pts + this->vpts_offset;
-    diff = this->audio_vpts - vpts;
+    diff = this->audio.vpts - vpts;
 
     /* Attempt to fix that mpeg-ts "video ahead of audio" issue with vdr-libxineoutput. */
-    if (this->audio_seek) {
-      this->audio_seek = 0;
-      if ((diff >= 45000) && (diff < 220000)) {
+    if (this->audio.seek) {
+      this->audio.seek = 0;
+      if ((diff > 0) && (diff < 220000)) {
         vpts += diff;
         this->vpts_offset += diff;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
@@ -1090,24 +1100,24 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
       }
     }
 
-    if (this->bounce_left_audio >= 0) {
-      if ((abs (diff) > BOUNCE_MAX) && (abs (diff - this->bounce_diff) < BOUNCE_MAX)) {
-        vpts += this->bounce_diff;
-        diff = this->audio_vpts - vpts;
+    if (this->bounce.left_audio >= 0) {
+      if ((abs (diff) > BOUNCE_MAX) && (abs (diff - this->bounce.diff) < BOUNCE_MAX)) {
+        vpts += this->bounce.diff;
+        diff = this->audio.vpts - vpts;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: bounced audio buffer with pts %" PRId64 ".\n", pts);
       }
-      this->bounce_left_audio -= (nsamples * this->pts_per_smpls) >> AUDIO_SAMPLE_LD;
-      if (this->bounce_left_audio < 0) {
-        this->bounce_left_audio = -1;
-        this->bounce_left_video = -1;
+      this->bounce.left_audio -= (nsamples * this->audio.pts_per_smpls) >> AUDIO_SAMPLE_LD;
+      if (this->bounce.left_audio < 0) {
+        this->bounce.left_audio = -1;
+        this->bounce.left_video = -1;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
           "metronom: leaving bounce area at pts %" PRId64 ".\n", pts);
       }
-      if (this->bounce_jumped) {
+      if (this->bounce.jumped) {
         if ((diff > 0) /* && (diff < BOUNCE_MAX) */) {
           vpts += diff;
           this->vpts_offset += diff;
-          this->bounce_diff = this->bounce_vpts_offs - this->vpts_offset;
+          this->bounce.diff = this->bounce.vpts_offs - this->vpts_offset;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG,
             "metronom: fixing discontinuity jump by %" PRId64 " pts.\n", diff);
           diff = 0;
@@ -1116,35 +1126,35 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
     }
 
     /* compare predicted and given vpts */
-    if((abs(diff) > AUDIO_DRIFT_TOLERANCE) || (this->force_audio_jump)) {
+    if((abs(diff) > AUDIO_DRIFT_TOLERANCE) || (this->audio.force_jump)) {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "metronom: audio jump by %" PRId64 " pts.\n", -diff);
-      this->force_audio_jump = 0;
-      this->audio_vpts       = vpts;
-      this->audio_vpts_rmndr = 0;
-      this->audio_drift_step = 0;
+      this->audio.force_jump = 0;
+      this->audio.vpts       = vpts;
+      this->audio.vpts_rmndr = 0;
+      this->audio.drift_step = 0;
     } else {
-      if( this->audio_samples ) {
+      if( this->audio.samples ) {
         /* calculate drift_step to recover vpts errors */
         int d = diff, m;
         lprintf ("audio diff = %d\n", d);
 
         d *= AUDIO_SAMPLE_NUM / 4;
-        d /= (int)this->audio_samples;
+        d /= (int)this->audio.samples;
         /* drift_step is not allowed to change rate by more than 25% */
-        m = (int)this->pts_per_smpls >> 2;
+        m = (int)this->audio.pts_per_smpls >> 2;
         if (d > m) d = m;
         else if (d < -m) d = -m;
-        this->audio_drift_step = d;
+        this->audio.drift_step = d;
 
-        lprintf ("audio_drift = %d, pts_per_smpls = %" PRId64 "\n", d, this->pts_per_smpls);
+        lprintf ("audio_drift = %d, audio.pts_per_smpls = %" PRId64 "\n", d, this->audio.pts_per_smpls);
       }
     }
-    this->audio_samples = 0;
+    this->audio.samples = 0;
   }
-  vpts = this->audio_vpts;
+  vpts = this->audio.vpts;
 
   /* drift here is caused by streams where nominal sample rate differs from
-   * the rate of which pts increments. fixing the audio_vpts won't do us any
+   * the rate of which pts increments. fixing the audio.vpts won't do us any
    * good because sound card won't play it faster or slower just because
    * we want. however, adding the error to the vpts_offset will force video
    * to change it's frame rate to keep in sync with us.
@@ -1163,14 +1173,14 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
    *  3. System clock is not an exact multiple of sample rate.
    * So let audio out help us fixing this through occasional feedback there :-)
    */
-  this->audio_vpts_rmndr += (nsamples * this->pts_per_smpls) & AUDIO_SAMPLE_MASK;
-  this->audio_vpts       += (nsamples * this->pts_per_smpls) >> AUDIO_SAMPLE_LD;
-  if (this->audio_vpts_rmndr >= AUDIO_SAMPLE_NUM) {
-    this->audio_vpts       += 1;
-    this->audio_vpts_rmndr -= AUDIO_SAMPLE_NUM;
+  this->audio.vpts_rmndr += (nsamples * this->audio.pts_per_smpls) & AUDIO_SAMPLE_MASK;
+  this->audio.vpts       += (nsamples * this->audio.pts_per_smpls) >> AUDIO_SAMPLE_LD;
+  if (this->audio.vpts_rmndr >= AUDIO_SAMPLE_NUM) {
+    this->audio.vpts       += 1;
+    this->audio.vpts_rmndr -= AUDIO_SAMPLE_NUM;
   }
-  this->audio_samples += nsamples;
-  this->vpts_offset += (nsamples * this->audio_drift_step) >> AUDIO_SAMPLE_LD;
+  this->audio.samples += nsamples;
+  this->vpts_offset += (nsamples * this->audio.drift_step) >> AUDIO_SAMPLE_LD;
 
   if (this->master) {
     this->master->set_option(this->master, METRONOM_LOCK, 0);
@@ -1209,18 +1219,18 @@ static void metronom_set_option (metronom_t *this_gen, int option, int64_t value
 
   switch (option) {
   case METRONOM_AV_OFFSET:
-    this->av_offset = value;
+    this->video.av_offset = value;
     xprintf (this->xine, XINE_VERBOSITY_LOG,
-      "metronom: av_offset=%" PRId64 " pts.\n", this->av_offset);
+      "metronom: video.av_offset=%" PRId64 " pts.\n", this->video.av_offset);
     break;
   case METRONOM_SPU_OFFSET:
-    this->spu_offset = value;
+    this->spu.offset = value;
     xprintf (this->xine, XINE_VERBOSITY_LOG,
-      "metronom: spu_offset=%" PRId64 " pts.\n", this->spu_offset);
+      "metronom: spu.offset=%" PRId64 " pts.\n", this->spu.offset);
     break;
   case METRONOM_ADJ_VPTS_OFFSET:
-    this->audio_vpts      += value;
-    this->audio_vpts_rmndr = 0;
+    this->audio.vpts      += value;
+    this->audio.vpts_rmndr = 0;
 
     /* that message should be rare, please report otherwise.
      * when xine is in some sort of "steady state" hearing it
@@ -1288,13 +1298,13 @@ static int64_t metronom_get_option (metronom_t *this_gen, int option) {
 
   switch (option) {
   case METRONOM_AV_OFFSET:
-    result = this->av_offset;
+    result = this->video.av_offset;
     break;
   case METRONOM_SPU_OFFSET:
-    result = this->spu_offset;
+    result = this->spu.offset;
     break;
   case METRONOM_FRAME_DURATION:
-    result = this->img_duration;
+    result = this->video.img_duration;
     break;
   case METRONOM_VPTS_OFFSET:
     result = this->vpts_offset;
@@ -1303,16 +1313,16 @@ static int64_t metronom_get_option (metronom_t *this_gen, int option) {
     result = this->prebuffer;
     break;
   case METRONOM_VPTS:
-      if (this->video_vpts > this->audio_vpts)
-        result = this->video_vpts;
+      if (this->video.vpts > this->audio.vpts)
+        result = this->video.vpts;
       else
-        result = this->audio_vpts;
+        result = this->audio.vpts;
       break;
   case METRONOM_WAITING:
-    result = (this->num_audio_waiters ? 1 : 0) | (this->num_video_waiters ? 2 : 0);
+    result = (this->disc.num_audio_waiters ? 1 : 0) | (this->disc.num_video_waiters ? 2 : 0);
     break;
   case METRONOM_VDR_TRICK_PTS:
-    result = this->video_vpts;
+    result = this->video.vpts;
     break;
   default:
     result = 0;
@@ -1350,7 +1360,7 @@ static void metronom_set_master(metronom_t *this_gen, metronom_t *master) {
 
   this->master = master;
   /* new master -> we have to reinit */
-  this->discontinuity_handled_count = 0;
+  this->disc.handled_count = 0;
 
   if (old_master)
     old_master->set_option(old_master, METRONOM_LOCK, 0);
@@ -1523,8 +1533,8 @@ static void metronom_exit (metronom_t *this_gen) {
   this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
 
   pthread_mutex_destroy (&this->lock);
-  pthread_cond_destroy (&this->video_discontinuity_reached);
-  pthread_cond_destroy (&this->audio_discontinuity_reached);
+  pthread_cond_destroy (&this->disc.video_reached);
+  pthread_cond_destroy (&this->disc.audio_reached);
 
   free (this);
 }
@@ -1549,7 +1559,7 @@ static void metronom_clock_exit (metronom_clock_t *this) {
 
 static void metronom_base_av_offs_hook (void *this_gen, xine_cfg_entry_t *entry) {
   metronom_impl_t *this = (metronom_impl_t *)this_gen;
-  this->base_av_offset = entry->num_value;
+  this->video.base_av_offset = entry->num_value;
 }
 
 metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
@@ -1562,39 +1572,39 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
    * Let it optimize away this on most systems where clear mem
    * interpretes as 0, 0f or NULL safely.
    */
-  this->master                     = NULL;
-  this->av_offset                   = 0;
-  this->spu_offset                  = 0;
-  this->vpts_offset                 = 0;
-  this->video_drift                 = 0;
-  this->video_drift_step            = 0;
-  this->video_discontinuity_count   = 0;
-  this->discontinuity_handled_count = 0;
-  this->img_cpt                     = 0;
-  this->last_video_pts              = 0;
-  this->last_audio_pts              = 0;
-  this->audio_vpts_rmndr            = 0;
-  this->audio_discontinuity_count   = 0;
-  this->num_audio_waiters           = 0;
-  this->num_video_waiters           = 0;
-  this->pts_per_smpls               = 0;
-  this->spu_vpts                    = 0;
-  this->vdr_hack                    = 0;
-  this->audio_seek                  = 0;
-  this->audio_samples               = 0;
-  this->audio_drift_step            = 0;
-  this->bounce_jumped               = 0;
-  this->bounce_diff                 = 0;
-  this->bounce_vpts_offs            = 0;
-  this->last_discontinuity_offs     = 0;
-  this->last_discontinuity_type     = 0;
-  this->force_video_jump            = 0;
-  this->force_audio_jump            = 0;
-  this->img_duration                = 0;
-  this->video_mode                  = 0;
+  this->master                 = NULL;
+  this->vpts_offset            = 0;
+  this->audio.pts_per_smpls    = 0;
+  this->audio.last_pts         = 0;
+  this->audio.vpts_rmndr       = 0;
+  this->audio.vdr_hack         = 0;
+  this->audio.seek             = 0;
+  this->audio.samples          = 0;
+  this->audio.drift_step       = 0;
+  this->audio.force_jump       = 0;
+  this->video.last_pts         = 0;
+  this->video.av_offset        = 0;
+  this->video.drift            = 0;
+  this->video.drift_step       = 0;
+  this->video.img_cpt          = 0;
+  this->video.force_jump       = 0;
+  this->video.img_duration     = 0;
+  this->video.mode             = 0;
+  this->spu.vpts               = 0;
+  this->spu.offset             = 0;
+  this->bounce.diff            = 0;
+  this->bounce.vpts_offs       = 0;
+  this->bounce.jumped          = 0;
+  this->disc.video_count       = 0;
+  this->disc.handled_count     = 0;
+  this->disc.audio_count       = 0;
+  this->disc.num_audio_waiters = 0;
+  this->disc.num_video_waiters = 0;
+  this->disc.last_offs         = 0;
+  this->disc.last_type         = 0;
 #endif
-  this->bounce_left_audio           = -1;
-  this->bounce_left_video           = -1;
+  this->bounce.left_audio      = -1;
+  this->bounce.left_video      = -1;
   this->metronom.set_audio_rate             = metronom_set_audio_rate;
   this->metronom.got_video_frame            = metronom_got_video_frame;
   this->metronom.got_audio_samples          = metronom_got_audio_samples;
@@ -1614,18 +1624,18 @@ metronom_t * _x_metronom_init (int have_video, int have_audio, xine_t *xine) {
 
   /* initialize video stuff */
 
-  this->have_video   = have_video;
-  this->video_vpts   = this->prebuffer;
-  pthread_cond_init (&this->video_discontinuity_reached, NULL);
-  this->img_duration = 3000;
+  this->disc.have_video   = have_video;
+  this->video.vpts   = this->prebuffer;
+  pthread_cond_init (&this->disc.video_reached, NULL);
+  this->video.img_duration = 3000;
 
   /* initialize audio stuff */
 
-  this->have_audio = have_audio;
-  this->audio_vpts = this->prebuffer;
-  pthread_cond_init (&this->audio_discontinuity_reached, NULL);
+  this->disc.have_audio = have_audio;
+  this->audio.vpts = this->prebuffer;
+  pthread_cond_init (&this->disc.audio_reached, NULL);
 
-  this->base_av_offset = xine->config->register_num (xine->config, "video.output.base_delay", 0,
+  this->video.base_av_offset = xine->config->register_num (xine->config, "video.output.base_delay", 0,
     _("basic video to audio delay in pts"),
     _("Getting in sync picture and sound is a complex story.\n"
       "Xine will compensate for any delays it knows about.\n"
