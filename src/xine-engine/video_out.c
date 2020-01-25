@@ -53,8 +53,6 @@
 #include "xine_private.h"
 
 #define NUM_FRAME_BUFFERS          15
-/* 24/25/30 fps are most common, do these in a single wait */
-#define MAX_USEC_TO_SLEEP       42000
 #define DEFAULT_FRAME_DURATION   3000    /* 30 frames per second */
 
 /* wait this delay if the first frame is still referenced */
@@ -153,6 +151,10 @@ typedef struct {
     vo_frame_t             *ready_first;
     vo_frame_t            **ready_add;
     int                     ready_num;
+    /* Adaptive redraw needed polling. */
+    int                     poll_time;
+    int                     poll_limit;
+    int                     poll_num;
     /* Output loop iterations, total and without a frame to display. */
     int                     wakeups_total;
     int                     wakeups_early;
@@ -1960,11 +1962,23 @@ static void check_redraw_needed (vos_t *this, int64_t vpts) {
   /* calling the frontend's frame output hook (via driver->redraw_needed () here)
    * while flushing (xine_stop ()) may freeze.
    */
-  if (this->display_queue.discard_frames && (this->rp.ready_first || this->display_queue.first))
-    return;
+  if (!(this->display_queue.discard_frames && (this->rp.ready_first || this->display_queue.first))) {
+    if (this->driver->redraw_needed (this->driver))
+      this->redraw_needed = 1;
+  }
 
-  if( this->driver->redraw_needed (this->driver) )
-    this->redraw_needed = 1;
+  if (this->redraw_needed) {
+    this->rp.poll_time  = 40000; /* 25 fps */
+    this->rp.poll_limit = 42000; /* < 24 fps */
+    this->rp.poll_num   = 200;
+  } else {
+    if (this->rp.poll_num > 0) {
+      if (--this->rp.poll_num == 0) {
+        this->rp.poll_time  = 200000; /* 5 fps */
+        this->rp.poll_limit = 200000; /* 5 fps */
+      }
+    }
+  }
 }
 
 static vo_frame_t *next_frame (vos_t *this, int64_t *vpts) {
@@ -2298,11 +2312,11 @@ static void paused_loop( vos_t *this, int64_t vpts )
     }
 
     /* wait for 1/25s or wakeup */
-    this->rp.now.tv_nsec += 40000000;
+    this->rp.now.tv_nsec += this->rp.poll_time * 1000;
     if (this->rp.now.tv_nsec >= 1000000000) {
       /* resyncing the pause clock every second should be enough ;-) */
       xine_gettime (&this->rp.now);
-      this->rp.now.tv_nsec += 40000000;
+      this->rp.now.tv_nsec += this->rp.poll_time * 1000;
       if (this->rp.now.tv_nsec >= 1000000000) {
         this->rp.now.tv_sec++;
         this->rp.now.tv_nsec -= 1000000000;
@@ -2466,7 +2480,7 @@ static void *video_out_loop (void *this_gen) {
       usec_to_sleep = (next_frame_vpts - vpts) * 100 * XINE_FINE_SPEED_NORMAL / (9 * this->rp.speed);
     else
       /* we don't know when the next frame is due, only wait a little */
-      usec_to_sleep = 40000;
+      usec_to_sleep = this->rp.poll_time;
 
     while (this->video_loop_running) {
       int timedout, wait;
@@ -2483,8 +2497,8 @@ static void *video_out_loop (void *this_gen) {
       wait = usec_to_sleep;
       if (wait <= 0)
         break;
-      if (wait > MAX_USEC_TO_SLEEP)
-        wait = MAX_USEC_TO_SLEEP;
+      if (wait > this->rp.poll_limit)
+        wait = this->rp.poll_limit;
 
       lprintf ("%d usec to sleep at master vpts %" PRId64 "\n", wait, vpts);
 
@@ -2797,6 +2811,7 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
            * taking it here triggers a data cache sync, and makes it see discard_frames early. */
           pthread_mutex_lock (&this->trigger_drawing.mutex);
           this->trigger_drawing.draw = 1;
+          pthread_cond_signal (&this->trigger_drawing.wake);
           pthread_mutex_unlock (&this->trigger_drawing.mutex);
         }
       }
@@ -2954,6 +2969,7 @@ static void vo_exit (xine_video_port_t *this_gen) {
     pthread_mutex_lock (&this->trigger_drawing.mutex);
     this->video_loop_running = 0;
     this->trigger_drawing.draw = 1;
+    pthread_cond_signal (&this->trigger_drawing.wake);
     pthread_mutex_unlock (&this->trigger_drawing.mutex);
 
     pthread_join (this->video_thread, &p);
@@ -3120,8 +3136,8 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
   this->video_loop_running    = 0;
   this->trigger_drawing.draw  = 0;
   this->trigger_drawing.step  = 0;
-  this->grab.last_frame            = NULL;
-  this->grab.request  = NULL;
+  this->grab.last_frame       = NULL;
+  this->grab.request          = NULL;
   this->frames_extref         = 0;
   this->frames_peak_used      = 0;
   this->frame_drop_cpt        = 0;
@@ -3156,6 +3172,11 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
   this->vo.status                = vo_status;
   this->vo.driver                = driver;
 
+  /* 24/25/30 fps are most common, do these in a single wait. */
+  this->rp.poll_time             = 40000;
+  this->rp.poll_limit            = 42000;
+  this->rp.poll_num              = 200;
+  
   /* default number of video frames from config */
   num_frame_buffers = xine->config->register_num (xine->config,
     "engine.buffers.video_num_frames",
