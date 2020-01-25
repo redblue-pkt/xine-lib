@@ -47,12 +47,9 @@
 /* xine_rwlock_* */
 #include "xine_private.h"
 
-#define MAX_AUDIO_DELTA        1600
 #define AUDIO_SAMPLE_LD          15
 #define AUDIO_SAMPLE_NUM  (1 << AUDIO_SAMPLE_LD)
 #define AUDIO_SAMPLE_MASK (AUDIO_SAMPLE_NUM - 1)
-#define WRAP_THRESHOLD       120000
-#define MAX_NUM_WRAP_DIFF        10
 #define MAX_SCR_PROVIDERS        10
 #define MAX_SPEED_CHANGE_CALLBACKS 16
 #define VIDEO_DRIFT_TOLERANCE 45000
@@ -690,8 +687,7 @@ static int metronom_handle_discontinuity (metronom_impl_t *this,
           this->audio.force_jump = 1;
           this->video.drift = 0;
           xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-            "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n",
-	    this->video.vpts);
+            "metronom: vpts adjusted with prebuffer to %" PRId64 ".\n", this->video.vpts);
         }
       } else {
         /* video */
@@ -1095,7 +1091,7 @@ static int64_t metronom_got_audio_samples (metronom_t *this_gen, int64_t pts,
         vpts += diff;
         this->vpts_offset += diff;
         xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "metronom: fixing seek jump by %" PRId64 " pts.\n", diff);
+          "metronom: fixing seek jump by %d pts.\n", (int)diff);
         diff = 0;
       }
     }
