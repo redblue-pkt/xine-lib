@@ -1021,6 +1021,7 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
   int display=0;
   int64_t dum;
   int dest_width=0, dest_height;
+  int max_x = 0, max_y = 0;
 
   this->stream->video_out->status(this->stream->video_out, NULL, &dest_width, &dest_height, &dum);
   if ( !dest_width || !dest_height )
@@ -1029,8 +1030,14 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
   /* render all regions onto the page */
 
   for (r = 0; r < this->dvbsub.max_regions; r++) {
-    if (this->dvbsub.page.regions[r].is_visible)
+    if (this->dvbsub.page.regions[r].is_visible) {
+      /* additional safety for broken HD streams without DDS ... */
+      int x2 = this->dvbsub.page.regions[r].x + this->dvbsub.regions[r].width;
+      int y2 = this->dvbsub.page.regions[r].y + this->dvbsub.regions[r].height;
+      max_x = (max_x < x2) ? x2 : max_x;
+      max_y = (max_y < y2) ? y2 : max_y;
       display++;
+    }
   }
   if ( !display )
     return;
@@ -1076,6 +1083,8 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
     lprintf("region=%d, visible=%d, osd=%d, empty=%d\n",
             r, this->dvbsub.page.regions[r].is_visible, reg->osd ? 1 : 0, reg->empty );
     if (this->dvbsub.page.regions[r].is_visible && reg->osd && !reg->empty ) {
+      if (max_x <= this->dvbsub.dds.width && max_y <= this->dvbsub.dds.height)
+        this->stream->osd_renderer->set_extent(reg->osd, this->dvbsub.dds.width, this->dvbsub.dds.height);
       this->stream->osd_renderer->set_position( reg->osd, this->dvbsub.page.regions[r].x, this->dvbsub.page.regions[r].y );
       this->stream->osd_renderer->show( reg->osd, this->vpts );
       lprintf("show region = %d\n",r);
