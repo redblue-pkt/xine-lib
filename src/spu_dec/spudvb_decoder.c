@@ -307,31 +307,6 @@ static void reset_clut (dvbsub_func_t *dvbsub)
   }
 }
 
-static void update_osd(dvb_spu_decoder_t *this, region_t *reg)
-{
-  if ( !reg->img ) {
-    if ( reg->osd ) {
-      pthread_mutex_lock( &this->dvbsub_osd_mutex );
-      this->stream->osd_renderer->free_object( reg->osd );
-      reg->osd = NULL;
-      pthread_mutex_unlock( &this->dvbsub_osd_mutex );
-    }
-    return;
-  }
-
-  if ( reg->osd ) {
-    if ( reg->width!=reg->osd->width || reg->height!=reg->osd->height ) {
-      pthread_mutex_lock( &this->dvbsub_osd_mutex );
-      this->stream->osd_renderer->free_object( reg->osd );
-      reg->osd = NULL;
-      pthread_mutex_unlock( &this->dvbsub_osd_mutex );
-    }
-  }
-
-  if ( !reg->osd )
-    reg->osd = this->stream->osd_renderer->new_object( this->stream->osd_renderer, reg->width, reg->height );
-}
-
 static void update_region (region_t *reg, int region_id, int region_width, int region_height, int fill, int fill_color)
 {
   /* reject invalid sizes and set some limits ! */
@@ -589,25 +564,6 @@ static void decode_8bit_pixel_code_string (dvbsub_func_t *dvbsub, int r, int n)
     /* run length, 1 to 127 pixels, colour 0 */
     plot (dvbsub, r, run_length + 2, 0);
   }
-}
-
-static void recalculate_trans (dvb_spu_decoder_t *this)
-{
-  dvbsub_func_t *const dvbsub = &this->dvbsub;
-  xine_spu_opacity_t opacity;
-  unsigned int i;
-
-  _x_spu_get_opacity (this->stream->xine, &opacity);
-  for (i = 0; i < dvbsub->max_regions * 256; ++i) {
-    /* ETSI-300-743 says "full transparency if Y == 0". */
-    if (dvbsub->colours[i].c.y == 0)
-      dvbsub->trans[i] = 0;
-    else {
-      int v = _x_spu_calculate_opacity (&dvbsub->colours[i].c, dvbsub->colours[i].c.foo, &opacity);
-      dvbsub->trans[i] = v * 14 / 255 + 1;
-    }
-  }
-
 }
 
 static void set_clut(dvbsub_func_t *dvbsub, int CLUT_id,int CLUT_entry_id,int Y_value, int Cr_value, int Cb_value, int T_value) {
@@ -1004,6 +960,31 @@ static void* dvbsub_timer_func(void *this_gen)
   return NULL;
 }
 
+static void update_osd(dvb_spu_decoder_t *this, region_t *reg)
+{
+  if ( !reg->img ) {
+    if ( reg->osd ) {
+      pthread_mutex_lock( &this->dvbsub_osd_mutex );
+      this->stream->osd_renderer->free_object( reg->osd );
+      reg->osd = NULL;
+      pthread_mutex_unlock( &this->dvbsub_osd_mutex );
+    }
+    return;
+  }
+
+  if ( reg->osd ) {
+    if ( reg->width!=reg->osd->width || reg->height!=reg->osd->height ) {
+      pthread_mutex_lock( &this->dvbsub_osd_mutex );
+      this->stream->osd_renderer->free_object( reg->osd );
+      reg->osd = NULL;
+      pthread_mutex_unlock( &this->dvbsub_osd_mutex );
+    }
+  }
+
+  if ( !reg->osd )
+    reg->osd = this->stream->osd_renderer->new_object( this->stream->osd_renderer, reg->width, reg->height );
+}
+
 static void downscale_region_image( region_t *reg, unsigned char *dest, int dest_width )
 {
   float i, k, inc=reg->width/(float)dest_width;
@@ -1011,6 +992,24 @@ static void downscale_region_image( region_t *reg, unsigned char *dest, int dest
   for ( j=0; j<reg->height; j++ ) {
     for ( i=0,k=0; i<reg->width && k<dest_width; i+=inc,k++ ) {
       dest[(j*dest_width)+(int)k] = reg->img[(j*reg->width)+(int)i];
+    }
+  }
+}
+
+static void recalculate_trans (dvb_spu_decoder_t *this)
+{
+  dvbsub_func_t *const dvbsub = &this->dvbsub;
+  xine_spu_opacity_t opacity;
+  unsigned int i;
+
+  _x_spu_get_opacity (this->stream->xine, &opacity);
+  for (i = 0; i < dvbsub->max_regions * 256; ++i) {
+    /* ETSI-300-743 says "full transparency if Y == 0". */
+    if (dvbsub->colours[i].c.y == 0)
+      dvbsub->trans[i] = 0;
+    else {
+      int v = _x_spu_calculate_opacity (&dvbsub->colours[i].c, dvbsub->colours[i].c.foo, &opacity);
+      dvbsub->trans[i] = v * 14 / 255 + 1;
     }
   }
 }
