@@ -276,13 +276,35 @@ typedef struct dvb_spu_decoder_s {
 
 } dvb_spu_decoder_t;
 
-static clut_t default_clut[256];
-static unsigned char default_trans[256];
-static int default_colours_init = 0;
-
 static void reset_clut (dvbsub_func_t *dvbsub)
 {
+  // XXX This function is called only from spudec_reset().
+  // - would it be enough to just zero out these entries as when opening the decoder ... ?
   unsigned int i, r;
+  unsigned char default_trans[256];
+  clut_t default_clut[256];
+
+#define YUVA(r, g, b, a) (clut_t) { COMPUTE_V(r, g, b), COMPUTE_U(r, g, b), COMPUTE_V(r, g, b), a }
+#define GETBIT(s, v1, v2, tr) \
+    r = s + ((i & 1) ? v1 : 0) + ((i & 0x10) ? v2 : 0); \
+    g = s + ((i & 2) ? v1 : 0) + ((i & 0x20) ? v2 : 0); \
+    b = s + ((i & 4) ? v1 : 0) + ((i & 0x40) ? v2 : 0); \
+    a = tr
+
+  default_clut[0] = YUVA(0, 0, 0, 0);
+  for (i = 1; i < 256; i++) {
+    uint8_t r, g, b, a;
+    if (i < 8) {
+      GETBIT(0, 255, 0, 63);
+    } else switch (i & 0x88) {
+      case 0x00: GETBIT(  0, 85, 170, 255); break;
+      case 0x08: GETBIT(  0, 85, 170, 127); break;
+      case 0x80: GETBIT(127, 43,  85, 255); break;
+      default  : GETBIT(  0, 43,  85, 255); break;
+      }
+    default_trans[i] = a;
+    default_clut[i] = YUVA(r, g, b, a);
+  }
 
   /* Reset the colour LUTs */
   for (r = 0; r < MAX_REGIONS; ++r)
@@ -1298,34 +1320,6 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
   this = calloc(1, sizeof (dvb_spu_decoder_t));
   if (!this)
     return NULL;
-
-#define YUVA(r, g, b, a) (clut_t) { COMPUTE_V(r, g, b), COMPUTE_U(r, g, b), COMPUTE_V(r, g, b), a }
-#define GETBIT(s, v1, v2, tr) \
-    r = s + ((i & 1) ? v1 : 0) + ((i & 0x10) ? v2 : 0); \
-    g = s + ((i & 2) ? v1 : 0) + ((i & 0x20) ? v2 : 0); \
-    b = s + ((i & 4) ? v1 : 0) + ((i & 0x40) ? v2 : 0); \
-    a = tr
-
-  if (!default_colours_init)
-  {
-    int i;
-    default_clut[0] = YUVA(0, 0, 0, 0);
-    for (i = 1; i < 256; i++) {
-      uint8_t r, g, b, a;
-      if (i < 8) {
-        GETBIT(0, 255, 0, 63);
-      } else switch (i & 0x88) {
-      case 0x00: GETBIT(  0, 85, 170, 255); break;
-      case 0x08: GETBIT(  0, 85, 170, 127); break;
-      case 0x80: GETBIT(127, 43,  85, 255); break;
-      default  : GETBIT(  0, 43,  85, 255); break;
-      }
-      default_trans[i] = a;
-      default_clut[i] = YUVA(r, g, b, a);
-    }
-    default_colours_init = 1;
-  }
-
 
   this->spu_decoder.decode_data = spudec_decode_data;
   this->spu_decoder.reset = spudec_reset;
