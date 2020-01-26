@@ -40,6 +40,8 @@
 #include <xine/spu.h>
 #include <xine/osd.h>
 
+#include "xine-engine/bswap.h"
+
 #define MAX_REGIONS 16
 
 #define SPU_MAX_WIDTH 1920
@@ -218,6 +220,15 @@ typedef union {
 } clut_union_t;
 
 typedef struct {
+  uint8_t  version_number;
+  uint8_t  windowed;
+  uint16_t width;
+  uint16_t height;
+  /* window, TODO */
+  /* uint16_t x0, x1, y0, y1; */
+} dds_t;
+
+typedef struct {
 /* dvbsub stuff */
   int                   x;
   int                   y;
@@ -229,6 +240,7 @@ typedef struct {
   int                   compat_depth;
   unsigned int          max_regions;
   page_t                page;
+  dds_t                 dds;
   region_t              regions[MAX_REGIONS];
   clut_union_t          colours[MAX_REGIONS*256];
   unsigned char         trans[MAX_REGIONS*256];
@@ -888,13 +900,52 @@ static void process_object_data_segment (dvbsub_func_t *dvbsub)
   }
 }
 
-#if 0
-static void process_display_definition_segment(dvb_spu_decoder_t *this)
+static void process_display_definition_segment(dvbsub_func_t *dvbsub)
 {
-  /* FIXME: not implemented. */
-  (void)this;
-}
+  unsigned int version_number, segment_length;
+  uint8_t *buf = &dvbsub->buf[dvbsub->i];
+
+  /*page_id = _X_BE_16(buf); */
+  segment_length = _X_BE_16(buf + 2);
+  buf += 4;
+
+  if (segment_length < 5)
+    return;
+
+  version_number = (buf[0] >> 4);
+
+  /* Check version number */
+  if (version_number == dvbsub->dds.version_number)
+    return;
+
+  dvbsub->dds.version_number = version_number;
+  dvbsub->dds.windowed = (buf[0] & 0x08) >> 3;
+
+  dvbsub->dds.width  = _X_BE_16(buf + 1) + 1;
+  dvbsub->dds.height = _X_BE_16(buf + 3) + 1;
+
+  lprintf("display_definition_segment: %ux%u, windowed=%u\n",
+          dvbsub->dds.width, dvbsub->dds.height, dvbsub->dds.windowed);
+
+  if (dvbsub->dds.windowed) {
+#if 0
+    if (segment_length < 13)
+      return;
+    /* TODO: window currently disabled (no samples) */
+    dvbsub->dds.x0 = _X_BE_16(buf + 5);
+    dvbsub->dds.x1 = _X_BE_16(buf + 7);
+    dvbsub->dds.y0 = _X_BE_16(buf + 9);
+    dvbsub->dds.y1 = _X_BE_16(buf + 11);
+
+    lprintf("display_definition_segment: window (%u,%u)-(%u,%u)\n",
+            dvbsub->dds.x0, dvbsub->dds.y0, dvbsub->dds.x1, dvbsub->dds.y1,
 #endif
+  }
+}
+
+/*
+ *
+ */
 
 static void unlock_mutex_cancellation_func(void *mutex_gen)
 {
@@ -1089,6 +1140,12 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
     memset (this->pes_pkt_wrptr, 0xff, sizeof(this->pes_pkt) - buf->size);
 
     this->vpts = 0;
+
+    /* set DDS default (SD resolution) */
+    this->dvbsub.dds.version_number = 0xff;
+    this->dvbsub.dds.width = 720;
+    this->dvbsub.dds.height = 576;
+    this->dvbsub.dds.windowed = 0;
   }
   else {
     if (this->pes_pkt_wrptr != this->pes_pkt) {
@@ -1155,7 +1212,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
               process_object_data_segment (&this->dvbsub);
               break;
             case 0x14:
-              //process_display_definition_segment(this);
+              process_display_definition_segment(&this->dvbsub);
               break;
             case 0x80:          /* Page is now completely rendered */
               recalculate_trans(this);
