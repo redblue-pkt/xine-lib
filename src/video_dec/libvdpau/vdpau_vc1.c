@@ -337,7 +337,7 @@ static void sequence_header( vdpau_vc1_decoder_t *this_gen, uint8_t *buf, int le
     case 0: sequence->profile = VDP_DECODER_PROFILE_VC1_SIMPLE; lprintf("VDP_DECODER_PROFILE_VC1_SIMPLE\n"); break;
     case 1: sequence->profile = VDP_DECODER_PROFILE_VC1_MAIN; lprintf("VDP_DECODER_PROFILE_VC1_MAIN\n"); break;
     case 2: sequence->profile = VDP_DECODER_PROFILE_VC1_MAIN; fprintf(stderr, "vc1_complex profile not supported by vdpau, forcing vc1_main, expect corruption!.\n"); break;
-    case 3: return sequence_header_advanced( this_gen, buf, len ); break;
+    case 3: sequence_header_advanced( this_gen, buf, len ); return;
     default: return; /* illegal value, broken header? */
   }
   skip_bits( &sequence->br, 10 );
