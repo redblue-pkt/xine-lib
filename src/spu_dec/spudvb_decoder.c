@@ -931,6 +931,16 @@ static void unlock_mutex_cancellation_func(void *mutex_gen)
   pthread_mutex_unlock(mutex);
 }
 
+static void _hide_overlays_locked(dvb_spu_decoder_t *this)
+{
+  unsigned int i;
+  for (i = 0; i < this->dvbsub.max_regions; i++) {
+    if (this->dvbsub.regions[i].osd) {
+      this->stream->osd_renderer->hide( this->dvbsub.regions[i].osd, 0 );
+    }
+  }
+}
+
 /* Thread routine that checks for subtitle timeout periodically.
    To avoid unexpected subtitle hiding, calls to this->stream->osd_renderer->show()
    should be in blocks like:
@@ -966,13 +976,8 @@ static void* dvbsub_timer_func(void *this_gen)
     {
       /* We timed out, and no-one changed the timeout underneath us.
          Hide the OSD, then wait until we're signalled. */
-        unsigned int i;
-        for (i = 0; i < this->dvbsub.max_regions; i++) {
-          if (this->dvbsub.regions[i].osd) {
-            this->stream->osd_renderer->hide( this->dvbsub.regions[i].osd, 0 );
-            lprintf("thread hiding = %d\n",i);
-          }
-        }
+      lprintf("thread hiding\n");
+      _hide_overlays_locked(this);
 
       pthread_cond_wait(&this->dvbsub_restart_timeout, &this->dvbsub_osd_mutex);
     }
@@ -1124,6 +1129,17 @@ static void draw_subtitles (dvb_spu_decoder_t * this)
   pthread_mutex_unlock(&this->dvbsub_osd_mutex);
 }
 
+static void _hide_overlays(dvb_spu_decoder_t *this)
+{
+  pthread_mutex_lock(&this->dvbsub_osd_mutex);
+  _hide_overlays_locked(this);
+  pthread_mutex_unlock(&this->dvbsub_osd_mutex);
+}
+
+/*
+ *
+ */
+
 static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
 {
   dvb_spu_decoder_t *this = (dvb_spu_decoder_t *) this_gen;
@@ -1138,13 +1154,7 @@ static void spudec_decode_data (spu_decoder_t * this_gen, buf_element_t * buf)
     if (buf->decoder_info[1] == BUF_SPECIAL_SPU_DVB_DESCRIPTOR) {
       if (buf->decoder_info[2] == 0) {
         /* Hide the osd - note that if the timeout thread times out, it'll rehide, which is harmless */
-        unsigned int i;
-        pthread_mutex_lock(&this->dvbsub_osd_mutex);
-        for (i = 0; i < this->dvbsub.max_regions; i++) {
-          if (this->dvbsub.regions[i].osd)
-            this->stream->osd_renderer->hide( this->dvbsub.regions[i].osd, 0 );
-        }
-        pthread_mutex_unlock(&this->dvbsub_osd_mutex);
+        _hide_overlays(this);
       }
       else {
         if (buf->decoder_info[2] < sizeof(this->spu_descriptor)) {
@@ -1265,16 +1275,13 @@ static void spudec_reset (spu_decoder_t * this_gen)
   unsigned int i;
 
   /* Hide the osd - if the timeout thread times out, it'll rehide harmlessly */
-  pthread_mutex_lock(&this->dvbsub_osd_mutex);
+  _hide_overlays(this);
+
   for ( i=0; i<MAX_REGIONS; i++ ) {
-    if (this->dvbsub.regions[i].osd)
-      this->stream->osd_renderer->hide(this->dvbsub.regions[i].osd, 0);
     this->dvbsub.regions[i].version_number = -1;
   }
   this->dvbsub.page.page_version_number = -1;
   reset_clut (&this->dvbsub);
-
-  pthread_mutex_unlock(&this->dvbsub_osd_mutex);
 }
 
 static void spudec_discontinuity (spu_decoder_t * this_gen)
