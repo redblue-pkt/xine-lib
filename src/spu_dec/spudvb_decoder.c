@@ -1278,9 +1278,9 @@ static void spudec_reset (spu_decoder_t * this_gen)
   _hide_overlays(this);
 
   for ( i=0; i<MAX_REGIONS; i++ ) {
-    this->dvbsub.regions[i].version_number = -1;
+    this->dvbsub.regions[i].version_number = 0xff;
   }
-  this->dvbsub.page.page_version_number = -1;
+  this->dvbsub.page.page_version_number = 0xff;
   reset_clut (&this->dvbsub);
 }
 
@@ -1369,6 +1369,11 @@ static spu_decoder_t *dvb_spu_class_open_plugin (spu_decoder_class_t * class_gen
     spudec_dispose_stopped(this);
     return NULL;
   }
+
+  for (i = 0; i < MAX_REGIONS; i++) {
+    this->dvbsub.regions[i].version_number = 0xff;
+  }
+  this->dvbsub.page.page_version_number = 0xff;
 
   return &this->spu_decoder;
 }
