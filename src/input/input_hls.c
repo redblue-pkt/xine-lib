@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 the xine project
+ * Copyright (C) 2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -63,6 +63,7 @@ typedef struct {
   xine_stream_t    *stream;
   input_plugin_t   *in1;
   off_t             size1;
+  uint32_t          caps1;
   hls_frag_info_t  *frags, *current_frag;
   char             *list_buf;
   uint32_t          list_bsize;
@@ -247,8 +248,10 @@ static int hls_input_open_item (hls_input_plugin_t *this, uint32_t n) {
   /* get fragment mrl */
   _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->list_buf + this->frags[n].mrl_offs);
   /* get input */
+  this->caps1 = 0;
   if (!hls_input_switch_mrl (this))
     return 0;
+  this->caps1 = this->in1->get_capabilities (this->in1);
   /* query fragment */
   this->size1 = this->in1->get_length (this->in1);
   if (this->size1 <= 0)
@@ -554,10 +557,8 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
 
 static uint32_t hls_input_get_capabilities (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
-  uint32_t flags = 0;
-  if (this->in1)
-    flags = this->in1->get_capabilities (this->in1) 
-          & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW);
+  uint32_t flags = this->caps1
+    & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW);
   if (this->list_type == LIST_VOD) {
     flags |= INPUT_CAP_TIME_SEEKABLE;
   } else {
@@ -666,6 +667,16 @@ static buf_element_t *hls_input_read_block (input_plugin_t *this_gen, fifo_buffe
   return NULL;
 }
 
+static void hls_input_frag_seek (hls_input_plugin_t *this, uint32_t new_pos_in_frag) {
+  if (this->caps1 & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) {
+    int32_t newpos = this->in1->seek (this->in1, new_pos_in_frag, SEEK_SET);
+    if (newpos < 0)
+      newpos = this->in1->get_current_pos (this->in1);
+    if (newpos >= 0)
+      this->pos_in_frag = newpos;
+  }
+}
+
 static off_t hls_input_time_seek (input_plugin_t *this_gen, int time_offs, int origin) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
   uint32_t new_time;
@@ -713,8 +724,7 @@ static off_t hls_input_time_seek (input_plugin_t *this_gen, int time_offs, int o
     if (m < 0)
       m = 0;
     if (this->frags + m == frag) {
-      this->in1->seek (this->in1, 0, SEEK_SET);
-      this->pos_in_frag = 0;
+      hls_input_frag_seek (this, 0);
     } else {
       if (!hls_input_open_item (this, m))
         return (off_t)-1;
@@ -722,12 +732,13 @@ static off_t hls_input_time_seek (input_plugin_t *this_gen, int time_offs, int o
     }
   }
 
-  return frag->start_offs;
+  return frag->start_offs + this->pos_in_frag;
 }
 
 static off_t hls_input_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
   off_t new_offs;
+  uint32_t new_pos_in_frag;
   hls_frag_info_t *frag;
 
   if (this->list_type != LIST_VOD)
@@ -780,12 +791,15 @@ static off_t hls_input_seek (input_plugin_t *this_gen, off_t offset, int origin)
         return (off_t)-1;
       m++;
       frag = this->current_frag;
-      this->pos_in_frag = new_offs - frag->start_offs;
-    } while (this->pos_in_frag >= (uint32_t)frag->byte_size);
+      new_pos_in_frag = new_offs - frag->start_offs;
+    } while (new_pos_in_frag >= (uint32_t)frag->byte_size);
+  } else {
+    new_pos_in_frag = new_offs - frag->start_offs;
   }
 
-  this->in1->seek (this->in1, this->pos_in_frag, SEEK_SET);
-  return new_offs;
+  hls_input_frag_seek (this, new_pos_in_frag);
+
+  return frag->start_offs + this->pos_in_frag;
 }
 
 static off_t hls_input_get_current_pos (input_plugin_t *this_gen) {
@@ -943,6 +957,7 @@ static input_plugin_t *hls_input_get_instance (input_class_t *cls_gen, xine_stre
 
 #ifndef HAVE_ZERO_SAFE_MEM
   this->size1        = 0;
+  this->caps1        = 0;
   this->frags        = NULL;
   this->current_frag = NULL;
   this->list_buf     = NULL;
