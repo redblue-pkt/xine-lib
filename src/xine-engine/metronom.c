@@ -70,9 +70,7 @@
  * ****************************************
  */
 
-typedef struct unixscr_s {
-  scr_plugin_t    scr;
-  void           *mem_to_free;
+typedef struct {
   /* Time of last speed change. */
   struct timeval  cur_time;
   int64_t         cur_pts;
@@ -80,9 +78,23 @@ typedef struct unixscr_s {
   double          speed_factor_1;
   /* speed_factor_1 / 1000000 */
   double          speed_factor_2;
+} unixscr_values_t;
 
-  xine_rwlock_t   lock;
+typedef struct {
+  scr_plugin_t     scr;
+  void            *mem_to_free;
+  unixscr_values_t v;
+  xine_rwlock_t    lock;
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_t      num_speed_changes;
+#endif
 } unixscr_t;
+
+#if (HAVE_ATOMIC_VARS > 0)
+static void unixscr_dummy (void *object) {
+  (void)object;
+}
+#endif
 
 static int unixscr_get_priority (scr_plugin_t *scr) {
   (void)scr;
@@ -95,23 +107,29 @@ static void unixscr_set_pivot (unixscr_t *this) {
   double pts_calc;
 
   xine_monotonic_clock (&tv, NULL);
-  pts_calc = (tv.tv_sec - this->cur_time.tv_sec) * this->speed_factor_1;
+  pts_calc = (tv.tv_sec - this->v.cur_time.tv_sec) * this->v.speed_factor_1;
   /* Make sure this diff is signed. */
-  pts_calc += ((int32_t)tv.tv_usec - (int32_t)this->cur_time.tv_usec) * this->speed_factor_2;
+  pts_calc += ((int32_t)tv.tv_usec - (int32_t)this->v.cur_time.tv_usec) * this->v.speed_factor_2;
   /* This next part introduces a one off inaccuracy to the scr due to rounding tv to pts. */
-  this->cur_pts  = this->cur_pts + pts_calc;
-  this->cur_time = tv;
+  this->v.cur_pts  = this->v.cur_pts + pts_calc;
+  this->v.cur_time = tv;
 }
 
 static int unixscr_set_speed (scr_plugin_t *scr, int speed) {
   unixscr_t *this = (unixscr_t*) scr;
 
   xine_rwlock_wrlock (&this->lock);
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_add (&this->num_speed_changes, 1);
+#endif
 
   unixscr_set_pivot( this );
-  this->speed_factor_1 = (double)speed * 90000.0 / XINE_FINE_SPEED_NORMAL;
-  this->speed_factor_2 = this->speed_factor_1 * 1e-6;
+  this->v.speed_factor_1 = (double)speed * 90000.0 / XINE_FINE_SPEED_NORMAL;
+  this->v.speed_factor_2 = this->v.speed_factor_1 * 1e-6;
 
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_add (&this->num_speed_changes, 1);
+#endif
   xine_rwlock_unlock (&this->lock);
 
   return speed;
@@ -121,10 +139,16 @@ static void unixscr_adjust (scr_plugin_t *scr, int64_t vpts) {
   unixscr_t *this = (unixscr_t*) scr;
 
   xine_rwlock_wrlock (&this->lock);
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_add (&this->num_speed_changes, 1);
+#endif
 
-  this->cur_pts = vpts;
-  xine_monotonic_clock (&this->cur_time, NULL);
+  this->v.cur_pts = vpts;
+  xine_monotonic_clock (&this->v.cur_time, NULL);
 
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_add (&this->num_speed_changes, 1);
+#endif
   xine_rwlock_unlock (&this->lock);
 }
 
@@ -132,29 +156,56 @@ static void unixscr_start (scr_plugin_t *scr, int64_t start_vpts) {
   unixscr_t *this = (unixscr_t*) scr;
 
   xine_rwlock_wrlock (&this->lock);
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_add (&this->num_speed_changes, 1);
+#endif
 
-  this->cur_pts = start_vpts;
-  xine_monotonic_clock (&this->cur_time, NULL);
+  this->v.cur_pts = start_vpts;
+  xine_monotonic_clock (&this->v.cur_time, NULL);
   /* XINE_FINE_SPEED_NORMAL */
-  this->speed_factor_1 = 90000.0;
-  this->speed_factor_2 = 0.09;
+  this->v.speed_factor_1 = 90000.0;
+  this->v.speed_factor_2 = 0.09;
 
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_add (&this->num_speed_changes, 1);
+#endif
   xine_rwlock_unlock (&this->lock);
 }
 
 static int64_t unixscr_get_current (scr_plugin_t *scr) {
   unixscr_t *this = (unixscr_t*) scr;
-
-  struct   timeval tv;
+  struct timeval tv;
   int64_t pts;
-  double   pts_calc;
+
+  xine_monotonic_clock (&tv, NULL);
+#if (HAVE_ATOMIC_VARS > 0)
+  {
+    int refs = xine_refs_get (&this->num_speed_changes);
+    if (refs & 1) {
+      /* TJ. no change in progress, try a snapshot without lock first.
+       * the "volatile" is there to stop compiler from reordering code.
+       * tested with gcc -O3 -S 4.5/x86-32 and 7/x86-64.
+       * there is a point where all optimization falls over into chaos.
+       * we are getting closer ;-) */
+      volatile unixscr_values_t v = this->v;
+
+      if (refs == xine_refs_get (&this->num_speed_changes)) {
+        double pts_calc;
+        pts_calc  = (tv.tv_sec - v.cur_time.tv_sec) * v.speed_factor_1;
+        pts_calc += ((int32_t)tv.tv_usec - (int32_t)v.cur_time.tv_usec) * v.speed_factor_2;
+        pts = v.cur_pts + pts_calc;
+        return pts;
+      }
+    }
+  }
+#endif
   xine_rwlock_rdlock (&this->lock);
-
-  xine_monotonic_clock(&tv, NULL);
-  pts_calc  = (tv.tv_sec - this->cur_time.tv_sec) * this->speed_factor_1;
-  pts_calc += ((int32_t)tv.tv_usec - (int32_t)this->cur_time.tv_usec) * this->speed_factor_2;
-  pts = this->cur_pts + pts_calc;
-
+  {
+    double pts_calc;
+    pts_calc  = (tv.tv_sec - this->v.cur_time.tv_sec) * this->v.speed_factor_1;
+    pts_calc += ((int32_t)tv.tv_usec - (int32_t)this->v.cur_time.tv_usec) * this->v.speed_factor_2;
+    pts = this->v.cur_pts + pts_calc;
+  }
   xine_rwlock_unlock (&this->lock);
 
   return pts;
@@ -163,6 +214,10 @@ static int64_t unixscr_get_current (scr_plugin_t *scr) {
 static void unixscr_exit (scr_plugin_t *scr) {
   unixscr_t *this = (unixscr_t*) scr;
 
+#if (HAVE_ATOMIC_VARS > 0)
+  int refs = xine_refs_get (&this->num_speed_changes);
+  xine_refs_sub (&this->num_speed_changes, refs);
+#endif
   xine_rwlock_destroy (&this->lock);
   free (this->mem_to_free);
 }
@@ -188,13 +243,16 @@ static scr_plugin_t *unixscr_init (void *this_gen) {
   this->scr.exit              = unixscr_exit;
 
   xine_rwlock_init_default (&this->lock);
+#if (HAVE_ATOMIC_VARS > 0)
+  xine_refs_init (&this->num_speed_changes, unixscr_dummy, this);
+#endif
 
-  this->cur_time.tv_sec  = 0;
-  this->cur_time.tv_usec = 0;
-  this->cur_pts          = 0;
+  this->v.cur_time.tv_sec  = 0;
+  this->v.cur_time.tv_usec = 0;
+  this->v.cur_pts          = 0;
   /* XINE_SPEED_PAUSE */
-  this->speed_factor_1   = 0;
-  this->speed_factor_2   = 0;
+  this->v.speed_factor_1   = 0;
+  this->v.speed_factor_2   = 0;
   lprintf("xine-scr_init complete\n");
 
   return &this->scr;
