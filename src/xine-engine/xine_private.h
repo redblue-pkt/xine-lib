@@ -78,10 +78,14 @@ EXTERN_C_START
 #    define XINE_ATFA(xatfa_refs,xatfa_n) __atomic_fetch_add (&(xatfa_refs), (xatfa_n), __ATOMIC_ACQ_REL)
 #    define XINE_ATGET(xatfa_refs) __atomic_load_n (&(xatfa_refs), __ATOMIC_ACQUIRE)
 #  else /* HAVE_ATOMIC_VARS == 3 */
-#    define XINE_ATINT_T int
+#    define XINE_ATINT_T volatile int
 #    define XINE_ATINIT(xatfa_refs,xatfa_n) xatfa_refs = xatfa_n
 #    define XINE_ATFA(xatfa_refs,xatfa_n) __sync_fetch_and_add (&(xatfa_refs), (xatfa_n))
-#    define XINE_ATGET(xatfa_refs) __sync_fetch_and_add (&(xatfa_refs), 0)
+#    if defined (ARCH_X86)
+#      define XINE_ATGET(xatfa_refs) (xatfa_refs)
+#    else
+#      define XINE_ATGET(xatfa_refs) __sync_fetch_and_add (&(xatfa_refs), 0)
+#    endif
 #  endif
 
 typedef struct {
