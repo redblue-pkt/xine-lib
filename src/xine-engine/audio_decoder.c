@@ -80,6 +80,7 @@ static void *audio_decoder_loop (void *stream_gen) {
   running_ticket->acquire (running_ticket, 0);
 
   while (running) {
+    int handled, ignore;
 
     lprintf ("audio_loop: waiting for package...\n");
 
@@ -98,7 +99,12 @@ static void *audio_decoder_loop (void *stream_gen) {
 
         if ((buf->type & 0xffff0000) == BUF_AUDIO_UNKNOWN)
           break;
-        if (_x_stream_info_get (&stream->s, XINE_STREAM_INFO_IGNORE_AUDIO))
+        xine_rwlock_rdlock (&stream->info_lock);
+        handled = stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED];
+        ignore  = stream->stream_info[XINE_STREAM_INFO_IGNORE_AUDIO];
+        xine_rwlock_unlock (&stream->info_lock);
+        (void)handled; /* dont optimize away the read. */
+        if (ignore)
           break;
         xine_profiler_start_count (prof_audio_decode);
 
@@ -170,8 +176,10 @@ static void *audio_decoder_loop (void *stream_gen) {
                 }
                 stream->audio_decoder_streamtype = streamtype;
                 stream->audio_decoder_plugin = _x_get_audio_decoder (&stream->s, streamtype);
-                _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED,
-                  (stream->audio_decoder_plugin != NULL));
+                handled = (stream->audio_decoder_plugin != NULL);
+                xine_rwlock_wrlock (&stream->info_lock);
+                stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED] = handled;
+                xine_rwlock_unlock (&stream->info_lock);
                 /* audio_br_reset */
                 audio_br_lasttime = 0;
                 audio_br_lastsize = 0;
@@ -209,13 +217,15 @@ static void *audio_decoder_loop (void *stream_gen) {
                         audio_br_bytes >>= 1;
                         audio_br_time  >>= 1;
                       }
-                      br = (uint64_t)audio_br_bytes * 90000 * 8 / audio_br_time;
+                      br = xine_uint_mul_div (audio_br_bytes, 90000 * 8, audio_br_time);
                       bdiff = br - audio_br_value;
                       if (bdiff < 0)
                         bdiff = -bdiff;
                       if (bdiff > (br >> 6)) {
                         audio_br_value = br;
-                        _x_stream_info_set (&stream->s, XINE_STREAM_INFO_AUDIO_BITRATE, br);
+                        xine_rwlock_wrlock (&stream->info_lock);
+                        stream->stream_info[XINE_STREAM_INFO_AUDIO_BITRATE] = br;
+                        xine_rwlock_unlock (&stream->info_lock);
                       }
                     }
                   }
@@ -228,12 +238,17 @@ static void *audio_decoder_loop (void *stream_gen) {
               }
               audio_br_lastsize += buf->size;
 
-              if (buf->type != buftype_unknown &&
-                !_x_stream_info_get (&stream->s, XINE_STREAM_INFO_AUDIO_HANDLED)) {
+              /* no need to lock again. it may have been reset from this thread inside
+               * audio_decoder_plugin->decode_data (), if at all.
+               * XXX: should we try a different decoder then? */
+              handled = stream->stream_info[XINE_STREAM_INFO_AUDIO_HANDLED];
+              if (!handled && (buf->type != buftype_unknown)) {
+                const char *aname = _x_buf_audio_name (buf->type);
+
                 xine_log (stream->s.xine, XINE_LOG_MSG,
-                  _("audio_decoder: no plugin available to handle '%s'\n"), _x_buf_audio_name (buf->type));
+                  _("audio_decoder: no plugin available to handle '%s'\n"), aname);
                 if (!_x_meta_info_get (&stream->s, XINE_META_INFO_AUDIOCODEC))
-                  _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_AUDIOCODEC, _x_buf_audio_name (buf->type));
+                  _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_AUDIOCODEC, aname);
                 buftype_unknown = buf->type;
                 /* fatal error - dispose plugin */
                 if (stream->audio_decoder_plugin) {

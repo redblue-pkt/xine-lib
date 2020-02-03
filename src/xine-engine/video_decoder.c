@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -155,6 +155,7 @@ static void *video_decoder_loop (void *stream_gen) {
   running_ticket->acquire (running_ticket, 0);
 
   while (running) {
+    int handled, ignore;
 
     lprintf ("getting buffer...\n");
 
@@ -171,7 +172,12 @@ static void *video_decoder_loop (void *stream_gen) {
 
         if ((buf->type & 0xffff0000) == BUF_VIDEO_UNKNOWN)
           break;
-        if (_x_stream_info_get (&stream->s, XINE_STREAM_INFO_IGNORE_VIDEO))
+        xine_rwlock_rdlock (&stream->info_lock);
+        handled = stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED];
+        ignore  = stream->stream_info[XINE_STREAM_INFO_IGNORE_VIDEO];
+        xine_rwlock_unlock (&stream->info_lock);
+        (void)handled; /* dont optimize away the read. */
+        if (ignore)
           break;
 
         /* at first frame contents after start or seek, read first_frame_flag.
@@ -216,7 +222,10 @@ static void *video_decoder_loop (void *stream_gen) {
           video_br_num      = 20;
           video_br_value    = 0;
   
-          _x_stream_info_set (&stream->s, XINE_STREAM_INFO_VIDEO_HANDLED, (stream->video_decoder_plugin != NULL));
+          handled = (stream->video_decoder_plugin != NULL);
+          xine_rwlock_wrlock (&stream->info_lock);
+          stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED] = handled;
+          xine_rwlock_unlock (&stream->info_lock);
         }
 
         if (stream->video_decoder_plugin)
@@ -237,13 +246,15 @@ static void *video_decoder_loop (void *stream_gen) {
                   video_br_bytes >>= 1;
                   video_br_time  >>= 1;
                 }
-                br = (uint64_t)video_br_bytes * 90000 * 8 / video_br_time;
+                br = xine_uint_mul_div (video_br_bytes, 90000 * 8, video_br_time);
                 bdiff = br - video_br_value;
                 if (bdiff < 0)
                   bdiff = -bdiff;
                 if (bdiff > (br >> 6)) {
                   video_br_value = br;
-                  _x_stream_info_set (&stream->s, XINE_STREAM_INFO_VIDEO_BITRATE, br);
+                  xine_rwlock_wrlock (&stream->info_lock);
+                  stream->stream_info[XINE_STREAM_INFO_VIDEO_BITRATE] = br;
+                  xine_rwlock_unlock (&stream->info_lock);
                 }
               }
             }
@@ -255,13 +266,18 @@ static void *video_decoder_loop (void *stream_gen) {
         }
         video_br_lastsize += buf->size;
 
-        if (buf->type != buftype_unknown &&
-            !_x_stream_info_get (&stream->s, XINE_STREAM_INFO_VIDEO_HANDLED)) {
+        /* no need to lock again. it may have been reset from this thread inside
+         * video_decoder_plugin->decode_data (), if at all.
+         * XXX: should we try a different decoder then? */
+        handled = stream->stream_info[XINE_STREAM_INFO_VIDEO_HANDLED];
+        if (!handled && (buf->type != buftype_unknown)) {
+          const char *vname = _x_buf_video_name (buf->type);
+
           xine_log (stream->s.xine, XINE_LOG_MSG,
-                    _("video_decoder: no plugin available to handle '%s'\n"), _x_buf_video_name( buf->type ) );
+            _("video_decoder: no plugin available to handle '%s'\n"), vname);
 
           if (!_x_meta_info_get (&stream->s, XINE_META_INFO_VIDEOCODEC))
-	    _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_VIDEOCODEC, _x_buf_video_name( buf->type ));
+	    _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_VIDEOCODEC, vname);
 
           buftype_unknown = buf->type;
 
