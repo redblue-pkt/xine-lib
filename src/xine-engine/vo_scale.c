@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -338,6 +338,77 @@ void _x_vo_scale_translate_gui2video(vo_scale_t *this,
   *vid_y = y;
 }
 
+
+vo_scale_map_res_t _x_vo_scale_map (vo_scale_t *this, vo_scale_map_t *map) {
+  double fx, fy, t;
+  int vw, vh, ax, ay;
+
+  if (!this || !map)
+    return VO_SCALE_MAP_WRONG_ARGS;
+
+  if ((this->displayed_width <= 0) || (this->displayed_height <= 0))
+    return VO_SCALE_MAP_ERROR;
+
+  vw = this->delivered_width - (this->crop_left + this->crop_right);
+  vh = this->delivered_height - (this->crop_top + this->crop_bottom);
+
+  if ((map->out.x1 <= 0) || (map->out.y1 <= 0)) {
+    map->out.x1 = vw;
+    map->out.y1 = vh;
+    if ((map->out.x1 <= 0) || (map->out.y1 <= 0))
+      return VO_SCALE_MAP_ERROR;
+  }
+
+  t = (this->output_width == this->displayed_width) ? 1.0 : (double)this->output_width / (double)this->displayed_width;
+  fx = (map->out.x1 == vw) ? 1.0 : (double)vw / (double)map->out.x1;
+  ax = fx * (this->output_xoffset - (t * this->displayed_xoffset));
+  fx *= t;
+
+  t = (this->output_height == this->displayed_height) ? 1.0 : (double)this->output_height / (double)this->displayed_height;
+  fy = (map->out.y1 == vh) ? 1.0 : (double)vh / (double)map->out.y1;
+  ay = fy * (this->output_yoffset - (t * this->displayed_yoffset));
+  fy *= t;
+
+  map->out.x1 = ax + (fx * (map->out.x0 + map->in.x1));
+  map->out.x0 = ax + (fx * map->out.x0);
+  map->out.y1 = ay + (fy * (map->out.y0 + map->in.y1));
+  map->out.y0 = ay + (fy * map->out.y0);
+
+  map->in.x0 = 0;
+  ax = this->output_xoffset;
+  if (map->out.x0 < ax) {
+    map->in.x0 = (ax - map->out.x0) / fx;
+    if (map->in.x0 >= map->in.x1)
+      return VO_SCALE_MAP_OUTSIDE;
+    map->out.x0 = ax;
+  }
+  map->in.y0 = 0;
+  ay = this->output_yoffset;
+  if (map->out.y0 < ay) {
+    map->in.y0 = (ay - map->out.y0) / fy;
+    if (map->in.y0 >= map->in.y1)
+      return VO_SCALE_MAP_OUTSIDE;
+    map->out.y0 = ay;
+  }
+
+  ax = this->output_xoffset + this->output_width;
+  if (map->out.x1 > ax) {
+    map->in.x1 -= (map->out.x1 - ax) / fx;
+    if (map->in.x1 <= map->in.x0)
+      return VO_SCALE_MAP_OUTSIDE;
+    map->out.x1 = ax;
+  }
+  ay = this->output_yoffset + this->output_height;
+  if (map->out.y1 > ay) {
+    map->in.y1 -= (map->out.y1 - ay) / fy;
+    if (map->in.y1 <= map->in.y0)
+      return VO_SCALE_MAP_OUTSIDE;
+    map->out.y1 = ay;
+  }
+
+  return VO_SCALE_MAP_OK;
+}
+
 /*/
  * @brief Table for description of a given ratio code.
  *
@@ -449,3 +520,4 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
 	"sharpness.\n"),
       10, vo_scale_square_pixels_changed, this);
 }
+
