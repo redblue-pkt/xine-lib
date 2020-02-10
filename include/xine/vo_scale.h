@@ -175,6 +175,29 @@ void _x_vo_scale_translate_gui2video(vo_scale_t *self,
 				     int x, int y,
 				     int *vid_x, int *vid_y) XINE_PROTECTED;
 
+typedef struct {
+  struct {
+    int x0, y0, x1, y1;
+  } in, out;
+} vo_scale_map_t;
+
+typedef enum {
+  VO_SCALE_MAP_OK = 0,     /** << Fine. */
+  VO_SCALE_MAP_OUTSIDE,    /** << rect completely outside visible video. */
+  VO_SCALE_MAP_WRONG_ARGS, /** << NULL passed. */
+  VO_SCALE_MAP_ERROR       /** << vo_scale yet unset. */
+} vo_scale_map_res_t;
+
+/** @brief Map a rectangle to video out window.
+ *  @param self The vo_scale status to use.
+ *  @param map  On call: map.in = {0, 0, width, height} of input rect.
+ *                       map.out = {left, top, extent_width, extent_height} where input should go.
+ *                                 Extents may be 0 if same as video size.
+ *              On return: map.in = {left, top, right, bottom} to use from input rect.
+ *                         map.out = {left, top, right, bottom} inside video out.
+ * @return What went wrong. */
+vo_scale_map_res_t _x_vo_scale_map (vo_scale_t *self, vo_scale_map_t *map) XINE_PROTECTED;
+
 /*
  * Returns description of a given ratio code
  */
