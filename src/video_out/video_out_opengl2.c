@@ -1,6 +1,6 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2012-2019 the xine project
+ * Copyright (C) 2012-2020 the xine project
  * Copyright (C) 2012 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -930,34 +930,54 @@ static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *
 
 static void opengl2_update_overlays( opengl2_driver_t *that )
 {
-  int i, vid_scale=0, cancel_vid_scale=0;
-  opengl2_overlay_t *o;
+  if (that->ovl_changed) {
+    int i;
 
-  if ( that->ovl_changed ) {
     that->ovl_vid_scale = 0;
-    for ( i=0; i<that->num_ovls; ++i ) {
-      o = &that->overlays[i];
+    for (i = 0; i < that->num_ovls; ++i) {
+      opengl2_overlay_t *o = &that->overlays[i];
       
-      /* handle DVB subs scaling, e.g. 720x576->1920x1080 */
-      if ( o->vid_scale ) {
-        vid_scale = 1;
-        if ( o->ovl_w > 720 || o->ovl_h > 576 )
-          cancel_vid_scale = 1;
+      /* handle DVB subs scaling, e.g. 720x576->1920x1080
+       * FIXME: spu_dvb now always sends extent_width >= 0.
+       * do we need this anymore ?? */
+      if (o->vid_scale) {
+        that->ovl_vid_scale = 1;
+        if ((o->ovl_w > 720) || (o->ovl_h > 576)) {
+          that->ovl_vid_scale = 0;
+          break;
+        }
       }
     }
+    that->ovl_changed = 0;
   }
-
-  if ( that->ovl_changed && vid_scale && !cancel_vid_scale )
-    that->ovl_vid_scale = 1;
-
-  that->ovl_changed = 0;
 }
 
+
+/* DVB subtitles are split into rectangular regions, with no respect to text lines.
+ * Instead, they just touch each other exactly. Make sure they still do after scaling. */
+typedef struct {
+  int x1, y1, x2, y2;
+} opengl2_rect_t;
+
+static void opengl2_rect_set (opengl2_rect_t *r, opengl2_overlay_t *o) {
+  r->x1 = o->ovl_x;
+  r->y1 = o->ovl_y;
+  r->x2 = r->x1 + o->ovl_w;
+  r->y2 = r->y1 + o->ovl_h;
+}
+
+static void opengl2_rect_scale (opengl2_rect_t *r, float fx, float fy) {
+  r->x1 *= fx;
+  r->y1 *= fy;
+  r->x2 *= fx;
+  r->y2 *= fy;
+}
 
 
 static void opengl2_draw_scaled_overlays( opengl2_driver_t *that, opengl2_frame_t *frame )
 {
-  int i, ox, oy, ow, oh;
+  int i;
+  opengl2_rect_t or;
   opengl2_overlay_t *o;
 
   glEnable( GL_BLEND );
@@ -965,29 +985,30 @@ static void opengl2_draw_scaled_overlays( opengl2_driver_t *that, opengl2_frame_
     o = &that->overlays[i];
     if ( o->unscaled )
       continue;
-    /* scaled overlays with known extent:
-       draw overlay over scaled video frame -> more sharpness in overlay */
-    if (o->extent_width > 0 && o->extent_height > 0)
+    opengl2_rect_set (&or, o);
+    if ((o->extent_width > 0) && (o->extent_height > 0))
+#if 1
+      /* scaled overlays with known extent:
+       * draw overlay over scaled video frame -> more sharpness in overlay */
       continue;
-    ox = o->ovl_x; oy = o->ovl_y;
-    ow = o->ovl_w; oh = o->ovl_h;
-    if (o->extent_width > 0 && o->extent_height > 0) {
+#else
+    {
       float fx = frame->width / (float)o->extent_width, fy = frame->height / (float)o->extent_height;
-      ox *= fx; oy *= fy;
-      ow *= fx; oh *= fy;
-    } else if ( o->vid_scale && that->ovl_vid_scale ) {
+      opengl2_rect_scale (&or, fx, fy);
+    } else
+#endif
+    if (o->vid_scale && that->ovl_vid_scale) {
       float fx = frame->width / 720.0, fy = frame->height / 576.0;
-      ox *= fx; oy *= fy;
-      ow *= fx; oh *= fy;
+      opengl2_rect_scale (&or, fx, fy);
     }
     glActiveTexture( GL_TEXTURE0 );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, o->tex );
 
     glBegin( GL_QUADS );
-      glTexCoord2f( 0, 0 );                  glVertex3f( ox, oy, 0.);
-      glTexCoord2f( 0, o->tex_h );           glVertex3f( ox, oy + oh, 0.);
-      glTexCoord2f( o->tex_w, o->tex_h );    glVertex3f( ox + ow, oy + oh, 0.);
-      glTexCoord2f( o->tex_w, 0 );           glVertex3f( ox + ow, oy, 0.);
+      glTexCoord2f( 0, 0 );                  glVertex3f( or.x1, or.y1, 0.);
+      glTexCoord2f( 0, o->tex_h );           glVertex3f( or.x1, or.y2, 0.);
+      glTexCoord2f( o->tex_w, o->tex_h );    glVertex3f( or.x2, or.y2, 0.);
+      glTexCoord2f( o->tex_w, 0 );           glVertex3f( or.x2, or.y1, 0.);
     glEnd();
   }
   glDisable( GL_BLEND );
@@ -997,31 +1018,40 @@ static void opengl2_draw_scaled_overlays( opengl2_driver_t *that, opengl2_frame_
 
 static void opengl2_draw_unscaled_overlays( opengl2_driver_t *that )
 {
-  int i, ox, oy, ow, oh;
-  opengl2_overlay_t *o;
-  
+  int i;
+
   glEnable( GL_BLEND );
   for ( i=0; i<that->num_ovls; ++i ) {
-    o = &that->overlays[i];
+    opengl2_overlay_t *o = &that->overlays[i];
+    vo_scale_map_t map;
+
     if ( !o->unscaled && (o->extent_width <= 0 || o->extent_height <= 0))
       continue;
-    ox = o->ovl_x; oy = o->ovl_y;
-    ow = o->ovl_w; oh = o->ovl_h;
+
+    map.in.x0 = 0;
+    map.in.y0 = 0;
+    map.in.x1 = o->ovl_w;
+    map.in.y1 = o->ovl_h;
+    map.out.x0 = o->ovl_x;
+    map.out.y0 = o->ovl_y;
+    if (!o->unscaled) {
+      map.out.x1 = o->extent_width;
+      map.out.y1 = o->extent_height;
+      if (_x_vo_scale_map (&that->sc, &map) != VO_SCALE_MAP_OK)
+        continue;
+    } else {
+      map.out.x1 = o->ovl_x + o->ovl_w;
+      map.out.y1 = o->ovl_y + o->ovl_h;
+    }
+
     glActiveTexture( GL_TEXTURE0 );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, o->tex );
 
-    if (!o->unscaled) {
-      float fx = that->sc.gui_width / (float)o->extent_width, fy = that->sc.gui_height / (float)o->extent_height;
-      /* scale to output */
-      ox = fx * ox; oy = fy * oy;
-      ow = fx * ow; oh = fy * oh;
-    }
-
     glBegin( GL_QUADS );
-      glTexCoord2f( 0, 0 );                  glVertex3f( ox, oy, 0.);
-      glTexCoord2f( 0, o->tex_h );           glVertex3f( ox, oy + oh, 0.);
-      glTexCoord2f( o->tex_w, o->tex_h );    glVertex3f( ox + ow, oy + oh, 0.);
-      glTexCoord2f( o->tex_w, 0 );           glVertex3f( ox + ow, oy, 0.);
+      glTexCoord2f (map.in.x0, map.in.y0);    glVertex3f (map.out.x0, map.out.y0, 0.);
+      glTexCoord2f (map.in.x0, map.in.y1);    glVertex3f (map.out.x0, map.out.y1, 0.);
+      glTexCoord2f (map.in.x1, map.in.y1);    glVertex3f (map.out.x1, map.out.y1, 0.);
+      glTexCoord2f (map.in.x1, map.in.y0);    glVertex3f (map.out.x1, map.out.y0, 0.);
     glEnd();
   }
   glDisable( GL_BLEND );
