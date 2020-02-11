@@ -116,6 +116,7 @@ typedef struct {
   int                ovl_changed;
   int                ovl_vid_scale;
   int                num_ovls;
+  uint32_t           ovls_drawn;
   opengl2_overlay_t  overlays[XINE_VORAW_MAX_OVL];
 
   opengl2_program_t  sharpness_program;
@@ -977,30 +978,30 @@ static void opengl2_rect_scale (opengl2_rect_t *r, float fx, float fy) {
 static void opengl2_draw_scaled_overlays( opengl2_driver_t *that, opengl2_frame_t *frame )
 {
   int i;
-  opengl2_rect_t or;
-  opengl2_overlay_t *o;
 
   glEnable( GL_BLEND );
+
+  that->ovls_drawn = 0;
   for ( i=0; i<that->num_ovls; ++i ) {
-    o = &that->overlays[i];
+    opengl2_overlay_t *o = &that->overlays[i];
+    opengl2_rect_t or;
+
     if ( o->unscaled )
       continue;
-    opengl2_rect_set (&or, o);
-    if ((o->extent_width > 0) && (o->extent_height > 0))
-#if 1
-      /* scaled overlays with known extent:
-       * draw overlay over scaled video frame -> more sharpness in overlay */
+    /* if extent == video size, blend it here, and make it take part in bicubic scaling.
+     * other scaled overlays with known extent:
+     * draw overlay over scaled video frame -> more sharpness in overlay. */
+    if ((o->extent_width > 0) && (o->extent_width != frame->width) &&
+        (o->extent_height > 0) && (o->extent_height != frame->height))
       continue;
-#else
-    {
-      float fx = frame->width / (float)o->extent_width, fy = frame->height / (float)o->extent_height;
-      opengl2_rect_scale (&or, fx, fy);
-    } else
-#endif
+
+    that->ovls_drawn |= 1 << i;
+    opengl2_rect_set (&or, o);
     if (o->vid_scale && that->ovl_vid_scale) {
       float fx = frame->width / 720.0, fy = frame->height / 576.0;
       opengl2_rect_scale (&or, fx, fy);
     }
+
     glActiveTexture( GL_TEXTURE0 );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, o->tex );
 
@@ -1015,7 +1016,6 @@ static void opengl2_draw_scaled_overlays( opengl2_driver_t *that, opengl2_frame_
 }
 
 
-
 static void opengl2_draw_unscaled_overlays( opengl2_driver_t *that )
 {
   int i;
@@ -1025,7 +1025,7 @@ static void opengl2_draw_unscaled_overlays( opengl2_driver_t *that )
     opengl2_overlay_t *o = &that->overlays[i];
     vo_scale_map_t map;
 
-    if ( !o->unscaled && (o->extent_width <= 0 || o->extent_height <= 0))
+    if (that->ovls_drawn & (1 << i))
       continue;
 
     map.in.x0 = 0;
