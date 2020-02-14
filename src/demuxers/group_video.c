@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -44,7 +44,8 @@ static const demuxer_info_t demux_info_matroska   = { .priority = 10 };
 static const demuxer_info_t demux_info_qt         = { .priority = 10 };
 static const demuxer_info_t demux_info_raw_dv     = { .priority = 1  };
 static const demuxer_info_t demux_info_real       = { .priority = 10 };
-static const demuxer_info_t demux_info_ts         = { .priority = 10 };
+/* probe mpeg-ts first, and detect TV recordings cut at an unhappy byte pos. */
+static const demuxer_info_t demux_info_ts         = { .priority = 12 };
 static const demuxer_info_t demux_info_vc1es      = { .priority = 0  };
 static const demuxer_info_t demux_info_yuv_frames = { .priority = 0  };
 static const demuxer_info_t demux_info_yuv4mpeg2  = { .priority = 10 };
