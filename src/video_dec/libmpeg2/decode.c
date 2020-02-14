@@ -876,7 +876,7 @@ void mpeg2_find_sequence_header (mpeg2dec_t * mpeg2dec,
 
   mpeg2dec->seek_mode = 1;
 
-  while (current != end) {
+  while (current < end) {
     code = mpeg2dec->code;
     current = copy_chunk (mpeg2dec, current, end);
     if (current == NULL)
