@@ -486,7 +486,9 @@ static void *video_decoder_loop (void *stream_gen) {
 
           case BUFTYPE_SUB (BUF_CONTROL_RESET_DECODER):
             _x_extra_info_reset (stream->video_decoder_extra_info);
-            stream->video_seek_count++;
+            /* bump seek count, and inform audio decoder about this. */
+            stream->video_seek_count += 1;
+            (void)stream->s.audio_fifo->size (stream->s.audio_fifo);
             /* running_ticket->acquire(running_ticket, 0); */
             if (stream->video_decoder_plugin)
               stream->video_decoder_plugin->reset (stream->video_decoder_plugin);

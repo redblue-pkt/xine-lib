@@ -293,6 +293,7 @@ typedef struct {
   struct {
     uint32_t         speed;
     int              trick;
+    int64_t          last_flush_vpts;
   } rp;
 
   int64_t         last_audio_vpts;
@@ -742,6 +743,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       audio_buffer_t *list, **add;
       int n;
 
+      this->rp.last_flush_vpts = this->clock->get_current_time (this->clock);
       this->ei_read = this->ei_write = 0;
 
       list = NULL;
@@ -1780,9 +1782,7 @@ static void *ao_loop (void *this_gen) {
           }
           if (found && stream) {
             xine_stream_private_t *m = stream->side_streams[0];
-            pthread_mutex_lock (&m->current_extra_info_lock);
-            _x_extra_info_merge (m->current_extra_info, found);
-            pthread_mutex_unlock (&m->current_extra_info_lock);
+            xine_current_extra_info_set (m, found);
             if (found->seek_count == this->seek_count3) {
               xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
@@ -1878,12 +1878,19 @@ static void *ao_loop (void *this_gen) {
         }
         if (stream) {
           xine_stream_private_t *m = stream->side_streams[0];
-          if (!found && (cur_time - m->current_extra_info->vpts) > 30000)
-            found = in_buf->extra_info;
+          if (!found) {
+            /* O dear. This extra info ring will unblock xine_play () when the first
+             * frame after seek is actually heared. That is at least one metronom
+             * prebuffer delay (default 14400 pts) later -- too long for fluent seek.
+             * Video out tricks around this by showing the first frame earlier.
+             * We could double a portion of audio here if we have an agile driver,
+             * and if we like to annoy the user sooner or later.
+             * Until there is a better way, just limit the delay to 3000 pts. */
+            if ((this->ei_read != this->ei_write) && ((cur_time - this->rp.last_flush_vpts) > 3000))
+              found = &this->base_ei[this->ei_read];
+          }
           if (found) {
-            pthread_mutex_lock (&m->current_extra_info_lock);
-            _x_extra_info_merge (m->current_extra_info, found);
-            pthread_mutex_unlock (&m->current_extra_info_lock);
+            xine_current_extra_info_set (m, found);
             if (found->seek_count == this->seek_count3) {
               xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
@@ -2379,9 +2386,7 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
       if (s->first_frame_flag >= 2) {
         xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 1.\n", buf->extra_info->seek_count);
         if (s->first_frame_flag == 3) {
-          pthread_mutex_lock (&s->current_extra_info_lock);
-          _x_extra_info_merge (s->current_extra_info, buf->extra_info);
-          pthread_mutex_unlock (&s->current_extra_info_lock);
+          xine_current_extra_info_set (s, buf->extra_info);
           s->first_frame_flag = 0;
           pthread_cond_broadcast (&s->first_frame_reached);
         } else {
@@ -2913,6 +2918,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->eq_settings[7]         = 0;
   this->eq_settings[8]         = 0;
   this->eq_settings[9]         = 0;
+  this->rp.last_flush_vpts     = 0;
   this->resend_vpts            = 0;
   this->driver_caps            = 0;
   this->resend_speed           = 0;
