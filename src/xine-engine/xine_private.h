@@ -597,8 +597,9 @@ typedef struct xine_stream_private_st {
   /* filter out duplicate seek discontinuities from side streams */
   uint32_t                   demux_max_seek_bufs;
 
-  extra_info_t              *current_extra_info;
-  pthread_mutex_t            current_extra_info_lock;
+#define XINE_NUM_CURR_EXTRA_INFOS 2
+  xine_refs_t                current_extra_info_index;
+  extra_info_t               current_extra_info[XINE_NUM_CURR_EXTRA_INFOS];
   int                        video_seek_count;
 
   int                        delay_finish_event; /* delay event in 1/10 sec units. 0=>no delay, -1=>forever */
@@ -627,8 +628,10 @@ typedef struct xine_stream_private_st {
   /* _x_find_input_plugin () recursion protection */
   input_class_t             *query_input_plugins[2];
 
-  extra_info_t               ei[3];
+  extra_info_t               ei[2];
 } xine_stream_private_t;
+
+void xine_current_extra_info_set (xine_stream_private_t *stream, const extra_info_t *info) INTERNAL;
 
 /* Nasty net_buf_ctrl helper: inform about something outside its regular callbacks. */
 #define XINE_NBC_EVENT_AUDIO_DRY 1
@@ -637,4 +640,3 @@ void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) INTERNAL;
 EXTERN_C_STOP
 
 #endif
-

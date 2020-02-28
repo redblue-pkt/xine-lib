@@ -1663,9 +1663,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
 
     if (stream) {
       xine_stream_private_t *m = stream->side_streams[0];
-      pthread_mutex_lock (&m->current_extra_info_lock);
-      _x_extra_info_merge (m->current_extra_info, img->extra_info);
-      pthread_mutex_unlock (&m->current_extra_info_lock);
+      xine_current_extra_info_set (m, img->extra_info);
     }
 
     this->num_frames_skipped++;
@@ -2117,9 +2115,7 @@ static vo_frame_t *next_frame (vos_t *this, int64_t *vpts) {
     if (img->stream) {
       xine_stream_private_t *m = (xine_stream_private_t *)img->stream;
       m = m->side_streams[0];
-      pthread_mutex_lock (&m->current_extra_info_lock);
-      _x_extra_info_merge (m->current_extra_info, img->extra_info);
-      pthread_mutex_unlock (&m->current_extra_info_lock);
+      xine_current_extra_info_set (m, img->extra_info);
     }
 
     ADD_READY_FRAMES;
@@ -2173,15 +2169,10 @@ static void overlay_and_display_frame (vos_t *this, vo_frame_t *img, int64_t vpt
     vo_frame_driver_proc(img);
 
   if (img->stream) {
-    int64_t diff;
     xine_stream_private_t *m = (xine_stream_private_t *)img->stream;
     m = m->side_streams[0];
-    pthread_mutex_lock (&m->current_extra_info_lock);
-    diff = img->extra_info->vpts - m->current_extra_info->vpts;
     /* Always post first frame time to make frontend relative seek work. */
-    if ((diff > 3000) || (diff<-300000) || (img->is_first > 0))
-      _x_extra_info_merge (m->current_extra_info, img->extra_info);
-    pthread_mutex_unlock (&m->current_extra_info_lock);
+    xine_current_extra_info_set (m, img->extra_info);
     /* First frame's native stream is the most common case.
      * Do it without streams lock.
      */

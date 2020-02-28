@@ -139,6 +139,38 @@ void _x_extra_info_merge( extra_info_t *dst, extra_info_t *src ) {
   }
 }
 
+static void xine_current_extra_info_reset (xine_stream_private_t *stream) {
+  int index = xine_refs_get (&stream->current_extra_info_index);
+  extra_info_t *b = &stream->current_extra_info[(index + 1) & (XINE_NUM_CURR_EXTRA_INFOS - 1)];
+
+  memset (b, 0, sizeof (*b));
+  xine_refs_add (&stream->current_extra_info_index, 1);
+}
+
+void xine_current_extra_info_set (xine_stream_private_t *stream, const extra_info_t *info) {
+  if (!info->invalid) {
+    int index = xine_refs_get (&stream->current_extra_info_index);
+    const extra_info_t *a = &stream->current_extra_info[index & (XINE_NUM_CURR_EXTRA_INFOS - 1)];
+    extra_info_t *b = &stream->current_extra_info[(index + 1) & (XINE_NUM_CURR_EXTRA_INFOS - 1)];
+
+    b->input_normpos = info->input_normpos ? info->input_normpos : a->input_normpos;
+    b->input_time    = info->input_time    ? info->input_time    : a->input_time;
+    b->frame_number  = info->frame_number  ? info->frame_number  : a->frame_number;
+    b->seek_count    = info->seek_count    ? info->seek_count    : a->seek_count;
+    b->vpts          = info->vpts          ? info->vpts          : a->vpts;
+
+    xine_refs_add (&stream->current_extra_info_index, 1);
+  }
+}
+
+static int xine_current_extra_info_get (xine_stream_private_t *stream, extra_info_t *info) {
+  int index = xine_refs_get (&stream->current_extra_info_index);
+  const extra_info_t *a = &stream->current_extra_info[index & (XINE_NUM_CURR_EXTRA_INFOS - 1)];
+
+  *info = *a;
+  return stream->video_seek_count;
+}
+  
 #define XINE_TICKET_FLAG_PAUSE (int)0x40000000
 
 typedef struct {
@@ -988,6 +1020,10 @@ static void video_decoder_update_disable_flush_at_discontinuity (void *s, xine_c
   stream->disable_decoder_flush_at_discontinuity = !!entry->num_value;
 }
 
+static void _xine_dummy_dest (void *object) {
+  (void)object;
+}
+
 static void xine_dispose_internal (xine_stream_private_t *stream);
 
 xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_port_t *vo) {
@@ -1045,12 +1081,10 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   /* no need to memset again
   _x_extra_info_reset (&stream->ei[0]);
   _x_extra_info_reset (&stream->ei[1]);
-  _x_extra_info_reset (&stream->ei[2]);
   */
 
-  stream->current_extra_info       = &stream->ei[0];
-  stream->audio_decoder_extra_info = &stream->ei[1];
-  stream->video_decoder_extra_info = &stream->ei[2];
+  stream->audio_decoder_extra_info = &stream->ei[0];
+  stream->video_decoder_extra_info = &stream->ei[1];
 
   stream->side_streams[0]       = stream;
   stream->id_flag               = 1 << 0;
@@ -1092,6 +1126,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
     goto err_free;
 
   /* init mutexes and conditions */
+  xine_refs_init (&stream->current_extra_info_index, _xine_dummy_dest, stream);
   xine_rwlock_init_default (&stream->info_lock);
   xine_rwlock_init_default (&stream->meta_lock);
   pthread_mutex_init (&stream->demux_lock, NULL);
@@ -1103,7 +1138,6 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   pthread_cond_init  (&stream->counter_changed, NULL);
   pthread_mutex_init (&stream->first_frame_lock, NULL);
   pthread_cond_init  (&stream->first_frame_reached, NULL);
-  pthread_mutex_init (&stream->current_extra_info_lock, NULL);
   pthread_mutex_init (&stream->index_mutex, NULL);
 
   /* warning: frontend_lock is a recursive mutex. it must NOT be
@@ -1167,7 +1201,6 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   pthread_mutex_unlock  (&this->streams_lock);
   pthread_mutex_destroy (&stream->frontend_lock);
   pthread_mutex_destroy (&stream->index_mutex);
-  pthread_mutex_destroy (&stream->current_extra_info_lock);
   pthread_cond_destroy  (&stream->first_frame_reached);
   pthread_mutex_destroy (&stream->first_frame_lock);
   pthread_cond_destroy  (&stream->counter_changed);
@@ -1179,6 +1212,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   pthread_mutex_destroy (&stream->demux_lock);
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
+  xine_refs_sub (&stream->current_extra_info_index, xine_refs_get (&stream->current_extra_info_index));
   xine_list_delete      (stream->event_queues);
 
   err_free:
@@ -1211,12 +1245,12 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   }
 
   /* these are not used in side streams.
+  xine_refs_sub (&stream->current_extra_info_index, xine_refs_get (&stream->current_extra_info_index));
   pthread_mutex_destroy (&stream->frontend_lock);
   pthread_mutex_destroy (&stream->index_mutex);
   pthread_mutex_destroy (&stream->demux_pair_mutex);
   pthread_mutex_destroy (&stream->event_queues_lock);
   pthread_mutex_destroy (&stream->counter_lock);
-  pthread_mutex_destroy (&stream->current_extra_info_lock);
   pthread_mutex_destroy (&stream->first_frame_lock);
   pthread_cond_destroy  (&stream->first_frame_reached);
   pthread_cond_destroy  (&stream->counter_changed);
@@ -1290,13 +1324,11 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   /* no need to memset again
   _x_extra_info_reset (&stream->ei[0]);
   _x_extra_info_reset (&stream->ei[1]);
-  _x_extra_info_reset (&stream->ei[2]);
   */
 
   /* create a reference counter */
   xine_refs_init (&s->refs, (void (*)(void *))xine_side_dispose_internal, &s->s);
 
-  s->current_extra_info       = m->current_extra_info;
   s->audio_decoder_extra_info = m->audio_decoder_extra_info;
   s->video_decoder_extra_info = m->video_decoder_extra_info;
 
@@ -1343,12 +1375,12 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
     pthread_mutex_init (&s->frontend_lock, &attr);
     pthread_mutexattr_destroy (&attr);
   }
+  xine_refs_init (&stream->current_extra_info_index, _xine_dummy_dest, stream);
   pthread_mutex_init (&s->demux_pair_mutex, NULL);
   pthread_mutex_init (&s->index_mutex, NULL);
   pthread_mutex_init (&s->event_queues_lock, NULL);
   pthread_mutex_init (&s->counter_lock, NULL);
   pthread_mutex_init (&s->first_frame_lock, NULL);
-  pthread_mutex_init (&s->current_extra_info_lock, NULL);
   pthread_cond_init  (&s->counter_changed, NULL);
   pthread_cond_init  (&s->first_frame_reached, NULL);
   xine_rwlock_init_default (&s->info_lock);
@@ -2193,9 +2225,7 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   pthread_mutex_unlock (&stream->first_frame_lock);
 
   /* before resuming the demuxer, reset current position information */
-  pthread_mutex_lock( &stream->current_extra_info_lock );
-  _x_extra_info_reset( stream->current_extra_info );
-  pthread_mutex_unlock( &stream->current_extra_info_lock );
+  xine_current_extra_info_reset (stream);
 
   /* now resume demuxer thread if it is running already */
   demux_status = 0;
@@ -2230,10 +2260,14 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
    * see video_out.c
    */
   wait_first_frame (stream);
-  if (stream->current_extra_info->seek_count != stream->video_seek_count)
+  {
+    extra_info_t info;
+    int video_seek_count = xine_current_extra_info_get (stream, &info);
+    if (info.seek_count != video_seek_count)
     xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "play_internal: warning: seek count still %d != %d.\n",
-      stream->current_extra_info->seek_count, stream->video_seek_count);
-    
+      info.seek_count, video_seek_count);
+  }
+
   if (stream->s.xine->verbosity >= XINE_VERBOSITY_DEBUG) {
     int diff;
     xine_gettime (&ts2);
@@ -2328,7 +2362,6 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
 
   pthread_mutex_destroy (&stream->frontend_lock);
   pthread_mutex_destroy (&stream->index_mutex);
-  pthread_mutex_destroy (&stream->current_extra_info_lock);
   pthread_cond_destroy  (&stream->first_frame_reached);
   pthread_mutex_destroy (&stream->first_frame_lock);
   pthread_cond_destroy  (&stream->counter_changed);
@@ -2340,6 +2373,8 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->demux_lock);
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
+
+  xine_refs_sub (&stream->current_extra_info_index, xine_refs_get (&stream->current_extra_info_index));
 
   xine_list_delete(stream->event_queues);
 
@@ -2832,9 +2867,15 @@ void _x_get_current_info (xine_stream_t *s, extra_info_t *extra_info, int size) 
 
   stream = stream->side_streams[0];
 
-  pthread_mutex_lock( &stream->current_extra_info_lock );
-  memcpy( extra_info, stream->current_extra_info, size );
-  pthread_mutex_unlock( &stream->current_extra_info_lock );
+  if (!extra_info || (size <= 0)) {
+    return;
+  } else if ((size_t)size < sizeof (*extra_info)) {
+    extra_info_t info;
+    xine_current_extra_info_get (stream, &info);
+    memcpy (extra_info, &info, size);
+  } else {
+    xine_current_extra_info_get (stream, extra_info);
+  }
 }
 
 
@@ -2955,6 +2996,7 @@ int _x_get_speed (xine_stream_t *stream) {
 
 int xine_get_pos_length (xine_stream_t *s, int *pos_stream, int *pos_time, int *length_time) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
+  extra_info_t info;
   int normpos, timepos;
 
   stream = stream->side_streams[0];
@@ -2971,24 +3013,19 @@ int xine_get_pos_length (xine_stream_t *s, int *pos_stream, int *pos_time, int *
     xine_rwlock_rdlock (&stream->info_lock);
     if (stream->stream_info[XINE_STREAM_INFO_HAS_VIDEO]) {
       xine_rwlock_unlock (&stream->info_lock);
-      pthread_mutex_lock (&stream->current_extra_info_lock);
-      _x_extra_info_merge (stream->current_extra_info, stream->video_decoder_extra_info);
+      xine_current_extra_info_set (stream, stream->video_decoder_extra_info);
     } else {
       xine_rwlock_unlock (&stream->info_lock);
-      pthread_mutex_lock (&stream->current_extra_info_lock);
-      _x_extra_info_merge (stream->current_extra_info, stream->audio_decoder_extra_info);
+      xine_current_extra_info_set (stream, stream->audio_decoder_extra_info);
     }
-  } else {
-    pthread_mutex_lock (&stream->current_extra_info_lock);
   }
-  if (stream->current_extra_info->seek_count != stream->video_seek_count) {
-    pthread_mutex_unlock (&stream->current_extra_info_lock);
+  xine_current_extra_info_get (stream, &info);
+  if (info.seek_count != stream->video_seek_count) {
     pthread_mutex_unlock (&stream->frontend_lock);
     return 0; /* position not yet known */
   }
-  normpos = stream->current_extra_info->input_normpos;
-  timepos = stream->current_extra_info->input_time;
-  pthread_mutex_unlock (&stream->current_extra_info_lock);
+  normpos = info.input_normpos;
+  timepos = info.input_time;
 
   if (length_time) {
     int length = 0;
