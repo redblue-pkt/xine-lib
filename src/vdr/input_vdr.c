@@ -140,7 +140,6 @@ struct vdr_input_plugin_s
   char               *mrl;
 
   off_t               curpos;
-  char                seek_buf[ BUF_SIZE ];
 
   enum funcs          cur_func;
   off_t               cur_size;
@@ -194,6 +193,8 @@ struct vdr_input_plugin_s
 
   int                         video_window_active;
   vdr_set_video_window_data_t video_window_event_data;
+
+  uint8_t             seek_buf[BUF_SIZE];
 };
 
 static void trick_speed_send_event (vdr_input_plugin_t *this, int mode) {
@@ -306,9 +307,8 @@ static void external_stream_play(vdr_input_plugin_t *this, char *file_name)
   }
 }
 
-static off_t vdr_read_abort(xine_stream_t *stream, int fd, char *buf, off_t todo)
-{
-  off_t ret;
+static ssize_t vdr_read_abort (xine_stream_t *stream, int fd, uint8_t *buf, size_t todo) {
+  ssize_t ret;
 
   while (1)
   {
@@ -319,7 +319,7 @@ static off_t vdr_read_abort(xine_stream_t *stream, int fd, char *buf, off_t todo
      * check cancellation.
      */
     pthread_testcancel();
-    ret = _x_read_abort(stream, fd, buf, todo);
+    ret = _x_read_abort (stream, fd, (char *)buf, todo);
     pthread_testcancel();
 
     if (ret < 0
@@ -339,7 +339,7 @@ static off_t vdr_read_abort(xine_stream_t *stream, int fd, char *buf, off_t todo
   data_##kind##_t *data = &data_union.kind; \
   { \
     log; \
-    n = vdr_read_abort(this->stream, this->fh_control, (char *)data + sizeof (data->header), sizeof (*data) - sizeof (data->header)); \
+    n = vdr_read_abort (this->stream, this->fh_control, (uint8_t *)data + sizeof (data->header), sizeof (*data) - sizeof (data->header)); \
     if (n != sizeof (*data) - sizeof (data->header)) \
       return -1; \
     \
@@ -448,12 +448,11 @@ static void vdr_start_buffers (vdr_input_plugin_t *this) {
 }
 
 
-static off_t vdr_execute_rpc_command(vdr_input_plugin_t *this)
-{
+static ssize_t vdr_execute_rpc_command (vdr_input_plugin_t *this) {
   data_union_t data_union;
-  off_t n;
+  ssize_t n;
 
-  n = vdr_read_abort(this->stream, this->fh_control, (char *)&data_union, sizeof (data_union.header));
+  n = vdr_read_abort (this->stream, this->fh_control, (uint8_t *)&data_union, sizeof (data_union.header));
   if (n != sizeof (data_union.header))
     return -1;
 
@@ -636,7 +635,7 @@ break;
         this->osd_buffer_size = this->cur_size;
       }
 
-      n = vdr_read_abort (this->stream, this->fh_control, (char *)this->osd_buffer, this->cur_size);
+      n = vdr_read_abort (this->stream, this->fh_control, this->osd_buffer, this->cur_size);
       if (n != this->cur_size)
         return -1;
 
@@ -703,7 +702,7 @@ break;
       if (((data->num + 1) * sizeof (uint32_t)) != (unsigned int)this->cur_size)
         return -1;
 
-      n = vdr_read_abort (this->stream, this->fh_control, (char *)&vdr_color[ data->index ], this->cur_size);
+      n = vdr_read_abort (this->stream, this->fh_control, (uint8_t *)&vdr_color[ data->index ], this->cur_size);
       if (n != this->cur_size)
         return -1;
 
@@ -765,7 +764,7 @@ break;
           return -1;
         }
 
-        n = vdr_read_abort (this->stream, this->fh_control, file_name, file_name_len);
+        n = vdr_read_abort (this->stream, this->fh_control, (uint8_t *)file_name, file_name_len);
         if (n != file_name_len)
           return -1;
 
@@ -2425,6 +2424,15 @@ static void vdr_metronom_handle_audio_discontinuity (metronom_t *self, int type,
 
   /* just 1 finite time lock session. */
   pthread_mutex_lock (&metr->mutex);
+  /* just relay all we dont need (in particular, DISC_GAPLESS). */
+  if ((type != DISC_STREAMSTART) &&
+      (type != DISC_RELATIVE) &&
+      (type != DISC_ABSOLUTE) &&
+      (type != DISC_STREAMSEEK)) {
+    pthread_mutex_unlock (&metr->mutex);
+    metr->stream_metronom->handle_audio_discontinuity (metr->stream_metronom, type, disc_off);
+    return;
+  }
   /* make sure we dont respond too early. */
   if (!metr->audio.on) {
     if ((type != DISC_STREAMSEEK) || (disc_off != VDR_DISC_START)) {
@@ -2490,6 +2498,15 @@ static void vdr_metronom_handle_video_discontinuity (metronom_t *self, int type,
 
   /* just 1 finite time lock session. */
   pthread_mutex_lock (&metr->mutex);
+  /* just relay all we dont need (in particular, DISC_GAPLESS). */
+  if ((type != DISC_STREAMSTART) &&
+      (type != DISC_RELATIVE) &&
+      (type != DISC_ABSOLUTE) &&
+      (type != DISC_STREAMSEEK)) {
+    pthread_mutex_unlock (&metr->mutex);
+    metr->stream_metronom->handle_video_discontinuity (metr->stream_metronom, type, disc_off);
+    return;
+  }
   /* make sure we dont respond too early. */
   if (!metr->video.on) {
     if ((type != DISC_STREAMSEEK) || (disc_off != VDR_DISC_START)) {
@@ -2622,7 +2639,8 @@ static void vdr_metronom_set_master(metronom_t *self, metronom_t *master)
 static void vdr_metronom_exit(metronom_t *self)
 {
   (void)self;
-  _x_abort();
+  int this_shall_never_be_called = 1;
+  _x_assert (this_shall_never_be_called == 0);
 }
 
 
