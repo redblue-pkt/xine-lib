@@ -435,7 +435,7 @@ static inline void xine_uint64_2str (char **s, uint64_t v) {
 
 /* A little helper for integers whose size is not obvious, like off_t and time_t. */
 #define xine_uint2str(s,v) do { \
-  if (sizeof (v) == 64) \
+  if (sizeof (v) == 8) \
     xine_uint64_2str (s, v); \
   else \
     xine_uint32_2str (s, v); \
