@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -751,8 +751,8 @@ uint32_t xine_get_stream_info (xine_stream_t *s, int info) {
     return 0;
 
   case XINE_STREAM_INFO_HAS_CHAPTERS:
-    if (stream->demux_plugin)
-      if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_CHAPTERS)
+    if (stream->demux.plugin)
+      if (stream->demux.plugin->get_capabilities (stream->demux.plugin) & DEMUX_CAP_CHAPTERS)
         return 1;
     if (stream->s.input_plugin)
       if (stream->s.input_plugin->get_capabilities (stream->s.input_plugin) & INPUT_CAP_CHAPTERS)

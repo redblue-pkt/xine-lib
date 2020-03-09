@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -352,13 +352,13 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
 void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) {
   if (stream && (type == XINE_NBC_EVENT_AUDIO_DRY)) {
     stream = stream->side_streams[0];
-    pthread_mutex_lock (&stream->index_mutex);
-    if (stream->nbc_refs <= 0) {
-      pthread_mutex_unlock (&stream->index_mutex);
+    pthread_mutex_lock (&stream->counter.lock);
+    if (stream->counter.nbc_refs <= 0) {
+      pthread_mutex_unlock (&stream->counter.lock);
     } else {
-      xine_nbc_t *this = stream->nbc;
-      stream->nbc_refs += 1;
-      pthread_mutex_unlock (&stream->index_mutex);
+      xine_nbc_t *this = stream->counter.nbc;
+      stream->counter.nbc_refs += 1;
+      pthread_mutex_unlock (&stream->counter.lock);
       pthread_mutex_lock (&this->mutex);
       switch (this->dvbspeed) {
         case 4:
@@ -777,24 +777,24 @@ xine_nbc_t *xine_nbc_init (xine_stream_t *stream) {
   {
     xine_stream_private_t *s = (xine_stream_private_t *)stream;
     s = s->side_streams[0];
-    pthread_mutex_lock (&s->index_mutex);
-    if (s->nbc_refs > 0) {
+    pthread_mutex_lock (&s->counter.lock);
+    if (s->counter.nbc_refs > 0) {
       int refs;
-      s->nbc_refs += 1;
-      refs = s->nbc_refs;
-      this = s->nbc;
-      pthread_mutex_unlock (&s->index_mutex);
+      s->counter.nbc_refs += 1;
+      refs = s->counter.nbc_refs;
+      this = s->counter.nbc;
+      pthread_mutex_unlock (&s->counter.lock);
       xprintf (s->s.xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: add to stream %p (%d refs).\n", (void *)s, refs);
       return this;
     }
     this = calloc (1, sizeof (*this));
     if (!this) {
-      pthread_mutex_unlock (&s->index_mutex);
+      pthread_mutex_unlock (&s->counter.lock);
       return this;
     }
-    s->nbc_refs = 1;
-    s->nbc = this;
-    pthread_mutex_unlock (&s->index_mutex);
+    s->counter.nbc_refs = 1;
+    s->counter.nbc = this;
+    pthread_mutex_unlock (&s->counter.lock);
     xine_refs_add (&s->refs, 1);
     xprintf (s->s.xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: add to stream %p (1 refs).\n", (void *)s);
     stream = &s->s;
@@ -851,17 +851,17 @@ void xine_nbc_close (xine_nbc_t *this) {
   {
     xine_stream_private_t *s = (xine_stream_private_t *)this->stream;
     int refs;
-    pthread_mutex_lock (&s->index_mutex);
-    s->nbc_refs -= 1;
-    refs = s->nbc_refs;
+    pthread_mutex_lock (&s->counter.lock);
+    s->counter.nbc_refs -= 1;
+    refs = s->counter.nbc_refs;
     if (refs > 0) {
-      pthread_mutex_unlock (&s->index_mutex);
+      pthread_mutex_unlock (&s->counter.lock);
       xprintf (xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: remove from stream %p (%d refs).\n", (void *)s, refs);
       return;
     }
-    s->nbc_refs = 0;
-    s->nbc = NULL;
-    pthread_mutex_unlock (&s->index_mutex);
+    s->counter.nbc_refs = 0;
+    s->counter.nbc = NULL;
+    pthread_mutex_unlock (&s->counter.lock);
   }
 
   xprintf (xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: remove from stream %p (0 refs).\n", (void *)this->stream);

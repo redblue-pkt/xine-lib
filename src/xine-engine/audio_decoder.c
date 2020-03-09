@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -272,16 +272,16 @@ static void *audio_decoder_loop (void *stream_gen) {
           int t;
 
           case BUFTYPE_SUB (BUF_CONTROL_HEADERS_DONE):
-            pthread_mutex_lock (&stream->counter_lock);
-            stream->header_count_audio++;
+            pthread_mutex_lock (&stream->counter.lock);
+            stream->counter.headers_audio++;
             if (stream->video_thread_created) {
               /* avoid useless wakes on an incomplete pair */
-              if (stream->header_count_audio <= stream->header_count_video)
-                pthread_cond_broadcast (&stream->counter_changed);
+              if (stream->counter.headers_audio <= stream->counter.headers_video)
+                pthread_cond_broadcast (&stream->counter.changed);
             } else {
-              pthread_cond_broadcast (&stream->counter_changed);
+              pthread_cond_broadcast (&stream->counter.changed);
             }
-            pthread_mutex_unlock (&stream->counter_lock);
+            pthread_mutex_unlock (&stream->counter.lock);
             break;
 
           case BUFTYPE_SUB (BUF_CONTROL_START):
@@ -332,25 +332,25 @@ static void *audio_decoder_loop (void *stream_gen) {
             }
             running_ticket->release (running_ticket, 0);
             /* wait for video to reach this marker, if necessary */
-            pthread_mutex_lock (&stream->counter_lock);
-            stream->finished_count_audio++;
-            lprintf ("reached end marker # %d\n", stream->finished_count_audio);
+            pthread_mutex_lock (&stream->counter.lock);
+            stream->counter.finisheds_audio++;
+            lprintf ("reached end marker # %d\n", stream->counter.finisheds_audio);
             if (stream->video_thread_created) {
-              if (stream->finished_count_audio > stream->finished_count_video) {
+              if (stream->counter.finisheds_audio > stream->counter.finisheds_video) {
                 do {
                   struct timespec ts = {0, 0};
                   xine_gettime (&ts);
                   ts.tv_sec += 1;
                   /* use timedwait to workaround buggy pthread broadcast implementations */
-                  pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
-                } while (stream->finished_count_audio > stream->finished_count_video);
-              } else if (stream->finished_count_audio == stream->finished_count_video) {
-                pthread_cond_broadcast (&stream->counter_changed);
+                  pthread_cond_timedwait (&stream->counter.changed, &stream->counter.lock, &ts);
+                } while (stream->counter.finisheds_audio > stream->counter.finisheds_video);
+              } else if (stream->counter.finisheds_audio == stream->counter.finisheds_video) {
+                pthread_cond_broadcast (&stream->counter.changed);
               }
             } else {
-              pthread_cond_broadcast (&stream->counter_changed);
+              pthread_cond_broadcast (&stream->counter.changed);
             }
-            pthread_mutex_unlock (&stream->counter_lock);
+            pthread_mutex_unlock (&stream->counter.lock);
             stream->s.audio_channel_auto = -1;
             running_ticket->acquire (running_ticket, 0);
             break;

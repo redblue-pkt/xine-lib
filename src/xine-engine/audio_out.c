@@ -767,10 +767,10 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
         if ((this->seek_count3 >= 0) && list->stream) {
           xine_stream_private_t *s = (xine_stream_private_t *)list->stream;
           s = s->side_streams[0];
-          pthread_mutex_lock (&s->first_frame_lock);
-          s->first_frame_flag = 0;
-          pthread_cond_broadcast (&s->first_frame_reached);
-          pthread_mutex_unlock (&s->first_frame_lock);
+          pthread_mutex_lock (&s->first_frame.lock);
+          s->first_frame.flag = 0;
+          pthread_cond_broadcast (&s->first_frame.reached);
+          pthread_mutex_unlock (&s->first_frame.lock);
         }
         pthread_mutex_lock (&this->free_fifo.mutex);
         this->free_fifo.num_buffers = n + (this->free_fifo.first ? this->free_fifo.num_buffers : 0);
@@ -1786,10 +1786,10 @@ static void *ao_loop (void *this_gen) {
             if (found->seek_count == this->seek_count3) {
               xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
-              pthread_mutex_lock (&m->first_frame_lock);
-              m->first_frame_flag = 0;
-              pthread_cond_broadcast (&m->first_frame_reached);
-              pthread_mutex_unlock (&m->first_frame_lock);
+              pthread_mutex_lock (&m->first_frame.lock);
+              m->first_frame.flag = 0;
+              pthread_cond_broadcast (&m->first_frame.reached);
+              pthread_mutex_unlock (&m->first_frame.lock);
             }
           }
         }
@@ -1894,10 +1894,10 @@ static void *ao_loop (void *this_gen) {
             if (found->seek_count == this->seek_count3) {
               xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 3.\n", found->seek_count);
               this->seek_count3 = -1;
-              pthread_mutex_lock (&m->first_frame_lock);
-              m->first_frame_flag = 0;
-              pthread_cond_broadcast (&m->first_frame_reached);
-              pthread_mutex_unlock (&m->first_frame_lock);
+              pthread_mutex_lock (&m->first_frame.lock);
+              m->first_frame.flag = 0;
+              pthread_cond_broadcast (&m->first_frame.reached);
+              pthread_mutex_unlock (&m->first_frame.lock);
             }
           }
         }
@@ -2086,7 +2086,7 @@ int xine_get_next_audio_frame (xine_audio_port_t *this_gen,
     {
       xine_stream_private_t *stream = this->streams[0];
       if (stream && (stream->s.audio_fifo->fifo_size == 0)
-        && (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK)) {
+        && (stream->demux.plugin->get_status (stream->demux.plugin) != DEMUX_OK)) {
         /* no further data can be expected here */
         pthread_mutex_unlock (&this->out_fifo.mutex);
         return 0;
@@ -2381,20 +2381,20 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
     xine_rwlock_unlock (&s->info_lock);
     _x_extra_info_merge (buf->extra_info, s->audio_decoder_extra_info);
     buf->vpts = s->s.metronom->got_audio_samples (s->s.metronom, pts, buf->num_frames);
-    if ((s->first_frame_flag >= 2) && !s->video_decoder_plugin) {
-      pthread_mutex_lock (&s->first_frame_lock);
-      if (s->first_frame_flag >= 2) {
+    if ((s->first_frame.flag >= 2) && !s->video_decoder_plugin) {
+      pthread_mutex_lock (&s->first_frame.lock);
+      if (s->first_frame.flag >= 2) {
         xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: seek_count %d step 1.\n", buf->extra_info->seek_count);
-        if (s->first_frame_flag == 3) {
+        if (s->first_frame.flag == 3) {
           xine_current_extra_info_set (s, buf->extra_info);
-          s->first_frame_flag = 0;
-          pthread_cond_broadcast (&s->first_frame_reached);
+          s->first_frame.flag = 0;
+          pthread_cond_broadcast (&s->first_frame.reached);
         } else {
-          s->first_frame_flag = 1;
+          s->first_frame.flag = 1;
         }
         is_first = 1;
       }
-      pthread_mutex_unlock (&s->first_frame_lock);
+      pthread_mutex_unlock (&s->first_frame.lock);
     }
   }
   buf->extra_info->vpts = buf->vpts;

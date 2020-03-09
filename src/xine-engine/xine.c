@@ -718,7 +718,7 @@ static void stop_internal (xine_stream_private_t *stream) {
   lprintf ("status before = %d\n", stream->status);
 
   if (stream->side_streams[0] == stream)
-    stream->start_buffers_sent = 0;
+    stream->demux.start_buffers_sent = 0;
   stream = stream->side_streams[0];
 
   if ( stream->status == XINE_STATUS_IDLE ||
@@ -740,7 +740,7 @@ static void stop_internal (xine_stream_private_t *stream) {
     unsigned int u;
     for (u = 0; u < XINE_NUM_SIDE_STREAMS; u++) {
       xine_stream_private_t *side = stream->side_streams[u];
-      if (side && side->demux_plugin && side->demux_thread_created) {
+      if (side && side->demux.plugin && side->demux.thread_created) {
         lprintf ("stopping demux\n");
         _x_demux_stop_thread (&side->s);
         lprintf ("demux stopped\n");
@@ -871,8 +871,8 @@ static void close_internal (xine_stream_private_t *stream) {
     for (u = 0; u < XINE_NUM_SIDE_STREAMS; u++) {
       xine_stream_private_t *side = stream->side_streams[u];
       if (side) {
-        if (side->demux_plugin)
-          _x_free_demux_plugin (&side->s, &side->demux_plugin);
+        if (side->demux.plugin)
+          _x_free_demux_plugin (&side->s, &side->demux.plugin);
         if (side->s.input_plugin) {
           _x_free_input_plugin (&side->s, side->s.input_plugin);
           side->s.input_plugin = NULL;
@@ -880,8 +880,8 @@ static void close_internal (xine_stream_private_t *stream) {
       }
     }
   } else {
-    if (stream->demux_plugin)
-      _x_free_demux_plugin (&stream->s, &stream->demux_plugin);
+    if (stream->demux.plugin)
+      _x_free_demux_plugin (&stream->s, &stream->demux.plugin);
     if (stream->s.input_plugin) {
       _x_free_input_plugin (&stream->s, stream->s.input_plugin);
       stream->s.input_plugin = NULL;
@@ -1050,24 +1050,24 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->keep_ao_driver_open      = 0;
   stream->video_channel            = 0;
   stream->video_decoder_plugin     = NULL;
-  stream->header_count_audio       = 0;
-  stream->header_count_video       = 0;
-  stream->finished_count_audio     = 0;
-  stream->finished_count_video     = 0;
-  stream->num_demuxers_running     = 0;
-  stream->demux_action_pending     = 0;
-  stream->demux_thread_created     = 0;
-  stream->demux_thread_running     = 0;
-  stream->start_buffers_sent       = 0;
+  stream->counter.headers_audio    = 0;
+  stream->counter.headers_video    = 0;
+  stream->counter.finisheds_audio  = 0;
+  stream->counter.finisheds_video  = 0;
+  stream->counter.demuxers_running = 0;
+  stream->counter.nbc_refs         = 0;
+  stream->counter.nbc              = NULL;
+  stream->demux.action_pending     = 0;
+  stream->demux.thread_created     = 0;
+  stream->demux.thread_running     = 0;
+  stream->demux.start_buffers_sent = 0;
   stream->err                      = 0;
   stream->broadcaster              = NULL;
-  stream->index_array              = NULL;
+  stream->index.array              = NULL;
   stream->s.slave                  = NULL;
   stream->slave_is_subtitle        = 0;
   stream->query_input_plugins[0]   = NULL;
   stream->query_input_plugins[1]   = NULL;
-  stream->nbc_refs                 = 0;
-  stream->nbc                      = NULL;
   {
     int i;
     for (i = 1; i < XINE_NUM_SIDE_STREAMS; i++)
@@ -1101,7 +1101,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->audio_source.data   = &stream->s;
   stream->audio_source.rewire = stream_rewire_audio;
 
-  stream->demux_max_seek_bufs        = 0xffffffff;
+  stream->demux.max_seek_bufs        = 0xffffffff;
   stream->s.spu_decoder_streamtype   = -1;
   stream->s.audio_out                = ao;
   stream->audio_channel_user         = -1;
@@ -1129,16 +1129,16 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   xine_refs_init (&stream->current_extra_info_index, _xine_dummy_dest, stream);
   xine_rwlock_init_default (&stream->info_lock);
   xine_rwlock_init_default (&stream->meta_lock);
-  pthread_mutex_init (&stream->demux_lock, NULL);
-  pthread_mutex_init (&stream->demux_action_lock, NULL);
-  pthread_mutex_init (&stream->demux_pair_mutex, NULL);
-  pthread_cond_init  (&stream->demux_resume, NULL);
+  pthread_mutex_init (&stream->demux.lock, NULL);
+  pthread_mutex_init (&stream->demux.action_lock, NULL);
+  pthread_mutex_init (&stream->demux.pair, NULL);
+  pthread_cond_init  (&stream->demux.resume, NULL);
   pthread_mutex_init (&stream->event_queues_lock, NULL);
-  pthread_mutex_init (&stream->counter_lock, NULL);
-  pthread_cond_init  (&stream->counter_changed, NULL);
-  pthread_mutex_init (&stream->first_frame_lock, NULL);
-  pthread_cond_init  (&stream->first_frame_reached, NULL);
-  pthread_mutex_init (&stream->index_mutex, NULL);
+  pthread_mutex_init (&stream->counter.lock, NULL);
+  pthread_cond_init  (&stream->counter.changed, NULL);
+  pthread_mutex_init (&stream->first_frame.lock, NULL);
+  pthread_cond_init  (&stream->first_frame.reached, NULL);
+  pthread_mutex_init (&stream->index.lock, NULL);
 
   /* warning: frontend_lock is a recursive mutex. it must NOT be
    * used with neither pthread_cond_wait() or pthread_cond_timedwait()
@@ -1200,16 +1200,16 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   err_mutex:
   pthread_mutex_unlock  (&this->streams_lock);
   pthread_mutex_destroy (&stream->frontend_lock);
-  pthread_mutex_destroy (&stream->index_mutex);
-  pthread_cond_destroy  (&stream->first_frame_reached);
-  pthread_mutex_destroy (&stream->first_frame_lock);
-  pthread_cond_destroy  (&stream->counter_changed);
-  pthread_mutex_destroy (&stream->counter_lock);
+  pthread_mutex_destroy (&stream->index.lock);
+  pthread_cond_destroy  (&stream->first_frame.reached);
+  pthread_mutex_destroy (&stream->first_frame.lock);
+  pthread_cond_destroy  (&stream->counter.changed);
+  pthread_mutex_destroy (&stream->counter.lock);
   pthread_mutex_destroy (&stream->event_queues_lock);
-  pthread_cond_destroy  (&stream->demux_resume);
-  pthread_mutex_destroy (&stream->demux_pair_mutex);
-  pthread_mutex_destroy (&stream->demux_action_lock);
-  pthread_mutex_destroy (&stream->demux_lock);
+  pthread_cond_destroy  (&stream->demux.resume);
+  pthread_mutex_destroy (&stream->demux.pair);
+  pthread_mutex_destroy (&stream->demux.action_lock);
+  pthread_mutex_destroy (&stream->demux.lock);
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
   xine_refs_sub (&stream->current_extra_info_index, xine_refs_get (&stream->current_extra_info_index));
@@ -1247,21 +1247,21 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   /* these are not used in side streams.
   xine_refs_sub (&stream->current_extra_info_index, xine_refs_get (&stream->current_extra_info_index));
   pthread_mutex_destroy (&stream->frontend_lock);
-  pthread_mutex_destroy (&stream->index_mutex);
-  pthread_mutex_destroy (&stream->demux_pair_mutex);
+  pthread_mutex_destroy (&stream->index.lock);
+  pthread_mutex_destroy (&stream->demux.pair_mutex);
   pthread_mutex_destroy (&stream->event_queues_lock);
-  pthread_mutex_destroy (&stream->counter_lock);
-  pthread_mutex_destroy (&stream->first_frame_lock);
-  pthread_cond_destroy  (&stream->first_frame_reached);
-  pthread_cond_destroy  (&stream->counter_changed);
+  pthread_mutex_destroy (&stream->counter.lock);
+  pthread_mutex_destroy (&stream->first_frame.lock);
+  pthread_cond_destroy  (&stream->first_frame.reached);
+  pthread_cond_destroy  (&stream->counter.changed);
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
   */
-  pthread_cond_destroy  (&stream->demux_resume);
-  pthread_mutex_destroy (&stream->demux_action_lock);
-  pthread_mutex_destroy (&stream->demux_lock);
+  pthread_cond_destroy  (&stream->demux.resume);
+  pthread_mutex_destroy (&stream->demux.action_lock);
+  pthread_mutex_destroy (&stream->demux.lock);
 
-  free (stream->index_array);
+  free (stream->index.array);
   free (stream);
 }
 
@@ -1297,16 +1297,16 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   s->video_channel            = 0;
   s->video_decoder_plugin     = NULL;
   s->spu_track_map_entries    = 0;
-  s->header_count_audio       = 0;
-  s->header_count_video       = 0;
-  s->finished_count_audio     = 0;
-  s->finished_count_video     = 0;
-  s->demux_action_pending     = 0;
-  s->demux_thread_created     = 0;
-  s->demux_thread_running     = 0;
+  s->counter.headers_audio    = 0;
+  s->counter.headers_video    = 0;
+  s->counter.finisheds_audio  = 0;
+  s->counter.finisheds_video  = 0;
+  s->demux.action_pending     = 0;
+  s->demux.thread_created     = 0;
+  s->demux.thread_running     = 0;
   s->err                      = 0;
   s->broadcaster              = NULL;
-  s->index_array              = NULL;
+  s->index.array              = NULL;
   s->s.slave                  = NULL;
   s->slave_is_subtitle        = 0;
   s->query_input_plugins[0]   = NULL;
@@ -1376,20 +1376,20 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
     pthread_mutexattr_destroy (&attr);
   }
   xine_refs_init (&stream->current_extra_info_index, _xine_dummy_dest, stream);
-  pthread_mutex_init (&s->demux_pair_mutex, NULL);
-  pthread_mutex_init (&s->index_mutex, NULL);
+  pthread_mutex_init (&s->demux.pair, NULL);
+  pthread_mutex_init (&s->index.lock, NULL);
   pthread_mutex_init (&s->event_queues_lock, NULL);
-  pthread_mutex_init (&s->counter_lock, NULL);
-  pthread_mutex_init (&s->first_frame_lock, NULL);
-  pthread_cond_init  (&s->counter_changed, NULL);
-  pthread_cond_init  (&s->first_frame_reached, NULL);
+  pthread_mutex_init (&s->counter.lock, NULL);
+  pthread_mutex_init (&s->first_frame.lock, NULL);
+  pthread_cond_init  (&s->counter.changed, NULL);
+  pthread_cond_init  (&s->first_frame.reached, NULL);
   xine_rwlock_init_default (&s->info_lock);
   xine_rwlock_init_default (&s->meta_lock);
   */
   /* init mutexes and conditions */
-  pthread_mutex_init (&s->demux_lock, NULL);
-  pthread_mutex_init (&s->demux_action_lock, NULL);
-  pthread_cond_init  (&s->demux_resume, NULL);
+  pthread_mutex_init (&s->demux.lock, NULL);
+  pthread_mutex_init (&s->demux.action_lock, NULL);
+  pthread_cond_init  (&s->demux.resume, NULL);
 
   /* some user config */
   s->disable_decoder_flush_at_discontinuity = m->disable_decoder_flush_at_discontinuity;
@@ -1685,7 +1685,7 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
           /* demuxer specified by name */
           char *demux_name = (char *)value;
           _x_mrl_unescape (demux_name);
-	  if (!(stream->demux_plugin = _x_find_demux_plugin_by_name (&stream->s, demux_name, stream->s.input_plugin))) {
+	  if (!(stream->demux.plugin = _x_find_demux_plugin_by_name (&stream->s, demux_name, stream->s.input_plugin))) {
 	    xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: specified demuxer %s failed to start\n"), demux_name);
 	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 	    stream->status = XINE_STATUS_IDLE;
@@ -1694,7 +1694,7 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
 	  }
 
           _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
-            stream->demux_plugin->demux_class->identifier);
+            stream->demux.plugin->demux_class->identifier);
           entry = NULL;
         }
 	continue;
@@ -1730,7 +1730,7 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
           /* all demuxers will be probed before the specified one */
           char *demux_name = (char *)value;
           _x_mrl_unescape (demux_name);
-	  if (!(stream->demux_plugin = _x_find_demux_plugin_last_probe (&stream->s, demux_name, stream->s.input_plugin))) {
+	  if (!(stream->demux.plugin = _x_find_demux_plugin_last_probe (&stream->s, demux_name, stream->s.input_plugin))) {
             xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: last_probed demuxer %s failed to start\n"), demux_name);
 	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 	    stream->status = XINE_STATUS_IDLE;
@@ -1740,7 +1740,7 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
 	  lprintf ("demux and input plugin found\n");
 
           _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
-            stream->demux_plugin->demux_class->identifier);
+            stream->demux.plugin->demux_class->identifier);
           entry = NULL;
         }
 	continue;
@@ -1872,30 +1872,30 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
   /* Let the plugin request a specific demuxer (if the user hasn't).
    * This overrides find-by-content & find-by-extension.
    */
-  if (!stream->demux_plugin)
+  if (!stream->demux.plugin)
   {
     char *default_demux = NULL;
     stream->s.input_plugin->get_optional_data (stream->s.input_plugin, &default_demux, INPUT_OPTIONAL_DATA_DEMUXER);
     if (default_demux)
     {
-      stream->demux_plugin = _x_find_demux_plugin_by_name (&stream->s, default_demux, stream->s.input_plugin);
-      if (stream->demux_plugin)
+      stream->demux.plugin = _x_find_demux_plugin_by_name (&stream->s, default_demux, stream->s.input_plugin);
+      if (stream->demux.plugin)
       {
         lprintf ("demux and input plugin found\n");
         _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
-          stream->demux_plugin->demux_class->identifier);
+          stream->demux.plugin->demux_class->identifier);
       }
       else
         xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: couldn't load plugin-specified demux %s for >%s<\n"), default_demux, mrl);
     }
   }
 
-  if (!stream->demux_plugin) {
+  if (!stream->demux.plugin) {
 
     /*
      * find a demux plugin
      */
-    if (!(stream->demux_plugin = _x_find_demux_plugin (&stream->s, stream->s.input_plugin))) {
+    if (!(stream->demux.plugin = _x_find_demux_plugin (&stream->s, stream->s.input_plugin))) {
       xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: couldn't find demux for >%s<\n"), mrl);
       stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
 
@@ -1909,11 +1909,11 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
     lprintf ("demux and input plugin found\n");
 
     _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
-      stream->demux_plugin->demux_class->identifier);
+      stream->demux.plugin->demux_class->identifier);
   }
 
   {
-    demux_class_t *demux_class = stream->demux_plugin->demux_class;
+    demux_class_t *demux_class = stream->demux.plugin->demux_class;
     xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: found demuxer plugin: %s\n"),
               dgettext(demux_class->text_domain ? demux_class->text_domain : XINE_TEXTDOMAIN,
                        demux_class->description));
@@ -1933,16 +1933,16 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
    * send and decode headers
    */
 
-  stream->demux_plugin->send_headers (stream->demux_plugin);
+  stream->demux.plugin->send_headers (stream->demux.plugin);
 
-  if (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK) {
-    if (stream->demux_plugin->get_status(stream->demux_plugin) == DEMUX_FINISHED) {
+  if (stream->demux.plugin->get_status (stream->demux.plugin) != DEMUX_OK) {
+    if (stream->demux.plugin->get_status (stream->demux.plugin) == DEMUX_FINISHED) {
       xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: demuxer is already done. that was fast!\n"));
     } else {
       xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: demuxer failed to start\n"));
     }
 
-    _x_free_demux_plugin (&stream->s, &stream->demux_plugin);
+    _x_free_demux_plugin (&stream->s, &stream->demux.plugin);
 
     xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "demux disposed\n");
 
@@ -2036,14 +2036,14 @@ int xine_open (xine_stream_t *s, const char *mrl) {
 
 static void wait_first_frame (xine_stream_private_t *stream) {
   if (stream->video_decoder_plugin || stream->audio_decoder_plugin) {
-    pthread_mutex_lock (&stream->first_frame_lock);
-    if (stream->first_frame_flag > 0) {
+    pthread_mutex_lock (&stream->first_frame.lock);
+    if (stream->first_frame.flag > 0) {
       struct timespec ts = {0, 0};
       xine_gettime (&ts);
       ts.tv_sec += 10;
-      pthread_cond_timedwait(&stream->first_frame_reached, &stream->first_frame_lock, &ts);
+      pthread_cond_timedwait(&stream->first_frame.reached, &stream->first_frame.lock, &ts);
     }
-    pthread_mutex_unlock (&stream->first_frame_lock);
+    pthread_mutex_unlock (&stream->first_frame.lock);
   }
 }
 
@@ -2071,7 +2071,7 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
     xine_rwlock_rdlock (&stream->info_lock);
     for (u = 0; u < XINE_NUM_SIDE_STREAMS; u++) {
       xine_stream_private_t *side = stream->side_streams[u];
-      if (side && side->demux_plugin) {
+      if (side && side->demux.plugin) {
         sp->s = side;
         sp->flags = 0;
         sp++;
@@ -2100,9 +2100,9 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   /* hint demuxer thread we want to interrupt it */
   sp = sides;
   do {
-    pthread_mutex_lock (&sp->s->demux_action_lock);
-    sp->s->demux_action_pending += 0x10001;
-    pthread_mutex_unlock (&sp->s->demux_action_lock);
+    pthread_mutex_lock (&sp->s->demux.action_lock);
+    sp->s->demux.action_pending += 0x10001;
+    pthread_mutex_unlock (&sp->s->demux.action_lock);
     sp++;
   } while (sp->s);
 
@@ -2110,8 +2110,8 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
    * TJ. OK these calls involve lock/unlock of the fifo mutexes.
    * Demux will do that again later by fifo->put ().
    * At least with x86 Linux, such a sequence forces a data cache sync from this thread
-   * to the demux thread. This way, demux will see demux_action_pending > 0 early,
-   * without the need to grab demux_action_lock for every iteration.
+   * to the demux thread. This way, demux will see demux.action_pending > 0 early,
+   * without the need to grab demux.action_lock for every iteration.
    * Reduces response delay by average 20ms. */
   (void)stream->s.video_fifo->size (stream->s.video_fifo);
   (void)stream->s.audio_fifo->size (stream->s.audio_fifo);
@@ -2137,11 +2137,11 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
 
   sp = sides;
   do {
-    pthread_mutex_lock (&sp->s->demux_lock);
-    /* demux_lock taken. now demuxer is suspended. unblock io for seeking. */
-    pthread_mutex_lock (&sp->s->demux_action_lock);
-    sp->s->demux_action_pending -= 0x00001;
-    pthread_mutex_unlock (&sp->s->demux_action_lock);
+    pthread_mutex_lock (&sp->s->demux.lock);
+    /* demux.lock taken. now demuxer is suspended. unblock io for seeking. */
+    pthread_mutex_lock (&sp->s->demux.action_lock);
+    sp->s->demux.action_pending -= 0x00001;
+    pthread_mutex_unlock (&sp->s->demux.action_lock);
     sp++;
   } while (sp->s);
 
@@ -2164,9 +2164,9 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
    * start/seek demux
    */
 
-  pthread_mutex_lock (&stream->demux_pair_mutex);
-  stream->demux_max_seek_bufs = sides[1].s ? 1 : 0xffffffff;
-  pthread_mutex_unlock (&stream->demux_pair_mutex);
+  pthread_mutex_lock (&stream->demux.pair);
+  stream->demux.max_seek_bufs = sides[1].s ? 1 : 0xffffffff;
+  pthread_mutex_unlock (&stream->demux.pair);
 
   /* seek to new position (no data is sent to decoders yet) */
   sp = sides;
@@ -2178,7 +2178,7 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
       break;
     sp2 = sides;
     do {
-      if (sp2->s->demux_plugin->get_capabilities (sp2->s->demux_plugin) & DEMUX_CAP_VIDEO_TIME)
+      if (sp2->s->demux.plugin->get_capabilities (sp2->s->demux.plugin) & DEMUX_CAP_VIDEO_TIME)
         break;
       sp2++;
     } while (sp2->s);
@@ -2188,20 +2188,20 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
     sp2->s = sides[0].s;
     sides[0].s = s;
     sp++;
-    r = sides[0].s->demux_plugin->seek (sides[0].s->demux_plugin,
-      start_pos, start_time, sides[0].s->demux_thread_running);
+    r = sides[0].s->demux.plugin->seek (sides[0].s->demux.plugin,
+      start_pos, start_time, sides[0].s->demux.thread_running);
     sides[0].flags = r == DEMUX_OK ? 1 : 0;
     if (r != DEMUX_OK)
       break;
-    if (sides[0].s->demux_plugin->get_optional_data (sides[0].s->demux_plugin, &vtime,
+    if (sides[0].s->demux.plugin->get_optional_data (sides[0].s->demux.plugin, &vtime,
         DEMUX_OPTIONAL_DATA_VIDEO_TIME) != DEMUX_OPTIONAL_SUCCESS)
       break;
     start_pos = 0;
     start_time = vtime;
   } while (0);
   do {
-    int r = sp->s->demux_plugin->seek (sp->s->demux_plugin,
-      start_pos, start_time, sp->s->demux_thread_running);
+    int r = sp->s->demux.plugin->seek (sp->s->demux.plugin,
+      start_pos, start_time, sp->s->demux.thread_running);
     sp->flags = r == DEMUX_OK ? 1 : 0;
     sp++;
   } while (sp->s);
@@ -2220,9 +2220,9 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   unlock_run (stream);
 
   /* before resuming the demuxer, set first_frame_flag */
-  pthread_mutex_lock (&stream->first_frame_lock);
-  stream->first_frame_flag = first_frame_flag;
-  pthread_mutex_unlock (&stream->first_frame_lock);
+  pthread_mutex_lock (&stream->first_frame.lock);
+  stream->first_frame.flag = first_frame_flag;
+  pthread_mutex_unlock (&stream->first_frame.lock);
 
   /* before resuming the demuxer, reset current position information */
   xine_current_extra_info_reset (stream);
@@ -2231,14 +2231,14 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   demux_status = 0;
   sp = sides;
   do {
-    sp->flags |= sp->s->demux_thread_running ? 2 : 0;
-    pthread_mutex_unlock (&sp->s->demux_lock);
+    sp->flags |= sp->s->demux.thread_running ? 2 : 0;
+    pthread_mutex_unlock (&sp->s->demux.lock);
     /* now that demux lock is released, resume demux. */
-    pthread_mutex_lock (&sp->s->demux_action_lock);
-    sp->s->demux_action_pending -= 0x10000;
-    if (sp->s->demux_action_pending <= 0)
-      pthread_cond_signal (&sp->s->demux_resume);
-    pthread_mutex_unlock (&sp->s->demux_action_lock);
+    pthread_mutex_lock (&sp->s->demux.action_lock);
+    sp->s->demux.action_pending -= 0x10000;
+    if (sp->s->demux.action_pending <= 0)
+      pthread_cond_signal (&sp->s->demux.resume);
+    pthread_mutex_unlock (&sp->s->demux.action_lock);
     /* seek OK but not running? try restart. */
     if (sp->flags == 1) {
       if (_x_demux_start_thread (&sp->s->s) >= 0)
@@ -2282,10 +2282,10 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   xine_log (stream->s.xine, XINE_LOG_MSG, _("xine_play: demux failed to start\n"));
 
   stream->err = XINE_ERROR_DEMUX_FAILED;
-  pthread_mutex_lock (&stream->first_frame_lock);
-  stream->first_frame_flag = 0;
+  pthread_mutex_lock (&stream->first_frame.lock);
+  stream->first_frame.flag = 0;
   // no need to signal: wait is done only in this function.
-  pthread_mutex_unlock (&stream->first_frame_lock);
+  pthread_mutex_unlock (&stream->first_frame.lock);
   return 0;
 }
 
@@ -2361,16 +2361,16 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_unlock (&xine->streams_lock);
 
   pthread_mutex_destroy (&stream->frontend_lock);
-  pthread_mutex_destroy (&stream->index_mutex);
-  pthread_cond_destroy  (&stream->first_frame_reached);
-  pthread_mutex_destroy (&stream->first_frame_lock);
-  pthread_cond_destroy  (&stream->counter_changed);
-  pthread_mutex_destroy (&stream->counter_lock);
+  pthread_mutex_destroy (&stream->index.lock);
+  pthread_cond_destroy  (&stream->first_frame.reached);
+  pthread_mutex_destroy (&stream->first_frame.lock);
+  pthread_cond_destroy  (&stream->counter.changed);
+  pthread_mutex_destroy (&stream->counter.lock);
   pthread_mutex_destroy (&stream->event_queues_lock);
-  pthread_cond_destroy  (&stream->demux_resume);
-  pthread_mutex_destroy (&stream->demux_pair_mutex);
-  pthread_mutex_destroy (&stream->demux_action_lock);
-  pthread_mutex_destroy (&stream->demux_lock);
+  pthread_cond_destroy  (&stream->demux.resume);
+  pthread_mutex_destroy (&stream->demux.pair);
+  pthread_mutex_destroy (&stream->demux.action_lock);
+  pthread_mutex_destroy (&stream->demux.lock);
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
 
@@ -2378,7 +2378,7 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
 
   xine_list_delete(stream->event_queues);
 
-  free (stream->index_array);
+  free (stream->index.array);
   free (stream);
 }
 
@@ -3033,8 +3033,8 @@ int xine_get_pos_length (xine_stream_t *s, int *pos_stream, int *pos_time, int *
      * suspend demux here as well, and trash performance :-/
      * Well. Demux either knows length from the start, and value is constant.
      * Or, it grows with current position. We can do that, too. */
-    if (stream->demux_plugin)
-      length = stream->demux_plugin->get_stream_length (stream->demux_plugin);
+    if (stream->demux.plugin)
+      length = stream->demux.plugin->get_stream_length (stream->demux.plugin);
     pthread_mutex_unlock (&stream->frontend_lock);
     if ((length > 0) && (length < timepos))
       length = timepos;
@@ -3283,11 +3283,11 @@ static int _get_spu_lang (xine_stream_private_t *stream, int channel, char *lang
   /* Ask the demuxer first (e.g. TS extracts this information from
    * the stream)
    **/
-  if (stream->demux_plugin) {
-    if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_SPULANG) {
+  if (stream->demux.plugin) {
+    if (stream->demux.plugin->get_capabilities (stream->demux.plugin) & DEMUX_CAP_SPULANG) {
       /* pass the channel number to the plugin in the data field */
       memcpy(lang, &channel, sizeof(channel));
-      if (stream->demux_plugin->get_optional_data (stream->demux_plugin, lang,
+      if (stream->demux.plugin->get_optional_data (stream->demux.plugin, lang,
 	  DEMUX_OPTIONAL_DATA_SPULANG) == DEMUX_OPTIONAL_SUCCESS)
         return 1;
     }
@@ -3320,11 +3320,11 @@ int xine_get_spu_lang (xine_stream_t *s, int channel, char *lang) {
 }
 
 static int _get_audio_lang (xine_stream_private_t *stream, int channel, char *lang) {
-  if (stream->demux_plugin) {
-    if (stream->demux_plugin->get_capabilities (stream->demux_plugin) & DEMUX_CAP_AUDIOLANG) {
+  if (stream->demux.plugin) {
+    if (stream->demux.plugin->get_capabilities (stream->demux.plugin) & DEMUX_CAP_AUDIOLANG) {
       /* pass the channel number to the plugin in the data field */
       memcpy(lang, &channel, sizeof(channel));
-      if (stream->demux_plugin->get_optional_data (stream->demux_plugin, lang,
+      if (stream->demux.plugin->get_optional_data (stream->demux.plugin, lang,
 	  DEMUX_OPTIONAL_DATA_AUDIOLANG) == DEMUX_OPTIONAL_SUCCESS)
         return 1;
     }
@@ -3628,17 +3628,17 @@ int _x_continue_stream_processing (xine_stream_t *s) {
 void _x_trigger_relaxed_frame_drop_mode (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   stream = stream->side_streams[0];
-  pthread_mutex_lock (&stream->first_frame_lock);
-  stream->first_frame_flag = 2;
-  pthread_mutex_unlock (&stream->first_frame_lock);
+  pthread_mutex_lock (&stream->first_frame.lock);
+  stream->first_frame.flag = 2;
+  pthread_mutex_unlock (&stream->first_frame.lock);
 }
 
 void _x_reset_relaxed_frame_drop_mode (xine_stream_t *s) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   stream = stream->side_streams[0];
-  pthread_mutex_lock (&stream->first_frame_lock);
-  stream->first_frame_flag = 1;
-  pthread_mutex_unlock (&stream->first_frame_lock);
+  pthread_mutex_lock (&stream->first_frame.lock);
+  stream->first_frame.flag = 1;
+  pthread_mutex_unlock (&stream->first_frame.lock);
 }
 
 
@@ -3652,15 +3652,15 @@ int xine_keyframes_find (xine_stream_t *s, xine_keyframes_entry_t *pos, int offs
     return 2;
 
   stream = stream->side_streams[0];
-  pthread_mutex_lock (&stream->index_mutex);
-  if (!stream->index_array || !stream->index_used) {
-    pthread_mutex_unlock (&stream->index_mutex);
+  pthread_mutex_lock (&stream->index.lock);
+  if (!stream->index.array || !stream->index.used) {
+    pthread_mutex_unlock (&stream->index.lock);
     return 2;
   }
   /* binary search the index */
   {
-    xine_keyframes_entry_t *t = stream->index_array;
-    int d, a = 0, e = stream->index_used, m = e >> 1, l;
+    xine_keyframes_entry_t *t = stream->index.array;
+    int d, a = 0, e = stream->index.used, m = e >> 1, l;
     if ((pos->normpos > 0) && (pos->normpos < 0x10000)) {
       do {
         d = t[m].normpos - pos->normpos;
@@ -3673,7 +3673,7 @@ int xine_keyframes_find (xine_stream_t *s, xine_keyframes_entry_t *pos, int offs
         l = m;
         m = (a + e) >> 1;
       } while (m != l);
-      if ((offs == 0) && (m + 1 < stream->index_used) &&
+      if ((offs == 0) && (m + 1 < stream->index.used) &&
         (pos->normpos >= ((t[m].normpos + t[m + 1].normpos) >> 1)))
         m++;
     } else {
@@ -3688,7 +3688,7 @@ int xine_keyframes_find (xine_stream_t *s, xine_keyframes_entry_t *pos, int offs
         l = m;
         m = (a + e) >> 1;
       } while (m != l);
-      if ((offs == 0) && (m + 1 < stream->index_used) &&
+      if ((offs == 0) && (m + 1 < stream->index.used) &&
         (pos->msecs >= ((t[m].msecs + t[m + 1].msecs) >> 1)))
         m++;
     }
@@ -3699,12 +3699,12 @@ int xine_keyframes_find (xine_stream_t *s, xine_keyframes_entry_t *pos, int offs
     if (m < 0) {
       m = 0;
       e = 1;
-    } else if (m >= stream->index_used) {
-      m = stream->index_used - 1;
+    } else if (m >= stream->index.used) {
+      m = stream->index.used - 1;
       e = 1;
     }
     *pos = t[m];
-    pthread_mutex_unlock (&stream->index_mutex);
+    pthread_mutex_unlock (&stream->index.lock);
     return e;
   }
 }
@@ -3713,46 +3713,46 @@ int _x_keyframes_add (xine_stream_t *s, xine_keyframes_entry_t *pos) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   xine_keyframes_entry_t *t;
   stream = stream->side_streams[0];
-  pthread_mutex_lock (&stream->index_mutex);
+  pthread_mutex_lock (&stream->index.lock);
   /* first ever entry */
-  t = stream->index_array;
+  t = stream->index.array;
   if (!t) {
     t = calloc (KF_SIZE, sizeof (*t));
     if (!t) {
-      pthread_mutex_unlock (&stream->index_mutex);
+      pthread_mutex_unlock (&stream->index.lock);
       return -1;
     }
     t[0] = *pos;
-    stream->index_array = t;
-    stream->index_lastadd = 0;
-    stream->index_used = 1;
-    stream->index_size = KF_SIZE;
-    pthread_mutex_unlock (&stream->index_mutex);
+    stream->index.array = t;
+    stream->index.lastadd = 0;
+    stream->index.used = 1;
+    stream->index.size = KF_SIZE;
+    pthread_mutex_unlock (&stream->index.lock);
     xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
       "keyframes: build index while playing.\n");
     return 0;
   }
   /* enlarge buf */
-  if (stream->index_used + 1 >= stream->index_size) {
-    t = realloc (stream->index_array, (stream->index_size + KF_SIZE) * sizeof (*t));
+  if (stream->index.used + 1 >= stream->index.size) {
+    t = realloc (stream->index.array, (stream->index.size + KF_SIZE) * sizeof (*t));
     if (!t) {
-      pthread_mutex_unlock (&stream->index_mutex);
+      pthread_mutex_unlock (&stream->index.lock);
       return -1;
     }
-    stream->index_array = t;
-    stream->index_size += KF_SIZE;
+    stream->index.array = t;
+    stream->index.size += KF_SIZE;
   }
   /* binary search seek target */
   {
     /* fast detect the most common "progressive" case */
-    int d, a = 0, m = stream->index_lastadd, l, e = stream->index_used;
+    int d, a = 0, m = stream->index.lastadd, l, e = stream->index.used;
     if (m + 1 < e)
       m++;
     do {
       d = t[m].msecs - pos->msecs;
       if (abs (d) < 10) {
         t[m] = *pos; /* already known */
-        pthread_mutex_unlock (&stream->index_mutex);
+        pthread_mutex_unlock (&stream->index.lock);
         return m;
       }
       if (d > 0)
@@ -3764,12 +3764,12 @@ int _x_keyframes_add (xine_stream_t *s, xine_keyframes_entry_t *pos) {
     } while (m != l);
     if (d < 0)
       m++;
-    if (m < stream->index_used) /* insert */
-      memmove (&t[m + 1], &t[m], (stream->index_used - m) * sizeof (*t));
-    stream->index_used++;
-    stream->index_lastadd = m;
+    if (m < stream->index.used) /* insert */
+      memmove (&t[m + 1], &t[m], (stream->index.used - m) * sizeof (*t));
+    stream->index.used++;
+    stream->index.lastadd = m;
     t[m] = *pos;
-    pthread_mutex_unlock (&stream->index_mutex);
+    pthread_mutex_unlock (&stream->index.lock);
     return m;
   }
 }
@@ -3780,18 +3780,18 @@ xine_keyframes_entry_t *xine_keyframes_get (xine_stream_t *s, int *size) {
   if (!stream || (&stream->s == XINE_ANON_STREAM) || !size)
     return NULL;
   stream = stream->side_streams[0];
-  pthread_mutex_lock (&stream->index_mutex);
-  if (stream->index_array && stream->index_used) {
-    ret = malloc (stream->index_used * sizeof (xine_keyframes_entry_t));
+  pthread_mutex_lock (&stream->index.lock);
+  if (stream->index.array && stream->index.used) {
+    ret = malloc (stream->index.used * sizeof (xine_keyframes_entry_t));
     if (ret) {
-      memcpy (ret, stream->index_array, stream->index_used * sizeof (xine_keyframes_entry_t));
-      *size = stream->index_used;
+      memcpy (ret, stream->index.array, stream->index.used * sizeof (xine_keyframes_entry_t));
+      *size = stream->index.used;
     }
   } else {
     ret = NULL;
     *size = 0;
   }
-  pthread_mutex_unlock (&stream->index_mutex);
+  pthread_mutex_unlock (&stream->index.lock);
   return ret;
 }
 
@@ -3799,29 +3799,28 @@ int _x_keyframes_set (xine_stream_t *s, xine_keyframes_entry_t *list, int size) 
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   int n = (size + KF_MASK) & ~KF_MASK;
   stream = stream->side_streams[0];
-  pthread_mutex_lock (&stream->index_mutex);
-  if (stream->index_array) {
+  pthread_mutex_lock (&stream->index.lock);
+  if (stream->index.array) {
     xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
       "keyframes: deleting index.\n");
-    free (stream->index_array);
+    free (stream->index.array);
   }
-  stream->index_lastadd = 0;
-  stream->index_array = (list && (n > 0)) ? malloc (n * sizeof (xine_keyframes_entry_t)) : NULL;
-  if (!stream->index_array) {
-    stream->index_used = 0;
-    stream->index_size = 0;
-    pthread_mutex_unlock (&stream->index_mutex);
+  stream->index.lastadd = 0;
+  stream->index.array = (list && (n > 0)) ? malloc (n * sizeof (xine_keyframes_entry_t)) : NULL;
+  if (!stream->index.array) {
+    stream->index.used = 0;
+    stream->index.size = 0;
+    pthread_mutex_unlock (&stream->index.lock);
     return 1;
   }
-  memcpy (stream->index_array, list, size * sizeof (xine_keyframes_entry_t));
-  stream->index_used = size;
-  stream->index_size = n;
+  memcpy (stream->index.array, list, size * sizeof (xine_keyframes_entry_t));
+  stream->index.used = size;
+  stream->index.size = n;
   n -= size;
   if (n > 0)
-    memset (stream->index_array + size, 0, n * sizeof (xine_keyframes_entry_t));
-  pthread_mutex_unlock (&stream->index_mutex);
+    memset (stream->index.array + size, 0, n * sizeof (xine_keyframes_entry_t));
+  pthread_mutex_unlock (&stream->index.lock);
   xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
-    "keyframes: got %d of them.\n", stream->index_used);
+    "keyframes: got %d of them.\n", stream->index.used);
   return 0;
 }
-
