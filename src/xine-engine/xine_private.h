@@ -504,7 +504,6 @@ typedef struct xine_stream_private_st {
   uint32_t                   finished_naturally:1;
 
   input_class_t             *eject_class;
-  demux_plugin_t            *demux_plugin;
 
 /*  vo_driver_t               *video_driver;*/
   pthread_t                  video_thread;
@@ -560,42 +559,52 @@ typedef struct xine_stream_private_st {
   char                      *meta_info[XINE_STREAM_INFO_MAX];
 
   /* seeking slowdown */
-  pthread_mutex_t            first_frame_lock;
-  pthread_cond_t             first_frame_reached;
-  /* 3: wait for first frame to decode (stream start).
-   * 2: wait for first frame to display (stream seek).
-   * 1: after 2, first frame is decoded but not yet displayed.
-   * 0: waiting done.
-   */
-  uint32_t                   first_frame_flag:2;
+  struct {
+    pthread_mutex_t          lock;
+    pthread_cond_t           reached;
+    /* 3: wait for first frame to decode (stream start).
+     * 2: wait for first frame to display (stream seek).
+     * 1: after 2, first frame is decoded but not yet displayed.
+     * 0: waiting done.
+     */
+    uint32_t                 flag:2;
+  } first_frame;
 
   /* wait for headers sent / stream decoding finished */
-  pthread_mutex_t            counter_lock;
-  pthread_cond_t             counter_changed;
-  int                        header_count_audio;
-  int                        header_count_video;
-  int                        finished_count_audio;
-  int                        finished_count_video;
-  /* set of id_flag values */
-  uint32_t                   start_buffers_sent;
-  int                        num_demuxers_running;
+  struct {
+    pthread_mutex_t          lock;
+    pthread_cond_t           changed;
+    int                      headers_audio;
+    int                      headers_video;
+    int                      finisheds_audio;
+    int                      finisheds_video;
+    int                      demuxers_running;
+    /* network buffering control. */
+    int                      nbc_refs;
+    xine_nbc_t              *nbc;
+  } counter;
 
   /* event mechanism */
   xine_list_t               *event_queues;
   pthread_mutex_t            event_queues_lock;
 
   /* demux thread stuff */
-  pthread_t                  demux_thread;
-  pthread_mutex_t            demux_lock;
-  pthread_mutex_t            demux_action_lock;
-  pthread_cond_t             demux_resume;
-  /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
-  pthread_mutex_t            demux_pair_mutex;
-  uint32_t                   demux_action_pending:1;
-  uint32_t                   demux_thread_created:1;
-  uint32_t                   demux_thread_running:1;
-  /* filter out duplicate seek discontinuities from side streams */
-  uint32_t                   demux_max_seek_bufs;
+  struct {
+    demux_plugin_t          *plugin;
+    pthread_t                thread;
+    pthread_mutex_t          lock;
+    pthread_mutex_t          action_lock;
+    pthread_cond_t           resume;
+    /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
+    pthread_mutex_t          pair;
+    uint32_t                 action_pending;
+    uint32_t                 thread_created:1;
+    uint32_t                 thread_running:1;
+    /* filter out duplicate seek discontinuities from side streams */
+    uint32_t                 max_seek_bufs;
+    /* set of id_flag values */
+    uint32_t                 start_buffers_sent;
+  } demux;
 
 #define XINE_NUM_CURR_EXTRA_INFOS 2
   xine_refs_t                current_extra_info_index;
@@ -615,13 +624,11 @@ typedef struct xine_stream_private_st {
 
   xine_refs_t                refs;
 
-  xine_keyframes_entry_t    *index_array;
-  pthread_mutex_t            index_mutex;
-  int                        index_size, index_used, index_lastadd;
-
-  /* network buffering control. these 2 fields are protected by index_mutex (do we need our own??). */
-  int                        nbc_refs;
-  xine_nbc_t                *nbc;
+  struct {
+    pthread_mutex_t          lock;
+    xine_keyframes_entry_t  *array;
+    int                      size, used, lastadd;
+  } index;
 
   uint32_t                   disable_decoder_flush_at_discontinuity;
 

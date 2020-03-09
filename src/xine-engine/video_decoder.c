@@ -187,9 +187,9 @@ static void *video_decoder_loop (void *stream_gen) {
           if (!(buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_HEADER)) && (buf->size != 4)) {
             int first_frame_flag;
             restart = 0;
-            pthread_mutex_lock (&stream->first_frame_lock);
-            first_frame_flag = stream->first_frame_flag;
-            pthread_mutex_unlock (&stream->first_frame_lock);
+            pthread_mutex_lock (&stream->first_frame.lock);
+            first_frame_flag = stream->first_frame.flag;
+            pthread_mutex_unlock (&stream->first_frame.lock);
             /* use first_frame_flag here, so gcc does not optimize it away. */
             xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
               "video_decoder: first_frame_flag = %d.\n", first_frame_flag);
@@ -355,16 +355,16 @@ static void *video_decoder_loop (void *stream_gen) {
 
           case BUFTYPE_SUB (BUF_CONTROL_HEADERS_DONE):
 
-            pthread_mutex_lock (&stream->counter_lock);
-            stream->header_count_video++;
+            pthread_mutex_lock (&stream->counter.lock);
+            stream->counter.headers_video++;
             if (stream->audio_thread_created) {
               /* avoid useless wakes on an incomplete pair */
-              if (stream->header_count_video <= stream->header_count_audio)
-                pthread_cond_broadcast (&stream->counter_changed);
+              if (stream->counter.headers_video <= stream->counter.headers_audio)
+                pthread_cond_broadcast (&stream->counter.changed);
             } else {
-              pthread_cond_broadcast (&stream->counter_changed);
+              pthread_cond_broadcast (&stream->counter.changed);
             }
-            pthread_mutex_unlock (&stream->counter_lock);
+            pthread_mutex_unlock (&stream->counter.lock);
             restart = 1;
             break;
 
@@ -438,32 +438,32 @@ static void *video_decoder_loop (void *stream_gen) {
             }
             running_ticket->release (running_ticket, 0);
             /* wait for audio to reach this marker, if necessary */
-            pthread_mutex_lock (&stream->counter_lock);
-            stream->finished_count_video++;
-            lprintf ("reached end marker # %d\n", stream->finished_count_video);
+            pthread_mutex_lock (&stream->counter.lock);
+            stream->counter.finisheds_video++;
+            lprintf ("reached end marker # %d\n", stream->counter.finisheds_video);
             if (stream->audio_thread_created) {
-              if (stream->finished_count_video > stream->finished_count_audio) {
+              if (stream->counter.finisheds_video > stream->counter.finisheds_audio) {
                 do {
                   struct timespec ts = {0, 0};
                   xine_gettime (&ts);
                   ts.tv_sec += 1;
                   /* use timedwait to workaround buggy pthread broadcast implementations */
-                  pthread_cond_timedwait (&stream->counter_changed, &stream->counter_lock, &ts);
-                } while (stream->finished_count_video > stream->finished_count_audio);
-              } else if (stream->finished_count_video == stream->finished_count_audio) {
-                pthread_cond_broadcast (&stream->counter_changed);
+                  pthread_cond_timedwait (&stream->counter.changed, &stream->counter.lock, &ts);
+                } while (stream->counter.finisheds_video > stream->counter.finisheds_audio);
+              } else if (stream->counter.finisheds_video == stream->counter.finisheds_audio) {
+                pthread_cond_broadcast (&stream->counter.changed);
               }
             } else {
-              pthread_cond_broadcast (&stream->counter_changed);
+              pthread_cond_broadcast (&stream->counter.changed);
             }
-            pthread_mutex_unlock (&stream->counter_lock);
+            pthread_mutex_unlock (&stream->counter.lock);
             /* Wake up xine_play if it's waiting for a frame */
-            pthread_mutex_lock (&stream->first_frame_lock);
-            if (stream->first_frame_flag) {
-              stream->first_frame_flag = 0;
-              pthread_cond_broadcast(&stream->first_frame_reached);
+            pthread_mutex_lock (&stream->first_frame.lock);
+            if (stream->first_frame.flag) {
+              stream->first_frame.flag = 0;
+              pthread_cond_broadcast(&stream->first_frame.reached);
             }
-            pthread_mutex_unlock (&stream->first_frame_lock);
+            pthread_mutex_unlock (&stream->first_frame.lock);
             running_ticket->acquire (running_ticket, 0);
             break;
 

@@ -1437,15 +1437,15 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
     /* Grabbing display_queue.mutex / first_frame_lock when testing
      * discard_frames / first_frame_flag is safe but slow. Most of the time these flags
      * will be 0. Lets try without lock first, and look closer after a flush only. */
-    first_frame_flag = stream->side_streams[0]->first_frame_flag;
+    first_frame_flag = stream->side_streams[0]->first_frame.flag;
     if (this->display_queue.flushed) {
       pthread_mutex_lock (&this->display_queue.mutex);
       if (this->display_queue.flushed) {
         this->display_queue.flushed = 0;
         pthread_mutex_unlock (&this->display_queue.mutex);
-        pthread_mutex_lock (&stream->side_streams[0]->first_frame_lock);
-        first_frame_flag = stream->side_streams[0]->first_frame_flag;
-        pthread_mutex_unlock (&stream->side_streams[0]->first_frame_lock);
+        pthread_mutex_lock (&stream->side_streams[0]->first_frame.lock);
+        first_frame_flag = stream->side_streams[0]->first_frame.flag;
+        pthread_mutex_unlock (&stream->side_streams[0]->first_frame.lock);
       } else {
         pthread_mutex_unlock (&this->display_queue.mutex);
       }
@@ -1606,18 +1606,18 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
     if (first_frame_flag >= 2) {
       /* We can always do the frame's native stream here. We know its there. */
       xine_stream_private_t *m = stream->side_streams[0];
-      pthread_mutex_lock (&m->first_frame_lock);
-      if (m->first_frame_flag >= 2) {
-        if ((m->first_frame_flag > 2) || this->grab_only) {
-          m->first_frame_flag = 0;
-          pthread_cond_broadcast (&m->first_frame_reached);
+      pthread_mutex_lock (&m->first_frame.lock);
+      if (m->first_frame.flag >= 2) {
+        if ((m->first_frame.flag > 2) || this->grab_only) {
+          m->first_frame.flag = 0;
+          pthread_cond_broadcast (&m->first_frame.reached);
         } else {
-          m->first_frame_flag = 1;
+          m->first_frame.flag = 1;
         }
         img->is_first = FIRST_FRAME_MAX_POLL;
         lprintf ("get_next_video_frame first_frame_reached\n");
       }
-      pthread_mutex_unlock (&m->first_frame_lock);
+      pthread_mutex_unlock (&m->first_frame.lock);
     }
     /* avoid a complex deadlock situation caused by net_buf_control */
     if (!xine_rwlock_tryrdlock (&this->streams_lock)) {
@@ -1628,20 +1628,20 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
           continue;
         m = (*s)->side_streams[0];
         /* a little speedup */
-        if (m->first_frame_flag < 2)
+        if (m->first_frame.flag < 2)
           continue;
-        pthread_mutex_lock (&m->first_frame_lock);
-        if (m->first_frame_flag >= 2) {
-          if ((m->first_frame_flag > 2) || this->grab_only) {
-            m->first_frame_flag = 0;
-            pthread_cond_broadcast (&m->first_frame_reached);
+        pthread_mutex_lock (&m->first_frame.lock);
+        if (m->first_frame.flag >= 2) {
+          if ((m->first_frame.flag > 2) || this->grab_only) {
+            m->first_frame.flag = 0;
+            pthread_cond_broadcast (&m->first_frame.reached);
           } else {
-            m->first_frame_flag = 1;
+            m->first_frame.flag = 1;
           }
           img->is_first = FIRST_FRAME_MAX_POLL;
           lprintf ("get_next_video_frame first_frame_reached\n");
         }
-        pthread_mutex_unlock (&m->first_frame_lock);
+        pthread_mutex_unlock (&m->first_frame.lock);
       }
       xine_rwlock_unlock (&this->streams_lock);
     }
@@ -2177,12 +2177,12 @@ static void overlay_and_display_frame (vos_t *this, vo_frame_t *img, int64_t vpt
      * Do it without streams lock.
      */
     if (img->is_first > 0) {
-      pthread_mutex_lock (&m->first_frame_lock);
-      if (m->first_frame_flag) {
-        m->first_frame_flag = 0;
-        pthread_cond_broadcast (&m->first_frame_reached);
+      pthread_mutex_lock (&m->first_frame.lock);
+      if (m->first_frame.flag) {
+        m->first_frame.flag = 0;
+        pthread_cond_broadcast (&m->first_frame.reached);
       }
-      pthread_mutex_unlock (&m->first_frame_lock);
+      pthread_mutex_unlock (&m->first_frame.lock);
     }
   }
 
@@ -2198,12 +2198,12 @@ static void overlay_and_display_frame (vos_t *this, vo_frame_t *img, int64_t vpt
       if (&(*s)->s == img->stream)
         continue;
       m = (*s)->side_streams[0];
-      pthread_mutex_lock (&m->first_frame_lock);
-      if (m->first_frame_flag) {
-        m->first_frame_flag = 0;
-        pthread_cond_broadcast (&m->first_frame_reached);
+      pthread_mutex_lock (&m->first_frame.lock);
+      if (m->first_frame.flag) {
+        m->first_frame.flag = 0;
+        pthread_cond_broadcast (&m->first_frame.reached);
       }
-      pthread_mutex_unlock (&m->first_frame_lock);
+      pthread_mutex_unlock (&m->first_frame.lock);
     }
     xine_rwlock_unlock (&this->streams_lock);
     /* Dont signal the same frame again. */
@@ -2572,7 +2572,7 @@ int xine_get_next_video_frame (xine_video_port_t *this_gen, xine_video_frame_t *
     {
       xine_stream_private_t *stream = this->streams[0];
       if (stream && (stream->s.video_fifo->fifo_size == 0)
-        && (stream->demux_plugin->get_status(stream->demux_plugin) != DEMUX_OK)) {
+        && (stream->demux.plugin->get_status (stream->demux.plugin) != DEMUX_OK)) {
         /* no further data can be expected here */
         pthread_mutex_unlock (&this->display_queue.mutex);
         return 0;
