@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -374,7 +374,7 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
   _x_freep (&this->ring_buf);
 
 #ifdef WIN32
-  else setmode(this->fh, FILE_FLAGS);
+  setmode(this->fh, FILE_FLAGS);
 #else
   this->old_mode = fcntl (this->fh, F_GETFL);
   if (this->old_mode != -1) {
