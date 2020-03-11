@@ -585,8 +585,10 @@ typedef struct xine_stream_private_st {
   } counter;
 
   /* event mechanism */
-  xine_list_t               *event_queues;
-  pthread_mutex_t            event_queues_lock;
+  struct {
+    pthread_mutex_t          lock;
+    xine_list_t             *queues;
+  } event;
 
   /* demux thread stuff */
   struct {

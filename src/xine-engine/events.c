@@ -29,6 +29,7 @@
 #include <errno.h>
 
 #include <xine/xine_internal.h>
+#include <xine/sorted_array.h>
 #include "xine_private.h"
 
 #define MAX_REUSE_EVENTS 16
@@ -44,6 +45,7 @@ typedef struct {
 struct xine_event_queue_private_s {
   xine_event_queue_t  q;
   xine_list_t        *free_events;
+  xine_sarray_t      *select;
   int                 refs;
   int                 flush;
   struct timeval      lasttime;
@@ -206,6 +208,8 @@ static int xine_event_queue_unref_unlock (xine_event_queue_private_t *q) {
     pthread_mutex_destroy (&q->q.lock);
     pthread_cond_destroy (&q->q.new_event);
     pthread_cond_destroy (&q->q.events_processed);
+    if (q->select)
+      xine_sarray_delete (q->select);
     free (q);
   }
 
@@ -244,16 +248,24 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
   data = (event->data_length <= 0) ? NULL : event->data;
 
   gettimeofday (&now, NULL);
-  pthread_mutex_lock (&mstream->event_queues_lock);
+  pthread_mutex_lock (&mstream->event.lock);
 
   ite = NULL;
-  while ((q = xine_list_next_value (mstream->event_queues, &ite))) {
+  while ((q = xine_list_next_value (mstream->event.queues, &ite))) {
     xine_event_private_t *new_event;
 
     /* XINE_EVENT_VDR_DISCONTINUITY: .data == NULL, .data_length == DISC_* */
     if (!data) {
       xine_list_iterator_t it2 = NULL;
       pthread_mutex_lock (&q->q.lock);
+      if (q->select) {
+        if (xine_sarray_binary_search (q->select, (void *)(intptr_t)event->type) < 0) {
+          q->num_all += 1;
+          q->num_skip += 1;
+          pthread_mutex_unlock (&q->q.lock);
+          continue;
+        }
+      }
       new_event = xine_list_next_value (q->free_events, &it2);
       if (new_event) {
         xine_list_remove (q->free_events, it2);
@@ -288,6 +300,14 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
     if ((event->type == XINE_EVENT_PROGRESS) || (event->type == XINE_EVENT_NBC_STATS)) {
       xine_event_t *e2;
       pthread_mutex_lock (&q->q.lock);
+      if (q->select) {
+        if (xine_sarray_binary_search (q->select, (void *)(intptr_t)event->type) < 0) {
+          q->num_all += 1;
+          q->num_skip += 1;
+          pthread_mutex_unlock (&q->q.lock);
+          continue;
+        }
+      }
       do {
         xine_list_iterator_t it2 = NULL;
         e2 = xine_list_prev_value (q->q.events, &it2);
@@ -329,6 +349,14 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
     if (event->data_length <= MAX_REUSE_DATA) {
       xine_list_iterator_t it2 = NULL;
       pthread_mutex_lock (&q->q.lock);
+      if (q->select) {
+        if (xine_sarray_binary_search (q->select, (void *)(intptr_t)event->type) < 0) {
+          q->num_all += 1;
+          q->num_skip += 1;
+          pthread_mutex_unlock (&q->q.lock);
+          continue;
+        }
+      }
       new_event = xine_list_next_value (q->free_events, &it2);
       if (new_event) {
         xine_list_remove (q->free_events, it2);
@@ -353,9 +381,20 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
       pthread_mutex_unlock (&q->q.lock);
     }
 
+    pthread_mutex_lock (&q->q.lock);
+    if (q->select) {
+      if (xine_sarray_binary_search (q->select, (void *)(intptr_t)event->type) < 0) {
+        q->num_all += 1;
+        q->num_skip += 1;
+        pthread_mutex_unlock (&q->q.lock);
+        continue;
+      }
+    }
     new_event = malloc (sizeof (*new_event) + event->data_length);
-    if (!new_event)
+    if (!new_event) {
+      pthread_mutex_unlock (&q->q.lock);
       continue;
+    }
     new_event->e.data = (uint8_t *)new_event + sizeof (*new_event);
     memcpy (new_event->e.data, data, event->data_length);
     new_event->queue         = q;
@@ -363,7 +402,6 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
     new_event->e.data_length = event->data_length;
     new_event->e.stream      = &stream->s;
     new_event->e.tv          = now;
-    pthread_mutex_lock (&q->q.lock);
     q->num_all += 1;
     q->num_alloc += 1;
     xine_list_push_back (q->q.events, new_event);
@@ -375,7 +413,7 @@ void xine_event_send (xine_stream_t *s, const xine_event_t *event) {
     pthread_mutex_unlock (&q->q.lock);
   }
 
-  pthread_mutex_unlock (&mstream->event_queues_lock);
+  pthread_mutex_unlock (&mstream->event.lock);
 }
 
 
@@ -419,6 +457,7 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *s) {
     free (q);
     return NULL;
   }
+  q->select = NULL;
   for (n = 0; n < MAX_REUSE_EVENTS; n++)
     xine_list_push_back (q->free_events, &q->revents[n]);
 
@@ -433,12 +472,55 @@ xine_event_queue_t *xine_event_new_queue (xine_stream_t *s) {
 
   {
     xine_stream_private_t *mstream = stream->side_streams[0];
-    pthread_mutex_lock (&mstream->event_queues_lock);
-    xine_list_push_back (mstream->event_queues, &q->q);
-    pthread_mutex_unlock (&mstream->event_queues_lock);
+    pthread_mutex_lock (&mstream->event.lock);
+    xine_list_push_back (mstream->event.queues, &q->q);
+    pthread_mutex_unlock (&mstream->event.lock);
   }
 
   return &q->q;
+}
+
+static int xine_event_type_cmp (void *a, void *b) {
+  int d = (intptr_t)a, e = (intptr_t)b;
+  return (d > e) - (d < e);
+}
+
+void xine_event_select (xine_event_queue_t *queue, const int *types) {
+  xine_event_queue_private_t *q = (xine_event_queue_private_t *)queue;
+
+  if (!q)
+    return;
+
+  if (!types) {
+    pthread_mutex_lock (&q->q.lock);
+    if (q->select) {
+      xine_sarray_delete (q->select);
+      q->select = NULL;
+    }
+    pthread_mutex_unlock (&q->q.lock);
+  } else {
+    uint32_t n;
+
+    pthread_mutex_lock (&q->q.lock);
+    if (!q->select) {
+      for (n = 0; types[n] != XINE_EVENT_QUIT; n++) ;
+      q->select = xine_sarray_new (n + 1, xine_event_type_cmp);
+      if (!q->select) {
+        pthread_mutex_unlock (&q->q.lock);
+        return;
+      }
+      xine_sarray_set_mode (q->select, XINE_SARRAY_MODE_UNIQUE);
+    }
+    xine_sarray_clear (q->select);
+    n = 0;
+    while (1) {
+      xine_sarray_add (q->select, (void *)(intptr_t)types[n]);
+      if (types[n] == XINE_EVENT_QUIT)
+        break;
+      n++;
+    }
+    pthread_mutex_unlock (&q->q.lock);
+  }
 }
 
 void xine_event_dispose_queue (xine_event_queue_t *queue) {
@@ -452,15 +534,15 @@ void xine_event_dispose_queue (xine_event_queue_t *queue) {
   {
     xine_stream_private_t *mstream = stream->side_streams[0];
     xine_list_iterator_t  ite;
-    pthread_mutex_lock (&mstream->event_queues_lock);
-    ite = xine_list_find (mstream->event_queues, q);
+    pthread_mutex_lock (&mstream->event.lock);
+    ite = xine_list_find (mstream->event.queues, q);
     if (!ite) {
-      pthread_mutex_unlock (&mstream->event_queues_lock);
+      pthread_mutex_unlock (&mstream->event.lock);
       xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG, "events: tried to dispose queue which is not in list\n");
       return;
     }
-    xine_list_remove (mstream->event_queues, ite);
-    pthread_mutex_unlock (&mstream->event_queues_lock);
+    xine_list_remove (mstream->event.queues, ite);
+    pthread_mutex_unlock (&mstream->event.lock);
   }
 
   /*
@@ -632,8 +714,8 @@ void _x_flush_events_queues (xine_stream_t *s) {
     xine_list_iterator_t ite = NULL;
     int list_locked = 1;
 
-    pthread_mutex_lock (&stream->event_queues_lock);
-    while ((q = xine_list_next_value (stream->event_queues, &ite))) {
+    pthread_mutex_lock (&stream->event.lock);
+    while ((q = xine_list_next_value (stream->event.queues, &ite))) {
       pthread_mutex_lock (&q->q.lock);
       /* never wait for self. */
       if (q->q.listener_thread && !pthread_equal (self, q->handler) && (q->flush == 0)) {
@@ -656,7 +738,7 @@ void _x_flush_events_queues (xine_stream_t *s) {
           int err, n = q->flush;
           /* make sure this queue does not go away, then unlock list to prevent freezes. */
           q->refs += 1;
-          pthread_mutex_unlock (&stream->event_queues_lock);
+          pthread_mutex_unlock (&stream->event.lock);
           do {
             /* paranoia: cyclic wait? */
             err = pthread_cond_timedwait (&q->q.events_processed, &q->q.lock, &ts);
@@ -677,7 +759,7 @@ void _x_flush_events_queues (xine_stream_t *s) {
       pthread_mutex_unlock (&q->q.lock);
     }
     if (list_locked) {
-      pthread_mutex_unlock (&stream->event_queues_lock);
+      pthread_mutex_unlock (&stream->event.lock);
       break;
     }
   }

@@ -1121,8 +1121,8 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->s.master                   = &stream->s;
 
   /* event queues */
-  stream->event_queues = xine_list_new ();
-  if (!stream->event_queues)
+  stream->event.queues = xine_list_new ();
+  if (!stream->event.queues)
     goto err_free;
 
   /* init mutexes and conditions */
@@ -1133,7 +1133,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   pthread_mutex_init (&stream->demux.action_lock, NULL);
   pthread_mutex_init (&stream->demux.pair, NULL);
   pthread_cond_init  (&stream->demux.resume, NULL);
-  pthread_mutex_init (&stream->event_queues_lock, NULL);
+  pthread_mutex_init (&stream->event.lock, NULL);
   pthread_mutex_init (&stream->counter.lock, NULL);
   pthread_cond_init  (&stream->counter.changed, NULL);
   pthread_mutex_init (&stream->first_frame.lock, NULL);
@@ -1205,7 +1205,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   pthread_mutex_destroy (&stream->first_frame.lock);
   pthread_cond_destroy  (&stream->counter.changed);
   pthread_mutex_destroy (&stream->counter.lock);
-  pthread_mutex_destroy (&stream->event_queues_lock);
+  pthread_mutex_destroy (&stream->event.lock);
   pthread_cond_destroy  (&stream->demux.resume);
   pthread_mutex_destroy (&stream->demux.pair);
   pthread_mutex_destroy (&stream->demux.action_lock);
@@ -1213,7 +1213,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   xine_rwlock_destroy   (&stream->meta_lock);
   xine_rwlock_destroy   (&stream->info_lock);
   xine_refs_sub (&stream->current_extra_info_index, xine_refs_get (&stream->current_extra_info_index));
-  xine_list_delete      (stream->event_queues);
+  xine_list_delete      (stream->event.queues);
 
   err_free:
   free (stream);
@@ -1249,7 +1249,7 @@ static void xine_side_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->frontend_lock);
   pthread_mutex_destroy (&stream->index.lock);
   pthread_mutex_destroy (&stream->demux.pair_mutex);
-  pthread_mutex_destroy (&stream->event_queues_lock);
+  pthread_mutex_destroy (&stream->event.lock);
   pthread_mutex_destroy (&stream->counter.lock);
   pthread_mutex_destroy (&stream->first_frame.lock);
   pthread_cond_destroy  (&stream->first_frame.reached);
@@ -1365,7 +1365,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   /* initial master/slave */
   s->s.master                   = &s->s;
 
-  s->event_queues = m->event_queues;
+  s->event.queues = m->event.queues;
 
   /* these are not used in side streams.
   {
@@ -1378,7 +1378,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   xine_refs_init (&stream->current_extra_info_index, _xine_dummy_dest, stream);
   pthread_mutex_init (&s->demux.pair, NULL);
   pthread_mutex_init (&s->index.lock, NULL);
-  pthread_mutex_init (&s->event_queues_lock, NULL);
+  pthread_mutex_init (&s->event.lock, NULL);
   pthread_mutex_init (&s->counter.lock, NULL);
   pthread_mutex_init (&s->first_frame.lock, NULL);
   pthread_cond_init  (&s->counter.changed, NULL);
@@ -2366,7 +2366,7 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
   pthread_mutex_destroy (&stream->first_frame.lock);
   pthread_cond_destroy  (&stream->counter.changed);
   pthread_mutex_destroy (&stream->counter.lock);
-  pthread_mutex_destroy (&stream->event_queues_lock);
+  pthread_mutex_destroy (&stream->event.lock);
   pthread_cond_destroy  (&stream->demux.resume);
   pthread_mutex_destroy (&stream->demux.pair);
   pthread_mutex_destroy (&stream->demux.action_lock);
@@ -2376,7 +2376,7 @@ static void xine_dispose_internal (xine_stream_private_t *stream) {
 
   xine_refs_sub (&stream->current_extra_info_index, xine_refs_get (&stream->current_extra_info_index));
 
-  xine_list_delete(stream->event_queues);
+  xine_list_delete (stream->event.queues);
 
   free (stream->index.array);
   free (stream);

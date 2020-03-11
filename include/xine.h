@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2216,6 +2216,11 @@ typedef struct xine_event_queue_s xine_event_queue_t;
  */
 xine_event_queue_t *xine_event_new_queue (xine_stream_t *stream) XINE_PROTECTED;
 void xine_event_dispose_queue (xine_event_queue_t *queue) XINE_PROTECTED;
+
+/** @brief Filter events by type.
+ *  @param queue The queue that shall receive a few types only.
+ *  @param types List of event types, termiated by XINE_EVENT_QUIT. NULL reverts to the "all types" default. */
+void xine_event_select (xine_event_queue_t *queue, const int *types) XINE_PROTECTED;
 
 /*
  * receive events (poll)
