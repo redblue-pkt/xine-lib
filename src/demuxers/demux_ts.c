@@ -3394,6 +3394,14 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
 
   /* dvb */
   this->event_queue = xine_event_new_queue (this->stream);
+  {
+    static const int want_types[] = {
+      XINE_EVENT_END_OF_CLIP,
+      XINE_EVENT_PIDS_CHANGE,
+      XINE_EVENT_QUIT
+    };
+    xine_event_select (this->event_queue, want_types);
+  }
 
   /* HDMV */
   this->hdmv       = hdmv;
