@@ -589,8 +589,11 @@ static int64_t metronom_got_spu_packet (metronom_t *this_gen, int64_t pts) {
  * discontinuity wait will then outdate some audio, and yield a gap of
  * silence.
  * Workaround: Use the bounce hack above to handle most absolute
- * discontinuities without wait. */
-#define BOUNCE_MAX 220000
+ * discontinuities without wait.
+ *
+ * Note: BOUNCE_MAX needs to be at least demux_ts:WRAP_THRESHOLD (360000).
+ * This makes sure that no jump turns into a huge gap. */
+#define BOUNCE_MAX 360000
 
 static int metronom_handle_discontinuity (metronom_impl_t *this,
   int type, int try, int64_t disc_off) {
