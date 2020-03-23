@@ -103,20 +103,30 @@ typedef struct ff_video_class_s {
   xine_t                 *xine;
 } ff_video_class_t;
 
+typedef union {
+  int64_t v;
+  uint8_t b[8];
+} ff_pts_tag_t;
+#ifdef WORDS_BIGENDIAN
+#  define FF_PTS_TAG_BYTE(tagu) (tagu).b[0]
+#  define FF_PTS_SIGN_BYTE(tagu) (tagu).b[1]
+#else
+#  define FF_PTS_TAG_BYTE(tagu) (tagu).b[7]
+#  define FF_PTS_SIGN_BYTE(tagu) (tagu).b[6]
+#endif
+
 struct ff_video_decoder_s {
   video_decoder_t   video_decoder;
 
   ff_video_class_t *class;
 
   xine_stream_t    *stream;
+
   int64_t           pts;
   int64_t           last_pts;
-  uint64_t          pts_tag_mask;
-  uint64_t          pts_tag;
-  int               pts_tag_counter;
-  int               pts_tag_stable_counter;
   int               video_step;
   int               reported_video_step;
+  uint8_t           pts_tag_pass;
 
   uint8_t           decoder_ok:1;
   uint8_t           decoder_init_mode:1;
@@ -1798,50 +1808,29 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
   }
 }
 
-static uint64_t ff_tag_pts(ff_video_decoder_t *this, uint64_t pts)
-{
-  return pts | this->pts_tag;
+static uint64_t ff_tag_pts (ff_video_decoder_t *this, uint64_t pts) {
+  ff_pts_tag_t u;
+  u.v = pts;
+  FF_PTS_TAG_BYTE (u) = this->pts_tag_pass;
+  return u.v;
 }
 
-static uint64_t ff_untag_pts(ff_video_decoder_t *this, uint64_t pts)
-{
-  if (this->pts_tag_mask == 0)
-    return pts; /* pts tagging inactive */
-
-  if (this->pts_tag != 0 && (pts & this->pts_tag_mask) != this->pts_tag)
-    return 0; /* reset pts if outdated while waiting for first pass (see below) */
-
-  return pts & ~this->pts_tag_mask;
+static uint64_t ff_untag_pts (ff_video_decoder_t *this, uint64_t pts) {
+  ff_pts_tag_t u;
+  u.v = pts;
+  if (FF_PTS_TAG_BYTE (u) == this->pts_tag_pass) {
+    /* restore sign. NOTE: this assumes 2's complement math. */
+    FF_PTS_TAG_BYTE (u) = (FF_PTS_SIGN_BYTE (u) & 0x80) ? 0xff : 0;
+    return u.v;
+  } else {
+    /* reset pts if outdated while waiting for first pass (see below). */
+    return 0;
+  }
 }
 
-static void ff_check_pts_tagging(ff_video_decoder_t *this, uint64_t pts)
-{
-  if (this->pts_tag_mask == 0)
-    return; /* pts tagging inactive */
-  if ((pts & this->pts_tag_mask) != this->pts_tag) {
-    this->pts_tag_stable_counter = 0;
-    return; /* pts still outdated */
-  }
-
-  /* the tag should be stable for 100 frames */
-  this->pts_tag_stable_counter++;
-
-  if (this->pts_tag != 0) {
-    if (this->pts_tag_stable_counter >= 100) {
-      /* first pass: reset pts_tag */
-      this->pts_tag = 0;
-      this->pts_tag_stable_counter = 0;
-    }
-  } else if (pts == 0)
-    return; /* cannot detect second pass */
-  else {
-    if (this->pts_tag_stable_counter >= 100) {
-      /* second pass: reset pts_tag_mask and pts_tag_counter */
-      this->pts_tag_mask = 0;
-      this->pts_tag_counter = 0;
-      this->pts_tag_stable_counter = 0;
-    }
-  }
+static void ff_check_pts_tagging (ff_video_decoder_t *this, uint64_t pts) {
+  (void)this;
+  (void)pts;
 }
 
 static int decode_video_wrapper (ff_video_decoder_t *this,
@@ -2739,10 +2728,7 @@ static void ff_reset (video_decoder_t *this_gen) {
   if (this->is_mpeg12)
     mpeg_parser_reset(this->mpeg_parser);
 
-  this->pts_tag_mask = 0;
-  this->pts_tag = 0;
-  this->pts_tag_counter = 0;
-  this->pts_tag_stable_counter = 0;
+  /* this->pts_tag_pass = 0; */
 }
 
 static void ff_discontinuity (video_decoder_t *this_gen) {
@@ -2757,33 +2743,14 @@ static void ff_discontinuity (video_decoder_t *this_gen) {
    * therefore, we add a unique tag (generated from pts_tag_counter) to pts (see
    * ff_tag_pts()) and wait for it to appear on returned frames.
    * until then, any retrieved pts value will be reset to 0 (see ff_untag_pts()).
-   * when we see the tag returned, pts_tag will be reset to 0. from now on, any
-   * untagged pts value is valid already.
-   * when tag 0 appears too, there are no tags left in the decoder so pts_tag_mask
-   * and pts_tag_counter will be reset to 0 too (see ff_check_pts_tagging()).
+   * NOTE: there may be small negative pts values, eg -7200, or even -1 (reordered .mp4).
+   * hence the sign restore.
+   * NOTE: previous code had an "inactive" mode that let _any_ value pass - when there
+   * are no discontinuities. not very realistic. furthermore, many xine code parts
+   * assume that pts never use more than 48 bits or so for their 64bit math.
+   * so lets drop complexity, and _always_ tag within the upper 8 bits.
    */
-  this->pts_tag_counter++;
-  this->pts_tag_mask = 0;
-  this->pts_tag = 0;
-  this->pts_tag_stable_counter = 0;
-  {
-    /* pts values typically don't use the uppermost bits. therefore we put the tag there */
-    int counter_mask = 1;
-    int counter = 2 * this->pts_tag_counter + 1; /* always set the uppermost bit in tag_mask */
-    uint64_t tag_mask = 0x8000000000000000ull;
-    while (this->pts_tag_counter >= counter_mask)
-    {
-      /*
-       * mirror the counter into the uppermost bits. this allows us to enlarge mask as
-       * necessary and while previous taggings can still be detected to be outdated.
-       */
-      if (counter & counter_mask)
-        this->pts_tag |= tag_mask;
-      this->pts_tag_mask |= tag_mask;
-      tag_mask >>= 1;
-      counter_mask <<= 1;
-    }
-  }
+  this->pts_tag_pass = (this->pts_tag_pass + 1) & 0xff;
 }
 
 static void ff_dispose (video_decoder_t *this_gen) {
@@ -2895,10 +2862,12 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
    * Let it optimize away this on most systems where clear mem
    * interpretes as 0, 0f or NULL safely.
    */
+#ifndef HAVE_ZERO_SAFE_MEM
   this->size            = 0;
   this->decoder_ok      = 0;
   this->is_mpeg12       = 0;
   this->aspect_ratio    = 0;
+  this->pts_tag_pass    = 0;
 #ifdef HAVE_POSTPROC
   this->pp_quality      = 0;
   this->our_context     = NULL;
@@ -2913,6 +2882,7 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 #endif
 #if XFF_VIDEO == 3
   this->flush_packet_sent = 0;
+#endif
 #endif
 
   this->video_decoder.decode_data   = ff_decode_data;
