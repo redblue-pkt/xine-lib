@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2019 the xine project
+ * Copyright (C) 2001-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -3479,7 +3479,8 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
     this->qt.seek_flag = 0;
 
     /* send min pts of all used traks, usually audio (see demux_qt_seek ()). */
-    _x_demux_control_newpts (this->stream, trak->frames[trak->current_frame].pts, BUF_FLAG_SEEK);
+    _x_demux_control_newpts (this->stream,
+        trak->frames[trak->current_frame].pts + trak->frames[trak->current_frame].ptsoffs, BUF_FLAG_SEEK);
   }
 
   if (trak->type == MEDIA_VIDEO) {
