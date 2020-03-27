@@ -1058,6 +1058,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->counter.nbc_refs         = 0;
   stream->counter.nbc              = NULL;
   stream->demux.action_pending     = 0;
+  stream->demux.input_caps         = 0;
   stream->demux.thread_created     = 0;
   stream->demux.thread_running     = 0;
   stream->demux.start_buffers_sent = 0;
@@ -1302,6 +1303,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   s->counter.finisheds_audio  = 0;
   s->counter.finisheds_video  = 0;
   s->demux.action_pending     = 0;
+  s->demux.input_caps         = 0;
   s->demux.thread_created     = 0;
   s->demux.thread_running     = 0;
   s->err                      = 0;
@@ -2052,6 +2054,7 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   int        flush;
   int        first_frame_flag = 3;
   int        demux_status;
+  uint32_t   input_is_seekable = 1;
   struct     timespec ts1 = {0, 0}, ts2 = {0, 0};
   struct {
     xine_stream_private_t *s;
@@ -2102,6 +2105,8 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   do {
     pthread_mutex_lock (&sp->s->demux.action_lock);
     sp->s->demux.action_pending += 0x10001;
+    if (!(sp->s->demux.input_caps & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)))
+      input_is_seekable = 0;
     pthread_mutex_unlock (&sp->s->demux.action_lock);
     sp++;
   } while (sp->s);
@@ -2128,8 +2133,9 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
       stream->s.audio_out->set_property (stream->s.audio_out, AO_PROP_DISCARD_BUFFERS, 1);
     if (stream->s.video_out)
       stream->s.video_out->set_property (stream->s.video_out, VO_PROP_DISCARD_FRAMES, 1);
-    /* freeze safety (discontinuity wait?) when there are multiple streams. */
-    if (sides[1].s) {
+    /* freeze safety (discontinuity wait?) when there are multiple streams.
+     * or, when all input is seekable, suspend faster this way. */
+    if (sides[1].s || input_is_seekable) {
       stream->s.video_fifo->clear (stream->s.video_fifo);
       stream->s.audio_fifo->clear (stream->s.audio_fifo);
     }

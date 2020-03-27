@@ -599,7 +599,9 @@ typedef struct xine_stream_private_st {
     pthread_cond_t           resume;
     /* used in _x_demux_... functions to synchronize order of pairwise A/V buffer operations */
     pthread_mutex_t          pair;
+    /* next 2 protected by action_lock */
     uint32_t                 action_pending;
+    uint32_t                 input_caps;
     uint32_t                 thread_created:1;
     uint32_t                 thread_running:1;
     /* filter out duplicate seek discontinuities from side streams */
