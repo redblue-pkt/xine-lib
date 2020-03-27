@@ -103,18 +103,6 @@ typedef struct ff_video_class_s {
   xine_t                 *xine;
 } ff_video_class_t;
 
-typedef union {
-  int64_t v;
-  uint8_t b[8];
-} ff_pts_tag_t;
-#ifdef WORDS_BIGENDIAN
-#  define FF_PTS_TAG_BYTE(tagu) (tagu).b[0]
-#  define FF_PTS_SIGN_BYTE(tagu) (tagu).b[1]
-#else
-#  define FF_PTS_TAG_BYTE(tagu) (tagu).b[7]
-#  define FF_PTS_SIGN_BYTE(tagu) (tagu).b[6]
-#endif
-
 struct ff_video_decoder_s {
   video_decoder_t   video_decoder;
 
@@ -1808,29 +1796,44 @@ static void ff_handle_special_buffer (ff_video_decoder_t *this, buf_element_t *b
   }
 }
 
-static uint64_t ff_tag_pts (ff_video_decoder_t *this, uint64_t pts) {
-  ff_pts_tag_t u;
-  u.v = pts;
-  FF_PTS_TAG_BYTE (u) = this->pts_tag_pass;
-  return u.v;
+static void ff_discontinuity (video_decoder_t *this_gen) {
+  ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
+
+  lprintf ("ff_discontinuity\n");
+  this->pts = 0;
+  this->state = STATE_DISCONTINUITY;
+
+  /*
+   * there is currently no way to reset all the pts which are stored in the decoder.
+   * therefore, we add a unique tag (generated from pts_tag_counter) to pts (see
+   * ff_tag_pts()) and wait for it to appear on returned frames.
+   * until then, any retrieved pts value will be reset to 0 (see ff_untag_pts()).
+   * NOTE: there may be small negative pts values, eg -7200, or even -1 (reordered .mp4).
+   * hence the sign restore.
+   * NOTE: previous code had an "inactive" mode that let _any_ value pass - when there
+   * are no discontinuities. not very realistic. furthermore, many xine code parts
+   * assume that pts never use more than 48 bits or so for their 64bit math.
+   * so lets drop complexity, and _always_ tag 8 bits.
+   */
+  this->pts_tag_pass = (this->pts_tag_pass + 1) & 0xff;
 }
 
-static uint64_t ff_untag_pts (ff_video_decoder_t *this, uint64_t pts) {
-  ff_pts_tag_t u;
-  u.v = pts;
-  if (FF_PTS_TAG_BYTE (u) == this->pts_tag_pass) {
-    /* restore sign. NOTE: this assumes 2's complement math. */
-    FF_PTS_TAG_BYTE (u) = (FF_PTS_SIGN_BYTE (u) & 0x80) ? 0xff : 0;
-    return u.v;
+static int64_t ff_tag_pts (ff_video_decoder_t *this, int64_t pts) {
+  /* NOTE: m68k has sign preserving left shifts, x86 has not.
+   * both are correct with non overflowing 2's complement value.
+   * anyway, some compilers warn about undefined op there, so use * 256.
+   * NOTE: we still like notifications ;-) */
+  return (pts * 256) | this->pts_tag_pass;
+}
+
+static int64_t ff_untag_pts (ff_video_decoder_t *this, int64_t pts) {
+  if ((uint8_t)(pts & 0xff) == this->pts_tag_pass) {
+    /* restore sign. */
+    return pts >> 8;
   } else {
     /* reset pts if outdated while waiting for first pass (see below). */
     return 0;
   }
-}
-
-static void ff_check_pts_tagging (ff_video_decoder_t *this, uint64_t pts) {
-  (void)this;
-  (void)pts;
 }
 
 static int decode_video_wrapper (ff_video_decoder_t *this,
@@ -2057,7 +2060,6 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
       /* get back reordered pts */
       img->pts = ff_untag_pts (this, this->av_frame->reordered_opaque);
-      ff_check_pts_tagging (this, this->av_frame->reordered_opaque);
       this->av_frame->reordered_opaque = 0;
       this->context->reordered_opaque = 0;
 
@@ -2398,7 +2400,6 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
         }
 
         img->pts  = ff_untag_pts(this, this->av_frame->reordered_opaque);
-        ff_check_pts_tagging(this, this->av_frame->reordered_opaque); /* only check for valid frames */
         this->av_frame->reordered_opaque = 0;
 
         /* workaround for weird 120fps streams */
@@ -2623,7 +2624,6 @@ static void ff_flush_internal (ff_video_decoder_t *this, int display) {
     }
 
     img->pts = ff_untag_pts (this, this->av_frame2->reordered_opaque);
-    ff_check_pts_tagging (this, this->av_frame2->reordered_opaque);
 
     if (video_step_to_use == 750)
       video_step_to_use = 0;
@@ -2729,28 +2729,6 @@ static void ff_reset (video_decoder_t *this_gen) {
     mpeg_parser_reset(this->mpeg_parser);
 
   /* this->pts_tag_pass = 0; */
-}
-
-static void ff_discontinuity (video_decoder_t *this_gen) {
-  ff_video_decoder_t *this = (ff_video_decoder_t *) this_gen;
-
-  lprintf ("ff_discontinuity\n");
-  this->pts = 0;
-  this->state = STATE_DISCONTINUITY;
-
-  /*
-   * there is currently no way to reset all the pts which are stored in the decoder.
-   * therefore, we add a unique tag (generated from pts_tag_counter) to pts (see
-   * ff_tag_pts()) and wait for it to appear on returned frames.
-   * until then, any retrieved pts value will be reset to 0 (see ff_untag_pts()).
-   * NOTE: there may be small negative pts values, eg -7200, or even -1 (reordered .mp4).
-   * hence the sign restore.
-   * NOTE: previous code had an "inactive" mode that let _any_ value pass - when there
-   * are no discontinuities. not very realistic. furthermore, many xine code parts
-   * assume that pts never use more than 48 bits or so for their 64bit math.
-   * so lets drop complexity, and _always_ tag within the upper 8 bits.
-   */
-  this->pts_tag_pass = (this->pts_tag_pass + 1) & 0xff;
 }
 
 static void ff_dispose (video_decoder_t *this_gen) {
