@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -361,6 +361,17 @@ static void *demux_loop (void *stream_gen) {
   /* do-while needed to seek after demux finished */
   do {
     xine_gettime (&seek_time);
+
+    {
+      uint32_t input_caps = 0;
+      /* tell xine_play_internal () whether we can seek.
+       * so it may flush fifos early, and suspend us faster. */
+      if (stream->s.input_plugin)
+        input_caps = stream->s.input_plugin->get_capabilities (stream->s.input_plugin);
+      pthread_mutex_lock (&stream->demux.action_lock);
+      stream->demux.input_caps = input_caps;
+      pthread_mutex_unlock (&stream->demux.action_lock);
+    }
 
     /* main demuxer loop */
     status = stream->demux.plugin->get_status (stream->demux.plugin);
