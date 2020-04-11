@@ -86,6 +86,8 @@ typedef struct mad_decoder_s {
   int               needs_more_data;
 
   mad_fixed_t       peak;
+  uint32_t          seek;
+  uint32_t          declip;
   unsigned int      num_inbufs;
   unsigned int      num_bytes_d;
   unsigned int      num_bytes_r;
@@ -168,6 +170,7 @@ static void mad_reset (audio_decoder_t *this_gen) {
   this->start_padding = 0;
   this->end_padding = 0;
   this->needs_more_data = 0;
+  this->seek = 2;
 
   mad_synth_init  (&this->synth);
   mad_stream_init (&this->stream);
@@ -181,6 +184,7 @@ static void mad_discontinuity (audio_decoder_t *this_gen) {
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
 
   this->pts = 0;
+  this->seek = 2;
 }
 
 /* utility to scale and round samples to 16 bits */
@@ -215,6 +219,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     int donebytes = 0;
     int insize = 0;
     uint8_t *inbuf = NULL;
+    int64_t pts;
 
     /* reset decoder on leaving preview mode */
     if ((buf->decoder_flags & BUF_FLAG_PREVIEW) == 0) {
@@ -226,9 +231,11 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     this->num_inbufs += 1;
-    if (!this->rest_write) {
+    if (this->rest_write) {
+        pts = buf->pts;
+    } else {
+      pts = 0;
       this->pts = buf->pts;
-      buf->pts = 0;
     }
 
     while (1) {
@@ -347,6 +354,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       } while (0);
 
       if (!err) {
+        mad_fixed_t old_peak = this->peak;
         int mode = (this->frame.header.mode == MAD_MODE_SINGLE_CHANNEL) ? AO_CAP_MODE_MONO : AO_CAP_MODE_STEREO;
 
 	if (!this->output_open
@@ -414,36 +422,77 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             const mad_fixed_t *left = this->synth.pcm.samples[0] + this->start_padding;
             const mad_fixed_t *right = this->synth.pcm.samples[1] + this->start_padding;
             int16_t *output = audio_buffer->mem;
-            while (nsamples--) {
-              mad_fixed_t v, a;
-              v = *left++;
-              a = v < 0 ? -v : v;
-              if (a > this->peak)
-                this->peak = a;
-              *output++ = scale (v);
-              v = *right++;
-              a = v < 0 ? -v : v;
-              if (a > this->peak)
-                this->peak = a;
-              *output++ = scale (v);
+            if (this->declip) {
+              while (nsamples--) {
+                mad_fixed_t v, a;
+                v = *left++;
+                a = v < 0 ? -v : v;
+                if (a > this->peak)
+                  this->peak = a;
+                v -= v >> 2;
+                *output++ = scale (v);
+                v = *right++;
+                a = v < 0 ? -v : v;
+                if (a > this->peak)
+                  this->peak = a;
+                v -= v >> 2;
+                *output++ = scale (v);
+              }
+            } else {
+              while (nsamples--) {
+                mad_fixed_t v, a;
+                v = *left++;
+                a = v < 0 ? -v : v;
+                if (a > this->peak)
+                  this->peak = a;
+                *output++ = scale (v);
+                v = *right++;
+                a = v < 0 ? -v : v;
+                if (a > this->peak)
+                  this->peak = a;
+                *output++ = scale (v);
+              }
             }
           } else {
             const mad_fixed_t *mid = this->synth.pcm.samples[0] + this->start_padding;
             int16_t *output = audio_buffer->mem;
-            while (nsamples--) {
-              mad_fixed_t v, a;
-              v = *mid++;
-              a = v < 0 ? -v : v;
-              if (a > this->peak)
-                this->peak = a;
-              *output++ = scale (v);
+            if (this->declip) {
+              while (nsamples--) {
+                mad_fixed_t v, a;
+                v = *mid++;
+                a = v < 0 ? -v : v;
+                if (a > this->peak)
+                  this->peak = a;
+                v -= v >> 2;
+                *output++ = scale (v);
+              }
+            } else {
+              while (nsamples--) {
+                mad_fixed_t v, a;
+                v = *mid++;
+                a = v < 0 ? -v : v;
+                if (a > this->peak)
+                  this->peak = a;
+                *output++ = scale (v);
+              }
             }
+          }
+          /* disregard glitches after seek. */
+          if (this->seek) {
+            this->seek -= 1;
+            this->peak = old_peak;
+          }
+          /* auto declip when peaks exnceed 0.4dB. */
+          if (!this->declip && ((uint32_t)this->peak > (0x860dbbdb >> (31 - MAD_F_FRACBITS)))) {
+            this->declip = 1;
+            xprintf (this->xstream->xine, XINE_VERBOSITY_LOG,
+              "mad_audio_decoder: source too loud, adding -2.5dB declip filter.\n");
           }
 
           /* pts computing */
           audio_buffer->vpts = this->pts;
-          this->pts = buf->pts;
-          buf->pts = 0;
+          this->pts = pts;
+          pts = 0;
           {
 #if 0
             int bitrate = this->frame.header.bitrate;
@@ -542,10 +591,11 @@ static void mad_dispose (audio_decoder_t *this_gen) {
     "mad_audio_decoder: %u inbufs, %u direct bytes, %u reassembled bytes, %u outbufs.\n",
     this->num_inbufs, this->num_bytes_d, this->num_bytes_r, this->num_outbufs);
   {
+    int l = this->declip ? XINE_VERBOSITY_LOG : XINE_VERBOSITY_DEBUG;
     int peak = mad_fixed_2_db (this->peak);
     const char *s = peak < 0 ? "-" : "+";
     peak = peak < 0 ? -peak : peak;
-    xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG,
+    xprintf (this->xstream->xine, l,
       "mad_audio_decoder: peak level %d / %s%0d.%01ddB.\n",
       (int)this->peak, s, peak / 10, peak % 10);
   }
@@ -566,6 +616,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
    * Let it optimize away this on most systems where clear mem
    * interpretes as 0, 0f or NULL safely.
    */
+#ifndef HAVE_ZERO_SAFE_MEM
   this->output_open     = 0;
   this->rest_read       = 0;
   this->rest_write      = 0;
@@ -574,7 +625,9 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->num_bytes_d     = 0;
   this->num_bytes_r     = 0;
   this->num_outbufs     = 0;
-
+  this->declip          = 0;
+#endif
+  this->seek            = 2;
   this->peak            = 1;
 
   this->audio_decoder.decode_data   = mad_decode_data;
