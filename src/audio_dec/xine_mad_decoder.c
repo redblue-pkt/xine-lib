@@ -70,7 +70,15 @@ typedef struct mad_decoder_s {
 
   xine_stream_t    *xstream;
 
-  int64_t           pts;
+#define MAD_PTS_LD 3
+#define MAD_PTS_SIZE (1 << MAD_PTS_LD)
+#define MAD_PTS_MASK (MAD_PTS_SIZE - 1)
+  uint32_t          pts_read;
+  uint32_t          pts_write;
+  struct {
+    int64_t         pts;
+    int             bytes;
+  } pts_ring[MAD_PTS_SIZE];
 
   struct mad_synth  synth;
   struct mad_stream stream;
@@ -84,6 +92,9 @@ typedef struct mad_decoder_s {
   unsigned int      start_padding;
   unsigned int      end_padding;
   int               needs_more_data;
+
+  uint8_t          *inbuf;
+  int               insize;
 
   mad_fixed_t       peak;
   uint32_t          seek;
@@ -163,7 +174,8 @@ static void mad_reset (audio_decoder_t *this_gen) {
   mad_frame_finish (&this->frame);
   mad_stream_finish(&this->stream);
 
-  this->pts = 0;
+  this->pts_read = 0;
+  this->pts_write = 0;
   this->rest_read = 0;
   this->rest_write = 0;
   this->preview_mode = 0;
@@ -180,16 +192,22 @@ static void mad_reset (audio_decoder_t *this_gen) {
 
 
 static void mad_discontinuity (audio_decoder_t *this_gen) {
-
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
-
-  this->pts = 0;
+  int b = this->rest_write - this->rest_read;
+  if (b > 0) {
+    this->pts_ring[0].pts = 0;
+    this->pts_ring[0].bytes = b;
+    this->pts_write = 1;
+  } else {
+    this->pts_write = 0;
+  }
+  this->pts_read = 0;
   this->seek = 2;
 }
 
 /* utility to scale and round samples to 16 bits */
 
-static inline int32_t scale (mad_fixed_t sample) {
+static inline int32_t _mad_scale (mad_fixed_t sample) {
   int32_t v = (sample + (1L << (MAD_F_FRACBITS - 16))) >> (MAD_F_FRACBITS + 1 - 16);
   return ((v + 0x8000) & 0xffff0000) ? (v >> 31) ^ 0x7fff : v;
 }
@@ -209,6 +227,32 @@ static int head_check(mad_decoder_t *this) {
 }
 */
 
+static int _mad_consume (mad_decoder_t *this) {
+  int d, l;
+  if (!this->stream.next_frame)
+    return 0;
+  d = (const uint8_t *)this->stream.next_frame - (const uint8_t *)this->inbuf;
+  if (d <= 0)
+    return 0;
+  this->inbuf += d;
+  this->insize -= d;
+  if (this->rest_write)
+    this->rest_read += d;
+  l = d;
+  while (this->pts_read != this->pts_write) {
+    l -= this->pts_ring[this->pts_read].bytes;
+    if (l >= 0) {
+      this->pts_read = (this->pts_read + 1) & MAD_PTS_MASK;
+      if (l == 0)
+        break;
+    } else {
+      this->pts_ring[this->pts_read].bytes += l;
+      break;
+    }
+  }
+  return d;
+}
+
 static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   mad_decoder_t *this = (mad_decoder_t *) this_gen;
@@ -217,9 +261,9 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   if (!(buf->decoder_flags & BUF_FLAG_HEADER)) {
     int donebytes = 0;
-    int insize = 0;
-    uint8_t *inbuf = NULL;
-    int64_t pts;
+
+    this->insize = 0;
+    this->inbuf = NULL;
 
     /* reset decoder on leaving preview mode */
     if ((buf->decoder_flags & BUF_FLAG_PREVIEW) == 0) {
@@ -231,24 +275,23 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     }
 
     this->num_inbufs += 1;
-    if (this->rest_write) {
-        pts = buf->pts;
-    } else {
-      pts = 0;
-      this->pts = buf->pts;
-    }
+    this->pts_ring[this->pts_write].pts = buf->pts;
+    this->pts_ring[this->pts_write].bytes = buf->size;
+    this->pts_write = (this->pts_write + 1) & MAD_PTS_MASK;
+    xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG + 1,
+      "mad_audio_decoder: inbuf bytes %d, pts %" PRId64 ".\n", buf->size, buf->pts);
 
     while (1) {
       int err;
 
-      if (insize <= 0) {
+      if (this->insize <= 0) {
         int left = buf->size - donebytes;
         if (left <= 0)
           break;
         if (!this->rest_write) {
           /* try using buf mem itself. */
-          inbuf = buf->content + donebytes;
-          insize = left;
+          this->inbuf = buf->content + donebytes;
+          this->insize = left;
           this->num_bytes_d += left;
           donebytes = buf->size;
         } else {
@@ -272,12 +315,12 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           donebytes += n;
           this->rest_write += n;
           this->num_bytes_r += n;
-          insize = this->rest_write - this->rest_read;
-          inbuf = this->rest_buf + this->rest_read;
+          this->insize = this->rest_write - this->rest_read;
+          this->inbuf = this->rest_buf + this->rest_read;
         }
-        mad_stream_buffer (&this->stream, inbuf, insize);
+        mad_stream_buffer (&this->stream, this->inbuf, this->insize);
       }
-        
+
       if (!this->needs_more_data) {
         if (buf->decoder_flags & BUF_FLAG_AUDIO_PADDING) {
           this->start_padding = buf->decoder_info[1];
@@ -293,31 +336,33 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
         if (!err)
           break;
 
-        if (this->stream.next_frame) {
-          int d = (const uint8_t *)this->stream.next_frame - (const uint8_t *)inbuf;
-          inbuf += d;
-          insize -= d;
-          if (this->rest_write)
-            this->rest_read += d;
+        {
+          int d = _mad_consume (this);
+          if (d > 0) {
+            xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG + 1,
+              "mad_audio_decoder: error 0x%x, consumed %d.\n", (unsigned int)this->stream.error, d);
+          }
         }
 
         /* HACK: demuxers - even mpeg-ts - usually send whole frames.
          * libmad refuses to decode the last frame there.
          * retry with a fake next. */
         do {
-          if ((this->stream.error != MAD_ERROR_BUFLEN) || (insize < 4))
+          if ((this->stream.error != MAD_ERROR_BUFLEN) || (this->insize < 4))
+            break;
+          if (!(this->inbuf[1] & 0x04)) /* layer > 2 */
             break;
           if (this->rest_write || (buf->content != buf->mem) || (buf->max_size - buf->size < MAD_BUFFER_GUARD))
             break;
-          if (_mad_frame_size (inbuf) != insize)
+          if (_mad_frame_size (this->inbuf) != this->insize)
             break;
-          memset (inbuf + insize, 0, MAD_BUFFER_GUARD);
-          inbuf[insize] = 0xff;
-          inbuf[insize + 1] = 0xe0;
-          mad_stream_buffer (&this->stream, inbuf, insize + MAD_BUFFER_GUARD);
+          memset (this->inbuf + this->insize, 0, MAD_BUFFER_GUARD);
+          this->inbuf[this->insize] = 0xff;
+          this->inbuf[this->insize + 1] = 0xe0;
+          mad_stream_buffer (&this->stream, this->inbuf, this->insize + MAD_BUFFER_GUARD);
           err = mad_frame_decode (&this->frame, &this->stream);
           if (!err)
-            insize = 0;
+            this->insize = 0;
         } while (0);
         if (!err)
           break;
@@ -326,30 +371,27 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             (this->stream.error == MAD_ERROR_BADDATAPTR)) {
           /* libmad wants more data */
           this->needs_more_data = 1;
-          if (insize > 0) {
+          if (this->insize > 0) {
             if (!this->rest_write) {
-              memcpy (this->rest_buf, inbuf, insize);
-              this->rest_write = insize;
-              this->num_bytes_d -= insize;
-              this->num_bytes_r += insize;
+              memcpy (this->rest_buf, this->inbuf, this->insize);
+              this->rest_write = this->insize;
+              this->num_bytes_d -= this->insize;
+              this->num_bytes_r += this->insize;
               this->rest_read = 0;
             }
-            insize = 0;
+            this->insize = 0;
           } else {
             this->rest_read = 0;
             this->rest_write = 0;
           }
         } else {
+          int d;
           lprintf ("error 0x%04X\n", this->stream.error);
-          if (this->stream.next_frame) {
-            int d = (const uint8_t *)this->stream.next_frame - (const uint8_t *)inbuf;
-            inbuf += d;
-            insize -= d;
-            if (this->rest_write)
-              this->rest_read += d;
-          }
-          if (insize > 0)
-            mad_stream_buffer (&this->stream, inbuf, insize);
+          d = _mad_consume (this);
+          xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG + 1,
+            "mad_audio_decoder: error 0x%x, consumed %d.\n", (unsigned int)this->stream.error, d);
+          if (this->insize > 0)
+            mad_stream_buffer (&this->stream, this->inbuf, this->insize);
         }
       } while (0);
 
@@ -430,13 +472,13 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 if (a > this->peak)
                   this->peak = a;
                 v -= v >> 2;
-                *output++ = scale (v);
+                *output++ = _mad_scale (v);
                 v = *right++;
                 a = v < 0 ? -v : v;
                 if (a > this->peak)
                   this->peak = a;
                 v -= v >> 2;
-                *output++ = scale (v);
+                *output++ = _mad_scale (v);
               }
             } else {
               while (nsamples--) {
@@ -445,12 +487,12 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 a = v < 0 ? -v : v;
                 if (a > this->peak)
                   this->peak = a;
-                *output++ = scale (v);
+                *output++ = _mad_scale (v);
                 v = *right++;
                 a = v < 0 ? -v : v;
                 if (a > this->peak)
                   this->peak = a;
-                *output++ = scale (v);
+                *output++ = _mad_scale (v);
               }
             }
           } else {
@@ -464,7 +506,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 if (a > this->peak)
                   this->peak = a;
                 v -= v >> 2;
-                *output++ = scale (v);
+                *output++ = _mad_scale (v);
               }
             } else {
               while (nsamples--) {
@@ -473,7 +515,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
                 a = v < 0 ? -v : v;
                 if (a > this->peak)
                   this->peak = a;
-                *output++ = scale (v);
+                *output++ = _mad_scale (v);
               }
             }
           }
@@ -490,9 +532,18 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           }
 
           /* pts computing */
-          audio_buffer->vpts = this->pts;
-          this->pts = pts;
-          pts = 0;
+          if (this->pts_read != this->pts_write) {
+            audio_buffer->vpts = this->pts_ring[this->pts_read].pts;
+            this->pts_ring[this->pts_read].pts = 0;
+          } else {
+            audio_buffer->vpts = 0;
+          }
+          {
+            int d = _mad_consume (this);
+            xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG + 1,
+              "mad_audio_decoder: outbuf consumed %d, samples %d, pts %" PRId64 ".\n",
+              d, audio_buffer->num_frames, audio_buffer->vpts);
+          }
           {
 #if 0
             int bitrate = this->frame.header.bitrate;
@@ -538,7 +589,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
  * distortion, and kills background sounds during loud passages.
  * Even worse, lame encoder seems to be affected by internal clipping
  * there, too. Recommended: lame --scale 0.707 -V1 foo.wav. */
-static int mad_fixed_2_db (mad_fixed_t v) {
+static int _mad_fixed_2_db (mad_fixed_t v) {
   static const uint32_t tab[] = {
     /* 0x80000000 * pow (2.0, index / 60.0) */
     0x80000000, 0x817CBEEE, 0x82FDEA6A, 0x84838F9F, 0x860DBBDB,
@@ -592,7 +643,7 @@ static void mad_dispose (audio_decoder_t *this_gen) {
     this->num_inbufs, this->num_bytes_d, this->num_bytes_r, this->num_outbufs);
   {
     int l = this->declip ? XINE_VERBOSITY_LOG : XINE_VERBOSITY_DEBUG;
-    int peak = mad_fixed_2_db (this->peak);
+    int peak = _mad_fixed_2_db (this->peak);
     const char *s = peak < 0 ? "-" : "+";
     peak = peak < 0 ? -peak : peak;
     xprintf (this->xstream->xine, l,
@@ -626,7 +677,10 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->num_bytes_r     = 0;
   this->num_outbufs     = 0;
   this->declip          = 0;
+  this->pts_read        = 0;
+  this->pts_write       = 0;
 #endif
+
   this->seek            = 2;
   this->peak            = 1;
 
