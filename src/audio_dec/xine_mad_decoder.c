@@ -73,6 +73,8 @@ typedef struct mad_decoder_s {
 #define MAD_PTS_LD 3
 #define MAD_PTS_SIZE (1 << MAD_PTS_LD)
 #define MAD_PTS_MASK (MAD_PTS_SIZE - 1)
+  unsigned int      pts_samples;
+  unsigned int      pts_delay;
   uint32_t          pts_read;
   uint32_t          pts_write;
   struct {
@@ -431,6 +433,7 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             break;
 	  this->output_sampling_rate = this->frame.header.samplerate;
 	  this->output_mode = mode;
+          this->pts_samples = 0;
 	}
 
 	mad_synth_frame (&this->synth, &this->frame);
@@ -532,9 +535,27 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           }
 
           /* pts computing */
+          if (this->synth.pcm.length != this->pts_samples) {
+            this->pts_samples = this->synth.pcm.length;
+            if (this->frame.header.samplerate) {
+              if (this->frame.header.layer == MAD_LAYER_III) {
+                /* empirically determined: 1104 of 1152 samples. */
+                this->pts_delay = this->synth.pcm.length * (1104 * 90000 / 1152) / this->frame.header.samplerate;
+              } else if (this->frame.header.layer == MAD_LAYER_II) {
+                /* empirically determined: 480 of 1152 samples. */
+                this->pts_delay = this->synth.pcm.length * (480 * 90000 / 1152) / this->frame.header.samplerate;
+              } else {
+                this->pts_delay = 0;
+              }
+            }
+            xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG,
+              "mad_audio_decoder: decoder delay %u pts.\n", this->pts_delay);
+          }
           if (this->pts_read != this->pts_write) {
             audio_buffer->vpts = this->pts_ring[this->pts_read].pts;
             this->pts_ring[this->pts_read].pts = 0;
+            if (audio_buffer->vpts)
+              audio_buffer->vpts -= this->pts_delay;
           } else {
             audio_buffer->vpts = 0;
           }
@@ -677,6 +698,8 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->num_bytes_r     = 0;
   this->num_outbufs     = 0;
   this->declip          = 0;
+  this->pts_samples     = 0;
+  this->pts_delay       = 0;
   this->pts_read        = 0;
   this->pts_write       = 0;
 #endif
