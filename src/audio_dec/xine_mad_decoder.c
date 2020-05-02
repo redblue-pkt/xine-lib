@@ -536,16 +536,21 @@ static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
           /* pts computing */
           if (this->synth.pcm.length != this->pts_samples) {
+            /* mpeg audio involves frequency transform, which needs some delay on both the
+             * encoding and decoding sides. encode delay varies with encoding algorithm.
+             * it is available from optional Xing head via BUF_FLAG_AUDIO_PADDING in the
+             * buf->decoder_info[1] field.
+             * decode delay is more or less standardized.
+             * the simpliest approach to deal with this is to let each side compensate
+             * for its own known delay. thus, remove decoder delay from timeline here. */
             this->pts_samples = this->synth.pcm.length;
             if (this->frame.header.samplerate) {
               if (this->frame.header.layer == MAD_LAYER_III) {
-                /* empirically determined: 1104 of 1152 samples. */
-                this->pts_delay = this->synth.pcm.length * (1104 * 90000 / 1152) / this->frame.header.samplerate;
-              } else if (this->frame.header.layer == MAD_LAYER_II) {
-                /* empirically determined: 480 of 1152 samples. */
-                this->pts_delay = this->synth.pcm.length * (480 * 90000 / 1152) / this->frame.header.samplerate;
+                /* 528 of 1152 samples. */
+                this->pts_delay = this->synth.pcm.length * (528 * 90000 / 1152) / this->frame.header.samplerate;
               } else {
-                this->pts_delay = 0;
+                /* 240 of 1152 samples. */
+                this->pts_delay = this->synth.pcm.length * (240 * 90000 / 1152) / this->frame.header.samplerate;
               }
             }
             xprintf (this->xstream->xine, XINE_VERBOSITY_DEBUG,
