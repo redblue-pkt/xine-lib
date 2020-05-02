@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -84,8 +84,16 @@ typedef struct faad_decoder_s {
   int              size;
   int              rec_audio_src_size;
   int              max_audio_src_size;
-  int64_t          pts0, pts1;
-
+#define FAAD_PTS_LD 3
+#define FAAD_PTS_SIZE (1 << FAAD_PTS_LD)
+#define FAAD_PTS_MASK (FAAD_PTS_SIZE - 1)
+  int              used_last;
+  int              pts_last;
+  struct {
+    int64_t        pts;
+    int            bytes;
+  } pts_ring[FAAD_PTS_SIZE];
+    
   unsigned char   *dec_config;
   int              dec_config_size;
 
@@ -107,6 +115,36 @@ typedef struct faad_decoder_s {
   uint8_t          adts_lasthead[2];
 
 } faad_decoder_t;
+
+
+static void faad_pts_reset (faad_decoder_t *this) {
+  this->pts_ring[0].pts = 0;
+  this->pts_ring[0].bytes = 0x7fffffff;
+  this->pts_last = 0;
+  /* leave this->used_last alone. we dont reinit libfaad in faad_reset () yet. */
+}
+
+static void faad_pts_add (faad_decoder_t *this, int64_t pts, int bytes) {
+  this->pts_last = (this->pts_last + 1) & FAAD_PTS_MASK;
+  this->pts_ring[this->pts_last].pts = pts;
+  this->pts_ring[this->pts_last].bytes = bytes;
+}
+
+static int64_t faad_pts_get (faad_decoder_t *this, int bytes_left) {
+  int64_t pts;
+  int i;
+  bytes_left += this->used_last;
+  i = this->pts_last;
+  while (1) {
+    bytes_left -= this->pts_ring[i].bytes;
+    if (bytes_left <= 0)
+      break;
+    i = (i - 1) & FAAD_PTS_MASK;
+  }
+  pts = this->pts_ring[i].pts;
+  this->pts_ring[i].pts = 0;
+  return pts;
+}
 
 
 static int faad_map_channels (faad_decoder_t *this) {
@@ -168,6 +206,7 @@ static void faad_reset (audio_decoder_t *this_gen) {
 
   faad_decoder_t *this = (faad_decoder_t *) this_gen;
   this->size = 0;
+  faad_pts_reset (this);
 #if 0
   bebf_latm_close (&this->latm);
   bebf_latm_open (&this->latm);
@@ -328,6 +367,7 @@ static int faad_apply_conf (faad_decoder_t *this, uint8_t *conf, int len) {
     if (this->output_open <= 0)
       faad_open_output (this);
     faad_meta_info_set (this);
+    this->used_last = 0;
     return res;
   }
   /* no, its not working */
@@ -355,6 +395,7 @@ static int faad_apply_frame (faad_decoder_t *this, uint8_t *frame, int len) {
     if (this->output_open <= 0)
       faad_open_output (this);
     faad_meta_info_set (this);
+    this->used_last = 0;
     return res;
   }
   /* no, its not working */
@@ -393,6 +434,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
   inbuf = this->buf;
   framecount = 0;
   while (1) {
+    int64_t pts = 0;
 
     if (this->latm_mode == BEBF_LATM_IS_ADTS) {
       if (framecount == 0) {
@@ -578,7 +620,24 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         faad_meta_info_set( this );
       }
 
+      pts = faad_pts_get (this, this->size - (inbuf - (const uint8_t *)this->buf));
+
       decoded = this->faac_finfo.samples / this->num_channels;
+      if (decoded <= 0) {
+        /* mp4a involves frequency transform, which needs some delay on both the
+         * encoding and decoding sides. encode delay varies with encoding algorithm.
+         * decode delay is more or less standardized, like this:
+         * libfaad usually decodes first frame after init as preroll, without output.
+         * the simpliest approach to deal with this is to let each side compensate
+         * for its own known delay. thus, remove this 1 frame from timeline here.
+         * ffmpeg -i foo.mp4 -af volume=0.707 -acodec pcm_s16le -vcodec copy foo.flv
+         * also does that. */
+        this->used_last = used;
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "faad_audio_decoder: empty outbuf, pts %" PRId64 ".\n", pts);
+      } else if (this->used_last > 0) {
+        this->used_last = used;
+      }
 
       lprintf("decoded %d/%d output %ld\n",
               used, this->size, this->faac_finfo.samples );
@@ -606,8 +665,8 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         if (done > decoded)
           done = decoded;
         audio_buffer->num_frames = done;
-        audio_buffer->vpts = this->pts0;
-        this->pts0 = 0;
+        audio_buffer->vpts = pts;
+        pts = 0;
 
         if ((this->in_channels <= 2) && (this->out_channels > this->in_channels))
           memset (audio_buffer->mem, 0, this->out_channels * done * 2);
@@ -800,14 +859,14 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
 #undef GET2M
         }
 
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG + 1,
+          "faad_audio_decoder: outbuf samples %d, pts %" PRId64 ".\n",
+          (int)audio_buffer->num_frames, audio_buffer->vpts);
         this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
         decoded -= done;
       }
     }
-
-    this->pts0 = this->pts1;
-    this->pts1 = 0;
 
     if ((used >= this->size) || (this->latm_mode == BEBF_LATM_IS_RAW)) {
       this->size = 0;
@@ -892,13 +951,10 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if ((int)buf->size <= 0)
       return;
 
-    /* Queue up to 2 pts values as frames may overlap buffer boundaries (mpeg-ts). */
-    if (!this->size || !this->pts0) {
-      this->pts0 = buf->pts;
-      this->pts1 = 0;
-    } else if (!this->pts1) {
-      this->pts1 = buf->pts;
-    }
+    /* Queue pts values as frames may overlap buffer boundaries (mpeg-ts). */
+    faad_pts_add (this, buf->pts, buf->size);
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG + 1,
+      "faad_audio_decoder: inbuf bytes %d, pts %" PRId64 ".\n", buf->size, buf->pts);
 
     if (this->size + buf->size + 8 > this->max_audio_src_size) {
       size_t s = this->size + 2 * buf->size + 8;
@@ -946,7 +1002,8 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 static void faad_discontinuity (audio_decoder_t *this_gen) {
-  (void)this_gen;
+  faad_decoder_t *this = (faad_decoder_t *)this_gen;
+  faad_pts_reset (this);
 }
 
 static void faad_dispose (audio_decoder_t *this_gen) {
@@ -980,7 +1037,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this = calloc(1, sizeof (faad_decoder_t));
   if (!this)
     return NULL;
-
+#ifndef HAVE_ZERO_SAFE_MEM
   /* Do these first, when compiler still knows "this" is all zeroed.
    * Let it optimize away this on most systems where clear mem
    * interpretes as 0, 0f or NULL safely.
@@ -994,6 +1051,10 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->dec_config         = NULL;
   this->dec_config_size    = 0;
   this->rate               = 0;
+  this->used_last          = 0;
+#endif
+
+  faad_pts_reset (this);
 
   this->class  = (faad_class_t *)class_gen;
   this->stream = stream;
