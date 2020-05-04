@@ -119,7 +119,6 @@
  */
 #define SYNC_TIME_INTERVAL  (1 * 90000)
 #define SYNC_BUF_INTERVAL   NUM_AUDIO_BUFFERS / 2
-#define SYNC_GAP_RATE_LOG2  2
 
 /* Alternative for metronom feedback: fix sound card clock drift
  * by resampling all audio data, so that the sound card keeps in
@@ -225,7 +224,7 @@ typedef struct {
   uint32_t             do_amp:1;
   uint32_t             amp_mute:1;
   uint32_t             do_equ:1;
-
+  uint32_t             av_fine_sync;
 
   metronom_clock_t    *clock;
   xine_private_t      *xine;
@@ -255,6 +254,7 @@ typedef struct {
   int             gap_tolerance;
   int             small_gap;            /* gap_tolerance * sqrt (speed) / sqrt (XINE_FINE_SPEED_NORMAL),
                                          * to avoid nervous metronom syncing in trick mode. */
+  int             fine_gap;             /* small_gap >> GAP_RING_LD */
 
   ao_format_t     input, output;        /* format conversion done at audio_out.c */
   double          frame_rate_factor;
@@ -302,6 +302,13 @@ typedef struct {
 #define EI_RING_SIZE 128 /* 2^n please */
     int              ei_write;
     int              ei_read;
+    /* a/v fine sync filter */
+#define GAP_RING_LD 3
+#define GAP_RING_SIZE (1 << GAP_RING_LD)
+#define GAP_RING_MASK (GAP_RING_SIZE - 1)
+    int              gr_pos;
+    int              gr_sum;
+    int              gr_gaps[GAP_RING_SIZE];
   } rp;
 
   int64_t         last_audio_vpts;
@@ -355,6 +362,24 @@ typedef struct {
   audio_buffer_t  base_buf[NUM_AUDIO_BUFFERS + 2];
   extra_info_t    base_ei[EI_RING_SIZE + NUM_AUDIO_BUFFERS + 2];
 } aos_t;
+
+static void ao_gap_ring_reset (aos_t *this) {
+  int i;
+  this->rp.gr_pos = 0;
+  this->rp.gr_sum = 0;
+  for (i = 0; i < GAP_RING_SIZE; i++)
+    this->rp.gr_gaps[i] = 0;
+}
+
+static int ao_gap_ring_add (aos_t *this, int gap) {
+  int i = this->rp.gr_pos;
+  this->rp.gr_sum -= this->rp.gr_gaps[i];
+  this->rp.gr_gaps[i] = gap;
+  i = (i + 1) & GAP_RING_MASK;
+  this->rp.gr_pos = i;
+  this->rp.gr_sum += gap;
+  return this->rp.gr_sum >> GAP_RING_LD;
+}
 
 static void ao_driver_lock (aos_t *this) {
   if (pthread_mutex_trylock (&this->driver.mutex)) {
@@ -1948,6 +1973,7 @@ static void *ao_loop (void *this_gen) {
         this->last_sgap = 0;
         this->dropped++;
         drop = 1;
+        ao_gap_ring_reset (this);
 
       } else if (gap > AO_MAX_GAP) {
 
@@ -1959,6 +1985,7 @@ static void *ao_loop (void *this_gen) {
         else
           ao_resend_fill (this, gap, in_buf->vpts);
         pthread_mutex_unlock (&this->driver.mutex);
+        ao_gap_ring_reset (this);
       }
 #if 0
       /* silence out even small stream start gaps (avoid metronom shift).
@@ -1971,38 +1998,49 @@ static void *ao_loop (void *this_gen) {
         pthread_mutex_unlock (&this->driver.mutex);
       }
 #endif
-      else if ((abs ((int)gap) > this->small_gap) && (cur_time > next_sync_time) &&
-               (bufs_since_sync >= SYNC_BUF_INTERVAL) &&
-               !this->resample_sync_method) {
-
-        /* for small gaps ( tolerance < abs(gap) < AO_MAX_GAP )
-         * feedback them into metronom's vpts_offset (when using
-         * metronom feedback for A/V sync)
-         */
-        xine_stream_private_t **s;
-        int sgap = (int)gap >> SYNC_GAP_RATE_LOG2;
-        /* avoid asymptote trap of bringing down step with remaining gap */
-        if (sgap < 0) {
-          sgap = sgap <= this->last_sgap ? sgap
-               : this->last_sgap < (int)gap ? (int)gap : this->last_sgap;
-        } else {
-          sgap = sgap >= this->last_sgap ? sgap
-               : this->last_sgap > (int)gap ? (int)gap : this->last_sgap;
-        }
-        this->last_sgap = sgap != (int)gap ? sgap : 0;
-        sgap = -sgap;
-        lprintf ("audio_loop: ADJ_VPTS\n");
-        xine_rwlock_rdlock (&this->streams_lock);
-        for (s = this->streams; *s; s++)
-          (*s)->s.metronom->set_option ((*s)->s.metronom, METRONOM_ADJ_VPTS_OFFSET, sgap);
-        xine_rwlock_unlock (&this->streams_lock);
-        next_sync_time = cur_time + SYNC_TIME_INTERVAL;
-        bufs_since_sync = 0;
-
-      } else {
+      else {
 
         audio_buffer_t *out_buf;
-        int result;
+        int result, sgap;
+
+        if (this->av_fine_sync == 1) {
+          sgap = ao_gap_ring_add (this, gap);
+          if (abs (sgap) <= this->fine_gap)
+            sgap = 0;
+        } else {
+          sgap = gap;
+	  if (abs (sgap) <= this->small_gap)
+            sgap = 0;
+        }
+        if (sgap && (cur_time > next_sync_time) &&
+            (bufs_since_sync >= SYNC_BUF_INTERVAL) && !this->resample_sync_method) {
+          /* for small gaps ( tolerance < abs(gap) < AO_MAX_GAP )
+           * feedback them into metronom's vpts_offset (when using
+           * metronom feedback for A/V sync) */
+          xine_stream_private_t **s;
+          /* soft limit both step and count of steps.
+           * avoid asymptote trap of bringing down step with remaining gap. */
+          if (sgap < 0) {
+            while (sgap < (AO_MAX_GAP / -4))
+              sgap >>= 1;
+            sgap = sgap <= this->last_sgap ? sgap
+                 : this->last_sgap < (int)gap ? (int)gap : this->last_sgap;
+          } else {
+            while (sgap > (AO_MAX_GAP / 4))
+              sgap >>= 1;
+            sgap = sgap >= this->last_sgap ? sgap
+                 : this->last_sgap > (int)gap ? (int)gap : this->last_sgap;
+          }
+          this->last_sgap = sgap != (int)gap ? sgap : 0;
+          sgap = -sgap;
+          lprintf ("audio_loop: ADJ_VPTS\n");
+          xine_rwlock_rdlock (&this->streams_lock);
+          for (s = this->streams; *s; s++)
+            (*s)->s.metronom->set_option ((*s)->s.metronom, METRONOM_ADJ_VPTS_OFFSET, sgap);
+          xine_rwlock_unlock (&this->streams_lock);
+          next_sync_time = cur_time + SYNC_TIME_INTERVAL;
+          bufs_since_sync = 0;
+        }
 
         if (this->dropped) {
           xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
@@ -2010,6 +2048,8 @@ static void *ao_loop (void *this_gen) {
           this->dropped = 0;
         }
 #if 0
+        xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
+          "audio_out: small gnap %d.\n", (int)gap);
         {
           int count;
           printf ("Audio data\n");
@@ -2227,6 +2267,7 @@ static int ao_update_resample_factor(aos_t *this) {
     this->small_gap = this->gap_tolerance * uint_sqrt (this->rp.speed) / uint_sqrt (XINE_FINE_SPEED_NORMAL);
     this->frame_rate_factor *= (double)XINE_FINE_SPEED_NORMAL / (double)this->rp.speed;
   }
+  this->fine_gap = this->small_gap >> GAP_RING_LD;
 
   /* XINE_FINE_SPEED_NORMAL == 1000000; 1024 * 1000000 / 90000 == 1024 * 100 / 9; */
   this->out_frames_per_kpts = this->rp.speed > 0
@@ -2882,6 +2923,13 @@ static void ao_update_av_sync_method(void *this_gen, xine_cfg_entry_t *entry) {
   this->resample_sync_info.valid = 0;
 }
 
+static void ao_update_av_fine_sync_method (void *this_gen, xine_cfg_entry_t *entry) {
+  aos_t *this = (aos_t *)this_gen;
+  pthread_mutex_lock (&this->out_fifo.mutex);
+  this->av_fine_sync = entry->num_value;
+  pthread_mutex_unlock (&this->out_fifo.mutex);
+}
+
 static void ao_update_ptoffs (void *this_gen, xine_cfg_entry_t *entry) {
   aos_t *this = (aos_t *)this_gen;
   this->passthrough_offset = entry->num_value;
@@ -2900,8 +2948,6 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   config_values_t *config = xine->config;
   aos_t           *this;
   uint8_t         *vsbuf0, *vsbuf1;
-  static const char *const resample_modes[] = {"auto", "off", "on", NULL};
-  static const char *const av_sync_methods[] = {"metronom feedback", "resample", NULL};
 
   this = calloc(1, sizeof(aos_t)) ;
   if (!this)
@@ -2945,6 +2991,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->resend.max             = 0;
   this->resend.frame_size      = 0;
   this->resend.buf             = NULL;
+  ao_gap_ring_reset (this);
 #endif
 
   this->rp.seek_count2  = -1;
@@ -2995,38 +3042,54 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   if (!grab_only)
     this->gap_tolerance = driver->get_gap_tolerance (driver);
 
-  this->av_sync_method_conf = config->register_enum (
-    config, "audio.synchronization.av_sync_method", 0, (char **)av_sync_methods,
-    _("method to sync audio and video"),
-    _("When playing audio and video, there are at least two clocks involved: "
-      "The system clock, to which video frames are synchronized and the clock "
-      "in your sound hardware, which determines the speed of the audio playback. "
-      "These clocks are never ticking at the same speed except for some rare "
-      "cases where they are physically identical. In general, the two clocks "
-      "will run drift after some time, for which xine offers two ways to keep "
-      "audio and video synchronized:\n\n"
-      "metronom feedback\n"
-      "This is the standard method, which applies a countereffecting video drift, "
-      "as soon as the audio drift has accumulated over a threshold.\n\n"
-      "resample\n"
-      "For some video hardware, which is limited to a fixed frame rate (like the "
-      "DXR3 or other decoder cards) the above does not work, because the video "
-      "cannot drift. Therefore we resample the audio stream to make it longer "
-      "or shorter to compensate the audio drift error. This does not work for "
-      "digital passthrough, where audio data is passed to an external decoder in "
-      "digital form."),
-    20, ao_update_av_sync_method, this);
-  this->resample_sync_method = this->av_sync_method_conf == 1 ? 1 : 0;
-  this->resample_sync_info.valid = 0;
+  {
+    static const char *const av_sync_methods[] = {"metronom feedback", "resample", NULL};
+    this->av_sync_method_conf = config->register_enum (
+      config, "audio.synchronization.av_sync_method", 0, (char **)av_sync_methods,
+      _("method to sync audio and video"),
+      _("When playing audio and video, there are at least two clocks involved: "
+        "The system clock, to which video frames are synchronized and the clock "
+        "in your sound hardware, which determines the speed of the audio playback. "
+        "These clocks are never ticking at the same speed except for some rare "
+        "cases where they are physically identical. In general, the two clocks "
+        "will run drift after some time, for which xine offers two ways to keep "
+        "audio and video synchronized:\n\n"
+        "metronom feedback\n"
+        "This is the standard method, which applies a countereffecting video drift, "
+        "as soon as the audio drift has accumulated over a threshold.\n\n"
+        "resample\n"
+        "For some video hardware, which is limited to a fixed frame rate (like the "
+        "DXR3 or other decoder cards) the above does not work, because the video "
+        "cannot drift. Therefore we resample the audio stream to make it longer "
+        "or shorter to compensate the audio drift error. This does not work for "
+        "digital passthrough, where audio data is passed to an external decoder in "
+        "digital form."),
+      20, ao_update_av_sync_method, this);
+    this->resample_sync_method = this->av_sync_method_conf == 1 ? 1 : 0;
+    this->resample_sync_info.valid = 0;
+  }
 
-  this->resample_conf = config->register_enum (
-    config, "audio.synchronization.resample_mode", 0, (char **)resample_modes,
-    _("enable resampling"),
-    _("When the sample rate of the decoded audio does not match the capabilities "
-      "of your sound hardware, an adaptation called \"resampling\" is required. "
-      "Here you can select, whether resampling is enabled, disabled or used "
-      "automatically when necessary."),
-    20, NULL, NULL);
+  {
+    static const char *const av_fine_sync_methods[] = {"Normal", "Fine", NULL};
+    this->av_fine_sync = config->register_enum (
+      config, "audio.synchronization.av_fine_sync", 1, (char **)av_fine_sync_methods,
+      _("a/v sync precision"),
+      _("Normal: keep current drift within driver gap tolerance.\n"
+        "Fine:   keep average drift within 1/8 tolerance."),
+      20, ao_update_av_fine_sync_method, this);
+  }
+
+  {
+    static const char *const resample_modes[] = {"auto", "off", "on", NULL};
+    this->resample_conf = config->register_enum (
+      config, "audio.synchronization.resample_mode", 0, (char **)resample_modes,
+      _("enable resampling"),
+      _("When the sample rate of the decoded audio does not match the capabilities "
+        "of your sound hardware, an adaptation called \"resampling\" is required. "
+        "Here you can select, whether resampling is enabled, disabled or used "
+        "automatically when necessary."),
+      20, NULL, NULL);
+  }
 
   this->force_rate = config->register_num (
     config, "audio.synchronization.force_rate", 0,
