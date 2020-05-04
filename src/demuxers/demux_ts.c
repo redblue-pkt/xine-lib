@@ -3213,15 +3213,27 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 
 static int detect_ts (const uint32_t *buf, size_t len) {
   uint32_t stats_ts[188 / 4], stats_hdmv[192 / 4];
-
+  /* Fold 188 or 192 counter slots over the buffer.
+   * Count bytes that "fail" to be 0x47.
+   * Consider a slot failed when >= 20% (1/5) of its bytes fail.
+   * NOTE: this works with buffer size <= 188 * 127, or 23876.
+   * we just need 2048. */
+  {
+    uint32_t i, v;
+    v = 128 - len / (5 * 188);
+    v += v << 8;
+    v += v << 16;
+    for (i = 0; i < 188 / 4; i++)
+      stats_ts[i] = v;
+    v = 128 - len / (5 * 192);
+    v += v << 8;
+    v += v << 16;
+    for (i = 0; i < 192 / 4; i++)
+      stats_hdmv[i] = v;
+  }
   {
     const uint32_t *b = buf, *e = buf + len / 4;
     int i, j;
-
-    for (i = 0; i < 188 / 4; i++)
-      stats_ts[i] = 0;
-    for (i = 0; i < 192 / 4; i++)
-      stats_hdmv[i] = 0;
     i = 188 / 4 - 1;
     j = 192 / 4 - 1;
     while (b < e) {
@@ -3241,36 +3253,31 @@ static int detect_ts (const uint32_t *buf, size_t len) {
         j = 192 / 4 - 1;
     }
   }
-
   {
-    const uint8_t *b;
-    uint8_t max;
-    int i, n;
-
-    b = (const uint8_t *)stats_ts;
-    max = len / (5 * 188);
-    n = 0;
-    for (i = 0; i < 188; i++) {
-      if (b[i] < max)
-	n++;
-    }
+    uint32_t s, i;
+    /* Now count the _passed_ slots. */
+    s = 0;
+    for (i = 0; i < 188 / 4; i++)
+      s += (stats_ts[i] >> 7) & 0x01010101;
+    s += s >> 16;
+    s += s >> 8;
+    s &= 0x000000ff;
+    s = 188 - s;
     /* 0x47 may appear again in packet head. */
-    if ((n > 0) && (n < 5))
+    if ((s > 0) && (s < 5))
       return 0;
-
-    b = (const uint8_t *)stats_hdmv;
-    max = len / (5 * 192);
-    n = 0;
-    for (i = 0; i < 192; i++) {
-      if (b[i] < max)
-        n++;
-    }
+    s = 0;
+    for (i = 0; i < 192 / 4; i++)
+      s += (stats_hdmv[i] >> 7) & 0x01010101;
+    s += s >> 16;
+    s += s >> 8;
+    s &= 0x000000ff;
+    s = 192 - s;
     /* 0x47 may appear again in packet head, and in timestamp field.
      * FIXME: main read resync code is not really prepared for the latter. */
-    if ((n > 0) && (n < 7))
+    if ((s > 0) && (s < 7))
       return 1;
   }
-
   return -1;
 }
 
