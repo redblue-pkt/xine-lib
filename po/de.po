@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2020-01-09 00:40+0100\n"
+"POT-Creation-Date: 2020-05-03 16:12+0200\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
@@ -2987,6 +2987,10 @@ msgstr "Mit xine ausgeliefertes net Plugin"
 #: src/input/input_net.c
 msgid "tls input plugin"
 msgstr "TLS-Eingabe"
+
+#: src/input/input_net.c
+msgid "gopher input plugin"
+msgstr "Gopher-Eingabe"
 
 #: src/input/input_nfs.c
 msgid "Network File System (NFS) input plugin"
@@ -6219,6 +6223,18 @@ msgstr ""
 "ihn zum Ausgleich des Audiodrifts kürzer oder länger zu machen. Dies "
 "funktioniert nicht für digitales Passthrough, wo die Audiodaten in digitaler "
 "Form direkt an einen externen Dekoder geleitet werden."
+
+#: src/xine-engine/audio_out.c
+msgid "a/v sync precision"
+msgstr "Genauigkeit des Bild-Ton-Gleichlaufs"
+
+#: src/xine-engine/audio_out.c
+msgid ""
+"Normal: keep current drift within driver gap tolerance.\n"
+"Fine:   keep average drift within 1/8 tolerance."
+msgstr ""
+"Normal: halte die Abweichung unter der Treiber-Toleranzschwelle.\n"
+"Fine:   halte die mittlere Abweichung unter 1/8 der Schwelle."
 
 #: src/xine-engine/audio_out.c
 msgid "enable resampling"
