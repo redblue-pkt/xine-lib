@@ -672,6 +672,15 @@ static void ao_out_fifo_close (aos_t *this) {
   pthread_cond_destroy (&this->out_fifo.empty);
 }
 
+static void ao_out_fifo_apply_vpts_step (aos_t *this, int step) {
+  audio_buffer_t *b;
+
+  pthread_mutex_lock (&this->out_fifo.mutex);
+  for (b = this->out_fifo.first; b; b = b->next)
+    b->vpts += step;
+  pthread_mutex_unlock (&this->out_fifo.mutex);
+}
+
 static void ao_out_fifo_reref_append (aos_t *this, audio_buffer_t *buf, int is_first) {
   xine_stream_private_t **s, *olds, *news;
 
@@ -2018,22 +2027,29 @@ static void *ao_loop (void *this_gen) {
            * feedback them into metronom's vpts_offset (when using
            * metronom feedback for A/V sync) */
           xine_stream_private_t **s;
-          /* soft limit both step and count of steps.
+          /* soft limit both step (<= AO_MAX_GAP / 4) and count of steps (1, 2, 3, or 4).
            * avoid asymptote trap of bringing down step with remaining gap. */
           if (sgap < 0) {
-            while (sgap < (AO_MAX_GAP / -4))
-              sgap >>= 1;
+            sgap =  sgap < (AO_MAX_GAP / -2)
+                 ? (sgap < (AO_MAX_GAP * 3 / -4) ? (sgap >> 2) : (sgap * ((1 << 15) / 3)) >> 15)
+                 : (sgap < (AO_MAX_GAP     / -4) ? (sgap >> 1) :  sgap);
             sgap = sgap <= this->last_sgap ? sgap
                  : this->last_sgap < (int)gap ? (int)gap : this->last_sgap;
           } else {
-            while (sgap > (AO_MAX_GAP / 4))
-              sgap >>= 1;
+            sgap =  sgap > (AO_MAX_GAP / 2)
+                 ? (sgap > (AO_MAX_GAP * 3 / 4) ? (sgap >> 2) : (sgap * ((1 << 15) / 3)) >> 15)
+                 : (sgap > (AO_MAX_GAP     / 4) ? (sgap >> 1) :  sgap);
             sgap = sgap >= this->last_sgap ? sgap
                  : this->last_sgap > (int)gap ? (int)gap : this->last_sgap;
           }
           this->last_sgap = sgap != (int)gap ? sgap : 0;
           sgap = -sgap;
           lprintf ("audio_loop: ADJ_VPTS\n");
+          /* apply this step to the bufs we already got... */
+          ao_out_fifo_apply_vpts_step (this, sgap);
+          /* ...and tell metronom to apply it to all next ones as well.
+           * the next_sync_time wait will give the engine time to smooth out video.
+           * FIXME: race with ao_put_buffer () ?? */
           xine_rwlock_rdlock (&this->streams_lock);
           for (s = this->streams; *s; s++)
             (*s)->s.metronom->set_option ((*s)->s.metronom, METRONOM_ADJ_VPTS_OFFSET, sgap);
