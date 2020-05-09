@@ -48,7 +48,6 @@ static void *audio_decoder_loop (void *stream_gen) {
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
   xine_private_t *xine = (xine_private_t *)stream->s.xine;
   xine_ticket_t   *running_ticket = xine->port_ticket;
-  buf_element_t   *buf = NULL;
   buf_element_t   *headers_first = NULL, **headers_add = &headers_first, *headers_replay = NULL;
   int              running = 1;
   int              prof_audio_decode = -1;
@@ -81,6 +80,7 @@ static void *audio_decoder_loop (void *stream_gen) {
 
   while (running) {
     int handled, ignore;
+    buf_element_t *buf;
 
     lprintf ("audio_loop: waiting for package...\n");
 
@@ -198,11 +198,7 @@ static void *audio_decoder_loop (void *stream_gen) {
                 }
               }
 
-              /* finally - decode data */
-              if (stream->audio_decoder_plugin)
-                stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
-
-              /* audio_br_add */
+              /* audio_br_add. some decoders reset buf->pts, do this first. */
               if (buf->pts) {
                 int64_t d = buf->pts - audio_br_lasttime;
                 if (d > 0) {
@@ -237,6 +233,10 @@ static void *audio_decoder_loop (void *stream_gen) {
                 }
               }
               audio_br_lastsize += buf->size;
+
+              /* finally - decode data */
+              if (stream->audio_decoder_plugin)
+                stream->audio_decoder_plugin->decode_data (stream->audio_decoder_plugin, buf);
 
               /* no need to lock again. it may have been reset from this thread inside
                * audio_decoder_plugin->decode_data (), if at all.

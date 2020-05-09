@@ -115,7 +115,6 @@ static void *video_decoder_loop (void *stream_gen) {
   xine_stream_private_t *stream = (xine_stream_private_t *)stream_gen;
   xine_private_t *xine = (xine_private_t *)stream->s.xine;
   xine_ticket_t   *running_ticket = xine->port_ticket;
-  buf_element_t   *buf;
   int              running = 1;
   int              restart = 1;
   int              streamtype;
@@ -156,6 +155,7 @@ static void *video_decoder_loop (void *stream_gen) {
 
   while (running) {
     int handled, ignore;
+    buf_element_t *buf;
 
     lprintf ("getting buffer...\n");
 
@@ -228,10 +228,7 @@ static void *video_decoder_loop (void *stream_gen) {
           xine_rwlock_unlock (&stream->info_lock);
         }
 
-        if (stream->video_decoder_plugin)
-          stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);
-
-        /* video_br_add */
+        /* video_br_add. some decoders reset buf->pts, do this first. */
         if (buf->pts) {
           int64_t d = buf->pts - video_br_lasttime;
           if (d > 0) {
@@ -265,6 +262,9 @@ static void *video_decoder_loop (void *stream_gen) {
           }
         }
         video_br_lastsize += buf->size;
+
+        if (stream->video_decoder_plugin)
+          stream->video_decoder_plugin->decode_data (stream->video_decoder_plugin, buf);
 
         /* no need to lock again. it may have been reset from this thread inside
          * video_decoder_plugin->decode_data (), if at all.
