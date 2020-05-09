@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -469,17 +469,11 @@ static void init_codec_video(demux_matroska_t *this, matroska_track_t *track) {
 static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
   buf_element_t *buf;
 
-  buf = track->fifo->buffer_pool_size_alloc (track->fifo, track->codec_private_len);
-
-  if (track->codec_private_len > (unsigned int)buf->max_size) {
-    xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-            "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%" PRId32 ")\n",
-             track->codec_private_len, buf->max_size);
-    buf->free_buffer(buf);
-    return;
-  }
-  buf->size = track->codec_private_len;
-
+  /* Standard head shall either be empty, or contain a xine_waveformatex struct,
+   * optioally appended by codec private data. Unfortunatly, we have no format tag
+   * for Opus. Thus, send private data as a second buf. */
+  buf = track->fifo->buffer_pool_size_alloc (track->fifo, 0);
+  buf->size = 0;
   /* default param */
   buf->decoder_info[0] = 0;
   buf->decoder_info[1] = 44100;
@@ -494,18 +488,32 @@ static void init_codec_audio(demux_matroska_t *this, matroska_track_t *track) {
     if (track->audio_track->channels)
       buf->decoder_info[3] = track->audio_track->channels;
   }
-  lprintf("%d Hz, %d bits, %d channels\n", buf->decoder_info[1],
-          buf->decoder_info[2], buf->decoder_info[3]);
-
-  if (buf->size)
-    xine_fast_memcpy (buf->content, track->codec_private, buf->size);
-
-  buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER | BUF_FLAG_FRAME_END;
+  lprintf ("%d Hz, %d bits, %d channels\n", buf->decoder_info[1],
+    buf->decoder_info[2], buf->decoder_info[3]);
   buf->type          = track->buf_type;
+  buf->decoder_flags = BUF_FLAG_HEADER | BUF_FLAG_STDHEADER | BUF_FLAG_FRAME_END;
   buf->pts           = 0;
   track->fifo->put (track->fifo, buf);
-}
 
+  if (track->codec_private_len > 0) {
+    buf = track->fifo->buffer_pool_size_alloc (track->fifo, track->codec_private_len);
+    if (track->codec_private_len > (unsigned int)buf->max_size) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        "demux_matroska: private decoder data length (%d) is greater than fifo buffer length (%d).\n",
+        track->codec_private_len, buf->max_size);
+      buf->free_buffer (buf);
+    } else {
+      memcpy (buf->content, track->codec_private, track->codec_private_len);
+      buf->decoder_info_ptr[2] = buf->content;
+      buf->decoder_info[2]     = track->codec_private_len;
+      buf->type                = track->buf_type;
+      buf->decoder_flags       = BUF_FLAG_HEADER | BUF_FLAG_SPECIAL;
+      buf->decoder_info[1]     = BUF_SPECIAL_DECODER_CONFIG;
+      buf->pts                 = 0;
+      track->fifo->put (track->fifo, buf);
+    }
+  }
+}
 
 static void init_codec_real(demux_matroska_t *this, matroska_track_t * track) {
   buf_element_t *buf;
