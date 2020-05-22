@@ -568,6 +568,13 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
   if ( ! this->renderer )
     return;
 
+  if( this->last_subtitle_end && sub_start < this->last_subtitle_end ) {
+    sub_start = this->last_subtitle_end;
+    if (sub_start >= sub_end)
+	return;
+  }
+  this->last_subtitle_end = sub_end;
+
   read_ssa_tag(this, this->text[0], &alignment, &sub_x, &sub_y, &max_width);
 
   update_font_size(this, 0);
@@ -774,11 +781,6 @@ static void draw_subtitle(sputext_decoder_t *this, int64_t sub_start, int64_t su
 
   if( font_size != this->font_size )
     this->renderer->set_font (this->osd, get_font (this->class), this->font_size);
-
-  if( this->last_subtitle_end && sub_start < this->last_subtitle_end ) {
-    sub_start = this->last_subtitle_end;
-  }
-  this->last_subtitle_end = sub_end;
 
   this->renderer->set_text_palette (this->osd, -1, OSD_TEXT1);
   this->renderer->get_palette(this->osd, this->spu_palette, this->spu_trans);
