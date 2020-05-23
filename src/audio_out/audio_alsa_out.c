@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -89,7 +89,6 @@ typedef struct alsa_driver_s {
   alsa_class_t      *class;
 
   snd_pcm_t         *audio_fd;
-  int                capabilities;
   int                open_mode;
   int		     has_pause_resume;
   int		     is_paused;
@@ -102,6 +101,19 @@ typedef struct alsa_driver_s {
   uint32_t           bytes_in_buffer;      /* number of bytes writen to audio hardware   */
   snd_pcm_uframes_t  buffer_size;
   int32_t            mmap;
+  uint32_t           supported_channels;   /* field of 1 << num_channels */
+  uint32_t           capabilities;
+
+  struct _alsa_dev_info_s {
+    struct alsa_driver_s *this;
+    const char           *type;
+    const char           *config_key;
+    char                 *name;
+    uint32_t              supported_channels;   /* field of 1 << num_channels */
+    uint32_t              capabilities;
+  }                    devs[5];
+
+  const char          *bits_names[4]; /* 8, 16, 24, 32 */
 
   struct {
     pthread_t          thread;
@@ -117,6 +129,13 @@ typedef struct alsa_driver_s {
     int                mute;
     int                running;
   } mixer;
+
+  /* avoid *_alloca () */
+  snd_pcm_hw_params_t   *hw_params;
+  snd_pcm_sw_params_t   *sw_params;
+  snd_pcm_access_mask_t *ac_mask;
+  snd_ctl_card_info_t   *card_info;
+  snd_pcm_status_t      *pcm_status;
 } alsa_driver_t;
 
 static snd_output_t *jcd_out;
@@ -305,56 +324,34 @@ static void error_callback(const char *file, int line,
  */
 static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int mode) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
-  config_values_t *config = this->class->xine->config;
   char                 *pcm_device;
-  snd_pcm_stream_t      direction = SND_PCM_STREAM_PLAYBACK;
-  snd_pcm_hw_params_t  *params;
-  snd_pcm_sw_params_t  *swparams;
-  snd_pcm_access_mask_t *mask;
-  snd_pcm_uframes_t     period_size;
-  snd_pcm_uframes_t     period_size_min;
-  snd_pcm_uframes_t     period_size_max;
-  snd_pcm_uframes_t     buffer_size_min;
-  snd_pcm_uframes_t     buffer_size_max;
-  snd_pcm_format_t      format;
-#if 0
-  uint32_t              periods;
-#endif
-  uint32_t              buffer_time=BUFFER_TIME;
-  snd_pcm_uframes_t     buffer_time_to_size;
-  int                   err, dir;
-  int                 open_mode=1; /* NONBLOCK */
-  /* int                   open_mode=0;  BLOCK */
-  struct timeval start_time;
-  struct timeval end_time;
+  int                   err;
 
-  snd_pcm_hw_params_alloca(&params);
-  snd_pcm_sw_params_alloca(&swparams);
   err = snd_output_stdio_attach(&jcd_out, stdout, 0);
 
   switch (mode) {
   case AO_CAP_MODE_MONO:
     this->num_channels = 1;
-    pcm_device = config->lookup_entry(config, "audio.device.alsa_default_device")->str_value;
+    pcm_device = this->devs[0].name;
     break;
   case AO_CAP_MODE_STEREO:
     this->num_channels = 2;
-    pcm_device = config->lookup_entry(config, "audio.device.alsa_front_device")->str_value;
+    pcm_device = this->devs[1].name;
     break;
   case AO_CAP_MODE_4CHANNEL:
     this->num_channels = 4;
-    pcm_device = config->lookup_entry(config, "audio.device.alsa_surround40_device")->str_value;
+    pcm_device = this->devs[2].name;
     break;
   case AO_CAP_MODE_4_1CHANNEL:
   case AO_CAP_MODE_5CHANNEL:
   case AO_CAP_MODE_5_1CHANNEL:
     this->num_channels = 6;
-    pcm_device = config->lookup_entry(config, "audio.device.alsa_surround51_device")->str_value;
+    pcm_device = this->devs[3].name;
     break;
   case AO_CAP_MODE_A52:
   case AO_CAP_MODE_AC5:
     this->num_channels = 2;
-    pcm_device = config->lookup_entry(config, "audio.device.alsa_passthrough_device")->str_value;
+    pcm_device = this->devs[4].name;
     break;
   default:
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
@@ -377,279 +374,296 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
   this->input_sample_rate      = rate;
   this->bits_per_sample        = bits;
   this->bytes_in_buffer        = 0;
+
   /*
    * open audio device
    * When switching to surround, dmix blocks the device some time, so we just keep trying for 0.8sec.
    */
-  gettimeofday(&start_time, NULL);
-  do {
-    err = snd_pcm_open(&this->audio_fd, pcm_device, direction, open_mode);
-    gettimeofday(&end_time, NULL);
-    if( err == -EBUSY ) {
-      if( (double)end_time.tv_sec + 1E-6*end_time.tv_usec
-          - (double)start_time.tv_sec - 1E-6*start_time.tv_usec > 0.8)
+  {
+    struct timeval start_time, end_time;
+    gettimeofday (&start_time, NULL);
+    while (1) {
+      err = snd_pcm_open (&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, /* NONBLOCK */ 1);
+      if (err != -EBUSY)
         break;
-      else
-        usleep(10000);
+      gettimeofday (&end_time, NULL);
+      if ((end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec > 800000)
+        break;
+      usleep (10000);
     }
-  } while( err == -EBUSY );
-
-  if(err <0 ) {
+  }
+  if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_LOG,
-	     _("audio_alsa_out: snd_pcm_open() of %s failed: %s\n"), pcm_device, snd_strerror(err));
-    xprintf (this->class->xine, XINE_VERBOSITY_LOG,
-	     _("audio_alsa_out: >>> check if another program already uses PCM <<<\n"));
+      _("audio_alsa_out: snd_pcm_open() of %s failed: %s\n"), pcm_device, snd_strerror (err));
+    if (err == -EBUSY) {
+      xprintf (this->class->xine, XINE_VERBOSITY_LOG,
+        _("audio_alsa_out: >>> check if another program already uses PCM <<<\n"));
+    }
     return 0;
   }
   /* printf ("audio_alsa_out: snd_pcm_open() opened %s\n", pcm_device); */
   /* We wanted non blocking open but now put it back to normal */
   //snd_pcm_nonblock(this->audio_fd, 0);
   snd_pcm_nonblock(this->audio_fd, 1);
-  /*
-   * configure audio device
-   */
-  err = snd_pcm_hw_params_any(this->audio_fd, params);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_LOG,
-	     _("audio_alsa_out: broken configuration for this PCM: no configurations available: %s\n"),
-	     snd_strerror(err));
-    goto close;
-  }
-  /* set interleaved access */
-  if (this->mmap != 0) {
-    mask = alloca(snd_pcm_access_mask_sizeof());
-    snd_pcm_access_mask_none(mask);
-    snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-    snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-    snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_COMPLEX);
-    err = snd_pcm_hw_params_set_access_mask(this->audio_fd, params, mask);
+
+  do {
+    /* configure audio device */
+    err = snd_pcm_hw_params_any (this->audio_fd, this->hw_params);
+    if (err < 0) {
+      xprintf (this->class->xine, XINE_VERBOSITY_LOG,
+        _("audio_alsa_out: broken configuration for this PCM: no configurations available: %s\n"),
+        snd_strerror (err));
+      break;
+    }
+
+    /* set interleaved access */
+    do {
+      if (this->mmap != 0) {
+        snd_pcm_access_mask_none (this->ac_mask);
+        snd_pcm_access_mask_set (this->ac_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+        snd_pcm_access_mask_set (this->ac_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+        snd_pcm_access_mask_set (this->ac_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
+        err = snd_pcm_hw_params_set_access_mask (this->audio_fd, this->hw_params, this->ac_mask);
+        if (err >= 0)
+          break;
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: mmap not available, falling back to compatiblity mode\n");
+        this->mmap = 0;
+      }
+      err = snd_pcm_hw_params_set_access (this->audio_fd, this->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    } while (0);
     if (err < 0) {
       xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	       "audio_alsa_out: mmap not available, falling back to compatiblity mode\n");
-      this->mmap=0;
-      err = snd_pcm_hw_params_set_access(this->audio_fd, params,
-                                     SND_PCM_ACCESS_RW_INTERLEAVED);
+        "audio_alsa_out: access type not available: %s\n", snd_strerror (err));
+      break;
     }
-  } else {
-    err = snd_pcm_hw_params_set_access(this->audio_fd, params,
-                                     SND_PCM_ACCESS_RW_INTERLEAVED);
-  }
 
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: access type not available: %s\n", snd_strerror(err));
-    goto close;
-  }
-  /* set the sample format ([SU]{8,16,24,FLOAT}) */
-  /* ALSA automatically appends _LE or _BE depending on the CPU */
-  switch (bits>>3) {
-  case 1:
-    format = SND_PCM_FORMAT_U8;
-    break;
-  case 2:
-    format = SND_PCM_FORMAT_S16;
-    break;
-  case 3:
+    /* set the sample format ([SU]{8,16,24,FLOAT}) */
+    /* ALSA automatically appends _LE or _BE depending on the CPU */
+    if ((bits < 8) || (bits > 32)) {
+      xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+        "audio_alsa_out: pcm format bits=%d unknown, trying 16.\n", (int)bits);
+      bits = 16;
+    }
+    {
+      static const snd_pcm_format_t fmts[5] = {
+        0,
+        SND_PCM_FORMAT_U8,
+        SND_PCM_FORMAT_S16,
 #ifdef WORDS_BIGENDIAN
-    format = SND_PCM_FORMAT_S24_3BE; /* 24 bit samples taking 3 bytes. */
+        SND_PCM_FORMAT_S24_3BE, /* 24 bit samples taking 3 bytes. */
 #else
-    format = SND_PCM_FORMAT_S24_3LE;
+        SND_PCM_FORMAT_S24_3LE,
 #endif
-    break;
-  case 4:
-    format = SND_PCM_FORMAT_FLOAT;
-    break;
-  default:
-    format = SND_PCM_FORMAT_S16;
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: pcm format bits=%d unknown. failed: %s\n", bits, snd_strerror(err));
-    break;
-  }
-  err = snd_pcm_hw_params_set_format(this->audio_fd, params, format );
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: sample format non available: %s\n", snd_strerror(err));
-    goto close;
-  }
-  /* set the number of channels */
-  err = snd_pcm_hw_params_set_channels(this->audio_fd, params, this->num_channels);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: Cannot set number of channels to %d (err=%d:%s)\n",
-	     this->num_channels, err, snd_strerror(err));
-    goto close;
-  }
+        SND_PCM_FORMAT_FLOAT
+      };
+      snd_pcm_format_t format = fmts[bits >> 3];
+      err = snd_pcm_hw_params_set_format (this->audio_fd, this->hw_params, format);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: sample format not available: %s\n", snd_strerror (err));
+        break;
+      }
+    }
+
+    /* set the number of channels */
+    err = snd_pcm_hw_params_set_channels (this->audio_fd, this->hw_params, this->num_channels);
+    if (err < 0) {
+      xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+        "audio_alsa_out: Cannot set number of channels to %d (err=%d:%s)\n",
+        this->num_channels, err, snd_strerror (err));
+      break;
+    }
+
+    {
+      snd_pcm_uframes_t period_size, period_size_min, period_size_max;
+      snd_pcm_uframes_t buffer_size_min, buffer_size_max;
+      uint32_t buffer_time = BUFFER_TIME;
+      snd_pcm_uframes_t buffer_time_to_size;
+      int dir;
 #if 0
-  /* Restrict a configuration space to contain only real hardware rates */
-  err = snd_pcm_hw_params_set_rate_resample(this->audio_fd, params, 0);
-#endif
-  /* set the stream rate [Hz] */
-  dir=0;
-  err = snd_pcm_hw_params_set_rate_near(this->audio_fd, params, &rate, &dir);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: rate not available: %s\n", snd_strerror(err));
-    goto close;
-  }
-  this->output_sample_rate = (uint32_t)rate;
-  if (this->input_sample_rate != this->output_sample_rate) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
-	     this->input_sample_rate, this->output_sample_rate);
-  }
-  buffer_time_to_size = ( (uint64_t)buffer_time * rate) / 1000000;
-  err = snd_pcm_hw_params_get_buffer_size_min(params, &buffer_size_min);
-  err = snd_pcm_hw_params_get_buffer_size_max(params, &buffer_size_max);
-  dir=0;
-  err = snd_pcm_hw_params_get_period_size_min(params, &period_size_min,&dir);
-  dir=0;
-  err = snd_pcm_hw_params_get_period_size_max(params, &period_size_max,&dir);
-#ifdef ALSA_LOG_BUFFERS
-  printf("Buffer size range from %lu to %lu\n",buffer_size_min, buffer_size_max);
-  printf("Period size range from %lu to %lu\n",period_size_min, period_size_max);
-  printf("Buffer time size %lu\n",buffer_time_to_size);
-#endif
-  this->buffer_size = buffer_time_to_size;
-  if (buffer_size_max < this->buffer_size) this->buffer_size = buffer_size_max;
-  if (buffer_size_min > this->buffer_size) this->buffer_size = buffer_size_min;
-  period_size=this->buffer_size/8;
-  this->buffer_size = period_size*8;
-#ifdef ALSA_LOG_BUFFERS
-  printf("To choose buffer_size = %ld\n",this->buffer_size);
-  printf("To choose period_size = %ld\n",period_size);
+      uint32_t              periods;
 #endif
 
 #if 0
-  /* Set period to buffer size ratios at 8 periods to 1 buffer */
-  dir=-1;
-  periods=8;
-  err = snd_pcm_hw_params_set_periods_near(this->audio_fd, params, &periods ,&dir);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: unable to set any periods: %s\n", snd_strerror(err));
-    goto close;
-  }
-  /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
-  dir=0;
-  err = snd_pcm_hw_params_set_buffer_time_near(this->audio_fd, params, &buffer_time, &dir);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
-    goto close;
-  }
+      /* Restrict a configuration space to contain only real hardware rates */
+      err = snd_pcm_hw_params_set_rate_resample (this->audio_fd, this->hw_params, 0);
 #endif
+      /* set the stream rate [Hz] */
+      dir = 0;
+      err = snd_pcm_hw_params_set_rate_near (this->audio_fd, this->hw_params, &rate, &dir);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: rate not available: %s\n", snd_strerror (err));
+        break;
+      }
+      this->output_sample_rate = (uint32_t)rate;
+      if (this->input_sample_rate != this->output_sample_rate) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: audio rate : %d requested, %d provided by device/sec\n",
+            this->input_sample_rate, this->output_sample_rate);
+      }
+
+      buffer_time_to_size = ((uint64_t)buffer_time * rate) / 1000000;
+      snd_pcm_hw_params_get_buffer_size_min (this->hw_params, &buffer_size_min);
+      snd_pcm_hw_params_get_buffer_size_max (this->hw_params, &buffer_size_max);
+      dir = 0;
+      snd_pcm_hw_params_get_period_size_min (this->hw_params, &period_size_min, &dir);
+      dir = 0;
+      snd_pcm_hw_params_get_period_size_max (this->hw_params, &period_size_max, &dir);
+#ifdef ALSA_LOG_BUFFERS
+      printf ("Buffer size range from %lu to %lu\n", buffer_size_min, buffer_size_max);
+      printf ("Period size range from %lu to %lu\n", period_size_min, period_size_max);
+      printf ("Buffer time size %lu\n", buffer_time_to_size);
+#endif
+      this->buffer_size = buffer_time_to_size;
+      if (buffer_size_max < this->buffer_size)
+        this->buffer_size = buffer_size_max;
+      if (buffer_size_min > this->buffer_size)
+        this->buffer_size = buffer_size_min;
+      period_size = this->buffer_size / 8;
+      this->buffer_size = period_size * 8;
+#ifdef ALSA_LOG_BUFFERS
+      printf ("To choose buffer_size = %ld\n", this->buffer_size);
+      printf ("To choose period_size = %ld\n", period_size);
+#endif
+
+#if 0
+      /* Set period to buffer size ratios at 8 periods to 1 buffer */
+      dir = -1;
+      periods = 8;
+      err = snd_pcm_hw_params_set_periods_near (this->audio_fd, this->hw_params, &periods, &dir);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: unable to set any periods: %s\n", snd_strerror (err));
+        break;
+      }
+      /* set the ring-buffer time [us] (large enough for x us|y samples ...) */
+      dir = 0;
+      err = snd_pcm_hw_params_set_buffer_time_near (this->audio_fd, this->hw_params, &buffer_time, &dir);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: buffer time not available: %s\n", snd_strerror (err));
+        break;
+      }
+#endif
+
 #if 1
-  /* set the period time [us] (interrupt every x us|y samples ...) */
-  dir=0;
-  err = snd_pcm_hw_params_set_period_size_near(this->audio_fd, params, &period_size, &dir);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: period time not available: %s\n", snd_strerror(err));
-    goto close;
-  }
+      /* set the period time [us] (interrupt every x us|y samples ...) */
+      dir = 0;
+      err = snd_pcm_hw_params_set_period_size_near (this->audio_fd, this->hw_params, &period_size, &dir);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: period time not available: %s\n", snd_strerror (err));
+        break;
+      }
 #endif
-  dir=0;
-  err = snd_pcm_hw_params_get_period_size(params, &period_size, &dir);
+      dir = 0;
+      snd_pcm_hw_params_get_period_size (this->hw_params, &period_size, &dir);
 
-  dir=0;
-  err = snd_pcm_hw_params_set_buffer_size_near(this->audio_fd, params, &this->buffer_size);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: buffer time not available: %s\n", snd_strerror(err));
-    goto close;
-  }
-  err = snd_pcm_hw_params_get_buffer_size(params, &(this->buffer_size));
+      dir = 0;
+      err = snd_pcm_hw_params_set_buffer_size_near (this->audio_fd, this->hw_params, &this->buffer_size);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: buffer time not available: %s\n", snd_strerror (err));
+        break;
+      }
+      snd_pcm_hw_params_get_buffer_size (this->hw_params, &(this->buffer_size));
 #ifdef ALSA_LOG_BUFFERS
-  printf("was set period_size = %ld\n",period_size);
-  printf("was set buffer_size = %ld\n",this->buffer_size);
+      printf ("was set period_size = %ld\n", period_size);
+      printf ("was set buffer_size = %ld\n", this->buffer_size);
 #endif
-  if (2*period_size > this->buffer_size) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: buffer to small, could not use\n");
-    goto close;
-  }
+      if (2 * period_size > this->buffer_size) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: buffer too small, could not use\n");
+        break;
+      }
 
-  /* write the parameters to device */
-  err = snd_pcm_hw_params(this->audio_fd, params);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror(err));
-    goto close;
-  }
-  /* Check for pause/resume support */
-  this->has_pause_resume = ( snd_pcm_hw_params_can_pause (params)
-			    && snd_pcm_hw_params_can_resume (params) );
-  xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
-	  "audio_alsa_out:open pause_resume=%d\n", this->has_pause_resume);
-  if (this->has_pause_resume)
-    this->capabilities &= ~AO_CAP_NO_UNPAUSE;
-  else
-    this->capabilities |= AO_CAP_NO_UNPAUSE;
-  this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
-  this->bytes_per_frame = snd_pcm_frames_to_bytes (this->audio_fd, 1);
-  /*
-   * audio buffer size handling
-   */
-  /* Copy current parameters into swparams */
-  err = snd_pcm_sw_params_current(this->audio_fd, swparams);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: Unable to determine current swparams: %s\n", snd_strerror(err));
-    goto close;
-  }
+      /* write the parameters to device */
+      err = snd_pcm_hw_params (this->audio_fd, this->hw_params);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: pcm hw_params failed: %s\n", snd_strerror (err));
+        break;
+      }
+
+      /* Check for pause/resume support */
+      this->has_pause_resume = (snd_pcm_hw_params_can_pause (this->hw_params)
+                             && snd_pcm_hw_params_can_resume (this->hw_params));
+      xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+        "audio_alsa_out:open pause_resume=%d\n", this->has_pause_resume);
+      if (this->has_pause_resume)
+        this->capabilities &= ~AO_CAP_NO_UNPAUSE;
+      else
+        this->capabilities |= AO_CAP_NO_UNPAUSE;
+
+      this->sample_rate_factor = (double) this->output_sample_rate / (double) this->input_sample_rate;
+      this->bytes_per_frame = snd_pcm_frames_to_bytes (this->audio_fd, 1);
+
+      /* audio buffer size handling */
+      /* Copy current parameters into swparams */
+      err = snd_pcm_sw_params_current (this->audio_fd, this->sw_params);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: Unable to determine current swparams: %s\n", snd_strerror (err));
+        break;
+      }
 
 #if defined(SND_LIB_VERSION) && SND_LIB_VERSION >= 0x010016
-  /* snd_pcm_sw_params_set_xfer_align() is deprecated, alignment is always 1 */
+      /* snd_pcm_sw_params_set_xfer_align() is deprecated, alignment is always 1 */
 #else
-  /* align all transfers to 1 sample */
-  err = snd_pcm_sw_params_set_xfer_align(this->audio_fd, swparams, 1);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: Unable to set transfer alignment: %s\n", snd_strerror(err));
-    goto close;
-  }
+      /* align all transfers to 1 sample */
+      err = snd_pcm_sw_params_set_xfer_align (this->audio_fd, this->sw_params, 1);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: Unable to set transfer alignment: %s\n", snd_strerror (err));
+        break;
+      }
 #endif
 
-  /* allow the transfer when at least period_size samples can be processed */
-  err = snd_pcm_sw_params_set_avail_min(this->audio_fd, swparams, period_size);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: Unable to set available min: %s\n", snd_strerror(err));
-    goto close;
-  }
-  /* start the transfer when the buffer contains at least period_size samples */
-  err = snd_pcm_sw_params_set_start_threshold(this->audio_fd, swparams, period_size);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror(err));
-    goto close;
-  }
+      /* allow the transfer when at least period_size samples can be processed */
+      err = snd_pcm_sw_params_set_avail_min (this->audio_fd, this->sw_params, period_size);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: Unable to set available min: %s\n", snd_strerror (err));
+        break;
+      }
 
-  /* never stop the transfer, even on xruns */
-  err = snd_pcm_sw_params_set_stop_threshold(this->audio_fd, swparams, this->buffer_size);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: Unable to set stop threshold: %s\n", snd_strerror(err));
-    goto close;
-  }
+      /* start the transfer when the buffer contains at least period_size samples */
+      err = snd_pcm_sw_params_set_start_threshold (this->audio_fd, this->sw_params, period_size);
+      if (err < 0) {
+        xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+          "audio_alsa_out: Unable to set start threshold: %s\n", snd_strerror (err));
+        break;
+      }
+    }
 
-  /* Install swparams into current parameters */
-  err = snd_pcm_sw_params(this->audio_fd, swparams);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: Unable to set swparams: %s\n", snd_strerror(err));
-    goto close;
-  }
+    /* never stop the transfer, even on xruns */
+    err = snd_pcm_sw_params_set_stop_threshold (this->audio_fd, this->sw_params, this->buffer_size);
+    if (err < 0) {
+      xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+        "audio_alsa_out: Unable to set stop threshold: %s\n", snd_strerror (err));
+      break;
+    }
+
+    /* Install swparams into current parameters */
+    err = snd_pcm_sw_params (this->audio_fd, this->sw_params);
+    if (err < 0) {
+      xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+        "audio_alsa_out: Unable to set swparams: %s\n", snd_strerror (err));
+      break;
+    }
+
 #ifdef ALSA_LOG
-  snd_pcm_dump_setup(this->audio_fd, jcd_out);
-  snd_pcm_sw_params_dump(swparams, jcd_out);
+    snd_pcm_dump_setup (this->audio_fd, jcd_out);
+    snd_pcm_sw_params_dump (this->sw_params, jcd_out);
 #endif
 
-  return this->output_sample_rate;
+    return this->output_sample_rate;
+  } while (0);
 
-close:
   snd_pcm_close (this->audio_fd);
-  this->audio_fd=NULL;
+  this->audio_fd = NULL;
   return 0;
 }
 
@@ -740,22 +754,20 @@ static int ao_alsa_delay (ao_driver_t *this_gen)  {
  */
 static void xrun(alsa_driver_t *this)
 {
-  /* snd_pcm_status_t *status; */
   int res;
 
   /*
-     snd_pcm_status_alloca(&status);
-     if ((res = snd_pcm_status(this->audio_fd, status))<0) {
+     if ((res = snd_pcm_status (this->audio_fd, this->pcm_status)) < 0) {
        printf ("audio_alsa_out: status error: %s\n", snd_strerror(res));
        return;
      }
-     snd_pcm_status_dump(status, jcd_out);
+     snd_pcm_status_dump (this->pcm_status, jcd_out);
   */
   if (snd_pcm_state(this->audio_fd) == SND_PCM_STATE_XRUN) {
     /*
       struct timeval now, diff, tstamp;
       gettimeofday(&now, 0);
-      snd_pcm_status_get_trigger_tstamp(status, &tstamp);
+      snd_pcm_status_get_trigger_tstamp (this->pcm_status, &tstamp);
       timersub(&now, &tstamp, &diff);
       printf ("audio_alsa_out: xrun!!! (at least %.3f ms long)\n", diff.tv_sec * 1000 + diff.tv_usec / 1000.0);
     */
@@ -787,7 +799,6 @@ static int resume(snd_pcm_t *pcm)
  */
 static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
   snd_pcm_sframes_t result;
-  snd_pcm_status_t *pcm_stat;
   snd_pcm_state_t    state;
 #ifdef LOG_DEBUG
   struct timeval now;
@@ -804,7 +815,6 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
   printf("audio_alsa_out:write: Time = %ld.%ld\n", now.tv_sec, now.tv_usec);
   printf("audio_alsa_out:write:count=%u\n",count);
 #endif
-  snd_pcm_status_alloca(&pcm_stat);
   state = snd_pcm_state(this->audio_fd);
   if (state == SND_PCM_STATE_SUSPENDED) {
     res = resume(this->audio_fd);
@@ -818,8 +828,8 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
   if (state == SND_PCM_STATE_XRUN) {
 #ifdef LOG_DEBUG
     printf("audio_alsa_out:write:XRUN before\n");
-    snd_pcm_status(this->audio_fd, pcm_stat);
-    snd_pcm_status_dump(pcm_stat, jcd_out);
+    snd_pcm_status (this->audio_fd, this->pcm_status);
+    snd_pcm_status_dump (this->pcm_status, jcd_out);
 #endif
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
       return 0;
@@ -844,8 +854,8 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
 #ifdef LOG_DEBUG
       printf("audio_alsa_out:write:loop:waiting for Godot\n");
 #endif
-      snd_pcm_status(this->audio_fd, pcm_stat);
-      if ( snd_pcm_status_get_avail(pcm_stat) < number_of_frames) {
+      snd_pcm_status (this->audio_fd, this->pcm_status);
+      if (snd_pcm_status_get_avail (this->pcm_status) < number_of_frames) {
         wait_result = snd_pcm_wait(this->audio_fd, 1000);
 #ifdef LOG_DEBUG
         printf("audio_alsa_out:write:loop:wait_result=%d\n",wait_result);
@@ -940,7 +950,7 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
   alsa_driver_t *this = (alsa_driver_t *) this_gen;
 
   this->class->xine->config->unregister_callbacks (this->class->xine->config,
-    "audio.output.speaker_arrangement", NULL, this, sizeof (*this));
+    NULL, NULL, this, sizeof (*this));
 
   /*
    * Destroy the mixer thread and cleanup the mixer, so that
@@ -961,6 +971,14 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
 
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
   this->audio_fd=NULL;
+
+  {
+    uint32_t u;
+    for (u = 0; u < sizeof (this->devs) / sizeof (this->devs[0]); u++) {
+      _x_freep (&this->devs[u].name);
+    }
+  }
+
   free (this);
 }
 
@@ -1181,7 +1199,6 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t      *config = this->class->xine->config;
   char                 *pcm_device;
-  snd_ctl_card_info_t  *hw_info;
   snd_ctl_t            *ctl_handle;
   int                   err;
   void                 *mixer_sid;
@@ -1193,14 +1210,13 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   int                   swl = 0, swr = 0, send_events;
 
   this->mixer.elem = 0;
-  snd_ctl_card_info_alloca(&hw_info);
-  pcm_device = config->lookup_entry(config, "audio.device.alsa_default_device")->str_value;
+  pcm_device = this->devs[0].name;
   if ((err = snd_ctl_open (&ctl_handle, pcm_device, 0)) < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
     return;
   }
 
-  if ((err = snd_ctl_card_info (ctl_handle, hw_info)) < 0) {
+  if ((err = snd_ctl_card_info (ctl_handle, this->card_info)) < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
 	     "audio_alsa_out: snd_ctl_card_info(): %s\n", snd_strerror(err));
     snd_ctl_close(ctl_handle);
@@ -1243,10 +1259,10 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     return;
   }
 
-  mixer_sid = alloca(snd_mixer_selem_id_sizeof() * snd_mixer_get_count(this->mixer.handle));
+  mixer_sid = calloc (1, snd_mixer_selem_id_sizeof () * snd_mixer_get_count (this->mixer.handle));
   if (mixer_sid == NULL) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: alloca() failed: %s\n", strerror(errno));
+      "audio_alsa_out: malloc () failed: %s\n", strerror (errno));
     snd_mixer_close(this->mixer.handle);
     this->mixer.handle=0;
     return;
@@ -1337,6 +1353,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
  mixer_found:
 
+  free (mixer_sid);
+
   /*
    * Ugly: yes[*]  no[ ]
    */
@@ -1381,335 +1399,503 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   }
 }
 
-static void alsa_speaker_arrangement_cb (void *user_data,
-                                  xine_cfg_entry_t *entry);
+static void alsa_apply_speaker_arrangement (alsa_driver_t *this, int speakers) {
+  char logbuf[2048], *q, *logend = logbuf + sizeof (logbuf);
+
+  q = logbuf;
+  q += strlcpy (q, _("audio_alsa_out : supported modes are"), logend - q);
+  if (q >= logend)
+    q = logend;
+
+  if (this->capabilities & AO_CAP_8BITS) {
+    q += strlcpy (q, this->bits_names[0], logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+  if (this->capabilities & AO_CAP_16BITS) {
+    q += strlcpy (q, this->bits_names[1], logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+  if (this->capabilities & AO_CAP_24BITS) {
+    q += strlcpy (q, this->bits_names[2], logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+  if (this->capabilities & AO_CAP_FLOAT32) {
+    q += strlcpy (q, this->bits_names[3], logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+
+  this->capabilities &= ~(AO_CAP_MODE_MONO |
+                          AO_CAP_MODE_STEREO |
+                          AO_CAP_MODE_4CHANNEL |
+                          AO_CAP_MODE_4_1CHANNEL |
+                          AO_CAP_MODE_5CHANNEL |
+                          AO_CAP_MODE_5_1CHANNEL |
+                          AO_CAP_MODE_A52 |
+                          AO_CAP_MODE_AC5);
+
+  /* always set these. */
+  if (this->supported_channels & (1 << 1)) {
+    this->capabilities |= AO_CAP_MODE_MONO;
+    q += strlcpy (q, this->devs[0].type, logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+  if (this->supported_channels & (1 << 2)) {
+    this->capabilities |= AO_CAP_MODE_STEREO;
+    q += strlcpy (q, this->devs[1].type, logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+
+  if (this->supported_channels & (1 << 4)) {
+    const char *t;
+    if (speakers == SURROUND4) {
+      this->capabilities |= AO_CAP_MODE_4CHANNEL;
+      t = this->devs[2].type;
+    } else {
+      t = _(" (4-channel not enabled in xine config)");
+    }
+    q += strlcpy (q, t, logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+  if (this->supported_channels & (1 << 6)) {
+    const char *t;
+    if (speakers == SURROUND41) {
+      this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
+      t = _(" 4.1-channel");
+    } else {
+      t = _(" (4.1-channel not enabled in xine config)");
+    }
+    q += strlcpy (q, t, logend - q);
+    if (q >= logend)
+      q = logend;
+    if (speakers == SURROUND5) {
+      this->capabilities |= AO_CAP_MODE_5CHANNEL;
+      t = _(" 5-channel");
+    } else {
+      t = _(" (5-channel not enabled in xine config)");
+    }
+    q += strlcpy (q, t, logend - q);
+    if (q >= logend)
+      q = logend;
+    /* NOTE: That ">=" covers both the high channel counts and passthrough mode.
+     * This is more or less a BUG when a traditional SPDIF link is used.
+     * However, if alsa_surround51_device refers to the same HDMI port
+     * as alsa_passthrough_device, then we have a HACK that routes software
+     * decoded 5.1 where it belongs :-) */
+    if (speakers >= SURROUND51) {
+      this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
+      t = this->devs[3].type;
+    } else {
+      t = _(" (5.1-channel not enabled in xine config)");
+    }
+    q += strlcpy (q, t, logend - q);
+    if (q >= logend)
+      q = logend;
+  }
+
+  {
+    const char *t;
+    if (speakers == A52_PASSTHRU) {
+      this->capabilities |= AO_CAP_MODE_A52 | AO_CAP_MODE_AC5;
+      t = this->devs[4].type;
+    } else {
+      t = _(" (a/52 and DTS pass-through not enabled in xine config)");
+    }
+    q += strlcpy (q, t, logend - q);
+/*  if (q >= logend)
+      q = logend; */
+  }
+
+  xprintf (this->class->xine, XINE_VERBOSITY_LOG, "%s.\n", logbuf);
+}
+
+static void _alsa_speaker_arrangement_cb (void *user_data, xine_cfg_entry_t *entry) {
+  alsa_driver_t *this = (alsa_driver_t *)user_data;
+  alsa_apply_speaker_arrangement (this, entry->num_value);
+}
+
+static char *_alsa_safe_strdup (const char *s) {
+  return s ? strdup (s) : NULL;
+}
+
+static void _alsa_dev_name_cb (void *user_data, xine_cfg_entry_t *entry) {
+  struct _alsa_dev_info_s *info = (struct _alsa_dev_info_s *)user_data;
+  free (info->name);
+  info->name = _alsa_safe_strdup (entry->str_value);
+}
+
+static int _alsa_query_dev (alsa_driver_t *this, uint32_t index) {
+  char logbuf[2048], *q = logbuf, *logend = logbuf + sizeof (logbuf);
+  struct _alsa_dev_info_s *info = &this->devs[index];
+  const char *name;
+  uint32_t u;
+  int err;
+
+  name = info->name ? info->name : "default";
+  if (1) {
+    /* skip doubles */
+    for (u = 0; u < sizeof (this->devs) / sizeof (this->devs[0]); u++) {
+      if (u != index) {
+        const char *alias = this->devs[u].name ? this->devs[u].name : "default";
+        if (!strcmp (name, alias) && this->devs[u].supported_channels) {
+          info->capabilities = this->devs[u].capabilities;
+          info->supported_channels = this->devs[u].supported_channels;
+          xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+            "audio_alsa_out: already probed \"%s\" for%s.\n", name, info->type);
+          return 2;
+        }
+      }
+    }
+  }
+  xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+    "audio_alsa_out: probing \"%s\" for%s ...\n", name, info->type);
+  q += strlcpy (q, "audio_alsa_out: ", logend - q);
+  if (q > logend)
+    q = logend;
+  q += strlcpy (q, name, logend - q);
+  if (q > logend)
+    q = logend;
+  q += strlcpy (q, ": ", logend - q);
+  if (q > logend)
+    q = logend;
+
+  err = snd_pcm_open (&this->audio_fd, name, SND_PCM_STREAM_PLAYBACK, 1); /* NON-BLOCK mode */
+  if (err < 0) {
+    xine_log (this->class->xine, XINE_LOG_MSG,
+      _("snd_pcm_open() failed:%d:%s\n"), err, snd_strerror (err));
+    xine_log (this->class->xine, XINE_LOG_MSG,
+      _(">>> Check if another program already uses PCM <<<\n"));
+    return 0;
+  }
+
+  err = snd_pcm_hw_params_any (this->audio_fd, this->hw_params);
+  if (err < 0) {
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+      "audio_alsa_out: broken configuration for this PCM: no configurations available.\n");
+    snd_pcm_close (this->audio_fd);
+    this->audio_fd = NULL;
+    return 0;
+  }
+
+  info->capabilities &= ~(AO_CAP_8BITS | AO_CAP_16BITS | AO_CAP_24BITS | AO_CAP_FLOAT32);
+  if (!(snd_pcm_hw_params_test_format (this->audio_fd, this->hw_params, SND_PCM_FORMAT_U8))) {
+    info->capabilities |= AO_CAP_8BITS;
+    q += strlcpy (q, this->bits_names[0], logend - q);
+    if (q > logend)
+      q = logend;
+  }
+  if (!(snd_pcm_hw_params_test_format (this->audio_fd, this->hw_params, SND_PCM_FORMAT_S16))) {
+    info->capabilities |= AO_CAP_16BITS;
+    q += strlcpy (q, this->bits_names[1], logend - q);
+    if (q > logend)
+      q = logend;
+  }
+  if (!(snd_pcm_hw_params_test_format (this->audio_fd, this->hw_params, SND_PCM_FORMAT_S24))) {
+    info->capabilities |= AO_CAP_24BITS;
+    q += strlcpy (q, this->bits_names[2], logend - q);
+    if (q > logend)
+      q = logend;
+  }
+  if (!(snd_pcm_hw_params_test_format (this->audio_fd, this->hw_params, SND_PCM_FORMAT_FLOAT))) {
+    info->capabilities |= AO_CAP_FLOAT32;
+    q += strlcpy (q, this->bits_names[3], logend - q);
+    if (q > logend)
+      q = logend;
+  }
+  if (0 == (info->capabilities & (AO_CAP_FLOAT32 | AO_CAP_24BITS | AO_CAP_16BITS | AO_CAP_8BITS))) {
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: no supported PCM format found.\n");
+    snd_pcm_close (this->audio_fd);
+    this->audio_fd = NULL;
+    return 0;
+  }
+
+  info->supported_channels = 0;
+  if (!(snd_pcm_hw_params_test_channels (this->audio_fd, this->hw_params, 1))) {
+    info->supported_channels |= 1 << 1;
+    q += strlcpy (q, this->devs[0].type, logend - q);
+    if (q > logend)
+      q = logend;
+  }
+  if (!(snd_pcm_hw_params_test_channels (this->audio_fd, this->hw_params, 2))) {
+    info->supported_channels |= 1 << 2;
+    q += strlcpy (q, this->devs[1].type, logend - q);
+    if (q > logend)
+      q = logend;
+  }
+  if (!(snd_pcm_hw_params_test_channels (this->audio_fd, this->hw_params, 4))) {
+    info->supported_channels |= 1 << 4;
+    q += strlcpy (q, this->devs[2].type, logend - q);
+    if (q > logend)
+      q = logend;
+  }
+  if (!(snd_pcm_hw_params_test_channels (this->audio_fd, this->hw_params, 6))) {
+    info->supported_channels |= 1 << 6;
+    q += strlcpy (q, this->devs[3].type, logend - q);
+    if (q > logend)
+      q = logend;
+  }
+
+  err = snd_pcm_hw_params_set_access (this->audio_fd, this->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+  if (err < 0) {
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
+      "audio_alsa_out: interleaved access not available.");
+    snd_pcm_close (this->audio_fd);
+    this->audio_fd = NULL;
+    return 0;
+  }
+
+  if (index == 4) {
+    info->capabilities |= AO_CAP_MODE_A52 | AO_CAP_MODE_AC5;
+    q += strlcpy (q, this->devs[4].type, logend - q);
+    if (q > logend)
+      q = logend;
+  }
+
+  xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "%s.\n", logbuf);
+
+  this->supported_channels = 0;
+  for (u = 0; u < sizeof (this->devs) / sizeof (this->devs[0]); u++) {
+    this->supported_channels |= this->devs[u].supported_channels;
+    if (u != index) {
+      const char *alias = this->devs[u].name ? this->devs[u].name : "default";
+      if (!strcmp (name, alias)) {
+        this->devs[u].capabilities = info->capabilities;
+        this->devs[u].supported_channels = info->supported_channels;
+      }
+    }
+  }
+
+  snd_pcm_close (this->audio_fd);
+  this->audio_fd = NULL;
+  return 1;
+}
 
 /*
  * Initialize plugin
  */
 
 static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *data) {
-
   alsa_class_t        *class = (alsa_class_t *) class_gen;
   config_values_t     *config = class->xine->config;
   alsa_driver_t       *this;
-  int                  err;
-  char                *pcm_device;
-  snd_pcm_hw_params_t *params;
-
-  AUDIO_DEVICE_SPEAKER_ARRANGEMENT_TYPES;
-  int speakers;
 
   (void)data;
-  this = calloc(1, sizeof (alsa_driver_t));
-  if (!this)
-    return NULL;
+  {
+    uint32_t s_this      = (sizeof (*this) + 15) & ~15u;
+    uint32_t s_hw_params = (snd_pcm_hw_params_sizeof () + 15) & ~15u;
+    uint32_t s_sw_params = (snd_pcm_sw_params_sizeof () + 15) & ~15u;
+    uint32_t s_ac_mask   = (snd_pcm_access_mask_sizeof () + 15) & ~15u;
+    uint32_t s_card_info = (snd_ctl_card_info_sizeof () + 15) & ~15u;
+    uint32_t s_status    = (snd_pcm_status_sizeof () + 15) & ~15u;
+    uint8_t *m = calloc (1, s_this + s_hw_params + s_sw_params + s_ac_mask + s_card_info + s_status);
+    if (!m)
+      return NULL;
+    this = (alsa_driver_t *)m;
+    m += s_this;
+    this->hw_params  = (snd_pcm_hw_params_t *)m;
+    m += s_hw_params;
+    this->sw_params  = (snd_pcm_sw_params_t *)m;
+    m += s_sw_params;
+    this->ac_mask    = (snd_pcm_access_mask_t *)m;
+    m += s_ac_mask;
+    this->card_info  = (snd_ctl_card_info_t *)m;
+    m += s_card_info;
+    this->pcm_status = (snd_pcm_status_t *)m;
+  }
+#ifndef HAVE_ZERO_SAFE_MEM
+  this->devs[0].supported_channels = 0;
+  this->devs[0].capabilities       = 0;
+  this->devs[1].supported_channels = 0;
+  this->devs[1].capabilities       = 0;
+  this->devs[2].supported_channels = 0;
+  this->devs[2].capabilities       = 0;
+  this->devs[3].supported_channels = 0;
+  this->devs[3].capabilities       = 0;
+  this->devs[4].supported_channels = 0;
+  this->devs[4].capabilities       = 0;
+  this->capabilities               = 0;
+  this->has_pause_resume           = 0; /* This is checked at open time instead */
+  this->is_paused                  = 0;
+  this->output_sample_rate         = 0;
+#endif
 
   this->class = class;
 
-  err = snd_lib_error_set_handler(error_callback);
-  if(err < 0)
-    xine_log(this->class->xine, XINE_LOG_MSG, _("snd_lib_error_set_handler() failed: %d"), err);
+  this->bits_names[0] = _(" 8bit");
+  this->bits_names[1] = _(" 16bit");
+  this->bits_names[2] = _(" 24bit");
+  this->bits_names[3] = _(" 32bit");
 
-  snd_pcm_hw_params_alloca(&params);
+  this->devs[0].this = this;
+  this->devs[0].type = _(" mono");
+  this->devs[0].config_key = "audio.device.alsa_default_device";
+  this->devs[0].name = _alsa_safe_strdup (config->register_string (config,
+    this->devs[0].config_key,
+    "default",
+    _("device used for mono output"),
+    _("xine will use this alsa device to output mono sound.\n"
+      "See the alsa documentation for information on alsa devices."),
+    10, _alsa_dev_name_cb, &this->devs[0]));
 
-  this->mmap = config->register_bool (config,
-                               "audio.device.alsa_mmap_enable",
-                               0,
-                               _("sound card can do mmap"),
-                               _("Enable this, if your sound card and alsa driver "
-                                 "support memory mapped IO.\nYou can try enabling it "
-                                 "and check, if everything works. If it does, this "
-                                 "will increase performance."),
-                               10, NULL,
-                               NULL);
-  config->register_string(config,
-                          "audio.device.alsa_default_device",
-                          "default",
-                          _("device used for mono output"),
-                          _("xine will use this alsa device to output "
-                            "mono sound.\nSee the alsa documentation "
-                            "for information on alsa devices."),
-                          10, NULL,
-                          NULL);
-  config->register_string(config,
-                          "audio.device.alsa_front_device",
-                          "plug:front:default",
-                          _("device used for stereo output"),
-                          _("xine will use this alsa device to output "
-                            "stereo sound.\nSee the alsa documentation "
-                            "for information on alsa devices."),
-                          10, NULL,
-                          NULL);
-  config->register_string(config,
-                          "audio.device.alsa_surround40_device",
-                          "plug:surround40:0",
-                          _("device used for 4-channel output"),
-                          _("xine will use this alsa device to output "
-                            "4 channel (4.0) surround sound.\nSee the "
-                            "alsa documentation for information on alsa "
-                            "devices."),
-                          10, NULL,
-                          NULL);
-  config->register_string(config,
-                          "audio.device.alsa_surround51_device",
-                          "plug:surround51:0",
-                          _("device used for 5.1-channel output"),
-                          _("xine will use this alsa device to output "
-                            "5 channel plus LFE (5.1) surround sound.\n"
-                            "See the alsa documentation for information "
-                            "on alsa devices."),
-                          10,  NULL,
-                          NULL);
-  config->register_string(config,
-                          "audio.device.alsa_passthrough_device",
-                          "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
-                          _("device used for 5.1-channel output"),
-                          _("xine will use this alsa device to output "
-                            "undecoded digital surround sound. This can "
-                            "be used be external surround decoders.\nSee the "
-                            "alsa documentation for information on alsa "
-                            "devices."),
-                          10, NULL,
-                          NULL);
+  this->devs[1].this = this;
+  this->devs[1].type = _(" stereo");
+  this->devs[1].config_key = "audio.device.alsa_front_device";
+  this->devs[1].name = _alsa_safe_strdup (config->register_string (config,
+    this->devs[1].config_key,
+    "plug:front:default",
+    _("device used for stereo output"),
+    _("xine will use this alsa device to output stereo sound.\n"
+      "See the alsa documentation for information on alsa devices."),
+    10, _alsa_dev_name_cb, &this->devs[1]));
 
-  /* Use the default device to open first */
-  pcm_device = config->lookup_entry(config, "audio.device.alsa_default_device")->str_value;
+  this->devs[2].this = this;
+  this->devs[2].type = _(" 4-channel");
+  this->devs[2].config_key = "audio.device.alsa_surround40_device";
+  this->devs[2].name = _alsa_safe_strdup (config->register_string (config,
+    this->devs[2].config_key,
+    "plug:surround40:0",
+    _("device used for 4-channel output"),
+    _("xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
+      "See the alsa documentation for information on alsa devices."),
+    10, _alsa_dev_name_cb, &this->devs[2]));
 
-  /*
-   * find best device driver/channel
-   */
-  /*
-   * open that device
-   */
-  err=snd_pcm_open(&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 1); /* NON-BLOCK mode */
-  if(err <0 ) {
-    xine_log (this->class->xine, XINE_LOG_MSG,
-          _("snd_pcm_open() failed:%d:%s\n"), err, snd_strerror(err));
-    xine_log (this->class->xine, XINE_LOG_MSG,
-          _(">>> Check if another program already uses PCM <<<\n"));
-    free(this);
-    return NULL;
-  }
+  this->devs[3].this = this;
+  this->devs[3].type = _(" 5.1-channel");
+  this->devs[3].config_key = "audio.device.alsa_surround51_device";
+  this->devs[3].name = _alsa_safe_strdup (config->register_string (config,
+    this->devs[3].config_key,
+    "plug:surround51:0",
+    _("device used for 5.1-channel output"),
+    _("xine will use this alsa device to output 5 channel plus LFE (5.1) surround sound.\n"
+      "See the alsa documentation for information on alsa devices."),
+    10, _alsa_dev_name_cb, &this->devs[3]));
 
-  /*
-   * configure audio device
-   */
-  err = snd_pcm_hw_params_any(this->audio_fd, params);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: broken configuration for this PCM: no configurations available\n");
-    snd_pcm_close(this->audio_fd);
-    free(this);
-    return NULL;
-  }
-  err = snd_pcm_hw_params_set_access(this->audio_fd, params,
-                                     SND_PCM_ACCESS_RW_INTERLEAVED);
-  if (err < 0) {
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-	     "audio_alsa_out: access type not available");
-    snd_pcm_close(this->audio_fd);
-    free(this);
-    return NULL;
-  }
-
-  this->capabilities = 0;
-
-  /* for usability reasons, keep this in sync with audio_oss_out.c */
-  speakers = config->register_enum(config, "audio.output.speaker_arrangement", STEREO,
-                                   (char **)speaker_arrangement,
-                                   AUDIO_DEVICE_SPEAKER_ARRANGEMENT_HELP,
-                                   0, alsa_speaker_arrangement_cb, this);
-
-  this->has_pause_resume = 0; /* This is checked at open time instead */
-  this->is_paused = 0;
-  this->output_sample_rate = 0;
+  this->devs[4].this = this;
+  this->devs[4].type = _(" a/52 and DTS pass-through");
+  this->devs[4].config_key = "audio.device.alsa_passthrough_device";
+  this->devs[4].name = _alsa_safe_strdup (config->register_string (config,
+    this->devs[4].config_key,
+    "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
+    _("device used for 5.1-channel output"),
+    _("xine will use this alsa device to output undecoded digital surround sound. "
+      "This can be used be external surround decoders.\n"
+      "See the alsa documentation for information on alsa devices."),
+    10, _alsa_dev_name_cb, &this->devs[4]));
 
   {
-    char logbuf[2048], *q, *logend = logbuf + sizeof (logbuf);
-    q = logbuf;
-    q += strlcpy (q, _("audio_alsa_out : supported modes are"), logend - q);
-    if (q >= logend)
-      q = logend;
-    if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_U8))) {
-      this->capabilities |= AO_CAP_8BITS;
-      q += strlcpy (q, _(" 8bit"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
-    /* ALSA automatically appends _LE or _BE depending on the CPU */
-    if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_S16))) {
-      this->capabilities |= AO_CAP_16BITS;
-      q += strlcpy (q, _(" 16bit"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
-    if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_S24))) {
-      this->capabilities |= AO_CAP_24BITS;
-      q += strlcpy (q, _(" 24bit"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
-    if (!(snd_pcm_hw_params_test_format (this->audio_fd, params, SND_PCM_FORMAT_FLOAT))) {
-      this->capabilities |= AO_CAP_FLOAT32;
-      q += strlcpy (q, _(" 32bit"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
-    if (0 == (this->capabilities & (AO_CAP_FLOAT32 | AO_CAP_24BITS | AO_CAP_16BITS | AO_CAP_8BITS))) {
-      xprintf (class->xine, XINE_VERBOSITY_LOG, "%s.\n", logbuf);
-      xprintf (class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: no supported PCM format found.\n");
-      snd_pcm_close (this->audio_fd);
-      free (this);
-      return NULL;
-    }
-    if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 1))) {
-      this->capabilities |= AO_CAP_MODE_MONO;
-      q += strlcpy (q, _(" mono"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
-    if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 2))) {
-      this->capabilities |= AO_CAP_MODE_STEREO;
-      q += strlcpy (q, _(" stereo"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
-    if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 4))) {
-      if (speakers == SURROUND4) {
-        this->capabilities |= AO_CAP_MODE_4CHANNEL;
-        q += strlcpy (q, _(" 4-channel"), logend - q);
-      } else
-        q += strlcpy (q, _(" (4-channel not enabled in xine config)"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
-    if (!(snd_pcm_hw_params_test_channels (this->audio_fd, params, 6))) {
-      if (speakers == SURROUND41) {
-        this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
-        q += strlcpy (q, _(" 4.1-channel"), logend - q);
-      } else
-        q += strlcpy (q, _(" (4.1-channel not enabled in xine config)"), logend - q);
-      if (q >= logend)
-        q = logend;
-      if (speakers == SURROUND5) {
-        this->capabilities |= AO_CAP_MODE_5CHANNEL;
-        q += strlcpy (q, _(" 5-channel"), logend - q);
-      } else
-        q += strlcpy (q, _(" (5-channel not enabled in xine config)"), logend - q);
-      if (q >= logend)
-        q = logend;
-      if (speakers >= SURROUND51) {
-        this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
-        q += strlcpy (q, _(" 5.1-channel"), logend - q);
-      } else
-        q += strlcpy (q, _(" (5.1-channel not enabled in xine config)"), logend - q);
-      if (q >= logend)
-        q = logend;
-    }
+    int err = snd_lib_error_set_handler (error_callback);
+    if (err < 0)
+      xine_log (this->class->xine, XINE_LOG_MSG, _("snd_lib_error_set_handler() failed: %d"), err);
+  }
 
-    snd_pcm_close (this->audio_fd);
-    this->audio_fd = NULL;
+  {
+    AUDIO_DEVICE_SPEAKER_ARRANGEMENT_TYPES;
+    int speakers;
 
-    /* Fallback to "default" if device "front" does not exist. */
-    /* Needed for some very basic sound cards. */
-    pcm_device = config->lookup_entry (config, "audio.device.alsa_front_device")->str_value;
-    err = snd_pcm_open (&this->audio_fd, pcm_device, SND_PCM_STREAM_PLAYBACK, 1); /* NON-BLOCK mode */
-    if (err < 0) {
-      config->update_string (config, "audio.device.alsa_front_device", "default");
+    /* for usability reasons, keep this in sync with audio_oss_out.c */
+    speakers = config->register_enum (config,
+      "audio.output.speaker_arrangement",
+      STEREO,
+      (char **)speaker_arrangement,
+      AUDIO_DEVICE_SPEAKER_ARRANGEMENT_HELP,
+      0, _alsa_speaker_arrangement_cb, this);
+
+    /* query the devices we might need, and stop at stereo. */
+    switch (speakers) {
+      case A52_PASSTHRU:
+        if (_alsa_query_dev (this, 4))
+          this->capabilities |= this->devs[4].capabilities;
+        /* fall through */
+      case SURROUND71:
+      case SURROUND61:
+      case SURROUND6:
+      case SURROUND51:
+      case SURROUND5:
+      case SURROUND41:
+        if (_alsa_query_dev (this, 3)) {
+          this->capabilities |= this->devs[3].capabilities;
+          break;
+        }
+        /* fall through */
+      case SURROUND4:
+        if (_alsa_query_dev (this, 2))
+          this->capabilities |= this->devs[2].capabilities;
+        break;
+      default: ;
+    }
+    if (_alsa_query_dev (this, 0))
+      this->capabilities |= this->devs[0].capabilities;
+    if (_alsa_query_dev (this, 1)) {
+      this->capabilities |= this->devs[1].capabilities;
     } else {
-      snd_pcm_close (this->audio_fd);
-      this->audio_fd = NULL;
+      /* Fallback to "default" if device "front" does not exist.
+       * Needed for some very basic sound cards. */
+      config->update_string (config, this->devs[1].config_key, "default");
+      if (_alsa_query_dev (this, 1))
+        this->capabilities |= this->devs[1].capabilities;
     }
 
-    if (speakers == A52_PASSTHRU) {
-      this->capabilities |= AO_CAP_MODE_A52 | AO_CAP_MODE_AC5;
-      q += strlcpy (q, _(" a/52 and DTS pass-through"), logend - q);
-    } else
-      q += strlcpy (q, _(" (a/52 and DTS pass-through not enabled in xine config)"), logend - q);
-/*  if (q >= logend)
-      q = logend; */
-
-    xprintf (class->xine, XINE_VERBOSITY_LOG, "%s.\n", logbuf);
+    alsa_apply_speaker_arrangement (this, speakers);
   }
 
-  /* printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities); */
+  do {
+    /* printf("audio_alsa_out: capabilities 0x%X\n",this->capabilities); */
+    if (!this->capabilities)
+      break;
 
-  this->mixer.name = config->register_string(config,
-                                             "audio.device.alsa_mixer_name",
-                                             "PCM",
-                                             _("alsa mixer device"),
-                                             _("xine will use this alsa mixer device to change "
-                                               "the volume.\nSee the alsa documentation for "
-                                               "information on alsa devices."),
-                                             10, NULL,
-                                             NULL);
-  if (!this->mixer.name) {
-    if (this->audio_fd)
-      snd_pcm_close (this->audio_fd);
-    free(this);
-    return NULL;
+    this->mixer.name = config->register_string (config,
+      "audio.device.alsa_mixer_name",
+      "PCM",
+      _("alsa mixer device"),
+      _("xine will use this alsa mixer device to change the volume.\n"
+        "See the alsa documentation for information on alsa devices."),
+      10, NULL, NULL);
+    if (!this->mixer.name)
+      break;
+
+    pthread_mutex_init (&this->mixer.mutex, NULL);
+    ao_alsa_mixer_init (&this->ao_driver);
+
+    this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
+    this->ao_driver.get_property        = ao_alsa_get_property;
+    this->ao_driver.set_property        = ao_alsa_set_property;
+    this->ao_driver.open                = ao_alsa_open;
+    this->ao_driver.num_channels        = ao_alsa_num_channels;
+    this->ao_driver.bytes_per_frame     = ao_alsa_bytes_per_frame;
+    this->ao_driver.delay               = ao_alsa_delay;
+    this->ao_driver.write               = ao_alsa_write;
+    this->ao_driver.close               = ao_alsa_close;
+    this->ao_driver.exit                = ao_alsa_exit;
+    this->ao_driver.get_gap_tolerance   = ao_alsa_get_gap_tolerance;
+    this->ao_driver.control             = ao_alsa_ctrl;
+
+    return &this->ao_driver;
+  } while (0);
+
+  config->unregister_callbacks (config, NULL, NULL, this, sizeof (*this));
+  {
+    uint32_t u;
+    for (u = 0; u < sizeof (this->devs) / sizeof (this->devs[0]); u++) {
+      _x_freep (&this->devs[u].name);
+    }
   }
-
-  pthread_mutex_init(&this->mixer.mutex, NULL);
-  ao_alsa_mixer_init(&this->ao_driver);
-
-  this->ao_driver.get_capabilities    = ao_alsa_get_capabilities;
-  this->ao_driver.get_property        = ao_alsa_get_property;
-  this->ao_driver.set_property        = ao_alsa_set_property;
-  this->ao_driver.open                = ao_alsa_open;
-  this->ao_driver.num_channels        = ao_alsa_num_channels;
-  this->ao_driver.bytes_per_frame     = ao_alsa_bytes_per_frame;
-  this->ao_driver.delay               = ao_alsa_delay;
-  this->ao_driver.write		      = ao_alsa_write;
-  this->ao_driver.close               = ao_alsa_close;
-  this->ao_driver.exit                = ao_alsa_exit;
-  this->ao_driver.get_gap_tolerance   = ao_alsa_get_gap_tolerance;
-  this->ao_driver.control	      = ao_alsa_ctrl;
-
-  return &this->ao_driver;
+  free (this);
+  return NULL;
 }
 
-static void alsa_speaker_arrangement_cb (void *user_data,
-                                  xine_cfg_entry_t *entry) {
-  alsa_driver_t *this = (alsa_driver_t *) user_data;
-  int32_t value = entry->num_value;
-  if (value == A52_PASSTHRU) {
-    this->capabilities |= AO_CAP_MODE_A52;
-    this->capabilities |= AO_CAP_MODE_AC5;
-  } else {
-    this->capabilities &= ~AO_CAP_MODE_A52;
-    this->capabilities &= ~AO_CAP_MODE_AC5;
-  }
-  if (value == SURROUND4) {
-    this->capabilities |= AO_CAP_MODE_4CHANNEL;
-  } else {
-    this->capabilities &= ~AO_CAP_MODE_4CHANNEL;
-  }
-  if (value == SURROUND41) {
-    this->capabilities |= AO_CAP_MODE_4_1CHANNEL;
-  } else {
-    this->capabilities &= ~AO_CAP_MODE_4_1CHANNEL;
-  }
-  if (value == SURROUND5) {
-    this->capabilities |= AO_CAP_MODE_5CHANNEL;
-  } else {
-    this->capabilities &= ~AO_CAP_MODE_5CHANNEL;
-  }
-  if (value >= SURROUND51) {
-    this->capabilities |= AO_CAP_MODE_5_1CHANNEL;
-  } else {
-    this->capabilities &= ~AO_CAP_MODE_5_1CHANNEL;
-  }
-}
 
 
 /*
  * class functions
  */
 static void *init_class (xine_t *xine, const void *data) {
-
-  alsa_class_t        *this;
+  alsa_class_t *this;
 
   (void)data;
   this = calloc(1, sizeof (alsa_class_t));
@@ -1739,4 +1925,3 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_AUDIO_OUT, AO_OUT_ALSA_IFACE_VERSION, "alsa", XINE_VERSION_CODE, &ao_info_alsa, init_class },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
-
