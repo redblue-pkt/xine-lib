@@ -1515,6 +1515,11 @@ static void alsa_apply_speaker_arrangement (alsa_driver_t *this, int speakers) {
   xprintf (this->class->xine, XINE_VERBOSITY_LOG, "%s.\n", logbuf);
 }
 
+static void _alsa_mmap_cb (void *user_data, xine_cfg_entry_t *entry) {
+  alsa_driver_t *this = (alsa_driver_t *)user_data;
+  this->mmap = entry->num_value;
+}
+
 static void _alsa_speaker_arrangement_cb (void *user_data, xine_cfg_entry_t *entry) {
   alsa_driver_t *this = (alsa_driver_t *)user_data;
   alsa_apply_speaker_arrangement (this, entry->num_value);
@@ -1732,6 +1737,13 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   this->bits_names[2] = _(" 24bit");
   this->bits_names[3] = _(" 32bit");
 
+  this->mmap = config->register_bool (config, "audio.device.alsa_mmap_enable", 0,
+    _("sound card can do mmap"),
+    _("Enable this, if your sound card and alsa driver support memory mapped IO.\n"
+      "You can try enabling it and check, if everything works. If it does, this "
+      "will increase performance."),
+    10, _alsa_mmap_cb, this);
+
   this->devs[0].this = this;
   this->devs[0].type = _(" mono");
   this->devs[0].config_key = "audio.device.alsa_default_device";
@@ -1782,7 +1794,7 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
   this->devs[4].name = _alsa_safe_strdup (config->register_string (config,
     this->devs[4].config_key,
     "iec958:AES0=0x6,AES1=0x82,AES2=0x0,AES3=0x2",
-    _("device used for 5.1-channel output"),
+    _("device used for a/52 and DTS pass-through"),
     _("xine will use this alsa device to output undecoded digital surround sound. "
       "This can be used be external surround decoders.\n"
       "See the alsa documentation for information on alsa devices."),
