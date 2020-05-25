@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2020-05-03 16:12+0200\n"
+"POT-Creation-Date: 2020-05-24 18:04+0200\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
@@ -236,126 +236,8 @@ msgstr ""
 "aktualisieren kann."
 
 #: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_lib_error_set_handler() failed: %d"
-msgstr "snd_lib_error_set_handler() fehlgeschlagen: %d"
-
-#: src/audio_out/audio_alsa_out.c
-msgid "sound card can do mmap"
-msgstr "Soundkarte unterstützt mmap"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
-"You can try enabling it and check, if everything works. If it does, this "
-"will increase performance."
-msgstr ""
-"Aktivieren Sie dies, falls Ihre Soundkarte und der ALSA-Treiber direkten "
-"Speicherzugriff unterstützen.\n"
-"Sie können dies aktivieren und testen, ob alles funktioniert. Falls ja, "
-"erhöht es die Leistung."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for mono output"
-msgstr "Gerät für Monoausgabe"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output mono sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine benutzt diese ALSA-Gerät für die Monoausgabe.\n"
-"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for stereo output"
-msgstr "Gerät für Stereoausgabe"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output stereo sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine benutzt diese ALSA-Gerät für die Stereoausgabe.\n"
-"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 4-channel output"
-msgstr "Gerät für 4-Kanalausgabe"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine benutzt diese ALSA-Gerät für die 4-Kanalausgabe (4.0 Raumklang).\n"
-"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 5.1-channel output"
-msgstr "Gerät für 5.1-Kanalausgabe"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
-"sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine benutzt diese ALSA-Gerät für die 5-Kanalausgabe mit Bassbox (5.1 "
-"Raumklang).\n"
-"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output undecoded digital surround sound. "
-"This can be used be external surround decoders.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine benutzt diese ALSA-Gerät für die unkodierte Ausgabe von digitalen "
-"Raumklang. Dies kann von externen Dekodern benutzt werden.\n"
-"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_pcm_open() failed:%d:%s\n"
-msgstr "snd_pcm_open() fehlgeschlagen: %d:%s\n"
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid ">>> Check if another program already uses PCM <<<\n"
-msgstr ">>> Überprüfen Sie, ob ein anderen Programm bereis PCM benutzt <<<\n"
-
-#: src/audio_out/audio_alsa_out.c
 msgid "audio_alsa_out : supported modes are"
 msgstr "audio_alsa_out : Unterstützte Modi sind"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 8bit"
-msgstr " 8Bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 16bit"
-msgstr " 16Bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 24bit"
-msgstr " 24Bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 32bit"
-msgstr " 32Bit"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " mono"
-msgstr " Mono"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " stereo"
-msgstr " Stereo"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " 4-channel"
-msgstr " 4-Kanal"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " (4-channel not enabled in xine config)"
@@ -378,20 +260,142 @@ msgid " (5-channel not enabled in xine config)"
 msgstr " (5-Kanal nicht aktiviert in xine Konfiguration)"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " 5.1-channel"
-msgstr " 5.1-Kanal"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " (5.1-channel not enabled in xine config)"
 msgstr " (5.1-Kanal nicht aktiviert in xine Konfiguration)"
 
 #: src/audio_out/audio_alsa_out.c
-msgid " a/52 and DTS pass-through"
-msgstr " a/52 und DTS pass-through"
+msgid " (a/52 and DTS pass-through not enabled in xine config)"
+msgstr " (a/52 und DTS Weiterleitung nicht aktiviert in xine Konfiguration)"
 
 #: src/audio_out/audio_alsa_out.c
-msgid " (a/52 and DTS pass-through not enabled in xine config)"
-msgstr " (a/52 und DTS pass-through nicht aktiviert in xine Konfiguration)"
+#, c-format
+msgid "snd_pcm_open() failed:%d:%s\n"
+msgstr "snd_pcm_open() fehlgeschlagen: %d:%s\n"
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid ">>> Check if another program already uses PCM <<<\n"
+msgstr ">>> Überprüfen Sie, ob ein anderen Programm bereis PCM benutzt <<<\n"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 8bit"
+msgstr " 8Bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 16bit"
+msgstr " 16Bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 24bit"
+msgstr " 24Bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 32bit"
+msgstr " 32Bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "sound card can do mmap"
+msgstr "Soundkarte unterstützt mmap"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
+"You can try enabling it and check, if everything works. If it does, this "
+"will increase performance."
+msgstr ""
+"Aktivieren Sie dies, falls Ihre Soundkarte und der ALSA-Treiber direkten "
+"Speicherzugriff unterstützen.\n"
+"Sie können dies aktivieren und testen, ob alles funktioniert. Falls ja, "
+"erhöht es die Leistung."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " mono"
+msgstr " Mono"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for mono output"
+msgstr "Gerät für Monoausgabe"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output mono sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine benutzt dieses ALSA-Gerät für die Monoausgabe.\n"
+"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " stereo"
+msgstr " Stereo"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for stereo output"
+msgstr "Gerät für Stereoausgabe"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output stereo sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine benutzt dieses ALSA-Gerät für die Stereoausgabe.\n"
+"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " 4-channel"
+msgstr " 4-Kanal"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 4-channel output"
+msgstr "Gerät für 4-Kanalausgabe"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine benutzt dieses ALSA-Gerät für die 4-Kanalausgabe (4.0 Raumklang).\n"
+"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " 5.1-channel"
+msgstr " 5.1-Kanal"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 5.1-channel output"
+msgstr "Gerät für 5.1-Kanalausgabe"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
+"sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine benutzt dieses ALSA-Gerät für die 5-Kanalausgabe mit Bassbox (5.1 "
+"Raumklang).\n"
+"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
+
+#: src/audio_out/audio_alsa_out.c
+msgid " a/52 and DTS pass-through"
+msgstr " a/52 und DTS Weiterleitung"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for a/52 and DTS pass-through"
+msgstr "Gerät für a/52 und DTS Weiterleitung"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output undecoded digital surround sound. "
+"This can be used be external surround decoders.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine benutzt dieses ALSA-Gerät zur Weiterleitung von digitalem Raumklang an "
+"einen externen Dekoder.\n"
+"Lesen Sie die ALSA-Dokumentation für Informationen zu ALSA-Geräten."
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid "snd_lib_error_set_handler() failed: %d"
+msgstr "snd_lib_error_set_handler() fehlgeschlagen: %d"
 
 #: src/audio_out/audio_alsa_out.c
 msgid "alsa mixer device"
@@ -843,11 +847,11 @@ msgstr "audio_oss_out: Unterstützte Modi sind"
 
 #: src/audio_out/audio_oss_out.c
 msgid " a/52 pass-through"
-msgstr " a/52 pass-through"
+msgstr " a/52 Weiterleitung"
 
 #: src/audio_out/audio_oss_out.c
 msgid " (a/52 pass-through not enabled in xine config)"
-msgstr " (a/52 pass-through nicht aktiviert in xine Konfiguration)"
+msgstr " (a/52 Weiterleitung nicht aktiviert in xine Konfiguration)"
 
 #: src/audio_out/audio_oss_out.c
 msgid "OSS audio mixer number, -1 for none"
@@ -6221,8 +6225,7 @@ msgstr ""
 "andere Dekoderkarten) unterstützt, funktioniert das Obige nicht, da das "
 "Video nicht driften kann. Stattdessen wird der Audiodatenstrom resampled, um "
 "ihn zum Ausgleich des Audiodrifts kürzer oder länger zu machen. Dies "
-"funktioniert nicht für digitales Passthrough, wo die Audiodaten in digitaler "
-"Form direkt an einen externen Dekoder geleitet werden."
+"funktioniert nicht mit Weiterleitung des Tons an einen externen Dekoder."
 
 #: src/xine-engine/audio_out.c
 msgid "a/v sync precision"
@@ -6268,7 +6271,7 @@ msgstr ""
 
 #: src/xine-engine/audio_out.c
 msgid "offset for digital passthrough"
-msgstr "Versatz für digitales Passthrough"
+msgstr "Versatz für externe Tondekoder"
 
 #: src/xine-engine/audio_out.c
 msgid ""
