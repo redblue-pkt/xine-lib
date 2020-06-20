@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Edgar Hucek <gimli|@dark-green.com>
- * Copyright (C) 2012-2017 xine developers
+ * Copyright (C) 2012-2020 xine developers
  *
  * This file is part of xine, a free video player.
  *
@@ -84,6 +84,7 @@
 #endif
 
 #define  RENDER_SURFACES  50
+#define  MIN_SURFACES     22
 #define  SOFT_SURFACES    3
 #define  SW_WIDTH         1920
 #define  SW_HEIGHT        1080
@@ -3661,14 +3662,10 @@ static int vaapi_get_property (vo_driver_t *this_gen, int property) {
       this->props[property].value = this->sc.output_yoffset;
       break;
     case VO_PROP_MAX_NUM_FRAMES:
-#if 0 /* WTF !!!! */
-      if(!this->guarded_render)
-        this->props[property].value = RENDER_SURFACES;
-      else
-        this->props[property].value = 2;
-#else
-      this->props[property].value = RENDER_SURFACES;
-#endif
+      /* Split surfaces between decoding and output.
+       * Needed to prevent crashes with heavy seeking,
+       * bright green flashes, and frame jumping with some h.264. */
+      this->props[property].value = RENDER_SURFACES / 2;
       break;
   } 
 
@@ -3774,6 +3771,12 @@ static int vaapi_gui_data_exchange (vo_driver_t *this_gen,
 #endif
 
   case XINE_GUI_SEND_EXPOSE_EVENT: {
+    /* We should get this
+     * 1. after initial video window open, and
+     * 2. when video window gets revealed behind an other window
+     *    while no desktop compositor is running.
+     * This works with opengl2 and vdpau.
+     * FIXME: With vaapi here, 2. does _not_ work. Why? */
     pthread_mutex_lock(&this->vaapi_lock);
     DO_LOCKDISPLAY;
     lprintf("XINE_GUI_SEND_EXPOSE_EVENT:\n");
@@ -3900,13 +3903,6 @@ static void vaapi_deinterlace_flag( void *this_gen, xine_cfg_entry_t *entry )
 }
 
 #ifdef ENABLE_VA_GLX
-static void vaapi_opengl_render( void *this_gen, xine_cfg_entry_t *entry )
-{
-  vaapi_driver_t  *this  = (vaapi_driver_t *) this_gen;
-
-  this->opengl_render = entry->num_value;
-}
-
 static void vaapi_opengl_use_tfp( void *this_gen, xine_cfg_entry_t *entry )
 {
   vaapi_driver_t  *this  = (vaapi_driver_t *) this_gen;
@@ -3987,14 +3983,15 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
 
   /* now make sure we have at least 22 frames, to prevent
    * locks with vdpau_h264 */
-  if(frame_num != RENDER_SURFACES)
-    config->update_num(config,"engine.buffers.video_num_frames", RENDER_SURFACES);
+  if (frame_num < MIN_SURFACES)
+    config->update_num (config,"engine.buffers.video_num_frames", MIN_SURFACES);
 
 #ifdef ENABLE_VA_GLX
+  /* This is not really live switchable. */
   this->opengl_render = config->register_bool( config, "video.output.vaapi_opengl_render", 0,
         _("vaapi: opengl output rendering"),
         _("vaapi: opengl output rendering"),
-        20, vaapi_opengl_render, this );
+        20, NULL, NULL);
 
   this->init_opengl_render = 1;
 
