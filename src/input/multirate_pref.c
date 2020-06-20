@@ -26,7 +26,7 @@ typedef struct {
 } multirate_pref_t;
 
 static const char * const multirate_video_size_labels[] = {
-  "Audio only", "Small", "SD", "HD", "Full HD", "4K"
+  "Audio only", "Small", "SD", "HD", "Full HD", "4K", NULL
 };
 
 static void multirate_set_video_size (multirate_pref_t *pref, int n) {
