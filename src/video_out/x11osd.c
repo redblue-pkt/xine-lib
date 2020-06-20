@@ -39,8 +39,6 @@
 #include <signal.h>
 #include <time.h>
 
-#include <assert.h>
-
 #include <netinet/in.h>
 
 #include <X11/Xlib.h>
@@ -97,7 +95,7 @@ struct x11osd
 void
 x11osd_expose (x11osd * osd)
 {
-  assert (osd);
+  _x_assert (osd);
 
   lprintf("expose (state:%d)\n", osd->clean );
 
@@ -130,9 +128,9 @@ x11osd_expose (x11osd * osd)
 void
 x11osd_resize (x11osd * osd, int width, int height)
 {
-  assert (osd);
-  assert (width);
-  assert (height);
+  _x_assert (osd);
+  _x_assert (width);
+  _x_assert (height);
 
   lprintf("resize old:%dx%d new:%dx%d\n", osd->width, osd->height, width, height );
 
@@ -168,7 +166,7 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   XSetWindowAttributes  attr;
   XWindowAttributes getattr;
 
-  assert (osd);
+  _x_assert (osd);
 
   lprintf("drawable changed\n");
 
@@ -192,8 +190,8 @@ x11osd_drawable_changed (x11osd * osd, Window window)
   osd->width = getattr.width;
   osd->height = getattr.height;
 
-  assert(osd->width);
-  assert(osd->height);
+  _x_assert(osd->width);
+  _x_assert(osd->height);
 
   switch(osd->mode) {
     case X11OSD_SHAPED:
@@ -271,8 +269,8 @@ x11osd_create (xine_t *xine, Display *display, int screen, Window window, enum x
   osd->width = getattr.width;
   osd->height = getattr.height;
 
-  assert(osd->width);
-  assert(osd->height);
+  _x_assert(osd->width);
+  _x_assert(osd->height);
 
   switch (mode) {
     case X11OSD_SHAPED:
@@ -376,8 +374,8 @@ error2:
 
 void x11osd_colorkey(x11osd * osd, uint32_t colorkey, vo_scale_t *sc)
 {
-  assert (osd);
-  assert (osd->mode==X11OSD_COLORKEY);
+  _x_assert (osd);
+  _x_assert (osd->mode==X11OSD_COLORKEY);
 
   osd->u.colorkey.colorkey=colorkey;
   osd->u.colorkey.sc=sc;
@@ -390,7 +388,7 @@ void
 x11osd_destroy (x11osd * osd)
 {
 
-  assert (osd);
+  _x_assert (osd);
 
   XFreeGC (osd->display, osd->gc);
   XFreePixmap (osd->display, osd->bitmap);
