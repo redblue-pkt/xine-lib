@@ -146,6 +146,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>  /* htonl */
@@ -2662,8 +2663,15 @@ static const uint8_t *sync_next (demux_ts_t *this) {
     /* refill */
     this->frame_pos = this->input->get_current_pos (this->input);
     {
+      errno = 0;
       int n = this->input->read (this->input, this->buf + this->buf_size, this->buf_max - this->buf_size);
       if (n <= 0) {
+        if (n < 0 && (errno == EINTR || errno == EAGAIN)) {
+          return NULL;
+        }
+        if (_x_action_pending(this->stream)) {
+          return NULL;
+        }
         if (--reread <= 0) {
           demux_ts_flush (this);
           this->status = DEMUX_FINISHED;
