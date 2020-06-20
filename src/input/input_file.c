@@ -304,7 +304,8 @@ static void file_input_dispose (input_plugin_t *this_gen ) {
 
 static char *file_input_decode_uri (char *uri) {
   uri = strdup(uri);
-  _x_mrl_unescape (uri);
+  if (uri)
+    _x_mrl_unescape (uri);
   return uri;
 }
 
@@ -326,6 +327,8 @@ static int file_input_open (input_plugin_t *this_gen ) {
   }
   else
     filename = strdup(this->mrl); /* NEVER unescape plain file names! */
+  if (!filename)
+    return -1;
 
   this->fh = xine_open_cloexec(filename, O_RDONLY|O_BINARY);
 
@@ -419,6 +422,11 @@ static input_plugin_t *file_input_get_instance (input_class_t *cls_gen, xine_str
   this->input_plugin.get_optional_data  = file_input_get_optional_data;
   this->input_plugin.dispose            = file_input_dispose;
   this->input_plugin.input_class        = cls_gen;
+
+  if (!this->mrl) {
+    free(this);
+    return NULL;
+  }
 
   return &this->input_plugin;
 }

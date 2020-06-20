@@ -1566,8 +1566,7 @@ static void v4l_event_handler (v4l_input_plugin_t *this) {
 static void v4l_plugin_dispose (input_plugin_t *this_gen) {
   v4l_input_plugin_t *this = (v4l_input_plugin_t *) this_gen;
 
-  if(this->mrl)
-    free(this->mrl);
+  _x_freep(&this->mrl);
 
   if (this->scr) {
     this->stream->xine->clock->unregister_scr(this->stream->xine->clock, &this->scr->scr);
@@ -1575,8 +1574,7 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
   }
 
   /* Close and free video device */
-  if (this->tuner_name)
-    free(this->tuner_name);
+  _x_freep(&this->tuner_name);
 
   /* Close video device only if device was opened */
   if (this->video_fd > 0) {
@@ -1619,13 +1617,8 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
     snd_pcm_close(this->pcm_handle);
   }
 
-  if (this->pcm_data) {
-    free(this->pcm_data);
-  }
-
-  if (this->pcm_name) {
-    free(this->pcm_name);
-  }
+  _x_freep(&this->pcm_data);
+  _x_freep(&this->pcm_name);
 #endif
 
   if (this->event_queue)
@@ -1637,11 +1630,11 @@ static void v4l_plugin_dispose (input_plugin_t *this_gen) {
      audio_content_base and the other by video_content_base. The
      extra_info structures are all allocated in the first frame
      data. */
-  free(this->audio_content_base);
-  free(this->video_content_base);
+  _x_freep(&this->audio_content_base);
+  _x_freep(&this->video_content_base);
   if (this->frames_base)
-    free(this->frames_base->extra_info);
-  free(this->frames_base);
+    _x_freep(&this->frames_base->extra_info);
+  _x_freep(&this->frames_base);
 
 #ifdef LOG
   printf("\n");
@@ -1750,6 +1743,10 @@ static input_plugin_t *v4l_class_get_instance (input_class_t *cls_gen,
 
   this->stream        = stream;
   this->mrl           = strdup(data);
+  if (!this->mrl) {
+    free(this);
+    return NULL;
+  }
   this->video_buf     = NULL;
   this->video_fd      = -1;
   this->radio_fd      = -1;
@@ -1767,6 +1764,10 @@ static input_plugin_t *v4l_class_get_instance (input_class_t *cls_gen,
                                                    "media.video4linux.audio_device");
   this->pcm_name      = strdup (entry->str_value);
   this->audio_capture = 1;
+  if (!this->pcm_name) {
+    v4l_plugin_dispose(&this->input_plugin);
+    return NULL;
+  }
 #endif
   this->rate          = 44100;
   this->periods       = 2;

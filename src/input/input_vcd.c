@@ -909,6 +909,10 @@ static input_plugin_t *vcd_class_get_instance (input_class_t *cls_gen, xine_stre
   this->stream = stream;
   this->mrl    = strdup(mrl);
   this->fd     = -1;
+  if (!this->mrl) {
+    free(this);
+    return NULL;
+  }
 
   this->input_plugin.open              = vcd_plugin_open;
   this->input_plugin.get_capabilities  = vcd_plugin_get_capabilities;
