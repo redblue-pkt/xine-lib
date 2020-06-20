@@ -183,6 +183,7 @@ static int _ssh_connect(ssh_input_plugin_t *this,
     char *pub  = _x_asprintf("%s/.ssh/id_rsa.pub", home);
     char *priv = _x_asprintf("%s/.ssh/id_rsa", home);
 
+    if (pub && priv)
     do {
       rc = libssh2_userauth_publickey_fromfile(this->session, url->user,
                                                pub, priv, url->password);
@@ -643,6 +644,11 @@ static input_plugin_t *_get_instance (input_class_t *cls_gen, xine_stream_t *str
 
   this->mrl_private = strdup(mrl);
   this->mrl         = _x_mrl_remove_auth(mrl);
+
+  if (!this->mrl || !this->mrl_private) {
+    _dispose(&this->input_plugin);
+    return NULL;
+  }
 
   this->stream = stream;
   this->fd     = -1;

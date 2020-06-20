@@ -1177,12 +1177,13 @@ network_command( xine_stream_t *stream, int socket, void *data_buf, const char *
 #ifndef WIN32
 static int network_connect(xine_stream_t *stream, const char *got_url )
 {
-  char *host;
+  char *host = NULL;
   int port;
   int fd;
 
   char *url = strdup(got_url);
-  parse_url(url, &host, &port);
+  if (url)
+    parse_url(url, &host, &port);
 
   if( !host || !strlen(host) || !port )
   {

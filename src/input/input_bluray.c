@@ -1777,6 +1777,10 @@ static input_plugin_t *bluray_class_get_instance (input_class_t *cls_gen, xine_s
   this->stream = stream;
   this->class  = (bluray_input_class_t*)cls_gen;
   this->mrl    = strdup(mrl);
+  if (!this->mrl) {
+    free(this);
+    return NULL;
+  }
 
   this->input_plugin.open               = bluray_plugin_open;
   this->input_plugin.get_capabilities   = bluray_plugin_get_capabilities;
