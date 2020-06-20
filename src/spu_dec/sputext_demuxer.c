@@ -413,8 +413,7 @@ static subtitle_t *sub_read_line_vplayer(demux_sputext_t *this,subtitle_t *curre
       if( !read_line_from_input(this, line, LINE_LEN) ) return NULL;
     } else {
       /* ... get the current line from buffer. */
-      strncpy( line, this->next_line, LINE_LEN);
-      line[LINE_LEN] = '\0'; /* I'm scared. This makes me feel better. */
+      strlcpy( line, this->next_line, sizeof(line));
       this->next_line[0] = '\0'; /* mark the buffer as empty. */
     }
     /* Initialize buffer with next line */
@@ -1275,8 +1274,7 @@ static int demux_sputext_next (demux_sputext_t *this_gen) {
   *val++ = (this->uses_time) ? sub->end * 10 : sub->end;
   str = (char *)val;
   for (line = 0; line < sub->lines; line++, str+=strlen(str)+1) {
-    strncpy(str, sub->text[line], SUB_BUFSIZE-1);
-    str[SUB_BUFSIZE-1] = '\0';
+    strlcpy(str, sub->text[line], SUB_BUFSIZE);
   }
 
   if (this->encoding) {
