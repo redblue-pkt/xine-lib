@@ -868,9 +868,7 @@ static subtitle_t *sub_read_line_jacobsub(demux_sputext_t *this, subtitle_t *cur
 		    if (!read_line_from_input(this, directive, LINE_LEN))
 			return NULL;
 		    trail_space(directive);
-		    strncat(line2, directive,
-			    ((LINE_LEN > 511) ? LINE_LEN-1 : 511)
-			    - strlen(line2));
+		    strlcat(line2, directive, ((LINE_LEN > 511) ? LINE_LEN-1 : 511));
 		    break;
 		}
                 /* fall through */
