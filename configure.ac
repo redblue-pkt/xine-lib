@@ -124,6 +124,9 @@ AC_ARG_ENABLE([extra-warnings],
               [AS_HELP_STRING([--enable-extra-warnings], [build with extra warnings enabled])],
               [], [enable_extra_warnings="no"])
 
+AC_ARG_ENABLE([asan],
+   [AS_HELP_STRING([--enable-asan], [Compile with address sanitizer])])
+
 dnl --------------
 dnl Build features
 dnl --------------
@@ -1561,6 +1564,9 @@ AC_ARG_ENABLE([lto],
               [], [enable_lto="no"])
 if test x"$enable_lto" = x"yes"; then
     CC_CHECK_CFLAGS_APPEND([-flto])
+fi
+if test "x$enable_asan" = "xyes"; then
+   CFLAGS="$CFLAGS -fsanitize=address -no-pie -fno-omit-frame-pointer"
 fi
 
 dnl Common cflags for all platforms
