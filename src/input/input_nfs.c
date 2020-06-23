@@ -258,7 +258,7 @@ static input_plugin_t *_get_instance (input_class_t *cls_gen, xine_stream_t *str
   }
 
   this->mrl           = strdup(mrl);
-  if (!mrl) {
+  if (!this->mrl) {
     free(this);
     return NULL;
   }

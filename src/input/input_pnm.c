@@ -198,8 +198,10 @@ static input_plugin_t *pnm_class_get_instance (input_class_t *cls_gen, xine_stre
   }
 
   this = calloc(1, sizeof (pnm_input_plugin_t));
-  if (!this)
+  if (!this) {
+    free(mrl);
     return NULL;
+  }
 
   this->stream = stream;
   this->pnm    = NULL;
