@@ -934,8 +934,7 @@ static void pvr_finish_recording (pvr_input_plugin_t *this) {
 
       data.mode = 0;
       data.id = show->id;
-      strncpy(data.name, show->base_name, sizeof(data.name));
-      data.name[sizeof(data.name) - 1] = '\0';
+      strlcpy(data.name, show->base_name, sizeof(data.name));
 
       xine_event_send(this->stream, &event);
     } else {
