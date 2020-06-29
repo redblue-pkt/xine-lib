@@ -1,4 +1,23 @@
-  * Add gopher input plugin
+xine-lib (1.2.11) ????-??-??
+  * Add gopher input plugin.
+  * Add user settings for IPv6.
+  * Code cleanup.
+  * More engine optimization.
+  * Small optimizations (opengl2, dvb subtitles, png, mpeg-ts).
+  * Better A/V sync.
+  * Fix a few crashes.
+  * Fix blurey playback.
+  * Fix VAAPI picture jitter and green flashes.
+  * Fix Opus and EAC3 audio playback.
+  * Fix text subtitles.
+  * Fix mpeg-ts (hdmv mode, detection of cut TV recordings).
+  * Fix mpeg layer 1-4 audio timing.
+  * Fix some VDR issues.
+  * Fix HLS VOD mode.
+  * Many small fixes.
+  * Build fixes.
+  * BSD fixes.
+  * Update german translation.
 
 xine-lib (1.2.10) 2019-12-13
   * Add first Android support.
