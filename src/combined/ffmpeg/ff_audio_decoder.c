@@ -644,8 +644,7 @@ static void ff_map_channels (ff_audio_decoder_t *this) {
 
 static int ff_audio_decode (ff_audio_decoder_t *this,
   int16_t *decode_buffer, int *decode_buffer_size, uint8_t *buf, int size) {
-  int consumed;
-  int parser_consumed;
+  int parsed = 1, consumed, parser_consumed;
   int offs;
 
   parser_consumed = ff_aac_mode_parse (this, buf, size, &offs);
@@ -662,7 +661,13 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
   if (this->parser_context) {
     uint8_t *outbuf;
     int      outsize;
-
+    /* NOTE: eac3 simply spans a frame from one sync word to the next.
+     * with nice single frame input, we get
+     * input=n1 consumed=n1 output=0
+     * input=n2 consumed=0  output=n1
+     * input=n2 consumed=n2 output=0
+     * input=n3 consumed=0  output=n2
+     * and so on, with no need for warnings. */
     do {
       int ret = av_parser_parse2 (this->parser_context, this->context,
         &outbuf, &outsize, buf, size, 0, 0, 0);
@@ -674,8 +679,6 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
     /* nothing to decode ? */
     if (outsize <= 0) {
       *decode_buffer_size = 0;
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-               "ffmpeg_audio_dec: not enough data to decode\n");
       return parser_consumed;
     }
 
@@ -684,6 +687,7 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
     size = outsize;
   }
 #endif /* XFF_PARSE > 1 */
+  else parsed = 0;
 
 #if XFF_AUDIO > 2
   AVPacket avpkt;
@@ -983,7 +987,7 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
              "ffmpeg_audio_dec: decoder didn't consume all data\n");
   }
 
-  return parser_consumed ? parser_consumed : consumed;
+  return parsed ? parser_consumed : consumed;
 }
 
 static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -991,7 +995,6 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
   ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
   int bytes_consumed;
   int decode_buffer_size;
-  int offset;
   int out;
   audio_buffer_t *audio_buffer;
   int bytes_to_send;
@@ -1022,8 +1025,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
     this->size += buf->size;
 
     if (this->parser_context || buf->decoder_flags & BUF_FLAG_FRAME_END)  { /* time to decode a frame */
-
-      offset = 0;
+      int offset = 0;
 
       /* pad input data */
       memset(this->buf + this->size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
@@ -1034,19 +1036,23 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 
         bytes_consumed = ff_audio_decode (this, (int16_t *)this->decode_buffer, &decode_buffer_size,
           &this->buf[offset], this->size);
-
         if (bytes_consumed < 0)
           break;
 
+        /* NOTE #1: our own parser uses this->buf for efficiancy. when it says 0,
+         * keep remaining bytes, and add more later. */
+        /* NOTE #2: ffmpeg parser uses its own buf, and thus consumes all. */
         offset     += bytes_consumed;
         this->size -= bytes_consumed;
-
-        if (decode_buffer_size == 0) {
-          if (bytes_consumed)
+        if (decode_buffer_size <= 0) {
+          if (bytes_consumed > 0)
             continue;
-          if (offset)
-            memmove(this->buf, &this->buf[offset], this->size);
-          return;
+          /* nothing used and nothing sent??
+           * a) ADTS probe running (< 16k bytes)
+           * b) we can play this all day, or drop the undigestible after a while. */
+          if (this->size >= (64 << 10))
+            this->size = 0;
+          break;
         }
 
         if (this->ff_sample_rate != this->context->sample_rate ||
@@ -1198,8 +1204,14 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
             audio_buffer, this->stream);
         }
       }
-      /* reset internal accumulation buffer */
-      this->size = 0;
+      if (this->size > 0) {
+        if (offset > 0) {
+          if (offset >= this->size)
+            memcpy (this->buf, this->buf + offset, this->size);
+          else
+            memmove (this->buf, this->buf + offset, this->size);
+        }
+      }
     }
   }
 }
