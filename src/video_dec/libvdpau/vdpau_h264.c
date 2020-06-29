@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2019 the xine project
+ * Copyright (C) 2008-2020 the xine project
  * Copyright (C) 2008-2009 Julian Scheel
  *
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
