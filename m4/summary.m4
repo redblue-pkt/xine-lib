@@ -7,72 +7,89 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "----------------"
 
     dnl Input
+    dis=""
     echo " * input plugins:"
     echo "   - file          - stdin_fifo"
     dnl network
+    echo "  * Network:"
     echo "   - rtsp          - rtp"
     echo "   - net           - pnm"
     echo "   - http          - ftp"
-    test x"$have_tls" = x"yes"       && echo "   - https         - ftpes"
-    test x"$have_libssh2" = x"yes"   && echo "   - sftp          - scp"
+    test x"$have_tls" = x"yes"       && echo "   - https         - ftpes" || dis="$dis https ftpes"
+    test x"$have_libssh2" = x"yes"   && echo "   - sftp          - scp"   || dis="$dis sftp scp"
     echo "   - gopher"
-    test x"$have_tls" = x"yes"       && echo "   - tls"
-    test x"$have_libnfs" = x"yes"    && echo "   - nfs"
-    test x"$enable_mms" != x"no"     && echo "   - mms"
-    test x"$have_samba" = x"yes"     && echo "   - smb"
-    test x"$enable_ipv6" = x"yes"    && echo "   - IPv6"
+    test x"$have_tls" = x"yes"       && echo "   - tls"   || dis="$dis tls"
+    test x"$have_libnfs" = x"yes"    && echo "   - nfs"   || dis="$dis nfs"
+    test x"$enable_mms" != x"no"     && echo "   - mms"   || dis="$dis mms"
+    test x"$have_samba" = x"yes"     && echo "   - smb"   || dis="$dis smb"
+    test x"$enable_ipv6" = x"yes"    && echo "   - IPv6"  || dis="$dis IPv6"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     dnl optical discs
+    dis=""
+    echo "  * Optical discs:"
     echo "   - cdda"
     if test x"$enable_vcd" != x"no"; then
-        if test x"$enable_vcdo" != x"no"; then
-            echo "   - vcdo          - vcd"
-        else
-            echo "   - vcd"
-        fi
+        test x"$enable_vcdo" != x"no" && echo "   - vcdo" || dis="$dis vcdo"
+        echo "   - vcd"
+    else dis="$dis vcd"
     fi
     if test x"$enable_dvd" != x"no"; then
-    if test x"$with_external_dvdnav" != x"no"; then
-        echo "   - dvd (external libs)"
-    else
-        echo "   - dvd (*INTERNAL* libs)"
+        if test x"$with_external_dvdnav" != x"no"; then
+            echo "   - dvd (external libs)"
+        else
+            echo "   - dvd (*INTERNAL* libs)"
+        fi
+    else dis="$dis dvd"
     fi
-    fi
-    test x"$have_libbluray" = x"yes" && echo "   - bluray"
+    test x"$have_libbluray" = x"yes" && echo "   - bluray"    || disc="$dis bluray"
+    test x"$dis" != x"" && echo "   (disabled plugins:$disc)"
+    dnl devices
+    dis=""
+    echo "  * Devices:"
+    test x"$have_dvb" = x"yes"       && echo "   - dvb"       || dis="$dis dvb"
+    test x"$have_v4l" = x"yes"       && echo "   - v4l"       || dis="$dis v4l"
+    test x"$have_v4l2" = x"yes"      && echo "   - v4l2"      || dis="$dis v4l2"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     dnl misc
-    test x"$have_dvb" = x"yes"       && echo "   - dvb"
-    test x"$have_v4l" = x"yes"       && echo "   - v4l"
-    test x"$have_v4l2" = x"yes"      && echo "   - v4l2"
-    test x"$enable_vdr" != x"no"     && echo "   - vdr"
-    test x"$have_gnomevfs" = x"yes"  && echo "   - gnome-vfs"
-    test x"$enable_ffmpeg" != x"no" -a x"$have_avformat" = x"yes" && echo "   - avio (libavformat)"
+    dis=""
+    echo "  * Misc:"
+    test x"$enable_vdr" != x"no"     && echo "   - vdr"       || dis="$dis vdr"
+    test x"$have_gnomevfs" = x"yes"  && echo "   - gnome-vfs" || dis="$dis gnome-vfs"
+    test x"$enable_ffmpeg" != x"no" -a x"$have_avformat" = x"yes" && echo "   - avio (libavformat)" || dis="$dis avio"
     echo "   - test"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 
     dnl Demuxers
+    dis=""
     echo " * demultiplexer plugins:"
     echo "   - 4xm            - aac"
     echo "   - ac3            - aiff"
-    test x"$enable_asf" != x"no"     && echo "   - asf"
-    test x"$enable_ffmpeg" != x"no" -a x"$have_avformat" = x"yes" && echo "   - avformat (with libavformat)"
+    test x"$enable_asf" != x"no"     && echo "   - asf" || dis="$dis asf"
+    test x"$enable_ffmpeg" != x"no" -a x"$have_avformat" = x"yes" && echo "   - avformat (with libavformat)" || dis="$dis avformat"
     echo "   - avi            - cdda"
     echo "   - ea wve         - film"
     echo "   - FLAC"
-    test x"$have_libflac" = x"yes"   && echo "   - FLAC (with libFLAC)"
+    test x"$have_libflac" = x"yes"   && echo "   - FLAC (with libFLAC)" || dis="$dis libFLAC"
     echo "   - fli            - flv"
     echo "   - idcin          - iff"
     if test x"$have_imagemagick" = x"yes" || test x"$have_gdkpixbuf" = x"yes" || test x"$have_libjpeg" = x"yes" || test x"$have_libpng" = x"yes" ; then
         echo "   - image"
+    else dis="$dis image"
     fi
     echo "   - interplay mve  - ivf"
     echo "   - matroska"
-    test x"$enable_mng" != x"no"     && echo "   - mng"
-    test x"$have_modplug" = x"yes"   && echo "   - mod"
+    test x"$enable_mng" != x"no"     && echo "   - mng" || dis="$dis mng"
+    test x"$have_modplug" = x"yes"   && echo "   - mod" || dis="$dis mod"
     echo "   - mpeg           - mpeg_audio"
     echo "   - mpeg_block     - mpeg_elem"
     echo "   - mpeg_pes       - mpeg_ts"
-    test x"$enable_nosefart" != xno  && echo "   - Nosefart (NSF)"
+    test x"$enable_nosefart" != xno  && echo "   - Nosefart (NSF)" || dis="$dis nosefart"
     echo "   - nsf            - nsv"
-    test x"$have_vorbis" = x"yes"    && echo "   - ogg"
+    if test x"$have_vorbis" = x"yes" || test x"$with_theora" = x"yes" || test x"$with_speex" = x"yes" ; then
+        echo "   - ogg"
+    else dis="$dis ogg"
+    fi
     echo "   - psx str        - pva"
     echo "   - qt/mpeg-4      - raw dv"
     echo "   - real/realaudio - roq"
@@ -80,12 +97,14 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "   - vmd            - voc"
     echo "   - vox            - vqa"
     echo "   - wav"
-    test x"$with_wavpack" = x"yes"   && echo "   - WavPack"
+    test x"$with_wavpack" = x"yes"   && echo "   - WavPack" || dis="$dis WavPack"
     echo "   - wc3 mve        - ws aud"
     echo "   - yuv4mpeg2"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 
     dnl video decoders
+    dis=""
     echo " * video decoder plugins:"
     test x"$enable_libmpeg2" != x"no"  && echo "   - MPEG 1,2 (libmpeg2)"
     if test x"$enable_rawvideo" != x"no"; then
@@ -93,40 +112,43 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "   - Raw RGB"
     echo "   - Raw YUV"
     fi
-    test x"$have_dxr3" = x"yes"        && echo "   - dxr3_video"
-    test x"$have_gdkpixbuf" = x"yes"   && echo "   - gdk-pixbuf"
-    test x"$have_imagemagick" = x"yes" && echo "   - image"
-    test x"$have_libjpeg" = x"yes"     && echo "   - libjpeg"
-    test x"$have_libpng" = x"yes"      && echo "   - libpng"
-    test x"$with_theora" = x"yes"      && echo "   - theora"
-    test x"$have_w32dll" = x"yes"      && echo "   - w32dll"
-    test x"$have_vdpau" = x"yes"       && echo "   - vdpau"
-    test x"$have_mmal" = x"yes"        && echo "   - mmal (Broadcom HW)"
-    test x"$have_vpx" = x"yes"         && echo "   - libvpx (VP8/VP9)"
-    test x"$with_openhevc" = x"yes"    && echo "   - OpenHEVC"
-    test x"$with_libaom" = x"yes"      && echo "   - libaom (AV1)"
-    test x"$with_dav1d" = x"yes"       && echo "   - dav1d (AV1)"
-    test x"$enable_ffmpeg" != x"no"    && echo "   - ffmpeg"
+    test x"$have_dxr3" = x"yes"        && echo "   - dxr3_video"         || dis="$dis dxr3"
+    test x"$have_gdkpixbuf" = x"yes"   && echo "   - gdk-pixbuf"         || dis="$dis gdk-pixbuf"
+    test x"$have_imagemagick" = x"yes" && echo "   - image"              || dis="$dis image"
+    test x"$have_libjpeg" = x"yes"     && echo "   - libjpeg"            || dis="$dis libjpeg"
+    test x"$have_libpng" = x"yes"      && echo "   - libpng"             || dis="$dis libpng"
+    test x"$with_theora" = x"yes"      && echo "   - theora"             || dis="$dis theora"
+    test x"$have_w32dll" = x"yes"      && echo "   - w32dll"             || dis="$dis w32dll"
+    test x"$have_vdpau" = x"yes"       && echo "   - vdpau"              || dis="$dis vdpau"
+    test x"$have_mmal" = x"yes"        && echo "   - mmal (Broadcom HW)" || dis="$dis mmal"
+    test x"$have_vpx" = x"yes"         && echo "   - libvpx (VP8/VP9)"   || dis="$dis libvpx"
+    test x"$with_openhevc" = x"yes"    && echo "   - OpenHEVC"           || dis="$dis OpenHEVC"
+    test x"$with_libaom" = x"yes"      && echo "   - libaom (AV1)"       || dis="$dis libaom"
+    test x"$with_dav1d" = x"yes"       && echo "   - dav1d (AV1)"        || dis="$dis dav1d"
+    test x"$enable_ffmpeg" != x"no"    && echo "   - ffmpeg"             || dis="$dis ffmpeg"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 
     dnl audio decoders
+    dis=""
     echo " * audio decoder plugins:"
-    test x"$enable_lpcm" != x"no"    && echo "   - linear PCM"
-    test x"$enable_dvaudio" != x"no" && echo "   - dvaudio"
-    test x"$enable_gsm610" != x"no"  && echo "   - GSM 06.10"
-    test x"$enable_faad" != x"no"    && echo "   - faad"
-    test x"$enable_nosefart" != xno  && echo "   - Nosefart (NSF)"
-    test x"$have_libflac" = x"yes" && echo "   - FLAC (with libFLAC)"
-    test x"$with_speex" = x"yes"   && echo "   - speex"
-    test x"$with_vorbis" = x"yes"  && echo "   - vorbis"
-    test x"$have_w32dll" = x"yes"  && echo "   - w32dll"
-    test x"$with_wavpack" = x"yes" && echo "   - WavPack"
+    test x"$enable_lpcm" != x"no"    && echo "   - linear PCM"          || dis="$dis LPCM"
+    test x"$enable_dvaudio" != x"no" && echo "   - dvaudio"             || dis="$dis DV"
+    test x"$enable_gsm610" != x"no"  && echo "   - GSM 06.10"           || dis="$dis GSM"
+    test x"$enable_faad" != x"no"    && echo "   - faad"                || dis="$dis faad"
+    test x"$enable_nosefart" != xno  && echo "   - Nosefart (NSF)"      || dis="$dis nosefart"
+    test x"$have_libflac" = x"yes"   && echo "   - FLAC (with libFLAC)" || dis="$dis flac"
+    test x"$with_speex" = x"yes"     && echo "   - speex"               || dis="$dis speex"
+    test x"$with_vorbis" = x"yes"    && echo "   - vorbis"              || dis="$dis vorbis"
+    test x"$have_w32dll" = x"yes"    && echo "   - w32dll"              || dis="$dis w32dll"
+    test x"$with_wavpack" = x"yes"   && echo "   - WavPack"             || dis="$dis WavPack"
     if test x"$enable_mad" != x"no"; then
         if test x"$have_external_libmad" = x"yes"; then
             echo "   - MAD (MPG 1/2/3) (external library)"
         else
             echo "   - MAD (MPG 1/2/3) (*INTERNAL* library)"
         fi
+    else dis="$dis mad"
     fi
     if test x"$enable_libdts" != x"no"; then
         if test x"$have_external_dts" = x"yes"; then
@@ -134,6 +156,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         else
             echo "   - DTS (*INTERNAL* library)"
         fi
+    else dis="$dis dts"
     fi
     if test x"$enable_a52dec" != x"no"; then
         test x"$my_a52dec_math" != x"fixed" && test x"$my_a52dec_math" != x"double" && my_a52dec_math="float"
@@ -142,6 +165,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         else
             echo "   - A52/ra-dnet (*INTERNAL* library, $my_a52dec_math math)"
         fi
+    else dis="$dis a52"
     fi
     if test x"$enable_musepack" != x"no"; then
         if test x"$have_external_libmpcdec" = x"yes"; then
@@ -149,27 +173,33 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         else
             echo "   - Musepack (*INTERNAL* library)"
         fi
+    else dis="$dis musepack"
     fi
-    test x"$enable_ffmpeg" != x"no" && echo "   - ffmpeg"
+    test x"$enable_ffmpeg" != x"no" && echo "   - ffmpeg"   || dis="$dis ffmpeg"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 
     dnl spu decoders
+    dis=""
     echo " * subtitle decoder plugins:"
     echo "   - spu             - spucc"
     echo "   - spucmml         - sputext"
     echo "   - spudvb"
-    test x"$have_dxr3" = x"yes" && echo "   - dxr3_spu"
+    echo "   - PGS (BluRay)    - TextST (BluRay)"
+    test x"$have_dxr3" = x"yes" && echo "   - dxr3_spu" || dis="$dis dxr3"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 
     dnl post plugins
+    dis=""
     echo " * post effect plugins:"
     echo "  * planar video effects:"
     echo "   - invert          - expand"
     echo "   - eq              - eq2"
     echo "   - boxblur         - denoise3d"
     echo "   - unsharp         - tvtime"
-    test x"$enable_postproc" != x"no" && echo "   - postproc"
-    test x"$enable_vdr" != x"no"      && echo "   - vdr"
+    test x"$enable_postproc" != x"no" && echo "   - postproc"  || dis="$dis postproc"
+    test x"$enable_vdr" != x"no"      && echo "   - vdr"       || dis="$dis vdr"
     echo "  * SFX:"
     echo "   - goom            - oscope"
     echo "   - fftscope        - mosaico"
@@ -177,15 +207,20 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     echo "  * Audio:"
     echo "   - upmix           - upmix_mono"
     echo "   - volnorm         - scretch"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 
     dnl Video plugins
+    dis=""
     echo " * video driver plugins:"
     if test x"$have_opengl2" = x"yes"; then
         echo "   - OpenGL 2.0 (with bicubic scaling)"
-        test x"$have_glx" = x"yes" && test x"$no_x" != x"yes"        && echo "       - X11 (GLX) backend"
-        test x"$have_egl" = x"yes" && test x"$no_x" != x"yes"        && echo "       - X11 (EGL) backend"
-        test x"$have_egl" = x"yes" && test x"$have_wayland" = x"yes" && echo "       - Wayland (EGL) backend"
+        disgl=""
+        test x"$have_glx" = x"yes" -a x"$no_x" != x"yes"        && echo "       - X11 (GLX) backend"     || disgl="$disgl GLX"
+        test x"$have_egl" = x"yes" -a x"$no_x" != x"yes"        && echo "       - X11 (EGL) backend"     || disgl="$disgl EGL-X11"
+        test x"$have_egl" = x"yes" -a x"$have_wayland" = x"yes" && echo "       - Wayland (EGL) backend" || disgl="$disgl EGL-Wayland"
+        test x"$disgh" != x"" && echo "       (disabled plugins:$disgl)"
+    else dis="$dis OpenGL2"
     fi
     if test x"$no_x" != x"yes"; then
         echo "   - XShm (X11 shared memory)"
@@ -195,6 +230,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
             else
                 echo "   - Xv (XVideo *shared*)"
             fi
+        else dis="$dis xv"
         fi
         if test x"$have_xxmc" = x"yes"; then
             if test x"$have_vldexts" = x"yes"; then
@@ -202,9 +238,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
             else
                 echo "   - XxMC (XVideo motion compensation - vld extensions DISABLED)"
             fi
-        fi
-        if test x"$have_xvmc" = x"yes"; then
-            echo "   - XvMC (XVideo motion compensation)"
+        else dis="$dis xxmc"
         fi
         if test x"$have_opengl" = x"yes"; then
             if test x"$have_glu" = x"yes"; then
@@ -212,37 +246,34 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
             else
                 echo "   - OpenGL"
             fi
+        else dis="$dis OpenGL"
         fi
-        if test x"$have_vaapi" = x"yes" -a x"$enable_ffmpeg" != x"no" ; then
-            echo "   - vaapi (Video Acceleration (VA) API for Linux)"
+        test x"$have_vaapi" = x"yes" -a x"$enable_ffmpeg" != x"no" && echo "   - vaapi (Video Acceleration (VA) API for Linux)" || dis="$dis vaapi"
+        test x"$have_vdpau" = x"yes"  && echo "   - vdpau (X11 Video Decode and Presentation API for Unix)" || dis="$dis vdpau"
+        test x"$have_xvmc" = x"yes"   && echo "   - XvMC (XVideo motion compensation)"                      || dis="$dis xvmc"
+        if test x"$have_sunfb" = x"yes" -a x"$have_sundga" = x"yes"; then
+            echo "   - PGX64 (for Sun XVR100/PGX64/PGX24 cards)"
+            echo "   - PGX32 (for Sun PGX32 cards)"
+        else dis="$dis sunfb"
         fi
-        test x"$have_vdpau" = x"yes"       && echo "   - vdpau (X11 Video Decode and Presentation API for Unix)"
-        if test x"$have_sunfb" = x"yes"; then
-            if test x"$have_sundga" = x"yes"; then
-                echo "   - PGX64 (for Sun XVR100/PGX64/PGX24 cards)"
-                echo "   - PGX32 (for Sun PGX32 cards)"
-            fi
-        fi
+    else dis="$dis X11"
     fi
     if test x"$have_xcb" = x"yes"; then
-        if test x"$have_xcbshm" = x"yes"; then
-            echo "   - xcb-shm (X shared memory using XCB)"
-        fi
-        if test x"$have_xcbxv" = x"yes"; then
-            echo "   - xcb-xv (XVideo using XCB)"
-        fi
+        test x"$have_xcbshm" = x"yes" && echo "   - xcb-shm (X shared memory using XCB)" || dis="$dis xcb-shm"
+        test x"$have_xcbxv" = x"yes"  && echo "   - xcb-xv (XVideo using XCB)"           || dis="$dis xcb-xv"
+    else dis="$dis xcb"
     fi
 
 
-    test x"$have_aalib" = x"yes"        && echo "   - aa (Ascii ART)"
-    test x"$have_caca" = x"yes"         && echo "   - caca (Color AsCii Art)"
-    test x"$have_directfb" = x"yes"     && echo "   - directfb (DirectFB driver)"
-    test x"$have_directx" = x"yes"      && echo "   - directx (DirectX video driver)"
-    test x"$have_fb" = x"yes"           && echo "   - fb (Linux framebuffer device)"
-    test x"$have_libstk" = x"yes"       && echo "   - stk (Libstk Set-top Toolkit)"
-    test x"$have_macosx_video" = x"yes" && echo "   - Mac OS X OpenGL"
-    test x"$have_sdl" = x"yes"          && echo "   - sdl (Simple DirectMedia Layer)"
-    test x"$have_mmal" = x"yes"         && echo "   - mmal (Broadcom MultiMedia Abstraction Layer)"
+    test x"$have_aalib" = x"yes"        && echo "   - aa (Ascii ART)"                  || dis="$dis aa"
+    test x"$have_caca" = x"yes"         && echo "   - caca (Color AsCii Art)"          || dis="$dis caca"
+    test x"$have_directfb" = x"yes"     && echo "   - directfb (DirectFB driver)"      || dis="$dis directfb"
+    test x"$have_directx" = x"yes"      && echo "   - directx (DirectX video driver)"  || dis="$dis directx"
+    test x"$have_fb" = x"yes"           && echo "   - fb (Linux framebuffer device)"   || dis="$dis fb"
+    test x"$have_libstk" = x"yes"       && echo "   - stk (Libstk Set-top Toolkit)"    || dis="$dis stk"
+    test x"$have_macosx_video" = x"yes" && echo "   - Mac OS X OpenGL"                 || dis="$dis macos"
+    test x"$have_sdl" = x"yes"          && echo "   - sdl (Simple DirectMedia Layer)"  || dis="$dis sdl"
+    test x"$have_mmal" = x"yes"         && echo "   - mmal (Broadcom MultiMedia Abstraction Layer)" || dis="$dis mmal"
 
 
     if test x"$have_dxr3" = x"yes"; then
@@ -251,6 +282,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         else
             echo "   - dxr3 (Hollywood+ and Creative dxr3, mpeg video only)"
         fi
+    else dis="$dis dxr3"
     fi
     if test x"$have_vidix" = x"yes"; then
         echo $ECHO_N "   - vidix ("
@@ -273,23 +305,27 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         else
             echo ")"
         fi
+    else dis="$dis vidix"
     fi
 
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 
     dnl Audio plugins
+    dis=""
     echo " * audio driver plugins:"
-    test x"$have_alsa" = x"yes"         && echo "   - alsa (ALSA - Advanced Linux Sound Architecture)"
-    test x"$have_coreaudio" = x"yes"    && echo "   - CoreAudio (Mac OS X audio driver)"
-    test x"$have_directx" = x"yes"      && echo "   - directx (DirectX audio driver)"
-    test x"$have_esound" = x"yes"       && echo "   - esd (Enlightened Sound Daemon)"
-    test x"$have_fusionsound" = x"yes"  && echo "   - fusionsound (FusionSound driver)"
-    test x"$am_cv_have_irixal" = x"yes" && echo "   - irixal (Irix audio library)"
-    test x"$have_jack" = x"yes"         && echo "   - Jack"
-    test x"$have_oss" = x"yes"          && echo "   - oss (Open Sound System)"
-    test x"$have_pulseaudio" = x"yes"   && echo "   - pulseaudio (PulseAudio sound server)"
-    test x"$have_sunaudio" = x"yes"     && echo "   - sun (Sun audio interface)"
-    test "x$have_sndio" = "xyes"	&& echo "   - sndio"
+    test x"$have_alsa" = x"yes"         && echo "   - alsa (ALSA - Advanced Linux Sound Architecture)" || dis="$dis alsa"
+    test x"$have_coreaudio" = x"yes"    && echo "   - CoreAudio (Mac OS X audio driver)"    || dis="$dis CoreAudio"
+    test x"$have_directx" = x"yes"      && echo "   - directx (DirectX audio driver)"       || dis="$dis directx"
+    test x"$have_esound" = x"yes"       && echo "   - esd (Enlightened Sound Daemon)"       || dis="$dis esd"
+    test x"$have_fusionsound" = x"yes"  && echo "   - fusionsound (FusionSound driver)"     || dis="$dis fusionsound"
+    test x"$am_cv_have_irixal" = x"yes" && echo "   - irixal (Irix audio library)"          || dis="$dis irixal"
+    test x"$have_jack" = x"yes"         && echo "   - Jack"                                 || dis="$dis jack"
+    test x"$have_oss" = x"yes"          && echo "   - oss (Open Sound System)"              || dis="$dis oss"
+    test x"$have_pulseaudio" = x"yes"   && echo "   - pulseaudio (PulseAudio sound server)" || dis="$dis pulse"
+    test x"$have_sunaudio" = x"yes"     && echo "   - sun (Sun audio interface)"            || dis="$dis sun"
+    test "x$have_sndio" = "xyes"	&& echo "   - sndio"                                || dis="$dis sndio"
+    test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo "---"
 
 
