@@ -710,6 +710,7 @@ static void find_embedded_atoms (uint8_t *atom,
   const uint32_t *types, uint8_t **found, uint32_t *sizes) {
   uint8_t *here;
   uint32_t atomsize, v, n;
+  uint8_t *end;
   if (!atom || !types || !found)
     return;
   for (n = 0; types[n]; n++)
@@ -717,6 +718,7 @@ static void find_embedded_atoms (uint8_t *atom,
   atomsize = _X_BE_32 (atom);
   if (atomsize < 16)
     return;
+  end = atom + atomsize;
   atomsize -= 16;
   here = atom + 16;
   v = _X_BE_32 (here - 4);
@@ -743,6 +745,8 @@ static void find_embedded_atoms (uint8_t *atom,
       }
     }
     if (!atomsize)
+      break;
+    if (here >= end)
       break;
     v = (v << 8) | *here++;
     atomsize -= 1;
