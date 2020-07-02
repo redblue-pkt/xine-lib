@@ -275,11 +275,11 @@ static vo_frame_t *_jpeg_decode_data (jpeg_decoder_t *this, const char *data, si
           if (!(cinfo.output_scanline & 1)) {
             dst = f->base[1] + f->pitches[1] * cinfo.output_scanline / 2;
             for (i = 0; i < linesize; i += 6) {
-              *dst++ = ctab[(uint8_t)buffer[0][i + 2]];
+              *dst++ = ctab[(uint8_t)buffer[0][i + 1]];
             }
             dst = f->base[2] + f->pitches[2] * cinfo.output_scanline / 2;
             for (i = 0; i < linesize; i += 6) {
-              *dst++ = ctab[(uint8_t)buffer[0][i + 1]];
+              *dst++ = ctab[(uint8_t)buffer[0][i + 2]];
             }
           }
         }
