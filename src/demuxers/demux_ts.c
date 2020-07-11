@@ -558,7 +558,7 @@ typedef struct {
   demux_ts_audio_track audio_tracks[MAX_AUDIO_TRACKS];
   unsigned int      audio_tracks_count;
 
-  int64_t          last_pts[2], apts, bpts;
+  int64_t          first_pts, last_pts[2], apts, bpts;
   int32_t          bounce_left;
   int              send_newpts;
   int              buf_flag_seek;
@@ -896,7 +896,9 @@ static void newpts_test (demux_ts_t *this, int64_t pts, int video) {
   printf ("demux_ts: newpts_test %lld, send_newpts %d, buf_flag_seek %d\n",
     pts, this->send_newpts, this->buf_flag_seek);
 #endif
-/*if (pts)*/
+  if (!this->first_pts)
+    this->first_pts = pts;
+  /*if (pts)*/
   {
     int64_t diff;
     do {
@@ -1624,15 +1626,22 @@ static int demux_ts_parse_pes_header (demux_ts_t *this, demux_ts_media *m,
 static void update_extra_info(demux_ts_t *this, demux_ts_media *m)
 {
   off_t length = this->input->get_length (this->input);
+  int32_t pts_time;
 
   /* cache frame position */
 
   if (length > 0) {
     m->input_normpos = (double)this->frame_pos * 65535.0 / length;
   }
+  pts_time = (m->pts - this->first_pts) / 90;
   if (this->rate) {
-    m->input_time = this->frame_pos * 1000 / this->rate;
+    int32_t rate_time = this->frame_pos * 1000 / this->rate;
+    int32_t d = pts_time - rate_time;
+    d = d < 0 ? -d : d;
+    if (d >= 10000)
+      pts_time = rate_time;
   }
+  m->input_time = pts_time;
 }
 
 /*
@@ -3339,6 +3348,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen,
   this->last_keyframe_time = 0;
   this->get_frametype      = NULL;
   this->bounce_left        = 0;
+  this->first_pts          = 0;
   this->apts               = 0;
   this->bpts               = 0;
   this->last_pts[0]        = 0;
@@ -3455,3 +3465,4 @@ void *demux_ts_init_class (xine_t *xine, const void *data) {
 
   return (void *)&demux_ts_class;
 }
+
