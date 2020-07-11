@@ -836,9 +836,6 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
 
-  if ((this->stream->spu_channel & 0x1f) != (buf->type & 0x1f))
-    return;
-
   if ( (buf->decoder_flags & BUF_FLAG_SPECIAL) &&
        (buf->decoder_info[1] == BUF_SPECIAL_CHARSET_ENCODING) )
     this->buf_encoding = buf->decoder_info_ptr[2];
@@ -1005,8 +1002,12 @@ static void spudec_decode_data (spu_decoder_t *this_gen, buf_element_t *buf) {
         }
 
         _x_spu_decoder_sleep(this->stream, start_vpts);
-        update_output_size( this );
-        draw_subtitle(this, start_vpts, end_vpts);
+
+	if (this->stream->spu_channel >= 0 && (this->stream->spu_channel & 0x1f) == (buf->type & 0x1f))
+	{
+	    update_output_size( this );
+	    draw_subtitle(this, start_vpts, end_vpts);
+	}
 
         return;
       }
