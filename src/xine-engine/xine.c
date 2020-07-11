@@ -2837,8 +2837,10 @@ void xine_init (xine_t *this_gen) {
 void _x_select_spu_channel (xine_stream_t *s, int channel) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   xine_private_t *xine = (xine_private_t *)stream->s.xine;
+  xine_stream_private_t *substream = NULL;
 
   stream = stream->side_streams[0];
+  substream = (xine_stream_private_t *)stream->s.slave;
 
   pthread_mutex_lock (&stream->frontend_lock);
   stream->s.spu_channel_user = (channel >= -2 ? channel : -2);
@@ -2848,24 +2850,29 @@ void _x_select_spu_channel (xine_stream_t *s, int channel) {
   switch (stream->s.spu_channel_user) {
   case -2:
     stream->s.spu_channel = -1;
-    if (stream->s.video_out)
-      stream->s.video_out->enable_ovl (stream->s.video_out, 0);
     break;
   case -1:
-    stream->s.spu_channel = stream->s.spu_channel_auto;
-    if (stream->s.video_out)
-      stream->s.video_out->enable_ovl (stream->s.video_out, 1);
+    if (substream)
+	stream->s.spu_channel = substream->s.spu_channel_auto;
+    else
+	stream->s.spu_channel = stream->s.spu_channel_auto;
     break;
   default:
     stream->s.spu_channel = stream->s.spu_channel_user;
-    if (stream->s.video_out)
-      stream->s.video_out->enable_ovl (stream->s.video_out, 1);
   }
   lprintf ("set to %d\n", stream->s.spu_channel);
 
   xine->port_ticket->release (xine->port_ticket, 1);
 
   pthread_mutex_unlock (&stream->frontend_lock);
+
+  if (substream)
+  {
+      pthread_mutex_lock (&substream->frontend_lock);
+      substream->s.spu_channel = stream->s.spu_channel;
+      substream->s.spu_channel_user = stream->s.spu_channel_user;
+      pthread_mutex_unlock (&substream->frontend_lock);
+  }
 }
 
 void _x_get_current_info (xine_stream_t *s, extra_info_t *extra_info, int size) {
@@ -3469,6 +3476,8 @@ int xine_stream_master_slave (xine_stream_t *m, xine_stream_t *slave, int affect
    * of its own, we point to this master's master; if our master is a
    * standalone stream, its master pointer will point to itself */
   slave->master = master->s.master;
+
+  _x_select_spu_channel (m, master->s.spu_channel_user);
   return 1;
 }
 
