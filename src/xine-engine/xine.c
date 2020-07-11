@@ -3292,6 +3292,8 @@ xine_grab_video_frame_t* xine_new_grab_video_frame (xine_stream_t *stream) {
 }
 
 static int _get_spu_lang (xine_stream_private_t *stream, int channel, char *lang) {
+  if (!lang)
+    return 0;
 
   /* Ask the demuxer first (e.g. TS extracts this information from
    * the stream)
@@ -3319,6 +3321,7 @@ static int _get_spu_lang (xine_stream_private_t *stream, int channel, char *lang
     }
   }
 
+  memcpy (lang, "und", 4);
   return 0;
 }
 
@@ -3333,6 +3336,9 @@ int xine_get_spu_lang (xine_stream_t *s, int channel, char *lang) {
 }
 
 static int _get_audio_lang (xine_stream_private_t *stream, int channel, char *lang) {
+  if (!lang)
+    return 0;
+
   if (stream->demux.plugin) {
     if (stream->demux.plugin->get_capabilities (stream->demux.plugin) & DEMUX_CAP_AUDIOLANG) {
       /* pass the channel number to the plugin in the data field */
@@ -3353,6 +3359,7 @@ static int _get_audio_lang (xine_stream_private_t *stream, int channel, char *la
     }
   }
 
+  memcpy (lang, "und", 4);
   return 0;
 }
 
