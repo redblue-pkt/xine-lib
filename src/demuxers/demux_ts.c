@@ -1634,13 +1634,23 @@ static void update_extra_info(demux_ts_t *this, demux_ts_media *m)
     m->input_normpos = (double)this->frame_pos * 65535.0 / length;
   }
   pts_time = (m->pts - this->first_pts) / 90;
-  if (this->rate) {
+  if (this->rate) do {
     int32_t rate_time = this->frame_pos * 1000 / this->rate;
     int32_t d = pts_time - rate_time;
     d = d < 0 ? -d : d;
-    if (d >= 10000)
-      pts_time = rate_time;
-  }
+    if (d >= 60000) {
+      /* off by 1 minute or more. try pts wrap compensation. */
+      pts_time += 95443717;
+      d = pts_time - rate_time;
+      d = d < 0 ? -d : d;
+      if (d >= 60000) {
+        /* no, thats not it. use rate based time. */
+        pts_time = rate_time;
+        break;
+      }
+    }
+    /* update rate here? */
+  } while (0);
   m->input_time = pts_time;
 }
 
