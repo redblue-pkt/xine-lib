@@ -1175,6 +1175,34 @@ static int config_register_enum (config_values_t *this,
       entry->num_value = 0;
     if (entry->num_value >= (int)value_count)
       entry->num_value = value_count;
+  } else if (entry->type == XINE_CONFIG_TYPE_ENUM) {
+    /* xine-ui does this to update the list. */
+    if (entry->enum_values && values) {
+      const char **old, **new;
+      for (old = (const char **)entry->enum_values, new = (const char **)values; *old && *new; old++, new++) {
+        if (strcmp (*old, *new))
+          break;
+      }
+      if (*old || *new) {
+        uint32_t value_count;
+        char **nv = str_array_dup ((const char **)values, &value_count);
+        if (nv) {
+          int found = -1;
+          for (new = (const char **)values; *new; new++) {
+            if (!strcmp (entry->enum_values[entry->num_value], *new)) {
+              found = new - (const char **)values;
+              break;
+            }
+          }
+          str_array_free (entry->enum_values);
+          entry->enum_values = nv;
+          entry->num_default = (def_value >= 0) && (def_value < (int)value_count) ? def_value : 0;
+          entry->num_value = found < 0 ? 0 : found;
+          entry->range_min = 0;
+          entry->range_max = value_count;
+        }
+      }
+    }
   }
 
   pthread_mutex_unlock (&this->config_lock);
