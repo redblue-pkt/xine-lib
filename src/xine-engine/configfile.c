@@ -1188,10 +1188,12 @@ static int config_register_enum (config_values_t *this,
         char **nv = str_array_dup ((const char **)values, &value_count);
         if (nv) {
           int found = -1;
-          for (new = (const char **)values; *new; new++) {
-            if (!strcmp (entry->enum_values[entry->num_value], *new)) {
-              found = new - (const char **)values;
-              break;
+          if ((entry->num_value >=0) && (entry->num_value < entry->range_max)) {
+            for (new = (const char **)values; *new; new++) {
+              if (!strcmp (entry->enum_values[entry->num_value], *new)) {
+                found = new - (const char **)values;
+                break;
+              }
             }
           }
           str_array_free (entry->enum_values);
