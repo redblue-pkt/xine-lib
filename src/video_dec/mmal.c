@@ -819,8 +819,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   status = mmal_port_format_commit(input);
   if (status != MMAL_SUCCESS) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE": "
-            "failed to commit input format: %s (%d)\n",
-            mmal_status_to_string(status), status);
+            "failed to commit input format %s: %s (%d)\n",
+            codec, mmal_status_to_string(status), status);
     mmal_dispose(&this->video_decoder);
     return (video_decoder_t *)1;
   }
