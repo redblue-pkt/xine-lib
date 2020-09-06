@@ -729,6 +729,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 {
   mmal_decoder_t *this;
   MMAL_STATUS_T   status;
+  const char *codec = NULL;
 
   bcm_host_init();
 
@@ -779,19 +780,19 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
 
   switch (video_type) {
     case BUF_VIDEO_H264:
-      _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "H.264");
+      codec = "H.264";
       input->format->encoding = MMAL_ENCODING_H264;
       break;
     case BUF_VIDEO_VC1:
-      _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "VC-1");
+      codec = "VC-1";
       input->format->encoding = MMAL_FOURCC('V','C','-','1');
       break;
     case BUF_VIDEO_MPEG:
-      _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "MPEG");
+      codec = "MPEG";
       input->format->encoding = MMAL_ENCODING_MP2V;
       break;
     case BUF_VIDEO_JPEG:
-      _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "JPEG");
+      codec = "JPEG";
       input->format->encoding = MMAL_ENCODING_JPEG;
       break;
     default:
@@ -801,6 +802,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
       mmal_dispose(&this->video_decoder);
       return (video_decoder_t *)1;
   }
+  _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, codec);
 
   if (video_type == BUF_VIDEO_H264) {
     MMAL_PARAMETER_BOOLEAN_T param;
