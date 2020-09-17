@@ -90,7 +90,7 @@
 #define	DEFAULT_CDDA_DEVICE	"/dev/cdrom"
 #endif
 
-#define CDDB_SERVER             "freedb.freedb.org"
+#define CDDB_SERVER             "gnudb.gnudb.org"
 #define CDDB_PORT               8880
 #define CDDB_PROTOCOL           6
 #define CDDB_TIMEOUT            5000
