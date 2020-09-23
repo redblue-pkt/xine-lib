@@ -489,13 +489,49 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
   }
 }
 
+static const char *a52_channel_info(int a52_flags) {
+  switch (a52_flags & A52_CHANNEL_MASK) {
+    case A52_3F2R:
+      return (a52_flags & A52_LFE) ? "A/52 5.1" : "A/52 5.0";
+    case A52_3F1R:
+    case A52_2F2R:
+      return (a52_flags & A52_LFE) ? "A/52 4.1" : "A/52 4.0";
+    case A52_2F1R:
+    case A52_3F:
+      return "A/52 3.0";
+    case A52_STEREO:
+      return "A/52 2.0 (stereo)";
+    case A52_DOLBY:
+      return "A/52 2.0 (dolby)";
+    case A52_MONO:
+      return "A/52 1.0";
+    default:
+      return "A/52";
+  }
+}
+
+static void a52_meta_info_set(xine_stream_t *stream, int a52_flags, int bit_rate, int sample_rate) {
+  _x_meta_info_set_utf8 (stream, XINE_META_INFO_AUDIOCODEC,         a52_channel_info(a52_flags));
+  _x_stream_info_set    (stream, XINE_STREAM_INFO_AUDIO_BITRATE,    bit_rate);
+  _x_stream_info_set    (stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, sample_rate);
+}
+
+static void do_swab(uint8_t *p, uint8_t *end) {
+    lprintf ("byte-swapping dnet\n");
+
+    while (p != end) {
+      uint8_t byte = *p++;
+      *(p - 1) = *p;
+      *p++ = byte;
+    }
+}
+
 static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
   uint8_t          *current = buf->content;
   uint8_t          *sync_start=current + 1;
   uint8_t          *end = buf->content + buf->size;
-  uint8_t           byte;
 
   lprintf ("decode data %d bytes of type %08x, pts=%"PRId64"\n",
 	   buf->size, buf->type, buf->pts);
@@ -506,18 +542,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   /* swap byte pairs if this is RealAudio DNET data */
   if (buf->type == BUF_AUDIO_DNET) {
-
-    lprintf ("byte-swapping dnet\n");
-
-    while (current != end) {
-      byte = *current++;
-      *(current - 1) = *current;
-      *current++ = byte;
-    }
-
-    /* reset */
-    current = buf->content;
-    end = buf->content + buf->size;
+    do_swab(current, end);
   }
 
   /* A52 packs come from the DVD in blocks of about 2048 bytes.
@@ -602,35 +627,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 	        a52_flags_old       != this->a52_flags ||
                 a52_sample_rate_old != this->a52_sample_rate ||
 		a52_bit_rate_old    != this->a52_bit_rate) {
-              const char *s;
-              switch (this->a52_flags & A52_CHANNEL_MASK) {
-                case A52_3F2R:
-                  s = (this->a52_flags & A52_LFE) ? "A/52 5.1" : "A/52 5.0";
-                  break;
-                case A52_3F1R:
-                case A52_2F2R:
-                  s = (this->a52_flags & A52_LFE) ? "A/52 4.1" : "A/52 4.0";
-                  break;
-                case A52_2F1R:
-                case A52_3F:
-                  s = "A/52 3.0";
-                  break;
-                case A52_STEREO:
-                  s = "A/52 2.0 (stereo)";
-                  break;
-                case A52_DOLBY:
-                  s = "A/52 2.0 (dolby)";
-                  break;
-                case A52_MONO:
-                  s = "A/52 1.0";
-                  break;
-                default:
-                  s = "A/52";
-                  break;
-              }
-              _x_meta_info_set_utf8 (this->stream, XINE_META_INFO_AUDIOCODEC, s);
-              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, this->a52_bit_rate);
-              _x_stream_info_set(this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, this->a52_sample_rate);
+              a52_meta_info_set(this->stream, this->a52_flags, this->a52_bit_rate, this->a52_sample_rate);
             }
           }
           break;
