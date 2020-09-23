@@ -389,7 +389,11 @@ void nes_shutdown(nsf_t *nsf)
 	  }
       }
 #endif
-      free(nsf->cpu);
+      {
+        void *tmp = nsf->cpu;
+        free(tmp);
+        nsf->cpu = NULL;
+      }
    }
 }
 
@@ -941,11 +945,17 @@ void nsf_free(nsf_t **pnsf)
 
     nes_shutdown(nsf);
     
-    if (nsf->data)
-      free(nsf->data);
+    if (nsf->data) {
+      void *tmp = nsf->data;
+      free(tmp);
+      nsf->data = NULL;
+    }
 
-    if (nsf->song_frames)
-      free (nsf->song_frames);
+    if (nsf->song_frames) {
+      void *tmp = nsf->song_frames;
+      free (tmp);
+      nsf->song_frames = NULL;
+    }
 
     free(nsf);
   }
