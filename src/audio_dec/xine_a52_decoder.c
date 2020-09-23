@@ -105,7 +105,6 @@ typedef struct a52dec_decoder_s {
   int              ao_flags_map[11];
   int              ao_flags_map_lfe[11];
 
-  int              audio_caps;
   int              bypass_mode;
   int              output_sampling_rate;
   int              output_open;
@@ -726,6 +725,7 @@ static void a52dec_dispose (audio_decoder_t *this_gen) {
 static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stream_t *stream) {
 
   a52dec_decoder_t *this ;
+  int               audio_caps;
 
   lprintf ("open_plugin called\n");
 
@@ -752,7 +752,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->stream = stream;
   this->class  = (a52dec_class_t *)class_gen;
 
-  this->audio_caps = stream->audio_out->get_capabilities (stream->audio_out);
+  audio_caps = stream->audio_out->get_capabilities (stream->audio_out);
 
   if( !this->a52_state ) {
     this->a52_state =
@@ -782,7 +782,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
    * or, if not, how many channels we've got
    */
 
-  if (this->audio_caps & AO_CAP_MODE_A52)
+  if (audio_caps & AO_CAP_MODE_A52)
     this->bypass_mode = 1;
   else {
     const int modes[] = {
@@ -816,15 +816,15 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
     this->bypass_mode = 0;
 
     /* guard against weird audio out */
-    if (!(this->audio_caps & (AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO |
+    if (!(audio_caps & (AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO |
       AO_CAP_MODE_4CHANNEL | AO_CAP_MODE_4_1CHANNEL |
       AO_CAP_MODE_5CHANNEL | AO_CAP_MODE_5_1CHANNEL)))
-      this->audio_caps |= AO_CAP_MODE_MONO;
+      audio_caps |= AO_CAP_MODE_MONO;
 
     /* find best mode */
     for (i = 0; i < 8 * 7; i += 7) {
       for (j = 1; j < 7; j++) {
-        if (this->audio_caps & modes[wishlist[i + j]]) {
+        if (audio_caps & modes[wishlist[i + j]]) {
           this->a52_flags_map[wishlist[i]] = modes[wishlist[i + j] + 1];
           this->ao_flags_map[wishlist[i]] = modes[wishlist[i + j]];
           break;
@@ -835,7 +835,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
     /* Instead, downmix it manually if present and audio out does not support it. */
     for (; i < 16 * 7; i += 7) {
       for (j = 1; j < 7; j++) {
-        if (this->audio_caps & modes[wishlist[i + j]]) {
+        if (audio_caps & modes[wishlist[i + j]]) {
           this->a52_flags_map_lfe[wishlist[i]] = modes[wishlist[i + j] + 1] | A52_LFE;
           this->ao_flags_map_lfe[wishlist[i]] = modes[wishlist[i + j]];
           break;
