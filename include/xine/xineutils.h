@@ -250,11 +250,11 @@ void xine_profiler_print_results (void) XINE_PROTECTED;
 #  define xine_container_of(ptr, type, member)           \
   ({                                                     \
      const typeof(((type *)0)->member) *__mptr = (ptr);  \
-     (type *)((char *)__mptr - offsetof(type, member));  \
+     (type *)(void *)((char *)__mptr - offsetof(type, member));  \
   })
 #else
 #  define xine_container_of(ptr, type, member) \
-  ((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
+  ((type *)(void *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
 #endif
 
 /*
