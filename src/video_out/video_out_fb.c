@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project and Fredrik Noring
+ * Copyright (C) 2000-2020 the xine project and Fredrik Noring
  *
  * This file is part of xine, a free video player.
  *
@@ -159,7 +159,7 @@ static uint32_t fb_get_capabilities(vo_driver_t *this_gen)
 
 static void fb_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src)
 {
-  fb_frame_t *frame = (fb_frame_t *)vo_img ;
+  fb_frame_t *frame = xine_container_of(vo_img, fb_frame_t, vo_frame);
 
   vo_img->proc_called = 1;
 
@@ -182,7 +182,7 @@ static void fb_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src)
 
 static void fb_frame_field(vo_frame_t *vo_img, int which_field)
 {
-  fb_frame_t *frame = (fb_frame_t *)vo_img ;
+  fb_frame_t *frame = xine_container_of(vo_img, fb_frame_t, vo_frame);
 
   switch(which_field)
   {
@@ -204,7 +204,7 @@ static void fb_frame_field(vo_frame_t *vo_img, int which_field)
 
 static void fb_frame_dispose(vo_frame_t *vo_img)
 {
-  fb_frame_t *frame = (fb_frame_t *)vo_img;
+  fb_frame_t *frame = xine_container_of(vo_img, fb_frame_t, vo_frame);
 
   frame->yuv2rgb->dispose (frame->yuv2rgb);
 
@@ -215,7 +215,7 @@ static void fb_frame_dispose(vo_frame_t *vo_img)
 
 static vo_frame_t *fb_alloc_frame(vo_driver_t *this_gen)
 {
-  fb_driver_t *this = (fb_driver_t *)this_gen;
+  fb_driver_t *this = xine_container_of(this_gen, fb_driver_t, vo_driver);
   fb_frame_t *frame;
 
   if(this->use_zero_copy &&
@@ -261,12 +261,13 @@ static vo_frame_t *fb_alloc_frame(vo_driver_t *this_gen)
 
   this->used_num_buffers++;
 
-  return (vo_frame_t *)frame;
+  return &frame->vo_frame;
 }
 
 static void fb_compute_ideal_size(fb_driver_t *this, fb_frame_t *frame)
 {
   (void)this;
+
   _x_vo_scale_compute_ideal_size(&frame->sc);
 }
 
@@ -371,8 +372,8 @@ static void fb_update_frame_format(vo_driver_t *this_gen,
 				   uint32_t width, uint32_t height,
 				   double ratio, int format, int flags)
 {
-  fb_driver_t *this = (fb_driver_t *)this_gen;
-  fb_frame_t *frame = (fb_frame_t *)frame_gen;
+  fb_driver_t *this  = xine_container_of(this_gen,  fb_driver_t, vo_driver);
+  fb_frame_t  *frame = xine_container_of(frame_gen, fb_frame_t,  vo_frame);
 
   flags &= VO_BOTH_FIELDS;
 
@@ -439,8 +440,8 @@ static void fb_overlay_clut_yuv2rgb(fb_driver_t *this,
 static void fb_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame_gen,
 			      vo_overlay_t *overlay)
 {
-  fb_driver_t *this = (fb_driver_t *)this_gen;
-  fb_frame_t *frame = (fb_frame_t *)frame_gen;
+  fb_driver_t *this  = xine_container_of(this_gen,  fb_driver_t, vo_driver);
+  fb_frame_t  *frame = xine_container_of(frame_gen, fb_frame_t,  vo_frame);
 
   this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
   this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
@@ -494,8 +495,8 @@ static int fb_redraw_needed(vo_driver_t *this_gen)
 
 static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 {
-  fb_driver_t  *this = (fb_driver_t *) this_gen;
-  fb_frame_t   *frame = (fb_frame_t *) frame_gen;
+  fb_driver_t  *this  = xine_container_of(this_gen,  fb_driver_t, vo_driver);
+  fb_frame_t   *frame = xine_container_of(frame_gen, fb_frame_t,  vo_frame);
   uint8_t	*dst, *src;
   int y;
 
@@ -552,7 +553,7 @@ static void fb_display_frame(vo_driver_t *this_gen, vo_frame_t *frame_gen)
 
 static int fb_get_property(vo_driver_t *this_gen, int property)
 {
-  fb_driver_t *this = (fb_driver_t *)this_gen;
+  fb_driver_t *this = xine_container_of(this_gen, fb_driver_t, vo_driver);
 
   switch(property)
   {
@@ -594,7 +595,7 @@ static int fb_get_property(vo_driver_t *this_gen, int property)
 
 static int fb_set_property(vo_driver_t *this_gen, int property, int value)
 {
-  fb_driver_t *this = (fb_driver_t *)this_gen;
+  fb_driver_t *this = xine_container_of(this_gen, fb_driver_t, vo_driver);
 
   switch(property)
   {
@@ -692,7 +693,7 @@ static int fb_gui_data_exchange(vo_driver_t *this_gen,
 
 static void fb_dispose(vo_driver_t *this_gen)
 {
-  fb_driver_t *this = (fb_driver_t *)this_gen;
+  fb_driver_t *this = xine_container_of(this_gen, fb_driver_t, vo_driver);
 
   if (this->video_mem_base != MAP_FAILED)
     munmap(this->video_mem_base, this->mem_size);

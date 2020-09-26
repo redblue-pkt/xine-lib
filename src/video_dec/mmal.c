@@ -587,7 +587,7 @@ static void handle_header(mmal_decoder_t *this, buf_element_t *buf)
 
 static void mmal_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
-  mmal_decoder_t *this = (mmal_decoder_t *) this_gen;
+  mmal_decoder_t *this = xine_container_of(this_gen, mmal_decoder_t, video_decoder);
 
   if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL | BUF_FLAG_COLOR_MATRIX | BUF_FLAG_STDHEADER)) {
     if (buf->decoder_flags & (BUF_FLAG_PREVIEW | BUF_FLAG_SPECIAL)) {
@@ -642,14 +642,14 @@ static void mmal_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 static void mmal_flush (video_decoder_t *this_gen)
 {
-  mmal_decoder_t *this = (mmal_decoder_t *) this_gen;
+  mmal_decoder_t *this = xine_container_of(this_gen, mmal_decoder_t, video_decoder);
 
   send_frames(this);
 }
 
 static void mmal_reset (video_decoder_t *this_gen)
 {
-  mmal_decoder_t *this = (mmal_decoder_t *) this_gen;
+  mmal_decoder_t *this = xine_container_of(this_gen, mmal_decoder_t, video_decoder);
 
   free_input_buffer(this);
 
@@ -673,14 +673,15 @@ static void mmal_reset (video_decoder_t *this_gen)
 
 static void mmal_discontinuity (video_decoder_t *this_gen)
 {
-  mmal_decoder_t *this = (mmal_decoder_t *) this_gen;
+  mmal_decoder_t *this = xine_container_of(this_gen, mmal_decoder_t, video_decoder);
+
   send_input_buffer(this);
   this->discontinuity = 1;
 }
 
 static void mmal_dispose (video_decoder_t *this_gen)
 {
-  mmal_decoder_t *this = (mmal_decoder_t *) this_gen;
+  mmal_decoder_t *this = xine_container_of(this_gen, mmal_decoder_t, video_decoder);
 
   free_input_buffer(this);
 

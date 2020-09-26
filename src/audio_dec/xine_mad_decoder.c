@@ -170,7 +170,7 @@ static int _mad_frame_size (const uint8_t *h) {
 
 static void mad_reset (audio_decoder_t *this_gen) {
 
-  mad_decoder_t *this = (mad_decoder_t *) this_gen;
+  mad_decoder_t *this = xine_container_of(this_gen, mad_decoder_t, audio_decoder);
 
   mad_synth_finish (&this->synth);
   mad_frame_finish (&this->frame);
@@ -194,7 +194,7 @@ static void mad_reset (audio_decoder_t *this_gen) {
 
 
 static void mad_discontinuity (audio_decoder_t *this_gen) {
-  mad_decoder_t *this = (mad_decoder_t *) this_gen;
+  mad_decoder_t *this = xine_container_of(this_gen, mad_decoder_t, audio_decoder);
   int b = this->rest_write - this->rest_read;
   if (b > 0) {
     this->pts_ring[0].pts = 0;
@@ -257,7 +257,7 @@ static int _mad_consume (mad_decoder_t *this) {
 
 static void mad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  mad_decoder_t *this = (mad_decoder_t *) this_gen;
+  mad_decoder_t *this = xine_container_of(this_gen, mad_decoder_t, audio_decoder);
 
   lprintf ("decode data, size: %d, decoder_flags: %d\n", buf->size, buf->decoder_flags);
 
@@ -653,7 +653,7 @@ static int _mad_fixed_2_db (mad_fixed_t v) {
 
 static void mad_dispose (audio_decoder_t *this_gen) {
 
-  mad_decoder_t *this = (mad_decoder_t *) this_gen;
+  mad_decoder_t *this = xine_container_of(this_gen, mad_decoder_t, audio_decoder);
 
   mad_synth_finish (&this->synth);
   mad_frame_finish (&this->frame);

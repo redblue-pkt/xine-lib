@@ -316,7 +316,7 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
 
 static void png_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 {
-  png_decoder_t *this = (png_decoder_t *) this_gen;
+  png_decoder_t *this = xine_container_of(this_gen, png_decoder_t, video_decoder);
   vo_frame_t *f = NULL;
   /* demux_image sends everything as preview at open time,
    * then an empty buf at play time.
@@ -365,7 +365,7 @@ static void png_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 
 static void png_flush (video_decoder_t *this_gen)
 {
-  png_decoder_t *this = (png_decoder_t *) this_gen;
+  png_decoder_t *this = xine_container_of(this_gen, png_decoder_t, video_decoder);
 
   if (this->vo_frame) {
     this->vo_frame->pts = this->pts;
@@ -377,7 +377,7 @@ static void png_flush (video_decoder_t *this_gen)
 
 static void png_reset (video_decoder_t *this_gen)
 {
-  png_decoder_t *this = (png_decoder_t *) this_gen;
+  png_decoder_t *this = xine_container_of(this_gen, png_decoder_t, video_decoder);
 
   if (this->vo_frame) {
     this->vo_frame->free (this->vo_frame);
@@ -389,13 +389,13 @@ static void png_reset (video_decoder_t *this_gen)
 
 static void png_discontinuity (video_decoder_t *this_gen)
 {
-  png_decoder_t *this = (png_decoder_t *) this_gen;
+  png_decoder_t *this = xine_container_of(this_gen, png_decoder_t, video_decoder);
   this->pts = 0;
 }
 
 static void png_dispose (video_decoder_t *this_gen)
 {
-  png_decoder_t *this = (png_decoder_t *) this_gen;
+  png_decoder_t *this = xine_container_of(this_gen, png_decoder_t, video_decoder);
 
   if (this->vo_frame) {
     this->vo_frame->free (this->vo_frame);
