@@ -291,7 +291,7 @@ static int configure_renderer(mmal_driver_t *this, int format, int width, int he
 
   if (!this->pool) {
 #ifdef FRAME_ALLOC
-    this->pool = mmal_pool_create(MAX_VIDEO_FRAMES, 0);
+    this->pool = mmal_port_pool_create(input, MAX_VIDEO_FRAMES, 0);
     if (!this->pool) {
       xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE": "
               "failed to create MMAL pool for %u buffers\n", MAX_VIDEO_FRAMES);
@@ -814,14 +814,20 @@ static void mmal_dispose (vo_driver_t * this_gen) {
     this->dispmanx_handle = DISPMANX_NO_HANDLE;
   }
 
+  if (this->pool) {
+#ifdef FRAME_ALLOC
+    MMAL_PORT_T   *input = this->renderer->input[0];
+    mmal_port_pool_destroy(input, this->pool);
+#else
+    mmal_port_pool_destroy(this->pool);
+#endif
+  }
+
   if (this->renderer) {
     disable_renderer(this);
     mmal_component_release(this->renderer);
   }
 
-  if (this->pool) {
-    mmal_pool_destroy(this->pool);
-  }
 
 #ifndef HW_OVERLAY
   _x_alphablend_free(&this->alphablend_extra_data);
