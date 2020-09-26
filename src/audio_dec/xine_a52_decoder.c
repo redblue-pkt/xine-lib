@@ -160,7 +160,7 @@ static const struct frmsize_s frmsizecod_tbl[64] =
 
 static void a52dec_reset (audio_decoder_t *this_gen) {
 
-  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
+  a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
 
   this->syncword          = 0;
   this->sync_state        = 0;
@@ -169,7 +169,7 @@ static void a52dec_reset (audio_decoder_t *this_gen) {
 
 static void a52dec_discontinuity (audio_decoder_t *this_gen) {
 
-  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
+  a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
 
   this->pts               = 0;
 }
@@ -491,7 +491,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 
 static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
+  a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
   uint8_t          *current = buf->content;
   uint8_t          *sync_start=current + 1;
   uint8_t          *end = buf->content + buf->size;
@@ -670,7 +670,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 static void a52dec_dispose (audio_decoder_t *this_gen) {
 
-  a52dec_decoder_t *this = (a52dec_decoder_t *) this_gen;
+  a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);

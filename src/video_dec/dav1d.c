@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 the xine project
+ * Copyright (C) 2018-2020 the xine project
  * Copyright (C) 2018 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -383,7 +383,7 @@ static void _data_free_wrapper(const uint8_t *data, void *opaque) {
 
 static void _dav1d_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 {
-  dav1d_decoder_t *this = (dav1d_decoder_t *) this_gen;
+  dav1d_decoder_t *this = xine_container_of(this_gen, dav1d_decoder_t, video_decoder);
   Dav1dData data;
   int r;
 
@@ -442,7 +442,7 @@ static void _dav1d_decode_data(video_decoder_t *this_gen, buf_element_t *buf)
 
 static void _dav1d_flush(video_decoder_t *this_gen)
 {
-  dav1d_decoder_t *this = (dav1d_decoder_t *) this_gen;
+  dav1d_decoder_t *this = xine_container_of(this_gen, dav1d_decoder_t, video_decoder);
   Dav1dPicture     pic;
 
   memset(&pic, 0, sizeof(pic));
@@ -457,7 +457,7 @@ static void _dav1d_flush(video_decoder_t *this_gen)
 
 static void _dav1d_discontinuity(video_decoder_t *this_gen)
 {
-  dav1d_decoder_t *this = (dav1d_decoder_t *) this_gen;
+  dav1d_decoder_t *this = xine_container_of(this_gen, dav1d_decoder_t, video_decoder);
 
   this->pts  = 0;
   this->size = 0;
@@ -465,7 +465,7 @@ static void _dav1d_discontinuity(video_decoder_t *this_gen)
 
 static void _dav1d_reset(video_decoder_t *this_gen)
 {
-  dav1d_decoder_t *this = (dav1d_decoder_t *) this_gen;
+  dav1d_decoder_t *this = xine_container_of(this_gen, dav1d_decoder_t, video_decoder);
   Dav1dPicture     pic;
 
   dav1d_flush(this->ctx);
@@ -484,7 +484,7 @@ static void _dav1d_reset(video_decoder_t *this_gen)
 
 static void _dav1d_dispose(video_decoder_t *this_gen)
 {
-  dav1d_decoder_t *this = (dav1d_decoder_t *) this_gen;
+  dav1d_decoder_t *this = xine_container_of(this_gen, dav1d_decoder_t, video_decoder);
 
   _dav1d_reset(this_gen);
 

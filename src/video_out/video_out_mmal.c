@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2000-2018 the xine project
- * Copyright (C) 2014 Petri Hintukainen <phintuka@users.sourceforge.net>
+ * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2014-2020 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
  *
@@ -333,7 +333,7 @@ static void mmal_frame_field (vo_frame_t *vo_img, int which_field) {
 
 static void mmal_frame_dispose (vo_frame_t *vo_img) {
 
-  mmal_frame_t  *frame = (mmal_frame_t *) vo_img ;
+  mmal_frame_t  *frame = xine_container_of(vo_img, mmal_frame_t, vo_frame);
 
   if (frame->buffer) {
 #ifdef FRAME_ALLOC
@@ -354,7 +354,7 @@ static void mmal_frame_dispose (vo_frame_t *vo_img) {
 static vo_frame_t *mmal_alloc_frame (vo_driver_t *this_gen) {
 
 #ifdef FRAME_ALLOC
-  mmal_driver_t    *this = (mmal_driver_t *) this_gen;
+  mmal_driver_t    *this = xine_container_of(this_gen, mmal_driver_t, vo_driver);
 #endif
   mmal_frame_t     *frame;
 
@@ -374,7 +374,7 @@ static vo_frame_t *mmal_alloc_frame (vo_driver_t *this_gen) {
   frame->input = this->renderer->input[0];
 #endif
 
-  return (vo_frame_t *) frame;
+  return &frame->vo_frame;
 }
 
 static void mmal_update_frame_format (vo_driver_t *this_gen,
@@ -382,8 +382,8 @@ static void mmal_update_frame_format (vo_driver_t *this_gen,
                                       uint32_t width, uint32_t height,
                                       double ratio, int format, int flags) {
 
-  mmal_driver_t *this = (mmal_driver_t *)this_gen;
-  mmal_frame_t  *frame = (mmal_frame_t *)frame_gen;
+  mmal_driver_t *this  = xine_container_of(this_gen,  mmal_driver_t, vo_driver);
+  mmal_frame_t  *frame = xine_container_of(frame_gen, mmal_frame_t,  vo_frame);
 
   /* limit frame size */
   if (width > MAX_VIDEO_WIDTH) {
@@ -555,7 +555,7 @@ static void mmal_overlay_begin (vo_driver_t *this_gen,
                                 vo_frame_t *frame_gen, int changed) {
 
 #ifdef HW_OVERLAY
-  mmal_driver_t *this = (mmal_driver_t *)this_gen;
+  mmal_driver_t *this = xine_container_of(this_gen, mmal_driver_t, vo_driver);
 
   if (changed) {
     this->overlay_update = vc_dispmanx_update_start(10);
@@ -568,7 +568,7 @@ static void mmal_overlay_begin (vo_driver_t *this_gen,
 
 static void mmal_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame, vo_overlay_t *overlay) {
 
-  mmal_driver_t  *this = (mmal_driver_t *) this_gen;
+  mmal_driver_t *this = xine_container_of(this_gen, mmal_driver_t, vo_driver);
 
   if (overlay->width <= 0 || overlay->height <= 0 || !overlay->rle)
     return;
@@ -682,7 +682,7 @@ static void mmal_overlay_blend (vo_driver_t *this_gen, vo_frame_t *frame, vo_ove
 static void mmal_overlay_end (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
 #ifdef HW_OVERLAY
-  mmal_driver_t *this  = (mmal_driver_t *)this_gen;
+  mmal_driver_t *this = xine_container_of(this_gen, mmal_driver_t, vo_driver);
 
   if (!this->overlay_update) {
     return;
@@ -710,8 +710,8 @@ static int mmal_redraw_needed (vo_driver_t *this_gen) {
 
 static void mmal_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
-  mmal_driver_t  *this = (mmal_driver_t *) this_gen;
-  mmal_frame_t   *frame = (mmal_frame_t *) frame_gen;
+  mmal_driver_t  *this  = xine_container_of(this_gen,  mmal_driver_t, vo_driver);
+  mmal_frame_t   *frame = xine_container_of(frame_gen, mmal_frame_t,  vo_frame);
   MMAL_PORT_T    *input = this->renderer->input[0];
   MMAL_STATUS_T   status;
 
@@ -764,7 +764,7 @@ static void mmal_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
 static int mmal_get_property (vo_driver_t *this_gen, int property) {
 
-  mmal_driver_t *this = (mmal_driver_t *) this_gen;
+  mmal_driver_t *this = xine_container_of(this_gen, mmal_driver_t, vo_driver);
 
   switch (property) {
     case VO_PROP_WINDOW_WIDTH:
@@ -798,7 +798,7 @@ static int mmal_gui_data_exchange (vo_driver_t *this_gen, int data_type, void *d
 
 static void mmal_dispose (vo_driver_t * this_gen) {
 
-  mmal_driver_t      *this = (mmal_driver_t*) this_gen;
+  mmal_driver_t *this = xine_container_of(this_gen, mmal_driver_t, vo_driver);
 
   if (this->dispmanx_handle) {
 
