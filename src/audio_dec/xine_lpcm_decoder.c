@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -76,7 +76,7 @@ typedef struct lpcm_decoder_s {
 
 static void lpcm_reset (audio_decoder_t *this_gen) {
 
-  lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
+  lpcm_decoder_t *this = xine_container_of(this_gen, lpcm_decoder_t, audio_decoder);
 
   _x_freep (&this->buf);
 }
@@ -88,7 +88,7 @@ static void lpcm_discontinuity (audio_decoder_t *this_gen) {
 
 static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
+  lpcm_decoder_t *this = xine_container_of(this_gen, lpcm_decoder_t, audio_decoder);
   uint8_t        *sample_buffer = buf->content;
   int             buf_size = buf->size;
   int             stream_be;
@@ -350,7 +350,7 @@ static void lpcm_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 static void lpcm_dispose (audio_decoder_t *this_gen) {
-  lpcm_decoder_t *this = (lpcm_decoder_t *) this_gen;
+  lpcm_decoder_t *this = xine_container_of(this_gen, lpcm_decoder_t, audio_decoder);
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);

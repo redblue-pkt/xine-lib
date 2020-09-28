@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2019 the xine project
+ * Copyright (C) 2005-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -208,7 +208,7 @@ static int dv_extract_audio(uint8_t* frame, uint8_t* pcm, uint8_t* pcm2)
 
 static void dvaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  dvaudio_decoder_t *this = (dvaudio_decoder_t *) this_gen;
+  dvaudio_decoder_t *this = xine_container_of(this_gen, dvaudio_decoder_t, audio_decoder);
   int bytes_consumed;
   int decode_buffer_size;
   int offset;
@@ -311,7 +311,7 @@ static void dvaudio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) 
 }
 
 static void dvaudio_reset (audio_decoder_t *this_gen) {
-  dvaudio_decoder_t *this = (dvaudio_decoder_t *) this_gen;
+  dvaudio_decoder_t *this = xine_container_of(this_gen, dvaudio_decoder_t, audio_decoder);
 
   this->size = 0;
 }
@@ -322,7 +322,7 @@ static void dvaudio_discontinuity (audio_decoder_t *this_gen) {
 
 static void dvaudio_dispose (audio_decoder_t *this_gen) {
 
-  dvaudio_decoder_t *this = (dvaudio_decoder_t *) this_gen;
+  dvaudio_decoder_t *this = xine_container_of(this_gen, dvaudio_decoder_t, audio_decoder);
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);

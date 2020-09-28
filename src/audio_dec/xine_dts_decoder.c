@@ -325,7 +325,7 @@ static void dts_decode_frame (dts_decoder_t *this, const int64_t pts) {
 
 static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  dts_decoder_t  *const this = (dts_decoder_t *) this_gen;
+  dts_decoder_t  *const this = xine_container_of(this_gen, dts_decoder_t, audio_decoder);
   uint8_t        *current = (uint8_t *)buf->content;
   uint8_t        *sync_start=current + 1;
   uint8_t        *const end = buf->content + buf->size;
@@ -456,7 +456,7 @@ static void dts_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 static void dts_dispose (audio_decoder_t *this_gen) {
-  dts_decoder_t *const this = (dts_decoder_t *) this_gen;
+  dts_decoder_t *const this = xine_container_of(this_gen, dts_decoder_t, audio_decoder);
 
   if (this->output_open)
     this->stream->audio_out->close (this->stream->audio_out, this->stream);

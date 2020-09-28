@@ -204,7 +204,7 @@ static int faad_map_channels (faad_decoder_t *this) {
 
 static void faad_reset (audio_decoder_t *this_gen) {
 
-  faad_decoder_t *this = (faad_decoder_t *) this_gen;
+  faad_decoder_t *this = xine_container_of(this_gen, faad_decoder_t, audio_decoder);
   this->size = 0;
   faad_pts_reset (this);
 #if 0
@@ -919,7 +919,7 @@ static void faad_get_conf (faad_decoder_t *this, const uint8_t *d, int len) {
 
 static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  faad_decoder_t *this = (faad_decoder_t *) this_gen;
+  faad_decoder_t *this = xine_container_of(this_gen, faad_decoder_t, audio_decoder);
 
   if (buf->decoder_flags & BUF_FLAG_PREVIEW)
     return;
@@ -1002,13 +1002,13 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 static void faad_discontinuity (audio_decoder_t *this_gen) {
-  faad_decoder_t *this = (faad_decoder_t *)this_gen;
+  faad_decoder_t *this = xine_container_of(this_gen, faad_decoder_t, audio_decoder);
   faad_pts_reset (this);
 }
 
 static void faad_dispose (audio_decoder_t *this_gen) {
 
-  faad_decoder_t *this = (faad_decoder_t *) this_gen;
+  faad_decoder_t *this = xine_container_of(this_gen, faad_decoder_t, audio_decoder);
 
   bebf_latm_close (&this->latm);
 
