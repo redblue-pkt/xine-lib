@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2019 the xine project
+ * Copyright (C) 2005-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -258,7 +258,7 @@ static int mpc_decode_frame (mpc_decoder_t *this) {
  *************************************************************************/
 
 static void mpc_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
-  mpc_decoder_t *this = (mpc_decoder_t *) this_gen;
+  mpc_decoder_t *this = xine_container_of(this_gen, mpc_decoder_t, audio_decoder);
   int err;
 
   lprintf("mpc_decode_data\n");
@@ -459,7 +459,7 @@ static void mpc_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 }
 
 static void mpc_reset (audio_decoder_t *this_gen) {
-  mpc_decoder_t *this = (mpc_decoder_t *) this_gen;
+  mpc_decoder_t *this = xine_container_of(this_gen, mpc_decoder_t, audio_decoder);
 
   this->size = 0;
   this->read = 0;
@@ -472,7 +472,7 @@ static void mpc_discontinuity (audio_decoder_t *this_gen) {
 
 static void mpc_dispose (audio_decoder_t *this_gen) {
 
-  mpc_decoder_t *this = (mpc_decoder_t *) this_gen;
+  mpc_decoder_t *this = xine_container_of(this_gen, mpc_decoder_t, audio_decoder);
 
   /* close the audio output */
   if (this->output_open)

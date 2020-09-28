@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -89,7 +89,7 @@ typedef struct gsm610_decoder_s {
 
 static void gsm610_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
+  gsm610_decoder_t *this = xine_container_of(this_gen, gsm610_decoder_t, audio_decoder);
   audio_buffer_t *audio_buffer;
   int in_ptr;
 
@@ -212,7 +212,7 @@ static void gsm610_discontinuity (audio_decoder_t *this_gen) {
 
 static void gsm610_dispose (audio_decoder_t *this_gen) {
 
-  gsm610_decoder_t *this = (gsm610_decoder_t *) this_gen;
+  gsm610_decoder_t *this = xine_container_of(this_gen, gsm610_decoder_t, audio_decoder);
 
   if (this->gsm_state)
     gsm_destroy(this->gsm_state);

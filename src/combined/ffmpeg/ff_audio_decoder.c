@@ -992,7 +992,7 @@ static int ff_audio_decode (ff_audio_decoder_t *this,
 
 static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
-  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  ff_audio_decoder_t *this = xine_container_of(this_gen, ff_audio_decoder_t, audio_decoder);
   int bytes_consumed;
   int decode_buffer_size;
   int out;
@@ -1217,7 +1217,7 @@ static void ff_audio_decode_data (audio_decoder_t *this_gen, buf_element_t *buf)
 }
 
 static void ff_audio_reset (audio_decoder_t *this_gen) {
-  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  ff_audio_decoder_t *this = xine_container_of(this_gen, ff_audio_decoder_t, audio_decoder);
 
   this->size = 0;
 
@@ -1244,7 +1244,7 @@ static void ff_audio_reset (audio_decoder_t *this_gen) {
 
 static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
 
-  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  ff_audio_decoder_t *this = xine_container_of(this_gen, ff_audio_decoder_t, audio_decoder);
 
   this->size = 0;
 
@@ -1254,7 +1254,7 @@ static void ff_audio_discontinuity (audio_decoder_t *this_gen) {
 
 static void ff_audio_dispose (audio_decoder_t *this_gen) {
 
-  ff_audio_decoder_t *this = (ff_audio_decoder_t *) this_gen;
+  ff_audio_decoder_t *this = xine_container_of(this_gen, ff_audio_decoder_t, audio_decoder);
 
   if (this->parser_context) {
     pthread_mutex_lock (&ffmpeg_lock);

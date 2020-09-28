@@ -52,7 +52,7 @@ typedef struct mpeg2dec_decoder_s {
 } mpeg2dec_decoder_t;
 
 static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+  mpeg2dec_decoder_t *this = xine_container_of(this_gen, mpeg2dec_decoder_t, video_decoder);
 
   lprintf ("decode_data, flags=0x%08x ...\n", buf->decoder_flags);
 
@@ -81,7 +81,7 @@ static void mpeg2dec_decode_data (video_decoder_t *this_gen, buf_element_t *buf)
 }
 
 static void mpeg2dec_flush (video_decoder_t *this_gen) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+  mpeg2dec_decoder_t *this = xine_container_of(this_gen, mpeg2dec_decoder_t, video_decoder);
 
   lprintf ("flush\n");
 
@@ -89,20 +89,20 @@ static void mpeg2dec_flush (video_decoder_t *this_gen) {
 }
 
 static void mpeg2dec_reset (video_decoder_t *this_gen) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+  mpeg2dec_decoder_t *this = xine_container_of(this_gen, mpeg2dec_decoder_t, video_decoder);
 
   mpeg2_reset (&this->mpeg2);
 }
 
 static void mpeg2dec_discontinuity (video_decoder_t *this_gen) {
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+  mpeg2dec_decoder_t *this = xine_container_of(this_gen, mpeg2dec_decoder_t, video_decoder);
 
   mpeg2_discontinuity (&this->mpeg2);
 }
 
 static void mpeg2dec_dispose (video_decoder_t *this_gen) {
 
-  mpeg2dec_decoder_t *this = (mpeg2dec_decoder_t *) this_gen;
+  mpeg2dec_decoder_t *this = xine_container_of(this_gen, mpeg2dec_decoder_t, video_decoder);
 
   lprintf ("close\n");
 
