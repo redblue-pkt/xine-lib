@@ -443,14 +443,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
      */
 
     if (!this->output_open) {
-
-      int sample_rate, bit_rate, flags;
-
-      a52_syncinfo (this->frame_buffer, &flags, &sample_rate, &bit_rate);
-
       this->output_open = (this->stream->audio_out->open) (this->stream->audio_out,
 						 this->stream, 16,
-						 sample_rate,
+                                                           this->a52_sample_rate,
 						 AO_CAP_MODE_A52) ;
       this->output_mode = AO_CAP_MODE_A52;
     }
@@ -634,25 +629,19 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     case 2:  /* Filling frame_buffer with sync_info bytes */
 	  *this->frame_ptr++ = *current++;
 	  this->frame_todo--;
-	  if (this->frame_todo < 1) {
-	    this->sync_state = 3;
-          } else break;
-
-    case 3:  { /* Ready for decode */
+          if (this->frame_todo > 0)
+            break;
+          /* Ready for decode */
+      this->syncword = 0;
+      this->sync_state = 0;
       if (xine_crc16_ansi (0, &this->frame_buffer[2], this->frame_length - 2) != 0) { /* CRC16 failed */
 	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52:a52 frame failed crc16 checksum.\n");
 	current = sync_start;
 	this->pts = 0;
-	this->syncword = 0;
-	this->sync_state = 0;
 	break;
       }
-    }
           a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
-    case 4:  /* Clear up ready for next frame */
           this->pts = 0;
-	  this->syncword = 0;
-	  this->sync_state = 0;
           break;
     default: /* No come here */
           break;
