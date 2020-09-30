@@ -79,6 +79,28 @@ typedef struct {
   sample_t         lfe_level_2;
 } a52dec_class_t;
 
+typedef struct {
+  uint8_t          got_frame;
+  uint8_t          format_changed;
+  uint8_t          sync_state;
+
+  int              a52_flags;
+  int              a52_bit_rate;
+  int              a52_sample_rate;
+
+  int              frame_length, frame_todo;
+
+  uint16_t         syncword;
+
+  uint8_t         *frame_ptr;
+  uint8_t          frame_buffer[3840];
+} xine_a52_parser_t;
+
+static void xine_a52_parser_reset(xine_a52_parser_t *this) {
+  this->syncword   = 0;
+  this->sync_state = 0;
+}
+
 typedef struct a52dec_decoder_s {
   audio_decoder_t  audio_decoder;
 
@@ -86,16 +108,7 @@ typedef struct a52dec_decoder_s {
   xine_stream_t   *stream;
   int64_t          pts;
 
-  uint8_t          frame_buffer[3840];
-  uint8_t         *frame_ptr;
-  int              sync_state;
-  int              frame_length, frame_todo;
-  uint16_t         syncword;
-
   a52_state_t     *a52_state;
-  int              a52_flags;
-  int              a52_bit_rate;
-  int              a52_sample_rate;
   int              have_lfe;
 
   int              a52_flags_map[11];
@@ -108,6 +121,7 @@ typedef struct a52dec_decoder_s {
   int              output_open;
   int              output_mode;
 
+  xine_a52_parser_t parser;
 } a52dec_decoder_t;
 
 struct frmsize_s
@@ -162,8 +176,7 @@ static void a52dec_reset (audio_decoder_t *this_gen) {
 
   a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
 
-  this->syncword          = 0;
-  this->sync_state        = 0;
+  xine_a52_parser_reset(&this->parser);
   this->pts               = 0;
 }
 
@@ -301,11 +314,11 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 
     /* determine output mode */
 
-    a52_output_flags = this->a52_flags & A52_LFE ?
-      this->a52_flags_map_lfe[this->a52_flags & A52_CHANNEL_MASK] :
-      this->a52_flags_map[this->a52_flags];
+    a52_output_flags = this->parser.a52_flags & A52_LFE ?
+      this->a52_flags_map_lfe[this->parser.a52_flags & A52_CHANNEL_MASK] :
+      this->a52_flags_map[this->parser.a52_flags];
 
-    if (a52_frame (this->a52_state, this->frame_buffer, &a52_output_flags, &level, SAMPLE_OFFS)) {
+    if (a52_frame (this->a52_state, this->parser.frame_buffer, &a52_output_flags, &level, SAMPLE_OFFS)) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: a52_frame error\n");
       return;
     }
@@ -324,7 +337,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
      */
 
     if (!this->output_open
-	|| (this->a52_sample_rate != this->output_sampling_rate)
+        || (this->parser.a52_sample_rate != this->output_sampling_rate)
 	|| (output_mode != this->output_mode)) {
 
       if (this->output_open)
@@ -333,9 +346,9 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 
       this->output_open = (this->stream->audio_out->open) (this->stream->audio_out,
 							 this->stream, 16,
-							 this->a52_sample_rate,
+                                                           this->parser.a52_sample_rate,
 							 output_mode) ;
-      this->output_sampling_rate = this->a52_sample_rate;
+      this->output_sampling_rate = this->parser.a52_sample_rate;
       this->output_mode = output_mode;
     }
 
@@ -357,7 +370,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 	xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52: a52_block error on audio channel %d\n", i);
 #if 0
 	for(n=0;n<2000;n++) {
-	  printf("%02x ",this->frame_buffer[n]);
+	  printf("%02x ",this->parser.frame_buffer[n]);
 	  if ((n % 32) == 0) printf("\n");
 	}
 	printf("\n");
@@ -445,7 +458,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
     if (!this->output_open) {
       this->output_open = (this->stream->audio_out->open) (this->stream->audio_out,
 						 this->stream, 16,
-                                                           this->a52_sample_rate,
+                                                           this->parser.a52_sample_rate,
 						 AO_CAP_MODE_A52) ;
       this->output_mode = AO_CAP_MODE_A52;
     }
@@ -457,7 +470,7 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
       uint32_t /*syncword, crc1,*/ fscod,frmsizecod,/*bsid,*/bsmod,frame_size;
       uint8_t *data_out,*data_in;
       audio_buffer_t *buf = this->stream->audio_out->get_buffer (this->stream->audio_out);
-      data_in=(uint8_t *) this->frame_buffer;
+      data_in=(uint8_t *) this->parser.frame_buffer;
       data_out=(uint8_t *) buf->mem;
       /*syncword = data_in[0] | (data_in[1] << 8);*/
       /*crc1 = data_in[2] | (data_in[3] << 8);*/
@@ -521,12 +534,11 @@ static void do_swab(uint8_t *p, uint8_t *end) {
     }
 }
 
+static size_t a52dec_parse_data(xine_a52_parser_t *this, xine_stream_t *stream, const uint8_t *data, size_t size);
+
 static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
-  uint8_t          *current = buf->content;
-  uint8_t          *sync_start=current + 1;
-  uint8_t          *end = buf->content + buf->size;
 
   lprintf ("decode data %d bytes of type %08x, pts=%"PRId64"\n",
 	   buf->size, buf->type, buf->pts);
@@ -537,7 +549,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   /* swap byte pairs if this is RealAudio DNET data */
   if (buf->type == BUF_AUDIO_DNET) {
-    do_swab(current, end);
+    do_swab(buf->content, buf->content + buf->size);
   }
 
   /* A52 packs come from the DVD in blocks of about 2048 bytes.
@@ -578,7 +590,29 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   printf("\n");
 #endif
 
-  lprintf ("processing...state %d\n", this->sync_state);
+  lprintf ("processing...state %d\n", this->parser.sync_state);
+
+  while (buf->size > 0) {
+    int consumed = a52dec_parse_data(&this->parser, this->stream, buf->content, buf->size);
+    buf->content += consumed;
+    buf->size -= consumed;
+    if (this->parser.got_frame) {
+      if (this->parser.format_changed) {
+        a52_meta_info_set(this->stream, this->parser.a52_flags, this->parser.a52_bit_rate, this->parser.a52_sample_rate);
+      }
+      a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
+      this->pts = 0;
+    }
+  }
+}
+
+static size_t a52dec_parse_data(xine_a52_parser_t *this, xine_stream_t *stream, const uint8_t *data, size_t size) {
+
+  const uint8_t *const end = data + size;
+  const uint8_t       *current = data;
+  const uint8_t       *sync_start = current + 1;
+
+  this->format_changed = this->got_frame = 0;
 
   while (current < end) {
     switch (this->sync_state) {
@@ -621,7 +655,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
             if (a52_flags_old       != this->a52_flags ||
                 a52_sample_rate_old != this->a52_sample_rate ||
 		a52_bit_rate_old    != this->a52_bit_rate) {
-              a52_meta_info_set(this->stream, this->a52_flags, this->a52_bit_rate, this->a52_sample_rate);
+              this->format_changed = 1;
             }
           }
           break;
@@ -635,13 +669,12 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
       this->syncword = 0;
       this->sync_state = 0;
       if (xine_crc16_ansi (0, &this->frame_buffer[2], this->frame_length - 2) != 0) { /* CRC16 failed */
-	xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "liba52:a52 frame failed crc16 checksum.\n");
+	xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "liba52:a52 frame failed crc16 checksum.\n");
 	current = sync_start;
-	this->pts = 0;
 	break;
       }
-          a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
-          this->pts = 0;
+      this->got_frame = 1;
+      return (current - data);
           break;
     default: /* No come here */
           break;
@@ -651,6 +684,8 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 #ifdef DEBUG_A52
       write (a52file, this->frame_buffer, this->frame_length);
 #endif
+
+  return size;
 }
 
 static void a52dec_dispose (audio_decoder_t *this_gen) {
@@ -686,8 +721,7 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
    * Let it optimize away this on most systems where clear mem
    * interpretes as 0, 0f or NULL safely.
    */
-  this->syncword          = 0;
-  this->sync_state        = 0;
+  xine_a52_parser_reset(&this->parser);
   this->output_open       = 0;
   this->pts               = 0;
 
