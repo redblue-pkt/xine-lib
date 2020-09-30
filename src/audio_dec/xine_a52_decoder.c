@@ -623,8 +623,7 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 	    this->frame_todo = this->frame_length - 17;
 	    this->sync_state = 2;
-	    if (!_x_meta_info_get(this->stream, XINE_META_INFO_AUDIOCODEC) ||
-	        a52_flags_old       != this->a52_flags ||
+            if (a52_flags_old       != this->a52_flags ||
                 a52_sample_rate_old != this->a52_sample_rate ||
 		a52_bit_rate_old    != this->a52_bit_rate) {
               a52_meta_info_set(this->stream, this->a52_flags, this->a52_bit_rate, this->a52_sample_rate);
