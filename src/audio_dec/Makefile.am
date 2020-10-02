@@ -57,6 +57,7 @@ $(top_builddir)/contrib/gsm610/libgsm610.la:
 	$(MAKE) -C $(top_builddir)/contrib/gsm610
 
 xineplug_LTLIBRARIES = \
+	xineplug_decode_to_spdif.la \
 	$(dvaudio_module) \
 	$(lpcm_module) \
 	$(gsm610_module) \
@@ -93,6 +94,9 @@ xineplug_decode_a52_la_DEPENDENCIES = $(A52DEC_DEPS)
 xineplug_decode_a52_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(A52DEC_LIBS) -lm
 xineplug_decode_a52_la_CFLAGS = $(AM_CFLAGS) $(A52DEC_CFLAGS)
 xineplug_decode_a52_la_CPPFLAGS = $(AM_CPPFLAGS) $(A52DEC_MATH)
+
+xineplug_decode_to_spdif_la_SOURCES = xine_a52_spdif.c
+xineplug_decode_to_spdif_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) -lm
 
 xineplug_decode_faad_la_SOURCES = xine_faad_decoder.c
 xineplug_decode_faad_la_DEPENDENCIES = $(FAAD_DEPS)
