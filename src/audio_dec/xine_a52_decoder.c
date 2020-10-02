@@ -20,18 +20,9 @@
  * stuff needed to turn liba52 into a xine decoder plugin
  */
 
-#define _DEFAULT_SOURCE 1
-#ifndef __sun
-/* required for swab() */
-#define _XOPEN_SOURCE 500
-#endif
-/* avoid compiler warnings */
-#define _BSD_SOURCE 1
-
 #include "config.h"
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 
@@ -96,61 +87,12 @@ typedef struct a52dec_decoder_s {
   int              ao_flags_map[11];
   int              ao_flags_map_lfe[11];
 
-  int              bypass_mode;
   int              output_sampling_rate;
   int              output_open;
   int              output_mode;
 
   xine_a52_parser_t parser;
 } a52dec_decoder_t;
-
-struct frmsize_s
-{
-  uint16_t bit_rate;
-  uint16_t frm_size[3];
-};
-
-static const struct frmsize_s frmsizecod_tbl[64] =
-{
-  { 32  ,{64   ,69   ,96   } },
-  { 32  ,{64   ,70   ,96   } },
-  { 40  ,{80   ,87   ,120  } },
-  { 40  ,{80   ,88   ,120  } },
-  { 48  ,{96   ,104  ,144  } },
-  { 48  ,{96   ,105  ,144  } },
-  { 56  ,{112  ,121  ,168  } },
-  { 56  ,{112  ,122  ,168  } },
-  { 64  ,{128  ,139  ,192  } },
-  { 64  ,{128  ,140  ,192  } },
-  { 80  ,{160  ,174  ,240  } },
-  { 80  ,{160  ,175  ,240  } },
-  { 96  ,{192  ,208  ,288  } },
-  { 96  ,{192  ,209  ,288  } },
-  { 112 ,{224  ,243  ,336  } },
-  { 112 ,{224  ,244  ,336  } },
-  { 128 ,{256  ,278  ,384  } },
-  { 128 ,{256  ,279  ,384  } },
-  { 160 ,{320  ,348  ,480  } },
-  { 160 ,{320  ,349  ,480  } },
-  { 192 ,{384  ,417  ,576  } },
-  { 192 ,{384  ,418  ,576  } },
-  { 224 ,{448  ,487  ,672  } },
-  { 224 ,{448  ,488  ,672  } },
-  { 256 ,{512  ,557  ,768  } },
-  { 256 ,{512  ,558  ,768  } },
-  { 320 ,{640  ,696  ,960  } },
-  { 320 ,{640  ,697  ,960  } },
-  { 384 ,{768  ,835  ,1152 } },
-  { 384 ,{768  ,836  ,1152 } },
-  { 448 ,{896  ,975  ,1344 } },
-  { 448 ,{896  ,976  ,1344 } },
-  { 512 ,{1024 ,1114 ,1536 } },
-  { 512 ,{1024 ,1115 ,1536 } },
-  { 576 ,{1152 ,1253 ,1728 } },
-  { 576 ,{1152 ,1254 ,1728 } },
-  { 640 ,{1280 ,1393 ,1920 } },
-  { 640 ,{1280 ,1394 ,1920 } }
-};
 
 static void a52dec_reset (audio_decoder_t *this_gen) {
 
@@ -280,7 +222,6 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
 #ifdef LOG_PTS
   printf("a52dec:decode_frame:pts=%lld\n",pts);
 #endif
-  if (!this->bypass_mode) {
 
     int              a52_output_flags, i;
     sample_t         level = this->class->a52_level;
@@ -428,53 +369,6 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
     buf->vpts       = pts;
 
     this->stream->audio_out->put_buffer (this->stream->audio_out, buf, this->stream);
-
-  } else {
-
-    /*
-     * loop through a52 data
-     */
-
-    if (!this->output_open) {
-      this->output_open = (this->stream->audio_out->open) (this->stream->audio_out,
-						 this->stream, 16,
-                                                           this->parser.a52_sample_rate,
-						 AO_CAP_MODE_A52) ;
-      this->output_mode = AO_CAP_MODE_A52;
-    }
-
-    if (this->output_open && !preview_mode) {
-      /* SPDIF Passthrough
-       * Build SPDIF Header and encaps the A52 audio data in it.
-       */
-      uint32_t /*syncword, crc1,*/ fscod,frmsizecod,/*bsid,*/bsmod,frame_size;
-      uint8_t *data_out,*data_in;
-      audio_buffer_t *buf = this->stream->audio_out->get_buffer (this->stream->audio_out);
-      data_in=(uint8_t *) this->parser.frame_buffer;
-      data_out=(uint8_t *) buf->mem;
-      /*syncword = data_in[0] | (data_in[1] << 8);*/
-      /*crc1 = data_in[2] | (data_in[3] << 8);*/
-      fscod = (data_in[4] >> 6) & 0x3;
-      frmsizecod = data_in[4] & 0x3f;
-      /*bsid = (data_in[5] >> 3) & 0x1f;*/
-      bsmod = data_in[5] & 0x7;		/* bsmod, stream = 0 */
-      frame_size = frmsizecod_tbl[frmsizecod].frm_size[fscod] ;
-
-      data_out[0] = 0x72; data_out[1] = 0xf8;	/* spdif syncword    */
-      data_out[2] = 0x1f; data_out[3] = 0x4e;	/* ..............    */
-      data_out[4] = 0x01;			/* AC3 data          */
-      data_out[5] = bsmod;			/* bsmod, stream = 0 */
-      data_out[6] = (frame_size << 4) & 0xff;   /* frame_size * 16   */
-      data_out[7] = ((frame_size ) >> 4) & 0xff;
-      swab(data_in, &data_out[8], frame_size * 2 );
-
-      buf->num_frames = 1536;
-      buf->vpts       = pts;
-
-      this->stream->audio_out->put_buffer (this->stream->audio_out, buf, this->stream);
-
-    }
-  }
 }
 
 static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
@@ -622,9 +516,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
    * or, if not, how many channels we've got
    */
 
-  if (audio_caps & AO_CAP_MODE_A52)
-    this->bypass_mode = 1;
-  else {
     const int modes[] = {
       AO_CAP_MODE_MONO,        A52_MONO,
       AO_CAP_MODE_STEREO,      A52_STEREO,
@@ -652,8 +543,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
       A52_DOLBY,  2, 4, 6, 8, 10, 0
     };
     int i, j;
-
-    this->bypass_mode = 0;
 
     /* guard against weird audio out */
     if (!(audio_caps & (AO_CAP_MODE_MONO | AO_CAP_MODE_STEREO |
@@ -696,7 +585,6 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
     if (this->ao_flags_map[A52_STEREO] == AO_CAP_MODE_MONO) {
       xprintf (this->stream->xine, XINE_VERBOSITY_LOG, _("HELP! a mono-only audio driver?!\n"));
     }
-  }
 
   /*
     for (i = 0; i<8; i++)
