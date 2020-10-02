@@ -67,6 +67,8 @@
 int a52file;
 #endif
 
+#include "xine_a52_parser.h"
+
 typedef struct {
   audio_decoder_class_t   decoder_class;
   config_values_t *config;
@@ -78,28 +80,6 @@ typedef struct {
   sample_t         lfe_level_1;
   sample_t         lfe_level_2;
 } a52dec_class_t;
-
-typedef struct {
-  uint8_t          got_frame;
-  uint8_t          format_changed;
-  uint8_t          sync_state;
-
-  int              a52_flags;
-  int              a52_bit_rate;
-  int              a52_sample_rate;
-
-  int              frame_length, frame_todo;
-
-  uint16_t         syncword;
-
-  uint8_t         *frame_ptr;
-  uint8_t          frame_buffer[3840];
-} xine_a52_parser_t;
-
-static void xine_a52_parser_reset(xine_a52_parser_t *this) {
-  this->syncword   = 0;
-  this->sync_state = 0;
-}
 
 typedef struct a52dec_decoder_s {
   audio_decoder_t  audio_decoder;
@@ -497,45 +477,6 @@ static void a52dec_decode_frame (a52dec_decoder_t *this, int64_t pts, int previe
   }
 }
 
-static const char *a52_channel_info(int a52_flags) {
-  switch (a52_flags & A52_CHANNEL_MASK) {
-    case A52_3F2R:
-      return (a52_flags & A52_LFE) ? "A/52 5.1" : "A/52 5.0";
-    case A52_3F1R:
-    case A52_2F2R:
-      return (a52_flags & A52_LFE) ? "A/52 4.1" : "A/52 4.0";
-    case A52_2F1R:
-    case A52_3F:
-      return "A/52 3.0";
-    case A52_STEREO:
-      return "A/52 2.0 (stereo)";
-    case A52_DOLBY:
-      return "A/52 2.0 (dolby)";
-    case A52_MONO:
-      return "A/52 1.0";
-    default:
-      return "A/52";
-  }
-}
-
-static void a52_meta_info_set(xine_stream_t *stream, int a52_flags, int bit_rate, int sample_rate) {
-  _x_meta_info_set_utf8 (stream, XINE_META_INFO_AUDIOCODEC,         a52_channel_info(a52_flags));
-  _x_stream_info_set    (stream, XINE_STREAM_INFO_AUDIO_BITRATE,    bit_rate);
-  _x_stream_info_set    (stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, sample_rate);
-}
-
-static void do_swab(uint8_t *p, uint8_t *end) {
-    lprintf ("byte-swapping dnet\n");
-
-    while (p != end) {
-      uint8_t byte = *p++;
-      *(p - 1) = *p;
-      *p++ = byte;
-    }
-}
-
-static size_t a52dec_parse_data(xine_a52_parser_t *this, xine_stream_t *stream, const uint8_t *data, size_t size);
-
 static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
   a52dec_decoder_t *this = xine_container_of(this_gen, a52dec_decoder_t, audio_decoder);
@@ -593,99 +534,17 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
   lprintf ("processing...state %d\n", this->parser.sync_state);
 
   while (buf->size > 0) {
-    int consumed = a52dec_parse_data(&this->parser, this->stream, buf->content, buf->size);
+    int consumed = xine_a52_parse_data(&this->parser, this->stream, buf->content, buf->size);
     buf->content += consumed;
     buf->size -= consumed;
     if (this->parser.got_frame) {
-      if (this->parser.format_changed) {
-        a52_meta_info_set(this->stream, this->parser.a52_flags, this->parser.a52_bit_rate, this->parser.a52_sample_rate);
-      }
       a52dec_decode_frame (this, this->pts, buf->decoder_flags & BUF_FLAG_PREVIEW);
       this->pts = 0;
-    }
-  }
-}
-
-static size_t a52dec_parse_data(xine_a52_parser_t *this, xine_stream_t *stream, const uint8_t *data, size_t size) {
-
-  const uint8_t *const end = data + size;
-  const uint8_t       *current = data;
-  const uint8_t       *sync_start = current + 1;
-
-  this->format_changed = this->got_frame = 0;
-
-  while (current < end) {
-    switch (this->sync_state) {
-    case 0:  /* Looking for sync header */
-	  this->syncword = (this->syncword << 8) | *current++;
-	  if (this->syncword == 0x0b77) {
-
-	    this->frame_buffer[0] = 0x0b;
-	    this->frame_buffer[1] = 0x77;
-
-	    this->sync_state = 1;
-	    this->frame_ptr = this->frame_buffer+2;
-	  }
-          break;
-
-    case 1:  /* Looking for enough bytes for sync_info. */
-          sync_start = current - 1;
-	  *this->frame_ptr++ = *current++;
-          if ((this->frame_ptr - this->frame_buffer) > 16) {
-	    int a52_flags_old       = this->a52_flags;
-	    int a52_sample_rate_old = this->a52_sample_rate;
-	    int a52_bit_rate_old    = this->a52_bit_rate;
-
-	    this->frame_length = a52_syncinfo (this->frame_buffer,
-					       &this->a52_flags,
-					       &this->a52_sample_rate,
-					       &this->a52_bit_rate);
-
-            if (this->frame_length < 80) { /* Invalid a52 frame_length */
-	      this->syncword = 0;
-	      current = sync_start;
-	      this->sync_state = 0;
-	      break;
-	    }
-
-            lprintf("Frame length = %d\n",this->frame_length);
-
-	    this->frame_todo = this->frame_length - 17;
-	    this->sync_state = 2;
-            if (a52_flags_old       != this->a52_flags ||
-                a52_sample_rate_old != this->a52_sample_rate ||
-		a52_bit_rate_old    != this->a52_bit_rate) {
-              this->format_changed = 1;
-            }
-          }
-          break;
-
-    case 2:  /* Filling frame_buffer with sync_info bytes */
-	  *this->frame_ptr++ = *current++;
-	  this->frame_todo--;
-          if (this->frame_todo > 0)
-            break;
-          /* Ready for decode */
-      this->syncword = 0;
-      this->sync_state = 0;
-      if (xine_crc16_ansi (0, &this->frame_buffer[2], this->frame_length - 2) != 0) { /* CRC16 failed */
-	xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "liba52:a52 frame failed crc16 checksum.\n");
-	current = sync_start;
-	break;
-      }
-      this->got_frame = 1;
-      return (current - data);
-          break;
-    default: /* No come here */
-          break;
-    }
-  }
-
 #ifdef DEBUG_A52
-      write (a52file, this->frame_buffer, this->frame_length);
+      write (a52file, this->parser.frame_buffer, this->parser.frame_length);
 #endif
-
-  return size;
+    }
+  }
 }
 
 static void a52dec_dispose (audio_decoder_t *this_gen) {
