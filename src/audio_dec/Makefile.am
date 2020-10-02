@@ -88,7 +88,7 @@ xineplug_decode_mad_la_DEPENDENCIES = $(LIBMAD_DEPS)
 xineplug_decode_mad_la_LIBADD = $(XINE_LIB) $(LIBMAD_LIBS)
 xineplug_decode_mad_la_CFLAGS = $(AM_CFLAGS) $(LIBMAD_CFLAGS)
 
-xineplug_decode_a52_la_SOURCES = xine_a52_decoder.c
+xineplug_decode_a52_la_SOURCES = xine_a52_decoder.c xine_a52_parser.h
 xineplug_decode_a52_la_DEPENDENCIES = $(A52DEC_DEPS)
 xineplug_decode_a52_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(A52DEC_LIBS) -lm
 xineplug_decode_a52_la_CFLAGS = $(AM_CFLAGS) $(A52DEC_CFLAGS)
