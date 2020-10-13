@@ -137,8 +137,12 @@ to the extent permitted by law.\n",
     for (;;)
     {
       text = sep + 1;
-      sep = strchr (text, ';') ? : text + strlen (text);
-      sep2 = which == 'a' ? sep : strchr (text, ':') ? : sep;
+      sep = strchr (text, ';');
+      if (!sep)
+        sep = text + strlen (text);
+      sep2 = which == 'a' ? sep : strchr (text, ':');
+      if (!sep2)
+        sep2 = sep;
       if (!*sep)
         break;
       if (printf ("%.*s;", (int)(sep2 - text), text) < 0 || (lf && puts ("") < 0))
@@ -154,7 +158,9 @@ to the extent permitted by law.\n",
     do
     {
       text = sep + 1;
-      sep = strchr (text, ' ') ? : text + strlen (text);
+      sep = strchr (text, ' ');
+      if (!sep)
+        sep = text + strlen (text);
       if (sep[-1] != '/' &&
           printf ("%.*s%s", (int)(sep - text), text, lf ? "\n" : *sep ? " " : "") < 0)
         goto write_fail;
