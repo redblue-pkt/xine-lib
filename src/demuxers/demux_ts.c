@@ -701,7 +701,7 @@ static int demux_ts_dynamic_pmt_find (demux_ts_t *this,
       this->audio_tracks[this->audio_tracks_count].pid = pid;
       this->audio_tracks[this->audio_tracks_count].media_index = i;
       this->audio_tracks_count++;
-      m->fifo = this->stream->audio_fifo;
+      m->fifo = this->audio_fifo;
       switch (descriptor_tag) {
         case ISO_13818_PART7_AUDIO:   m->audio_type = BUF_AUDIO_AAC;      break;
         case ISO_14496_PART3_AUDIO:   m->audio_type = BUF_AUDIO_AAC_LATM; break;
@@ -716,7 +716,7 @@ static int demux_ts_dynamic_pmt_find (demux_ts_t *this,
     } else if (type == BUF_VIDEO_BASE) {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: new video pid %d\n", pid);
       this->get_frametype = frametype_mpeg;
-      m->fifo = this->stream->video_fifo;
+      m->fifo = this->video_fifo;
       switch (descriptor_tag) {
         case ISO_14496_PART2_VIDEO:  m->video_type = BUF_VIDEO_MPEG4;
                                      this->get_frametype = NULL;           break;
@@ -730,7 +730,7 @@ static int demux_ts_dynamic_pmt_find (demux_ts_t *this,
       }
     } else {
       xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "demux_ts: new subtitle pid %d\n", pid);
-      m->fifo = this->stream->video_fifo;
+      m->fifo = this->video_fifo;
     }
 
     if (m->buf) {
@@ -1153,7 +1153,7 @@ static void demux_ts_flush(demux_ts_t *this)
 
   /* append sequence end code to video stream */
   if (this->videoPid != INVALID_PID)
-    post_sequence_end(this->stream->video_fifo, this->media[this->videoMedia].type);
+    post_sequence_end(this->video_fifo, this->media[this->videoMedia].type);
 }
 
 /*
@@ -3000,8 +3000,8 @@ static int demux_ts_seek (demux_plugin_t *this_gen,
     /* Append sequence end code to video stream. */
     /* Keep ffmpeg h.264 video decoder from piling up too many DR1 frames, */
     /* and thus freezing video out. */
-    if (this->videoPid != INVALID_PID && this->stream->video_fifo)
-      post_sequence_end (this->stream->video_fifo, this->media[this->videoMedia].type);
+    if (this->videoPid != INVALID_PID && this->video_fifo)
+      post_sequence_end (this->video_fifo, this->media[this->videoMedia].type);
   }
 
   if (this->stream->master != this->stream) {
