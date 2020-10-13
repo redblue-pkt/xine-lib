@@ -1121,7 +1121,7 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
   this->class  = class;
   this->stream = stream;
 
-  return (spu_decoder_t *) this;
+  return &this->spu_decoder;
 }
 
 static void sputext_class_dispose (spu_decoder_class_t *class_gen) {
