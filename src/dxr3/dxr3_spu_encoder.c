@@ -462,7 +462,7 @@ static void write_rle(spu_encoder_t *this, int *offset, int *higher_nibble, int 
     write_nibble(this, offset, higher_nibble, (length & 0xc) | color);
     return;
   }
-  _x_abort();
+  _x_assert(length == 0);
 }
 
 static void write_byte(spu_encoder_t *this, int *offset, uint8_t byte)
