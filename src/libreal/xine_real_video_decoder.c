@@ -194,7 +194,7 @@ static int init_codec (realdec_decoder_t *this, buf_element_t *buf) {
   default:
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
 	     "libreal: error, i don't handle buf type 0x%08x\n", buf->type);
-    _x_abort();
+    return 0;
   }
 
   init_data.w = _X_BE_16(&buf->content[12]);
