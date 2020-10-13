@@ -259,8 +259,8 @@ static void directfb_update_frame_format (vo_driver_t *this_gen,
   (void)flags;
 
   if (frame->surface == NULL   ||
-      frame->width   != width  ||
-      frame->height  != height ||
+      frame->width   != (int)width  ||
+      frame->height  != (int)height ||
       frame->format  != format)
   {
     DFBSurfaceDescription dsc;
@@ -1828,7 +1828,7 @@ static vo_driver_t *open_plugin_fb (video_driver_class_t *class_gen, const void 
                              _("video layer id (auto: -1)"),
                              _("Select the video output layer by its id."),
                              20, NULL, 0);
-  if (id == -1) {
+  if (id == (DFBDisplayLayerID)-1) {
     IDirectFBScreen *screen;
 
     /* retrieve an interface to the current screen */
