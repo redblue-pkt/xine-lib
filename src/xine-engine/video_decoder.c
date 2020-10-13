@@ -620,6 +620,8 @@ int _x_video_decoder_init (xine_stream_t *s) {
         "Higher values mean smoother playback for unreliable inputs, but also increased "
         "latency and memory consumption."),
       20, NULL, NULL);
+    if (num_buffers < 50)
+      num_buffers = 50;
     if (num_buffers > 5000)
       num_buffers = 5000;
 
