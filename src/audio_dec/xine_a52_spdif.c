@@ -244,8 +244,6 @@ static void a52dec_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     this->pts = buf->pts;
   }
 
-  lprintf ("processing...state %d\n", this->sync_state);
-
   while (buf->size > 0) {
     int consumed = xine_a52_parse_data(&this->parser, this->stream, buf->content, buf->size);
     buf->content += consumed;
