@@ -494,6 +494,9 @@ static void argb_overlay_proc(void *this_gen, const BD_ARGB_OVERLAY * const ov)
 
       osd_buf_unlock(&this->osd_buf.buf);
       return;
+  case BD_ARGB_OVERLAY_DRAW:
+    /* nothing to do, DRI in use */
+    break;
 
    default:
       lprintf("unknown ARGB overlay command %d\n", ov->cmd);
