@@ -86,7 +86,7 @@ int dca_downmix_init (int input, int flags, level_t * level,
 
     output = flags & DCA_CHANNEL_MASK;
 
-    if (output > DCA_CHANNEL_MAX)
+    if (output > DCA_CHANNEL_MAX || input > 9)
 	return -1;
 
     output = table[output][input];
