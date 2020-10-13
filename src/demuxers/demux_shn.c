@@ -50,7 +50,6 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
-  int                  seek_flag;  /* this is set when a seek just occurred */
 } demux_shn_t;
 
 
