@@ -747,7 +747,7 @@ vcdplayer_pbc_nav (vcdplayer_t *p_vcdplayer, uint8_t *p_buf)
     return READ_BLOCK;
   }
 
-  switch (p_vcdplayer->pxd.descriptor_type) {
+  switch ((unsigned)p_vcdplayer->pxd.descriptor_type) {
   case PSD_TYPE_END_LIST:
     return READ_END;
     break;
