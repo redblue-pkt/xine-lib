@@ -1210,7 +1210,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
 
   this->mixer.elem = 0;
   pcm_device = this->devs[0].name;
-  if ((err = snd_ctl_open (&ctl_handle, pcm_device, 0)) < 0) {
+  err = snd_ctl_open (&ctl_handle, pcm_device, 0);
+  if (err < 0) {
     xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "audio_alsa_out: snd_ctl_open(): %s\n", snd_strerror(err));
     return;
   }
