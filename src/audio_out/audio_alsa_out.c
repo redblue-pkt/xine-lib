@@ -890,7 +890,7 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
         if ((res = snd_pcm_prepare(this->audio_fd))<0) {
           xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
 		  "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
-	  _x_abort();
+          return 0;
         }
       }
     }
