@@ -1764,6 +1764,12 @@ int  xine_config_lookup_entry (xine_t *self, const char *key,
 			       xine_cfg_entry_t *entry) XINE_PROTECTED;
 
 /*
+ * Helper function to get numeric value of config entry.
+ * Return def_value if entry was not found (or is not correct type).
+ */
+int xine_config_lookup_num(xine_t *self, const char *key, int def_value) XINE_PROTECTED;
+
+/*
  * Thread-safe helper function to get string value of config entry.
  * Return copy of current value or NULL.
  * Returned string must be freed with xine_config_free_str().

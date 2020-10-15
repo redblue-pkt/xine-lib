@@ -887,6 +887,35 @@ static void config_free_string(config_values_t *this, char **str)
   _x_freep(str);
 }
 
+static int config_lookup_num(config_values_t *this, const char *key, int def_value) {
+  cfg_entry_t *entry;
+  int value = def_value;
+
+  entry = config_lookup_entry_safe(this, key);
+  if (!entry) {
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_LOG, "configfile: WARNING: entry %s not found\n", key);
+    goto out;
+  }
+
+  switch (entry->type) {
+    case XINE_CONFIG_TYPE_RANGE:
+    case XINE_CONFIG_TYPE_ENUM:
+    case XINE_CONFIG_TYPE_NUM:
+    case XINE_CONFIG_TYPE_BOOL:
+      value = entry->num_value;
+      break;
+    default:
+      if (this->xine)
+        xprintf (this->xine, XINE_VERBOSITY_LOG, "configfile: WARNING: %s is not numeric entry\n", key);
+      break;
+  }
+
+out:
+  pthread_mutex_unlock(&this->config_lock);
+  return value;
+}
+
 static void config_reset_value(cfg_entry_t *entry) {
   /* NULL is a frequent case. */
   if (entry->str_value)   {free (entry->str_value);   entry->str_value = NULL;}
@@ -2143,6 +2172,7 @@ config_values_t *_x_config_init (void) {
   this->unset_new_entry_callback  = config_unset_new_entry_callback;
   this->get_serialized_entry      = config_get_serialized_entry;
   this->unregister_callbacks      = config_unregister_callbacks;
+  this->lookup_num                = config_lookup_num;
   this->lookup_string             = config_lookup_string;
   this->free_string               = config_free_string;
 
