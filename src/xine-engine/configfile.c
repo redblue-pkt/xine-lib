@@ -994,7 +994,7 @@ static char *config_register_string (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  if (!this || !key || !def_value) {
+  if (!key || !def_value) {
     if (this->xine)
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "config_register_string: error: config=%p, key=%s, def_value=%s.\n",
@@ -1030,7 +1030,7 @@ static char *config_register_filename (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  if (!this || !key || !def_value) {
+  if (!key || !def_value) {
     if (this->xine)
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "config_register_filename: error: config=%p, key=%s, def_value=%s.\n",
@@ -1070,7 +1070,7 @@ static int config_register_num (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  if (!this || !key) {
+  if (!key) {
     if (this->xine)
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "config_register_num: error: config=%p, key=%s.\n",
@@ -1105,7 +1105,7 @@ static int config_register_bool (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  if (!this || !key) {
+  if (!key) {
     if (this->xine)
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "config_register_bool: error: config=%p, key=%s.\n",
@@ -1141,7 +1141,7 @@ static int config_register_range (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  if (!this || !key) {
+  if (!key) {
     if (this->xine)
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "config_register_range: error: config=%p, key=%s.\n",
@@ -1220,7 +1220,7 @@ static int config_register_enum (config_values_t *this,
 
   cfg_entry_t *entry;
 
-  if (!this || !key || !values) {
+  if (!key || !values) {
     if (this->xine)
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                "config_register_enum: error: config=%p, key=%s, values=%p.\n",
