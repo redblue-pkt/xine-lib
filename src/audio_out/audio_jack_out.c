@@ -601,7 +601,7 @@ static int ao_jack_write (ao_driver_t *this_gen, int16_t *frame_buffer,
     /* Sleep to save CPU */
     int until_callback =
       this->fragment_size - jack_frames_since_cycle_start (this->client);
-    if ((until_callback < 0) || (until_callback > this->fragment_size)) {
+    if ((until_callback < 0) || ((unsigned)until_callback > this->fragment_size)) {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG,
 	       "ao_jack_write: Invalid until_callback %d\n", until_callback);
       until_callback = this->fragment_size;
