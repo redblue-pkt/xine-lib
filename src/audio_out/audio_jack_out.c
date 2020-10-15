@@ -312,10 +312,9 @@ static void jack_shutdown (void *arg)
  * Return 1 on success, 0 on failure
  * All error handling rests with the caller, we just try to open the device here
  */
-static int jack_open_device (ao_driver_t *this_gen, char *jack_device,
+static int jack_open_device (jack_driver_t *this, char *jack_device,
 			     int32_t *poutput_sample_rate, int num_channels)
 {
-  jack_driver_t *this = (jack_driver_t *) this_gen;
   const char **matching_ports = NULL;
   jack_client_t *client = this->client;
 
@@ -510,7 +509,7 @@ static int ao_jack_open (ao_driver_t *this_gen, uint32_t bits, uint32_t rate,
   /*
    * open audio device
    */
-  if (!jack_open_device (this_gen, jack_device, &(this->output_sample_rate),
+  if (!jack_open_device (this, jack_device, &(this->output_sample_rate),
 			 this->num_channels))
     return 0;
 
