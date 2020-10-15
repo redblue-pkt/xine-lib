@@ -319,7 +319,7 @@ void xine_config_update_entry (xine_t *this, const xine_cfg_entry_t *entry) {
   default:
     xprintf (this, XINE_VERBOSITY_DEBUG,
 	     "xine_interface: error, unknown config entry type %d\n", entry->type);
-    _x_abort();
+    break;
   }
 }
 
