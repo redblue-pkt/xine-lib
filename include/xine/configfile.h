@@ -253,6 +253,14 @@ struct config_values_s {
    * Set this manually to enable logging.
    */
   xine_t *xine;
+
+  /**
+   * MT-safe convenience function to lookup string values.
+   * Returns copy of current value or NULL.
+   * Returned string must be freed with config->free_string().
+   */
+  char * (*lookup_string)(config_values_t *, const char *key);
+  void   (*free_string)(config_values_t *, char **);
 };
 
 /**

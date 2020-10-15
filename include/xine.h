@@ -1764,6 +1764,14 @@ int  xine_config_lookup_entry (xine_t *self, const char *key,
 			       xine_cfg_entry_t *entry) XINE_PROTECTED;
 
 /*
+ * Thread-safe helper function to get string value of config entry.
+ * Return copy of current value or NULL.
+ * Returned string must be freed with xine_config_free_str().
+ */
+char *xine_config_lookup_string(xine_t *self, const char *key) XINE_PROTECTED;
+void xine_config_free_string(xine_t *self, char **value) XINE_PROTECTED;
+
+/*
  * update a config entry (which was returned from lookup_entry() )
  *
  * xine will make a deep copy of the data in the entry into its internal
