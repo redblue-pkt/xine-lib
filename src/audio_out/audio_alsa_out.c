@@ -1197,7 +1197,7 @@ static int ao_alsa_ctrl(ao_driver_t *this_gen, int cmd, ...) {
 static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
   alsa_driver_t        *this = (alsa_driver_t *) this_gen;
   config_values_t      *config = this->class->xine->config;
-  char                 *pcm_device;
+  const char           *pcm_device;
   snd_ctl_t            *ctl_handle;
   int                   err;
   void                 *mixer_sid;
