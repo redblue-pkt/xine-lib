@@ -312,7 +312,7 @@ static void jack_shutdown (void *arg)
  * Return 1 on success, 0 on failure
  * All error handling rests with the caller, we just try to open the device here
  */
-static int jack_open_device (jack_driver_t *this, char *jack_device,
+static int jack_open_device (jack_driver_t *this, const char *jack_device,
 			     int32_t *poutput_sample_rate, int num_channels)
 {
   const char **matching_ports = NULL;
@@ -424,16 +424,9 @@ static void ao_jack_close (ao_driver_t *this_gen)
 /*
  * open the audio device for writing to
  */
-static int ao_jack_open (ao_driver_t *this_gen, uint32_t bits, uint32_t rate,
-			 int mode)
+static int ao_jack_open_int (jack_driver_t *this, const char *jack_device,
+                             uint32_t bits, uint32_t rate, int mode)
 {
-  jack_driver_t *this = (jack_driver_t *) this_gen;
-  config_values_t *config = this->xine->config;
-  char *jack_device;
-
-  jack_device =
-    config->lookup_entry (config, "audio.device.jack_device_name")->str_value;
-
   xprintf (this->xine, XINE_VERBOSITY_DEBUG,
 	   "ao_jack_open: ao_open rate=%d, mode=%d, bits=%d dev=%s\n", rate,
 	   mode, bits, jack_device);
@@ -458,7 +451,7 @@ static int ao_jack_open (ao_driver_t *this_gen, uint32_t bits, uint32_t rate,
       return this->output_sample_rate;
     }
 
-    ao_jack_close (this_gen);
+    ao_jack_close (&this->ao_driver);
   }
 
 
@@ -522,6 +515,24 @@ static int ao_jack_open (ao_driver_t *this_gen, uint32_t bits, uint32_t rate,
   return this->output_sample_rate;
 }
 
+static int ao_jack_open (ao_driver_t *this_gen,
+                         uint32_t bits, uint32_t rate, int mode)
+{
+  jack_driver_t *this = (jack_driver_t *) this_gen;
+  char *jack_device;
+  int result;
+
+  jack_device = xine_config_lookup_string(this->xine, "audio.device.jack_device_name");
+  if (!jack_device) {
+    xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+             "ao_jack_open: no audio.device.jack_device_name in config\n");
+    /* not fatal - this is tested later */
+  }
+
+  result = ao_jack_open_int(this, jack_device, bits, rate, mode);
+  xine_config_free_string(this->xine, &jack_device);
+  return result;
+}
 
 static int ao_jack_num_channels (ao_driver_t *this_gen)
 {
