@@ -185,6 +185,10 @@ int xine_config_unregister_callbacks (xine_t *self,
   return self->config->unregister_callbacks (self->config, key, changed_cb, cb_data, cb_data_size);
 }
 
+int xine_config_lookup_num(xine_t *this, const char *key, int def_value) {
+  return this->config->lookup_num(this->config, key, def_value);
+}
+
 char *xine_config_lookup_string(xine_t *this, const char *key) {
   return this->config->lookup_string(this->config, key);
 }

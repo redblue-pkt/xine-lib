@@ -261,6 +261,9 @@ struct config_values_s {
    */
   char * (*lookup_string)(config_values_t *, const char *key);
   void   (*free_string)(config_values_t *, char **);
+
+  /** convenience function to lookup numeric values */
+  int    (*lookup_num)(config_values_t *, const char *key, int def_value);
 };
 
 /**
