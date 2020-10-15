@@ -832,10 +832,9 @@ static int ao_alsa_write(ao_driver_t *this_gen, int16_t *data, uint32_t count) {
     snd_pcm_status_dump (this->pcm_status, jcd_out);
 #endif
     if ((res = snd_pcm_prepare(this->audio_fd))<0) {
-      return 0;
       xprintf(this->class->xine, XINE_VERBOSITY_DEBUG,
-	      "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
-      _x_abort();
+              "audio_alsa_out: xrun: prepare error: %s", snd_strerror(res));
+      return 0;
     }
     state = snd_pcm_state(this->audio_fd);
 #ifdef LOG_DEBUG
