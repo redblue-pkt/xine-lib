@@ -971,6 +971,8 @@ static void ao_alsa_exit(ao_driver_t *this_gen) {
   if (this->audio_fd) snd_pcm_close(this->audio_fd);
   this->audio_fd=NULL;
 
+  xine_config_free_string(this->class->xine, &this->mixer.name);
+
   {
     uint32_t u;
     for (u = 0; u < sizeof (this->devs) / sizeof (this->devs[0]); u++) {
@@ -1347,7 +1349,8 @@ static void ao_alsa_mixer_init(ao_driver_t *this_gen) {
     config->update_string(config, "audio.device.alsa_mixer_name", "PCM");
   }
 
-  this->mixer.name = config->lookup_entry(config, "audio.device.alsa_mixer_name")->str_value;
+  config->free_string(config, &this->mixer.name);
+  this->mixer.name = config->lookup_string(config, "audio.device.alsa_mixer_name");
 
   goto again;
 
@@ -1861,13 +1864,14 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     if (!this->capabilities)
       break;
 
-    this->mixer.name = config->register_string (config,
+    config->register_string (config,
       "audio.device.alsa_mixer_name",
       "PCM",
       _("alsa mixer device"),
       _("xine will use this alsa mixer device to change the volume.\n"
         "See the alsa documentation for information on alsa devices."),
       10, NULL, NULL);
+    this->mixer.name = config->lookup_string(config, "audio.device.alsa_mixer_name");
     if (!this->mixer.name)
       break;
 
