@@ -55,7 +55,7 @@ typedef struct jack_driver_s
   int		paused;
   int		underrun;
 
-  int32_t	output_sample_rate, input_sample_rate;
+  uint32_t	output_sample_rate, input_sample_rate;
   uint32_t	num_channels;
   uint32_t	bits_per_sample;
   uint32_t	bytes_per_frame;
@@ -207,13 +207,13 @@ static int write_buffer_16 (jack_driver_t *this, unsigned char *data, int len)
  * If there is not enough data in the buffer remaining parts will be filled
  * with silence.
  */
-static int read_buffer (jack_driver_t *this, float **bufs, int cnt,
-			int num_bufs, float gain)
+static jack_nframes_t read_buffer (jack_driver_t *this, float **bufs, jack_nframes_t cnt,
+                                   unsigned num_bufs, float gain)
 {
   int buffered = buf_used (this);
-  int i, j;
-  int orig_cnt = cnt;
-  if (cnt * sizeof (float) * num_bufs > buffered)
+  unsigned j;
+  jack_nframes_t i, orig_cnt = cnt;
+  if (cnt * num_bufs > buffered / sizeof(float))
     cnt = buffered / (sizeof (float) * num_bufs);
 
   uint32_t read_pos = this->read_pos;
@@ -281,14 +281,14 @@ static int jack_callback (jack_nframes_t nframes, void *arg)
   }
 
   float *bufs[MAX_CHANS];
-  int i;
+  unsigned i;
   for (i = 0; i < this->num_channels; i++)
     bufs[i] = jack_port_get_buffer (this->ports[i], nframes);
 
   if (this->paused || this->underrun) {
     silence (bufs, nframes, this->num_channels);
   } else {
-    int frames_read = read_buffer (this, bufs, nframes, this->num_channels, gain);
+    jack_nframes_t frames_read = read_buffer (this, bufs, nframes, this->num_channels, gain);
     if (frames_read < nframes) {
       xprintf (this->xine, XINE_VERBOSITY_LOG,
 	       "jack_callback: underrun - frames read: %d\n", frames_read);
@@ -313,7 +313,7 @@ static void jack_shutdown (void *arg)
  * All error handling rests with the caller, we just try to open the device here
  */
 static int jack_open_device (jack_driver_t *this, const char *jack_device,
-			     int32_t *poutput_sample_rate, int num_channels)
+                             uint32_t *poutput_sample_rate, int num_channels)
 {
   const char **matching_ports = NULL;
   jack_client_t *client = this->client;
