@@ -995,8 +995,10 @@ static char *config_register_string (config_values_t *this,
   cfg_entry_t *entry;
 
   if (!this || !key || !def_value) {
-    printf ("config_register_string: error: config=%p, key=%s, def_value=%s.\n",
-    (void *)this, key ? key : "NULL", def_value ? def_value : "NULL");
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "config_register_string: error: config=%p, key=%s, def_value=%s.\n",
+               (void *)this, key ? key : "NULL", def_value ? def_value : "NULL");
     return NULL;
   }
 
@@ -1029,8 +1031,10 @@ static char *config_register_filename (config_values_t *this,
   cfg_entry_t *entry;
 
   if (!this || !key || !def_value) {
-    printf ("config_register_filename: error: config=%p, key=%s, def_value=%s.\n",
-    (void *)this, key ? key : "NULL", def_value ? def_value : "NULL");
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "config_register_filename: error: config=%p, key=%s, def_value=%s.\n",
+               (void *)this, key ? key : "NULL", def_value ? def_value : "NULL");
     return NULL;
   }
 
@@ -1067,8 +1071,10 @@ static int config_register_num (config_values_t *this,
   cfg_entry_t *entry;
 
   if (!this || !key) {
-    printf ("config_register_num: error: config=%p, key=%s.\n",
-    (void *)this, key ? key : "NULL");
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "config_register_num: error: config=%p, key=%s.\n",
+               (void *)this, key ? key : "NULL");
     return 0;
   }
 
@@ -1100,8 +1106,10 @@ static int config_register_bool (config_values_t *this,
   cfg_entry_t *entry;
 
   if (!this || !key) {
-    printf ("config_register_bool: error: config=%p, key=%s.\n",
-    (void *)this, key ? key : "NULL");
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "config_register_bool: error: config=%p, key=%s.\n",
+               (void *)this, key ? key : "NULL");
     return 0;
   }
 
@@ -1134,8 +1142,10 @@ static int config_register_range (config_values_t *this,
   cfg_entry_t *entry;
 
   if (!this || !key) {
-    printf ("config_register_range: error: config=%p, key=%s.\n",
-    (void *)this, key ? key : "NULL");
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "config_register_range: error: config=%p, key=%s.\n",
+               (void *)this, key ? key : "NULL");
     return 0;
   }
 
@@ -1211,8 +1221,10 @@ static int config_register_enum (config_values_t *this,
   cfg_entry_t *entry;
 
   if (!this || !key || !values) {
-    printf ("config_register_enum: error: config=%p, key=%s, values=%p.\n",
-    (void *)this, key ? key : "NULL", (void *)values);
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "config_register_enum: error: config=%p, key=%s, values=%p.\n",
+               (void *)this, key ? key : "NULL", (void *)values);
     return 0;
   }
 
@@ -1322,8 +1334,10 @@ static void config_update_num (config_values_t *this, const char *key, int value
   }
   if ((entry->type == XINE_CONFIG_TYPE_UNKNOWN)
       || (entry->type == XINE_CONFIG_TYPE_STRING)) {
-    printf ("configfile: error - tried to update non-num type %d (key %s, value %d)\n",
-	    entry->type, entry->key, value);
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "configfile: error - tried to update non-num type %d (key %s, value %d)\n",
+               entry->type, entry->key, value);
     pthread_mutex_unlock (&this->config_lock);
     return;
   }
@@ -1408,7 +1422,9 @@ static void config_update_string (config_values_t *this, const char *key, const 
   lprintf ("updating %s to %s\n", key, value);
   entry = config_lookup_entry_safe (this, key);
   if (!entry) {
-    printf ("configfile: error - tried to update unknown key %s (to %s)\n", key, value);
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+               "configfile: error - tried to update unknown key %s (to %s)\n", key, value);
     pthread_mutex_unlock (&this->config_lock);
     return;
   }
