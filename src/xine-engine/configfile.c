@@ -855,6 +855,38 @@ static cfg_entry_t *config_lookup_entry_safe (config_values_t *this, const char 
   return this->lookup_entry (this, key);
 }
 
+static char *config_lookup_string(config_values_t *this, const char *key) {
+  cfg_entry_t *entry;
+  char *str_value = NULL;
+
+  entry = config_lookup_entry_safe(this, key);
+  if (!entry) {
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_LOG, "configfile: WARNING: entry %s not found\n", key);
+    goto out;
+  }
+
+  if (entry->type != XINE_CONFIG_TYPE_STRING) {
+    if (this->xine)
+      xprintf (this->xine, XINE_VERBOSITY_LOG, "configfile: WARNING: %s is not string entry\n", key);
+    goto out;
+  }
+
+  if (entry->str_value) {
+    str_value = strdup(entry->str_value);
+  }
+
+out:
+  pthread_mutex_unlock(&this->config_lock);
+  return str_value;
+}
+
+static void config_free_string(config_values_t *this, char **str)
+{
+  (void)this;
+  _x_freep(str);
+}
+
 static void config_reset_value(cfg_entry_t *entry) {
   /* NULL is a frequent case. */
   if (entry->str_value)   {free (entry->str_value);   entry->str_value = NULL;}
@@ -2111,6 +2143,8 @@ config_values_t *_x_config_init (void) {
   this->unset_new_entry_callback  = config_unset_new_entry_callback;
   this->get_serialized_entry      = config_get_serialized_entry;
   this->unregister_callbacks      = config_unregister_callbacks;
+  this->lookup_string             = config_lookup_string;
+  this->free_string               = config_free_string;
 
   return this;
 }
