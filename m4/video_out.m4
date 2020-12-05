@@ -47,6 +47,7 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
         freebsd*|kfreebsd*)
             default_enable_vidix=yes
             default_enable_vdpau=yes
+            default_enable_vaapi=yes
             ;;
 
         gnu*)
