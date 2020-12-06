@@ -722,22 +722,22 @@ static int pnm_get_stream_chunk(pnm_t *p) {
 
 pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
 
-  char *mrl_ptr=strdup(mrl);
-  char *slash, *colon;
+  const char *mrl_ptr, *slash, *colon;
   size_t pathbegin, hostend;
   pnm_t *p;
   int fd;
   int need_response=0;
 
-  if (strncmp(mrl,"pnm://",6))
-  {
-    free (mrl_ptr);
+  if (strncmp(mrl, "pnm://", 6)) {
     return NULL;
   }
 
-  mrl_ptr+=6;
+  mrl_ptr = mrl + 6;
 
   p = calloc(1, sizeof(pnm_t));
+  if (!p) {
+    return NULL;
+  }
   p->stream = stream;
   p->port=7070;
   p->url=strdup(mrl);
@@ -762,8 +762,6 @@ pnm_t *pnm_connect(xine_stream_t *stream, const char *mrl) {
     p->buffer[pathbegin-hostend-1]=0;
     p->port=atoi(p->buffer);
   }
-
-  free(mrl_ptr-6);
 
   lprintf("got mrl: %s %i %s\n",p->host,p->port,p->path);
 
