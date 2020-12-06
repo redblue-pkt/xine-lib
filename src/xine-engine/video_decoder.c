@@ -69,12 +69,14 @@ static void update_spu_decoder (xine_stream_t *stream, int type) {
 
 int _x_spu_decoder_sleep (xine_stream_t *s, int64_t next_spu_vpts) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
-  xine_private_t *xine = (xine_private_t *)stream->s.xine;
+  xine_private_t *xine;
   int64_t time, wait;
   int thread_vacant = 1;
 
   if (!stream)
     return 0;
+
+  xine = (xine_private_t *)stream->s.xine;
 
   /* we wait until one second before the next SPU is due */
   next_spu_vpts -= 90000;
