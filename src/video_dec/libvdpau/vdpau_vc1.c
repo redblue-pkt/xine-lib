@@ -1124,6 +1124,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
     accel->unlock (accel->vo_frame);
 
   this = (vdpau_vc1_decoder_t *) calloc(1, sizeof(vdpau_vc1_decoder_t));
+  if (!this)
+    return NULL;
 
   this->video_decoder.decode_data         = vdpau_vc1_decode_data;
   this->video_decoder.flush               = vdpau_vc1_flush;

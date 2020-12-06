@@ -381,6 +381,9 @@ static int find_avformat_streams(avformat_demux_plugin_t *this) {
   this->num_streams = this->fmt_ctx->nb_streams;
   this->xine_buf_type = calloc(this->num_streams, sizeof(uint32_t));
   this->audio_stream_idx = calloc(this->num_streams, sizeof(int));
+  if (!this->xine_buf_type || !this->audio_stream_idx) {
+    return 0;
+  }
 
   /* map video stream to xine buffer type */
 
@@ -861,6 +864,10 @@ static demux_plugin_t *open_demux_avformat_plugin (demux_class_t *class_gen,
   avformat_demux_plugin_t *this;
 
   this         = calloc(1, sizeof(avformat_demux_plugin_t));
+  if (!this) {
+    avformat_close_input(&fmt_ctx);
+    return NULL;
+  }
   this->stream = stream;
 
   this->demux_plugin.send_headers      = demux_avformat_send_headers;

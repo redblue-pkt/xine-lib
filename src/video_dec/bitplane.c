@@ -253,6 +253,8 @@ static uint8_t *bitplane_decode_byterun1 (uint8_t *compressed,
   int j                                 = 0;
 
   uint8_t *uncompressed                 = calloc(1, size_uncompressed );
+  if (!uncompressed)
+    return NULL;
 
   while ( i < size_compressed &&
           pixel_ptr < size_uncompressed ) {
