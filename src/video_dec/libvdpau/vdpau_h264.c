@@ -486,6 +486,8 @@ struct nal_buffer {
 static struct nal_buffer* create_nal_buffer(uint8_t max_size)
 {
     struct nal_buffer *nal_buffer = calloc(1, sizeof(struct nal_buffer));
+    if (!nal_buffer)
+      return NULL;
     nal_buffer->max_size = max_size;
 
     return nal_buffer;
@@ -649,6 +651,8 @@ static struct nal_unit* nal_buffer_get_by_pps_id(struct nal_buffer *nal_buffer,
 static struct nal_unit* create_nal_unit()
 {
   struct nal_unit *nal = calloc(1, sizeof(struct nal_unit));
+  if (!nal)
+    retun NULL;
   nal->lock_counter = 1;
 
   return nal;
@@ -860,6 +864,8 @@ static void decoded_pic_check_reference(struct decoded_picture *pic)
 static struct decoded_picture* init_decoded_picture(struct coded_picture *cpic, vo_frame_t *img)
 {
   struct decoded_picture *pic = calloc(1, sizeof(struct decoded_picture));
+  if (!pic)
+    return NULL;
 
   pic->coded_pic[0] = cpic;
 
@@ -912,6 +918,8 @@ static void lock_decoded_picture(struct decoded_picture *pic)
 static struct dpb* create_dpb(void)
 {
     struct dpb *dpb = calloc(1, sizeof(struct dpb));
+    if (!dpb)
+      return NULL;
 
     dpb->output_list = xine_list_new();
     dpb->reference_list = xine_list_new();
@@ -2947,20 +2955,6 @@ static void parse_dec_ref_pic_marking(struct buf_reader *buf,
 
 /* ----------------- NAL parser ----------------- */
 
-static struct h264_parser* init_parser(xine_t *xine)
-{
-  struct h264_parser *parser = calloc(1, sizeof(struct h264_parser));
-  parser->pic = create_coded_picture();
-  parser->position = NON_VCL;
-  parser->last_vcl_nal = NULL;
-  parser->sps_buffer = create_nal_buffer(32);
-  parser->pps_buffer = create_nal_buffer(32);
-  parser->xine = xine;
-  parser->dpb = create_dpb();
-
-  return parser;
-}
-
 #if 0
 static void reset_parser(struct h264_parser *parser)
 {
@@ -3010,6 +3004,28 @@ static void free_parser(struct h264_parser *parser)
   free(parser);
 }
 
+static struct h264_parser* init_parser(xine_t *xine)
+{
+  struct h264_parser *parser = calloc(1, sizeof(struct h264_parser));
+  if (!parser)
+    return NULL;
+
+  parser->pic = create_coded_picture();
+  parser->position = NON_VCL;
+  parser->last_vcl_nal = NULL;
+  parser->sps_buffer = create_nal_buffer(32);
+  parser->pps_buffer = create_nal_buffer(32);
+  parser->xine = xine;
+  parser->dpb = create_dpb();
+
+  if (!parser->dpb || !parser->pic || !parser->pps_buffer || !parser->sps_buffer) {
+    free_parser(parser);
+    return NULL;
+  }
+  return parser;
+}
+
+
 static void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf, int inbuf_len)
 {
   struct buf_reader bufr;
@@ -3021,7 +3037,8 @@ static void parse_codec_private(struct h264_parser *parser, const uint8_t *inbuf
 
   // FIXME: Might be broken!
   struct nal_unit *nal = calloc(1, sizeof(struct nal_unit));
-
+  if (!nal)
+    return;
 
   /* reserved */
   read_bits(&bufr, 8);
@@ -4369,9 +4386,13 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
     accel->unlock (accel->vo_frame);
 
   this = (vdpau_h264_decoder_t *) calloc(1, sizeof(vdpau_h264_decoder_t));
-
+  if (!this)
+    return NULL;
   this->nal_parser = init_parser(stream->xine);
-
+  if (!this->nal_parser) {
+    free(this);
+    return NULL;
+  }
   this->video_decoder.decode_data         = vdpau_h264_decode_data;
   this->video_decoder.flush               = vdpau_h264_flush;
   this->video_decoder.reset               = vdpau_h264_reset;

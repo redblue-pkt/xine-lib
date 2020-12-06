@@ -463,6 +463,8 @@ tvtime_t *tvtime_new_context(void)
   tvtime_t *tvtime;
 
   tvtime = calloc(1, sizeof(tvtime_t));
+  if (!tvtime)
+    return NULL;
 
   tvtime->pulldown_alg = PULLDOWN_NONE;
 

@@ -353,6 +353,7 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   post_in_t                 *input;
   post_out_t                *output;
   post_video_port_t *port;
+  tvtime_t *tvtime;
 
   static const xine_post_api_t post_api = {
     .set_parameters  = set_parameters,
@@ -388,9 +389,15 @@ static post_plugin_t *deinterlace_open_plugin(post_class_t *class_gen, int input
   (void)inputs;
   (void)audio_target;
 
+  tvtime = tvtime_new_context();
+  if (!tvtime) {
+    free(this);
+    return NULL;
+  }
+
   _x_post_init(&this->post, 0, 1);
 
-  this->tvtime = tvtime_new_context();
+  this->tvtime = tvtime;
   this->tvtime_changed++;
   this->tvtime_last_filmmode = 0;
   this->class = (post_class_deinterlace_t *)class_gen;
