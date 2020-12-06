@@ -652,7 +652,7 @@ static struct nal_unit* create_nal_unit()
 {
   struct nal_unit *nal = calloc(1, sizeof(struct nal_unit));
   if (!nal)
-    retun NULL;
+    return NULL;
   nal->lock_counter = 1;
 
   return nal;
