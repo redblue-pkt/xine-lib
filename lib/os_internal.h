@@ -169,6 +169,7 @@ char *xine_private_strtok_r(char *s, const char *delim, char **ptrptr);
 #ifndef HAVE_SWAB
 #define HAVE_SWAB
 #define swab(A,B,C) xine_private_swab((A),(B),(C))
+#include <sys/types.h> /* ssize_t */
 void xine_private_swab(const void *from, void *to, ssize_t n);
 #endif
 
