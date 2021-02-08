@@ -274,6 +274,8 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_macosx_video" = x"yes" && echo "   - Mac OS X OpenGL"                 || dis="$dis macos"
     test x"$have_sdl" = x"yes"          && echo "   - sdl (Simple DirectMedia Layer)"  || dis="$dis sdl"
     test x"$have_mmal" = x"yes"         && echo "   - mmal (Broadcom MultiMedia Abstraction Layer)" || dis="$dis mmal"
+    echo "   - none (dummy output plugin)"
+    echo "   - raw"
 
 
     if test x"$have_dxr3" = x"yes"; then
@@ -325,6 +327,8 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_pulseaudio" = x"yes"   && echo "   - pulseaudio (PulseAudio sound server)" || dis="$dis pulse"
     test x"$have_sunaudio" = x"yes"     && echo "   - sun (Sun audio interface)"            || dis="$dis sun"
     test "x$have_sndio" = "xyes"	&& echo "   - sndio"                                || dis="$dis sndio"
+    echo "   - none (dummy output plugin)"
+    echo "   - file"
     test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo "---"
 
