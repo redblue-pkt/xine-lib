@@ -327,6 +327,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_pulseaudio" = x"yes"   && echo "   - pulseaudio (PulseAudio sound server)" || dis="$dis pulse"
     test x"$have_sunaudio" = x"yes"     && echo "   - sun (Sun audio interface)"            || dis="$dis sun"
     test "x$have_sndio" = "xyes"	&& echo "   - sndio"                                || dis="$dis sndio"
+    test "x$have_opensles" = "xyes"     && echo "   - OpenSL ES"                            || dis="$dis opensles"
     echo "   - none (dummy output plugin)"
     echo "   - file"
     test x"$dis" != x"" && echo "   (disabled plugins:$dis)"

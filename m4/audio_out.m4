@@ -27,6 +27,7 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
     default_with_fusionsound=no
     default_with_jack=no
     default_with_pulseaudio=no
+    default_with_opensles=no
 
     case "$host_os" in
         cygwin* | mingw*)
@@ -54,6 +55,7 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
             default_with_alsa=yes
             default_enable_oss=no
             default_enable_esound=no
+            default_with_opensles=yes
             ;;
         linux*)
             default_with_alsa=yes
@@ -241,4 +243,17 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
     AM_CONDITIONAL([ENABLE_SNDIO], [test "x$have_sndio" = "xyes"])
     AC_SUBST([SNDIO_CFLAGS])
     AC_SUBST([SNDIO_LIBS])
+
+    dnl OpenSL ES
+    XINE_ARG_WITH([opensles], [Build with OpenSL ES audio output support])
+    if test x"$with_opensles" != x"no"; then
+        AC_CHECK_HEADERS([SLES/OpenSLES.h], [have_opensles=yes], [have_opensles=no])
+        AC_CHECK_HEADERS([SLES/OpenSLES_Android.h])
+        if test "x$hard_with_opensles" = "xyes" && test "x$have_opensles" = "xno"; then
+            AC_MSG_ERROR([OpenSL ES support requested, but headers not found])
+        fi
+    fi
+    AM_CONDITIONAL([ENABLE_OPENSLES], [test x"$have_opensles" = x"yes"])
+    AC_SUBST([OPENSLES_CFLAGS])
+
 ])dnl XINE_AUDIO_OUT_PLUGINS
