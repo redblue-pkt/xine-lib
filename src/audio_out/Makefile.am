@@ -64,6 +64,10 @@ if ENABLE_SNDIO
 sndio_module = xineplug_ao_out_sndio.la
 endif
 
+if ENABLE_OPENSLES
+opensles_module = xineplug_ao_out_opensles.la
+endif
+
 xineplug_LTLIBRARIES =		\
 	$(ao_builtins)		\
 	$(oss_module)		\
@@ -76,6 +80,7 @@ xineplug_LTLIBRARIES =		\
 	$(directx2_module)	\
 	$(fusionsound_module)	\
 	$(jack_module)		\
+	$(opensles_module)	\
 	$(sndio_module)
 
 xineplug_ao_out_none_la_SOURCES = audio_none_out.c
@@ -130,3 +135,7 @@ xineplug_ao_out_jack_la_CFLAGS = $(AM_FLAGS) $(JACK_CFLAGS)
 xineplug_ao_out_sndio_la_SOURCES = audio_sndio_out.c
 xineplug_ao_out_sndio_la_LIBADD = $(XINE_LIB) $(SNDIO_LIBS)
 xineplug_ao_out_sndio_la_CFLAGS = $(AM_CFLAGS) $(SNDIO_CFLAGS)
+
+xineplug_ao_out_opensles_la_SOURCES = audio_opensles_out.c
+xineplug_ao_out_opensles_la_LIBADD = $(XINE_LIB) $(DYNAMIC_LD_LIBS) -lm
+xineplug_ao_out_opensles_la_CFLAGS = $(AM_CFLAGS) $(OPENSLES_CFLAGS)
