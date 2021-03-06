@@ -1327,7 +1327,7 @@ static void vdpau_update_frame_format (vo_driver_t *this_gen, vo_frame_t *frame_
           VDPAU_IF_ERROR ("failed to get surface parameters !!");
           else if ((w != width) || (h != height)) {
             xprintf (this->xine, XINE_VERBOSITY_LOG,
-              "vo_vdpau: video surface doesn't match size contraints (%u x %u) -> (%u x %u) != (%u x %u). Segfaults ahead!\n",
+              "vo_vdpau: video surface doesn't match size constraints (%u x %u) -> (%u x %u) != (%u x %u). Segfaults ahead!\n",
               requested_width, requested_height, width, height, w, h);
           }
         }

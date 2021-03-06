@@ -479,7 +479,7 @@ static int _retr(ftp_input_plugin_t *this, const char *uri, off_t offset)
 
   if (rc / 100 != 1) {
     xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
-            "Failed to retrive file %s: %s\n", uri, this->buf);
+            "Failed to retrieve file %s: %s\n", uri, this->buf);
     return -1;
   }
 

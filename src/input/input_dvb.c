@@ -36,7 +36,7 @@
  *               no data is in cache.
  *             - Tried to stabilize the EPG updater thread.
  *             - Fixed a tuning problem I had with Linux 2.6.11-rc2.
- *             - Now tuning to an erroneus channel shouldn't hang but stop
+ *             - Now tuning to an erroneous channel shouldn't hang but stop
  *               the playback and output a log describing the error.
  *             - Style cleanups here and there.
  *
@@ -2506,7 +2506,7 @@ static off_t dvb_plugin_read (input_plugin_t *this_gen,
 	  pthread_mutex_unlock( &this->channel_change_mutex );
           xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
 		  "input_dvb: Channel \"%s\" could not be tuned in. "
-		  "Possibly erroneus settings in channels.conf "
+		  "Possibly erroneous settings in channels.conf "
 		  "(frequency changed?).\n",
 		  this->channels[this->channel].name);
 	  return 0;

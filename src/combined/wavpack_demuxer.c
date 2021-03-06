@@ -98,7 +98,7 @@ static int xine_input_can_seek(void *const this_gen) {
 static int32_t xine_input_write_bytes(__attr_unused void *const id,
 				      __attr_unused void *const data,
 				      __attr_unused const int32_t bcount) {
-  lprintf("xine_input_write_bytes: acces is read-only.\n");
+  lprintf("xine_input_write_bytes: access is read-only.\n");
   return 0;
 }
 

@@ -239,7 +239,7 @@ static video_decoder_t *dxr3_open_plugin(video_decoder_class_t *class_gen, xine_
   this->sync_every_frame      = cfg->register_bool(cfg,
     "dxr3.playback.sync_every_frame", 0, _("try to sync video every frame"),
     _("Tries to set a synchronization timestamp for every frame. "
-      "Normally this is not necessary, because sync is sufficent "
+      "Normally this is not necessary, because sync is sufficient "
       "even when the timestamp is set only every now and then.\n"
       "This is relevant for progressive video only (most PAL films)."),
     20, dxr3_update_sync_mode, this);

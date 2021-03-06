@@ -427,7 +427,7 @@ static int ao_alsa_open(ao_driver_t *this_gen, uint32_t bits, uint32_t rate, int
         if (err >= 0)
           break;
         xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-          "audio_alsa_out: mmap not available, falling back to compatiblity mode\n");
+          "audio_alsa_out: mmap not available, falling back to compatibility mode\n");
         this->mmap = 0;
       }
       err = snd_pcm_hw_params_set_access (this->audio_fd, this->hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
