@@ -48,5 +48,6 @@ xine_gl_t *_x_load_gl(xine_t *xine, unsigned visual_type, const void *visual, un
 
 /* flags */
 #define XINE_GL_API_OPENGL     0x0001
+#define XINE_GL_API_OPENGLES   0x0002
 
 #endif /* XINE_GL_H_ */
