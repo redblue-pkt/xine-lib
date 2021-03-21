@@ -161,7 +161,7 @@ static void _egl_resize(xine_gl_t *gl, int w, int h)
 #endif
 }
 
-static int _egl_init(xine_egl_t *egl, EGLNativeDisplayType native_display)
+static int _egl_init(xine_egl_t *egl, EGLNativeDisplayType native_display, int api)
 {
   static const EGLint attributes[] = {
     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
@@ -190,7 +190,7 @@ static int _egl_init(xine_egl_t *egl, EGLNativeDisplayType native_display)
 
   eglChooseConfig(egl->display, attributes, &egl->config, 1, &num_config);
 
-  if (!eglBindAPI (EGL_OPENGL_API)) {
+  if (!eglBindAPI (api)) {
     _egl_log_error(egl->p.xine, "OpenGL API unavailable");
     goto fail;
   }
@@ -257,7 +257,7 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
 
   (void)class_gen;
 
-  if (!(params->flags & XINE_GL_API_OPENGL)) {
+  if (!(params->flags & (XINE_GL_API_OPENGL | XINE_GL_API_OPENGLES))) {
     return NULL;
   }
   _x_assert(params->visual);
@@ -279,10 +279,18 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
 
   egl->p.xine = params->xine;
 
-  if (!_egl_init(egl, vis->display)) {
+  do {
+    if (params->flags & XINE_GL_API_OPENGL)
+      if (_egl_init(egl, vis->display, EGL_OPENGL_API))
+        break;
+
+    if (params->flags & XINE_GL_API_OPENGLES)
+      if (_egl_init(egl, vis->display, EGL_OPENGL_ES_API))
+        break;
+
     free(egl);
     return NULL;
-  }
+  } while (0);
 
 #if defined(XINE_EGL_USE_X11)
   native_window       = vis->d;
