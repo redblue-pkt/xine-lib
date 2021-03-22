@@ -140,6 +140,7 @@ xineinclude_HEADERS = \
 	include/xine/sorted_array.h	\
 	include/xine/spu.h		\
 	include/xine/spu_decoder.h	\
+	include/xine/stree.h		\
 	include/xine/tickets.h		\
 	include/xine/vdr.h		\
 	include/xine/version.h		\
