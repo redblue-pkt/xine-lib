@@ -22,22 +22,23 @@ libyuv2rgb_la_LIBADD = $(MLIB_LIBS)
 YUV_LIB = libyuv2rgb.la
 
 libxineutils_la_SOURCES = $(pppc_files) \
+	array.c \
 	cpu_accel.c \
 	color.c \
 	copy.c \
 	list.c \
 	memcpy.c \
 	monitor.c \
+	pool.c \
+	ring_buffer.c \
+	sorted_array.c \
+	stree.c \
 	utils.c \
+	xine_buffer.c \
 	xine_check.c \
 	xine_mutex.c \
 	xmllexer.c \
-	xine_buffer.c \
-	xmlparser.c \
-	array.c \
-	sorted_array.c \
-	pool.c \
-	ring_buffer.c
+	xmlparser.c
 
 libxineutils_la_LIBADD = $(DYNAMIC_LD_LIBS) $(YUV_LIB)
 
