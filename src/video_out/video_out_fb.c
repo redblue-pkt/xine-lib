@@ -102,8 +102,6 @@ typedef struct fb_frame_s
   uint8_t*           video_mem;            /* mmapped video memory */
   uint8_t*           data;
   int                yoffset;
-
-  struct fb_driver_s *this;
 } fb_frame_t;
 
 typedef struct fb_driver_s
@@ -205,10 +203,11 @@ static void fb_frame_field(vo_frame_t *vo_img, int which_field)
 static void fb_frame_dispose(vo_frame_t *vo_img)
 {
   fb_frame_t *frame = xine_container_of(vo_img, fb_frame_t, vo_frame);
+  fb_driver_t *this = xine_container_of(vo_img->driver, fb_driver_t, vo_driver);
 
   frame->yuv2rgb->dispose (frame->yuv2rgb);
 
-  if(!frame->this->use_zero_copy)
+  if(!this->use_zero_copy)
      free(frame->data);
   free(frame);
 }
@@ -243,8 +242,6 @@ static vo_frame_t *fb_alloc_frame(vo_driver_t *this_gen)
   frame->vo_frame.field      = fb_frame_field;
   frame->vo_frame.dispose    = fb_frame_dispose;
   frame->vo_frame.driver     = this_gen;
-
-  frame->this = this;
 
   if(this->use_zero_copy)
   {
