@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -381,7 +381,8 @@ struct input_plugin_s {
 #define INPUT_OPTIONAL_DATA_DURATION  13
 /* buffer is a const char * holding the new mrl to try.
  * fragment streams can avoid input_plugin->dispose () followed by input_class->get_instance (),
- * or _x_free_input_plugin () followed by _x_find_input_plugin () on a lot of * similar mrls. */
+ * or _x_free_input_plugin () followed by _x_find_input_plugin () on a lot of * similar mrls.
+ * an empty mrl (buffer[0] == 0) means close connection now, and wait for a real new mrl later. */
 #define INPUT_OPTIONAL_DATA_NEW_MRL   14
 
 #define MAX_MRL_ENTRIES 255
