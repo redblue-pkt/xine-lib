@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2018 the xine project
+ * Copyright (C) 2001-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -183,7 +183,7 @@ static int demux_snd_send_chunk(demux_plugin_t *this_gen) {
   }
 
   while (remaining_sample_bytes) {
-    buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
+    buf = this->audio_fifo->buffer_pool_size_alloc (this->audio_fifo, 8 << 10);
     buf->type = this->audio_type;
     if( this->data_size )
       buf->extra_info->input_normpos = (int)( (double) current_file_pos * 65535 / this->data_size);
