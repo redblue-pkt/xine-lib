@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project,
+ * Copyright (C) 2000-2021 the xine project,
  *
  * This file is part of xine, a free video player.
  *
@@ -444,7 +444,9 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
       return XIO_ABORTED;
     }
     FD_ZERO (&fdset);
-    FD_SET  (fd, &fdset);
+    if (fd >= 0) {
+      FD_SET  (fd, &fdset);
+    }
     rset = (state & XIO_READ_READY) ? &fdset : NULL;
     wset = (state & XIO_WRITE_READY) ? &fdset : NULL;
     ret = select (fd + 1, rset, wset, NULL, &select_timeout);
@@ -464,7 +466,9 @@ int _x_io_select (xine_stream_t *stream, int fd, int state, int timeout_msec) {
     fd_set *rset, *wset;
 
     FD_ZERO (&fdset);
-    FD_SET  (fd, &fdset);
+    if (fd >= 0) {
+      FD_SET  (fd, &fdset);
+    }
     rset = (state & XIO_READ_READY) ? &fdset : NULL;
     wset = (state & XIO_WRITE_READY) ? &fdset : NULL;
     ret = select (fd + 1, rset, wset, NULL, &select_timeout);

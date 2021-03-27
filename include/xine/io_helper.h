@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project,
+ * Copyright (C) 2000-2021 the xine project,
  *
  * This file is part of xine, a free video player.
  *
@@ -45,12 +45,11 @@
  *
  * params :
  *   stream        needed for aborting and reporting errors but may be NULL
- *   fd            file/socket descriptor
- *   state         XIO_READ_READY, XIO_WRITE_READY
- *   timeout_sec   timeout in seconds
+ *   fd            file/socket descriptor or -1 (just wait)
+ *   state         XIO_READ_READY, XIO_WRITE_READY or 0 (just wait)
+ *   timeout_msec  timeout in milliseconds
  *
- * An other thread can abort this function if stream != NULL by setting
- * stream->demux_action_pending.
+ * Engine seek/stop can abort this function if stream != NULL.
  *
  * return value :
  *   XIO_READY     the file descriptor is ready for cmd
