@@ -199,6 +199,7 @@ xineplug_inp_network_la_SOURCES = \
 	input_pnm.c \
 	input_rtsp.c \
 	input_hls.c \
+	input_mpegdash.c \
 	pnm.c \
 	pnm.h
 xineplug_inp_network_la_CPPFLAGS = $(AM_CPPFLAGS) $(ZLIB_CPPFLAGS)
@@ -272,3 +273,4 @@ xineplug_tls_gnutls_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(GNUTLS_LIBS)
 xineplug_tls_openssl_la_SOURCES = tls/tls_openssl.c tls/xine_tls_plugin.h
 xineplug_tls_openssl_la_CFLAGS = $(AM_CFLAGS) $(OPENSSL_CFLAGS)
 xineplug_tls_openssl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) $(OPENSSL_LIBS)
+
