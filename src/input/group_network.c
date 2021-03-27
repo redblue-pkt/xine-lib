@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2020 the xine project
+ * Copyright (C) 2017-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -48,6 +48,7 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_INPUT,                       18, "ftp",  XINE_VERSION_CODE, NULL, input_ftp_init_class },
   { PLUGIN_INPUT,                       18, "ftpes", XINE_VERSION_CODE, NULL, input_ftpes_init_class },
   { PLUGIN_INPUT | PLUGIN_MUST_PRELOAD, 18, "hls",  XINE_VERSION_CODE, &input_hls_info, input_hls_init_class },
+  { PLUGIN_INPUT,                       18, "mpegdash", XINE_VERSION_CODE, &input_hls_info, input_mpegdash_init_class },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
 
