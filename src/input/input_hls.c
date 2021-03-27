@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 the xine project
+ * Copyright (C) 2020-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -236,8 +236,11 @@ static int hls_input_switch_mrl (hls_input_plugin_t *this) {
 
 static int hls_input_open_bump (hls_input_plugin_t *this) {
   /* bump mode */
-    _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->bump1);
-    return hls_input_switch_mrl (this);
+  _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->bump1);
+  if (!hls_input_switch_mrl (this))
+    return 0;
+  this->caps1 = this->in1->get_capabilities (this->in1);
+  return 1;
 }
 
 static int hls_input_open_item (hls_input_plugin_t *this, uint32_t n) {
@@ -941,7 +944,7 @@ static input_plugin_t *hls_input_get_instance (input_class_t *cls_gen, xine_stre
     } else if (hls_input_is_hls (mrl) == 2)
       in1 = _x_find_input_plugin (stream, mrl);
     if (in1) {
-      if (in1->open (in1)) {
+      if (in1->open (in1) > 0) {
         if (_x_demux_read_header (in1, hbuf, 8) == 8) {
           if (!strncmp (hbuf, "#EXTM3U", 7)) {
             this = calloc (1, sizeof (*this));
