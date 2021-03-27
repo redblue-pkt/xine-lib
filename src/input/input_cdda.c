@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2328,7 +2328,7 @@ static buf_element_t *cdda_plugin_read_block (input_plugin_t *this_gen, fifo_buf
 
   buf_element_t *buf;
 
-  buf = fifo->buffer_pool_alloc(fifo);
+  buf = fifo->buffer_pool_size_alloc (fifo, 8 << 10);
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
 

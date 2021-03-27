@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -540,19 +540,27 @@ int _x_audio_decoder_init (xine_stream_t *s) {
      * of audio, wich should be enough to compensate for drive delays.
      * We provide buffers of 8k size instead of 2k for demuxers sending
      * larger chunks.
+     * TJ. There are live streams with 5...10s fragments. Nice clients fetch
+     * 1 fragment, then wait the gap without blocking the server port all the
+     * time. With 2s reserve and 48k AAC, we need up to 12*48000/1024 = 563
+     * frame buffers. High bitrate video over a budget connection somewhat
+     * hides the issue, but web radio turns down all excuses.
+     * Lets give away a high multiple of 4 of 2k bufs instead, and LPCM can
+     * still have 8k ones via buffer_pool_size_alloc ().
      */
 
     num_buffers = stream->s.xine->config->register_num (stream->s.xine->config,
-      "engine.buffers.audio_num_buffers", 230,
+      "engine.buffers.audio_num_buffers", 700,
       _("number of audio buffers"),
-      _("The number of audio buffers (each is 8k in size) xine uses in its "
+      _("The number of audio buffers (each is 2k in size) xine uses in its "
         "internal queue. Higher values mean smoother playback for unreliable "
         "inputs, but also increased latency and memory consumption."),
       20, NULL, NULL);
+    num_buffers = (num_buffers + 3) & ~4;
     if (num_buffers > 2000)
       num_buffers = 2000;
 
-    stream->s.audio_fifo = _x_fifo_buffer_new (num_buffers, 8192);
+    stream->s.audio_fifo = _x_fifo_buffer_new (num_buffers, 2048);
     if (!stream->s.audio_fifo)
       return 0;
 
