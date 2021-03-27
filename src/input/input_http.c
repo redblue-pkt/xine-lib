@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1762,29 +1762,37 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
     case INPUT_OPTIONAL_DATA_NEW_MRL:
       if (!data)
         break;
-      if (!http_can_handle (this->stream, data))
-        break;
-      http_close (this);
-      sbuf_reset (this);
-      this->mrl[0] = 0;
-      this->mime_type[0] = 0;
-      _x_freep (&this->user_agent);
-      _x_freep (&this->shoutcast_songtitle);
-      this->curpos              = 0;
-      this->contentlength       = 0;
-      this->mode                &= ~(MODE_DONE | MODE_SEEKABLE | MODE_NSV | MODE_LASTFM | MODE_SHOUTCAST);
-      this->shoutcast_interval  = 0;
-      this->shoutcast_left      = 0;
-      this->preview_size        = 0;
-      if ((this->num_msgs < 0) || (this->num_msgs > 8))
-        this->num_msgs = 8;
-      if (!strncasecmp ((const char *)data, "peercast://pls/", 15)) {
-        char *w = this->mrl, *e = w + sizeof (this->mrl);
-        w += strlcpy (w, "http://127.0.0.1:7144/stream/", e - w);
-        strlcpy (w, (const char *)data + 15, e - w);
-      } else
-        strlcpy (this->mrl, (const char *)data, sizeof (this->mrl));
-      return INPUT_OPTIONAL_SUCCESS;
+      {
+        const char *new_mrl = (const char *)data;
+        if (new_mrl[0] && !http_can_handle (this->stream, data))
+          break;
+        if (!new_mrl[0])
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG, "input_http: going standby.\n");
+        http_close (this);
+        sbuf_reset (this);
+        this->mrl[0] = 0;
+        this->mime_type[0] = 0;
+        _x_freep (&this->user_agent);
+        _x_freep (&this->shoutcast_songtitle);
+        this->curpos              = 0;
+        this->contentlength       = 0;
+        this->mode                &= ~(MODE_DONE | MODE_SEEKABLE | MODE_NSV | MODE_LASTFM | MODE_SHOUTCAST);
+        this->shoutcast_interval  = 0;
+        this->shoutcast_left      = 0;
+        this->preview_size        = 0;
+        if ((this->num_msgs < 0) || (this->num_msgs > 8))
+          this->num_msgs = 8;
+        if (!new_mrl[0])
+          return INPUT_OPTIONAL_SUCCESS;
+	if (!strncasecmp (new_mrl, "peercast://pls/", 15)) {
+          char *w = this->mrl, *e = w + sizeof (this->mrl);
+          w += strlcpy (w, "http://127.0.0.1:7144/stream/", e - w);
+          strlcpy (w, new_mrl + 15, e - w);
+        } else {
+          strlcpy (this->mrl, new_mrl, sizeof (this->mrl));
+        }
+        return INPUT_OPTIONAL_SUCCESS;
+      }
   }
 
   return INPUT_OPTIONAL_UNSUPPORTED;
