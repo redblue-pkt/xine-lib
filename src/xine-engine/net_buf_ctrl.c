@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <errno.h>
 
 /********** logging **********/
 #define LOG_MODULE "net_buf_ctrl"
@@ -99,7 +100,159 @@ struct xine_nbc_st {
   int dvbs_center, dvbs_width, dvbs_audio_fill, dvbs_video_fill;
   int64_t dvbs_audio_in, dvbs_audio_out;
   int64_t dvbs_video_in, dvbs_video_out;
+
+  struct {
+    /* in live mode, we start playback ~2s delayed. this happens
+     * a) when a slow input actually sent that much data (DVB), or
+     * b) while a fast input is waiting for the 2nd fragment.
+     *    in that case, we need our own wakeup agent because nobody
+     *    fires our callbacks then. */
+    pthread_cond_t msg;
+    pthread_t thread;
+    struct timespec base, until;
+    enum {
+      NBC_DELAY_OFF = 0,
+      NBC_DELAY_RUN,
+      NBC_DELAY_STOP
+    } state;
+  } delay;
+
+  struct {
+    /* the buffer fill history, in units of 1/16s.
+     * we need at least 10s. with 48kHz AAC, these are
+     * 10*48000/1024=469 bufs. each buf goes both in and out,
+     * thus 1024 will be fine. */
+#define NBC_HSIZE_LD 10
+#define NBC_HSIZE_NUM (1 << NBC_HSIZE_LD)
+#define NBC_HSIZE_MASK (NBC_HSIZE_NUM - 1)
+    uint32_t min;
+    uint32_t hpos;
+    uint8_t hist[NBC_HSIZE_NUM];
+    /* the count of history entries per unit. */
+    uint32_t num[256];
+  } stats;
 };
+
+static void nbc_delay_init (xine_nbc_t *this) {
+  this->delay.state = NBC_DELAY_OFF;
+}
+
+static void nbc_delay_unpause (xine_nbc_t *this, int delay) {
+  _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
+  if ((this->dvbspeed >= 1) && (this->dvbspeed <= 3)) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+      "net_buf_ctrl (%p): dvbspeed 100%% @ video %d ms %d buffers%s.\n",
+      (void *)this->stream, this->dvbs_video_fill / 90, this->video.fifo_fill, delay ? " [delayed]" : "");
+  } else {
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+      "net_buf_ctrl (%p): dvbspeed 100%% @ audio %d ms %d buffers%s.\n",
+      (void *)this->stream, this->dvbs_audio_fill / 90, this->audio.fifo_fill, delay ? " [delayed]" : "");
+  }
+}                                                     
+
+static void *nbc_delay_thread (void *data) {
+  xine_nbc_t *this = (xine_nbc_t *)data;
+  pthread_mutex_lock (&this->mutex);
+  while (this->delay.state == NBC_DELAY_RUN) {
+    if (pthread_cond_timedwait (&this->delay.msg, &this->mutex, &this->delay.until) == ETIMEDOUT) {
+      nbc_delay_unpause (this, 1);
+      break;
+    }
+  }
+  this->delay.state = NBC_DELAY_STOP;
+  pthread_mutex_unlock (&this->mutex);
+  return NULL;
+}
+
+static void nbc_delay_base (xine_nbc_t *this) {
+  xine_gettime (&this->delay.base);
+}
+
+static void nbc_delay_set (xine_nbc_t *this, uint32_t pts) {
+  struct timespec ts = {0, 0};
+
+  this->delay.until.tv_sec = this->delay.base.tv_sec + pts / 90000;
+  this->delay.until.tv_nsec = this->delay.base.tv_nsec + (pts % 90000) / 9 * 100000;
+  if (this->delay.until.tv_nsec >= 1000000000) {
+    this->delay.until.tv_nsec -= 1000000000;
+    this->delay.until.tv_sec += 1;
+  }
+  xine_gettime (&ts);
+  if ((ts.tv_sec > this->delay.until.tv_sec)
+    || ((ts.tv_sec == this->delay.until.tv_sec) && (ts.tv_nsec >= this->delay.until.tv_nsec))) {
+    nbc_delay_unpause (this, 0);
+  } else if (this->delay.state == NBC_DELAY_OFF) {
+    pthread_cond_init (&this->delay.msg, NULL);
+    if (!pthread_create (&this->delay.thread, NULL, nbc_delay_thread, this))
+      this->delay.state = NBC_DELAY_RUN;
+  } else {
+    nbc_delay_unpause (this, 0);
+  }
+}
+
+static void nbc_delay_stop (xine_nbc_t *this) {
+  void *dummy;
+  if (this->delay.state == NBC_DELAY_OFF)
+    return;
+  if (this->delay.state == NBC_DELAY_RUN) {
+    this->delay.state = NBC_DELAY_STOP;
+    pthread_cond_signal (&this->delay.msg);
+  }
+  pthread_mutex_unlock (&this->mutex);
+  pthread_join (this->delay.thread, &dummy);
+  pthread_mutex_lock (&this->mutex);
+  this->delay.state = NBC_DELAY_OFF;
+  pthread_cond_destroy (&this->delay.msg);
+}
+    
+static void nbc_stats_reset (xine_nbc_t *this) {
+  uint32_t u;
+  this->stats.min = 0;
+  this->stats.hpos = 0;
+  memset (this->stats.hist, 0, sizeof (this->stats.hist));
+  this->stats.num[0] = NBC_HSIZE_NUM;
+  for (u = 1; u < 256; u++)
+    this->stats.num[u] = 0;
+}
+
+static void nbc_stats_add (xine_nbc_t *this, int pts) {
+  uint32_t u;
+  if (pts < 0)
+    return;
+  if (pts == 0)
+    return nbc_stats_reset (this);
+  u = pts;
+  u /= (90000u / 16u);
+  if (u > 255)
+    u = 255;
+  this->stats.hpos = (this->stats.hpos + 1) & NBC_HSIZE_MASK;
+  this->stats.num[this->stats.hist[this->stats.hpos]] -= 1;
+  this->stats.hist[this->stats.hpos] = u;
+  this->stats.num[u] += 1;
+}
+
+/* live fragment streams may yield an extreme sawtooth fill curve.
+ * weed ont really need to delay playback by half its amplitude either.
+ * watch recent minimum instead of current value. */
+static uint32_t nbc_stats_get_min (xine_nbc_t *this) {
+  if (this->stats.num[0] == NBC_HSIZE_NUM) {
+    return 0;
+  }
+  if (this->stats.num[0] == 0) {
+    uint32_t u;
+    for (u = 1; (this->stats.num[u] == 0) && (u < 255); u++) ;
+    if (u != this->stats.min) {
+      this->stats.min = u;
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+        "net_buf_ctrl (%p): min buf fill %u ms.\n", (void *)this->stream, (unsigned int)u * (1000u / 16u));
+    }
+    return u * (90000u / 16u);
+  } else {
+    /* startup help */
+    uint32_t pts = this->stats.hist[this->stats.hpos] * (90000u / 16u);
+    return pts > (uint32_t)this->dvbs_center + 1 ? (uint32_t)this->dvbs_center + 1 : pts;
+  }
+}
 
 static void report_progress (xine_stream_t *stream, int p) {
 
@@ -119,7 +272,7 @@ static void report_progress (xine_stream_t *stream, int p) {
 static void nbc_set_speed_pause (xine_nbc_t *this) {
   xine_stream_t *stream = this->stream;
 
-  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_pause\n");
+  xprintf (stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl (%p): nbc_set_speed_pause.\n", (void *)this->stream);
   _x_set_speed (stream, XINE_SPEED_PAUSE);
   /* allow decoding while paused */
   _x_set_fine_speed (stream, XINE_LIVE_PAUSE_ON);
@@ -129,7 +282,7 @@ static void nbc_set_speed_pause (xine_nbc_t *this) {
 static void nbc_set_speed_normal (xine_nbc_t *this) {
   xine_stream_t *stream = this->stream;
 
-  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_normal\n");
+  xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl (%p): nbc_set_speed_normal.\n", (void *)this->stream);
   _x_set_speed (stream, XINE_SPEED_NORMAL);
   stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 }
@@ -150,12 +303,13 @@ static void dvbspeed_init (xine_nbc_t *this) {
     }
   }
   if (use_dvbs) {
+    nbc_delay_init (this);
     this->dvbs_center = 2 * 90000;
     this->dvbs_width = 90000;
     this->dvbs_audio_in = this->dvbs_audio_out = this->dvbs_audio_fill = 0;
     this->dvbs_video_in = this->dvbs_video_out = this->dvbs_video_fill = 0;
     this->dvbspeed = 7;
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: dvbspeed mode\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl (%p): dvbspeed mode.\n", (void *)this->stream);
 #if 1
     {
       /* somewhat rude but saves user a lot of frustration */
@@ -165,12 +319,14 @@ static void dvbspeed_init (xine_nbc_t *this) {
       if (xine_config_lookup_entry (xine, "audio.synchronization.slow_fast_audio",
         &entry) && (entry.num_value == 0)) {
         config->update_num (config, "audio.synchronization.slow_fast_audio", 1);
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: slow/fast audio playback enabled\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "net_buf_ctrl (%p): slow/fast audio playback enabled.\n", (void *)this->stream);
       }
       if (xine_config_lookup_entry (xine, "engine.buffers.video_num_buffers",
         &entry) && (entry.num_value < 800)) {
         config->update_num (config, "engine.buffers.video_num_buffers", 800);
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: enlarged video fifo to 800 buffers\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "net_buf_ctrl (%p): enlarged video fifo to 800 buffers.\n", (void *)this->stream);
       }
     }
 #endif
@@ -178,10 +334,11 @@ static void dvbspeed_init (xine_nbc_t *this) {
 }
 
 static void dvbspeed_close (xine_nbc_t *this) {
+  nbc_delay_stop (this);
   if ((0xec >> this->dvbspeed) & 1)
     _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
   if (this->dvbspeed)
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: dvbspeed OFF\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl (%p): dvbspeed OFF.\n", (void *)this->stream);
   this->dvbspeed = 0;
 }
 
@@ -191,7 +348,13 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
   /* select vars */
   mode = b->type & BUF_MAJOR_MASK;
   if (mode == BUF_VIDEO_BASE) {
-    /* update fifo fill time */
+    this->video.fifo_size = fifo->fifo_data_size;
+    this->video.fifo_fill = fifo->fifo_size;
+    this->video.fifo_free = fifo->buffer_pool_num_free;
+    /* update fifo fill time.
+     * NOTE: this is somewhat inaccurate. we assume that
+     * buf2.pts - buf1.pts == buf2.duration
+     * that is 1 buf late, and it jitters on reaordered video :-/ */
     if (b->pts) {
       if (this->dvbs_video_in) {
         int64_t diff = b->pts - this->dvbs_video_in;
@@ -205,6 +368,9 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
     name = "video";
     all_fill = this->dvbs_video_fill;
   } else if (mode == BUF_AUDIO_BASE) {
+    this->audio.fifo_size = fifo->fifo_data_size;
+    this->audio.fifo_fill = fifo->fifo_size;
+    this->audio.fifo_free = fifo->buffer_pool_num_free;
     /* update fifo fill time */
     if (b->pts) {
       if (this->dvbs_audio_in) {
@@ -224,6 +390,9 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
     }
   } else
     return;
+
+  nbc_stats_add (this, all_fill);
+  all_fill = nbc_stats_get_min (this);
   /* take actions */
   used = fifo->fifo_size;
   switch (this->dvbspeed) {
@@ -234,17 +403,18 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL * 201 / 200);
         this->dvbspeed += 2;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 100.5%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
+          "net_buf_ctrl (%p): dvbspeed 100.5%% @ %s %d ms %d buffers.\n", (void *)this->stream, name, all_fill / 90, used);
       }
       break;
     case 7:
       if (_x_get_fine_speed (this->stream)) {
         /* Pause on first a/v buffer. Decoder headers went through at this time
            already, and xine_play is done waiting for that */
+        nbc_delay_base (this);
         _x_set_fine_speed (this->stream, 0);
         /* allow decoding while paused */
         _x_set_fine_speed (this->stream, XINE_LIVE_PAUSE_ON);
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: prebuffering...\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl (%p): prebuffering...\n", (void *)this->stream);
         break;
       }
       /* DVB streams usually mux video > 0.5 seconds earlier than audio
@@ -258,10 +428,8 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
     case 2:
     case 5:
       if ((all_fill > this->dvbs_center) || (100 * used > 73 * fifo->buffer_pool_capacity)) {
-        _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
+        nbc_delay_set (this, this->dvbs_center);
         this->dvbspeed = (mode == BUF_VIDEO_BASE) ? 1 : 4;
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 100%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
         /* dont let low bitrate radio switch speed too often */
         if (used < 30) this->dvbs_width = 135000;
       }
@@ -275,6 +443,9 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
   /* select vars */
   mode = b->type & BUF_MAJOR_MASK;
   if (mode == BUF_VIDEO_BASE) {
+    this->video.fifo_size = fifo->fifo_data_size;
+    this->video.fifo_fill = fifo->fifo_size;
+    this->video.fifo_free = fifo->buffer_pool_num_free;
     /* update fifo fill time */
     if (b->pts) {
       if (this->dvbs_video_out) {
@@ -289,6 +460,9 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
     name = "video";
     all_fill = this->dvbs_video_fill;
   } else if (mode == BUF_AUDIO_BASE) {
+    this->audio.fifo_size = fifo->fifo_data_size;
+    this->audio.fifo_fill = fifo->fifo_size;
+    this->audio.fifo_free = fifo->buffer_pool_num_free;
     /* update fifo fill time */
     if (b->pts) {
       if (this->dvbs_audio_out) {
@@ -304,6 +478,7 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
     all_fill = this->dvbs_audio_fill;
   } else
     return 0;
+
   /* take actions */
   used = fifo->fifo_size;
   switch (this->dvbspeed) {
@@ -315,20 +490,23 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
       }
       /* fall through */
     case 1:
+      nbc_stats_add (this, all_fill);
+      all_fill = nbc_stats_get_min (this);
       if (all_fill && (all_fill < this->dvbs_center - this->dvbs_width) &&
         (100 * used < 38 * fifo->buffer_pool_capacity)) {
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL * 199 / 200);
         this->dvbspeed += 1;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 99.5%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
+          "net_buf_ctrl (%p): dvbspeed 99.5%% @ %s %d ms %d buffers.\n", (void *)this->stream, name, all_fill / 90, used);
       }
     break;
     case 2:
     case 5:
       if (used <= 1) {
         this->dvbspeed = 7;
+        nbc_stats_reset (this);
         pause = 1;
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: signal lost\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl (%p): signal lost.\n", (void *)this->stream);
       }
     break;
     case 6:
@@ -338,11 +516,13 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
       }
       /* fall through */
     case 3:
+      nbc_stats_add (this, all_fill);
+      all_fill = nbc_stats_get_min (this);
       if (all_fill && (all_fill < this->dvbs_center) && (100 * used < 73 * fifo->buffer_pool_capacity)) {
         _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
         this->dvbspeed -= 2;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "net_buf_ctrl: dvbspeed 100%% @ %s %d ms %d buffers\n", name, all_fill / 90, used);
+          "net_buf_ctrl (%p): dvbspeed 100%% @ %s %d ms %d buffers.\n", (void *)this->stream, name, all_fill / 90, used);
       }
     break;
   }
@@ -351,6 +531,8 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
 
 void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) {
   if (stream && (type == XINE_NBC_EVENT_AUDIO_DRY)) {
+    /* this is here mainly for the case of an old style DVB signal loss.
+     * skip the false alert when there is still audio waiting in fifo. */
     stream = stream->side_streams[0];
     pthread_mutex_lock (&stream->counter.lock);
     if (stream->counter.nbc_refs <= 0) {
@@ -360,18 +542,23 @@ void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) {
       stream->counter.nbc_refs += 1;
       pthread_mutex_unlock (&stream->counter.lock);
       pthread_mutex_lock (&this->mutex);
-      switch (this->dvbspeed) {
-        case 4:
-        case 5:
-        case 6:
-          this->dvbspeed = 7;
-          pthread_mutex_unlock (&this->mutex);
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: signal lost\n");
-          _x_set_fine_speed (this->stream, 0);
-          _x_set_fine_speed (this->stream, XINE_LIVE_PAUSE_ON);
-          break;
-        default:
-          pthread_mutex_unlock (&this->mutex);
+      if (this->dvbs_audio_fill < 1000) {
+        switch (this->dvbspeed) {
+          case 4:
+          case 5:
+          case 6:
+            this->dvbspeed = 7;
+            nbc_stats_reset (this);
+            pthread_mutex_unlock (&this->mutex);
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl (%p): signal lost.\n", (void *)this->stream);
+            _x_set_fine_speed (this->stream, 0);
+            _x_set_fine_speed (this->stream, XINE_LIVE_PAUSE_ON);
+            break;
+          default:
+            pthread_mutex_unlock (&this->mutex);
+        }
+      } else {
+        pthread_mutex_unlock (&this->mutex);
       }
       xine_nbc_close (this);
     }
@@ -520,7 +707,8 @@ static void nbc_alloc_cb (fifo_buffer_t *fifo, void *this_gen) {
       pthread_mutex_unlock (&this->mutex);
       nbc_set_speed_normal (this);
       report_progress (this->stream, 100);
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: nbc_alloc_cb: stops buffering\n");
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+        "net_buf_ctrl (%p): nbc_alloc_cb: stops buffering.\n", (void *)this->stream);
     } else {
       pthread_mutex_unlock (&this->mutex);
     }
@@ -591,7 +779,8 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
             this->progress = 100;
             nbc_set_speed_normal (this);
             report_progress (this->stream, 100);
-            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "\nnet_buf_ctrl (%p): nbc_put_cb: stops buffering.\n", (void *)this->stream);
 #if 0 /* WTF... */
             this->high_water_mark += this->high_water_mark / 2;
 #endif
@@ -619,7 +808,8 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
         lprintf("BUF_CONTROL_START\n");
         if (!this->enabled) {
           /* a new stream starts */
-          xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: starts buffering\n");
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "\nnet_buf_ctrl (%p): nbc_put_cb: starts buffering.\n", (void *)this->stream);
           this->enabled           = 1;
           this->buffering         = 1;
           this->video.first_pts   = 0;
@@ -656,7 +846,8 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
             this->progress = 100;
             report_progress (this->stream, this->progress);
 
-            xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_put_cb: stops buffering\n");
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "\nnet_buf_ctrl (%p): nbc_put_cb: stops buffering.\n", (void *)this->stream);
 
             nbc_set_speed_normal(this);
           }
@@ -668,11 +859,11 @@ static void nbc_put_cb (fifo_buffer_t *fifo,
         if (fifo == this->video.fifo) {
           this->video.in_disc++;
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-		  "\nnet_buf_ctrl: nbc_put_cb video disc %d\n", this->video.in_disc);
+            "\nnet_buf_ctrl (%p): nbc_put_cb video disc %d.\n", (void *)this->stream, this->video.in_disc);
         } else {
           this->audio.in_disc++;
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-		  "\nnet_buf_ctrl: nbc_put_cb audio disc %d\n", this->audio.in_disc);
+            "\nnet_buf_ctrl (%p): nbc_put_cb audio disc %d.\n", (void *)this->stream, this->audio.in_disc);
         }
         break;
     }
@@ -723,8 +914,8 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
               report_progress (this->stream, 0);
 
               xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-                      "\nnet_buf_ctrl: nbc_get_cb: starts buffering, vid: %d, aud: %d\n",
-                      this->video.fifo_fill, this->audio.fifo_fill);
+                "\nnet_buf_ctrl (%p): nbc_get_cb: starts buffering, vid: %d, aud: %d.\n",
+                (void *)this->stream, this->video.fifo_fill, this->audio.fifo_fill);
               pause = 1;
             }
           }
@@ -742,11 +933,11 @@ static void nbc_get_cb (fifo_buffer_t *fifo,
       if (fifo == this->video.fifo) {
         this->video.in_disc--;
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-		"\nnet_buf_ctrl: nbc_get_cb video disc %d\n", this->video.in_disc);
+          "\nnet_buf_ctrl (%p): nbc_get_cb video disc %d\n", (void *)this->stream, this->video.in_disc);
       } else {
         this->audio.in_disc--;
         xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
-		"\nnet_buf_ctrl: nbc_get_cb audio disc %d\n", this->audio.in_disc);
+          "\nnet_buf_ctrl (%p): nbc_get_cb audio disc %d\n", (void *)this->stream, this->audio.in_disc);
       }
     }
 
@@ -784,7 +975,8 @@ xine_nbc_t *xine_nbc_init (xine_stream_t *stream) {
       refs = s->counter.nbc_refs;
       this = s->counter.nbc;
       pthread_mutex_unlock (&s->counter.lock);
-      xprintf (s->s.xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: add to stream %p (%d refs).\n", (void *)s, refs);
+      xprintf (s->s.xine, XINE_VERBOSITY_DEBUG,
+        "net_buf_ctrl (%p): add to stream (%d refs).\n", (void *)s, refs);
       return this;
     }
     this = calloc (1, sizeof (*this));
@@ -796,7 +988,8 @@ xine_nbc_t *xine_nbc_init (xine_stream_t *stream) {
     s->counter.nbc = this;
     pthread_mutex_unlock (&s->counter.lock);
     xine_refs_add (&s->refs, 1);
-    xprintf (s->s.xine, XINE_VERBOSITY_DEBUG, "net_buf_ctrl: add to stream %p (1 refs).\n", (void *)s);
+    xprintf (s->s.xine, XINE_VERBOSITY_DEBUG,
+      "net_buf_ctrl (%p): add to stream (1 refs).\n", (void *)s);
     stream = &s->s;
   }
 
@@ -809,6 +1002,8 @@ xine_nbc_t *xine_nbc_init (xine_stream_t *stream) {
   this->stream              = stream;
   this->video.fifo          = video_fifo;
   this->audio.fifo          = audio_fifo;
+
+  nbc_stats_reset (this);
 
   /* when the FIFO sizes are increased compared to the default configuration,
    * apply a factor to the high water mark */
@@ -856,7 +1051,10 @@ void xine_nbc_close (xine_nbc_t *this) {
     refs = s->counter.nbc_refs;
     if (refs > 0) {
       pthread_mutex_unlock (&s->counter.lock);
-      xprintf (xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: remove from stream %p (%d refs).\n", (void *)s, refs);
+#if 0
+      xprintf (xine, XINE_VERBOSITY_DEBUG,
+        "\nnet_buf_ctrl (%p): remove from stream (%d refs).\n", (void *)s, refs);
+#endif
       return;
     }
     s->counter.nbc_refs = 0;
@@ -864,7 +1062,8 @@ void xine_nbc_close (xine_nbc_t *this) {
     pthread_mutex_unlock (&s->counter.lock);
   }
 
-  xprintf (xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: remove from stream %p (0 refs).\n", (void *)this->stream);
+  xprintf (xine, XINE_VERBOSITY_DEBUG,
+    "\nnet_buf_ctrl (%p): remove from stream (0 refs).\n", (void *)this->stream);
   video_fifo = this->stream->video_fifo;
   audio_fifo = this->stream->audio_fifo;
 
@@ -882,7 +1081,7 @@ void xine_nbc_close (xine_nbc_t *this) {
   this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 
   pthread_mutex_destroy(&this->mutex);
-  xprintf(xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_close: done\n");
+  xprintf (xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl (%p): nbc_close: done\n", (void *)this->stream);
 
   {
     xine_stream_private_t *s = (xine_stream_private_t *)this->stream;
