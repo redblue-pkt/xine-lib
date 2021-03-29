@@ -97,7 +97,7 @@ struct xine_nbc_st {
      4..6 = same as 1..3 but watch audio fifo instead
      7 = pause */
   int dvbspeed;
-  int dvbs_center, dvbs_width, dvbs_audio_fill, dvbs_video_fill;
+  int dvbs_center, dvbs_width, dvbs_audio_fill, dvbs_video_fill, dvbs_audio_out_fill;
   int64_t dvbs_audio_in, dvbs_audio_out;
   int64_t dvbs_video_in, dvbs_video_out;
 
@@ -112,6 +112,7 @@ struct xine_nbc_st {
     struct timespec base, until;
     enum {
       NBC_DELAY_OFF = 0,
+      NBC_DELAY_READY,
       NBC_DELAY_RUN,
       NBC_DELAY_STOP
     } state;
@@ -144,9 +145,14 @@ static void nbc_delay_unpause (xine_nbc_t *this, int delay) {
       "net_buf_ctrl (%p): dvbspeed 100%% @ video %d ms %d buffers%s.\n",
       (void *)this->stream, this->dvbs_video_fill / 90, this->video.fifo_fill, delay ? " [delayed]" : "");
   } else {
+    if (delay && _x_lock_port_rewiring (this->stream->xine, 0)) {
+      this->dvbs_audio_out_fill = this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
+      _x_unlock_port_rewiring (this->stream->xine);
+    }
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
       "net_buf_ctrl (%p): dvbspeed 100%% @ audio %d ms %d buffers%s.\n",
-      (void *)this->stream, this->dvbs_audio_fill / 90, this->audio.fifo_fill, delay ? " [delayed]" : "");
+      (void *)this->stream, (this->dvbs_audio_fill + this->dvbs_audio_out_fill) / 90,
+      this->audio.fifo_fill, delay ? " [delayed]" : "");
   }
 }                                                     
 
@@ -181,30 +187,59 @@ static void nbc_delay_set (xine_nbc_t *this, uint32_t pts) {
   if ((ts.tv_sec > this->delay.until.tv_sec)
     || ((ts.tv_sec == this->delay.until.tv_sec) && (ts.tv_nsec >= this->delay.until.tv_nsec))) {
     nbc_delay_unpause (this, 0);
-  } else if (this->delay.state == NBC_DELAY_OFF) {
+    return;
+  }
+  if (this->delay.state == NBC_DELAY_RUN) {
+    pthread_cond_signal (&this->delay.msg);
+    return;
+  }
+  if (this->delay.state == NBC_DELAY_OFF) {
     pthread_cond_init (&this->delay.msg, NULL);
-    if (!pthread_create (&this->delay.thread, NULL, nbc_delay_thread, this))
-      this->delay.state = NBC_DELAY_RUN;
-  } else {
-    nbc_delay_unpause (this, 0);
+  } else if (this->delay.state == NBC_DELAY_STOP) {
+    void *dummy;
+    pthread_mutex_unlock (&this->mutex);
+    pthread_join (this->delay.thread, &dummy);
+    pthread_mutex_lock (&this->mutex);
+  }
+  this->delay.state = NBC_DELAY_READY;
+  if (!pthread_create (&this->delay.thread, NULL, nbc_delay_thread, this)) {
+    this->delay.state = NBC_DELAY_RUN;
+    return;
+  }
+  this->delay.state = NBC_DELAY_OFF;
+  pthread_cond_destroy (&this->delay.msg);
+  nbc_delay_unpause (this, 0);
+}
+
+static void nbc_delay_clean (xine_nbc_t *this) {
+  if (this->delay.state == NBC_DELAY_STOP) {
+    void *dummy;
+    pthread_mutex_unlock (&this->mutex);
+    pthread_join (this->delay.thread, &dummy);
+    pthread_mutex_lock (&this->mutex);
+    this->delay.state = NBC_DELAY_OFF;
+    pthread_cond_destroy (&this->delay.msg);
   }
 }
 
 static void nbc_delay_stop (xine_nbc_t *this) {
-  void *dummy;
-  if (this->delay.state == NBC_DELAY_OFF)
-    return;
   if (this->delay.state == NBC_DELAY_RUN) {
     this->delay.state = NBC_DELAY_STOP;
     pthread_cond_signal (&this->delay.msg);
   }
-  pthread_mutex_unlock (&this->mutex);
-  pthread_join (this->delay.thread, &dummy);
-  pthread_mutex_lock (&this->mutex);
-  this->delay.state = NBC_DELAY_OFF;
-  pthread_cond_destroy (&this->delay.msg);
+  if (this->delay.state == NBC_DELAY_STOP) {
+    void *dummy;
+    pthread_mutex_unlock (&this->mutex);
+    pthread_join (this->delay.thread, &dummy);
+    pthread_mutex_lock (&this->mutex);
+    this->delay.state = NBC_DELAY_READY;
+  }
+  if (this->delay.state == NBC_DELAY_READY) {
+    this->delay.state = NBC_DELAY_OFF;
+    pthread_cond_destroy (&this->delay.msg);
+  }
 }
-    
+
 static void nbc_stats_reset (xine_nbc_t *this) {
   uint32_t u;
   this->stats.min = 0;
@@ -385,8 +420,9 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
     name = "audio";
     all_fill = this->dvbs_audio_fill;
     if (_x_lock_port_rewiring (this->stream->xine, 0)) {
-      all_fill += this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
+      this->dvbs_audio_out_fill = this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
       _x_unlock_port_rewiring (this->stream->xine);
+      all_fill += this->dvbs_audio_out_fill;
     }
   } else
     return;
@@ -440,6 +476,7 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
 static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *b) {
   int all_fill, used, mode, pause = 0;
   const char *name;
+  nbc_delay_clean (this);
   /* select vars */
   mode = b->type & BUF_MAJOR_MASK;
   if (mode == BUF_VIDEO_BASE) {
@@ -485,8 +522,9 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
     case 4:
       /* The usual 48kHz stereo mp2 can fill audio out fifo with > 7 seconds!! */
       if (_x_lock_port_rewiring (this->stream->xine, 0)) {
-        all_fill += this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
+        this->dvbs_audio_out_fill = this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
         _x_unlock_port_rewiring (this->stream->xine);
+        all_fill += this->dvbs_audio_out_fill;
       }
       /* fall through */
     case 1:
@@ -511,8 +549,9 @@ static int dvbspeed_get (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t *
     break;
     case 6:
       if (_x_lock_port_rewiring (this->stream->xine, 0)) {
-        all_fill += this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
+        this->dvbs_audio_out_fill = this->stream->audio_out->get_property (this->stream->audio_out, AO_PROP_PTS_IN_FIFO);
         _x_unlock_port_rewiring (this->stream->xine);
+        all_fill += this->dvbs_audio_out_fill;
       }
       /* fall through */
     case 3:
@@ -1089,4 +1128,3 @@ void xine_nbc_close (xine_nbc_t *this) {
     xine_refs_sub (&s->refs, 1);
   }
 }
-
