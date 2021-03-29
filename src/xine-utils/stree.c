@@ -398,7 +398,7 @@ static const uint8_t _tab_json2[256] = {
 
 static xine_stree_t *_xine_stree_load_json (char *buf) {
   xine_stree_t *root;
-  uint32_t have, used, here, new;
+  uint32_t have, used, here;
   uint8_t *p, *q, *e;
 
   have = 64;
@@ -412,7 +412,6 @@ static xine_stree_t *_xine_stree_load_json (char *buf) {
   root->first_child = root->last_child = root->parent = 0;
   root->num_children = root->level = root->index = 0;
   root->key = root->value = 0;
-  new = 0;
 
   e = p = (uint8_t *)buf;
   q = (uint8_t *)buf + 1;
@@ -520,7 +519,7 @@ static const uint8_t _tab_url[256] = {
 
 static xine_stree_t *_xine_stree_load_url (char *buf) {
   xine_stree_t *root;
-  uint32_t have, used, here, new, key;
+  uint32_t have, used, here, key;
   uint8_t *p, *e, dummy;
 
   have = 64;
@@ -533,7 +532,6 @@ static xine_stree_t *_xine_stree_load_url (char *buf) {
   root->first_child = root->last_child = root->parent = 0;
   root->num_children = root->level = root->index = 0;
   root->key = root->value = 0;
-  new = 0;
 
   p = (uint8_t *)buf;
 

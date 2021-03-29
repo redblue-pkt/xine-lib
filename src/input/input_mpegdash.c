@@ -572,7 +572,6 @@ static char *mpd_stree_find (mpd_input_plugin_t *this, const char *path, uint32_
 
 static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
   ssize_t size;
-  uint32_t frag_start, frag_duration;
   uint32_t tree_mpd;
 
   _x_freep (&this->frags);
@@ -645,9 +644,6 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
   this->list_seq = 1;
   this->list_strseq = "";
   this->list_strtype = "";
-
-  frag_start    = 0;
-  frag_duration = 0;
 
   this->tmode = XINE_STREE_AUTO;
   this->tree = xine_stree_load (this->list_buf + 4, &this->tmode);
