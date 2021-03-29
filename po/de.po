@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2021-03-26 02:23+0100\n"
+"POT-Creation-Date: 2021-03-28 12:30+0200\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
@@ -2983,6 +2983,10 @@ msgid ""
 msgstr ""
 "Wählt das Protokoll über MMS.\n"
 "TCP ist besser, aber hinter einer Firewall kann HTTP benötigt werden."
+
+#: src/input/input_mpegdash.c
+msgid "MPEG Dynamic Adaptive Streaming over Http input plugin"
+msgstr "MPEG Dynamic Adaptive Streaming over Http Eingabe"
 
 #: src/input/input_net.c
 msgid "net input plugin as shipped with xine"

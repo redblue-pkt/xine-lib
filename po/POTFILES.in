@@ -108,6 +108,7 @@ src/input/input_helper.c
 src/input/input_hls.c
 src/input/input_http.c
 src/input/input_mms.c
+src/input/input_mpegdash.c
 src/input/input_net.c
 src/input/input_nfs.c
 src/input/input_pnm.c
