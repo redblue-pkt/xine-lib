@@ -41,6 +41,7 @@
 #include <xine/compat.h>
 #include <xine/input_plugin.h>
 #include <xine/stree.h>
+#include <xine/mfrag.h>
 
 #include <xine/io_helper.h>
 
@@ -55,13 +56,6 @@ typedef struct {
   xine_t           *xine;
   multirate_pref_t  pref;
 } mpd_input_class_t;
-
-typedef struct {
-  uint32_t mrl_offs;
-  uint32_t start_msec;
-  off_t    byte_size;
-  off_t    start_offs;
-} mpd_frag_info_t;
 
 typedef struct {
   const char     *mime, *init, *media, *id;   /** << ptr into stree buf */
@@ -93,7 +87,7 @@ static const char *mpd_mode_names[MPD_MODE_LAST] = {
   [MPD_INIT_LIVE]   = "non seekable live mode with init fragment",
   [MPD_VOD]         = "seekable VOD mode",
   [MPD_SINGLE_VOD]  = "seekable single file VOD mode",
-  [MPD_INIT_VOD]    = "(yet) non seekable VOD mode with init fragment"
+  [MPD_INIT_VOD]    = "seekable VOD mode with init fragment"
 };
 
 typedef struct {
@@ -102,10 +96,7 @@ typedef struct {
   xine_nbc_t       *nbc;
 
   input_plugin_t   *in1;
-  off_t             size1;
   uint32_t          caps1;
-
-  mpd_frag_info_t  *frags, *current_frag;
 
   xine_stree_t     *tree;
   char             *list_buf;
@@ -126,25 +117,14 @@ typedef struct {
   mpd_stream_info_t streams[MPD_MAX_STREAMS];
   multirate_pref_t  items[MPD_MAX_STREAMS];
 
-  off_t             pos;
+  xine_mfrag_list_t *fraglist;
+  off_t             pos, frag_pos, all_size;
+  uint32_t          frag_size;
   uint32_t          prev_size;
 
   uint32_t          list_bsize;
-  uint32_t          frag_have;
-  uint32_t          frag_max;
-  off_t             est_size;
-  off_t             seen_size;
-  off_t             live_pos;
-  uint32_t          seen_num;
-  uint32_t          seen_avg;
   uint32_t          duration;
-  uint32_t          pos_in_frag;
   mpd_mode_t        mode;
-  uint32_t          list_seq;
-  uint32_t          items_num;
-  const char       *items_mrl[20];
-  const char       *list_strtype;
-  const char       *list_strseq;
 #define MPD_MAX_MRL 4096
   char              manifest_mrl[MPD_MAX_MRL];
   char              list_mrl[MPD_MAX_MRL];
@@ -184,9 +164,28 @@ static time_t mpd_str2time (char *s) {
   char buf[256], *tz;
   struct tm tm;
   time_t ret;
-  /* Sigh. try to parse something like "1969-12-31T23:59:44Z". */
+  /* Sigh. try to parse something like "1969-12-31T23:59:44Z" or "PT5H30M55S". */
   if (!s)
     return (time_t)-1;
+
+  if (((s[0] | 0x20) == 'p') && ((s[1] | 0x20) == 't')) {
+    ret = 0;
+    s += 2;
+    while (1) {
+      uint32_t v = str2uint32 (&s);
+      uint32_t z = (*s | 0x20);
+      if (z == 'h')
+        ret += 3600u * v;
+      else if (z == 'm')
+        ret += 60u * v;
+      else if (z == 's')
+        ret += v;
+      else
+        break;
+      s++;
+    }
+    return ret;
+  }
 
   tm.tm_year = (int)str2uint32 (&s) - 1900;
   if (*s++ != '-')
@@ -409,6 +408,24 @@ static int mpd_set_frag_index (mpd_input_plugin_t *this, uint32_t index, int wai
   return mpd_input_switch_mrl (this);
 }
 
+static void mpd_frag_seen (mpd_input_plugin_t *this) {
+  this->frag_pos = this->pos;
+  if (this->in1) {
+    int64_t l = this->in1->get_length (this->in1);
+    if (l > 0) {
+      this->frag_size = l;
+      xine_mfrag_set_index_frag (this->fraglist,
+        this->frag_index + 1, this->info.frag_duration ? (int64_t)this->info.frag_duration : -1, l);
+    } else if (xine_mfrag_get_index_frag (this->fraglist, this->frag_index + 1, NULL, &l) && (l > 0)) {
+      this->frag_size = l;
+    } else {
+      this->frag_size = 0;
+    }
+  } else {
+    this->frag_size = 0;
+  }
+}
+
 static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, int wait) {
   char *q = (char *)buf;
 
@@ -451,6 +468,7 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
     mpd_apply_fragnum (this);
     if (!mpd_input_switch_mrl (this))
       return q - (char *)buf;
+    mpd_frag_seen (this);
   }
 
   while (len > 0) {
@@ -465,59 +483,11 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
     if (r == 0) {
       if (mpd_set_frag_index (this, this->frag_index + 1, wait) != 1)
         break;
+      mpd_frag_seen (this);
     }
   }
 
   return q - (char *)buf;
-}
-
-static int mpd_input_open_item (mpd_input_plugin_t *this, uint32_t n) {
-  mpd_frag_info_t *frag;
-  /* valid index ? */
-  if (n >= this->frag_have)
-    return 0;
-  /* get fragment mrl */
-  _x_merge_mrl (this->item_mrl, MPD_MAX_MRL, this->list_mrl, this->list_buf + this->frags[n].mrl_offs);
-  /* get input */
-  this->caps1 = 0;
-  if (!mpd_input_switch_mrl (this))
-    return 0;
-  this->caps1 = this->in1->get_capabilities (this->in1);
-  /* query fragment */
-  this->size1 = this->in1->get_length (this->in1);
-  if (this->size1 <= 0)
-    return 0;
-  /* update size info */
-  this->pos_in_frag = 0;
-  frag = this->frags + n;
-  this->current_frag = frag;
-  if (frag->byte_size == 0) {
-    this->seen_num += 1;
-    this->seen_size += this->size1;
-  } else if (frag->byte_size != this->size1) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-      "input_mpegdash: WTF: fragment #%u changed size from %" PRId64 " to %" PRId64 " bytes!!\n",
-      (unsigned int)n, (int64_t)frag->byte_size, (int64_t)this->size1);
-    this->seen_size += this->size1 - frag->byte_size;
-  } else {
-    n = ~0u;
-  }
-  if (n != ~0u) {
-    uint32_t u;
-    off_t pos;
-    frag->byte_size = this->size1;
-    this->seen_avg = this->seen_size / this->seen_num;
-    pos = frag->start_offs;
-    /* dont shift current pos as this would confuse demuxers too much. */
-    for (u = this->frag_have - n; u; u--) {
-      frag->start_offs = pos;
-      pos += frag->byte_size == 0 ? this->seen_avg : frag->byte_size;
-      frag++;
-    }
-    frag->start_offs = pos;
-    this->est_size = pos;
-  }
-  return 1;
 }
 
 static int mpd_input_get_mrl_ext (const char *mrl, const char **ext) {
@@ -574,15 +544,6 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
   ssize_t size;
   uint32_t tree_mpd;
 
-  _x_freep (&this->frags);
-  this->frag_have = 0;
-  this->frag_max  = 0;
-  this->est_size  = 0;
-  this->seen_size = 0;
-  this->seen_num  = 0;
-  this->seen_avg  = 0;
-  this->items_num = 0;
-
   {
     off_t s = this->in1->get_length (this->in1);
     if (s > (32 << 20))
@@ -633,17 +594,6 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
   memset (this->list_buf, 0, 4);
   memset (this->list_buf + 4 + size, 0, 4);
 
-  this->frags = malloc (256 * sizeof (this->frags[0]));
-  if (!this->frags) {
-    this->list_bsize = 0;
-    _x_freep (&this->list_buf);
-    return 0;
-  }
-  this->frag_max = 256;
-
-  this->list_seq = 1;
-  this->list_strseq = "";
-  this->list_strtype = "";
 
   this->tmode = XINE_STREE_AUTO;
   this->tree = xine_stree_load (this->list_buf + 4, &this->tmode);
@@ -717,8 +667,9 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
         item->video_width = info->w = str2uint32 (&s);
         s = mpd_stree_find (this, "height", index_as);
         item->video_height = info->h = str2uint32 (&s);
+        /* this seems to default to 1. */
         s = mpd_stree_find (this, "SegmentTemplate.startNumber", index_as);
-        info->frag_start = str2uint32 (&s);
+        info->frag_start = s[0] ? str2uint32 (&s) : 1;
         s = mpd_stree_find (this, "SegmentTemplate.duration", index_as);
         info->frag_duration = str2uint32 (&s);
         info->id = "";
@@ -763,81 +714,24 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
 
 static uint32_t mpd_input_get_capabilities (input_plugin_t *this_gen) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
+  if (!this)
+    return 0;
   if (MPD_IS_LIVE (this))
     return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW | INPUT_CAP_LIVE;
+  if (this->fraglist)
+    return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_TIME_SEEKABLE;
+  if (this->in1) {
+    this->caps1 = this->in1->get_capabilities (this->in1);
+    return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW | (this->caps1 & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE));
+  }
   return INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW;
 }
 
 static off_t mpd_input_read (input_plugin_t *this_gen, void *buf, off_t len) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
-#if 1
+  if (!this)
+    return 0;
   return mpd_read_int (this, buf, len, 1);
-#else
-  uint8_t *b = (uint8_t *)buf;
-  size_t left;
-  mpd_frag_info_t *frag = this->current_frag;
-
-  if (!b)
-    return 0;
-  if (len < 0)
-    return 0;
-  left = len;
-
-  while (left > 0) {
-    int reget = 0;
-    {
-      if (!frag)
-        break;
-      {
-        ssize_t r;
-        size_t fragleft = frag->byte_size - this->pos_in_frag;
-        if (left < fragleft) {
-          r = this->in1->read (this->in1, (void *)b, left);
-          if (r > 0) {
-            this->pos_in_frag += r;
-            b += r;
-          }
-          break;
-        }
-        r = this->in1->read (this->in1, (void *)b, fragleft);
-        if (r > 0) {
-          this->pos_in_frag += r;
-          left -= r;
-          b += r;
-        }
-        if (r < (ssize_t)fragleft)
-          break;
-      }  
-      {
-        uint32_t n = frag - this->frags + 1;
-        if (n >= this->frag_have) {
-          if (!MPD_IS_LIVE (this))
-            break;
-          reget = 1;
-        } else {
-          if (!mpd_input_open_item (this, n))
-            break;
-          frag = this->current_frag;
-        }
-      }
-    }
-    if (reget) {
-      uint32_t n;
-      strcpy (this->item_mrl, this->list_mrl);
-      if (!mpd_input_switch_mrl (this))
-        break;
-      if (mpd_input_load_manifest (this) != 1)
-        break;
-      if (!mpd_input_open_item (this, n))
-        break;
-      frag = this->current_frag;
-    }
-  }
-
-  left = b - (uint8_t *)buf;
-  this->live_pos += left;
-  return left;
-#endif
 }
 
 static buf_element_t *mpd_input_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
@@ -847,101 +741,146 @@ static buf_element_t *mpd_input_read_block (input_plugin_t *this_gen, fifo_buffe
   return NULL;
 }
 
-static void mpd_input_frag_seek (mpd_input_plugin_t *this, uint32_t new_pos_in_frag) {
-  if (this->caps1 & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) {
-    int32_t newpos = this->in1->seek (this->in1, new_pos_in_frag, SEEK_SET);
-    if (newpos < 0)
-      newpos = this->in1->get_current_pos (this->in1);
-    if (newpos >= 0)
-      this->pos_in_frag = newpos;
-  }
-}
-
 static off_t mpd_input_time_seek (input_plugin_t *this_gen, int time_offs, int origin) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
-  uint32_t new_time;
-  mpd_frag_info_t *frag;
 
-  if (MPD_IS_LIVE (this))
-    return this->pos;
-
-  frag = this->current_frag;
-  if (!frag)
+  if (!this)
     return 0;
 
-  switch (origin) {
-    case SEEK_SET:
-      new_time = 0;
-      break;
-    case SEEK_CUR:
-      new_time = frag->start_msec + (frag[1].start_msec - frag[0].start_msec) * this->pos_in_frag / frag->byte_size;
-      break;
-    case SEEK_END:
-      new_time = this->duration;
-      break;
-    default:
-      errno = EINVAL;
-      return (off_t)-1;
-  }
-  new_time += time_offs;
-  if (new_time > this->duration) {
-    errno = EINVAL;
-    return (off_t)-1;
-  }
+  do {
+    xine_mfrag_index_t idx;
+    int64_t frag_time1, frag_time2;
+    uint32_t new_time;
 
-  {
-    /* find nearest fragment at or before requested time. */
-    int32_t b = 0, e = this->frag_have, m;
-    do {
-      uint32_t t;
-      m = (b + e) >> 1;
-      t = this->frags[m].start_msec;
-      if (new_time < t)
-        e = m--;
-      else
-        b = m + 1;
-    } while (b != e);
-    if (m < 0)
-      m = 0;
-    if (this->frags + m == frag) {
-      mpd_input_frag_seek (this, 0);
-    } else {
-      if (!mpd_input_open_item (this, m))
+    if (!this->fraglist)
+      return this->pos;
+
+    switch (origin) {
+      case SEEK_SET:
+        new_time = 0;
+        break;
+      case SEEK_CUR:
+        if (xine_mfrag_get_index_start (this->fraglist, this->frag_index + 1, &frag_time1, NULL)
+          && xine_mfrag_get_index_start (this->fraglist, this->frag_index + 2, &frag_time2, NULL)) {
+          new_time = frag_time1 * 1000 / this->info.timebase;
+          if (this->frag_size)
+            new_time += ((frag_time2 - frag_time1) * 1000 / this->info.timebase) * (this->pos - this->frag_pos) / this->frag_size;
+        } else {
+          new_time = 0;
+        }
+        break;
+      case SEEK_END:
+        if (xine_mfrag_get_index_start (this->fraglist, xine_mfrag_get_frag_count (this->fraglist) + 1, &frag_time1, NULL)) {
+          new_time = frag_time1 * 1000 / this->info.timebase;
+        } else {
+          new_time = 0;
+        }
+        break;
+      default:
+        errno = EINVAL;
         return (off_t)-1;
-      frag = this->current_frag;
     }
-  }
+    new_time += time_offs;
 
-  return frag->start_offs + this->pos_in_frag;
+    frag_time1 = (int64_t)new_time * this->info.timebase / 1000;
+    idx = xine_mfrag_find_time (this->fraglist, frag_time1);
+    if (idx < 1)
+      break;
+    if (!xine_mfrag_get_index_start (this->fraglist, idx, NULL, &frag_time1))
+      break;
+    if ((uint32_t)idx - 1 != this->frag_index) {
+      if (!mpd_set_frag_index (this, idx - 1, 1))
+        break;
+    }
+    this->pos = frag_time1;
+    mpd_frag_seen (this);
+    return this->pos;
+  } while (0);
+
+  errno = EINVAL;
+  return (off_t)-1;
 }
 
 static off_t mpd_input_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
   off_t new_offs;
-  uint32_t new_pos_in_frag;
-  mpd_frag_info_t *frag;
 
-  if (MPD_IS_LIVE (this)) {
-    char buf[2048];
+  if (!this)
+    return 0;
 
-    switch (origin) {
-      case SEEK_SET:
-        new_offs = offset;
-        break;
-      case SEEK_CUR:
-        new_offs = this->pos + offset;
-        break;
-      default:
+  switch (origin) {
+    case SEEK_SET:
+      new_offs = offset;
+      break;
+    case SEEK_CUR:
+      new_offs = this->pos + offset;
+      break;
+    case SEEK_END:
+      if (MPD_IS_LIVE (this))
         return this->pos;
-    }
-    if ((this->pos <= (int)this->prev_size) && (new_offs >= 0) && (new_offs <= (int)this->prev_size)) {
-      this->pos = new_offs;
+      if (this->fraglist) {
+        int n;
+        int64_t l;
+        n = xine_mfrag_get_frag_count (this->fraglist);
+        if (n < 1)
+          return this->pos;
+        this->info.frag_count = n;
+        if (!xine_mfrag_get_index_start (this->fraglist, n + 1, NULL, &l))
+          return this->pos;
+        if (l <= 0)
+          return this->pos;
+        this->all_size = l;
+        new_offs = l + offset;
+        break;
+      }
+      if (this->in1) {
+        off_t l = this->in1->get_length (this->in1);
+        if (l > 0) {
+          this->all_size = l;
+          new_offs = l + offset;
+          break;
+        }
+      }
+      /* fall through */
+    default:
       return this->pos;
-    }
-    new_offs -= this->pos;
-    if (new_offs < 0)
+  }
+
+  /* always seek within the preview. */
+  if ((this->pos <= (int)this->prev_size) && (new_offs >= 0) && (new_offs <= (int)this->prev_size)) {
+    this->pos = new_offs;
+    return this->pos;
+  }
+
+  if (this->fraglist) {
+    int64_t frag_pos;
+    xine_mfrag_index_t idx = xine_mfrag_find_pos (this->fraglist, new_offs);
+    if (idx < 1)
       return this->pos;
+    /* HACK: offsets around this fragment may be guessed ones,
+     * and the fragment itself may turn out to be smaller than expected.
+     * however, demux expects a seek to land at the exact byte offs.
+     * lets try to meet that, even if it is still wrong. */
+    idx -= 1;
+    do {
+      idx += 1;
+      if (!xine_mfrag_get_index_start (this->fraglist, idx, NULL, &frag_pos))
+        return this->pos;
+      if ((uint32_t)idx - 1 != this->frag_index) {
+        if (!mpd_set_frag_index (this, idx - 1, 1))
+          return this->pos;
+        this->pos = frag_pos;
+        mpd_frag_seen (this);
+      }
+    } while (new_offs >= this->pos + this->frag_size);
+  }
+
+  new_offs -= this->pos;
+  if (new_offs < 0)
+    return this->pos;
+  {
     while (new_offs > 0) {
+      char buf[2048];
       size_t l = new_offs > (int)sizeof (buf) ? sizeof (buf) : (size_t)new_offs;
       ssize_t r = mpd_read_int (this, buf, l, 1);
 
@@ -949,84 +888,52 @@ static off_t mpd_input_seek (input_plugin_t *this_gen, off_t offset, int origin)
         break;
       new_offs -= r;
     }
-    return this->pos;
   }
-
-  frag = this->current_frag;
-  if (!frag)
-    return 0;
-
-  switch (origin) {
-    case SEEK_SET:
-      new_offs = 0;
-      break;
-    case SEEK_CUR:
-      new_offs = frag->start_offs + this->pos_in_frag;
-      break;
-    case SEEK_END:
-      new_offs = this->est_size;
-      break;
-    default:
-      errno = EINVAL;
-      return (off_t)-1;
-  }
-  new_offs += offset;
-  if ((new_offs < 0) || (new_offs > this->est_size)) {
-    errno = EINVAL;
-    return (off_t)-1;
-  }
-
-  if ((new_offs < frag->start_offs) || (new_offs >= frag->start_offs + frag->byte_size)) {
-    /* find nearest fragment at or before requested offs. */
-    int32_t b = 0, e = this->frag_have, m;
-    do {
-      off_t t;
-      m = (b + e) >> 1;
-      t = this->frags[m].start_offs;
-      if (new_offs < t)
-        e = m--;
-      else
-        b = m + 1;
-    } while (b != e);
-    if (m < 0)
-      m = 0;
-    /* HACK: offsets around this fragment may be guessed ones,
-     * and the fragment itself may turn out to be smaller than expected.
-     * however, demux expects a seek to land at the exact byte offs.
-     * lets try to meet that, even if it is still wrong. */
-    do {
-      if (!mpd_input_open_item (this, m))
-        return (off_t)-1;
-      m++;
-      frag = this->current_frag;
-      new_pos_in_frag = new_offs - frag->start_offs;
-    } while (new_pos_in_frag >= (uint32_t)frag->byte_size);
-  } else {
-    new_pos_in_frag = new_offs - frag->start_offs;
-  }
-
-  mpd_input_frag_seek (this, new_pos_in_frag);
-
-  return frag->start_offs + this->pos_in_frag;
+  return this->pos;
 }
 
 static off_t mpd_input_get_current_pos (input_plugin_t *this_gen) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
+  if (!this)
+    return 0;
   return this->pos;
 }
 
 static off_t mpd_input_get_length (input_plugin_t *this_gen) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
-  return this->est_size;
+  if (!this)
+    return 0;
+  if (MPD_IS_LIVE (this)) {
+    if (this->pos > this->all_size)
+      this->all_size = this->pos;
+  } else if (this->fraglist) {
+    int n;
+    int64_t l;
+    n = xine_mfrag_get_frag_count (this->fraglist);
+    if (n >= 1) {
+      this->info.frag_count = n;
+      if (xine_mfrag_get_index_start (this->fraglist, n + 1, NULL, &l) && (l > 0))
+        this->all_size = l;
+    }
+  } else if (this->in1) {
+    off_t l = this->in1->get_length (this->in1);
+    if (l > 0)
+      this->all_size = l;
+  }
+  return this->all_size;
 }
 
 static const char *mpd_input_get_mrl (input_plugin_t *this_gen) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
+  if (!this)
+    return NULL;
   return this->manifest_mrl;
 }
 
 static void mpd_input_dispose (input_plugin_t *this_gen) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
+  if (!this)
+    return;
   if (this->nbc) {
     nbc_close (this->nbc);
     this->nbc = NULL;
@@ -1035,9 +942,9 @@ static void mpd_input_dispose (input_plugin_t *this_gen) {
     _x_free_input_plugin (this->stream, this->in1);
     this->in1 = NULL;
   }
+  xine_mfrag_list_close (&this->fraglist);
   xine_stree_delete (&this->tree);
   _x_freep (&this->list_buf);
-  _x_freep (&this->frags);
   free (this);
 }
 
@@ -1046,6 +953,8 @@ static int mpd_input_open (input_plugin_t *this_gen) {
   mpd_input_class_t  *cls  = (mpd_input_class_t *)this->input_plugin.input_class;
   int n;
 
+  if (!this)
+    return 0;
   if (!mpd_input_load_manifest (this))
     return 0;
 
@@ -1061,6 +970,11 @@ static int mpd_input_open (input_plugin_t *this_gen) {
              ? (this->info.init[0] ? MPD_INIT_LIVE : mpd_strcasestr (this->info.media, "$Number$") ? MPD_LIVE : MPD_SINGLE_LIVE)
              : (this->info.init[0] ? MPD_INIT_VOD : mpd_strcasestr (this->info.media, "$Number$") ? MPD_VOD : MPD_SINGLE_VOD);
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: %s.\n", mpd_mode_names[this->mode]);
+
+  if ((this->mode == MPD_INIT_VOD) || (this->mode == MPD_VOD)) {
+    xine_mfrag_list_open (&this->fraglist);
+    xine_mfrag_set_index_frag (this->fraglist, 0, this->info.timebase, 0);
+  }
 
   this->frag_index = 0;
   this->prev_size = 0;
@@ -1089,6 +1003,7 @@ static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, in
     return INPUT_OPTIONAL_UNSUPPORTED;
 
   switch (data_type) {
+
     case INPUT_OPTIONAL_DATA_PREVIEW:
       if (!data || (this->prev_size <= 0))
         return INPUT_OPTIONAL_UNSUPPORTED;
@@ -1097,6 +1012,7 @@ static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, in
         memcpy (data, this->preview, l);
         return l;
       }
+
     case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
       if (!data || (this->prev_size <= 0))
         return INPUT_OPTIONAL_UNSUPPORTED;
@@ -1109,11 +1025,29 @@ static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, in
         memcpy (data, this->preview, want);
         return want;
       }
+
     case INPUT_OPTIONAL_DATA_DURATION:
       if (!data)
         return INPUT_OPTIONAL_UNSUPPORTED;
+      if (this->fraglist) {
+        int64_t d;
+        int n = xine_mfrag_get_frag_count (this->fraglist);
+        if (n > 0) {
+          if (xine_mfrag_get_index_start (this->fraglist, n + 1, &d, NULL))
+            this->duration = d * 1000 / this->info.timebase;
+        }
+      } else {
+        this->duration = (int64_t)this->info.frag_count * this->info.frag_duration * 1000 / this->info.timebase;
+      }
       memcpy (data, &this->duration, sizeof (this->duration));
       return INPUT_OPTIONAL_SUCCESS;
+
+    case INPUT_OPTIONAL_DATA_FRAGLIST:
+      if (!data)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      memcpy (data, &this->fraglist, sizeof (this->fraglist));
+      return INPUT_OPTIONAL_SUCCESS;
+
     default:
       return INPUT_OPTIONAL_UNSUPPORTED;
   }
@@ -1127,6 +1061,8 @@ static input_plugin_t *mpd_input_get_instance (input_class_t *cls_gen, xine_stre
   char                hbuf[2048];
   int                 n;
 
+  if (!cls || !mrl)
+    return NULL;
   lprintf("mpd_input_get_instance\n");
 
   do {
@@ -1158,19 +1094,12 @@ static input_plugin_t *mpd_input_get_instance (input_class_t *cls_gen, xine_stre
     return NULL;
 
 #ifndef HAVE_ZERO_SAFE_MEM
-  this->size1        = 0;
   this->caps1        = 0;
-  this->frags        = NULL;
-  this->current_frag = NULL;
+  this->fraglist     = NULL;
   this->list_buf     = NULL;
   this->list_bsize   = 0;
-  this->live_pos     = 0;
-  this->est_size     = 0;
-  this->seen_size    = 0;
-  this->seen_num     = 0;
-  this->seen_avg     = 0;
   this->duration     = 0;
-  this->items_num    = 0;
+  this->all_size     = 0;
 #endif
 
   this->stream = stream;
@@ -1235,4 +1164,3 @@ void *input_mpegdash_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
-
