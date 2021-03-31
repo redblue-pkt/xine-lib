@@ -128,6 +128,7 @@ xineinclude_HEADERS = \
 	include/xine/io_helper.h	\
 	include/xine/list.h		\
 	include/xine/metronom.h		\
+	include/xine/mfrag.h		\
 	include/xine/os_types.h		\
 	include/xine/osd.h		\
 	include/xine/plugin_catalog.h	\
