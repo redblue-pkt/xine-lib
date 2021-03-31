@@ -384,6 +384,10 @@ struct input_plugin_s {
  * or _x_free_input_plugin () followed by _x_find_input_plugin () on a lot of * similar mrls.
  * an empty mrl (buffer[0] == 0) means close connection now, and wait for a real new mrl later. */
 #define INPUT_OPTIONAL_DATA_NEW_MRL   14
+/* buffer is a xine_mfrag_list_t ** where input plugin will store a pointer to its media fragment
+ * list, if any (see <xine/mfrag.h>). demux may update it if fragment index is part of the
+ * container, like with some .mp4. */
+#define INPUT_OPTIONAL_DATA_FRAGLIST  15
 
 #define MAX_MRL_ENTRIES 255
 #define MAX_PREVIEW_SIZE 4096

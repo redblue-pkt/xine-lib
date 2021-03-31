@@ -28,6 +28,7 @@ libxineutils_la_SOURCES = $(pppc_files) \
 	copy.c \
 	list.c \
 	memcpy.c \
+	mfrag.c \
 	monitor.c \
 	pool.c \
 	ring_buffer.c \
