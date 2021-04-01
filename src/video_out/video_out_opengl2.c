@@ -425,7 +425,7 @@ static void load_csc_matrix( GLuint prog, float *cf )
 
 static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *prog, const char **source, const char *name )
 {
-  xprintf( this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl2: compiling shader %s\n", name );
+  xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": compiling shader %s\n", name );
   if ( !(prog->shader = glCreateShader( GL_FRAGMENT_SHADER )) )
     return 0;
   if ( !(prog->program = glCreateProgram()) )
@@ -443,7 +443,7 @@ static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *pro
 
   glGetShaderInfoLog( prog->shader, length, &length, log );
   if ( length ) {
-    xprintf( this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl2: Shader %s Compilation Log:\n", name );
+    xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": Shader %s Compilation Log:\n", name );
     if ( this->xine->verbosity >= XINE_VERBOSITY_DEBUG )
       fwrite( log, 1, length, stdout );
   }
@@ -458,7 +458,7 @@ static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *pro
 
   glGetProgramInfoLog( prog->program, length, &length, log );
   if ( length ) {
-    xprintf( this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl2: Shader %s Linking Log:\n", name );
+    xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": Shader %s Linking Log:\n", name );
     if ( this->xine->verbosity >= XINE_VERBOSITY_DEBUG )
       fwrite( log, 1, length, stdout );
   }
@@ -601,7 +601,7 @@ static void opengl2_upload_overlay(opengl2_driver_t *this, opengl2_overlay_t *o,
   if ( overlay->rle && !this->overlayPBO ) {
     glGenBuffers( 1, &this->overlayPBO );
     if ( !this->overlayPBO ) {
-      xprintf( this->xine, XINE_VERBOSITY_LOG, "video_out_opengl2: overlay PBO failed\n" );
+      xprintf( this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": overlay PBO failed\n" );
       return;
     }
   }
@@ -922,7 +922,7 @@ static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *
     that->color_standard = color_standard;
     that->update_csc = 0;
 
-    xprintf (that->xine, XINE_VERBOSITY_LOG,"video_out_opengl2: b %d c %d s %d h %d [%s]\n",
+    xprintf (that->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": b %d c %d s %d h %d [%s]\n",
       that->brightness, that->contrast, that->saturation, that->hue, cm_names[color_standard]);
   }
 }
@@ -1412,7 +1412,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   }
   else {
     /* unknown format */
-    xprintf( that->xine, XINE_VERBOSITY_LOG, "video_out_opengl2: unknown image format 0x%08x\n", frame->format );
+    xprintf( that->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": unknown image format 0x%08x\n", frame->format );
   }
 
   glViewport( 0, 0, frame->width, frame->height );
@@ -1713,7 +1713,7 @@ static void opengl2_set_bicubic( void *this_gen, xine_cfg_entry_t *entry )
   opengl2_driver_t  *this  = (opengl2_driver_t *) this_gen;
 
   this->scale_bicubic = entry->num_value;
-  xprintf( this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl2: scale_bicubic=%d\n", this->scale_bicubic );
+  xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": scale_bicubic=%d\n", this->scale_bicubic );
 }
 
 
@@ -1881,7 +1881,7 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   this->vo_driver.redraw_needed        = opengl2_redraw_needed;
 
   if (!this->gl->make_current(this->gl)) {
-    xprintf( this->xine, XINE_VERBOSITY_LOG, "video_out_opengl2: display unavailable for initialization\n" );
+    xprintf( this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": display unavailable for initialization\n" );
     goto fail_make_current;
   }
 
@@ -1891,7 +1891,7 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
     if (v[0] > 0) {
       this->max_video_width  =
       this->max_video_height = v[0];
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl2: max video size %dx%d.\n",
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": max video size %dx%d.\n",
         this->max_video_width, this->max_video_height);
     }
   }
@@ -1902,7 +1902,7 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
     if (v[0] > 0) {
       this->max_display_width  = v[0];
       this->max_display_height = v[1] > 0 ? v[1] : v[0];
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl2: max output size %dx%d.\n",
+      xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": max output size %dx%d.\n",
         this->max_display_width, this->max_display_height);
     }
   }
@@ -1955,7 +1955,7 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   else
     this->scale_bicubic = 0;
 
-  xprintf( this->xine, XINE_VERBOSITY_DEBUG, "video_out_opengl2: initialized.\n");
+  xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": initialized.\n");
 
   return &this->vo_driver;
 
