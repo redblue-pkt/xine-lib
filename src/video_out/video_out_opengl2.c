@@ -478,6 +478,18 @@ static void opengl2_delete_program( opengl2_program_t *prog )
 }
 
 
+static void _config_texture(GLuint texture, GLsizei width, GLsizei height,
+                            GLenum format, GLenum type, GLenum minmag_filter)
+{
+  if (texture) {
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texture);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, format, width, height, 0, format, type, NULL);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, minmag_filter);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, minmag_filter);
+  }
+}
 
 static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h )
 {
@@ -522,54 +534,22 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
     return 0;
 
   glGenTextures( 1, &ytex->y );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, ytex->y );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_LUMINANCE, w, h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  _config_texture(ytex->y, w, h, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
   glGenTextures( 1, &ytex->u );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, ytex->u );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_LUMINANCE, w/2, h/2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  _config_texture(ytex->u, w/2, h/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
   glGenTextures( 1, &ytex->v );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, ytex->v );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_LUMINANCE, w/2, h/2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  _config_texture(ytex->v, w/2, h/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
   glGenTextures( 1, &ytex->yuv );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, ytex->yuv );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_LUMINANCE_ALPHA, w, h, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, NULL );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
+  _config_texture(ytex->yuv, w, h, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
 
   ytex->width = w;
   ytex->height = h;
 
   glGenTextures( 1, &this->videoTex );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, this->videoTex );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
-
+  _config_texture(this->videoTex, w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
   glGenTextures( 1, &this->videoTex2 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, this->videoTex2 );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+  _config_texture(this->videoTex, w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
+
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
 
   glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, this->videoPBO );
@@ -1129,12 +1109,7 @@ static int opengl2_draw_video_bicubic( opengl2_driver_t *that, int guiw, int gui
     glGenTextures( 1, &that->bicubic_pass1_texture );
     if ( !that->bicubic_pass1_texture )
       return 0;
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->bicubic_pass1_texture );
-    glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, x1 - x, v1 - v, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-    glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-    glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    _config_texture(that->bicubic_pass1_texture, x1 - x, v1 - v, GL_RGBA, GL_UNSIGNED_BYTE, GL_NEAREST);
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
     that->bicubic_pass1_texture_width = x1 - x;
     that->bicubic_pass1_texture_height = v1 - v;
