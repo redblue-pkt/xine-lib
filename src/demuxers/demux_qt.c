@@ -53,6 +53,7 @@
 #include <xine/xineutils.h>
 #include <xine/demux.h>
 #include <xine/buffer.h>
+#include <xine/mfrag.h>
 #include "bswap.h"
 
 #include "qtpalette.h"
@@ -70,9 +71,7 @@ typedef unsigned int qt_atom;
 #define WIDE_ATOM QT_ATOM('w', 'i', 'd', 'e')
 #define PICT_ATOM QT_ATOM('P', 'I', 'C', 'T')
 #define FTYP_ATOM QT_ATOM('f', 't', 'y', 'p')
-/*
 #define SIDX_ATOM QT_ATOM('s', 'i', 'd', 'x')
-*/
 
 #define CMOV_ATOM QT_ATOM('c', 'm', 'o', 'v')
 
@@ -233,18 +232,6 @@ typedef enum {
   MEDIA_OTHER
 
 } media_type;
-
-#ifdef SIDX_ATOM
-typedef struct {
-  int64_t offset;
-  int64_t pts;
-} fragment_info_t;
-
-typedef struct {
-  int num_fragments;
-  fragment_info_t fragments[1];
-} fragment_index_t;
-#endif
 
 /* TJ. Cinematic movies reach > 200000 frames easily, so we better save space here.
  * offset / file size should well fit into 48 bits :-) */
@@ -427,6 +414,7 @@ typedef struct {
   int          seek_flag;  /* this is set to indicate that a seek has just occurred */
 
   /* fragment mode */
+  xine_mfrag_list_t *fraglist;
   int          fragment_count;
   size_t       fragbuf_size;
   uint8_t     *fragment_buf;
@@ -2080,9 +2068,8 @@ static qt_error build_frame_table (qt_trak *trak, unsigned int global_timescale)
 * Fragment stuff                                                        *
 ************************************************************************/
 
-#ifdef SIDX_ATOM
-static fragment_index_t *load_fragment_index (input_plugin_t *input, const uint8_t *head, uint32_t hsize, uint32_t timescale) {
-  uint32_t inum;
+static int demux_qt_load_fragment_index (demux_qt_t *this, const uint8_t *head, uint32_t hsize) {
+  uint32_t inum, timebase;
 
   {
     uint8_t fullhead[32];
@@ -2091,63 +2078,66 @@ static fragment_index_t *load_fragment_index (input_plugin_t *input, const uint8
     if (hsize)
       memcpy (fullhead, head, hsize);
     if (n > 0) {
-      if (input->read (input, fullhead + hsize, n) != n)
-        return NULL;
+      if (this->input->read (this->input, fullhead + hsize, n) != n)
+        return 0;
     }
     isize = _X_BE_32 (fullhead);
     if (isize < 32)
-      return NULL;
+      return 0;
     inum  = _X_BE_32 (fullhead + 28);
     if (inum > (isize - 32) / 12)
       inum = (isize - 32) / 12;
+    timebase = _X_BE_32 (fullhead + 16);
+    if (!timebase)
+      timebase = this->qt.timescale;
   }
 
   {
-    int64_t pos, pts;
-    fragment_index_t *idx;
-    fragment_info_t  *inf;
-    uint8_t *tab = malloc (sizeof (*idx) + inum * sizeof (idx->fragments[0]));
-    if (!tab)
-      return NULL;
-    idx = (fragment_index_t *)tab;
-    tab += sizeof (*idx) + inum * sizeof (idx->fragments[0]) - inum * 12;
-    if (input->read (input, tab, inum * 12) != (int32_t)inum * 12) {
-      free (idx);
-      return NULL;
-    }
-    idx->num_fragments = inum;
-    pos = input->get_current_pos (input);
-    pts = 0;
-    inf = &idx->fragments[0];
-    while (inum--) {
-      inf->offset = pos;
-      pos += _X_BE_32 (tab);
-      inf->pts = pts * 90000 / timescale;
-      pts += _X_BE_32 (tab + 8);
-      inf++;
-      tab += 12;
-    }
-    inf->offset = pos;
-    inf->pts    = pts * 90000 / timescale;
-    return idx;
+    xine_mfrag_list_t *fraglist = NULL;
+    if (this->input->get_optional_data (this->input, &fraglist, INPUT_OPTIONAL_DATA_FRAGLIST) == INPUT_OPTIONAL_SUCCESS)
+      this->qt.fraglist = fraglist;
   }
-}
 
-static void report_fragment_index (xine_t *xine, fragment_index_t *idx) {
-  if (idx) {
+  xine_mfrag_set_index_frag (this->qt.fraglist, 0, timebase, -1);
+
+  {
+    uint32_t idx = 1;
+    inum += 1;
+    while (idx < inum) {
+      uint8_t buf[256 * 12], *p;
+      uint32_t stop = idx + sizeof (buf) / 12;
+      if (stop > inum)
+        stop = inum;
+      if (this->input->read (this->input, buf, (stop - idx) * 12) != (int32_t)((stop - idx) * 12))
+        break;
+      p = buf;
+      while (idx < stop) {
+        xine_mfrag_set_index_frag (this->qt.fraglist, idx, _X_BE_32 (p + 4), _X_BE_32 (p));
+        p += 12;
+        idx += 1;
+
+      }
+    }
+  }
+
+  if (this->qt.fraglist) {
+    int64_t d, l;
     unsigned int v, s, m;
-    v = idx->fragments[idx->num_fragments].pts / 90000;
+    inum = xine_mfrag_get_frag_count (this->qt.fraglist);
+    xine_mfrag_get_index_start (this->qt.fraglist, inum + 1, &d, &l);
+    v = d / timebase;
     s = v % 60;
     v /= 60;
     m = v % 60;
     v /= 60;
-    xprintf (xine, XINE_VERBOSITY_DEBUG,
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
       "demux_qt: found index of %u fragments, %"PRId64" bytes, %0u:%02u:%02u.\n",
-      (unsigned int)idx->num_fragments, idx->fragments[idx->num_fragments].offset,
-      v, m, s);
+      (unsigned int)inum, l, v, m, s);
+    return 1;
   }
+
+  return 0;
 }
-#endif
 
 static qt_trak *find_trak_by_id (demux_qt_t *this, int id) {
   unsigned int i;
@@ -2794,6 +2784,8 @@ static int fragment_scan (demux_qt_t *this) {
         }
         if (parse_moof_atom (this, this->qt.fragment_buf, atomsize, pos))
           frags++;
+      } else if (atomtype == SIDX_ATOM) {
+        demux_qt_load_fragment_index (this, hbuf, 16);
       }
     }
     this->qt.fragment_next = pos;
@@ -2808,6 +2800,7 @@ static int fragment_scan (demux_qt_t *this) {
     if (pos == 0)
       pos = this->input->get_current_pos (this->input);
     while (1) {
+      uint32_t atomtype, hsize;
       if (pos <= 0)
         return 0;
       if (this->input->seek (this->input, pos, SEEK_SET) != pos)
@@ -2815,8 +2808,10 @@ static int fragment_scan (demux_qt_t *this) {
       if (this->input->read (this->input, hbuf, 8) != 8)
         return 0;
       atomsize = _X_BE_32 (hbuf);
-      if (_X_BE_32 (hbuf + 4) == MOOF_ATOM)
+      atomtype = _X_BE_32 (hbuf + 4);
+      if (atomtype == MOOF_ATOM)
         break;
+      hsize = 8;
       if (atomsize < 8) {
         if (atomsize != 1)
           return 0;
@@ -2825,7 +2820,10 @@ static int fragment_scan (demux_qt_t *this) {
         atomsize = _X_BE_64 (hbuf + 8);
         if (atomsize < 16)
           return 0;
+        hsize = 16;
       }
+      if (atomtype == SIDX_ATOM)
+        demux_qt_load_fragment_index (this, hbuf, hsize);
       pos += atomsize;
     }
     /* add it */

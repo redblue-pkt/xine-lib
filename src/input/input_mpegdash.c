@@ -341,6 +341,8 @@ static int mpd_set_start_time (mpd_input_plugin_t *this) {
   if (!MPD_IS_LIVE (this)) {
     if (!mpd_build_mrl (this, this->info.media))
       return 0;
+    this->frag_index = 1;
+    this->frag_num = this->info.frag_start;
     mpd_prepare_fragnum (this);
     return 2;
   }
@@ -414,15 +416,23 @@ static void mpd_frag_seen (mpd_input_plugin_t *this) {
     int64_t l = this->in1->get_length (this->in1);
     if (l > 0) {
       this->frag_size = l;
-      xine_mfrag_set_index_frag (this->fraglist,
-        this->frag_index + 1, this->info.frag_duration ? (int64_t)this->info.frag_duration : -1, l);
-    } else if (xine_mfrag_get_index_frag (this->fraglist, this->frag_index + 1, NULL, &l) && (l > 0)) {
+      xine_mfrag_set_index_frag (this->fraglist, this->frag_index,
+        (this->frag_index && this->info.frag_duration) ? (int64_t)this->info.frag_duration : -1, l);
+    } else if (xine_mfrag_get_index_frag (this->fraglist, this->frag_index, NULL, &l) && (l > 0)) {
       this->frag_size = l;
     } else {
       this->frag_size = 0;
     }
   } else {
     this->frag_size = 0;
+  }
+}
+
+static void mpd_frag_end (mpd_input_plugin_t *this) {
+  int64_t l = this->pos - this->frag_pos;
+  if (l > (int64_t)this->frag_size) {
+    this->frag_size = l;
+    xine_mfrag_set_index_frag (this->fraglist, this->frag_index, -1, l);
   }
 }
 
@@ -453,9 +463,10 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
           return -1;
         if (!mpd_input_switch_mrl (this))
           return -1;
+        mpd_frag_seen (this);
       }
       r = this->in1->read (this->in1, q, len);
-      if (r <= 0)
+      if (r < 0)
         return -1;
       q += r;
       this->pos += r;
@@ -463,6 +474,7 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
       if (len == 0)
         return q - (char *)buf;
     }
+    mpd_frag_end (this);
     if (!mpd_set_start_time (this))
       return q - (char *)buf;
     mpd_apply_fragnum (this);
@@ -481,6 +493,7 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
     if (len == 0)
       break;
     if (r == 0) {
+      mpd_frag_end (this);
       if (mpd_set_frag_index (this, this->frag_index + 1, wait) != 1)
         break;
       mpd_frag_seen (this);
@@ -760,8 +773,8 @@ static off_t mpd_input_time_seek (input_plugin_t *this_gen, int time_offs, int o
         new_time = 0;
         break;
       case SEEK_CUR:
-        if (xine_mfrag_get_index_start (this->fraglist, this->frag_index + 1, &frag_time1, NULL)
-          && xine_mfrag_get_index_start (this->fraglist, this->frag_index + 2, &frag_time2, NULL)) {
+        if (xine_mfrag_get_index_start (this->fraglist, this->frag_index, &frag_time1, NULL)
+          && xine_mfrag_get_index_start (this->fraglist, this->frag_index + 1, &frag_time2, NULL)) {
           new_time = frag_time1 * 1000 / this->info.timebase;
           if (this->frag_size)
             new_time += ((frag_time2 - frag_time1) * 1000 / this->info.timebase) * (this->pos - this->frag_pos) / this->frag_size;
@@ -788,8 +801,8 @@ static off_t mpd_input_time_seek (input_plugin_t *this_gen, int time_offs, int o
       break;
     if (!xine_mfrag_get_index_start (this->fraglist, idx, NULL, &frag_time1))
       break;
-    if ((uint32_t)idx - 1 != this->frag_index) {
-      if (!mpd_set_frag_index (this, idx - 1, 1))
+    if ((uint32_t)idx != this->frag_index) {
+      if (!mpd_set_frag_index (this, idx, 1))
         break;
     }
     this->pos = frag_time1;
@@ -866,8 +879,9 @@ static off_t mpd_input_seek (input_plugin_t *this_gen, off_t offset, int origin)
       idx += 1;
       if (!xine_mfrag_get_index_start (this->fraglist, idx, NULL, &frag_pos))
         return this->pos;
-      if ((uint32_t)idx - 1 != this->frag_index) {
-        if (!mpd_set_frag_index (this, idx - 1, 1))
+      if ((uint32_t)idx != this->frag_index) {
+        mpd_frag_end (this);
+        if (!mpd_set_frag_index (this, idx, 1))
           return this->pos;
         this->pos = frag_pos;
         mpd_frag_seen (this);
