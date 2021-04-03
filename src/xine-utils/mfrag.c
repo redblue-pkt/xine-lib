@@ -57,23 +57,27 @@ struct xine_mfrag_list_s {
 
 static void _xine_mfrag_fix (xine_mfrag_list_t *list, uint32_t last) {
   /** rebuild on demand only, for speed, and forward only, to avoid mass confusion. */
-  xine_mfrag_frag_t *frag = list->frags + list->dirty_from, *end = list->frags + last;
-  uint64_t t = frag[0].t, p = frag[0].p;
+  xine_mfrag_frag_t *frag, *end;
+  uint64_t t, p;
   list->avg_d = list->known_nd ? list->known_d / list->known_nd : 0;
   list->avg_l = list->known_nl ? list->known_l / list->known_nl : 0;
+  frag = list->frags + list->dirty_from;
+  end = list->frags + last;
   if (frag == list->frags) {
-    p += frag[0].l;
+    frag[0].t = frag[1].t = 0;
+    frag[0].p = 0;
+    frag[1].p = frag[0].l;
     frag += 1;
   }
+  t = frag[0].t;
+  p = frag[0].p;
   while (frag < end) {
-    frag[0].t = t;
     t += frag[0].d ? frag[0].d : list->avg_d;
-    frag[0].p = p;
+    frag[1].t = t;
     p += frag[0].l ? frag[0].l : list->avg_l;
+    frag[1].p = p;
     frag += 1;
   }
-  frag[0].t = t;
-  frag[0].p = p;
   list->dirty_from = last;
 }
 
@@ -126,6 +130,17 @@ int xine_mfrag_set_index_frag (xine_mfrag_list_t *list, xine_mfrag_index_t index
     return 0;
   if (index < 0)
     return 0;
+
+  if (index == 0) {
+    if (dur >= 0)
+      list->frags[0].d = dur;
+    if ((len >= 0) && ((uint32_t)len != list->frags[0].l)) {
+      list->frags[0].l = len;
+      list->dirty_from = 0;
+    }
+    return 1;
+  }
+
   idx = index;
   if (idx > list->used + 1)
     return 0;
@@ -157,39 +172,39 @@ int xine_mfrag_set_index_frag (xine_mfrag_list_t *list, xine_mfrag_index_t index
       frag[0].l = 0;
     }
     frag[1].d = frag[1].l = 0;
-    list->used += 1;
     return 1;
   }
+
   frag = list->frags + idx;
-  if (dur >= 0) {
+  if ((dur >= 0) && ((uint32_t)dur != frag[0].d)) {
     if (!frag[0].d) {
       list->known_nd += 1;
       list->known_d += dur;
-      frag[0].d = dur;
-      if (idx < list->dirty_from)
-        list->dirty_from = idx;
-    } else if (dur != frag[0].d) {
+    } else if ((uint32_t)dur == 0) {
+      list->known_nd -= 1;
+      list->known_d -= frag[0].d;
+    } else {
       list->known_d -= frag[0].d;
       list->known_d += dur;
-      frag[0].d = dur;
-      if (idx < list->dirty_from)
-        list->dirty_from = idx;
     }
+    frag[0].d = dur;
+    if (idx < list->dirty_from)
+      list->dirty_from = idx;
   }
-  if (len >= 0) {
+  if ((len >= 0) && ((uint32_t)len != frag[0].l)) {
     if (!frag[0].l) {
       list->known_nl += 1;
       list->known_l += len;
-      frag[0].l = len;
-      if (idx < list->dirty_from)
-        list->dirty_from = idx;
-    } else if (len != frag[0].l) {
+    } else if ((uint32_t)len == 0) {
+      list->known_nl -= 1;
+      list->known_l -= frag[0].l;
+    } else {
       list->known_l -= frag[0].l;
       list->known_l += len;
-      frag[0].l = len;
-      if (idx < list->dirty_from)
-        list->dirty_from = idx;
     }
+    frag[0].l = len;
+    if (idx < list->dirty_from)
+      list->dirty_from = idx;
   }
   return 1;
 }
@@ -201,47 +216,47 @@ int32_t xine_mfrag_get_frag_count (xine_mfrag_list_t *list) {
 }
 
 xine_mfrag_index_t xine_mfrag_find_time (xine_mfrag_list_t *list, int64_t timepos) {
-  uint32_t b, m, e;
-  int64_t d;
+  uint32_t b, m, l, e;
+
   if (!list)
     return -1;
+
   _xine_mfrag_test (list, list->used + 1);
-  b = 1;
+  b = l = 1;
   e = list->used + 2;
-  do {
-    m = (b + e) >> 1;
-    d = timepos - list->frags[m].t;
-    if (d < 0) {
+  m = (b + e) >> 1;
+  while (m != l) {
+    int64_t d = timepos - list->frags[m].t;
+    if (d < 0)
       e = m;
-    } else if (d > 0) {
-      b = m + 1;
-    } else {
-      break;
-    }
-  } while (b != e);
-  return m;
+    else
+      b = m;
+    l = m;
+    m = (b + e) >> 1;
+  }
+  return b;
 }
 
 xine_mfrag_index_t xine_mfrag_find_pos (xine_mfrag_list_t *list, off_t offs) {
-  uint32_t b, m, e;
-  int64_t d;
+  uint32_t b, l, m, e;
+
   if (!list)
     return -1;
+
   _xine_mfrag_test (list, list->used + 1);
-  b = list->frags[0].l ? 0 : 1;
+  b = l = list->frags[0].l ? 0 : 1;
   e = list->used + 2;
-  do {
-    m = (b + e) >> 1;
-    d = offs - list->frags[m].p;
-    if (d < 0) {
+  m = (b + e) >> 1;
+  while (m != l) {
+    int64_t d = offs - list->frags[m].p;
+    if (d < 0)
       e = m;
-    } else if (d > 0) {
-      b = m + 1;
-    } else {
-      break;
-    }
-  } while (b != e);
-  return m;
+    else
+      b = m;
+    l = m;
+    m = (b + e) >> 1;
+  }
+  return b;
 }
 
 int xine_mfrag_get_index_frag (xine_mfrag_list_t *list, xine_mfrag_index_t index, int64_t *dur, off_t *len) {
