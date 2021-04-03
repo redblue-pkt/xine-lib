@@ -47,15 +47,31 @@ typedef struct xine_mfrag_list_s xine_mfrag_list_t;
 /** *plist may be NULL. */
 void xine_mfrag_list_open (xine_mfrag_list_t **plist) XINE_PROTECTED;
 
-int xine_mfrag_set_index_frag (xine_mfrag_list_t *list, xine_mfrag_index_t index, int64_t dur, off_t len) XINE_PROTECTED;
-
 /** returns the "n" above. */
 int32_t xine_mfrag_get_frag_count (xine_mfrag_list_t *list) XINE_PROTECTED;
 
+/** find the media fragment that contains the specified timepos or offs. */
 xine_mfrag_index_t xine_mfrag_find_time (xine_mfrag_list_t *list, int64_t timepos) XINE_PROTECTED;
 xine_mfrag_index_t xine_mfrag_find_pos (xine_mfrag_list_t *list, off_t offs) XINE_PROTECTED;
 
+/** index 0: dur = timebase or -1 (no change).
+ *           len = head size in bytes or -1 (no change).
+ *  1..n:    dur = fragment duration in timebase units or 0 (unknown), -1 (no change).
+ *           len = fragment size or 0 (unknown), -1 (no change).
+ *  n + 1:   dur = set: new fragment duration in timebase units or 0/-1 (unknown).
+ *                 get: 0.
+ *           len = set: new fragment size or 0/-1 (unknown).
+ *                 get: 0. */
+int xine_mfrag_set_index_frag (xine_mfrag_list_t *list, xine_mfrag_index_t index, int64_t dur, off_t len) XINE_PROTECTED;
 int xine_mfrag_get_index_frag (xine_mfrag_list_t *list, xine_mfrag_index_t index, int64_t *dur, off_t *len) XINE_PROTECTED;
+
+/** index 0: timepos = 0.
+ *           offs    = 0.
+ *  these values will be estimated if some previous fragment has an "unknown" setting:
+ *  1..n:    timepos = fragment start time in timebase units.
+ *           offs    = fragment start offs in bytes.
+ *  n + 1:   timepos = total time in timebase units.
+ *           offs    = total size in bytes. */
 int xine_mfrag_get_index_start (xine_mfrag_list_t *list, xine_mfrag_index_t index, int64_t *timepos, off_t *offs) XINE_PROTECTED;
 
 void xine_mfrag_list_close (xine_mfrag_list_t **plist) XINE_PROTECTED;
