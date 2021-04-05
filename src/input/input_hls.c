@@ -39,6 +39,7 @@
 #include <xine/xineutils.h>
 #include <xine/compat.h>
 #include <xine/input_plugin.h>
+#include <xine/mfrag.h>
 
 #include "http_helper.h"
 #include "input_helper.h"
@@ -51,31 +52,21 @@ typedef struct {
   multirate_pref_t  pref;
 } hls_input_class_t;
 
-  typedef struct {
-  uint32_t mrl_offs;
-  uint32_t start_msec;
-  off_t    byte_size;
-  off_t    start_offs;
-} hls_frag_info_t;
-
 typedef struct {
   input_plugin_t    input_plugin;
   xine_stream_t    *stream;
   input_plugin_t   *in1;
-  off_t             size1;
   uint32_t          caps1;
-  hls_frag_info_t  *frags, *current_frag;
+  struct {
+    xine_mfrag_list_t *list;
+    uint32_t          *mrl_offs;
+    off_t              pos;
+    uint32_t           num;
+    uint32_t           current; /** << 1..n or 0 (none) */
+  }                 frag;
+  off_t             pos;
   char             *list_buf;
   uint32_t          list_bsize;
-  uint32_t          frag_have;
-  uint32_t          frag_max;
-  off_t             est_size;
-  off_t             seen_size;
-  off_t             live_pos;
-  uint32_t          seen_num;
-  uint32_t          seen_avg;
-  uint32_t          duration;
-  uint32_t          pos_in_frag;
   enum {
     LIST_VOD,
     LIST_LIVE_BUMP,
@@ -83,6 +74,8 @@ typedef struct {
   }                 list_type;
   uint32_t          list_seq;
   uint32_t          items_num;
+  uint32_t          prev_size1; /** << the actual preview bytes, for INPUT_OPTIONAL_DATA_[SIZED]_PREVIEW. */
+  uint32_t          prev_size2; /** << for read (), 0 after leaving that range. */
   const char       *items_mrl[20];
   multirate_pref_t  items[20];
   const char       *list_strtype;
@@ -97,7 +90,46 @@ typedef struct {
   char              bump1[HLS_MAX_MRL];
   char              pad2[4];
   char              bump2[HLS_MAX_MRL];
+  char              preview[32 << 10];
 } hls_input_plugin_t;
+
+static int hls_get_duration (hls_input_plugin_t *this) {
+  int64_t d = 0;
+  if (!xine_mfrag_get_index_start (this->frag.list, this->frag.num + 1, &d, NULL))
+    return 0;
+  return d / 1000;
+}
+
+static off_t hls_get_size (hls_input_plugin_t *this) {
+  int64_t s = 0;
+  xine_mfrag_get_index_start (this->frag.list, this->frag.num + 1, NULL, &s);
+  if (this->pos > s)
+    s = this->pos;
+  return s;
+}
+
+static uint32_t hls_frag_start (hls_input_plugin_t *this) {
+  int64_t s1, s2;
+  this->frag.pos = this->pos;
+  xine_mfrag_get_index_frag (this->frag.list, this->frag.current, NULL, &s1);
+  s2 = this->in1->get_length (this->in1);
+  if (s2 > 0) {
+    if ((s1 > 0) && (s1 != s2)) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+        "input_hls: WTF: fragment #%u changed size from %" PRId64 " to %" PRId64 " bytes!!\n",
+        (unsigned int)this->frag.current, s1, s2);
+    }
+    xine_mfrag_set_index_frag (this->frag.list, this->frag.current, -1, s2);
+    return s2;
+  }
+  return s2;
+}
+
+static void hls_frag_end (hls_input_plugin_t *this) {
+  int64_t s;
+  s = this->pos - this->frag.pos;
+  xine_mfrag_set_index_frag (this->frag.list, this->frag.current, -1, s);
+}
 
 static int hls_bump_find (hls_input_plugin_t *this, const char *item1, const char *seq) {
   size_t len1, len2;
@@ -216,6 +248,7 @@ static void hls_bump_inc (hls_input_plugin_t *this) {
 }
 
 static int hls_input_switch_mrl (hls_input_plugin_t *this) {
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_hls: %s.\n", this->item_mrl);
   if (this->in1) {
     if (this->in1->get_capabilities (this->in1) & INPUT_CAP_NEW_MRL) {
       if (this->in1->get_optional_data (this->in1, this->item_mrl,
@@ -240,56 +273,25 @@ static int hls_input_open_bump (hls_input_plugin_t *this) {
   if (!hls_input_switch_mrl (this))
     return 0;
   this->caps1 = this->in1->get_capabilities (this->in1);
+  hls_frag_start (this);
   return 1;
 }
 
 static int hls_input_open_item (hls_input_plugin_t *this, uint32_t n) {
-  hls_frag_info_t *frag;
   /* valid index ? */
-  if (n >= this->frag_have)
+  if ((n < 1) || (n > this->frag.num))
     return 0;
   /* get fragment mrl */
-  _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->list_buf + this->frags[n].mrl_offs);
+  _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->list_buf + this->frag.mrl_offs[n - 1]);
   /* get input */
   this->caps1 = 0;
   if (!hls_input_switch_mrl (this))
     return 0;
+  this->frag.current = n;
   this->caps1 = this->in1->get_capabilities (this->in1);
-  /* query fragment */
-  this->size1 = this->in1->get_length (this->in1);
-  if (this->size1 <= 0)
-    return 0;
   /* update size info */
-  this->pos_in_frag = 0;
-  frag = this->frags + n;
-  this->current_frag = frag;
-  if (frag->byte_size == 0) {
-    this->seen_num += 1;
-    this->seen_size += this->size1;
-  } else if (frag->byte_size != this->size1) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-      "input_hls: WTF: fragment #%u changed size from %" PRId64 " to %" PRId64 " bytes!!\n",
-      (unsigned int)n, (int64_t)frag->byte_size, (int64_t)this->size1);
-    this->seen_size += this->size1 - frag->byte_size;
-  } else {
-    n = ~0u;
-  }
-  if (n != ~0u) {
-    uint32_t u;
-    off_t pos;
-    frag->byte_size = this->size1;
-    this->seen_avg = this->seen_size / this->seen_num;
-    pos = frag->start_offs;
-    /* dont shift current pos as this would confuse demuxers too much. */
-    for (u = this->frag_have - n; u; u--) {
-      frag->start_offs = pos;
-      pos += frag->byte_size == 0 ? this->seen_avg : frag->byte_size;
-      frag++;
-    }
-    frag->start_offs = pos;
-    this->est_size = pos;
-  }
-  this->bump_seq = this->list_seq + n;
+  hls_frag_start (this);
+  this->bump_seq = this->list_seq + n - 1;
   return 1;
 }
 
@@ -327,7 +329,7 @@ static uint32_t str2uint32 (char **s) {
   return v;
 }
 
-static uint32_t str2msec (char **s) {
+static uint32_t str2usec (char **s) {
   uint8_t *p = (uint8_t *)*s;
   uint32_t v = 0;
   uint8_t z;
@@ -335,22 +337,36 @@ static uint32_t str2msec (char **s) {
     v = v * 10u + z;
     p++;
   }
-  v *= 1000u;
-  if (z == ('.' ^ '0')) {
+  v *= 1000000;
+  do {
+    if (z != ('.' ^ '0'))
+      break;
     p++;
-    if ((z = *p ^ '0') < 10) {
-      v += 100u * z;
-      p++;
-      if ((z = *p ^ '0') < 10) {
-        v += 10u * z;
-        p++;
-        if ((z = *p ^ '0') < 10) {
-          v += z;
-          p++;
-        }
-      }
-    }
-  }
+    if ((z = *p ^ '0') >= 10)
+      break;
+    v += 100000u * z;
+    p++;
+    if ((z = *p ^ '0') >= 10)
+      break;
+    v += 10000u * z;
+    p++;
+    if ((z = *p ^ '0') >= 10)
+      break;
+    v += 1000u * z;
+    p++;
+    if ((z = *p ^ '0') >= 10)
+      break;
+    v += 100u * z;
+    p++;
+    if ((z = *p ^ '0') >= 10)
+      break;
+    v += 10u * z;
+    p++;
+    if ((z = *p ^ '0') >= 10)
+      break;
+    v += z;
+    p++;
+  } while (0);
   *s = (char *)p;
   return v;
 }
@@ -358,15 +374,11 @@ static uint32_t str2msec (char **s) {
 static int hls_input_load_list (hls_input_plugin_t *this) {
   ssize_t size;
   char *line, *lend;
-  uint32_t frag_start, frag_duration;
+  uint32_t frag_duration;
 
-  _x_freep (&this->frags);
-  this->frag_have = 0;
-  this->frag_max  = 0;
-  this->est_size  = 0;
-  this->seen_size = 0;
-  this->seen_num  = 0;
-  this->seen_avg  = 0;
+  _x_freep (&this->frag.mrl_offs);
+  xine_mfrag_list_close (&this->frag.list);
+  this->frag.num = 0;
   this->items_num = 0;
 
   {
@@ -419,24 +431,36 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
   memset (this->list_buf, 0, 4);
   memset (this->list_buf + 4 + size, 0, 4);
 
-  this->frags = malloc (256 * sizeof (this->frags[0]));
-  if (!this->frags) {
-    this->list_bsize = 0;
-    _x_freep (&this->list_buf);
-    return 0;
-  }
-  this->frag_max = 256;
-
   this->list_seq = 1;
   this->list_strseq = "";
   this->list_strtype = "";
 
-  frag_start    = 0;
   frag_duration = 0;
   lend = this->list_buf + 4;
 
   if (strstr (lend, "#EXTINF:")) {
     /* fragment list */
+    {
+      uint32_t n = 0;
+      while (1) {
+        while (((lend[0] & 0xe0) == 0) && (lend[0] != 0))
+          lend++;
+        if (lend[0] == 0)
+          break;
+        if (lend[0] != '#')
+          n++;
+        while ((lend[0] & 0xe0) != 0)
+          lend++;
+      }
+      if (n == 0)
+        return 0;
+      this->frag.mrl_offs = malloc ((n + 1) * sizeof (this->frag.mrl_offs));
+      if (!this->frag.mrl_offs)
+        return 0;
+    }
+    xine_mfrag_list_open (&this->frag.list);
+    xine_mfrag_set_index_frag (this->frag.list, 0, 1000000, 0);
+    lend = this->list_buf + 4;
     while (1) {
       size_t llen;
       /* find next line */
@@ -453,7 +477,7 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
         /* control tag */
         if ((llen > 8) && !strncasecmp (line + 4, "INF:", 4)) {
           line += 8;
-          frag_duration = str2msec (&line);
+          frag_duration = str2usec (&line);
         } else if ((llen > 22) && !strncasecmp (line + 4, "-X-MEDIA-SEQUENCE:", 18)) {
           for (line += 22; *line == ' '; line++) ;
           this->list_strseq = line;
@@ -464,33 +488,12 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
           this->list_strtype = line;
         }
       } else if ((llen >= 1) && (line[0] != '#')) {
-        hls_frag_info_t *frag;
         /* mrl */
-        if (this->frag_have + 1 >= this->frag_max) {
-          uint32_t nsize = this->frag_max + 256;
-          frag = realloc (this->frags, nsize * sizeof (this->frags[0]));
-          if (!frag)
-            break;
-          this->frags = frag;
-          this->frag_max = nsize;
-        }
-        frag = this->frags + this->frag_have;
-        frag->mrl_offs = line - this->list_buf;
-        frag->start_msec = frag_start;
-        frag_start += frag_duration;
-        frag->byte_size = 0;
-        frag->start_offs = 0;
-        this->frag_have++;
+        this->frag.mrl_offs[this->frag.num] = line - this->list_buf;
+        this->frag.num += 1;
+        xine_mfrag_set_index_frag (this->frag.list, this->frag.num, frag_duration, -1);
       }
     }
-    {
-      hls_frag_info_t *frag = this->frags + this->frag_have;
-      frag->start_msec = frag_start;
-      frag->mrl_offs = 0;
-      frag->byte_size = 0;
-      frag->start_offs = 0;
-    }
-    this->duration = frag_start;
     return 1;
   }
 
@@ -560,13 +563,16 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
 
 static uint32_t hls_input_get_capabilities (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
-  uint32_t flags = this->caps1
-    & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW);
+  uint32_t flags;
+  if (!this)
+    return 0;
   if (this->list_type == LIST_VOD) {
-    flags |= INPUT_CAP_TIME_SEEKABLE;
+    if (this->in1)
+      this->caps1 = this->in1->get_capabilities (this->in1);
+    flags = (this->caps1 & INPUT_CAP_SEEKABLE)
+          | INPUT_CAP_TIME_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW;
   } else {
-    flags &= ~(INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE);
-    flags |= INPUT_CAP_LIVE;
+    flags = INPUT_CAP_LIVE | INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW;
   }
   return flags;
 }
@@ -575,92 +581,93 @@ static off_t hls_input_read (input_plugin_t *this_gen, void *buf, off_t len) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
   uint8_t *b = (uint8_t *)buf;
   size_t left;
-  hls_frag_info_t *frag = this->current_frag;
 
-  if (!b)
+  if (!this || !b)
     return 0;
   if (len < 0)
     return 0;
   left = len;
 
+  if (this->pos <= (off_t)this->prev_size2) {
+    size_t l = this->prev_size2 - this->pos;
+    if (l > 0) {
+      if (l > left)
+        l = left;
+      memcpy (b, this->preview + this->pos, l);
+      b += l;
+      this->pos += l;
+      left -= l;
+    }
+    if (left > 0)
+      this->prev_size2 = 0;
+  }
+
   while (left > 0) {
     int reget = 0;
-    if (this->list_type != LIST_LIVE_BUMP) {
-      if (!frag)
+    ssize_t r = 0;
+    /* read, safe with unknown size. */
+    if (this->frag.current == 0)
+      break;
+    while (left > 0) {
+      r = this->in1->read (this->in1, (void *)b, left);
+      if (r <= 0)
         break;
-      {
-        ssize_t r;
-        size_t fragleft = frag->byte_size - this->pos_in_frag;
-        if (left < fragleft) {
-          r = this->in1->read (this->in1, (void *)b, left);
-          if (r > 0) {
-            this->pos_in_frag += r;
-            b += r;
-          }
+      this->pos += r;
+      b += r;
+      left -= r;
+    }
+    if (r <= 0) {
+      if (r == 0) {
+        /* EOF */
+        hls_frag_end (this);
+      } else {
+        return -1;
+      }
+    }
+    if (left == 0)
+      break;
+    /* bump */
+    if (this->list_type != LIST_LIVE_BUMP) {
+      uint32_t n = this->frag.current + 1;
+      if (n > this->frag.num + 1) {
+        if (this->list_type != LIST_LIVE_REGET)
           break;
-        }
-        r = this->in1->read (this->in1, (void *)b, fragleft);
-        if (r > 0) {
-          this->pos_in_frag += r;
-          left -= r;
-          b += r;
-        }
-        if (r < (ssize_t)fragleft)
+        reget = 1;
+      } else {
+        if (!hls_input_open_item (this, n))
           break;
-      }  
-      {
-        uint32_t n = frag - this->frags + 1;
-        if (n >= this->frag_have) {
-          if (this->list_type != LIST_LIVE_REGET)
-            break;
-          reget = 1;
-        } else {
-          if (!hls_input_open_item (this, n))
-            break;
-          frag = this->current_frag;
-        }
       }
     } else {
-      ssize_t r = this->in1->read (this->in1, (void *)b, left);
-      if (r < 0)
-        break;
-      left -= r;
-      b += r;
-      if (left > 0) {
-        hls_bump_inc (this);
-        if (!hls_input_open_bump (this)) {
-          this->list_type = LIST_LIVE_REGET;
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "input_hls: LIVE bump error, falling back to reget mode.\n");
-          reget = 1;
-        }
+      hls_bump_inc (this);
+      this->frag.current += 1;
+      if (!hls_input_open_bump (this)) {
+        this->list_type = LIST_LIVE_REGET;
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "input_hls: LIVE bump error, falling back to reget mode.\n");
+        reget = 1;
       }
     }
     if (reget) {
-      uint32_t n;
+      int32_t n;
       strcpy (this->item_mrl, this->list_mrl);
       if (!hls_input_switch_mrl (this))
         break;
       if (hls_input_load_list (this) != 1)
         break;
       this->bump_seq += 1;
-      if ((this->bump_seq >= this->list_seq) && (this->bump_seq < this->list_seq + this->frag_have)) {
-        n = this->bump_seq - this->list_seq;
-      } else {
+      n = this->bump_seq - this->list_seq;
+      if ((n < 0) || (n >= (int32_t)this->frag.num)) {
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
           "input_hls: LIVE seq discontinuity %u -> %u.\n", (unsigned int)this->bump_seq, (unsigned int)this->list_seq);
         this->bump_seq = this->list_seq;
         n = 0;
       }
-      if (!hls_input_open_item (this, n))
+      if (!hls_input_open_item (this, n + 1))
         break;
-      frag = this->current_frag;
     }
   }
 
-  left = b - (uint8_t *)buf;
-  this->live_pos += left;
-  return left;
+  return b - (uint8_t *)buf;
 }
 
 static buf_element_t *hls_input_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
@@ -670,172 +677,193 @@ static buf_element_t *hls_input_read_block (input_plugin_t *this_gen, fifo_buffe
   return NULL;
 }
 
-static void hls_input_frag_seek (hls_input_plugin_t *this, uint32_t new_pos_in_frag) {
-  if (this->caps1 & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) {
-    int32_t newpos = this->in1->seek (this->in1, new_pos_in_frag, SEEK_SET);
-    if (newpos < 0)
-      newpos = this->in1->get_current_pos (this->in1);
-    if (newpos >= 0)
-      this->pos_in_frag = newpos;
-  }
-}
-
 static off_t hls_input_time_seek (input_plugin_t *this_gen, int time_offs, int origin) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
-  uint32_t new_time;
-  hls_frag_info_t *frag;
+  uint32_t new_time, d;
+  int idx;
 
-  if (this->list_type != LIST_VOD)
-    return this->live_pos;
-
-  frag = this->current_frag;
-  if (!frag)
+  if (!this)
     return 0;
+  if (this->list_type != LIST_VOD)
+    return this->pos;
+  if (!this->frag.list)
+    return this->pos;
 
+  d = hls_get_duration (this);
   switch (origin) {
     case SEEK_SET:
       new_time = 0;
       break;
     case SEEK_CUR:
-      new_time = frag->start_msec + (frag[1].start_msec - frag[0].start_msec) * this->pos_in_frag / frag->byte_size;
+      {
+        int64_t t1, t2, p1, p2;
+        xine_mfrag_get_index_start (this->frag.list, this->frag.current, &t1, &p1);
+        xine_mfrag_get_index_start (this->frag.list, this->frag.current + 1, &t2, &p2);
+        t1 /= 1000;
+        t2 /= 1000;
+        new_time = p2 - p1;
+        new_time = new_time
+                 ? (uint32_t)t1 + (uint64_t)(t2 - t1) * (uint32_t)(this->pos - this->frag.pos) / new_time
+                 : (uint32_t)t1;
+      }
       break;
     case SEEK_END:
-      new_time = this->duration;
+      new_time = d;
       break;
     default:
       errno = EINVAL;
       return (off_t)-1;
   }
   new_time += time_offs;
-  if (new_time > this->duration) {
+  if (new_time > d) {
     errno = EINVAL;
     return (off_t)-1;
   }
 
+  idx = xine_mfrag_find_time (this->frag.list, new_time * (uint64_t)1000);
+  if (idx < 1)
+    return (off_t)-1;
   {
-    /* find nearest fragment at or before requested time. */
-    int32_t b = 0, e = this->frag_have, m;
-    do {
-      uint32_t t;
-      m = (b + e) >> 1;
-      t = this->frags[m].start_msec;
-      if (new_time < t)
-        e = m--;
-      else
-        b = m + 1;
-    } while (b != e);
-    if (m < 0)
-      m = 0;
-    if (this->frags + m == frag) {
-      hls_input_frag_seek (this, 0);
+    int64_t p;
+    xine_mfrag_get_index_start (this->frag.list, idx, NULL, &p);
+    if ((idx == 1) && (this->frag.current == 1) && (this->pos <= (off_t)this->prev_size2) && (p <= (int64_t)this->prev_size2)) {
+      this->pos = p;
     } else {
-      if (!hls_input_open_item (this, m))
+      this->frag.current = idx;
+      this->pos = p;
+      this->prev_size2 = 0;
+      if (!hls_input_open_item (this, idx))
         return (off_t)-1;
-      frag = this->current_frag;
     }
   }
 
-  return frag->start_offs + this->pos_in_frag;
+  return this->pos;
 }
 
 static off_t hls_input_seek (input_plugin_t *this_gen, off_t offset, int origin) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
-  off_t new_offs;
-  uint32_t new_pos_in_frag;
-  hls_frag_info_t *frag;
+  off_t new_offs, l;
+  int idx;
 
-  if (this->list_type != LIST_VOD)
-    return this->live_pos;
-
-  frag = this->current_frag;
-  if (!frag)
+  if (!this)
     return 0;
 
+  l = hls_get_size (this);
   switch (origin) {
     case SEEK_SET:
       new_offs = 0;
       break;
     case SEEK_CUR:
-      new_offs = frag->start_offs + this->pos_in_frag;
+      new_offs = this->pos;
       break;
     case SEEK_END:
-      new_offs = this->est_size;
+      new_offs = l;
       break;
     default:
       errno = EINVAL;
       return (off_t)-1;
   }
   new_offs += offset;
-  if ((new_offs < 0) || (new_offs > this->est_size)) {
+  if (new_offs < 0) {
     errno = EINVAL;
     return (off_t)-1;
   }
 
-  if ((new_offs < frag->start_offs) || (new_offs >= frag->start_offs + frag->byte_size)) {
-    /* find nearest fragment at or before requested offs. */
-    int32_t b = 0, e = this->frag_have, m;
-    do {
-      off_t t;
-      m = (b + e) >> 1;
-      t = this->frags[m].start_offs;
-      if (new_offs < t)
-        e = m--;
-      else
-        b = m + 1;
-    } while (b != e);
-    if (m < 0)
-      m = 0;
+  /* always seek within preview. */
+  if ((new_offs <= (off_t)this->prev_size2) && (this->pos <= (off_t)this->prev_size2)) {
+    this->pos = new_offs;
+    return this->pos;
+  }
+  this->prev_size2 = 0;
+
+  if (this->list_type != LIST_VOD)
+    return this->pos;
+
+  if (new_offs > l) {
+    errno = EINVAL;
+    return (off_t)-1;
+  }
+
+  idx = xine_mfrag_find_pos (this->frag.list, new_offs);
+  if (idx < 1) {
+    errno = EINVAL;
+    return (off_t)-1;
+  }
+
+  if (((uint32_t)idx != this->frag.current) || (new_offs < this->pos)) {
+    int64_t p1, p2;
     /* HACK: offsets around this fragment may be guessed ones,
      * and the fragment itself may turn out to be smaller than expected.
      * however, demux expects a seek to land at the exact byte offs.
      * lets try to meet that, even if it is still wrong. */
-    do {
-      if (!hls_input_open_item (this, m))
+    xine_mfrag_get_index_start (this->frag.list, idx, NULL, &p1);
+    this->pos = p1;
+    if (!hls_input_open_item (this, idx))
+      return (off_t)-1;
+    xine_mfrag_get_index_start (this->frag.list, idx + 1, NULL, &p2);
+    while (new_offs >= p2) {
+      p1 = p2;
+      this->pos = p1;
+      idx += 1;
+      if (!hls_input_open_item (this, idx))
         return (off_t)-1;
-      m++;
-      frag = this->current_frag;
-      new_pos_in_frag = new_offs - frag->start_offs;
-    } while (new_pos_in_frag >= (uint32_t)frag->byte_size);
-  } else {
-    new_pos_in_frag = new_offs - frag->start_offs;
+      xine_mfrag_get_index_start (this->frag.list, idx + 1, NULL, &p2);
+    }
   }
 
-  hls_input_frag_seek (this, new_pos_in_frag);
+  new_offs -= this->frag.pos;
+  if (new_offs > 0) {
+    if (this->in1->seek (this->in1, new_offs, SEEK_SET) != new_offs) {
+      this->in1->seek (this->in1, 0, SEEK_SET);
+    } else {
+      this->pos += new_offs;
+    }
+  }
 
-  return frag->start_offs + this->pos_in_frag;
+  return this->pos;
 }
 
 static off_t hls_input_get_current_pos (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
-  if (this->list_type != LIST_VOD)
-    return this->live_pos;
-  if (!this->current_frag)
+  if (!this)
     return 0;
-  return this->current_frag->start_offs + this->pos_in_frag;
+  return this->pos;
 }
 
 static off_t hls_input_get_length (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
-  return this->est_size;
+  if (!this)
+    return 0;
+  return hls_get_size (this);
 }
 
 static const char *hls_input_get_mrl (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
+  if (!this)
+    return NULL;
   return this->list_mrl;
 }
 
 static void hls_input_dispose (input_plugin_t *this_gen) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
+  if (!this)
+    return;
   if (this->in1) {
     _x_free_input_plugin (this->stream, this->in1);
     this->in1 = NULL;
   }
+  xine_mfrag_list_close (&this->frag.list);
   _x_freep (&this->list_buf);
-  _x_freep (&this->frags);
+  _x_freep (&this->frag.mrl_offs);
   free (this);
 }
 
 static int hls_input_open (input_plugin_t *this_gen) {
+  static const char * const type_names[3] = {
+    [LIST_VOD] = "seekable VOD",
+    [LIST_LIVE_BUMP] = "non seekable LIVE bump",
+    [LIST_LIVE_REGET] = "non seekable LIVE reget"
+  };
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
   hls_input_class_t  *cls  = (hls_input_class_t *)this->input_plugin.input_class;
   int try;
@@ -870,37 +898,44 @@ static int hls_input_open (input_plugin_t *this_gen) {
     return 0;
   }
 
-  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-    "input_hls: got %u fragments for %u.%03u seconds.\n", (unsigned int)this->frag_have,
-    (unsigned int)(this->frags[this->frag_have].start_msec / 1000u),
-    (unsigned int)(this->frags[this->frag_have].start_msec % 1000u));
-
-  if (!strncasecmp (this->list_strtype, "VOD", 3) || ((this->frag_have >= 8) && (this->list_seq == 1))) {
-    this->list_type = LIST_VOD;
+  {
+    unsigned int d = hls_get_duration (this);
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-      "input_hls: seekable VOD mode @ seq %s.\n", this->list_strseq);
-  } else {
-    if ((this->frag_have > 1)
-      && hls_bump_guess (this, this->list_buf + this->frags[0].mrl_offs, this->list_buf + this->frags[1].mrl_offs)) {
-      this->list_type = LIST_LIVE_BUMP;
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-        "input_hls: non seekable LIVE bump mode @ seq %s.\n", this->list_strseq);
-    } else if ((this->frag_have > 0)
-      && hls_bump_find (this, this->list_buf + this->frags[0].mrl_offs, this->list_strseq)) {
-      this->list_type = LIST_LIVE_BUMP;
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-        "input_hls: non seekable LIVE bump mode @ seq %s.\n", this->list_strseq);
-    } else {
-      this->list_type = LIST_LIVE_REGET;
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-        "input_hls: non seekable LIVE reget mode @ seq %s.\n", this->list_strseq);
-    }
+      "input_hls: got %u fragments for %u.%03u seconds.\n", (unsigned int)this->frag.num, d / 1000u, d % 1000u);
   }
 
-  if (this->list_type == LIST_LIVE_BUMP)
-    return hls_input_open_bump (this);
+  if (!strncasecmp (this->list_strtype, "VOD", 3) || ((this->frag.num >= 8) && (this->list_seq == 1))) {
+    this->list_type = LIST_VOD;
+  } else {
+    if ((this->frag.num > 1)
+      && hls_bump_guess (this, this->list_buf + this->frag.mrl_offs[0], this->list_buf + this->frag.mrl_offs[1])) {
+      this->list_type = LIST_LIVE_BUMP;
+    } else if ((this->frag.num > 0)
+      && hls_bump_find (this, this->list_buf + this->frag.mrl_offs[0], this->list_strseq)) {
+      this->list_type = LIST_LIVE_BUMP;
+    } else {
+      this->list_type = LIST_LIVE_REGET;
+    }
+  }
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_hls: %s mode @ seq %s.\n", type_names[this->list_type], this->list_strseq);
 
-  return hls_input_open_item (this, 0);
+  if (this->list_type == LIST_LIVE_BUMP) {
+    this->frag.current = 1;
+    if (!hls_input_open_bump (this))
+      return 0;
+  } else {
+    if (!hls_input_open_item (this, 1))
+      return 0;
+  }
+
+  try = hls_input_read (&this->input_plugin, this->preview, sizeof (this->preview));
+  if (try > 0) {
+    this->prev_size1 = this->prev_size2 = try;
+    hls_input_seek (&this->input_plugin, 0, SEEK_SET);
+  }
+
+  return 1;
 }
 
 static int hls_input_get_optional_data (input_plugin_t *this_gen, void *data, int data_type) {
@@ -910,16 +945,62 @@ static int hls_input_get_optional_data (input_plugin_t *this_gen, void *data, in
     return INPUT_OPTIONAL_UNSUPPORTED;
 
   switch (data_type) {
+
     case INPUT_OPTIONAL_DATA_PREVIEW:
-    case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
-      if (!this->in1)
+      if (!data)
         return INPUT_OPTIONAL_UNSUPPORTED;
-      return this->in1->get_optional_data (this->in1, data, data_type);
+      {
+        uint32_t s = this->prev_size1;
+        if (s > MAX_PREVIEW_SIZE)
+          s = MAX_PREVIEW_SIZE;
+        if (!s) {
+          if (!this->in1)
+            return this->in1->get_optional_data (this->in1, data, data_type);
+          else
+            return INPUT_OPTIONAL_UNSUPPORTED;
+        }
+        memcpy (data, this->preview, s);
+        return s;
+      }
+
+    case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
+      if (!data)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      {
+        int s;
+        memcpy (&s, data, sizeof (s));
+        if (s < 0)
+          return INPUT_OPTIONAL_UNSUPPORTED;
+        if (s > (int)this->prev_size1)
+          s = this->prev_size1;
+        if (!s) {
+          if (!this->in1)
+            return this->in1->get_optional_data (this->in1, data, data_type);
+          else
+            return INPUT_OPTIONAL_UNSUPPORTED;
+        }
+        memcpy (data, this->preview, s);
+        return s;
+      }
+
     case INPUT_OPTIONAL_DATA_DURATION:
       if (!data)
         return INPUT_OPTIONAL_UNSUPPORTED;
-      memcpy (data, &this->duration, sizeof (this->duration));
+      {
+        int d = hls_get_duration (this);
+        memcpy (data, &d, sizeof (d));
+        return INPUT_OPTIONAL_SUCCESS;
+      }
+
+    case INPUT_OPTIONAL_DATA_FRAGLIST:
+      if (!data)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      {
+        xine_mfrag_list_t *n = NULL;
+        memcpy (data, this->list_type == LIST_VOD ? &this->frag.list : &n, sizeof (this->frag.list));
+      }
       return INPUT_OPTIONAL_SUCCESS;
+
     default:
       return INPUT_OPTIONAL_UNSUPPORTED;
   }
@@ -959,19 +1040,16 @@ static input_plugin_t *hls_input_get_instance (input_class_t *cls_gen, xine_stre
   } while (0);
 
 #ifndef HAVE_ZERO_SAFE_MEM
-  this->size1        = 0;
   this->caps1        = 0;
-  this->frags        = NULL;
-  this->current_frag = NULL;
+  this->frag.list    = NULL;
+  this->frag.mrl_offs = NULL;
+  this->frag.num     = 0;
+  this->frag.current = 0;
   this->list_buf     = NULL;
   this->list_bsize   = 0;
-  this->live_pos     = 0;
-  this->est_size     = 0;
-  this->seen_size    = 0;
-  this->seen_num     = 0;
-  this->seen_avg     = 0;
-  this->duration     = 0;
   this->items_num    = 0;
+  this->prev_size1   = 0;
+  this->prev_size2   = 0;
 #endif
 
   this->stream = stream;
@@ -1034,4 +1112,3 @@ void *input_hls_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
-
