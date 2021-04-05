@@ -104,7 +104,7 @@ void xine_mfrag_list_open (xine_mfrag_list_t **plist) {
   list->refs = 1;
   list->have = MFRAG_STEP - 2;
   list->used = list->known_nd = list->known_nl = 0;
-  list->dirty_from = 1;
+  list->dirty_from = 0;
   list->avg_d = list->avg_l = 0;
   list->known_d = list->known_l = 0;
 
