@@ -120,7 +120,8 @@ typedef struct {
   xine_mfrag_list_t *fraglist;
   off_t             pos, frag_pos, all_size;
   uint32_t          frag_size;
-  uint32_t          prev_size;
+  uint32_t          prev_size1; /** << the actual preview bytes, for INPUT_OPTIONAL_DATA_[SIZED]_PREVIEW. */
+  uint32_t          prev_size2; /** << for read (), 0 after leaving that range. */
 
   uint32_t          list_bsize;
   uint32_t          duration;
@@ -442,15 +443,18 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
   if (len == 0)
     return 0;
 
-  if (this->pos < (int)this->prev_size) {
-    size_t n = this->prev_size - this->pos;
-
-    if (n > len)
-      n = len;
-    memcpy (q, this->preview + this->pos, n);
-    q += n;
-    this->pos += n;
-    len -= n;
+  if (this->pos <= (off_t)this->prev_size2) {
+    size_t n = this->prev_size2 - this->pos;
+    if (n > 0) {
+      if (n > len)
+        n = len;
+      memcpy (q, this->preview + this->pos, n);
+      q += n;
+      this->pos += n;
+      len -= n;
+    }
+    if (len > 0)
+      this->prev_size2 = 0;
   }
   if (len == 0)
     return q - (char *)buf;
@@ -805,6 +809,7 @@ static off_t mpd_input_time_seek (input_plugin_t *this_gen, int time_offs, int o
       if (!mpd_set_frag_index (this, idx, 1))
         break;
     }
+    this->prev_size2 = 0;
     this->pos = frag_time1;
     mpd_frag_seen (this);
     return this->pos;
@@ -860,10 +865,11 @@ static off_t mpd_input_seek (input_plugin_t *this_gen, off_t offset, int origin)
   }
 
   /* always seek within the preview. */
-  if ((this->pos <= (int)this->prev_size) && (new_offs >= 0) && (new_offs <= (int)this->prev_size)) {
+  if ((this->pos <= (int)this->prev_size2) && (new_offs >= 0) && (new_offs <= (int)this->prev_size2)) {
     this->pos = new_offs;
     return this->pos;
   }
+  this->prev_size2 = 0;
 
   if (this->fraglist) {
     int64_t frag_pos;
@@ -991,14 +997,16 @@ static int mpd_input_open (input_plugin_t *this_gen) {
   }
 
   this->frag_index = 0;
-  this->prev_size = 0;
+  this->prev_size1 = 0;
+  this->prev_size2 = 0;
   this->pos = 0;
   n = mpd_read_int (this, this->preview, sizeof (this->preview), 0);
   if (n <= 0) {
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "input_mpegdash: failed to read preview.\n");
     return 0;
   }
-  this->prev_size = n;
+  this->prev_size1 = n;
+  this->prev_size2 = n;
   this->pos = 0;
   /*
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1019,22 +1027,22 @@ static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, in
   switch (data_type) {
 
     case INPUT_OPTIONAL_DATA_PREVIEW:
-      if (!data || (this->prev_size <= 0))
+      if (!data || (this->prev_size1 <= 0))
         return INPUT_OPTIONAL_UNSUPPORTED;
       {
-        uint32_t l = this->prev_size > MAX_PREVIEW_SIZE ? MAX_PREVIEW_SIZE : this->prev_size;
+        uint32_t l = this->prev_size1 > MAX_PREVIEW_SIZE ? MAX_PREVIEW_SIZE : this->prev_size1;
         memcpy (data, this->preview, l);
         return l;
       }
 
     case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
-      if (!data || (this->prev_size <= 0))
+      if (!data || (this->prev_size1 <= 0))
         return INPUT_OPTIONAL_UNSUPPORTED;
       {
         int want;
         memcpy (&want, data, sizeof (want));
         want = want < 0 ? 0
-             : want > (int)this->prev_size ? (int)this->prev_size
+             : want > (int)this->prev_size1 ? (int)this->prev_size1
              : want;
         memcpy (data, this->preview, want);
         return want;
