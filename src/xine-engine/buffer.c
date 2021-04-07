@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -70,6 +70,40 @@ typedef struct {
 
 #define LARGE_NUM 0x7fffffff
 
+/* The file buf ctrl feature.
+ * After stream start/seek (fifo flush), there is a phase when a few decoded frames
+ * are better than a lot of merely demuxed ones. Net_buf_ctrl wants large fifos to
+ * handle fragment and other stuttering streams. Lets assume that it knows what to
+ * do there. For plain files, however, demux is likely to drain processor time from
+ * decoders initially.
+ * A separate file_buf_ctrl module should not mess with fifo internals, thus lets
+ * do a little soft start version here when there are no callbacks:
+ * fifo->alloc_cb[0] == NULL,
+ * fifo->alloc_cb_data[0] == count of yet not to be used bufs. */
+
+static int fbc_avail (fifo_buffer_t *this) {
+  return this->alloc_cb[0] ? this->buffer_pool_num_free
+                           : this->buffer_pool_num_free - (intptr_t)this->alloc_cb_data[0];
+}
+
+static void fbc_reset (fifo_buffer_t *this) {
+  if (!this->alloc_cb[0]) {
+    int n = (this->buffer_pool_capacity * 3) >> 2;
+    if (n < 75)
+      n = 0;
+    this->alloc_cb_data[0] = (void *)(intptr_t)n;
+  }
+}
+
+static void fbc_sub (fifo_buffer_t *this, int n) {
+  if (!this->alloc_cb[0]) {
+    n = (intptr_t)this->alloc_cb_data[0] - n;
+    if (n < 0)
+      n = 0;
+    this->alloc_cb_data[0] = (void *)(intptr_t)n;
+  }
+}
+
 /*
  * put a previously allocated buffer element back into the buffer pool
  */
@@ -82,6 +116,7 @@ static void buffer_pool_free (buf_element_t *element) {
 
   newhead = (be_ei_t *)element;
   n = newhead->nbufs;
+  fbc_sub (this, n);
   this->buffer_pool_num_free += n;
   if (this->buffer_pool_num_free > this->buffer_pool_capacity) {
     fprintf(stderr, _("xine-lib: buffer.c: There has been a fatal error: TOO MANY FREE's\n"));
@@ -125,7 +160,7 @@ static void buffer_pool_free (buf_element_t *element) {
 
   /* dont provoke useless wakeups */
   if (this->buffer_pool_num_waiters ||
-    (this->buffer_pool_large_wait <= this->buffer_pool_num_free))
+    (this->buffer_pool_large_wait <= fbc_avail (this)))
     pthread_cond_signal (&this->buffer_pool_cond_not_empty);
 
   pthread_mutex_unlock (&this->buffer_pool_mutex);
@@ -148,19 +183,19 @@ static buf_element_t *buffer_pool_size_alloc_int (fifo_buffer_t *this, int n) {
   /* we always keep one free buffer for emergency situations like
    * decoder flushes that would need a buffer in buffer_pool_try_alloc() */
   n += 2;
-  if (this->buffer_pool_num_free < n) {
+  if (fbc_avail (this) < n) {
     /* Paranoia: someone else than demux calling this in parallel ?? */
     if (this->buffer_pool_large_wait != LARGE_NUM) {
       this->buffer_pool_num_waiters++;
       do {
         pthread_cond_wait (&this->buffer_pool_cond_not_empty, &this->buffer_pool_mutex);
-      } while (this->buffer_pool_num_free < n);
+      } while (fbc_avail (this) < n);
       this->buffer_pool_num_waiters--;
     } else {
       this->buffer_pool_large_wait = n;
       do {
         pthread_cond_wait (&this->buffer_pool_cond_not_empty, &this->buffer_pool_mutex);
-      } while (this->buffer_pool_num_free < n);
+      } while (fbc_avail (this) < n);
       this->buffer_pool_large_wait = LARGE_NUM;
     }
   }
@@ -244,11 +279,11 @@ static buf_element_t *buffer_pool_alloc (fifo_buffer_t *this) {
 
   /* we always keep one free buffer for emergency situations like
    * decoder flushes that would need a buffer in buffer_pool_try_alloc() */
-  if (this->buffer_pool_num_free < 2) {
+  if (fbc_avail (this) < 2) {
     this->buffer_pool_num_waiters++;
     do {
       pthread_cond_wait (&this->buffer_pool_cond_not_empty, &this->buffer_pool_mutex);
-    } while (this->buffer_pool_num_free < 2);
+    } while (fbc_avail (this) < 2);
     this->buffer_pool_num_waiters--;
   }
 
@@ -641,6 +676,7 @@ static void fifo_buffer_clear (fifo_buffer_t *fifo) {
     start = next;
   }
 
+  fbc_reset (fifo);
   /* printf("Free buffers after clear: %d\n", fifo->buffer_pool_num_free); */
   pthread_mutex_unlock (&fifo->mutex);
 }
@@ -759,6 +795,7 @@ static void fifo_register_alloc_cb (fifo_buffer_t *this,
     this->alloc_cb[i] = cb;
     this->alloc_cb_data[i] = data_cb;
     this->alloc_cb[i+1] = NULL;
+    this->alloc_cb_data[i+1] = (void *)(intptr_t)0;
   }
   pthread_mutex_unlock(&this->mutex);
 }
@@ -893,7 +930,7 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->alloc_cb[0]             = NULL;
   this->get_cb[0]               = NULL;
   this->put_cb[0]               = NULL;
-  this->alloc_cb_data[0]        = NULL;
+  this->alloc_cb_data[0]        = (void *)(intptr_t)0;
   this->get_cb_data[0]          = NULL;
   this->put_cb_data[0]          = NULL;
 #endif
@@ -955,6 +992,8 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   }
 
   (beei - 1)->elem.next = NULL;
+
+  fbc_reset (this);
 
   return this;
 }
