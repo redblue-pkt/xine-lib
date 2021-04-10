@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -43,6 +43,7 @@
 #include "input_helper.h"
 
 #define BUFSIZE                 1024
+
 #if defined(WIN32) || defined(__CYGWIN__)
 #  define FILE_FLAGS (O_RDONLY | O_BINARY)
 #else
@@ -351,11 +352,17 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
 
   lprintf ("trying to open '%s'...\n", this->mrl);
 
+/* POSIX manpage: "If  O_NONBLOCK is clear, an open() for reading-only shall block
+ * the calling thread until a thread opens the file for writing."
+ * This seems to include the case when that pipe already is open for write,
+ * as may result from a race with Kaffeine live DVB when user zaps channels quickly.
+ * Try to avoid this with an early O_NONBLOCK. */
+
   if (this->fh == -1) {
     const char *filename;
 
     filename = (const char *) &this->mrl[5];
-    this->fh = xine_open_cloexec(filename, FILE_FLAGS);
+    this->fh = xine_open_cloexec (filename, FILE_FLAGS | O_NONBLOCK);
 
     lprintf("filename '%s'\n", filename);
 
@@ -373,15 +380,20 @@ static int stdin_plugin_open (input_plugin_t *this_gen ) {
   this->ring_read = 0;
   _x_freep (&this->ring_buf);
 
+  this->mode = 0;
 #ifdef WIN32
-  setmode(this->fh, FILE_FLAGS);
+  setmode (this->fh, FILE_FLAGS | O_NONBLOCK);
 #else
   this->old_mode = fcntl (this->fh, F_GETFL);
   if (this->old_mode != -1) {
-    fcntl (this->fh, F_SETFL, this->old_mode | O_NONBLOCK);
-    this->mode = fcntl (this->fh, F_GETFL);
-    this->nonblock = !!(this->mode & O_NONBLOCK);
+    if (!(this->old_mode & O_NONBLOCK)) {
+      fcntl (this->fh, F_SETFL, this->old_mode | O_NONBLOCK);
+      this->mode = fcntl (this->fh, F_GETFL);
+    } else {
+      this->mode = this->old_mode;
+    }
   }
+  this->nonblock = !!(this->mode & O_NONBLOCK);
   if (this->nonblock)
     this->ring_buf = malloc (RING_SIZE);
 #endif
