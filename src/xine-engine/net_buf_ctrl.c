@@ -224,6 +224,7 @@ static void nbc_delay_clean (xine_nbc_t *this) {
 
 static void nbc_delay_stop (xine_nbc_t *this) {
   if (this->delay.state == NBC_DELAY_RUN) {
+    _x_set_fine_speed (this->stream, XINE_FINE_SPEED_NORMAL);
     this->delay.state = NBC_DELAY_STOP;
     pthread_cond_signal (&this->delay.msg);
   }
