@@ -251,6 +251,15 @@ static void nbc_stats_reset (xine_nbc_t *this) {
     this->stats.num[u] = 0;
 }
 
+static void nbc_stats_flat (xine_nbc_t *this) {
+  uint32_t level = this->stats.hist[this->stats.hpos], u;
+  for (u = 0; u < NBC_HSIZE_NUM; u++)
+    this->stats.hist[u] = level;
+  for (u = 0; u < 256; u++)
+    this->stats.num[u] = 0;
+  this->stats.num[level] = NBC_HSIZE_NUM;
+}
+
 static void nbc_stats_add (xine_nbc_t *this, int pts) {
   uint32_t u;
   if (pts < 0)
@@ -465,6 +474,10 @@ static void dvbspeed_put (xine_nbc_t *this, fifo_buffer_t * fifo, buf_element_t 
     case 2:
     case 5:
       if ((all_fill > this->dvbs_center) || (100 * used > 73 * fifo->buffer_pool_capacity)) {
+        if (this->dvbspeed == 7) {
+          /* dont make the startup phase switch to slow mode later. */
+          nbc_stats_flat (this);
+        }
         nbc_delay_set (this, this->dvbs_center);
         this->dvbspeed = (mode == BUF_VIDEO_BASE) ? 1 : 4;
         /* dont let low bitrate radio switch speed too often */
@@ -1129,3 +1142,5 @@ void xine_nbc_close (xine_nbc_t *this) {
     xine_refs_sub (&s->refs, 1);
   }
 }
+
+
