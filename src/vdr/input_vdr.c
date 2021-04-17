@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2020 the xine project
+ * Copyright (C) 2003-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -29,6 +29,12 @@
  * frames as if they had perfectly consecutive time stamps. We still need to register
  * first discontinuity early because server will wait for it, and video decoder may
  * delay it -> freeze.
+ * Issue #2: xine engine now uses a more efficient buffering scheme. Audio fifo
+ * default now is 700*2k with soft start vs 230*8k fixed. This is needed to support
+ * modern fragment streaming protocols. It also helps live DVB radio, and it speeds
+ * up seeking. However, vdr seems to freeze from it sometimes. We work around it
+ * by using fifo->buffer_pool_size_alloc (fifo, need), and by registering a dummy
+ * alloc callback that disables file_buf_ctrl soft start.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -196,6 +202,11 @@ struct vdr_input_plugin_s
 
   uint8_t             seek_buf[BUF_SIZE];
 };
+
+static void input_vdr_dummy (fifo_buffer_t *fifo, void *data) {
+  (void)fifo;
+  (void)data;
+}
 
 static void trick_speed_send_event (vdr_input_plugin_t *this, int mode) {
   xine_event_t event;
@@ -1762,7 +1773,7 @@ static buf_element_t *vdr_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
   if (todo < 0)
     return NULL;
 
-  buf = fifo->buffer_pool_size_alloc(fifo, todo);
+  buf = fifo->buffer_pool_size_alloc (fifo, todo);
 
   buf->content = buf->mem;
   buf->type = BUF_DEMUX_BLOCK;
@@ -1945,6 +1956,12 @@ static void vdr_plugin_dispose(input_plugin_t *this_gen)
   vdr_vpts_offset_queue_deinit (this);
 
   pthread_mutex_destroy (&this->metronom.mutex);
+
+  /* see comment above */
+  if (this->stream->audio_fifo)
+    this->stream->audio_fifo->unregister_alloc_cb (this->stream->audio_fifo, input_vdr_dummy);
+  if (this->stream->video_fifo)
+    this->stream->video_fifo->unregister_alloc_cb (this->stream->video_fifo, input_vdr_dummy);
 
   free(this);
 }
@@ -2751,6 +2768,12 @@ static input_plugin_t *vdr_class_get_instance(input_class_t *cls_gen, xine_strea
   this->event_queue = xine_event_new_queue(this->stream);
   if (this->event_queue)
     xine_event_create_listener_thread(this->event_queue, event_handler, this);
+
+  /* see comment above */
+  if (this->stream->audio_fifo)
+    this->stream->audio_fifo->register_alloc_cb (this->stream->audio_fifo, input_vdr_dummy, this);
+  if (this->stream->video_fifo)
+    this->stream->video_fifo->register_alloc_cb (this->stream->video_fifo, input_vdr_dummy, this);
 
   /* init metronom */
   this->metronom.input = this;
