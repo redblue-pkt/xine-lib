@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1897,47 +1897,61 @@ void _x_free_input_plugin (xine_stream_t *stream, input_plugin_t *input) {
   }
 }
 
-static int probe_mime_type (xine_t *self, plugin_node_t *node, const char *mime_type)
-{
-  /* catalog->lock is expected to be locked */
-  if (node->plugin_class || _load_plugin_class(self, node, NULL))
-  {
-    const unsigned int mime_type_len = strlen (mime_type);
-    demux_class_t *cls = (demux_class_t *)node->plugin_class;
-    const char *mime = cls->mimetypes;
-    while (mime)
-    {
-      while (*mime == ';' || isspace (*mime))
-        ++mime;
-      if (!strncasecmp (mime, mime_type, mime_type_len) &&
-          (!mime[mime_type_len] || mime[mime_type_len] == ':' || mime[mime_type_len] == ';'))
-        return 1;
-      mime = strchr (mime, ';');
-    }
+demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *input) {
+  int               methods[3], i;
+  plugin_catalog_t *catalog;
+  demux_plugin_t   *plugin;
+  const char       *mime_type = "";
+
+  if (!stream || !input)
+    return NULL;
+
+  switch (stream->xine->demux_strategy) {
+    default:
+      xprintf (stream->xine, XINE_VERBOSITY_LOG,
+        _("load_plugins: unknown content detection strategy %d\n"),
+        stream->xine->demux_strategy);
+      /* fall through */
+    case XINE_DEMUX_DEFAULT_STRATEGY:
+      methods[0] = METHOD_BY_CONTENT;
+      methods[1] = METHOD_BY_MRL;
+      break;
+    case XINE_DEMUX_REVERT_STRATEGY:
+      methods[0] = METHOD_BY_MRL;
+      methods[1] = METHOD_BY_CONTENT;
+      break;
+    case XINE_DEMUX_CONTENT_STRATEGY:
+      methods[0] = METHOD_BY_CONTENT;
+      methods[1] = -1;
+      mime_type = NULL;
+      break;
+    case XINE_DEMUX_EXTENSION_STRATEGY:
+      methods[0] = METHOD_BY_MRL;
+      methods[1] = -1;
+      break;
   }
-  return 0;
-}
-
-static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int method2,
-				    input_plugin_t *input) {
-
-  int               i;
-  int               methods[3];
-  plugin_catalog_t *catalog = stream->xine->plugin_catalog;
-  demux_plugin_t   *plugin = NULL;
-
-  methods[0] = method1;
-  methods[1] = method2;
   methods[2] = -1;
 
-  i = 0;
-  while (methods[i] != -1 && !plugin) {
+  if (mime_type
+    && input->get_optional_data
+    && (input->get_optional_data (input, NULL, INPUT_OPTIONAL_DATA_DEMUX_MIME_TYPE) != INPUT_OPTIONAL_UNSUPPORTED)
+    && (input->get_optional_data (input, &mime_type, INPUT_OPTIONAL_DATA_MIME_TYPE) != INPUT_OPTIONAL_UNSUPPORTED)
+    && strcasecmp (mime_type, "text/plain")) {
+    ;
+  } else {
+    mime_type = NULL;
+  }
+
+  plugin = NULL;
+  catalog = stream->xine->plugin_catalog;
+
+  for (i = 0; (methods[i] >= 0) && !plugin; i++) {
     int list_id, list_size;
 
     pthread_mutex_lock (&catalog->lock);
 
     list_size = xine_sarray_size(catalog->plugin_lists[PLUGIN_DEMUX - 1]);
-    for(list_id = 0; list_id < list_size; list_id++) {
+    for (list_id = 0; list_id < list_size; list_id++) {
       plugin_node_t *node;
 
       node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
@@ -1945,18 +1959,13 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
       xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "load_plugins: probing demux '%s'\n", node->info->id);
 
       if (node->plugin_class || _load_plugin_class(stream->xine, node, NULL)) {
-        const char *mime_type;
+        demux_class_t *class = (demux_class_t *)node->plugin_class;
 
         /* If detecting by MRL, try the MIME type first (but not text/plain)... */
         stream->content_detection_method = METHOD_EXPLICIT;
-        if (methods[i] == METHOD_BY_MRL &&
-            stream->input_plugin->get_optional_data &&
-            stream->input_plugin->get_optional_data (stream->input_plugin, NULL, INPUT_OPTIONAL_DATA_DEMUX_MIME_TYPE) != INPUT_OPTIONAL_UNSUPPORTED &&
-            stream->input_plugin->get_optional_data (stream->input_plugin, &mime_type, INPUT_OPTIONAL_DATA_MIME_TYPE) != INPUT_OPTIONAL_UNSUPPORTED &&
-            mime_type && strcasecmp (mime_type, "text/plain") &&
-            probe_mime_type (stream->xine, node, mime_type) &&
-            (plugin = ((demux_class_t *)node->plugin_class)->open_plugin (node->plugin_class, stream, input)))
-        {
+        if ((methods[i] == METHOD_BY_MRL)
+          && (xine_is_mime_in (class->mimetypes, mime_type) >= 0)
+          && (plugin = class->open_plugin (class, stream, input))) {
           inc_node_ref(node);
           plugin->node = node;
           break;
@@ -1964,13 +1973,11 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
 
         /* ... then try the extension */
         stream->content_detection_method = methods[i];
-	if ( stream->content_detection_method == METHOD_BY_MRL &&
-	     ! _x_demux_check_extension(input->get_mrl(input),
-					 ((demux_class_t *)node->plugin_class)->extensions)
-	     )
-	  continue;
+        if ((stream->content_detection_method == METHOD_BY_MRL) &&
+            !_x_demux_check_extension (input->get_mrl (input), class->extensions))
+          continue;
 
-        if ((plugin = ((demux_class_t *)node->plugin_class)->open_plugin(node->plugin_class, stream, input))) {
+        if ((plugin = class->open_plugin (class, stream, input))) {
 	  inc_node_ref(node);
 	  plugin->node = node;
 	  break;
@@ -1979,36 +1986,14 @@ static demux_plugin_t *probe_demux (xine_stream_t *stream, int method1, int meth
     }
 
     pthread_mutex_unlock (&catalog->lock);
+  }
 
-    i++;
+  if (input == stream->input_plugin) {
+    xine_stream_private_t *s = (xine_stream_private_t *)stream;
+    s->demux.input_caps = input->get_capabilities (input);
   }
 
   return plugin;
-}
-
-demux_plugin_t *_x_find_demux_plugin (xine_stream_t *stream, input_plugin_t *input) {
-
-  switch (stream->xine->demux_strategy) {
-
-  default:
-    xprintf (stream->xine, XINE_VERBOSITY_LOG,
-             _("load_plugins: unknown content detection strategy %d\n"),
-             stream->xine->demux_strategy);
-    /* fall through */
-  case XINE_DEMUX_DEFAULT_STRATEGY:
-    return probe_demux (stream, METHOD_BY_CONTENT, METHOD_BY_MRL, input);
-
-  case XINE_DEMUX_REVERT_STRATEGY:
-    return probe_demux (stream, METHOD_BY_MRL, METHOD_BY_CONTENT, input);
-
-  case XINE_DEMUX_CONTENT_STRATEGY:
-    return probe_demux (stream, METHOD_BY_CONTENT, -1, input);
-
-  case XINE_DEMUX_EXTENSION_STRATEGY:
-    return probe_demux (stream, METHOD_BY_MRL, -1, input);
-  }
-
-  return NULL;
 }
 
 demux_plugin_t *_x_find_demux_plugin_by_name(xine_stream_t *stream, const char *name, input_plugin_t *input) {
@@ -3236,22 +3221,28 @@ char *xine_get_mime_types (xine_t *self) {
  *
  * the pointer returned can be free()ed when no longer used
  * returns NULL if no demuxer is available to handle this. */
-char *xine_get_demux_for_mime_type (xine_t *self, const char *mime_type) {
-
-  plugin_catalog_t *catalog = self->plugin_catalog;
-  plugin_node_t    *node;
+char *xine_get_demux_for_mime_type (xine_t *xine, const char *mime_type) {
+  plugin_catalog_t *catalog;
   char             *id = NULL;
   int               list_id, list_size;
 
+  if (!xine || !mime_type)
+    return NULL;
+
+  catalog = xine->plugin_catalog;
   pthread_mutex_lock (&catalog->lock);
 
   list_size = xine_sarray_size (catalog->plugin_lists[PLUGIN_DEMUX - 1]);
 
   for (list_id = 0; (list_id < list_size) && !id; list_id++) {
+    plugin_node_t *node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
 
-    node = xine_sarray_get (catalog->plugin_lists[PLUGIN_DEMUX - 1], list_id);
-    if (probe_mime_type (self, node, mime_type))
-      id = strdup(node->info->id);
+    if (node->plugin_class || _load_plugin_class (xine, node, NULL)) {
+      demux_class_t *class = (demux_class_t *)node->plugin_class;
+
+      if (xine_is_mime_in (class->mimetypes, mime_type) >= 0)
+        id = strdup (node->info->id);
+    }
   }
 
   pthread_mutex_unlock (&catalog->lock);
@@ -3379,4 +3370,3 @@ void _x_dispose_plugins (xine_t *this) {
     _x_freep (&this->plugin_catalog);
   }
 }
-
