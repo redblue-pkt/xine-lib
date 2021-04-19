@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -636,9 +636,6 @@ typedef struct xine_stream_private_st {
 
   uint32_t                   disable_decoder_flush_at_discontinuity;
 
-  /* all input is... */
-  uint32_t                   seekable;
-
   /* _x_find_input_plugin () recursion protection */
   input_class_t             *query_input_plugins[2];
 
@@ -650,11 +647,6 @@ void xine_current_extra_info_set (xine_stream_private_t *stream, const extra_inf
 /* Nasty net_buf_ctrl helper: inform about something outside its regular callbacks. */
 #define XINE_NBC_EVENT_AUDIO_DRY 1
 void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) INTERNAL;
-
-/* Enable file_buf_ctrl optimizations when there is no net_buf_ctrl.
- * This is a kludge to detect less compatible plugins like vdr and vdr-xineliboutput.
- * Return actual state. */
-int xine_fbc_set (fifo_buffer_t *fifo, int on) INTERNAL;
 
 EXTERN_C_STOP
 
