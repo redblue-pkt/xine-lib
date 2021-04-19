@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -578,6 +578,16 @@ struct palette_entry_s
   unsigned char r, g, b;
 } ;
 
+/* NOTE well: unfortunately, early libxine design made all these details public.
+ * Please
+ * a) use _x_[dummy_]fifo_buffer_new (), and dont assume anything about
+ *    the non function members, or
+ * b) provide a full own implementation, which is tricky because fifo_buffer_t
+ *    has been enlarged with libxine version bumps, or
+ * ?) at least never pass your own to engine or unaware plugins.
+ * vdr-xineliboutput builds its own fifo_buffer_t structs from a partly copy
+ * of a libxine one (including some functions) as pools.
+ * We are trying hard to keep that vdr compatibility, with no guarantee. */
 typedef struct fifo_buffer_s fifo_buffer_t;
 struct fifo_buffer_s
 {
@@ -694,7 +704,7 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) XINE_PROT
  * @param buf_size Size of each buffer.
  * @internal Only used by video and audio decoder loops.
  */
-fifo_buffer_t *_x_dummy_fifo_buffer_new (int num_buffers, uint32_t buf_size);
+fifo_buffer_t *_x_dummy_fifo_buffer_new (int num_buffers, uint32_t buf_size) XINE_PROTECTED;
 
 /**
  * @brief Free chained list of buffer elements.

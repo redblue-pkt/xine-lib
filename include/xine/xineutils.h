@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -733,6 +733,11 @@ int xine_monotonic_clock(struct timeval *tv, struct timezone *tz) XINE_PROTECTED
  */
 void _x_report_video_fourcc (xine_t *, const char *module, uint32_t) XINE_PROTECTED;
 void _x_report_audio_format_tag (xine_t *, const char *module, uint32_t) XINE_PROTECTED;
+
+/**
+ * Returns offset into haystack if mime type needle is found, or -1.
+ */
+int xine_is_mime_in (const char *haystack, const char *needle) XINE_PROTECTED;
 
 /* don't harm following code */
 #ifdef extern

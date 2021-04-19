@@ -1069,6 +1069,7 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->slave_is_subtitle        = 0;
   stream->query_input_plugins[0]   = NULL;
   stream->query_input_plugins[1]   = NULL;
+  stream->seekable                 = 0;
   {
     int i;
     for (i = 1; i < XINE_NUM_SIDE_STREAMS; i++)
@@ -1313,6 +1314,7 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   s->slave_is_subtitle        = 0;
   s->query_input_plugins[0]   = NULL;
   s->query_input_plugins[1]   = NULL;
+  s->seekable                 = 0;
   {
     int i;
     for (i = 1; i < XINE_NUM_SIDE_STREAMS; i++)
@@ -2105,11 +2107,21 @@ static int play_internal (xine_stream_private_t *stream, int start_pos, int star
   do {
     pthread_mutex_lock (&sp->s->demux.action_lock);
     sp->s->demux.action_pending += 0x10001;
-    if (!(sp->s->demux.input_caps & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)))
+    if (!(sp->s->demux.input_caps & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE | INPUT_CAP_TIME_SEEKABLE)))
       input_is_seekable = 0;
     pthread_mutex_unlock (&sp->s->demux.action_lock);
     sp++;
   } while (sp->s);
+
+  if (input_is_seekable != stream->seekable) {
+    static const char * const fbc_mode[4] = {"off", "a", "v", "av"};
+    int on;
+    stream->seekable = input_is_seekable;
+    on = (xine_fbc_set (stream->s.audio_fifo, input_is_seekable) ? 1 : 0)
+       | (xine_fbc_set (stream->s.audio_fifo, input_is_seekable) ? 2 : 0);
+    xprintf (stream->s.xine, XINE_VERBOSITY_DEBUG,
+        "file_buf_ctrl: %s.\n", fbc_mode[on]);
+  }
 
   /* WTF??
    * TJ. OK these calls involve lock/unlock of the fifo mutexes.
