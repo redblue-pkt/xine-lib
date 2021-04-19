@@ -46,6 +46,7 @@
 #include <xine/buffer.h>
 #include <xine/xineutils.h>
 #include <xine/xine_internal.h>
+#include "xine_private.h"
 
 /* The large buffer feature.
  * If we have enough contigous memory, and if we can afford to hand if out,
@@ -78,16 +79,51 @@ typedef struct {
  * decoders initially.
  * A separate file_buf_ctrl module should not mess with fifo internals, thus lets
  * do a little soft start version here when there are no callbacks:
- * fifo->alloc_cb[0] == NULL,
+ * fifo->alloc_cb[0] == fbc_dummy,
  * fifo->alloc_cb_data[0] == count of yet not to be used bufs. */
 
+static void fbc_dummy (fifo_buffer_t *this, void *data) {
+  (void)this;
+  (void)data;
+}
+
+int xine_fbc_set (fifo_buffer_t *fifo, int on) {
+  if (!fifo)
+    return 0;
+  pthread_mutex_lock (&fifo->mutex);
+
+  if (on) {
+    int n;
+    if (fifo->alloc_cb[0]) {
+      n = (fifo->alloc_cb[0] == fbc_dummy);
+      pthread_mutex_unlock (&fifo->mutex);
+      return n;
+    }
+    fifo->alloc_cb[0] = fbc_dummy;
+    n = (fifo->buffer_pool_capacity * 3) >> 2;
+    if (n < 75)
+      n = 0;
+    fifo->alloc_cb_data[0] = (void *)(intptr_t)n;
+    pthread_mutex_unlock (&fifo->mutex);
+    return 1;
+  }
+
+  if (fifo->alloc_cb[0] == fbc_dummy) {
+    fifo->alloc_cb[0] = NULL;
+    fifo->alloc_cb_data[0] = (void *)0;
+  }
+  pthread_mutex_unlock (&fifo->mutex);
+  return 0;
+}
+
 static int fbc_avail (fifo_buffer_t *this) {
-  return this->alloc_cb[0] ? this->buffer_pool_num_free
-                           : this->buffer_pool_num_free - (intptr_t)this->alloc_cb_data[0];
+  return this->alloc_cb[0] != fbc_dummy
+    ? this->buffer_pool_num_free
+    : this->buffer_pool_num_free - (intptr_t)this->alloc_cb_data[0];
 }
 
 static void fbc_reset (fifo_buffer_t *this) {
-  if (!this->alloc_cb[0]) {
+  if (this->alloc_cb[0] == fbc_dummy) {
     int n = (this->buffer_pool_capacity * 3) >> 2;
     if (n < 75)
       n = 0;
@@ -96,7 +132,7 @@ static void fbc_reset (fifo_buffer_t *this) {
 }
 
 static void fbc_sub (fifo_buffer_t *this, int n) {
-  if (!this->alloc_cb[0]) {
+  if (this->alloc_cb[0] == fbc_dummy) {
     n = (intptr_t)this->alloc_cb_data[0] - n;
     if (n < 0)
       n = 0;
@@ -789,6 +825,10 @@ static void fifo_register_alloc_cb (fifo_buffer_t *this,
   int i;
 
   pthread_mutex_lock(&this->mutex);
+  if (this->alloc_cb[0] == fbc_dummy) {
+    this->alloc_cb[0] = NULL;
+    this->alloc_cb_data[0] = NULL;
+  }
   for(i = 0; this->alloc_cb[i]; i++)
     ;
   if( i != BUF_MAX_CALLBACKS-1 ) {
@@ -930,7 +970,7 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
   this->alloc_cb[0]             = NULL;
   this->get_cb[0]               = NULL;
   this->put_cb[0]               = NULL;
-  this->alloc_cb_data[0]        = (void *)(intptr_t)0;
+  this->alloc_cb_data[0]        = NULL;
   this->get_cb_data[0]          = NULL;
   this->put_cb_data[0]          = NULL;
 #endif
@@ -993,8 +1033,6 @@ fifo_buffer_t *_x_fifo_buffer_new (int num_buffers, uint32_t buf_size) {
 
   (beei - 1)->elem.next = NULL;
 
-  fbc_reset (this);
-
   return this;
 }
 
@@ -1023,4 +1061,3 @@ void _x_free_buf_elements(buf_element_t *head) {
     }
   }
 }
-
