@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2020 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -360,17 +360,18 @@ static void *demux_loop (void *stream_gen) {
 
   /* do-while needed to seek after demux finished */
   do {
-    uint32_t input_caps = 0;
-
     xine_gettime (&seek_time);
 
-    /* tell xine_play_internal () whether we can seek.
-     * so it may flush fifos early, and suspend us faster. */
-    if (stream->s.input_plugin)
-      input_caps = stream->s.input_plugin->get_capabilities (stream->s.input_plugin);
-    pthread_mutex_lock (&stream->demux.action_lock);
-    stream->demux.input_caps = input_caps;
-    pthread_mutex_unlock (&stream->demux.action_lock);
+    {
+      uint32_t input_caps = 0;
+      /* tell xine_play_internal () whether we can seek.
+       * so it may flush fifos early, and suspend us faster. */
+      if (stream->s.input_plugin)
+        input_caps = stream->s.input_plugin->get_capabilities (stream->s.input_plugin);
+      pthread_mutex_lock (&stream->demux.action_lock);
+      stream->demux.input_caps = input_caps;
+      pthread_mutex_unlock (&stream->demux.action_lock);
+    }
 
     /* main demuxer loop */
     status = stream->demux.plugin->get_status (stream->demux.plugin);
@@ -379,24 +380,10 @@ static void *demux_loop (void *stream_gen) {
       iterations++;
       status = stream->demux.plugin->send_chunk (stream->demux.plugin);
 
-      if (!(iterations & 31)) {
-        uint32_t new_caps = stream->s.input_plugin
-                          ? stream->s.input_plugin->get_capabilities (stream->s.input_plugin)
-                          : 0;
-        if (new_caps != input_caps) {
-          input_caps = new_caps;
-          pthread_mutex_lock (&stream->demux.action_lock);
-          stream->demux.input_caps = input_caps;
-          pthread_mutex_unlock (&stream->demux.action_lock);
-        }
-      }
-
       /* someone may want to interrupt us */
       if (stream->demux.action_pending > 0) {
         pthread_mutex_lock (&stream->demux.action_lock);
         if (stream->demux.action_pending > 0) {
-          if (stream->s.input_plugin)
-            stream->demux.input_caps = stream->s.input_plugin->get_capabilities (stream->s.input_plugin);
           pthread_mutex_unlock (&stream->demux.lock);
           do {
             pthread_cond_wait (&stream->demux.resume, &stream->demux.action_lock);
