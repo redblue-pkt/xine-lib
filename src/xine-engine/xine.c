@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1528,7 +1528,7 @@ static inline int _x_path_looks_like_mrl (const char *path) {
   return (p[-1] == ':') && (p[0] == '/');
 }
 
-static int open_internal (xine_stream_private_t *stream, const char *mrl) {
+static int open_internal (xine_stream_private_t *stream, const char *mrl, input_plugin_t *input) {
 
   static const uint8_t tab_tolower[256] = {
       0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
@@ -1615,12 +1615,15 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl) {
     }
   }
     
-  {
+  if (!input) {
     /*
      * find an input plugin
      */
     stream->s.input_plugin = _x_find_input_plugin (&stream->s, (const char *)name);
-
+  } else {
+    stream->s.input_plugin = input;
+  }
+  {
     if (stream->s.input_plugin) {
       int res;
       input_class_t *input_class = stream->s.input_plugin->input_class;
@@ -1972,15 +1975,16 @@ int xine_open (xine_stream_t *s, const char *mrl) {
   xine_stream_private_t *stream = (xine_stream_private_t *)s;
   xine_private_t *xine = (xine_private_t *)stream->s.xine;
   pthread_mutex_t *frontend_lock = &stream->side_streams[0]->frontend_lock;
-  int ret;
+  int ret, sn;
 
   pthread_mutex_lock (frontend_lock);
   pthread_cleanup_push (mutex_cleanup, (void *) frontend_lock);
 
   lprintf ("open MRL:%s\n", mrl);
 
-  ret = open_internal (stream, mrl);
+  ret = open_internal (stream, mrl, NULL);
 
+  sn = 0;
   if (xine->join_av && mrl && (stream->side_streams[0] == stream)) do {
     char nbuf[1024];
     struct stat st;
@@ -2029,7 +2033,35 @@ int xine_open (xine_stream_t *s, const char *mrl) {
       break;
     xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
       "xine_open: auto joining \"%s\" with \"%s\".\n", orig, nbuf);
-    open_internal (side, nbuf);
+    open_internal (side, nbuf, NULL);
+    sn = 1;
+  } while (0);
+
+  if (!sn && mrl && (stream->side_streams[0] == stream)) do {
+    input_plugin_t *main_input = stream->s.input_plugin;
+
+    if (!main_input)
+      break;
+    for (sn = 1; sn < (int)(sizeof (stream->side_streams) / sizeof (stream->side_streams[0])); sn++) {
+      xine_stream_private_t *side;
+      union {
+        int index;
+        input_plugin_t *input;
+      } si;
+
+      si.index = sn;
+      if (main_input->get_optional_data (main_input, &si, INPUT_OPTIONAL_DATA_SIDE) != INPUT_OPTIONAL_SUCCESS)
+        break;
+      side = (xine_stream_private_t *)xine_get_side_stream (&stream->s, sn);
+      if (!side) {
+        si.input->dispose (si.input);
+        break;
+      }
+      xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
+        "xine_open: adding side stream #%d (%p).\n", sn, (void *)side);
+      open_internal (side, mrl, si.input);
+    }
+    sn--;
   } while (0);
 
   pthread_cleanup_pop (0);
