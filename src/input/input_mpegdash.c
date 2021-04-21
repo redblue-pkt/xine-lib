@@ -58,15 +58,19 @@ typedef struct {
 } mpd_input_class_t;
 
 typedef struct {
-  const char     *mime, *init, *media, *id;   /** << ptr into stree buf */
-  uint32_t        index_p, index_as, index_r; /** << xine_stree_t units */
-  uint32_t        timebase;                   /** << units/second */
-  uint32_t        bitrate;                    /** << bits/second */
-  uint32_t        samplerate;                 /** << audio_samples/second */
-  uint32_t        w, h;                       /** << video pixels */
-  uint32_t        frag_start;                 /** << frag number offset */
-  uint32_t        frag_duration;              /** << timebase units */
-  uint32_t        frag_count;                 /** << 0 in live mode */
+  uint32_t mime, sfile, init, media, id; /** << offs into stree buf */
+#define MPD_TYPE_AUDIO 1
+#define MPD_TYPE_VIDEO 2
+#define MPD_TYPE_SUBT  4
+  uint32_t type;
+  uint32_t index_p, index_as, index_r;   /** << xine_stree_t units */
+  uint32_t timebase;                     /** << units/second */
+  uint32_t bitrate;                      /** << bits/second */
+  uint32_t samplerate;                   /** << audio_samples/second */
+  uint32_t w, h;                         /** << video pixels */
+  uint32_t frag_start;                   /** << frag number offset */
+  uint32_t frag_duration;                /** << timebase units */
+  uint32_t frag_count;                   /** << 0 in live mode */
 } mpd_stream_info_t;
 
 typedef enum {
@@ -98,11 +102,14 @@ typedef struct {
   input_plugin_t   *in1;
   uint32_t          caps1;
 
+  uint32_t          side_index; /** << 0..3 */
+  uint32_t          num_sides;
+
   xine_stree_t     *tree;
   char             *list_buf;
   xine_stree_mode_t tmode;
 
-  const char       *base_url, *seg_base_url, *time_url; /** << ptr into stree buf */
+  uint32_t          base_url, seg_base_url, time_url; /** << offs into stree buf */
   time_t            avail_start, play_start; /** << seconds since 1970 */
   int64_t           frag_num;      /** << derived from manifest */
   uint32_t          frag_index;    /** << 0 (init), 1...n (real frags) */
@@ -110,6 +117,10 @@ typedef struct {
   uint32_t          frag_mrl_2;    /** << foo/bar_[12345].mp4 */
   uint32_t          frag_mrl_3;    /** << foo/ber_12345[.mp4] */
   struct timespec   play_systime;
+
+#define MPD_MAX_SIDES 4
+#define MPD_MAX_REPR 16
+  uint8_t           side_have_streams[MPD_MAX_SIDES][MPD_MAX_REPR];
 
 #define MPD_MAX_STREAMS 32
   uint32_t          num_streams, used_stream;
@@ -261,7 +272,7 @@ static int mpd_build_mrl (mpd_input_plugin_t *this, const char *name) {
   const char *p, *b;
   char *q, *e;
 
-  _x_merge_mrl (this->item_mrl, MPD_MAX_MRL, this->base_url, name);
+  _x_merge_mrl (this->item_mrl, MPD_MAX_MRL, this->list_buf + this->base_url, name);
 
   q = this->list_mrl;
   e = q + MPD_MAX_MRL;
@@ -275,7 +286,7 @@ static int mpd_build_mrl (mpd_input_plugin_t *this, const char *name) {
       q += l;
     }
     p = b + strlen ("$RepresentationId$");
-    q += strlcpy (q, this->info.id, e - q);
+    q += strlcpy (q, this->list_buf + this->info.id, e - q);
     if (q >= e)
       return 0;
   }
@@ -340,7 +351,7 @@ static int mpd_set_start_time (mpd_input_plugin_t *this) {
   int l;
 
   if (!MPD_IS_LIVE (this)) {
-    if (!mpd_build_mrl (this, this->info.media))
+    if (!mpd_build_mrl (this, this->list_buf + this->info.media))
       return 0;
     this->frag_index = 1;
     this->frag_num = this->info.frag_start;
@@ -352,7 +363,7 @@ static int mpd_set_start_time (mpd_input_plugin_t *this) {
     return 0;
   if (!this->info.timebase || !this->info.frag_duration)
     return 0;
-  if (!mpd_build_mrl (this, this->time_url))
+  if (!mpd_build_mrl (this, this->list_buf + this->time_url))
     return 0;
   if (!mpd_input_switch_mrl (this))
     return 0;
@@ -370,7 +381,7 @@ static int mpd_set_start_time (mpd_input_plugin_t *this) {
   /* heavy magic ;-) */
   this->frag_num = (int64_t)(this->play_start - this->avail_start)
     * this->info.timebase / this->info.frag_duration + this->info.frag_start;
-  if (!mpd_build_mrl (this, this->info.media))
+  if (!mpd_build_mrl (this, this->list_buf + this->info.media))
     return 0;
   mpd_prepare_fragnum (this);
   return 1;
@@ -460,10 +471,10 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
     return q - (char *)buf;
 
   if (this->frag_index == 0) {
-    if (this->info.init[0]) {
+    if (this->list_buf[this->info.init]) {
       int r;
       if (this->pos == 0) {
-        if (!mpd_build_mrl (this, this->info.init))
+        if (!mpd_build_mrl (this, this->list_buf + this->info.init))
           return -1;
         if (!mpd_input_switch_mrl (this))
           return -1;
@@ -497,6 +508,8 @@ static ssize_t mpd_read_int (mpd_input_plugin_t *this, void *buf, size_t len, in
     if (len == 0)
       break;
     if (r == 0) {
+      if ((this->mode == MPD_SINGLE_LIVE) || (this->mode == MPD_SINGLE_VOD))
+        break;
       mpd_frag_end (this);
       if (mpd_set_frag_index (this, this->frag_index + 1, wait) != 1)
         break;
@@ -553,8 +566,8 @@ static uint32_t str2msec (char **s) {
 }
 */
 
-static char *mpd_stree_find (mpd_input_plugin_t *this, const char *path, uint32_t base) {
-  return this->list_buf + 4 + this->tree[xine_stree_find (this->tree, this->list_buf + 4, path, base, 0)].value;
+static uint32_t mpd_stree_find (mpd_input_plugin_t *this, const char *path, uint32_t base) {
+  return 4 + this->tree[xine_stree_find (this->tree, this->list_buf + 4, path, base, 0)].value;
 }
 
 static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
@@ -633,11 +646,11 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
 
   this->base_url = mpd_stree_find (this, "BaseURL", tree_mpd);
   this->seg_base_url = mpd_stree_find (this, "SegmentBase", tree_mpd);
-  if (!this->seg_base_url[0])
+  if (!this->list_buf[this->seg_base_url])
     this->seg_base_url = this->base_url;
   this->time_url = mpd_stree_find (this, "UTCTiming.value", tree_mpd);
   {
-    char *s = mpd_stree_find (this, "availabilityStartTime", tree_mpd);
+    char *s = this->list_buf + mpd_stree_find (this, "availabilityStartTime", tree_mpd);
     this->avail_start = mpd_str2time (s);
   }
 
@@ -648,7 +661,7 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
     this->num_streams = 0;
     for (period = 0; this->num_streams < MPD_MAX_STREAMS; period++) {
       char path_as[] = "AdaptationSet[  ]";
-      uint32_t adaptationset, index_as;
+      uint32_t adaptationset, index_as, max_as;
 
       path_p[7] = period < 10 ? ' ' : '0' + period / 10u;
       path_p[8] = '0' + period % 10u;
@@ -656,11 +669,13 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
       if (!index_p)
         break;
 
-      for (adaptationset = 0; this->num_streams < MPD_MAX_STREAMS; adaptationset++) {
+      max_as = MPD_MAX_STREAMS - this->num_streams;
+      if (max_as > MPD_MAX_SIDES)
+        max_as = MPD_MAX_SIDES;
+      for (adaptationset = 0; adaptationset < max_as; adaptationset++) {
         char path_r[] = "Representation[  ]";
-        uint32_t representation;
+        uint32_t representation, max_r;
         mpd_stream_info_t *info;
-        multirate_pref_t *item;
         char *s;
 
         path_as[14] = adaptationset < 10 ? ' ' : '0' + adaptationset / 10;
@@ -668,33 +683,41 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
         index_as = xine_stree_find (this->tree, this->list_buf + 4, path_as, index_p, 0);
         if (!index_as)
           break;
-        item = this->items + this->num_streams;
         info = this->streams + this->num_streams;
+        s = this->list_buf + mpd_stree_find (this, "contentType", index_as);
+        info->type = 0;
+        if (strcasestr (s, "audio"))
+          info->type |= MPD_TYPE_AUDIO;
+        if (strcasestr (s, "video"))
+          info->type |= MPD_TYPE_VIDEO;
+        if (strcasestr (s, "subtitle"))
+          info->type |= MPD_TYPE_SUBT;
         info->mime = mpd_stree_find (this, "mimeType", index_as);
         info->index_p = index_p;
         info->index_as = index_as;
         info->index_r = 0;
-        s = mpd_stree_find (this, "SegmentTemplate.timescale", index_as);
+        s = this->list_buf + mpd_stree_find (this, "SegmentTemplate.timescale", index_as);
         info->timebase = str2uint32 (&s);
-        s = mpd_stree_find (this, "audioSamplingRate", index_as);
+        s = this->list_buf + mpd_stree_find (this, "audioSamplingRate", index_as);
         info->samplerate = str2uint32 (&s);
         info->init = mpd_stree_find (this, "SegmentTemplate.initialization", index_as);
         info->media = mpd_stree_find (this, "SegmentTemplate.media", index_as);
-        s = mpd_stree_find (this, "width", index_as);
-        item->video_width = info->w = str2uint32 (&s);
-        s = mpd_stree_find (this, "height", index_as);
-        item->video_height = info->h = str2uint32 (&s);
+        s = this->list_buf + mpd_stree_find (this, "width", index_as);
+        info->w = str2uint32 (&s);
+        s = this->list_buf + mpd_stree_find (this, "height", index_as);
+        info->h = str2uint32 (&s);
         /* this seems to default to 1. */
-        s = mpd_stree_find (this, "SegmentTemplate.startNumber", index_as);
+        s = this->list_buf + mpd_stree_find (this, "SegmentTemplate.startNumber", index_as);
         info->frag_start = s[0] ? str2uint32 (&s) : 1;
-        s = mpd_stree_find (this, "SegmentTemplate.duration", index_as);
+        s = this->list_buf + mpd_stree_find (this, "SegmentTemplate.duration", index_as);
         info->frag_duration = str2uint32 (&s);
-        info->id = "";
+        info->id = 0;
         info->bitrate = 0;
-        item->bitrate = 0;
-        item->lang[0] = 0;
 
-        for (representation = 0; this->num_streams < MPD_MAX_STREAMS; representation++) {
+        max_r = MPD_MAX_STREAMS - this->num_streams;
+        if (max_r > MPD_MAX_REPR - 1)
+          max_r = MPD_MAX_REPR - 1;
+        for (representation = 0; representation < max_r; representation++) {
           uint32_t index_r;
 
           path_r[15] = representation < 10 ? ' ' : '0' + representation / 10;
@@ -702,30 +725,57 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
           index_r = xine_stree_find (this->tree, this->list_buf + 4, path_r, index_as, 0);
           if (!index_r)
             break;
-          if (representation) {
-            info[representation] = *info;
-            item[representation] = *item;
-          }
-          info[representation].index_r = index_r;
-          info[representation].id = mpd_stree_find (this, "id", index_r);
-          s = mpd_stree_find (this, "bandwidth", index_r);
-          item[representation].bitrate = info[representation].bitrate = str2uint32 (&s);
+          if (representation)
+            info[0] = info[-1];
+          info->index_r = index_r;
+          info->id = mpd_stree_find (this, "id", index_r);
+          info->sfile = mpd_stree_find (this, "BaseURL", index_r);
+          s = this->list_buf + mpd_stree_find (this, "SegmentBase.timescale", index_r);
+          if (s[0])
+            info->timebase = str2uint32 (&s);
+          s = this->list_buf + mpd_stree_find (this, "audioSamplingRate", index_r);
+          if (s[0])
+            info->samplerate = str2uint32 (&s);
+          s = this->list_buf + mpd_stree_find (this, "bandwidth", index_r);
+          info->bitrate = str2uint32 (&s);
+          s = this->list_buf + mpd_stree_find (this, "width", index_r);
+          info->w = str2uint32 (&s);
+          s = this->list_buf + mpd_stree_find (this, "height", index_r);
+          info->h = str2uint32 (&s);
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: stream[%2u]: %s %ux%u %uHz %ubps.\n",
-            (unsigned int)this->num_streams, info->mime,
-            (unsigned int)info[representation].w, (unsigned int)info[representation].h,
-            (unsigned int)info[representation].samplerate, (unsigned int)info[representation].bitrate);
+            (unsigned int)this->num_streams, this->list_buf + info->mime, (unsigned int)info->w, (unsigned int)info->h,
+            (unsigned int)info->samplerate, (unsigned int)info->bitrate);
+          info++;
+          this->side_have_streams[adaptationset][representation] = this->num_streams;
           this->num_streams += 1;
         }
 
         if (!representation) {
+          /* FIXME: empty adaptationset?? */
+          info->sfile = 0;
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: stream[%2u]: %s %ux%u %uHz %ubps.\n",
-            (unsigned int)this->num_streams, info->mime, (unsigned int)info->w, (unsigned int)info->h,
+            (unsigned int)this->num_streams, this->list_buf + info->mime, (unsigned int)info->w, (unsigned int)info->h,
             (unsigned int)info->samplerate, (unsigned int)info->bitrate);
+          this->side_have_streams[adaptationset][representation] = this->num_streams;
           this->num_streams += 1;
         }
+        this->side_have_streams[adaptationset][representation] = 255;
       }
+      this->num_sides = adaptationset;
     }
   }
+
+  {
+    uint32_t u;
+
+    for (u = 0; u < this->num_streams; u++) {
+      mpd_stream_info_t *info = this->streams + u;
+
+      if (!this->list_buf[info->media])
+        info->media = info->sfile;
+    }
+  }
+
   return 1;
 }
 
@@ -895,6 +945,15 @@ static off_t mpd_input_seek (input_plugin_t *this_gen, off_t offset, int origin)
     } while (new_offs >= this->pos + this->frag_size);
   }
 
+  this->caps1 = this->in1->get_capabilities (this->in1);
+  if (this->caps1 & (INPUT_CAP_SEEKABLE | INPUT_CAP_SLOW_SEEKABLE)) {
+    off_t r = this->in1->seek (this->in1, new_offs - this->frag_pos, SEEK_SET);
+
+    if (r >= 0)
+      this->pos = this->frag_pos + r;
+    return this->pos;
+  }
+
   new_offs -= this->pos;
   if (new_offs < 0)
     return this->pos;
@@ -975,20 +1034,39 @@ static int mpd_input_open (input_plugin_t *this_gen) {
 
   if (!this)
     return 0;
-  if (!mpd_input_load_manifest (this))
-    return 0;
 
-  n = multirate_autoselect (&cls->pref, this->items, this->num_streams);
+  if (!this->side_index) {
+    if (!mpd_input_load_manifest (this))
+      return 0;
+  }
+
+  {
+    multirate_pref_t *item = this->items;
+    uint32_t u, i;
+    for (u = 0; (i = this->side_have_streams[this->side_index][u]) != 255; u++) {
+      mpd_stream_info_t *info = this->streams + i;
+      item->video_width = info->w;
+      item->video_height = info->h;
+      item->bitrate = info->bitrate;
+      item->lang[0] = 0;
+      item++;
+    }
+    n = multirate_autoselect (&cls->pref, this->items, u);
+  }
   if (n < 0) {
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: no auto selected item.\n");
     return 0;
   }
-  this->used_stream = n;
+  this->used_stream = n = this->side_have_streams[this->side_index][n];
   this->info = this->streams[n];
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: auto selected stream #%d.\n", n);
-  this->mode = this->time_url[0]
-             ? (this->info.init[0] ? MPD_INIT_LIVE : mpd_strcasestr (this->info.media, "$Number$") ? MPD_LIVE : MPD_SINGLE_LIVE)
-             : (this->info.init[0] ? MPD_INIT_VOD : mpd_strcasestr (this->info.media, "$Number$") ? MPD_VOD : MPD_SINGLE_VOD);
+  this->mode = this->list_buf[this->time_url]
+             ? (this->list_buf[this->info.init]
+                 ? MPD_INIT_LIVE
+                 : mpd_strcasestr (this->list_buf + this->info.media, "$Number$") ? MPD_LIVE : MPD_SINGLE_LIVE)
+             : (this->list_buf[this->info.init]
+                 ? MPD_INIT_VOD
+                 : mpd_strcasestr (this->list_buf + this->info.media, "$Number$") ? MPD_VOD : MPD_SINGLE_VOD);
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: %s.\n", mpd_mode_names[this->mode]);
 
   if ((this->mode == MPD_INIT_VOD) || (this->mode == MPD_VOD)) {
@@ -1018,6 +1096,45 @@ static int mpd_input_open (input_plugin_t *this_gen) {
   return 1;
 }
 
+static input_plugin_t *mpd_get_side (mpd_input_plugin_t *this, int side_index) {
+  mpd_input_plugin_t *side_input;
+
+  if (this->side_index)
+    return NULL;
+  if ((side_index < 1) || (side_index >= (int)this->num_sides))
+    return NULL;
+  side_input = malloc (sizeof (*side_input));
+  if (!side_input)
+    return NULL;
+
+  /* clone everything */
+  *side_input = *this;
+
+  /* detach */
+  side_input->side_index = side_index;
+  side_input->in1 = NULL;
+  side_input->caps1 = 0;
+  side_input->tree = NULL;
+  side_input->fraglist = NULL;
+
+  side_input->list_buf = malloc (this->list_bsize);
+  if (!side_input->list_buf) {
+    free (side_input);
+    return NULL;
+  }
+  memcpy (side_input->list_buf, this->list_buf, this->list_bsize);
+
+  side_input->stream = xine_get_side_stream (this->stream, side_index);
+  if (!side_input->stream) {
+    free (side_input->list_buf);
+    free (side_input);
+    return NULL;
+  }
+  side_input->nbc = nbc_init (side_input->stream);
+
+  return &side_input->input_plugin;
+}
+  
 static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, int data_type) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
 
@@ -1070,6 +1187,20 @@ static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, in
       memcpy (data, &this->fraglist, sizeof (this->fraglist));
       return INPUT_OPTIONAL_SUCCESS;
 
+    case INPUT_OPTIONAL_DATA_SIDE:
+      if (!data)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      {
+        int side_index;
+        input_plugin_t *side_input;
+        memcpy (&side_index, data, sizeof (side_index));
+        side_input = mpd_get_side (this, side_index);
+        if (!side_input)
+          return INPUT_OPTIONAL_UNSUPPORTED;
+        memcpy (data, &side_input, sizeof (side_input));
+        return INPUT_OPTIONAL_SUCCESS;
+      }
+
     default:
       return INPUT_OPTIONAL_UNSUPPORTED;
   }
@@ -1116,6 +1247,7 @@ static input_plugin_t *mpd_input_get_instance (input_class_t *cls_gen, xine_stre
     return NULL;
 
 #ifndef HAVE_ZERO_SAFE_MEM
+  this->side_index   = 0;
   this->caps1        = 0;
   this->fraglist     = NULL;
   this->list_buf     = NULL;
@@ -1126,6 +1258,7 @@ static input_plugin_t *mpd_input_get_instance (input_class_t *cls_gen, xine_stre
 
   this->stream = stream;
   this->in1    = in1;
+  this->num_sides = 1;
 
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: %s.\n", mrl + n);
 
