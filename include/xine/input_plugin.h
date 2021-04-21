@@ -391,7 +391,9 @@ struct input_plugin_s {
 /* after a successful open () of a main input, this may supply possible side stream inputs.
  * on call, buffer is an int * telling the side stream index 1..3.
  * on return, buffer is a struct input_plugin_s ** where a pointer to a ready side input
- * will be stored if available. just call side_input->dispose () on it when done. */
+ * bound to xine_get_side_stream (main_stream, stream_index) will be stored if available.
+ * NOTE: this shall be an alternative get_instance (), not the result of an _x_find_input_plugin ().
+ * release by _x_free_input_plugin () or xine_dispose () of the side stream. */
 #define INPUT_OPTIONAL_DATA_SIDE      16
 
 #define MAX_MRL_ENTRIES 255

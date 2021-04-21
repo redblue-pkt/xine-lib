@@ -2052,9 +2052,15 @@ int xine_open (xine_stream_t *s, const char *mrl) {
       si.index = sn;
       if (main_input->get_optional_data (main_input, &si, INPUT_OPTIONAL_DATA_SIDE) != INPUT_OPTIONAL_SUCCESS)
         break;
+      /* load_plugins.c please keep calm ;-) */
+      if (si.input->node) {
+        pthread_mutex_lock (&stream->s.xine->plugin_catalog->lock);
+        si.input->node->ref += 1;
+        pthread_mutex_unlock (&stream->s.xine->plugin_catalog->lock);
+      }
       side = (xine_stream_private_t *)xine_get_side_stream (&stream->s, sn);
       if (!side) {
-        si.input->dispose (si.input);
+        _x_free_input_plugin (&stream->s, si.input);
         break;
       }
       xprintf (&xine->x, XINE_VERBOSITY_DEBUG,
@@ -3890,3 +3896,4 @@ int _x_keyframes_set (xine_stream_t *s, xine_keyframes_entry_t *list, int size) 
     "keyframes: got %d of them.\n", stream->index.used);
   return 0;
 }
+
