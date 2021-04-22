@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define LOG_MODULE "input_mpegdash"
 #define LOG_VERBOSE
@@ -94,10 +95,12 @@ static const char *mpd_mode_names[MPD_MODE_LAST] = {
   [MPD_INIT_VOD]    = "seekable VOD mode with init fragment"
 };
 
-typedef struct {
+typedef struct mpd_input_plugin_s {
   input_plugin_t    input_plugin;
   xine_stream_t    *stream;
   xine_nbc_t       *nbc;
+
+  struct mpd_input_plugin_s *main_input;
 
   input_plugin_t   *in1;
   uint32_t          caps1;
@@ -105,18 +108,28 @@ typedef struct {
   uint32_t          side_index; /** << 0..3 */
   uint32_t          num_sides;
 
+  struct {
+    pthread_mutex_t mutex;
+    time_t          avail_start, play_start; /** << seconds since 1970 */
+    struct timespec play_systime;
+    int             lag;  /** pts */
+    uint32_t        type;
+    int             init;
+    int             refs;
+  }                 sync;  /** set by main input, used by sides */
+
+  int               lag;  /** pts */
+
   xine_stree_t     *tree;
   char             *list_buf;
   xine_stree_mode_t tmode;
 
   uint32_t          base_url, seg_base_url, time_url; /** << offs into stree buf */
-  time_t            avail_start, play_start; /** << seconds since 1970 */
   int64_t           frag_num;      /** << derived from manifest */
   uint32_t          frag_index;    /** << 0 (init), 1...n (real frags) */
   uint32_t          frag_mrl_1;    /** << [foo/bar_]12345.mp4 */
   uint32_t          frag_mrl_2;    /** << foo/bar_[12345].mp4 */
   uint32_t          frag_mrl_3;    /** << foo/ber_12345[.mp4] */
-  struct timespec   play_systime;
 
 #define MPD_MAX_SIDES 4
 #define MPD_MAX_REPR 16
@@ -327,7 +340,8 @@ static void mpd_apply_fragnum (mpd_input_plugin_t *this) {
 }
 
 static int mpd_input_switch_mrl (mpd_input_plugin_t *this) {
-  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: %s.\n", this->item_mrl);
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_mpegdash.%d: %s.\n", (int)this->side_index, this->item_mrl);
   if (this->in1) {
     if (this->in1->get_capabilities (this->in1) & INPUT_CAP_NEW_MRL) {
       if (this->in1->get_optional_data (this->in1, this->item_mrl,
@@ -347,9 +361,6 @@ static int mpd_input_switch_mrl (mpd_input_plugin_t *this) {
 }
 
 static int mpd_set_start_time (mpd_input_plugin_t *this) {
-  char buf[256];
-  int l;
-
   if (!MPD_IS_LIVE (this)) {
     if (!mpd_build_mrl (this, this->list_buf + this->info.media))
       return 0;
@@ -359,31 +370,89 @@ static int mpd_set_start_time (mpd_input_plugin_t *this) {
     return 2;
   }
 
-  if (this->avail_start == (time_t)-1)
-    return 0;
-  if (!this->info.timebase || !this->info.frag_duration)
-    return 0;
-  if (!mpd_build_mrl (this, this->list_buf + this->time_url))
-    return 0;
-  if (!mpd_input_switch_mrl (this))
-    return 0;
-  l = this->in1->read (this->in1, buf, sizeof (buf) - 1);
-  if (l <= 0)
-    return 0;
-  buf[l] = 0;
-  this->play_start = mpd_str2time (buf);
-  if (this->play_start == (time_t)-1)
-    return 0;
-  this->play_systime.tv_sec = 0;
-  this->play_systime.tv_nsec = 0;
-  xine_gettime (&this->play_systime);
-  this->frag_index = 1;
-  /* heavy magic ;-) */
-  this->frag_num = (int64_t)(this->play_start - this->avail_start)
-    * this->info.timebase / this->info.frag_duration + this->info.frag_start;
+  if (!this->side_index) { /* main */
+    char buf[256];
+    time_t play_start;
+    struct timespec ts;
+    int l;
+
+    if (this->sync.avail_start == (time_t)-1)
+      return 0;
+    if (!this->info.timebase || !this->info.frag_duration)
+      return 0;
+    if (!mpd_build_mrl (this, this->list_buf + this->time_url))
+      return 0;
+    if (!mpd_input_switch_mrl (this))
+      return 0;
+    l = this->in1->read (this->in1, buf, sizeof (buf) - 1);
+    if (l <= 0)
+      return 0;
+    buf[l] = 0;
+    play_start = mpd_str2time (buf);
+    if (play_start == (time_t)-1)
+      return 0;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 0;
+    xine_gettime (&ts);
+    this->frag_index = 1;
+    /* heavy magic ;-) */
+    {
+      int64_t d = play_start - this->sync.avail_start;
+      d *= this->info.timebase;
+      this->frag_num = d / this->info.frag_duration + this->info.frag_start;
+      this->lag = (d % this->info.frag_duration) * 90000 / this->info.timebase;
+    }
+    if (this->sync.init) {
+      pthread_mutex_lock (&this->sync.mutex);
+      this->sync.play_start = play_start;
+      this->sync.play_systime = ts;
+      this->sync.lag = this->lag;
+      this->sync.type = this->info.type;
+      pthread_mutex_unlock (&this->sync.mutex);
+    } else {
+      this->sync.play_start = play_start;
+      this->sync.play_systime = ts;
+      this->sync.lag = this->lag;
+      this->sync.type = this->info.type;
+    }
+  } else {
+    mpd_input_plugin_t *main_input = this->main_input;
+
+    if (!this->info.timebase || !this->info.frag_duration)
+      return 0;
+    if (main_input->sync.init) {
+      pthread_mutex_lock (&this->sync.mutex);
+      this->sync.avail_start = main_input->sync.avail_start;
+      this->sync.play_start = main_input->sync.play_start;
+      this->sync.play_systime = main_input->sync.play_systime;
+      this->sync.lag = main_input->sync.lag;
+      this->sync.type = main_input->sync.type;
+      pthread_mutex_unlock (&this->sync.mutex);
+    } else {
+      this->sync.avail_start = main_input->sync.avail_start;
+      this->sync.play_start = main_input->sync.play_start;
+      this->sync.play_systime = main_input->sync.play_systime;
+      this->sync.lag = main_input->sync.lag;
+      this->sync.type = main_input->sync.type;
+    }
+    if (this->sync.avail_start == (time_t)-1)
+      return 0;
+    this->frag_index = 1;
+    /* heavy magic ;-) */
+    {
+      int64_t d = this->sync.play_start - this->sync.avail_start;
+      d *= this->info.timebase;
+      this->frag_num = d / this->info.frag_duration + this->info.frag_start;
+      this->lag = (d % this->info.frag_duration) * 90000 / this->info.timebase;
+    }
+  }
+    
   if (!mpd_build_mrl (this, this->list_buf + this->info.media))
     return 0;
   mpd_prepare_fragnum (this);
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_mpegdash.%d: live start @ fragment #%" PRId64 ", lag %d pts.\n",
+    (int)this->side_index, this->frag_num, this->lag);
   return 1;
 }
 
@@ -403,8 +472,8 @@ static int mpd_set_frag_index (mpd_input_plugin_t *this, uint32_t index, int wai
       int32_t ms;
       struct timespec ts = {0, 0};
       xine_gettime (&ts);
-      ms = (ts.tv_sec - this->play_systime.tv_sec) * 1000;
-      ms += (ts.tv_nsec - this->play_systime.tv_nsec) / 1000000;
+      ms = (ts.tv_sec - this->sync.play_systime.tv_sec) * 1000;
+      ms += (ts.tv_nsec - this->sync.play_systime.tv_nsec) / 1000000;
       ms = (int64_t)(index - 1) * 1000 * this->info.frag_duration / this->info.timebase - ms;
       if ((ms > 0) && (ms < 100000)) {
         /* save server load and hang up before wait. */
@@ -651,7 +720,7 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
   this->time_url = mpd_stree_find (this, "UTCTiming.value", tree_mpd);
   {
     char *s = this->list_buf + mpd_stree_find (this, "availabilityStartTime", tree_mpd);
-    this->avail_start = mpd_str2time (s);
+    this->sync.avail_start = mpd_str2time (s);
   }
 
   {
@@ -742,7 +811,8 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
           info->w = str2uint32 (&s);
           s = this->list_buf + mpd_stree_find (this, "height", index_r);
           info->h = str2uint32 (&s);
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: stream[%2u]: %s %ux%u %uHz %ubps.\n",
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash.%d: stream[%2u]: %s %ux%u %uHz %ubps.\n",
+            (int)this->side_index,
             (unsigned int)this->num_streams, this->list_buf + info->mime, (unsigned int)info->w, (unsigned int)info->h,
             (unsigned int)info->samplerate, (unsigned int)info->bitrate);
           info++;
@@ -753,7 +823,8 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
         if (!representation) {
           /* FIXME: empty adaptationset?? */
           info->sfile = 0;
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: stream[%2u]: %s %ux%u %uHz %ubps.\n",
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash.%d: stream[%2u]: %s %ux%u %uHz %ubps.\n",
+            (int)this->side_index,
             (unsigned int)this->num_streams, this->list_buf + info->mime, (unsigned int)info->w, (unsigned int)info->h,
             (unsigned int)info->samplerate, (unsigned int)info->bitrate);
           this->side_have_streams[adaptationset][representation] = this->num_streams;
@@ -1011,8 +1082,10 @@ static const char *mpd_input_get_mrl (input_plugin_t *this_gen) {
 
 static void mpd_input_dispose (input_plugin_t *this_gen) {
   mpd_input_plugin_t *this = (mpd_input_plugin_t *)this_gen;
+
   if (!this)
     return;
+
   if (this->nbc) {
     nbc_close (this->nbc);
     this->nbc = NULL;
@@ -1024,7 +1097,26 @@ static void mpd_input_dispose (input_plugin_t *this_gen) {
   xine_mfrag_list_close (&this->fraglist);
   xine_stree_delete (&this->tree);
   _x_freep (&this->list_buf);
-  free (this);
+
+  if (this->side_index) {
+    mpd_input_plugin_t *main_input = this->main_input;
+    this->sync.refs = 0;
+    free (this);
+    this = main_input;
+  }
+  if (this->sync.init) {
+    pthread_mutex_lock (&this->sync.mutex);
+    if (--this->sync.refs == 0) {
+      pthread_mutex_unlock (&this->sync.mutex);
+      pthread_mutex_destroy (&this->sync.mutex);
+      free (this);
+    } else {
+      pthread_mutex_unlock (&this->sync.mutex);
+    }
+  } else {
+    if (--this->sync.refs == 0)
+      free (this);
+  }
 }
 
 static int mpd_input_open (input_plugin_t *this_gen) {
@@ -1038,6 +1130,10 @@ static int mpd_input_open (input_plugin_t *this_gen) {
   if (!this->side_index) {
     if (!mpd_input_load_manifest (this))
       return 0;
+    if ((this->num_sides > 1) && !this->sync.init) {
+      pthread_mutex_init (&this->sync.mutex, NULL);
+      this->sync.init = 1;
+    }
   }
 
   {
@@ -1054,12 +1150,14 @@ static int mpd_input_open (input_plugin_t *this_gen) {
     n = multirate_autoselect (&cls->pref, this->items, u);
   }
   if (n < 0) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: no auto selected item.\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+        "input_mpegdash.%d: no auto selected item.\n", (int)this->side_index);
     return 0;
   }
   this->used_stream = n = this->side_have_streams[this->side_index][n];
   this->info = this->streams[n];
-  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: auto selected stream #%d.\n", n);
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_mpegdash.%d: auto selected stream #%d.\n", (int)this->side_index, n);
   this->mode = this->list_buf[this->time_url]
              ? (this->list_buf[this->info.init]
                  ? MPD_INIT_LIVE
@@ -1067,7 +1165,8 @@ static int mpd_input_open (input_plugin_t *this_gen) {
              : (this->list_buf[this->info.init]
                  ? MPD_INIT_VOD
                  : mpd_strcasestr (this->list_buf + this->info.media, "$Number$") ? MPD_VOD : MPD_SINGLE_VOD);
-  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: %s.\n", mpd_mode_names[this->mode]);
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_mpegdash.%d: %s.\n", (int)this->side_index, mpd_mode_names[this->mode]);
 
   if ((this->mode == MPD_INIT_VOD) || (this->mode == MPD_VOD)) {
     xine_mfrag_list_open (&this->fraglist);
@@ -1080,7 +1179,8 @@ static int mpd_input_open (input_plugin_t *this_gen) {
   this->pos = 0;
   n = mpd_read_int (this, this->preview, sizeof (this->preview), 0);
   if (n <= 0) {
-    xprintf (this->stream->xine, XINE_VERBOSITY_LOG, "input_mpegdash: failed to read preview.\n");
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+      "input_mpegdash.%d: failed to read preview.\n", (int)this->side_index);
     return 0;
   }
   this->prev_size1 = n;
@@ -1088,7 +1188,8 @@ static int mpd_input_open (input_plugin_t *this_gen) {
   this->pos = 0;
   /*
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-    "input_mpegdash: got %u fragments for %u.%03u seconds.\n", (unsigned int)this->frag_have,
+    "input_mpegdash.%d: got %u fragments for %u.%03u seconds.\n",
+    (int)this->side_index, (unsigned int)this->frag_have,
     (unsigned int)(this->frags[this->frag_have].start_msec / 1000u),
     (unsigned int)(this->frags[this->frag_have].start_msec % 1000u));
   */
@@ -1109,6 +1210,18 @@ static input_plugin_t *mpd_get_side (mpd_input_plugin_t *this, int side_index) {
 
   /* clone everything */
   *side_input = *this;
+
+  /* sync */
+  if (this->sync.init) {
+    pthread_mutex_lock (&this->sync.mutex);
+    this->sync.refs++;
+    pthread_mutex_unlock (&this->sync.mutex);
+  } else {
+    this->sync.refs++;
+  }
+  memset (&side_input->sync.mutex, 0, sizeof (side_input->sync.mutex));
+  side_input->sync.init = 0;
+  side_input->sync.refs = 1;
 
   /* detach */
   side_input->side_index = side_index;
@@ -1254,13 +1367,22 @@ static input_plugin_t *mpd_input_get_instance (input_class_t *cls_gen, xine_stre
   this->list_bsize   = 0;
   this->duration     = 0;
   this->all_size     = 0;
+  this->sync.lag     = 0;
+  this->sync.type    = 0;
+  this->sync.init    = 0;
+  this->lag          = 0;
 #endif
 
+  this->main_input = this;
   this->stream = stream;
   this->in1    = in1;
   this->num_sides = 1;
+  this->sync.avail_start =
+  this->sync.play_start  = (time_t)-1;
+  this->sync.refs = 1;
 
-  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_mpegdash: %s.\n", mrl + n);
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_mpegdash.%d: %s.\n", (int)this->side_index, mrl + n);
 
   strlcpy (this->manifest_mrl, mrl + n, MPD_MAX_MRL);
 
