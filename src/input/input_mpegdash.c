@@ -755,11 +755,11 @@ static int mpd_input_load_manifest (mpd_input_plugin_t *this) {
         info = this->streams + this->num_streams;
         s = this->list_buf + mpd_stree_find (this, "contentType", index_as);
         info->type = 0;
-        if (strcasestr (s, "audio"))
+        if (mpd_strcasestr (s, "audio"))
           info->type |= MPD_TYPE_AUDIO;
-        if (strcasestr (s, "video"))
+        if (mpd_strcasestr (s, "video"))
           info->type |= MPD_TYPE_VIDEO;
-        if (strcasestr (s, "subtitle"))
+        if (mpd_strcasestr (s, "subtitle"))
           info->type |= MPD_TYPE_SUBT;
         info->mime = mpd_stree_find (this, "mimeType", index_as);
         info->index_p = index_p;
@@ -1128,8 +1128,24 @@ static int mpd_input_open (input_plugin_t *this_gen) {
     return 0;
 
   if (!this->side_index) {
+    uint32_t u;
     if (!mpd_input_load_manifest (this))
       return 0;
+    /* video decoding usually is much slower than audio.
+     * if there is video, make it the main stream.
+     * this way, its effective lag will be 0, and the
+     * engine need not drop video frames. */
+    for (u = 0; u < this->num_sides; u++) {
+      uint32_t v = this->side_have_streams[u][0];
+      if ((v != 255) && (this->streams[v].type & MPD_TYPE_VIDEO))
+        break;
+    }
+    if ((u > 0) && (u < this->num_sides)) {
+      uint8_t t[MPD_MAX_REPR];
+      memcpy (t, this->side_have_streams[0], sizeof (t));
+      memcpy (this->side_have_streams[0], this->side_have_streams[u], sizeof (t));
+      memcpy (this->side_have_streams[u], t, sizeof (t));
+    }
     if ((this->num_sides > 1) && !this->sync.init) {
       pthread_mutex_init (&this->sync.mutex, NULL);
       this->sync.init = 1;
@@ -1313,6 +1329,9 @@ static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, in
         memcpy (data, &side_input, sizeof (side_input));
         return INPUT_OPTIONAL_SUCCESS;
       }
+
+    case INPUT_OPTIONAL_DATA_PTSOFFS:
+      return this->sync.lag - this->lag;
 
     default:
       return INPUT_OPTIONAL_UNSUPPORTED;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2020 the xine project
+ * Copyright (C) 2001-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -452,6 +452,7 @@ typedef struct {
   fifo_buffer_t       *audio_fifo;
 
   input_plugin_t      *input;
+  int                  ptsoffs;
 
   int                  status;
 
@@ -3533,7 +3534,7 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       buf->type = trak->properties->codec_buftype;
       buf->extra_info->input_time = qt_pts_2_msecs (trak->frames[i].pts);
       buf->extra_info->input_normpos = qt_msec_2_normpos (this, buf->extra_info->input_time);
-      buf->pts = trak->frames[i].pts + (int64_t)trak->frames[i].ptsoffs;
+      buf->pts = trak->frames[i].pts + (int64_t)trak->frames[i].ptsoffs + this->ptsoffs;
 
       buf->decoder_flags |= BUF_FLAG_FRAMERATE;
       buf->decoder_info[0] = frame_duration;
@@ -3603,14 +3604,14 @@ static int demux_qt_send_chunk(demux_plugin_t *this_gen) {
       if ((buf->type == BUF_AUDIO_LPCM_BE) ||
           (buf->type == BUF_AUDIO_LPCM_LE)) {
         if (first_buf) {
-          buf->pts = trak->frames[i].pts;
+          buf->pts = trak->frames[i].pts + this->ptsoffs;
           first_buf = 0;
         } else {
           buf->extra_info->input_time = 0;
           buf->pts = 0;
         }
       } else {
-        buf->pts = trak->frames[i].pts;
+        buf->pts = trak->frames[i].pts + this->ptsoffs;
       }
 
       /* 24-bit audio doesn't fit evenly into the default 8192-byte buffers */
@@ -4197,6 +4198,11 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   this->stream = stream;
   this->input  = input;
+  this->ptsoffs = this->input->get_optional_data (this->input, NULL, INPUT_OPTIONAL_DATA_PTSOFFS);
+  if (this->ptsoffs) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+        "demux_qt: using input offset %d pts.\n", this->ptsoffs);
+  }
 
   /* fetch bandwidth config */
   this->bandwidth = 0x7FFFFFFFFFFFFFFFLL;  /* assume infinite bandwidth */
