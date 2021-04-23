@@ -395,6 +395,9 @@ struct input_plugin_s {
  * NOTE: this shall be an alternative get_instance (), not the result of an _x_find_input_plugin ().
  * release by _x_free_input_plugin () or xine_dispose () of the side stream. */
 #define INPUT_OPTIONAL_DATA_SIDE      16
+/* returns a pts value (1/90000s) to add to all demux media pts, or INPUT_OPTIONAL_UNSUPPORTED == 0.
+ * some fragment streams need this to provide a/v sync over multiple side streams. */
+#define INPUT_OPTIONAL_DATA_PTSOFFS   17
 
 #define MAX_MRL_ENTRIES 255
 #define MAX_PREVIEW_SIZE 4096
