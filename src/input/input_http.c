@@ -977,12 +977,13 @@ static uint32_t http_plugin_get_capabilities (input_plugin_t *this_gen) {
   uint32_t caps = INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW | INPUT_CAP_NEW_MRL;
 
   /* Nullsoft asked to not allow saving streaming nsv files */
-  if (this->url.uri && strlen(this->url.uri) >= 4 &&
-      !strncmp(this->url.uri + strlen(this->url.uri) - 4, ".nsv", 4))
+  if (this->mode & MODE_NSV)
     caps |= INPUT_CAP_RIP_FORBIDDEN;
 
   if (this->mode & MODE_SEEKABLE) {
     caps |= INPUT_CAP_SLOW_SEEKABLE;
+  } else if (this->shoutcast_interval) {
+    caps |= INPUT_CAP_LIVE;
   }
   return caps;
 }
