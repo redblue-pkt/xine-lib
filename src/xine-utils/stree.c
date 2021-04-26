@@ -195,6 +195,85 @@ size_t xine_string_unbackslash (char *s) {
   return q - (uint8_t *)s;
 }
 
+size_t xine_string_unampersand (char *s) {
+  static const uint8_t _tab_amp[256] = {
+    ['&'] = 1,
+    [';'] = 2,
+    ['\0'] = 128
+  };
+  uint8_t *p = (uint8_t *)s, *q;
+
+  while (!(_tab_amp[*p] & (1 | 128)))
+    p++;
+  if (!*p)
+    return p - (uint8_t *)s;
+
+  q = p;
+  while (1) {
+    /* *p == '&' */
+    uint8_t *e = p + 1;
+    while (!(_tab_amp[*e] & (2 | 128)))
+      e++;
+    if (!*e)
+      break;
+    *e = 0;
+    p++;
+    if (!strcasecmp ((const char *)p, "amp")) {
+      *q++ = '&';
+      p = e + 1;
+    } else if (!strcasecmp ((const char *)p, "lt")) {
+      *q++ = '<';
+      p = e + 1;
+    } else if (!strcasecmp ((const char *)p, "gt")) {
+      *q++ = '>';
+      p = e + 1;
+    } else if (!strcasecmp ((const char *)p, "quot")) {
+      *q++ = '"';
+      p = e + 1;
+    } else if (*p == '#') {
+      uint32_t v = 0;
+      uint8_t z;
+      p++;
+      if ((*p | 0x20) == 'x') {
+        p++;
+        while (!((z =_tab_unhex[*p]) & 128))
+          v = (v << 4) | z, p++;
+      } else if (*p == '0') {
+        while ((z = *p ^ '0') < 8)
+          v = v * 8u + z, p++;
+      } else {
+        while ((z = *p ^ '0') < 10)
+          v = v * 10u + z, p++;
+      }
+      z = v;
+      if (v & 0xff80) { /* utf8 */
+        if (v & 0xf800) { /* 1110xxxx 10xxxxxx 10xxxxxx */
+          *q++ = 0xe0 | (v >> 12);
+          *q++ = 0x80 | ((v >> 6) & 0x3f);
+        } else { /* 110xxxxx 10xxxxxx */
+          *q++ = 0xc0 | (v >> 6);
+        }
+        z &= 0x3f;
+        z |= 0x80;
+      }
+      *q++ = z;
+      p = e + 1;
+    } else {
+      *q++ = '&';
+      *e = ';';
+    }
+    while (!(_tab_amp[*p] & (1 | 128)))
+      *q++ = *p++;
+    if (!*p)
+      break;
+  }
+  while (*p)
+    *q++ = *p++;
+
+  *q = 0;
+  return q - (uint8_t *)s;
+}
+
 static int _xine_stree_node_new (xine_stree_t **root, uint32_t *have, uint32_t *used, uint32_t parent) {
   xine_stree_t *p, *n;
   if (*used >= *have) {
@@ -276,7 +355,7 @@ static const uint8_t _tab_xml[256] = {
 
 static xine_stree_t *_xine_stree_load_xml (char *buf) {
   xine_stree_t *root;
-  uint32_t have, used, here;
+  uint32_t have, used, here, plain;
   uint8_t *p, *q, *e;
 
   have = 64;
@@ -291,20 +370,54 @@ static xine_stree_t *_xine_stree_load_xml (char *buf) {
   root->num_children = root->level = root->index = 0;
   root->key = root->value = 0;
 
+  plain = ~0u;
+
   e = p = (uint8_t *)buf;
   q = (uint8_t *)buf + 1;
-  while (*p) {
+  while (1) {
     while (_tab_xml[p[0]] & 1)
       p++;
+    if (!*p)
+      break;
     if (p[0] == '<') {
       p++;
       if (p[0] == '!') { /* <!comment ... /> */
         p++;
-        /* NOTE: CDATA pseudo comments not yet supported. */
-        while (!(_tab_xml[*p] & (16 | 128)))
-          p++;
-        if (*p == '>')
-          p++;
+        if (!strncmp ((const char *)p, "[CDATA[", 7)) {
+          /* CDATA pseudo comment */
+          uint32_t new = _xine_stree_node_new (&root, &have, &used, here);
+          if (!new)
+            return root;
+          p += 7;
+          if (plain == ~0u) {
+            plain = q - (uint8_t *)buf;
+            memcpy (q, "[]", 2);
+            q += 2;
+            *e = 0;
+            e = q++;
+          }
+          root[new].key = plain;
+          root[new].value = q - (uint8_t *)buf;
+          while (1) {
+            while (!(_tab_xml[*p] & (16 | 128)))
+              *q++ = *p++;
+            if (!*p)
+              break;
+            if ((p[-1] == ']') && (p[-2] == ']') && (p[-3] != '\\')) {
+              p++;
+              q -= 2;
+              break;
+            }
+            *q++ = *p++;
+          }
+          *e = 0;
+          e = q++;
+        } else {
+          while (!(_tab_xml[*p] & (16 | 128)))
+            p++;
+          if (*p == '>')
+            p++;
+        }
       } else if (p[0] == '/') { /* </tag> */
         uint8_t *v, z;
         p++;
@@ -356,11 +469,48 @@ static xine_stree_t *_xine_stree_load_xml (char *buf) {
       e = q++;
     } else if (*p == '>') { /* <tag_with_inner_text ...>here</... */
       p++;
+      /* trim leading spc */
       while (_tab_xml[*p] & 1)
         p++;
       if (!(_tab_xml[*p] & (8 | 128))) {
+        uint8_t *b;
+        uint32_t new = _xine_stree_node_new (&root, &have, &used, here), value;
+        if (!new)
+          return root;
+        /* generic key */
+        if (plain == ~0u) {
+          plain = q - (uint8_t *)buf;
+          memcpy (q, "[]", 2);
+          q += 2;
+          *e = 0;
+          e = q++;
+        }
+        root[new].key = plain;
+        /* main text */
+        b = q;
+        value = q - (uint8_t *)buf;
+        root[new].value = value;
+        if (!root[here].value)
+          root[here].value = value;
+        /* trim trailing spc */
+        while (1) {
+          while (!(_tab_xml[*p] & (1 | 8 | 128)))
+            *q++ = *p++;
+          while (_tab_xml[*p] & 1)
+            p++;
+          if (_tab_xml[*p] & (8 | 128))
+            break;
+          *q++ = ' ';
+        }
+        {
+          uint8_t z = *q;
+          *q = 0;
+          /* this will be just right in most cases :-) */
+          value = xine_string_unampersand ((char *)b);
+          *q = z;
+        }
+        q = b + value;
         *e = 0;
-        root[here].value = _xine_stree_get_string (&p, &q, _tab_xml) - (uint8_t *)buf;
         e = q++;
       }
     } else {
@@ -496,9 +646,13 @@ static xine_stree_t *_xine_stree_load_json (char *buf) {
         if (root[item].level & 0x80000000) {
           root[item].key = v - (uint8_t *)buf;
         } else {
+          uint8_t z;
           root[item].value = v - (uint8_t *)buf;
           /* this will be just right in most cases :-) */
+          z = *e;
+          *e = 0;
           xine_string_unbackslash ((char *)v);
+          *e = z;
         }
       }
     }
@@ -593,9 +747,13 @@ static xine_stree_t *_xine_stree_load_url (char *buf) {
     if (key) {
       root[here].key = r - (uint8_t *)buf;
     } else {
+      uint8_t z;
       root[here].value = r - (uint8_t *)buf;
       /* this will be just right in most cases :-) */
+      z = *p;
+      *p = 0;
       xine_string_unpercent ((char *)r);
+      *p = z;
     }
     if (*p == '&') {
       *e = 0;
@@ -643,7 +801,7 @@ xine_stree_t *xine_stree_load (char *buf, xine_stree_mode_t *mode) {
 
 void xine_stree_dump (const xine_stree_t *tree, const char *buf, uint32_t base) {
   static const char spc[] = "                                ";
-  const xine_stree_t *here, *test, *stop;
+  const xine_stree_t *here, *stop;
   uint32_t index;
 
   if (!tree || !buf)
@@ -651,32 +809,57 @@ void xine_stree_dump (const xine_stree_t *tree, const char *buf, uint32_t base) 
 
   here = tree + base;
   stop = base ? here : NULL;
-  for (index = 1, test = here; test->prev; index += 1, test = tree + test->prev) ;
+  {
+    const xine_stree_t *test;
+
+    for (index = 0, test = here; test->prev; index += 1, test = tree + test->prev) ;
+  }
+
   while (1) {
     printf ("%s[%d:%d] \"%s\" = \"%s\"\n",
       spc + (sizeof (spc) - 1) - 2 * (here->level > (sizeof (spc) - 1) / 2 ? sizeof (spc) - 1 : here->level),
       (int)here->level, (int)index, buf + here->key, buf + here->value);
-    if (here->first_child) {
+    if (here->first_child) { /* down */
       index = 0;
       here = tree + here->first_child;
-    } else if (here == stop) {
+    } else if (here == stop) { /* done */
       break;
-    } else if (here->next) {
+    } else if (here->next) { /* next */
       index += 1;
       here = tree + here->next;
-    } else {
+    } else { /* up */
+      const xine_stree_t *test;
+
       while (here->level) {
         here = tree + here->parent;
-        if (here->next)
+        if ((here == stop) || here->next)
           break;
       }
-      if (!here->next)
+      if ((here == stop) || !here->next)
         break;
       for (index = 1, test = here; test->prev; index += 1, test = tree + test->prev) ;
       here = tree + here->next;
     }
   }
 }
+
+static const uint8_t _tab_key[256] = {
+  ['.'] = 1,
+  ['['] = 2,
+  ['0'] = 4,
+  ['1'] = 4,
+  ['2'] = 4,
+  ['3'] = 4,
+  ['4'] = 4,
+  ['5'] = 4,
+  ['6'] = 4,
+  ['7'] = 4,
+  ['8'] = 4,
+  ['9'] = 4,
+  ['\t'] = 8,
+  [' '] = 8,
+  ['\0'] = 128
+};
 
 uint32_t xine_stree_find (const xine_stree_t *tree, const char *buf, const char *path, uint32_t base, int case_sens) {
   const xine_stree_t *here;
@@ -701,8 +884,17 @@ uint32_t xine_stree_find (const xine_stree_t *tree, const char *buf, const char 
       return 0;
     here = tree + here->first_child;
     q = part;
-    while (*s && (*s != '[') && (*s != '.') && (q < e))
+    while (1) {
+      while (!(_tab_key[*s] & (1 | 2 | 128)) && (q < e))
+        *q++ = *s++;
+      if (q >= e)
+        return 0;
+      if (*s != '[')
+        break;
+      if (_tab_key[s[1]] & (4 | 8))
+        break;
       *q++ = *s++;
+    }
     if (q >= e)
       return 0;
     *q = 0;
@@ -808,7 +1000,12 @@ int main (int argc, char **argv) {
   } while (0);
 
   {
-    static const char helptext[] = "usage: stree <file> [<path>]\n";
+    static const char helptext[] =
+      "usage: stree <file> [<path>]\n"
+      "  path is a dot separated list of parts.\n"
+      "  part is a key, a zero based index number in square brackets, or both.\n"
+      "  the special key \"[]\" refers to xml tag content text.\n"
+      "  \"foo.[][0]\" will also be available as \"foo\".\n";
 
     fwrite (helptext, 1, sizeof (helptext) - 1, stdout);
   }
