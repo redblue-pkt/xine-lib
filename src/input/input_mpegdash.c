@@ -1131,6 +1131,11 @@ static int mpd_input_open (input_plugin_t *this_gen) {
     uint32_t u;
     if (!mpd_input_load_manifest (this))
       return 0;
+    if (!this->num_streams) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+        "input_mpegdash.%d: no streams.\n", (int)this->side_index);
+      return 0;
+    }
     /* video decoding usually is much slower than audio.
      * if there is video, make it the main stream.
      * this way, its effective lag will be 0, and the
@@ -1395,7 +1400,7 @@ static input_plugin_t *mpd_input_get_instance (input_class_t *cls_gen, xine_stre
   this->main_input = this;
   this->stream = stream;
   this->in1    = in1;
-  this->num_sides = 1;
+  this->num_sides = 0;
   this->sync.avail_start =
   this->sync.play_start  = (time_t)-1;
   this->sync.refs = 1;
