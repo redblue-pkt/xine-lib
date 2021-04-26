@@ -55,18 +55,30 @@ xine_stree_t *xine_stree_load (char *buf, xine_stree_mode_t *mode) XINE_PROTECTE
 void xine_stree_dump (const xine_stree_t *tree, const char *buf, uint32_t base) XINE_PROTECTED;
 
 /** path is a dot separated list of parts.
- *  part is a name, a zero based index number in square brackets, or both. */
+ *  part is a key, a zero based index number in square brackets, or both.
+ *  the special key "[]" refers to xml tag content text.
+ *  "foo.[][0]" will also be available as "foo". */
 uint32_t xine_stree_find (const xine_stree_t *tree, const char *buf, const char *path, uint32_t base, int case_sens) XINE_PROTECTED;
 
 void xine_stree_delete (xine_stree_t **tree) XINE_PROTECTED;
 
+/** "&amp;"    -> "&"
+ *  "&lt;"     -> "<"
+ *  "&gt;"     -> ">"
+ *  "&quot;"   -> "\""
+ *  "&#xd575;" -> "핵"
+ * return new strlen (). */
+size_t xine_string_unampersand (char *s) XINE_PROTECTED;
+
 /** "%3a" -> ":" etc. return new strlen (). */
 size_t xine_string_unpercent (char *s) XINE_PROTECTED;
+
 /** "\n"     -> <newline>
  *  "\070"   -> "8"
  *  "\x37"   -> "7"
  *  "\ud575" -> "핵"
- *  "\cG"    -> <bell> (^G) */
+ *  "\cG"    -> <bell> (^G)
+ * return new strlen (). */
 size_t xine_string_unbackslash (char *s) XINE_PROTECTED;
 
 #ifdef __cplusplus
