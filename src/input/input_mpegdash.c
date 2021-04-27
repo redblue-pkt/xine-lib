@@ -120,6 +120,8 @@ typedef struct mpd_input_plugin_s {
 
   int               lag;  /** pts */
 
+  int               rewind; /** seconds */
+
   xine_stree_t     *tree;
   char             *list_buf;
   xine_stree_mode_t tmode;
@@ -397,7 +399,7 @@ static int mpd_set_start_time (mpd_input_plugin_t *this) {
     this->frag_index = 1;
     /* heavy magic ;-) */
     {
-      int64_t d = play_start - this->sync.avail_start;
+      int64_t d = play_start - this->sync.avail_start - this->rewind;
       d *= this->info.timebase;
       this->frag_num = d / this->info.frag_duration + this->info.frag_start;
       this->lag = (d % this->info.frag_duration) * 90000 / this->info.timebase;
@@ -440,7 +442,7 @@ static int mpd_set_start_time (mpd_input_plugin_t *this) {
     this->frag_index = 1;
     /* heavy magic ;-) */
     {
-      int64_t d = this->sync.play_start - this->sync.avail_start;
+      int64_t d = this->sync.play_start - this->sync.avail_start - this->rewind;
       d *= this->info.timebase;
       this->frag_num = d / this->info.frag_duration + this->info.frag_start;
       this->lag = (d % this->info.frag_duration) * 90000 / this->info.timebase;
@@ -1338,6 +1340,12 @@ static int mpd_input_get_optional_data (input_plugin_t *this_gen, void *data, in
     case INPUT_OPTIONAL_DATA_PTSOFFS:
       return this->sync.lag - this->lag;
 
+    case INPUT_OPTIONAL_DATA_REWIND:
+      if (!data)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      memcpy (&this->rewind, data, sizeof (this->rewind));
+      return INPUT_OPTIONAL_SUCCESS;
+
     default:
       return INPUT_OPTIONAL_UNSUPPORTED;
   }
@@ -1395,6 +1403,7 @@ static input_plugin_t *mpd_input_get_instance (input_class_t *cls_gen, xine_stre
   this->sync.type    = 0;
   this->sync.init    = 0;
   this->lag          = 0;
+  this->rewind       = 0;
 #endif
 
   this->main_input = this;
