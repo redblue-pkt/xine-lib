@@ -84,6 +84,24 @@
 
 #include "xine_private.h"
 
+static const uint8_t tab_tolower[256] = {
+    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
+   16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+  ' ','!','"','#','$','%','&','\'','(',')','*','+',',','-','.','/',
+  '0','1','2','3','4','5','6','7','8','9',':',';','<','=','>','?',
+  '@','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
+  'p','q','r','s','t','u','v','w','x','y','z','[','\\',']','^','_',
+  '`','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
+  'p','q','r','s','t','u','v','w','x','y','z','{','|','}','~',127,
+  128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,
+  144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,
+  160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,
+  176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,
+  192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,
+  208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,
+  224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,
+  240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
+};
 
 
 static void mutex_cleanup (void *mutex) {
@@ -1519,6 +1537,141 @@ static const uint8_t tab_parse[256] = {
    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
+typedef enum {
+  _X_ARG_CONFIG = 0,
+  _X_ARG_demux,
+  _X_ARG_save,
+  _X_ARG_lastdemuxprobe,
+  _X_ARG_novideo,
+  _X_ARG_noaudio,
+  _X_ARG_nospu,
+  _X_ARG_nocache,
+  _X_ARG_volume,
+  _X_ARG_compression,
+  _X_ARG_subtitle,
+  _X_ARG_rewind,
+  _X_ARG_LAST
+} _xine_arg_type_t;
+
+typedef struct {
+  _xine_arg_type_t type;
+  uint8_t *key, *value;
+} _xine_arg_t;
+
+typedef struct {
+  _xine_arg_t *args;
+  uint32_t used, have;
+  uint32_t known[_X_ARG_LAST];
+} _xine_args_t;
+
+static const struct {
+  _xine_arg_type_t type;
+  const char *name;
+} _xine_arg_keys[] = { /* sort please */
+  {_X_ARG_compression,    "compression"},
+  {_X_ARG_demux,          "demux"},
+  {_X_ARG_lastdemuxprobe, "lastdemuxprobe"},
+  {_X_ARG_noaudio,        "noaudio"},
+  {_X_ARG_nocache,        "nocache"},
+  {_X_ARG_nospu,          "nospu"},
+  {_X_ARG_novideo,        "novideo"},
+  {_X_ARG_rewind,         "rewind"},
+  {_X_ARG_save,           "save"},
+  {_X_ARG_subtitle,       "subtitle"},
+  {_X_ARG_volume,         "volume"}
+};
+
+static void _xine_parse_args (_xine_args_t *args, uint8_t *s) {
+  args->args = NULL;
+  args->used = 0;
+  args->have = 0;
+  {
+    uint32_t l;
+
+    for (l = 0; l < sizeof (args->known) / sizeof (args->known[0]); l++)
+      args->known[l] = ~0u;
+  }
+
+  if (s && s[0]) {
+    args->used = 0;
+    args->have = 32;
+    args->args = malloc (args->have * sizeof (args->args[0]));
+    if (!args->args)
+      return;
+
+    /* Turn "WhatAGreat:Bullshit[;]" into lowkey="whatagreat" key="WhatAGreat" value="Bullshit". */
+    while (*s) {
+      _xine_arg_t *arg;
+      uint8_t *p;
+      uint32_t n;
+
+      while (*s == ';')
+        s++;
+
+      if (args->used >= args->have) {
+        arg = realloc (args->args, (args->have + 32) * sizeof (*arg));
+        if (!arg)
+          return;
+        args->args = arg;
+        args->have += 32;
+      }
+      arg = args->args + args->used;
+
+      arg->type = _X_ARG_CONFIG;
+      arg->key = p = s;
+      arg->value = NULL;
+      while (!(tab_parse[*s] & 0x19))
+        s++;
+      n = s - p;
+      if ((n > 0) && (n < 80)) {
+        uint8_t lowkey[80], *q = lowkey;
+        uint32_t b, m, e;
+        s = p;
+        while (n--)
+          *q++ = tab_tolower[*s++];
+        *q = 0;
+        b = 0;
+        e = sizeof (_xine_arg_keys) / sizeof (_xine_arg_keys[0]);
+        do {
+          int d;
+          m = (b + e) >> 1;
+          d = strcmp ((const char *)lowkey, (const char *)_xine_arg_keys[m].name);
+          if (d < 0) {
+            e = m;
+          } else if (d > 0) {
+            b = m + 1;
+          } else {
+            arg->type = _xine_arg_keys[m].type;
+            args->known[arg->type] = args->used;
+            break;
+          }
+        } while (b != e);
+      }
+      if (*s == ':') {
+        *s++ = 0;
+        arg->value = s;
+        while (!(tab_parse[*s] & 0x11))
+          s++;
+      }
+
+      if (!*s) {
+        if (*p) /* skip empty keys */
+          args->used += 1;
+        break;
+      }
+      *s++ = 0;
+      if (*p) /* skip empty keys */
+        args->used += 1;
+    }
+  }
+}
+
+static void _xine_free_args (_xine_args_t *args) {
+  _x_freep (&args->args);
+  args->used = 0;
+  args->have = 0;
+}
+
 /* aka "does path have a protocol prefix" */
 static inline int _x_path_looks_like_mrl (const char *path) {
   const uint8_t *p = (const uint8_t *)path;
@@ -1528,27 +1681,30 @@ static inline int _x_path_looks_like_mrl (const char *path) {
   return (p[-1] == ':') && (p[0] == '/');
 }
 
+static int _xine_str2secs (const uint8_t *s) {
+  uint32_t v = 0, minus = 0;
+  if (!s)
+    return 0;
+  while (*s == '-')
+    minus ^= 1, s++;
+  while (*s == '+')
+    s++;
+  while (1) {
+    uint32_t part = 0;
+    uint8_t z;
+    while ((z = *s ^ '0') < 10u)
+      part = part * 10u + z, s++;
+    v += part;
+    if (*s != ':')
+      break;
+    s++;
+    v *= 60;
+  }
+  return minus ? -(int)v : (int)v;
+}
+
 static int open_internal (xine_stream_private_t *stream, const char *mrl, input_plugin_t *input) {
-
-  static const uint8_t tab_tolower[256] = {
-      0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
-     16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-    ' ','!','"','#','$','%','&','\'','(',')','*','+',',','-','.','/',
-    '0','1','2','3','4','5','6','7','8','9',':',';','<','=','>','?',
-    '@','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
-    'p','q','r','s','t','u','v','w','x','y','z','[','\\',']','^','_',
-    '`','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
-    'p','q','r','s','t','u','v','w','x','y','z','{','|','}','~',127,
-    128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,
-    144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,
-    160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,
-    176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,
-    192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,
-    208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,
-    224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,
-    240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
-  };
-
+  _xine_args_t _args;
   uint8_t *buf, *name, *args;
   int no_cache = 0;
 
@@ -1614,6 +1770,7 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl, input_
       if (args) args[-1] = 0;
     }
   }
+  _xine_parse_args (&_args, args);
     
   if (!input) {
     /*
@@ -1635,6 +1792,16 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl, input_
         stream->eject_class = stream->s.input_plugin->input_class;
       _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_INPUT_PLUGIN,
         stream->s.input_plugin->input_class->identifier);
+
+      if (_args.known[_X_ARG_rewind] != ~0u) {
+        int secs = _xine_str2secs (_args.args[_args.known[_X_ARG_rewind]].value);
+        if (secs < 0) {
+          xprintf (stream->s.xine, XINE_VERBOSITY_LOG,
+            "xine: cant rewind %d seconds into the future, ignoring.\n", -secs);
+        } else {
+          stream->s.input_plugin->get_optional_data (stream->s.input_plugin, &secs, INPUT_OPTIONAL_DATA_REWIND);
+        }
+      }
 
       res = (stream->s.input_plugin->open) (stream->s.input_plugin);
       switch(res) {
@@ -1663,189 +1830,168 @@ static int open_internal (xine_stream_private_t *stream, const char *mrl, input_
   }
 
   if (args) {
-    uint8_t *entry = NULL;
+    uint32_t u;
 
-    while (*args) {
-      /* Turn "WhatAGreat:Bullshit[;]" into key="whatagreat" entry="WhatAGreat" value="Bullshit". */
-      uint8_t *key = buf, *value = NULL;
-      if (entry)
-        xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: no value for \"%s\", ignoring.\n"), entry);
-      entry = args;
-      {
-        uint8_t *spos = args + 31, sval = *spos, *q = key, z;
-        *spos = 0;
-        while (!(tab_parse[z = *args] & 0x19)) *q++ = tab_tolower[z], args++;
-        *q = 0;
-        *spos = sval;
-        while (!(tab_parse[z = *args] & 0x19)) args++;
-        if (z == ':') {
-          *args++ = 0;
-          value = args;
-          while (!(tab_parse[z = *args] & 0x11)) args++;
-        }
-        if (z == ';')
-          *args++ = 0;
+    for (u = 0; u < _args.used; u++) {
+      char *key, *value;
+      _xine_arg_type_t type;
+
+      key = (char *)_args.args[u].key;
+      value = (char *)_args.args[u].value;
+      type = _args.args[u].type;
+
+      switch (type) {
+
+        case _X_ARG_demux:
+          if (value) {
+            /* demuxer specified by name */
+            _x_mrl_unescape (value);
+            if (!(stream->demux.plugin = _x_find_demux_plugin_by_name (&stream->s, value, stream->s.input_plugin))) {
+              xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: specified demuxer %s failed to start\n"), value);
+              stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+              stream->status = XINE_STATUS_IDLE;
+              _xine_free_args (&_args);
+              free (buf);
+              return 0;
+            }
+            _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
+              stream->demux.plugin->demux_class->identifier);
+            key = NULL;
+          }
+          break;
+
+        case _X_ARG_save:
+          if (value) {
+            /* filename to save */
+            input_plugin_t *input_saver;
+
+            _x_mrl_unescape (value);
+            xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: join rip input plugin\n"));
+            input_saver = _x_rip_plugin_get_instance (&stream->s, value);
+            if (input_saver) {
+              stream->s.input_plugin = input_saver;
+            } else {
+              xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("xine: error opening rip input plugin instance\n"));
+              stream->err = XINE_ERROR_MALFORMED_MRL;
+              stream->status = XINE_STATUS_IDLE;
+              _xine_free_args (&_args);
+              free (buf);
+              return 0;
+            }
+            key = NULL;
+          }
+          break;
+
+        case _X_ARG_lastdemuxprobe:
+          if (value) {
+            /* all demuxers will be probed before the specified one */
+            _x_mrl_unescape (value);
+            if (!(stream->demux.plugin = _x_find_demux_plugin_last_probe (&stream->s, value, stream->s.input_plugin))) {
+              xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: last_probed demuxer %s failed to start\n"), value);
+              stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
+              stream->status = XINE_STATUS_IDLE;
+              _xine_free_args (&_args);
+              free (buf);
+              return 0;
+            }
+            lprintf ("demux and input plugin found\n");
+            _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
+              stream->demux.plugin->demux_class->identifier);
+            key = NULL;
+          }
+          break;
+
+        case _X_ARG_novideo:
+          _x_stream_info_set (&stream->s, XINE_STREAM_INFO_IGNORE_VIDEO, 1);
+          xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("ignoring video\n"));
+          key = NULL;
+          break;
+
+        case _X_ARG_noaudio:
+          _x_stream_info_set (&stream->s, XINE_STREAM_INFO_IGNORE_AUDIO, 1);
+          xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("ignoring audio\n"));
+          key = NULL;
+          break;
+
+        case _X_ARG_nospu:
+          _x_stream_info_set (&stream->s, XINE_STREAM_INFO_IGNORE_SPU, 1);
+          xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("ignoring subpicture\n"));
+          key = NULL;
+          break;
+
+        case _X_ARG_nocache:
+          no_cache = 1;
+          xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("input cache plugin disabled\n"));
+          key = NULL;
+          break;
+
+        case _X_ARG_volume:
+          if (value) {
+            _x_mrl_unescape (value);
+            xine_set_param (&stream->s, XINE_PARAM_AUDIO_VOLUME, atoi (value));
+            key = NULL;
+          }
+          break;
+
+        case _X_ARG_compression:
+          if (value) {
+            _x_mrl_unescape (value);
+            xine_set_param (&stream->s, XINE_PARAM_AUDIO_COMPR_LEVEL, atoi (value));
+            key = NULL;
+          }
+          break;
+
+        case _X_ARG_subtitle:
+          if (value) {
+            /* unescape for xine_open() if the MRL looks like a raw pathname */
+            if (!_x_path_looks_like_mrl (value))
+              _x_mrl_unescape (value);
+            stream->s.slave = xine_stream_new (stream->s.xine, NULL, stream->s.video_out);
+            stream->slave_affection = XINE_MASTER_SLAVE_PLAY | XINE_MASTER_SLAVE_STOP;
+            if (xine_open (stream->s.slave, value)) {
+              xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("subtitle mrl opened '%s'\n"), value);
+              stream->s.slave->master = &stream->s;
+              stream->slave_is_subtitle = 1;
+            } else {
+              xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("xine: error opening subtitle mrl\n"));
+              xine_dispose (stream->s.slave);
+              stream->s.slave = NULL;
+            }
+            key = NULL;
+          }
+          break;
+
+        case _X_ARG_CONFIG:
+          if (value) {
+            /* when we got here, the stream setup parameter must be a config entry */
+            int retval;
+            value[-1] = ':';
+            _x_mrl_unescape (key);
+            retval = _x_config_change_opt (stream->s.xine->config, key);
+            if (retval <= 0) {
+              value[-1] = 0;
+              if (retval == 0) {
+                /* the option not found */
+                xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: unknown config option \"%s\", ignoring.\n"), key);
+              } else {
+                /* not permitted to change from MRL */
+                xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: changing option '%s' from MRL isn't permitted\n"), key);
+              }
+            }
+            key = NULL;
+          }
+          break;
+
+        default:
+          key = NULL;
       }
 
-      if (!memcmp (key, "demux", 6)) {
-        if (value) {
-          /* demuxer specified by name */
-          char *demux_name = (char *)value;
-          _x_mrl_unescape (demux_name);
-	  if (!(stream->demux.plugin = _x_find_demux_plugin_by_name (&stream->s, demux_name, stream->s.input_plugin))) {
-	    xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: specified demuxer %s failed to start\n"), demux_name);
-	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
-	    stream->status = XINE_STATUS_IDLE;
-            free (buf);
-	    return 0;
-	  }
-
-          _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
-            stream->demux.plugin->demux_class->identifier);
-          entry = NULL;
-        }
-	continue;
-      }
-
-      if (!memcmp (key, "save", 5)) {
-        if (value) {
-          /* filename to save */
-          char *filename = (char *)value;
-	  input_plugin_t *input_saver;
-
-          _x_mrl_unescape (filename);
-
-	  xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: join rip input plugin\n"));
-          input_saver = _x_rip_plugin_get_instance (&stream->s, filename);
-
-	  if( input_saver ) {
-            stream->s.input_plugin = input_saver;
-	  } else {
-            xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("xine: error opening rip input plugin instance\n"));
-	    stream->err = XINE_ERROR_MALFORMED_MRL;
-	    stream->status = XINE_STATUS_IDLE;
-            free (buf);
-	    return 0;
-	  }
-          entry = NULL;
-        }
-	continue;
-      }
-
-      if (!memcmp (key, "lastdemuxprobe", 15)) {
-        if (value) {
-          /* all demuxers will be probed before the specified one */
-          char *demux_name = (char *)value;
-          _x_mrl_unescape (demux_name);
-	  if (!(stream->demux.plugin = _x_find_demux_plugin_last_probe (&stream->s, demux_name, stream->s.input_plugin))) {
-            xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: last_probed demuxer %s failed to start\n"), demux_name);
-	    stream->err = XINE_ERROR_NO_DEMUX_PLUGIN;
-	    stream->status = XINE_STATUS_IDLE;
-            free (buf);
-	    return 0;
-	  }
-	  lprintf ("demux and input plugin found\n");
-
-          _x_meta_info_set_utf8 (&stream->s, XINE_META_INFO_SYSTEMLAYER,
-            stream->demux.plugin->demux_class->identifier);
-          entry = NULL;
-        }
-	continue;
-      }
-
-      if (!memcmp (key, "novideo", 8)) {
-        _x_stream_info_set (&stream->s, XINE_STREAM_INFO_IGNORE_VIDEO, 1);
-        xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("ignoring video\n"));
-        entry = NULL;
-	continue;
-      }
-
-      if (!memcmp (key, "noaudio", 8)) {
-        _x_stream_info_set (&stream->s, XINE_STREAM_INFO_IGNORE_AUDIO, 1);
-        xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("ignoring audio\n"));
-        entry = NULL;
-	continue;
-      }
-
-      if (!memcmp (key, "nospu", 6)) {
-        _x_stream_info_set (&stream->s, XINE_STREAM_INFO_IGNORE_SPU, 1);
-        xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("ignoring subpicture\n"));
-        entry = NULL;
-	continue;
-      }
-
-      if (!memcmp (key, "nocache", 8)) {
-        no_cache = 1;
-        xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("input cache plugin disabled\n"));
-        entry = NULL;
-	continue;
-      }
-
-      if (!memcmp (key, "volume", 7)) {
-        if (value) {
-          char *volume = (char *)value;
-          _x_mrl_unescape (volume);
-          xine_set_param (&stream->s, XINE_PARAM_AUDIO_VOLUME, atoi (volume));
-          entry = NULL;
-        }
-	continue;
-      }
-
-      if (!memcmp (key, "compression", 12)) {
-        if (value) {
-          char *compression = (char *)value;
-          _x_mrl_unescape (compression);
-          xine_set_param (&stream->s, XINE_PARAM_AUDIO_COMPR_LEVEL, atoi (compression));
-          entry = NULL;
-        }
-	continue;
-      }
-
-      if (!memcmp (key, "subtitle", 9)) {
-        if (value) {
-          char *subtitle_mrl = (char *)value;
-	  /* unescape for xine_open() if the MRL looks like a raw pathname */
-	  if (!_x_path_looks_like_mrl(subtitle_mrl))
-	    _x_mrl_unescape(subtitle_mrl);
-          stream->s.slave = xine_stream_new (stream->s.xine, NULL, stream->s.video_out);
-	  stream->slave_affection = XINE_MASTER_SLAVE_PLAY | XINE_MASTER_SLAVE_STOP;
-          if (xine_open (stream->s.slave, subtitle_mrl)) {
-            xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("subtitle mrl opened '%s'\n"), subtitle_mrl);
-            stream->s.slave->master = &stream->s;
-	    stream->slave_is_subtitle = 1;
-	  } else {
-            xprintf (stream->s.xine, XINE_VERBOSITY_LOG, _("xine: error opening subtitle mrl\n"));
-            xine_dispose (stream->s.slave);
-            stream->s.slave = NULL;
-	  }
-          entry = NULL;
-        }
-	continue;
-      }
-
-      if (value) {
-        /* when we got here, the stream setup parameter must be a config entry */
-        int retval;
-        value[-1] = ':';
-        _x_mrl_unescape ((char *)entry);
-        retval = _x_config_change_opt (stream->s.xine->config, (char *)entry);
-	if (retval <= 0) {
-          value[-1] = 0;
-	  if (retval == 0) {
-            /* the option not found */
-            xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: unknown config option \"%s\", ignoring.\n"), entry);
-	  } else {
-            /* not permitted to change from MRL */
-            xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: changing option '%s' from MRL isn't permitted\n"), entry);
-	  }
-	}
-        entry = NULL;
-      }
+      if (key)
+        xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: no value for \"%s\", ignoring.\n"), key);
     }
-    if (entry)
-      xine_log (stream->s.xine, XINE_LOG_MSG, _("xine: no value for \"%s\", ignoring.\n"), entry);
   }
 
+  _xine_free_args (&_args);
   free (buf);
 
   /* Nasty xine-ui issue:
@@ -3896,4 +4042,3 @@ int _x_keyframes_set (xine_stream_t *s, xine_keyframes_entry_t *list, int size) 
     "keyframes: got %d of them.\n", stream->index.used);
   return 0;
 }
-

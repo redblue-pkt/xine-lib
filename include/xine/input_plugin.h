@@ -398,6 +398,9 @@ struct input_plugin_s {
 /* returns a pts value (1/90000s) to add to all demux media pts, or INPUT_OPTIONAL_UNSUPPORTED == 0.
  * some fragment streams need this to provide a/v sync over multiple side streams. */
 #define INPUT_OPTIONAL_DATA_PTSOFFS   17
+/* data is an int * telling how many seconds to go back into a live stream.
+ * yes this _does_ work sometimes, up to 24h ;-) */
+#define INPUT_OPTIONAL_DATA_REWIND    18
 
 #define MAX_MRL_ENTRIES 255
 #define MAX_PREVIEW_SIZE 4096
