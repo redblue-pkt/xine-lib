@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -72,8 +72,7 @@
 #endif
 
 #define SCRATCH_SIZE 1024
-#define MAX_TARGET_LEN 256
-#define MAX_TARGET_LEN_SUFFIXED (MAX_TARGET_LEN + 16)
+#define MAX_TARGET_LEN 512
 #define SEEK_TIMEOUT 2.5
 
 typedef struct {
@@ -198,7 +197,7 @@ static uint32_t rip_plugin_get_capabilities(input_plugin_t *this_gen) {
   if (this->regular)
     caps |= INPUT_CAP_SEEKABLE;
 
-  if (this->preview) caps |= INPUT_CAP_PREVIEW;
+  if (this->preview) caps |= INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW;
   return caps;
 }
 
@@ -490,14 +489,35 @@ static const char* rip_plugin_get_mrl (input_plugin_t *this_gen) {
 static int rip_plugin_get_optional_data (input_plugin_t *this_gen,
 					  void *data, int data_type) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
+  int r;
 
   lprintf("get optional data\n");
-  if (this->preview && data_type == INPUT_OPTIONAL_DATA_PREVIEW) {
-    memcpy(data, this->preview, this->preview_size);
-    return this->preview_size;
-  } else
-    return this->main_input_plugin->get_optional_data(
-	this->main_input_plugin, data, data_type);
+
+  r = this->main_input_plugin->get_optional_data (this->main_input_plugin, data, data_type);
+  if (r != INPUT_OPTIONAL_UNSUPPORTED)
+    return r;
+
+  switch (data_type) {
+    case INPUT_OPTIONAL_DATA_PREVIEW:
+      if (!this->preview || !data)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      memcpy (data, this->preview, this->preview_size);
+      return this->preview_size;
+
+    case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
+      if (!this->preview || !data)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      memcpy (&r, data, sizeof (r));
+      if (r <= 0)
+        return INPUT_OPTIONAL_UNSUPPORTED;
+      if (r > this->preview_size)
+        r = this->preview_size;
+      memcpy (data, this->preview, r);
+      return r;
+
+    default: ;
+  }
+  return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
 /*
@@ -516,45 +536,16 @@ static void rip_plugin_dispose(input_plugin_t *this_gen) {
 
 
 /*
- * concat name of directory and name of file,
- * returns non-zero, if there was enough space
- */
-static int dir_file_concat(char *target, size_t maxlen, const char *dir, const char *name) {
-  size_t len_name = strlen(name);
-  size_t len_dir = strlen(dir);
-  size_t pos_name = 0;
-
-  /* remove slashes */
-  if (dir[len_dir - 1] == '/') len_dir--;
-  if (name[0] == '/') {
-    pos_name = 1;
-    len_name--;
-  }
-
-  /* test and perform copy */
-  if (len_dir + len_name + 2 > maxlen) {
-    target[0] = '\0';
-    return 0;
-  }
-  if (len_dir) memcpy(target, dir, len_dir);
-  target[len_dir] = '/';
-  strcpy(&target[len_dir + 1], name + pos_name);
-  return 1;
-}
-
-
-/*
  * create self instance,
  * target file for writing stream is specified in 'data'
  */
 input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *filename) {
   rip_input_plugin_t *this;
   input_plugin_t *main_plugin = stream->input_plugin;
-  struct stat pstat;
-  const char *mode;
-  char target[MAX_TARGET_LEN], target_no[MAX_TARGET_LEN_SUFFIXED];
-  char *fnc, *target_basename;
-  int i;
+  FILE *file;
+  size_t nlen, slen1, slen2;
+  char suff1[16], suff2[32], target[4 + MAX_TARGET_LEN + 16 + 32];
+  int ptsoffs, regular, i;
 
   lprintf("catch file = %s, path = %s\n", filename, stream->xine->save_path);
 
@@ -587,51 +578,106 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
     return NULL;
   }
 
-  this = calloc(1, sizeof(rip_input_plugin_t));
-  if (!this)
+  {
+    char *p;
+
+    nlen = strlen (stream->xine->save_path);
+    if (nlen > MAX_TARGET_LEN)
+      return NULL;
+    memcpy (target + 4, stream->xine->save_path, nlen + 1);
+    target[3] = 0;
+    for (p = target + 4 + nlen; p[-1] == '/'; p--) ;
+    if (p == target + 4) {
+      if (*p == '/')
+        p++;
+    } else {
+      *p++ = '/';
+    }
+    nlen = p - target - 4;
+  }
+
+  {
+    const char *fn1, *fn2, *fn3, *fn4;
+
+    fn1 = fn2 = fn3 = fn4 = filename;
+    while (1) {
+      while (*fn4 && (*fn4 != '/'))
+        fn4++;
+      if (fn4 > fn3) {
+        fn1 = fn3;
+        fn2 = fn4;
+      }
+      if (!*fn4)
+        break;
+      fn4++;
+      fn3 = fn4;
+    }
+    slen1 = fn2 - fn1;
+    if (!slen1)
+      return NULL;
+    if (nlen + slen1 > MAX_TARGET_LEN)
+      return NULL;
+    memcpy (target + 4 + nlen, fn1, slen1);
+    nlen += slen1;
+  }
+
+  slen1 = 0;
+  suff1[0] = 0;
+  ptsoffs = main_plugin->get_optional_data (main_plugin, NULL, INPUT_OPTIONAL_DATA_PTSOFFS);
+  if (ptsoffs) {
+    slen2 = sprintf (suff2, ".ptsoffs=%d", ptsoffs);
+  } else {
+    slen2 = 0;
+    suff2[0] = 0;
+  }
+
+  regular = 1;
+  i = 1;
+  while (1) {
+    struct stat pstat;
+    if (slen1)
+      xine_small_memcpy (target + 4 + nlen, suff1, slen1);
+    if (slen2)
+      xine_small_memcpy (target + 4 + nlen + slen1, suff2, slen2);
+    target[4 + nlen + slen1 + slen2] = 0;
+    /* find out kind of target */
+    if (stat (target + 4, &pstat) < 0)
+      break;
+#ifndef _MSC_VER
+    regular = (S_ISFIFO (pstat.st_mode)) ? 0 : 1;
+    if (!regular) {
+      /* we want write into fifos */
+      break;
+    }
+#else
+    /* no fifos under MSVC */
+#endif
+    slen1 = sprintf (suff1, ".%d", i);
+    i++;
+  };
+
+  lprintf ("target file: %s\n", target + 4);
+  file = fopen (target + 4, regular ? "wb+" : "wb");
+  if (!file) {
+    int e = errno;
+    xine_log (stream->xine, XINE_LOG_MSG,
+        _("input_rip: error opening file %s: %s\n"), target + 4, strerror (e));
     return NULL;
+  }
+
+  this = calloc (1, sizeof (rip_input_plugin_t));
+  if (!this) {
+    fclose (file);
+    return NULL;
+  }
 
   this->main_input_plugin = main_plugin;
   this->stream            = stream;
+  this->file              = file;
+
+  this->regular = regular;
   this->curpos  = 0;
   this->savepos = 0;
-
-  fnc = strdup(filename);
-  target_basename = basename(fnc);
-  dir_file_concat(target, MAX_TARGET_LEN, stream->xine->save_path,
-                  target_basename);
-  strcpy(target_no, target);
-
-  i = 1;
-  mode = "wb+";
-  do {
-    /* find out kind of target */
-    if (stat(target_no, &pstat) < 0) break;
-#ifndef _MSC_VER
-    if (S_ISFIFO(pstat.st_mode)) this->regular = 0;
-    else this->regular = 1;
-#else
-    /* no fifos under MSVC */
-    this->regular = 1;
-#endif
-    /* we want write into fifos */
-    if (!this->regular) {
-      mode = "wb";
-      break;
-    }
-
-    snprintf_buf(target_no, "%s.%d", target, i);
-    i++;
-  } while(1);
-  free(fnc);
-  lprintf("target file: %s\n", target_no);
-
-  if ((this->file = fopen(target_no, mode)) == NULL) {
-    xine_log(this->stream->xine, XINE_LOG_MSG,
-	     _("input_rip: error opening file %s: %s\n"), target_no, strerror(errno));
-    free(this);
-    return NULL;
-  }
 
   /* fill preview memory */
   if ( (main_plugin->get_capabilities(main_plugin) & INPUT_CAP_SEEKABLE) == 0) {
@@ -673,11 +719,11 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   this->input_plugin.read                = rip_plugin_read;
   this->input_plugin.read_block          = rip_plugin_read_block;
   this->input_plugin.seek                = rip_plugin_seek;
-  if(this->main_input_plugin->seek_time)
-    this->input_plugin.seek_time         = rip_plugin_seek_time;
+  this->input_plugin.seek_time           = this->main_input_plugin->seek_time
+                                         ? rip_plugin_seek_time : NULL;
   this->input_plugin.get_current_pos     = rip_plugin_get_current_pos;
-  if(this->main_input_plugin->get_current_time)
-    this->input_plugin.get_current_time  = rip_plugin_get_current_time;
+  this->input_plugin.get_current_time    = this->main_input_plugin->get_current_time
+                                         ? rip_plugin_get_current_time : NULL;
   this->input_plugin.get_length          = rip_plugin_get_length;
   this->input_plugin.get_blocksize       = rip_plugin_get_blocksize;
   this->input_plugin.get_mrl             = rip_plugin_get_mrl;
