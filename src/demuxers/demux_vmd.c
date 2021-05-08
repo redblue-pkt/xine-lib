@@ -160,6 +160,8 @@ static int open_vmd_file(demux_vmd_t *this) {
 
   raw_frame_table_size = this->frame_count * BYTES_PER_FRAME_RECORD;
   raw_frame_table = malloc(raw_frame_table_size);
+  if (!raw_frame_table)
+    return 0;
   if (this->input->read(this->input, raw_frame_table, raw_frame_table_size) !=
     raw_frame_table_size) {
     free(raw_frame_table);
@@ -167,6 +169,10 @@ static int open_vmd_file(demux_vmd_t *this) {
   }
 
   this->frame_table = calloc(this->frame_count, sizeof(vmd_frame_t));
+  if (!this->frame_table) {
+    free(raw_frame_table);
+    return 0;
+  }
 
   current_offset = this->data_start = _X_LE_32(&vmd_header[20]);
   this->data_size = toc_offset - this->data_start;
