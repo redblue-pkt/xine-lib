@@ -2435,6 +2435,8 @@ open_plugin (video_decoder_class_t * class_gen, xine_stream_t * stream)
     (vdpau_h264_alter_decoder_t *) calloc (1,
 					   sizeof
 					   (vdpau_h264_alter_decoder_t));
+  if (!this)
+    return NULL;
 
   this->video_decoder.decode_data = vdpau_h264_alter_decode_data;
   this->video_decoder.flush = vdpau_h264_alter_flush;
