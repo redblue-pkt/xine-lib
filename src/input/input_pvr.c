@@ -1007,7 +1007,8 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
         this->input = v4l2_data->input;
 
         /* as of ivtv 0.10.6: must close and reopen to set input */
-        close(this->dev_fd);
+        if (this->dev_fd >= 0)
+          close(this->dev_fd);
         this->dev_fd = xine_open_cloexec(this->devname, O_RDWR);
         if (this->dev_fd < 0) {
           xprintf(this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -1157,7 +1158,8 @@ static void pvr_event_handler (pvr_input_plugin_t *this) {
        pthread_mutex_lock(&this->dev_lock);
 
        /* how lame. we must close and reopen to change bitrate. */
-       close(this->dev_fd);
+       if (this->dev_fd >= 0)
+         close(this->dev_fd);
        this->dev_fd = xine_open_cloexec(this->devname, O_RDWR);
        if (this->dev_fd == -1) {
          pthread_mutex_unlock(&this->dev_lock);
