@@ -215,6 +215,9 @@ sdpplin_t *sdpplin_parse(char *data) {
   int              handled;
   int              len;
 
+  if (!desc)
+    return NULL;
+
   desc->stream = NULL;
 
   while (data && *data) {
