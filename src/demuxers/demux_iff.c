@@ -167,7 +167,7 @@ static int read_iff_chunk(demux_iff_t *this) {
   unsigned char signature[IFF_SIGNATURE_SIZE];
   unsigned char buffer[512];
   unsigned int  keep_on_reading = 1;
-  uint32_t      junk_size;
+  uint32_t      junk_size, junk_type;
 
   while ( keep_on_reading == 1 ) {
     if (this->input->read(this->input, signature, IFF_JUNK_SIZE) == IFF_JUNK_SIZE) {
@@ -182,8 +182,9 @@ static int read_iff_chunk(demux_iff_t *this) {
         if (this->input->read(this->input, &signature[7], 1) != 1)
           return 0;
       }
+      junk_type = _X_BE_32(&signature[0]);
       junk_size = _X_BE_32(&signature[4]);
-      switch( _X_BE_32(&signature[0]) ) {
+      switch (junk_type) {
         case IFF_CMAP_CHUNK:
         case IFF_BODY_CHUNK:
         case IFF_DLTA_CHUNK:
@@ -201,7 +202,7 @@ static int read_iff_chunk(demux_iff_t *this) {
           break;
       }
 
-      switch( _X_BE_32(&signature[0]) ) {
+      switch (junk_type) {
         case IFF_FORM_CHUNK:
           if (this->input->read(this->input, buffer, 4) != 4)
             return 0;
