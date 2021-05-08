@@ -293,6 +293,7 @@ void rmff_dump_pheader(rmff_pheader_t *h, uint8_t *data) {
   data[11]=h->flags;
 }
 
+#if 0
 static rmff_fileheader_t *rmff_scan_fileheader(const char *data) {
 
   rmff_fileheader_t *fileheader = malloc(sizeof(rmff_fileheader_t));
@@ -309,7 +310,8 @@ static rmff_fileheader_t *rmff_scan_fileheader(const char *data) {
 
   return fileheader;
 }
-
+#endif
+#if 0
 static rmff_prop_t *rmff_scan_prop(const char *data) {
 
   rmff_prop_t *prop = malloc(sizeof(rmff_prop_t));
@@ -335,7 +337,8 @@ static rmff_prop_t *rmff_scan_prop(const char *data) {
 
   return prop;
 }
-
+#endif
+#if 0
 static rmff_mdpr_t *rmff_scan_mdpr(const char *data)
 {
   rmff_mdpr_t *mdpr = calloc(sizeof(rmff_mdpr_t), 1);
@@ -391,7 +394,9 @@ fail:
   free (mdpr);
   return NULL;
 }
+#endif
 
+#if 0
 static rmff_cont_t *rmff_scan_cont(const char *data) {
 
   rmff_cont_t *cont = malloc(sizeof(rmff_cont_t));
@@ -419,7 +424,9 @@ static rmff_cont_t *rmff_scan_cont(const char *data) {
 
   return cont;
 }
+#endif
 
+#if 0
 static rmff_data_t *rmff_scan_dataheader(const char *data) {
 
   rmff_data_t *dh = malloc(sizeof(rmff_data_t));
@@ -436,7 +443,9 @@ static rmff_data_t *rmff_scan_dataheader(const char *data) {
 
   return dh;
 }
+#endif
 
+#if 0
 rmff_header_t *rmff_scan_header(const char *data) {
 
 	rmff_header_t *header = malloc(sizeof(rmff_header_t));
@@ -509,6 +518,7 @@ rmff_header_t *rmff_scan_header(const char *data) {
 
 	return header;
 }
+#endif
 
 #if 0
 rmff_header_t *rmff_scan_header_stream(int fd) {
