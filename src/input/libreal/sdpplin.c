@@ -210,13 +210,20 @@ static sdpplin_stream_t *XINE_MALLOC sdpplin_parse_stream(char **data) {
 
 sdpplin_t *sdpplin_parse(char *data) {
 
-  sdpplin_t        *desc = calloc(1, sizeof(sdpplin_t));
-  char             *buf=xine_buffer_init(32);
+  sdpplin_t        *desc;
+  char             *buf;
   int              handled;
   int              len;
 
+  desc = calloc(1, sizeof(sdpplin_t));
   if (!desc)
     return NULL;
+
+  buf = xine_buffer_init(32);
+  if (!buf) {
+    free(desc);
+    return NULL;
+  }
 
   desc->stream = NULL;
 
