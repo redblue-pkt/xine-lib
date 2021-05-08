@@ -72,7 +72,7 @@ typedef struct {
   int              sync_state;
   int              ac5_length, ac5_pcm_length, frame_todo;
   uint32_t         syncdword;
-  uint8_t          frame_buffer[MAX_AC5_FRAME];
+  uint8_t          frame_buffer[MAX_AC5_FRAME + 1];
   uint8_t         *frame_ptr;
 
   int              output_open;
