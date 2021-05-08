@@ -962,7 +962,8 @@ vcd_class_get_dir (input_class_t *this_gen, const char *filename,
   bool used_default;
 
   if (!class->ip) {
-    if (!this_gen->get_instance (this_gen, NULL, MRL_PREFIX)) {
+    if (!this_gen->get_instance (this_gen, NULL, MRL_PREFIX) ||
+        !class->ip) {
       *num_files = 0;
       return NULL;
     }
@@ -1101,6 +1102,9 @@ static bool vcd_handle_events (vcd_input_plugin_t *this) {
      the 10_ADD keypresses */
   static unsigned int number_addend = 0;
 
+  if (!this->event_queue)
+    return false;
+
   while ((p_event = xine_event_get (this->event_queue))) {
 
     dbg_print (this->class,  (INPUT_DBG_CALL), "processing %d\n", p_event->type );
@@ -1162,6 +1166,7 @@ static bool vcd_handle_events (vcd_input_plugin_t *this) {
     case XINE_EVENT_INPUT_MENU2:
     case XINE_EVENT_INPUT_NEXT:
     case XINE_EVENT_INPUT_PREVIOUS:
+      if (this->stream)
       {
         int num = number_addend;
         vcdinfo_itemid_t itemid;
@@ -1235,9 +1240,10 @@ static bool vcd_handle_events (vcd_input_plugin_t *this) {
           vcdplayer_play(p_vcdplayer, itemid);
           return true;
         }
-        break;
       }
+      break;
     case XINE_EVENT_INPUT_SELECT:
+      if (this->stream)
       {
         /* In the future will have to test to see if we are in a menu
            selection. But if not... */
@@ -1257,8 +1263,8 @@ static bool vcd_handle_events (vcd_input_plugin_t *this) {
             return true;
           }
         }
-        break;
       }
+      break;
     case XINE_EVENT_INPUT_MOUSE_BUTTON:
       if (this->stream)
       {
@@ -1442,7 +1448,8 @@ vcd_class_get_autoplay_list (input_class_t *this_gen, int *num_files)
   dbg_print (class, (INPUT_DBG_CALL|INPUT_DBG_EXT), "called\n");
 
   if (!class->ip) {
-    if (!this_gen->get_instance (this_gen, NULL, MRL_PREFIX)) {
+    if (!this_gen->get_instance (this_gen, NULL, MRL_PREFIX) ||
+        !class->ip) {
       *num_files = 0;
       return NULL;
     }
