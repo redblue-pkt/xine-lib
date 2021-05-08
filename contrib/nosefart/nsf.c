@@ -574,9 +574,13 @@ static int nfs_length_file(struct nsf_loader_t *loader)
   struct nsf_file_loader_t * floader = (struct nsf_file_loader_t *)loader;
   long save, pos;
   save = ftell(floader->fp);
-  fseek(floader->fp, 0, SEEK_END);
+  if (save < 0)
+    return 0;
+  if (fseek(floader->fp, 0, SEEK_END) < 0)
+    return 0;
   pos = ftell(floader->fp);
-  fseek(floader->fp, save, SEEK_SET);
+  if (fseek(floader->fp, save, SEEK_SET) < 0)
+    return 0;
   return pos;
 }
 
