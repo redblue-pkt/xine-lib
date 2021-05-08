@@ -79,6 +79,8 @@ static void convolve_init(VisualFX *_this, PluginInfo *info) {
   ConvData *data;
   data = (ConvData*)calloc(1, sizeof(ConvData));
   _this->fx_data = (void*)data;
+  if (!data)
+    return;
 
   data->light = secure_f_param("Screen Brightness");
   data->light.param.fval.max = 300.0f;
@@ -299,6 +301,11 @@ static void convolve_apply(VisualFX *_this, Pixel *src, Pixel *dest, PluginInfo 
   float ff;
   int iff;
   
+  if (!data) {
+    memcpy(dest, src, info->screen.size * sizeof(Pixel));
+    return;
+  }
+
   ff = (FVAL(data->factor_p) * FVAL(data->factor_adj_p) + FVAL(data->light) ) / 100.0f;
   iff = (unsigned int)(ff * 256);
 
