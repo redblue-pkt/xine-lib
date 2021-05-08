@@ -2366,8 +2366,6 @@ vdpau_h264_alter_dispose (video_decoder_t * this_gen)
   reset_sequence (&this->sequence);
 
   int i;
-  for (i = 0; i < MAX_DPB_SIZE; i++)
-    free (this->sequence.dpb[i]);
   for (i = 0; i < 32; i++)
     if (this->sequence.seq_param[i])
       free (this->sequence.seq_param[i]);
@@ -2448,7 +2446,7 @@ open_plugin (video_decoder_class_t * class_gen, xine_stream_t * stream)
 
   int i;
   for (i = 0; i < 16; i++)
-    this->sequence.dpb[i] = (dpb_frame_t *) calloc (1, sizeof (dpb_frame_t));
+    this->sequence.dpb[i] = &this->sequence.dpb_storage[i];
   this->sequence.bufsize = MIN_BUFFER_SIZE;
   this->sequence.buf = (uint8_t *) malloc (this->sequence.bufsize);
   this->sequence.vdp_runtime_nr = runtime_nr;

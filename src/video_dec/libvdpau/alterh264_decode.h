@@ -272,6 +272,8 @@ typedef struct
 
   int color_matrix;
 
+  /* storage */
+  dpb_frame_t dpb_storage[16];
 } sequence_t;
 
 
