@@ -79,8 +79,6 @@ typedef struct _PARAM {
 #define IMAX(p) ((p).param.ival.max)
 #define ISTEP(p) ((p).param.ival.step)
 
-PluginParam goom_secure_param(void);
-
 PluginParam goom_secure_f_param(const char *name);
 PluginParam goom_secure_i_param(const char *name);
 PluginParam goom_secure_b_param(const char *name, int value);
@@ -101,7 +99,6 @@ typedef struct _PARAMETERS {
 
 PluginParameters goom_plugin_parameters(const char *name, int nb);
 
-#define secure_param goom_secure_param
 #define secure_f_param goom_secure_f_param
 #define secure_i_param goom_secure_i_param
 #define secure_b_param goom_secure_b_param
