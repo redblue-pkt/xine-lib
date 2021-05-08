@@ -324,7 +324,7 @@ static void upmix_port_put_buffer (xine_audio_port_t *port_gen,
       data8src+=num_frames_processed*src_step_frame;
       data8dst=(int8_t*)this->buf->mem;
       pthread_mutex_lock (&this->lock);
-      if ((this->sub) && (this->sub->fc != this->params.cut_off_freq)) {
+      if (this->sub->fc != this->params.cut_off_freq) {
         this->sub->fc = this->params.cut_off_freq;    /* LFE Cutoff frequency 100Hz */
         this->sub->k = 1.0;
         if((-1 == szxform(s_param[0].a, s_param[0].b, Q, this->sub->fc,
