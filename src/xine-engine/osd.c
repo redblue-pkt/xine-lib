@@ -915,7 +915,7 @@ static int osd_renderer_load_font (osd_renderer_t *this, const char *filename) {
     lprintf ("font '%s' chars=%d\n", font->name, font->num_fontchars);
 
     /* estimate total uncompressed size, and load entire rest. */
-    dsize = font->num_fontchars * font->size * font->size;
+    dsize = (size_t)font->num_fontchars * font->size * font->size;
     font->data = malloc (dsize);
     if (!font->data)
       break;
