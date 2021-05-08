@@ -735,6 +735,8 @@ static ao_driver_t *open_jack_plugin (audio_driver_class_t *class_gen,
   }
 
   this = calloc(1, sizeof (jack_driver_t));
+  if (!this)
+    goto err_out;
 
   rate = jack_get_sample_rate (client);
   xprintf (class->xine, XINE_VERBOSITY_DEBUG,

@@ -76,6 +76,8 @@ dxr3_scr_t *dxr3_scr_init(xine_t *xine)
   char tmpstr[128];
 
   this = calloc(1, sizeof(dxr3_scr_t));
+  if (!this)
+    return NULL;
 
   devnum = xine->config->register_num(xine->config,
     CONF_KEY, 0, CONF_NAME, CONF_HELP, 10, NULL, NULL);
