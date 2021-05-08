@@ -3326,6 +3326,7 @@ static qt_error open_qt_file (demux_qt_t *this, uint8_t *moov_atom, off_t moov_a
       z_stream z_state;
       int      z_ret_code1, z_ret_code2;
       this->qt.last_error  = QT_ZLIB_ERROR;
+      memset(&z_state, 0, sizeof(z_state));
       z_state.next_in   = moov_atom + 0x28;
       z_state.avail_in  = moov_atom_size - 0x28;
       z_state.next_out  = unzip_buffer;

@@ -1166,6 +1166,7 @@ static int uncompress_zlib(demux_matroska_t *this,
 
     *out_data = NULL;
 
+    memset(&zstream, 0, sizeof(zstream));
     zstream.zalloc = (alloc_func) 0;
     zstream.zfree = (free_func) 0;
     zstream.opaque = (voidpf) 0;
