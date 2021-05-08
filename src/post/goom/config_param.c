@@ -21,7 +21,7 @@ static void empty_fct(PluginParam *dummy) {
   (void)dummy;
 }
 
-PluginParam goom_secure_param() {
+static PluginParam secure_param() {
   PluginParam p;
   p.changed = empty_fct;
   p.change_listener = empty_fct;
