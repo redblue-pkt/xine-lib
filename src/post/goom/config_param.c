@@ -22,13 +22,15 @@ static void empty_fct(PluginParam *dummy) {
 }
 
 static PluginParam secure_param() {
-  PluginParam p;
-  p.changed = empty_fct;
-  p.change_listener = empty_fct;
-  p.user_data = 0;
-  p.name = p.desc = 0;
-  p.rw = 1;
-  p.type = 0;
+  PluginParam p = {
+    .changed = empty_fct,
+    .change_listener = empty_fct,
+    .user_data = 0,
+    .name = 0,
+    .desc = 0,
+    .rw = 1,
+    .type = 0,
+  };
   return p;
 }
 
