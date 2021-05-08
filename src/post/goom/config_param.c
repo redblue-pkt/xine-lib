@@ -28,6 +28,7 @@ static PluginParam secure_param() {
   p.user_data = 0;
   p.name = p.desc = 0;
   p.rw = 1;
+  p.type = 0;
   return p;
 }
 
