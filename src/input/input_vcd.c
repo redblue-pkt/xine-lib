@@ -943,7 +943,7 @@ static void vcd_filelist_dispose(vcd_input_class_t *this) {
     free(*(entry++));
   }
 
-  free(this->filelist);
+  _x_freep(&this->filelist);
 }
 
 static void vcd_class_dispose (input_class_t *this_gen) {
@@ -1051,6 +1051,8 @@ static const char * const * vcd_class_get_autoplay_list (input_class_t *this_gen
 
   vcd_filelist_dispose(this);
   this->filelist = calloc(this->total_tracks+1, sizeof(char*));
+  if (!this->filelist)
+    return NULL;
 
   /* FIXME: check if track 0 contains valid data */
   for (i = 1; i < this->total_tracks; i++)

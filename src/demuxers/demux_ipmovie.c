@@ -430,8 +430,9 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
           this->frame_pts_inc);
 
         /* load the decode map into the staging area */
-        if (this->input->read(this->input, this->decode_map,
-          this->decode_map_size) != this->decode_map_size)
+        if (!this->decode_map ||
+            this->input->read(this->input, this->decode_map,
+                              this->decode_map_size) != this->decode_map_size)
           this->status = DEMUX_FINISHED;
         break;
 
@@ -457,7 +458,7 @@ static int process_ipmovie_chunk(demux_ipmovie_t *this) {
 
         /* send the decode map first */
         decode_map_index = 0;
-        decode_map_size_countdown = this->decode_map_size;
+        decode_map_size_countdown = this->decode_map ? this->decode_map_size : 0;
         while (decode_map_size_countdown) {
           buf = this->video_fifo->buffer_pool_alloc (this->video_fifo);
           buf->type = BUF_VIDEO_INTERPLAY;
