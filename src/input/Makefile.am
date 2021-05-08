@@ -218,7 +218,7 @@ xineplug_inp_vcd_la_DEPENDENCIES = $(LIBCDIO_DEPS) $(LIBVCD_DEPS) $(LIBVCDINFO_D
 xineplug_inp_vcd_la_CFLAGS  = $(AM_CFLAGS) $(LIBCDIO_CFLAGS) $(LIBVCD_CFLAGS)
 
 xineplug_inp_vcdo_la_SOURCES = input_vcd.c
-xineplug_inp_vcdo_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) media_helper.la
+xineplug_inp_vcdo_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) media_helper.la input_helper.la
 
 xineplug_inp_stdin_fifo_la_SOURCES = input_stdin_fifo.c
 xineplug_inp_stdin_fifo_la_LIBADD = $(XINE_LIB) $(LTLIBINTL) input_helper.la
