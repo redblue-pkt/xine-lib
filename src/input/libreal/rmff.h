@@ -223,12 +223,12 @@ rmff_cont_t *rmff_new_cont(
 rmff_data_t *rmff_new_dataheader(
     uint32_t num_packets, uint32_t next_data_header);
 
+#if 0
 /*
  * reads header infos from data and returns a newly allocated header struct
  */
 rmff_header_t *rmff_scan_header(const char *data) XINE_MALLOC;
 
-#if 0
 /*
  * scans a data packet header. Notice, that this function does not allocate
  * the header struct itself.
