@@ -50,6 +50,7 @@
 #include <xine/xineutils.h>
 #include <xine/input_plugin.h>
 #include "media_helper.h"
+#include "input_helper.h"
 
 #if defined(__sun)
 #define	CDROM	       "/vol/dev/aliases/cdrom0"
@@ -89,7 +90,6 @@ typedef struct {
 
   char                 **filelist;
 
-  int                    mrls_allocated_entries;
   xine_mrl_t           **mrls;
 
 #if defined (__linux__) || defined(__sun)
@@ -955,12 +955,7 @@ static void vcd_class_dispose (input_class_t *this_gen) {
 
   vcd_filelist_dispose(this);
 
-  while (this->mrls_allocated_entries) {
-    this->mrls_allocated_entries--;
-    MRL_ZERO(this->mrls[this->mrls_allocated_entries]);
-    _x_freep(&this->mrls[this->mrls_allocated_entries]);
-  }
-  _x_freep(&this->mrls);
+  _x_input_free_mrls(&this->mrls);
 
   free (this);
 }
@@ -979,6 +974,7 @@ static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *file
   int i, fd;
 
   *num_files = 0;
+  _x_input_free_mrls(&this->mrls);
 
   if (filename)
     return NULL;
@@ -1004,38 +1000,23 @@ static xine_mrl_t **vcd_class_get_dir (input_class_t *this_gen, const char *file
   close (fd);
   fd = -1;
 
+  if (this->total_tracks < 2)
+    return NULL;
+
+  this->mrls = _x_input_alloc_mrls(this->total_tracks - 1);
+  if (!this->mrls)
+    return NULL;
+
   *num_files = this->total_tracks - 1;
   /* printf ("%d tracks\n", this->total_tracks); */
 
   for (i=1; i<this->total_tracks; i++) { /* FIXME: check if track 0 contains valid data */
-    if((i-1) >= this->mrls_allocated_entries) {
-      ++this->mrls_allocated_entries;
-      /* note: 1 extra pointer for terminating NULL */
-      this->mrls = realloc(this->mrls, (this->mrls_allocated_entries+1) * sizeof(xine_mrl_t*));
-      this->mrls[(i-1)] = calloc(1, sizeof(xine_mrl_t));
-    }
-    else {
-      MRL_ZERO(this->mrls[(i-1)]);
-    }
-
     this->mrls[i-1]->mrl  = _x_asprintf("vcdo:/%d", i);
     this->mrls[i-1]->type = mrl_vcd;
 
     /* hack */
     this->mrls[i-1]->size = vcd_plugin_get_length ((input_plugin_t *) this);
   }
-
-
-  /*
-   * Freeing exceeded mrls if exists.
-   */
-  while(this->mrls_allocated_entries > *num_files) {
-    this->mrls_allocated_entries--;
-    MRL_ZERO(this->mrls[this->mrls_allocated_entries]);
-    _x_freep(&this->mrls[this->mrls_allocated_entries]);
-  }
-
-  this->mrls[*num_files] = NULL;
 
   return this->mrls;
 }
@@ -1105,9 +1086,6 @@ static void *init_class (xine_t *xine, const void *data) {
 					  _("The path to the device, usually a CD or DVD drive, "
 					    "you intend to play your VideoCDs with."),
 					  10, device_change_cb, (void *)this);
-
-  this->mrls = calloc(1, sizeof(xine_mrl_t*));
-  this->mrls_allocated_entries = 0;
 
   return this;
 }
