@@ -331,6 +331,10 @@ static demux_plugin_t *open_plugin (demux_class_t *const class_gen,
 				    xine_stream_t *const stream,
 				    input_plugin_t *const input) {
   demux_wv_t *const this = calloc(1, sizeof (demux_wv_t));
+
+  if (!this)
+    return NULL;
+
   this->stream = stream;
   this->input = input;
 
