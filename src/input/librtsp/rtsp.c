@@ -447,6 +447,9 @@ rtsp_t *rtsp_connect(xine_stream_t *stream, const char *mrl, const char *user_ag
   int hostend, i;
   size_t pathbegin;
 
+  if (!s)
+    return NULL;
+
   if (strncmp(mrl,"rtsp://",7))
   {
     xprintf(stream->xine, XINE_VERBOSITY_LOG, _("rtsp: bad mrl: %s\n"), mrl);
