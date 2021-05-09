@@ -38,10 +38,10 @@ extern void _my_free(void **data, char *file, int line);
 #else /* Non-debugging versions of calls */
 
 #define  malloc(s)   _my_malloc((s))
-#define  free(d)     _my_free((void **) &(d))
+#define  free(d)     do { _my_free(d); (d) = NULL; } while (0)
 
 extern void *_my_malloc(int size);
-extern void _my_free(void **data);
+extern void _my_free(void *data);
 
 #endif /* NOFRENDO_DEBUG */
 

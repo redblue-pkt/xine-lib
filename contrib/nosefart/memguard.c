@@ -278,9 +278,6 @@ void *_my_malloc(int size)
 /* free a pointer allocated with my_malloc */
 #ifdef NOFRENDO_DEBUG
 void _my_free(void **data, char *file, int line)
-#else
-void _my_free(void **data)
-#endif
 {
    char fail[256];
 
@@ -316,6 +313,16 @@ void _my_free(void **data)
 
    *data = NULL; /* NULL our source */
 }
+#else
+void _my_free(void *data)
+{
+   if (NULL == data || ((uintptr_t)-1) == (uintptr_t) data) {
+      ASSERT_MSG("free: attempted to free NULL pointer.\n");
+   }
+
+   free(data);
+}
+#endif
 
 /* check for orphaned memory handles */
 void mem_checkleaks(void)
