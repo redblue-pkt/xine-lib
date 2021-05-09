@@ -27,9 +27,12 @@
 #ifndef _MMX_H
 #define _MMX_H
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
+# if defined(HAVE_CONFIG_H) && !defined(__XINE_LIB_CONFIG_H__)
+#  error config.h not included in source file !
+# endif
+//#ifdef HAVE_CONFIG_H
+//# include "config.h"
+//#endif
 
 #include <xine/attributes.h>
 
