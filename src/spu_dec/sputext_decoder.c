@@ -1127,14 +1127,7 @@ static spu_decoder_t *sputext_class_open_plugin (spu_decoder_class_t *class_gen,
 static void sputext_class_dispose (spu_decoder_class_t *class_gen) {
   sputext_class_t *this = (sputext_class_t *)class_gen;
 
-  this->xine->config->unregister_callback(this->xine->config,
-					  "subtitles.separate.src_encoding");
-  this->xine->config->unregister_callback(this->xine->config,
-					  "subtitles.separate.subtitle_size");
-  this->xine->config->unregister_callback(this->xine->config,
-					  "subtitles.separate.vertical_offset");
-  this->xine->config->unregister_callback(this->xine->config,
-					  "subtitles.separate.use_unscaled_osd");
+  this->xine->config->unregister_callbacks (this->xine->config, NULL, NULL, this, sizeof (*this));
 
   pthread_mutex_destroy(&this->font_name_mutex);
   _x_freep(&this->font);
