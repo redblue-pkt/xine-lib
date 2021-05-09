@@ -232,6 +232,12 @@ static void spudec_set_button (spu_decoder_t *this_gen, int32_t button, int32_t 
   video_overlay_event_t *overlay_event = calloc(1, sizeof(video_overlay_event_t));
   vo_overlay_t        *overlay = calloc(1, sizeof(vo_overlay_t));
 
+  if (!overlay || !overlay_event) {
+    free(overlay_event);
+    free(overlay);
+    return;
+  }
+
   /* FIXME: Watch out for threads. We should really put a lock on this
    * because events is a different thread than decode_data */
 
