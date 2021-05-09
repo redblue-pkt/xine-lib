@@ -372,6 +372,7 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
                                           xine_video_port_t **video_target)
 {
   post_mosaico_t       *this = calloc(1, sizeof(post_mosaico_t));
+  mosaico_pip_t        *pip;
   post_in_t            *input;
   post_out_t           *output;
   post_video_port_t    *port;
@@ -399,9 +400,15 @@ static post_plugin_t *mosaico_open_plugin(post_class_t *class_gen, int inputs,
     return NULL;
   }
 
+  pip = calloc((inputs - 1), sizeof(mosaico_pip_t));
+  if (!pip) {
+    free(this);
+    return NULL;
+  }
+
   _x_post_init(&this->post, 0, inputs);
 
-  this->pip       = (mosaico_pip_t *)calloc((inputs - 1), sizeof(mosaico_pip_t));
+  this->pip       = pip;
   this->pip_count = inputs - 1;
 
   pthread_cond_init(&this->vpts_limit_changed, NULL);
