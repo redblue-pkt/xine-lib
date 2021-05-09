@@ -1126,9 +1126,6 @@ static int mpd_input_open (input_plugin_t *this_gen) {
   mpd_input_class_t  *cls  = (mpd_input_class_t *)this->input_plugin.input_class;
   int n;
 
-  if (!this)
-    return 0;
-
   if (!this->side_index) {
     uint32_t u;
     if (!mpd_input_load_manifest (this))
