@@ -26,8 +26,6 @@
 
 #include "planar.h"
 
-#include <config.h>
-
 #include <xine/xine_internal.h>
 #include <xine/post.h>
 #include <xine/xineutils.h>
