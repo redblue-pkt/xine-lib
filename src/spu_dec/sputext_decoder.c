@@ -249,10 +249,12 @@ static void update_output_size (sputext_decoder_t *this) {
 
   /* initialize decoder if needed */
   if( this->unscaled ) {
-    if( this->width != this->stream->video_out->get_property(this->stream->video_out,
-                                                             VO_PROP_WINDOW_WIDTH) ||
-        this->height != this->stream->video_out->get_property(this->stream->video_out,
-                                                             VO_PROP_WINDOW_HEIGHT) ||
+    int win_width = this->stream->video_out->get_property(this->stream->video_out,
+                                                          VO_PROP_WINDOW_WIDTH);
+    int win_height = this->stream->video_out->get_property(this->stream->video_out,
+                                                           VO_PROP_WINDOW_HEIGHT);
+
+    if( this->width != win_width || this->height != win_height ||
         !this->img_duration || !this->osd ) {
 
       int width = 0, height = 0;
@@ -261,10 +263,8 @@ static void update_output_size (sputext_decoder_t *this) {
                                       &width, &height, &this->img_duration );
       if( width && height ) {
 
-        this->width = this->stream->video_out->get_property(this->stream->video_out,
-                                                             VO_PROP_WINDOW_WIDTH);
-        this->height = this->stream->video_out->get_property(this->stream->video_out,
-                                                             VO_PROP_WINDOW_HEIGHT);
+        this->width = win_width;
+        this->height = win_height;
 
         if(!this->osd || (this->width && this->height)) {
 
