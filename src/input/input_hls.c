@@ -954,7 +954,7 @@ static int hls_input_get_optional_data (input_plugin_t *this_gen, void *data, in
         if (s > MAX_PREVIEW_SIZE)
           s = MAX_PREVIEW_SIZE;
         if (!s) {
-          if (!this->in1)
+          if (this->in1)
             return this->in1->get_optional_data (this->in1, data, data_type);
           else
             return INPUT_OPTIONAL_UNSUPPORTED;
@@ -974,7 +974,7 @@ static int hls_input_get_optional_data (input_plugin_t *this_gen, void *data, in
         if (s > (int)this->prev_size1)
           s = this->prev_size1;
         if (!s) {
-          if (!this->in1)
+          if (this->in1)
             return this->in1->get_optional_data (this->in1, data, data_type);
           else
             return INPUT_OPTIONAL_UNSUPPORTED;
