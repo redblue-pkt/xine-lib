@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -208,7 +208,7 @@ typedef struct {
     pthread_mutex_t    intr_mutex;         /* protects num_driver_actions */
     pthread_cond_t     intr_wake;          /* informs about num_driver_actions-- */
     ao_driver_t       *d;
-    uint32_t           open;
+    uint32_t           open;                /* 0 (closed), 1 (known idle), 2 (open) */
     int                intr_num;           /* number of threads, that wish to call
                                             * functions needing driver_lock */
     int                dreqs_all;          /* statistics */
@@ -282,6 +282,8 @@ typedef struct {
     int              num_buffers;
     int              num_waiters;
     uint32_t         pts_fill;
+    uint32_t         pts_last_buf;
+    uint32_t         pts_in_driver;
     int              seek_count1;
     struct timespec  wake_time;            /* time to drop next buf in trick play mode without sound */
     int              use_wake_time;        /* 0 (play), 1 (wake_time or event), 2 (event) */
@@ -339,6 +341,7 @@ typedef struct {
 
   int             last_gap;
   int             last_sgap;
+  uint32_t        pts_in_driver;
 
   /* If driver cannot pause while keeping its own buffers alive,
    * resend some frames at unpause time instead of filling a big gap with silence. */
@@ -416,6 +419,7 @@ static void ao_flush_driver (aos_t *this) {
     return;
   ao_driver_lock (this);
   if (this->driver.open) {
+    this->driver.open = 1;
     if (this->driver.d->delay (this->driver.d) > 0) {
       this->driver.d->control (this->driver.d, AO_CTRL_FLUSH_BUFFERS, NULL);
       ao_driver_unlock (this);
@@ -625,7 +629,9 @@ static void ao_out_fifo_open (aos_t *this) {
   this->out_fifo.first             = NULL;
   this->out_fifo.num_buffers       = 0;
   this->out_fifo.num_waiters       = 0;
+  this->out_fifo.pts_last_buf      = 0;
   this->out_fifo.pts_fill          = 0;
+  this->out_fifo.pts_in_driver     = 0;
   this->out_fifo.wake_time.tv_sec  = 0;
   this->out_fifo.wake_time.tv_nsec = 0;
   this->out_fifo.use_wake_time     = 0;
@@ -660,7 +666,9 @@ static void ao_out_fifo_close (aos_t *this) {
   this->out_fifo.add               = &this->out_fifo.first;
   this->out_fifo.num_buffers       = 0;
   this->out_fifo.num_waiters       = 0;
+  this->out_fifo.pts_last_buf      = 0;
   this->out_fifo.pts_fill          = 0;
+  this->out_fifo.pts_in_driver     = 0;
   this->out_fifo.wake_time.rv_sec  = 0;
   this->out_fifo.wake_time.tv_nsec = 0;
   this->out_fifo.use_wake_time     = 0;
@@ -765,6 +773,8 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
   int dry = 0;
 
   pthread_mutex_lock (&this->out_fifo.mutex);
+  /* this is 1 buf late, make it consistent at least. */
+  this->out_fifo.pts_in_driver = this->pts_in_driver + this->out_fifo.pts_last_buf;
   while (1) {
 
     if (this->out_fifo.seek_count1 >= 0) {
@@ -823,6 +833,7 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
     }
 
     if (!buf) {
+      this->out_fifo.pts_last_buf = 0;
       buf = this->out_fifo.first;
       if (buf) {
         this->out_fifo.first = buf->next;
@@ -834,8 +845,10 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
           this->out_fifo.num_buffers = 0;
           dry = 1;
         }
-        if (buf->format.rate)
-          this->out_fifo.pts_fill -= (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
+        if (buf->format.rate) {
+          this->out_fifo.pts_last_buf = (uint32_t)90000 * (uint32_t)buf->num_frames / buf->format.rate;
+          this->out_fifo.pts_fill -= this->out_fifo.pts_last_buf;
+        }
       }
     }
     if (buf && !this->out_fifo.use_wake_time)
@@ -845,17 +858,16 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
       break;
 
     /* no more bufs for now... */
-    if (!this->out_fifo.use_wake_time && this->driver.open) {
-      int n;
-      xine_rwlock_rdlock (&this->streams_lock);
-      n = this->num_null_streams + this->num_anon_streams + this->num_streams;
-      xine_rwlock_unlock (&this->streams_lock);
-      if (!n) {
-        /* ...and no users. When driver runs idle as well, close it. */
-        pthread_mutex_lock (&this->driver.mutex);
-        n = this->driver.d->delay (this->driver.d);
+    if (!this->out_fifo.use_wake_time) {
+      pthread_mutex_lock (&this->driver.mutex);
+      if ((this->driver.open > 1) && (this->driver.speed > 0)) {
+        int s = this->driver.speed;
+        int n = this->driver.d->delay (this->driver.d);
+        /* ...wait for driver idle or new buf, speed change, ... */
         pthread_mutex_unlock (&this->driver.mutex);
         n = (n > 0) && this->output.rate ? (uint32_t)n * 1000u / this->output.rate : 0;
+        this->out_fifo.pts_in_driver = n * 90u;
+        n = xine_uint_mul_div (n, XINE_FINE_SPEED_NORMAL, s);
         if (n > 0) {
           struct timespec ts = {0, 0};
           xine_gettime (&ts);
@@ -871,16 +883,34 @@ static audio_buffer_t *ao_out_fifo_get (aos_t *this, audio_buffer_t *buf) {
         } else {
           n = ETIMEDOUT;
         }
+        /* timeout? */
         if (n == ETIMEDOUT) {
-          xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: driver idle, closing.\n");
-          pthread_mutex_lock (&this->driver.mutex);
-          this->driver.d->close (this->driver.d);
-          this->driver.open = 0;
-          pthread_mutex_unlock (&this->driver.mutex);
-          /* unref streams as well. */
-          ao_force_unref_all (this, 0);
+          xine_rwlock_rdlock (&this->streams_lock);
+          n = this->num_null_streams + this->num_anon_streams + this->num_streams;
+          xine_rwlock_unlock (&this->streams_lock);
+          this->out_fifo.pts_last_buf = 0;
+          this->out_fifo.pts_in_driver = this->pts_in_driver = 0;
+          if (!n) {
+            /* no users -> close driver. */
+            xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: driver idle, closing.\n");
+            pthread_mutex_lock (&this->driver.mutex);
+            this->driver.d->close (this->driver.d);
+            this->driver.open = 0;
+            pthread_mutex_unlock (&this->driver.mutex);
+            /* unref streams as well. */
+            ao_force_unref_all (this, 0);
+          } else {
+            /* stream still there, eg DVB signal loss. */
+            xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "audio_out: driver idle.\n");
+            /* avoid infinite loop */
+            pthread_mutex_lock (&this->driver.mutex);
+            this->driver.open = 1;
+            pthread_mutex_unlock (&this->driver.mutex);
+          }
         }
         continue;
+      } else {
+        pthread_mutex_unlock (&this->driver.mutex);
       }
     }
 
@@ -981,6 +1011,7 @@ static void ao_out_fifo_manual_flush (aos_t *this) {
     this->out_fifo.first = NULL;
     this->out_fifo.add = &this->out_fifo.first;
     this->out_fifo.num_buffers = 0;
+    this->out_fifo.pts_last_buf = 0;
     this->out_fifo.pts_fill = 0;
     pthread_mutex_lock (&this->free_fifo.mutex);
     this->free_fifo.num_buffers = n + (this->free_fifo.first ? this->free_fifo.num_buffers : 0);
@@ -1095,8 +1126,10 @@ static int ao_fill_gap (aos_t *this, int64_t pts_len) {
     while (num_frames > 1536) {
       if (ao_driver_test_intr_2 (this))
         return 1;
-      if (this->driver.open)
+      if (this->driver.open) {
         this->driver.d->write (this->driver.d, this->zero_space, 1536);
+        this->driver.open = 2;
+      }
       num_frames -= 1536;
     }
 
@@ -1108,15 +1141,19 @@ static int ao_fill_gap (aos_t *this, int64_t pts_len) {
     while ((num_frames >= max_frames) && !this->out_fifo.discard_buffers) {
       if (ao_driver_test_intr_2 (this))
         return 1;
-      if (this->driver.open)
+      if (this->driver.open) {
         this->driver.d->write (this->driver.d, this->zero_space, max_frames);
+        this->driver.open = 2;
+      }
       num_frames -= max_frames;
     }
     if (num_frames && !this->out_fifo.discard_buffers) {
       if (ao_driver_test_intr_2 (this))
         return 1;
-      if (this->driver.open)
+      if (this->driver.open) {
         this->driver.d->write (this->driver.d, this->zero_space, num_frames);
+        this->driver.open = 2;
+      }
     }
 
   }
@@ -1164,21 +1201,27 @@ static int ao_resend_fill (aos_t *this, int64_t pts_len, int64_t end_time) {
       if (!this->out_fifo.discard_buffers) {
         if (ao_driver_test_intr_2 (this))
           return 1;
-        if (this->driver.open)
+        if (this->driver.open) {
           this->driver.d->write (this->driver.d, (int16_t *)(this->resend.buf + start_frame * this->resend.frame_size), fill_frames2);
+          this->driver.open = 2;
+        }
       }
       if (!this->out_fifo.discard_buffers) {
         if (ao_driver_test_intr_2 (this))
           return 1;
-        if (this->driver.open)
+        if (this->driver.open) {
           this->driver.d->write (this->driver.d, (int16_t *)this->resend.buf, fill_frames1);
+          this->driver.open = 2;
+        }
       }
     } else {
       if (!this->out_fifo.discard_buffers) {
         if (ao_driver_test_intr_2 (this))
           return 1;
-        if (this->driver.open)
+        if (this->driver.open) {
           this->driver.d->write (this->driver.d, (int16_t *)(this->resend.buf + start_frame * this->resend.frame_size), fill_frames1);
+          this->driver.open = 2;
+        }
       }
     }
   }
@@ -1907,6 +1950,7 @@ static void *ao_loop (void *this_gen) {
         }
         cur_time = this->clock->get_current_time (this->clock);
         pthread_mutex_unlock (&this->driver.mutex);
+        this->pts_in_driver = 0;
         xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
           "audio_out: got driver running with %d pts of silence.\n", start_pts);
       } else {
@@ -1957,6 +2001,7 @@ static void *ao_loop (void *this_gen) {
       lprintf ("current delay is %d, current time is %" PRId64 "\n", delay, cur_time);
       /* no sound card should delay more than 23.301s ;-) */
       delay = ((uint32_t)delay * this->out_pts_per_kframe) >> 10;
+      this->pts_in_driver = delay;
       /* External A52 decoder delay correction (in pts) */
       delay += this->ptoffs;
       /* calculate gap: */
@@ -2096,6 +2141,7 @@ static void *ao_loop (void *this_gen) {
             continue;
           if (this->driver.open) {
             result = this->driver.d->write (this->driver.d, out_buf->mem, out_buf->num_frames);
+            this->driver.open = 2;
           }
           pthread_mutex_unlock (&this->driver.mutex);
         }
@@ -2710,7 +2756,10 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
 
   case AO_PROP_PTS_IN_FIFO:
     pthread_mutex_lock (&this->out_fifo.mutex);
-    ret = this->out_fifo.pts_fill;
+    /* easier and more precise:
+     * this->out_fifo.pts_sill + last_buf_vpts - this->clock->get_current_time ().
+     * however, net_buf_ctrl calls this _very_ often :-/ */
+    ret = this->out_fifo.pts_fill + this->out_fifo.pts_in_driver;
     pthread_mutex_unlock (&this->out_fifo.mutex);
     break;
 
@@ -2844,7 +2893,7 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
 
   case AO_PROP_PTS_IN_FIFO:
     pthread_mutex_lock (&this->out_fifo.mutex);
-    ret = this->out_fifo.pts_fill;
+    ret = this->out_fifo.pts_fill + this->out_fifo.pts_in_driver;
     pthread_mutex_unlock (&this->out_fifo.mutex);
     break;
 
@@ -2980,6 +3029,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->step                   = 0;
   this->last_gap               = 0;
   this->last_sgap              = 0;
+  this->pts_in_driver          = 0;
   this->compression_factor_max = 0.0;
   this->do_compress            = 0;
   this->do_amp                 = 0;
@@ -3240,3 +3290,4 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
   this->xine->x.clock->register_speed_change_callback (this->xine->x.clock, ao_speed_change_cb, this);
   return &this->ao;
 }
+
