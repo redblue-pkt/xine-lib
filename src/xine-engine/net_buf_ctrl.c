@@ -700,14 +700,24 @@ static void nbc_alloc_cb (fifo_buffer_t *fifo, void *data) {
    * fifo is locked already, test this one first. */
   if (fifo->buffer_pool_num_free <= FULL_FIFO_MARK) {
     pthread_mutex_lock (&this->mutex);
-    if (this->buffering && this->enabled) {
-      this->progress = 100;
-      this->buffering = 0;
-      nbc_set_speed (this, XINE_FINE_SPEED_NORMAL);
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-        "net_buf_ctrl (%p): nbc_alloc_cb: stops buffering.\n", (void *)this->stream);
-      pthread_mutex_unlock (&this->mutex);
-      report_progress (this->stream, 100);
+    if (this->enabled) {
+      if (this->dvbspeed) {
+        if (!((0x48 >> this->dvbspeed) & 1)) {
+          this->dvbspeed = ((0x06 >> this->dvbspeed) & 1) ? 3 : 6;
+          nbc_set_speed (this, 1005 * XINE_FINE_SPEED_NORMAL / 1000);
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+            "net_buf_ctrl (%p): nbc_alloc_cb: dvbspeed 100.5%%.\n", (void *)this->stream);
+        }
+        pthread_mutex_unlock (&this->mutex);
+      } else if (this->buffering) {
+        this->progress = 100;
+        this->buffering = 0;
+        nbc_set_speed (this, XINE_FINE_SPEED_NORMAL);
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "net_buf_ctrl (%p): nbc_alloc_cb: stops buffering.\n", (void *)this->stream);
+        pthread_mutex_unlock (&this->mutex);
+        report_progress (this->stream, 100);
+      }
     } else {
       pthread_mutex_unlock (&this->mutex);
     }
