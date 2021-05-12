@@ -45,6 +45,7 @@
 #include "input_helper.h"
 #include "group_network.h"
 #include "multirate_pref.c"
+#include "net_buf_ctrl.h"
 
 typedef struct {
   input_class_t     input_class;
@@ -55,6 +56,7 @@ typedef struct {
 typedef struct {
   input_plugin_t    input_plugin;
   xine_stream_t    *stream;
+  xine_nbc_t       *nbc;
   input_plugin_t   *in1;
   uint32_t          caps1;
   struct {
@@ -76,6 +78,9 @@ typedef struct {
   uint32_t          items_num;
   uint32_t          prev_size1; /** << the actual preview bytes, for INPUT_OPTIONAL_DATA_[SIZED]_PREVIEW. */
   uint32_t          prev_size2; /** << for read (), 0 after leaving that range. */
+  struct timespec   frag_dur;   /** << != 0 if fixed duration live frags */
+  struct timespec   next_stop;  /** << live timeline emulation */
+  int               rewind;     /** << seconds */
   const char       *items_mrl[20];
   multirate_pref_t  items[20];
   const char       *list_strtype;
@@ -92,6 +97,22 @@ typedef struct {
   char              bump2[HLS_MAX_MRL];
   char              preview[32 << 10];
 } hls_input_plugin_t;
+
+#ifdef HAVE_POSIX_TIMERS
+#  define xine_gettime(t) clock_gettime (CLOCK_REALTIME, t)
+#else
+static inline int xine_gettime (struct timespec *ts) {
+  struct timeval tv;
+  int r;
+  r = gettimeofday (&tv, NULL);
+  if (!r) {
+    ts->tv_sec  = tv.tv_sec;
+    ts->tv_nsec = tv.tv_usec * 1000;
+  }
+  return r;
+}
+#endif
+
 
 static int hls_get_duration (hls_input_plugin_t *this) {
   int64_t d = 0;
@@ -374,7 +395,7 @@ static uint32_t str2usec (char **s) {
 static int hls_input_load_list (hls_input_plugin_t *this) {
   ssize_t size;
   char *line, *lend;
-  uint32_t frag_duration;
+  uint32_t frag_duration, fixed_duration;
 
   _x_freep (&this->frag.mrl_offs);
   xine_mfrag_list_close (&this->frag.list);
@@ -435,6 +456,7 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
   this->list_strseq = "";
   this->list_strtype = "";
 
+  fixed_duration = 0;
   frag_duration = 0;
   lend = this->list_buf + 4;
 
@@ -478,6 +500,10 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
         if ((llen > 8) && !strncasecmp (line + 4, "INF:", 4)) {
           line += 8;
           frag_duration = str2usec (&line);
+          if (fixed_duration == 0)
+            fixed_duration = frag_duration;
+          else if (fixed_duration != frag_duration)
+            fixed_duration = ~0u;
         } else if ((llen > 22) && !strncasecmp (line + 4, "-X-MEDIA-SEQUENCE:", 18)) {
           for (line += 22; *line == ' '; line++) ;
           this->list_strseq = line;
@@ -493,6 +519,10 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
         this->frag.num += 1;
         xine_mfrag_set_index_frag (this->frag.list, this->frag.num, frag_duration, -1);
       }
+    }
+    if ((fixed_duration != 0) && (fixed_duration != ~0u)) {
+      this->frag_dur.tv_sec = fixed_duration / 1000000;
+      this->frag_dur.tv_nsec = (fixed_duration % 1000000) * 1000;
     }
     return 1;
   }
@@ -577,6 +607,42 @@ static uint32_t hls_input_get_capabilities (input_plugin_t *this_gen) {
   return flags;
 }
 
+static void hls_live_start (hls_input_plugin_t *this) {
+  if (!this->in1 || (this->list_type == LIST_VOD) || (this->frag_dur.tv_sec == 0))
+    return;
+  xine_gettime (&this->next_stop);
+}
+
+static int hls_live_wait (hls_input_plugin_t *this) {
+  struct timespec now = {0, 0};
+  int d;
+  if (!this->in1 || (this->frag_dur.tv_sec == 0))
+    return 1;
+  if (this->next_stop.tv_sec == 0) {
+    /* paranoia */
+    xine_gettime (&this->next_stop);
+    this->next_stop.tv_sec -= 2;
+  }
+  this->next_stop.tv_sec += this->frag_dur.tv_sec;
+  this->next_stop.tv_nsec += this->frag_dur.tv_nsec;
+  if (this->next_stop.tv_nsec >= 1000000000) {
+    this->next_stop.tv_nsec -= 1000000000;
+    this->next_stop.tv_sec += 1;
+  }
+  xine_gettime (&now);
+  d = (this->next_stop.tv_sec - now.tv_sec) * 1000;
+  d += ((int)this->next_stop.tv_nsec - (int)now.tv_nsec) / 1000000;
+  if ((d <= 0) || (d >= 100000))
+    return 1;
+  if (this->in1->get_capabilities (this->in1) & INPUT_CAP_NEW_MRL) {
+    char no_mrl[] = "";
+    this->in1->get_optional_data (this->in1, no_mrl, INPUT_OPTIONAL_DATA_NEW_MRL);
+  }
+  if (_x_io_select (this->stream, -1, 0, d) != XIO_TIMEOUT)
+    return 0;
+  return 1;
+}
+
 static off_t hls_input_read (input_plugin_t *this_gen, void *buf, off_t len) {
   hls_input_plugin_t *this = (hls_input_plugin_t *)this_gen;
   uint8_t *b = (uint8_t *)buf;
@@ -640,6 +706,8 @@ static off_t hls_input_read (input_plugin_t *this_gen, void *buf, off_t len) {
     } else {
       hls_bump_inc (this);
       this->frag.current += 1;
+      if (!hls_live_wait (this))
+        break;
       if (!hls_input_open_bump (this)) {
         this->list_type = LIST_LIVE_REGET;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
@@ -852,6 +920,10 @@ static void hls_input_dispose (input_plugin_t *this_gen) {
     _x_free_input_plugin (this->stream, this->in1);
     this->in1 = NULL;
   }
+  if (this->nbc) {
+    nbc_close (this->nbc);
+    this->nbc = NULL;
+  }
   xine_mfrag_list_close (&this->frag.list);
   _x_freep (&this->list_buf);
   _x_freep (&this->frag.mrl_offs);
@@ -929,6 +1001,7 @@ static int hls_input_open (input_plugin_t *this_gen) {
       return 0;
   }
 
+  hls_live_start (this);
   try = hls_input_read (&this->input_plugin, this->preview, sizeof (this->preview));
   if (try > 0) {
     this->prev_size1 = this->prev_size2 = try;
@@ -1050,10 +1123,19 @@ static input_plugin_t *hls_input_get_instance (input_class_t *cls_gen, xine_stre
   this->items_num    = 0;
   this->prev_size1   = 0;
   this->prev_size2   = 0;
+  this->frag_dur.tv_sec  = 0;
+  this->frag_dur.tv_nsec = 0;
+  this->next_stop.tv_sec  = 0;
+  this->next_stop.tv_nsec = 0;
+  this->rewind       = 0;
 #endif
 
   this->stream = stream;
   this->in1    = in1;
+
+  /* TJ. yes input_http already does this, but i want to test offline
+   * with a file based service. */
+  this->nbc    = nbc_init (this->stream);
 
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_hls: %s.\n", mrl + n);
 
@@ -1112,3 +1194,4 @@ void *input_hls_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
+
