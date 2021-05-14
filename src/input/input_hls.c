@@ -45,7 +45,6 @@
 #include "input_helper.h"
 #include "group_network.h"
 #include "multirate_pref.c"
-#include "net_buf_ctrl.h"
 
 typedef struct {
   input_class_t     input_class;
@@ -63,6 +62,7 @@ typedef struct {
     xine_mfrag_list_t *list;
     uint32_t          *mrl_offs;
     off_t              pos;
+    int64_t            pts;
     uint32_t           num;
     uint32_t           current; /** << 1..n or 0 (none) */
   }                 frag;
@@ -608,21 +608,36 @@ static uint32_t hls_input_get_capabilities (input_plugin_t *this_gen) {
 }
 
 static void hls_live_start (hls_input_plugin_t *this) {
-  if (!this->in1 || (this->list_type == LIST_VOD) || (this->frag_dur.tv_sec == 0))
+  if (!this->in1 || (this->list_type == LIST_VOD))
     return;
   xine_gettime (&this->next_stop);
+  this->frag.pts = xine_nbc_get_pos_pts (this->nbc);
 }
 
 static int hls_live_wait (hls_input_plugin_t *this) {
   struct timespec now = {0, 0};
+  int64_t pts;
   int d;
+
   if (!this->in1 || (this->frag_dur.tv_sec == 0))
     return 1;
+
+  pts = xine_nbc_get_pos_pts (this->nbc);
+
   if (this->next_stop.tv_sec == 0) {
     /* paranoia */
     xine_gettime (&this->next_stop);
     this->next_stop.tv_sec -= 2;
+    this->frag.pts = pts;
   }
+
+  d = pts - this->frag.pts;
+  if ((d > 0) && (d < 100 * 900000)) {
+    this->frag_dur.tv_sec = d / 90000;
+    this->frag_dur.tv_nsec = (d % 90000) * (1000000000 / 90000);
+  }
+  this->frag.pts = pts;
+
   this->next_stop.tv_sec += this->frag_dur.tv_sec;
   this->next_stop.tv_nsec += this->frag_dur.tv_nsec;
   if (this->next_stop.tv_nsec >= 1000000000) {
@@ -921,7 +936,7 @@ static void hls_input_dispose (input_plugin_t *this_gen) {
     this->in1 = NULL;
   }
   if (this->nbc) {
-    nbc_close (this->nbc);
+    xine_nbc_close (this->nbc);
     this->nbc = NULL;
   }
   xine_mfrag_list_close (&this->frag.list);
@@ -1135,7 +1150,7 @@ static input_plugin_t *hls_input_get_instance (input_class_t *cls_gen, xine_stre
 
   /* TJ. yes input_http already does this, but i want to test offline
    * with a file based service. */
-  this->nbc    = nbc_init (this->stream);
+  this->nbc    = xine_nbc_init (this->stream);
 
   xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_hls: %s.\n", mrl + n);
 
