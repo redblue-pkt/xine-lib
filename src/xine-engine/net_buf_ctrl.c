@@ -58,6 +58,7 @@ typedef struct {
   /* pts */
   int64_t          last_in_pts;
   int64_t          last_out_pts;
+  int64_t          pos_pts;
   int              fill_pts;
   int              out_pts;
   /* type */
@@ -100,6 +101,8 @@ struct xine_nbc_st {
   uint32_t         high_water_mark;
 
   pthread_mutex_t  mutex;
+
+  int64_t          pos_pts;
 
   /* follow live dvb delivery speed.
      0 = fix disabled
@@ -365,8 +368,10 @@ static void dvbspeed_init (xine_nbc_t *this) {
     nbc_delay_init (this);
     this->dvbs_center = 2 * 90000;
     this->dvbs_width = 90000;
+    this->audio.pos_pts = 0;
     this->audio.last_in_pts = this->audio.last_out_pts = 0;
     this->audio.fill_pts = this->audio.out_pts = 0;
+    this->video.pos_pts = 0;
     this->video.last_in_pts = this->video.last_out_pts = 0;
     this->video.fill_pts = this->video.out_pts = 0;
     this->dvbspeed = 7;
@@ -747,8 +752,20 @@ static void nbc_put_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
     if (buf->pts) {
       if (fifo_info->last_in_pts) {
         int64_t diff = buf->pts - fifo_info->last_in_pts;
-        if ((diff >= -220000) && (diff <= 220000))
+        do {
+          if (diff < -220000) {
+            /* try mpeg pts wrap */
+            diff += (uint64_t)1 << 33;
+            if ((diff < -220000) || (diff > 220000))
+              break;
+          } else if (diff > 220000) {
+            diff -= (uint64_t)1 << 33;
+            if ((diff < -220000) || (diff > 220000))
+              break;
+          }
+          fifo_info->pos_pts += diff;
           fifo_info->fill_pts += (int)diff;
+        } while (0);
       }
       fifo_info->last_in_pts = buf->pts;
     }
@@ -764,6 +781,10 @@ static void nbc_put_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
     }
 
     pthread_mutex_lock (&this->mutex);
+
+    if (fifo_info->pos_pts > this->pos_pts)
+      this->pos_pts = fifo_info->pos_pts;
+
     if (this->dvbspeed) {
 
       speed = dvbspeed_put (fifo_info);
@@ -845,6 +866,10 @@ static void nbc_put_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
           /* a new stream starts */
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
             "\nnet_buf_ctrl (%p): nbc_put_cb: starts buffering.\n", (void *)this->stream);
+          fifo_info->last_in_pts  = 0;
+          fifo_info->last_out_pts = 0;
+          fifo_info->pos_pts      = 0;
+          this->pos_pts           = 0;
           this->enabled           = 1;
           this->buffering         = 1;
           this->video.first_pts   = 0;
@@ -939,8 +964,19 @@ static void nbc_get_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
     if (buf->pts) {
       if (fifo_info->last_out_pts) {
         int64_t diff = buf->pts - fifo_info->last_out_pts;
-        if ((diff >= -220000) && (diff <= 220000))
+        do {
+          if (diff < -220000) {
+            /* try mpeg pts wrap */
+            diff += (uint64_t)1 << 33;
+            if ((diff < -220000) || (diff > 220000))
+              break;
+          } else if (diff > 220000) {
+            diff -= (uint64_t)1 << 33;
+            if ((diff < -220000) || (diff > 220000))
+              break;
+          }
           fifo_info->fill_pts -= (int)diff;
+        } while (0);
       }
       fifo_info->last_out_pts = buf->pts;
     }
@@ -1015,6 +1051,16 @@ static void nbc_get_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
     nbc_set_speed (this, speed);
   pthread_mutex_unlock (&this->mutex);
   lprintf("exit nbc_get_cb\n");
+}
+
+int64_t xine_nbc_get_pos_pts (xine_nbc_t *this) {
+  int64_t r;
+  if (!this)
+    return 0;
+  pthread_mutex_lock (&this->mutex);
+  r = this->pos_pts;
+  pthread_mutex_unlock (&this->mutex);
+  return r;
 }
 
 xine_nbc_t *xine_nbc_init (xine_stream_t *stream) {
