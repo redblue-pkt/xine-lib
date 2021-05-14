@@ -408,6 +408,8 @@ struct input_plugin_s {
 /* network buffering control */
 typedef struct xine_nbc_st xine_nbc_t;
 xine_nbc_t *xine_nbc_init (xine_stream_t *stream) XINE_PROTECTED;
+/* returns a combinwd demux pts position, starting with 0 at stream start. */
+int64_t xine_nbc_get_pos_pts (xine_nbc_t *nbc) XINE_PROTECTED;
 void xine_nbc_close (xine_nbc_t *nbc) XINE_PROTECTED;
 
 
