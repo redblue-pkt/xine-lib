@@ -722,6 +722,8 @@ static void nbc_alloc_cb (fifo_buffer_t *fifo, void *data) {
           "net_buf_ctrl (%p): nbc_alloc_cb: stops buffering.\n", (void *)this->stream);
         pthread_mutex_unlock (&this->mutex);
         report_progress (this->stream, 100);
+      } else {
+        pthread_mutex_unlock (&this->mutex);
       }
     } else {
       pthread_mutex_unlock (&this->mutex);
@@ -935,6 +937,9 @@ static void nbc_put_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
       this->audio.fifo_free = fifo->buffer_pool_num_free;
       this->audio.fifo_size = fifo->fifo_data_size;
     }
+
+  } else {
+    pthread_mutex_lock (&this->mutex);
   }
   if (speed >= 0)
     nbc_set_speed (this, speed);
@@ -1025,6 +1030,7 @@ static void nbc_get_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
 
   } else if (type == BUF_CONTROL_BASE) {
 
+    pthread_mutex_lock (&this->mutex);
     /* discontinuity management */
     if (buf->type == BUF_CONTROL_NEWPTS) {
       if (fifo == this->video.fifo) {
@@ -1045,6 +1051,8 @@ static void nbc_get_cb (fifo_buffer_t *fifo, buf_element_t *buf, void *data) {
       this->audio.fifo_free = fifo->buffer_pool_num_free;
       this->audio.fifo_size = fifo->fifo_data_size;
     }
+  } else {
+    pthread_mutex_lock (&this->mutex);
   }
 
   if (speed >= 0)
