@@ -124,10 +124,11 @@ struct xine_nbc_st {
     pthread_t thread;
     struct timespec base, until;
     enum {
-      NBC_DELAY_OFF = 0,
-      NBC_DELAY_READY,
-      NBC_DELAY_RUN,
-      NBC_DELAY_STOP
+      NBC_DELAY_OFF = 0, /* cond not inited, no thread */
+      NBC_DELAY_READY,   /* cond inited, no thread */
+      NBC_DELAY_RUN,     /* cond inited, thread running */
+      NBC_DELAY_STOP,    /* cond inited, thread exiting normally */
+      NBC_DELAY_JOIN     /* cond inited, waiting for thread to exit */
     } state;
   } delay;
 
@@ -204,7 +205,8 @@ static void *nbc_delay_thread (void *data) {
       break;
     }
   }
-  this->delay.state = NBC_DELAY_STOP;
+  if (this->delay.state != NBC_DELAY_JOIN)
+    this->delay.state = NBC_DELAY_STOP;
   pthread_mutex_unlock (&this->mutex);
   return NULL;
 }
@@ -253,30 +255,42 @@ static void nbc_delay_set (xine_nbc_t *this, uint32_t pts) {
 static void nbc_delay_clean (xine_nbc_t *this) {
   if (this->delay.state == NBC_DELAY_STOP) {
     void *dummy;
+    this->delay.state = NBC_DELAY_JOIN;
     pthread_mutex_unlock (&this->mutex);
     pthread_join (this->delay.thread, &dummy);
     pthread_mutex_lock (&this->mutex);
-    this->delay.state = NBC_DELAY_OFF;
-    pthread_cond_destroy (&this->delay.msg);
+    if (this->delay.state == NBC_DELAY_JOIN) {
+      this->delay.state = NBC_DELAY_OFF;
+      pthread_cond_destroy (&this->delay.msg);
+    }
   }
 }
 
 static void nbc_delay_stop (xine_nbc_t *this) {
-  if (this->delay.state == NBC_DELAY_RUN) {
-    nbc_set_speed (this, XINE_FINE_SPEED_NORMAL);
-    this->delay.state = NBC_DELAY_STOP;
-    pthread_cond_signal (&this->delay.msg);
-  }
-  if (this->delay.state == NBC_DELAY_STOP) {
-    void *dummy;
-    pthread_mutex_unlock (&this->mutex);
-    pthread_join (this->delay.thread, &dummy);
-    pthread_mutex_lock (&this->mutex);
-    this->delay.state = NBC_DELAY_READY;
-  }
-  if (this->delay.state == NBC_DELAY_READY) {
-    this->delay.state = NBC_DELAY_OFF;
-    pthread_cond_destroy (&this->delay.msg);
+  switch (this->delay.state) {
+    case NBC_DELAY_RUN:
+      this->delay.state = NBC_DELAY_JOIN;
+      nbc_set_speed (this, XINE_FINE_SPEED_NORMAL);
+      if (this->delay.state != NBC_DELAY_JOIN)
+        break;
+      /* fall through */
+    case NBC_DELAY_STOP:
+      this->delay.state = NBC_DELAY_JOIN;
+      pthread_cond_signal (&this->delay.msg);
+      pthread_mutex_unlock (&this->mutex);
+      {
+        void *dummy;
+        pthread_join (this->delay.thread, &dummy);
+      }
+      pthread_mutex_lock (&this->mutex);
+      if (this->delay.state != NBC_DELAY_JOIN)
+        break;
+      /* fall through */
+    case NBC_DELAY_READY:
+      this->delay.state = NBC_DELAY_OFF;
+      pthread_cond_destroy (&this->delay.msg);
+      break;
+    default: ;
   }
 }
 
