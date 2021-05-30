@@ -453,6 +453,13 @@ static int _cpu_count()
   if (!sched_getaffinity(0, sizeof(cpuset), &cpuset))
     cpu_count = CPU_COUNT(&cpuset);
 
+#elif defined(HAVE_SYSCTL) && defined(HW_NCPUONLINE)
+
+  int mib[2] = { CTL_HW, HW_NCPUONLINE };
+  size_t len = sizeof(cpu_count);
+  if (sysctl(mib, 2, &cpu_count, &len, NULL, 0) == -1)
+    cpu_count = 1;
+
 #elif defined(HAVE_SYSCTL) && defined(HW_NCPU)
 
   int mib[2] = { CTL_HW, HW_NCPU };
