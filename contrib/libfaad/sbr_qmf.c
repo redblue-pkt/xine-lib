@@ -66,8 +66,8 @@ void qmfa_end(qmfa_info *qmfa)
     }
 }
 
-void sbr_qmf_analysis_32(sbr_info *sbr, qmfa_info *qmfa, const real_t *input,
-                         qmf_t X[MAX_NTSRHFG][64], uint8_t offset, uint8_t kx)
+void sbr_qmf_analysis_32 (sbr_info *sbr, qmfa_info *qmfa, const real_t *input,
+                         qmf_t X[][64], uint8_t offset, uint8_t kx)
 {
     ALIGN real_t u[64];
 #ifndef SBR_LOW_POWER
@@ -249,8 +249,7 @@ void qmfs_end(qmfs_info *qmfs)
 
 #ifdef SBR_LOW_POWER
 
-void sbr_qmf_synthesis_32(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSRHFG][64],
-                          real_t *output)
+void sbr_qmf_synthesis_32 (sbr_info *sbr, qmfs_info *qmfs, qmf_t X[][64], real_t *output)
 {
     ALIGN real_t x[16];
     ALIGN real_t y[16];
@@ -318,8 +317,7 @@ void sbr_qmf_synthesis_32(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSRHFG][6
     }
 }
 
-void sbr_qmf_synthesis_64(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSRHFG][64],
-                          real_t *output)
+void sbr_qmf_synthesis_64 (sbr_info *sbr, qmfs_info *qmfs, qmf_t X[][64], real_t *output)
 {
     ALIGN real_t x[64];
     ALIGN real_t y[64];
@@ -388,8 +386,7 @@ void sbr_qmf_synthesis_64(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSRHFG][6
     }
 }
 #else
-void sbr_qmf_synthesis_32(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSRHFG][64],
-                          real_t *output)
+void sbr_qmf_synthesis_32 (sbr_info *sbr, qmfs_info *qmfs, qmf_t X[][64], real_t *output)
 {
     ALIGN real_t x1[32], x2[32];
 #ifndef FIXED_POINT
@@ -454,8 +451,7 @@ void sbr_qmf_synthesis_32(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSRHFG][6
     }
 }
 
-void sbr_qmf_synthesis_64(sbr_info *sbr, qmfs_info *qmfs, qmf_t X[MAX_NTSRHFG][64],
-                          real_t *output)
+void sbr_qmf_synthesis_64 (sbr_info *sbr, qmfs_info *qmfs, qmf_t X[][64], real_t *output)
 {
 //    ALIGN real_t x1[64], x2[64];
 #ifndef SBR_LOW_POWER
