@@ -176,6 +176,7 @@ static vo_frame_t *_png_decode_data (png_decoder_t *this, const uint8_t *data, s
 
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  width);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, height);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "PNG");
 
 
     /* set up libpng csc */
