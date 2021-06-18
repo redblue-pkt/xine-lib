@@ -160,6 +160,7 @@ static vo_frame_t *_jpeg_decode_data (jpeg_decoder_t *this, const char *data, si
 
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_WIDTH,  cinfo.image_width);
     _x_stream_info_set(this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, cinfo.image_height);
+    _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC, "JPEG");
 
     lprintf("header parsed\n");
 
