@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1032,6 +1032,8 @@ int _x_message(xine_stream_t *stream, int type, ...) {
     N_("Audio device unavailable"),
     N_("Permission error"),
     N_("File is empty:"),
+    N_("Authentication needed"),
+    N_("Recording done:")
   };
 
   if (!stream) return 0;
