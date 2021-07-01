@@ -648,6 +648,11 @@ int _x_demux_read_header (input_plugin_t *input, void *buffer, off_t size) {
 
   caps = input->get_capabilities (input);
 
+  if ((caps & INPUT_CAP_SIZED_PREVIEW) && (want_size >= (int)sizeof (want_size))) {
+    memcpy (buffer, &want_size, sizeof (want_size));
+    return input->get_optional_data (input, buffer, INPUT_OPTIONAL_DATA_SIZED_PREVIEW);
+  }
+
   if (caps & INPUT_CAP_SEEKABLE) {
     if (input->seek (input, 0, SEEK_SET) != 0)
       return 0;
@@ -655,11 +660,6 @@ int _x_demux_read_header (input_plugin_t *input, void *buffer, off_t size) {
     if (input->seek (input, 0, SEEK_SET) != 0)
       return 0; /* no point to continue any further */
     return want_size;
-  }
-
-  if ((caps & INPUT_CAP_SIZED_PREVIEW) && (want_size >= (int)sizeof (want_size))) {
-    memcpy (buffer, &want_size, sizeof (want_size));
-    return input->get_optional_data (input, buffer, INPUT_OPTIONAL_DATA_SIZED_PREVIEW);
   }
 
   if (caps & INPUT_CAP_PREVIEW) {
