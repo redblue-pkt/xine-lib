@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2021-03-28 12:30+0200\n"
+"POT-Creation-Date: 2021-06-30 21:17+0200\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
@@ -7368,6 +7368,14 @@ msgstr "Berechtigungsfehler"
 #: src/xine-engine/xine_interface.c
 msgid "File is empty:"
 msgstr "Datei ist leer:"
+
+#: src/xine-engine/xine_interface.c
+msgid "Authentication needed"
+msgstr "Zugangsberechtigung erforderlich"
+
+#: src/xine-engine/xine_interface.c
+msgid "Recording done:"
+msgstr "Aufzeichnung beendet:"
 
 #: src/xine-utils/memcpy.c
 #, c-format
