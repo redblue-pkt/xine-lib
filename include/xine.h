@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2217,6 +2217,7 @@ typedef struct {
 #define XINE_MSG_PERMISSION_ERROR       12 /* (file name or mrl) */
 #define XINE_MSG_FILE_EMPTY             13 /* file is empty      */
 #define XINE_MSG_AUTHENTICATION_NEEDED	14 /* (mrl, likely http) */
+#define XINE_MSG_RECORDING_DONE         15 /* just what it says  */
 
 /* opaque xine_event_queue_t */
 typedef struct xine_event_queue_s xine_event_queue_t;
