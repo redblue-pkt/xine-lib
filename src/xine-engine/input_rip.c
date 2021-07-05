@@ -214,6 +214,9 @@ static void rip_read_file_set_2 (rip_input_plugin_t *this) {
   }
   fseeko (this->file, this->curpos, SEEK_SET);
   this->read = rip_read_file_read_1a;
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_rip: end of main input, still reading from %s.\n",
+    this->fname ? this->fname : "save file");
 }
 
 /*
@@ -222,6 +225,7 @@ static void rip_read_file_set_2 (rip_input_plugin_t *this) {
 static off_t rip_plugin_read(input_plugin_t *this_gen, void *buf_gen, off_t len) {
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   char *buf = (char *)buf_gen;
+  off_t d;
   size_t left;
 
   lprintf("reading %"PRId64" bytes (curpos = %"PRId64", savepos = %"PRId64")\n", len, this->curpos, this->savepos);
@@ -233,7 +237,8 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, void *buf_gen, off_t len)
     return 0;
   left = len;
 
-  if (this->curpos < this->savepos) {
+  d = this->savepos - this->curpos;
+  if (d > 0) {
     if (this->curpos < (off_t)this->preview_size) {
       /* get from preview */
       size_t s2 = this->preview_size - this->curpos;
@@ -246,20 +251,21 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, void *buf_gen, off_t len)
       if (left == 0)
         return s2;
     }
+    d = this->savepos - this->curpos;
   }
 
   /* gcc jump target optimize here ;-) */
-  if (this->curpos < this->savepos) {
-    off_t d = this->savepos - this->curpos;
-    size_t s2 = d <= (off_t)(~(size_t)0) ? (size_t)d : ~(size_t)0;
+  if (d > 0) {
+    /* NOTE: size_t (unsigned) may be same size or smaller than off_t (signed). */
+    size_t s2 = left;
+    d -= (off_t)left;
     if (this->behind) {
-      if (left < s2) {
+      if (d > 0) {
         /* Hair raising naive HACK:
          * read and append left bytes as usual, then return left older bytes from the file.
          * this shall help with inputs that tend to lose track when seeking.
          * OK at least we dont try this in real live mode (behind == 2). bitrate fluctuations
          * and repeated reads like .mp4 fragment scans disharmonize with strict live timing. */
-        s2 = left;
         if (this->behind == 1) {
           ssize_t r = this->main_input_plugin->read (this->main_input_plugin, buf, s2);
           if (r > 0) {
@@ -278,14 +284,14 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, void *buf_gen, off_t len)
         }
       } else {
         /* catch up now */
-        ;
+        s2 += d;
       }
       s2 = this->read (this, buf, s2);
       buf += s2;
     } else {
       ssize_t r;
-      if (left < s2)
-        s2 = left;
+      if (d < 0)
+        s2 += d;
       /* read from main input */
       if (this->main_input_plugin->seek (this->main_input_plugin, this->curpos, SEEK_SET) != this->curpos)
         return -1;
@@ -1015,3 +1021,4 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
 
   return &this->input_plugin;
 }
+
