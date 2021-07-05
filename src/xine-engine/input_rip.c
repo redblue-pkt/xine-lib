@@ -77,7 +77,7 @@
 #define MAX_TARGET_LEN 512
 #define SEEK_TIMEOUT 2.5
 
-typedef struct {
+typedef struct rip_input_plugin_s {
   input_plugin_t    input_plugin;      /* inherited structure */
 
   input_plugin_t   *main_input_plugin; /* original input plugin */
@@ -92,69 +92,22 @@ typedef struct {
   size_t            preview_size;      /* size of read preview data */
   off_t             curpos;            /* current position */
   off_t             savepos;           /* amount of already saved data */
+  off_t             endpos;            /* skip useless "recording done" msgs */
 
+  ssize_t         (*read) (struct rip_input_plugin_s *this, char *buf, size_t len);
   int               regular;           /* permit reading from the file */
   int               behind;            /* 0 (off), 1 (with), 2 (without read ahead) */
 } rip_input_plugin_t;
 
-static int rip_read_file_start (rip_input_plugin_t *this, off_t offs1) {
-  off_t offs2 = offs1 < (off_t)this->preview_size ? (off_t)this->preview_size : offs1;
-  if (!this->rfile && this->fname) {
-    fflush (this->file);
-    this->rfile = fopen (this->fname, "rb");
-  }
-  if (this->rfile) {
-    if (fseeko (this->rfile, offs2, SEEK_SET)) {
-      fclose (this->rfile);
-      this->rfile = NULL;
-    }
-  }
-  if (!this->rfile) {
-    if (fseeko (this->file, offs2, SEEK_SET)) {
-      int e = errno;
-      fseeko (this->file, this->savepos, SEEK_SET);
-      xine_log (this->stream->xine, XINE_LOG_MSG, _("input_rip: seeking failed: %s\n"), strerror (e));
-      return 0;
-    }
-    fseeko (this->file, this->savepos, SEEK_SET);
-  }
-  this->curpos = offs1;
-  this->behind = (this->main_input_plugin->get_capabilities (this->main_input_plugin) & INPUT_CAP_LIVE)
-               ? 2 : 1;
-  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-    "input_rip: reading from %s%s after backseek.\n",
-    this->rfile ? "clone of " : "",
-    this->fname ? this->fname : "save file");
-  return 1;
-}
-
-static ssize_t rip_read_file_read (rip_input_plugin_t *this, char *buf, size_t len) {
-  size_t r = 0;
-  if (len == 0)
-    return 0;
-  if (this->rfile) {
-    r = fread (buf, 1, len, this->rfile);
-    if (r < len) {
-      fflush (this->file);
-      r += fread (buf + r, 1, len - r, this->rfile);
-    }
-    this->curpos += r;
-    if (this->curpos == this->savepos) {
-      this->behind = 0;
-      fclose (this->rfile);
-      this->rfile = NULL;
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_rip: live again.\n");
-    }
-  } else {
-    if (!fseeko (this->file, this->curpos, SEEK_SET)) {
-      r = fread (buf, 1, len, this->file);
-      this->curpos += r;
-    }
-    fseeko (this->file, this->savepos, SEEK_SET);
-    if (this->curpos == this->savepos) {
-      this->behind = 0;
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_rip: live again.\n");
-    }
+/* read from main file */
+static ssize_t rip_read_file_read_1a (rip_input_plugin_t *this, char *buf, size_t len) {
+  size_t r = fread (buf, 1, len, this->file);
+  this->curpos += r;
+  if (this->curpos == this->savepos) {
+    this->behind = 0;
+    /* yes this is set_already, but we like to enable shared code optimization. */
+    this->read = rip_read_file_read_1a;
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_rip: live again.\n");
   }
   if (r != len) {
     int e = errno;
@@ -162,6 +115,105 @@ static ssize_t rip_read_file_read (rip_input_plugin_t *this, char *buf, size_t l
       _("input_rip: reading of saved data failed: %s\n"), strerror (e));
   }
   return r;
+}
+
+/* read from main file, and reseek */
+static ssize_t rip_read_file_read_1b (rip_input_plugin_t *this, char *buf, size_t len) {
+  size_t r = 0;
+  if (!fseeko (this->file, this->curpos, SEEK_SET)) {
+    r = fread (buf, 1, len, this->file);
+    this->curpos += r;
+  }
+  fseeko (this->file, this->savepos, SEEK_SET);
+  if (this->curpos == this->savepos) {
+    this->behind = 0;
+    this->read = rip_read_file_read_1a;
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_rip: live again.\n");
+  }
+  if (r != len) {
+    int e = errno;
+    xine_log (this->stream->xine, XINE_LOG_MSG,
+      _("input_rip: reading of saved data failed: %s\n"), strerror (e));
+  }
+  return r;
+}
+
+/* read from clone */
+static ssize_t rip_read_file_read_2 (rip_input_plugin_t *this, char *buf, size_t len) {
+  size_t r = fread (buf, 1, len, this->rfile);
+  if (r < len) {
+    fflush (this->file);
+    r = fread (buf, 1, len, this->rfile);
+  }
+  this->curpos += r;
+  if (this->curpos == this->savepos) {
+    fclose (this->rfile);
+    this->rfile = NULL;
+    this->behind = 0;
+    this->read = rip_read_file_read_1a;
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "input_rip: live again.\n");
+  }
+  if (r != len) {
+    int e = errno;
+    xine_log (this->stream->xine, XINE_LOG_MSG,
+      _("input_rip: reading of saved data failed: %s\n"), strerror (e));
+  }
+  return r;
+}
+
+static int rip_read_file_start (rip_input_plugin_t *this, off_t offs1) {
+  int mode = (this->main_input_plugin->get_capabilities (this->main_input_plugin) & INPUT_CAP_LIVE) ? 2 : 1;
+  off_t offs2 = offs1 < (off_t)this->preview_size ? (off_t)this->preview_size : offs1;
+  if (mode == 1) {
+    if (!this->rfile && this->fname) {
+      fflush (this->file);
+      this->rfile = fopen (this->fname, "rb");
+    }
+    if (this->rfile) {
+      if (fseeko (this->rfile, offs2, SEEK_SET)) {
+        fclose (this->rfile);
+        this->rfile = NULL;
+      }
+    }
+  } else {
+    if (this->rfile) {
+      fclose (this->rfile);
+      this->rfile = NULL;
+    }
+  }
+  if (this->rfile) {
+    this->read = rip_read_file_read_2;
+  } else {
+    if (fseeko (this->file, offs2, SEEK_SET)) {
+      int e = errno;
+      fseeko (this->file, this->savepos, SEEK_SET);
+      xine_log (this->stream->xine, XINE_LOG_MSG, _("input_rip: seeking failed: %s\n"), strerror (e));
+      return 0;
+    }
+    if (mode == 1) {
+      fseeko (this->file, this->savepos, SEEK_SET);
+      this->read = rip_read_file_read_1b;
+    } else {
+      this->read = rip_read_file_read_1a;
+    }
+  }
+  this->curpos = offs1;
+  this->behind = mode;
+  xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+    "input_rip: reading from %s%s after backseek.\n",
+    this->rfile ? "clone of " : "",
+    this->fname ? this->fname : "save file");
+  return 1;
+}
+
+static void rip_read_file_set_2 (rip_input_plugin_t *this) {
+  this->behind = 2;
+  if (this->rfile) {
+    fclose (this->rfile);
+    this->rfile = NULL;
+  }
+  fseeko (this->file, this->curpos, SEEK_SET);
+  this->read = rip_read_file_read_1a;
 }
 
 /*
@@ -216,17 +268,19 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, void *buf_gen, off_t len)
           } else {
             /* dont stop yet, we still got the rest of the file,
              * and maybe more seeks. */
-            this->behind = 2;
-            _x_message (this->stream, XINE_MSG_RECORDING_DONE,
-              this->main_input_plugin->get_mrl (this->main_input_plugin),
-              this->fname, NULL);
+            rip_read_file_set_2 (this);
+            if (this->savepos != this->endpos) {
+              this->endpos = this->savepos;
+              _x_message (this->stream, XINE_MSG_RECORDING_DONE,
+                this->main_input_plugin->get_mrl (this->main_input_plugin), this->fname, NULL);
+            }
           }
         }
       } else {
         /* catch up now */
         ;
       }
-      s2 = rip_read_file_read (this, buf, s2);
+      s2 = this->read (this, buf, s2);
       buf += s2;
     } else {
       ssize_t r;
@@ -387,7 +441,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
       s2 = left;
     if (this->behind) {
       /* get from saved file */
-      size_t r = rip_read_file_read (this, q, s2);
+      size_t r = this->read (this, q, s2);
       buf->size += r;
       return buf;
     }
@@ -880,6 +934,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   this->file              = file;
   this->fname             = strdup (target + 4);
   this->regular           = regular;
+  this->read              = rip_read_file_read_1a;
 #ifndef HAVE_ZERO_SAFE_MEM
   this->rfile        = NULL;
   this->fraglist     = NULL;
@@ -887,6 +942,7 @@ input_plugin_t *_x_rip_plugin_get_instance (xine_stream_t *stream, const char *f
   this->behind       = 0;
   this->curpos       = 0;
   this->savepos      = 0;
+  this->endpos       = 0;
   this->preview_size = 0;
 #endif
 
