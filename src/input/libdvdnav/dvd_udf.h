@@ -8,22 +8,22 @@
  * Modifications by:
  *   Billy Biggs <vektor@dumbterm.net>.
  *   Björn Englund <d4bjorn@dtek.chalmers.se>.
- * 
+ *
  * dvdudf: parse and read the UDF volume information of a DVD Video
  * Copyright (C) 1999 Christian Wolff for convergence integrated media
  * GmbH The author can be reached at scarabaeus@convergence.de, the
  * project's page is at http://linuxtv.org/dvd/
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or (at
  * your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
@@ -50,9 +50,9 @@ uint32_t UDFFindFile( dvd_reader_t *device, char *filename, uint32_t *size );
 
 void FreeUDFCache(void *cache);
 int UDFGetVolumeIdentifier(dvd_reader_t *device,
-			   char *volid, unsigned int volid_size);
+                           char *volid, unsigned int volid_size);
 int UDFGetVolumeSetIdentifier(dvd_reader_t *device,
-			      uint8_t *volsetid, unsigned int volsetid_size);
+                              uint8_t *volsetid, unsigned int volsetid_size);
 void *GetUDFCacheHandle(dvd_reader_t *device);
 void SetUDFCacheHandle(dvd_reader_t *device, void *cache);
 

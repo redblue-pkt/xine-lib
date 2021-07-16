@@ -1,18 +1,18 @@
-/* 
+/*
  * Copyright (C) 2001-2004 Rich Wareham <richwareham@users.sourceforge.net>
- * 
+ *
  * This file is part of libdvdnav, a DVD navigation library.
- * 
+ *
  * libdvdnav is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * libdvdnav is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
@@ -108,7 +108,7 @@ typedef struct read_cache_s read_cache_t;
 
 /*
  * These are defined here because they are
- * not in ifo_types.h, they maybe one day 
+ * not in ifo_types.h, they maybe one day
  */
 
 #ifndef audio_status_t
@@ -121,7 +121,7 @@ typedef struct {
 #else
   uint8_t zero2;
   unsigned int stream_number : 3;
-  unsigned int zero1         : 4;  
+  unsigned int zero1         : 4;
   unsigned int available     : 1;
 #endif
 } ATTRIBUTE_PACKED audio_status_t;
@@ -158,34 +158,34 @@ typedef struct dvdnav_vobu_s {
   int32_t vobu_length;
   int32_t blockN;      /* Relative offset */
   int32_t vobu_next;   /* Relative offset */
-} dvdnav_vobu_t;  
-   
+} dvdnav_vobu_t;
+
 /** The main DVDNAV type **/
 
 struct dvdnav_s {
   /* General data */
   char        path[MAX_PATH_LEN]; /* Path to DVD device/dir */
   dvd_file_t *file;               /* Currently opened file */
- 
+
   /* Position data */
   vm_position_t position_next;
   vm_position_t position_current;
-  dvdnav_vobu_t vobu;  
+  dvdnav_vobu_t vobu;
 
   /* NAV data */
   pci_t pci;
   dsi_t dsi;
   uint32_t last_cmd_nav_lbn;      /* detects when a command is issued on an already left NAV */
-  
+
   /* Flags */
   int skip_still;                 /* Set when skipping a still */
   int sync_wait;                  /* applications should wait till they are in sync with us */
   int sync_wait_skip;             /* Set when skipping wait state */
-  int spu_clut_changed;           /* The SPU CLUT changed */ 
+  int spu_clut_changed;           /* The SPU CLUT changed */
   int started;                    /* vm_start has been called? */
   int use_read_ahead;             /* 1 - use read-ahead cache, 0 - don't */
   int pgc_based;                  /* positioning works PGC based instead of PG based */
-  
+
   /* VM */
   vm_t *vm;
   pthread_mutex_t vm_lock;
@@ -203,34 +203,34 @@ struct dvdnav_s {
  * more common prints
  */
 #ifdef __GNUC__
-#define printerrf(format, args...)					\
-  do {									\
+#define printerrf(format, args...)                                      \
+  do {                                                                  \
     if ( ! this ) fprintf(stderr, "Missing 'this' pointer while erroring:" format "\n", ## args); \
-    else snprintf(this->err_str, MAX_ERR_LEN, format, ## args);		\
+    else snprintf(this->err_str, MAX_ERR_LEN, format, ## args);         \
   } while(0);
 #else
 #ifdef _MSC_VER
 #define printerrf(str) snprintf(this->err_str, MAX_ERR_LEN, str);
 #else
-#define printerrf(...)						 \
-  do {								 \
-    if ( ! this ) {						 \
+#define printerrf(...)                                           \
+  do {                                                           \
+    if ( ! this ) {                                              \
       fprintf(stderr, "Missing 'this' pointer while erroring:"); \
-      fprintf(stderr, __VA_ARGS__);				 \
-      fprintf(stderr, "\n");					 \
-    } else {							 \
-      snprintf(this->err_str, MAX_ERR_LEN, __VA_ARGS__);	 \
-    }								 \
+      fprintf(stderr, __VA_ARGS__);                              \
+      fprintf(stderr, "\n");                                     \
+    } else {                                                     \
+      snprintf(this->err_str, MAX_ERR_LEN, __VA_ARGS__);         \
+    }                                                            \
   } while(0);
 #endif /* WIN32 */
 #endif
-#define printerr(str)							\
-  do {									\
-    if ( ! this ) {							\
+#define printerr(str)                                                   \
+  do {                                                                  \
+    if ( ! this ) {                                                     \
       fprintf(stderr, "Missing 'this' pointer while erroring: %s\n", str); \
-    } else {								\
-      strncpy(this->err_str, str, MAX_ERR_LEN);				\
-    }									\
+    } else {                                                            \
+      strncpy(this->err_str, str, MAX_ERR_LEN);                         \
+    }                                                                   \
   } while(0);
 
 #endif /* DVDNAV_INTERNAL_H_INCLUDED */

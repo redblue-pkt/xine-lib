@@ -1,18 +1,18 @@
-/* 
+/*
  * Copyright (C) 2000 Rich Wareham <richwareham@users.sourceforge.net>
- * 
+ *
  * This file is part of libdvdnav, a DVD navigation library.
- * 
+ *
  * libdvdnav is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * libdvdnav is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
@@ -88,12 +88,12 @@ dvdnav_status_t dvdnav_get_number_of_parts(dvdnav_t *this, int32_t title, int32_
 
 dvdnav_status_t dvdnav_current_title_info(dvdnav_t *this, int32_t *title, int32_t *part) {
   int32_t retval;
-  
+
   if(!this || !title || !part) {
     printerr("Passed a NULL pointer.");
     return DVDNAV_STATUS_ERR;
   }
-  
+
   pthread_mutex_lock(&this->vm_lock);
   if (!this->vm->vtsi || !this->vm->vmgi) {
     printerr("Bad VM state.");
@@ -145,7 +145,7 @@ dvdnav_status_t dvdnav_part_play(dvdnav_t *this, int32_t title, int32_t part) {
     printerr("Passed a NULL pointer.");
     return DVDNAV_STATUS_ERR;
   }
-  
+
   pthread_mutex_lock(&this->vm_lock);
   if (!this->vm->vmgi) {
     printerr("Bad VM state.");
@@ -182,7 +182,7 @@ dvdnav_status_t dvdnav_part_play(dvdnav_t *this, int32_t title, int32_t part) {
 }
 
 dvdnav_status_t dvdnav_part_play_auto_stop(dvdnav_t *this, int32_t title,
-					   int32_t part, int32_t parts_to_play) {
+                                           int32_t part, int32_t parts_to_play) {
   /* FIXME: Implement auto-stop */
   (void)parts_to_play;
  if (dvdnav_part_play(this, title, part) == DVDNAV_STATUS_OK)
@@ -191,12 +191,12 @@ dvdnav_status_t dvdnav_part_play_auto_stop(dvdnav_t *this, int32_t title,
 }
 
 dvdnav_status_t dvdnav_time_play(dvdnav_t *this, int32_t title,
-				 uint64_t time) {
+                                 uint64_t time) {
   if(!this) {
     printerr("Passed a NULL pointer.");
     return DVDNAV_STATUS_ERR;
   }
-  
+
   /* FIXME: Implement */
   (void)title;
   (void)time;
@@ -209,7 +209,7 @@ dvdnav_status_t dvdnav_stop(dvdnav_t *this) {
     printerr("Passed a NULL pointer.");
     return DVDNAV_STATUS_ERR;
   }
-  
+
   pthread_mutex_lock(&this->vm_lock);
   this->vm->stopped = 1;
   pthread_mutex_unlock(&this->vm_lock);
