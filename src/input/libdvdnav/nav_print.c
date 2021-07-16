@@ -38,12 +38,12 @@ static void print_time(dvd_time_t *dtime) {
   CHECK_VALUE((dtime->minute>>4) < 0x7 && (dtime->minute&0xf) < 0xa);
   CHECK_VALUE((dtime->second>>4) < 0x7 && (dtime->second&0xf) < 0xa);
   CHECK_VALUE((dtime->frame_u&0xf) < 0xa);
-  
-  printf("%02x:%02x:%02x.%02x", 
-	 dtime->hour,
-	 dtime->minute,
-	 dtime->second,
-	 dtime->frame_u & 0x3f);
+
+  printf("%02x:%02x:%02x.%02x",
+         dtime->hour,
+         dtime->minute,
+         dtime->second,
+         dtime->frame_u & 0x3f);
   switch((dtime->frame_u & 0xc0) >> 6) {
   case 1:
     rate = "25.00";
@@ -54,7 +54,7 @@ static void print_time(dvd_time_t *dtime) {
   default:
     rate = "(please send a bug report)";
     break;
-  } 
+  }
   printf(" @ %s fps", rate);
 }
 
@@ -73,7 +73,7 @@ static void navPrint_PCI_GI(pci_gi_t *pci_gi) {
   printf("e_eltm        ");
   print_time(&pci_gi->e_eltm);
   printf("\n");
-  
+
   printf("vobu_isrc     \"");
   for(i = 0; i < 32; i++) {
     char c = pci_gi->vobu_isrc[i];
@@ -87,24 +87,24 @@ static void navPrint_PCI_GI(pci_gi_t *pci_gi) {
 
 static void navPrint_NSML_AGLI(nsml_agli_t *nsml_agli) {
   int i, j = 0;
-  
+
   for(i = 0; i < 9; i++)
     j |= nsml_agli->nsml_agl_dsta[i];
   if(j == 0)
     return;
-  
+
   printf("nsml_agli:\n");
   for(i = 0; i < 9; i++)
     if(nsml_agli->nsml_agl_dsta[i])
-      printf("nsml_agl_c%d_dsta  0x%08x\n", i + 1, 
-	     nsml_agli->nsml_agl_dsta[i]);
+      printf("nsml_agl_c%d_dsta  0x%08x\n", i + 1,
+             nsml_agli->nsml_agl_dsta[i]);
 }
 
 static void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns) {
-  
+
   if((hl_gi->hli_ss & 0x03) == 0)
     return;
-  
+
   printf("hl_gi:\n");
   printf("hli_ss        0x%01x\n", hl_gi->hli_ss & 0x03);
   printf("hli_s_ptm     0x%08x\n", hl_gi->hli_s_ptm);
@@ -116,7 +116,7 @@ static void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns) {
   printf("btngr%d_dsp_ty    0x%02x\n", 1, hl_gi->btngr1_dsp_ty);
   printf("btngr%d_dsp_ty    0x%02x\n", 2, hl_gi->btngr2_dsp_ty);
   printf("btngr%d_dsp_ty    0x%02x\n", 3, hl_gi->btngr3_dsp_ty);
-  
+
   printf("btn_ofn       %d\n", hl_gi->btn_ofn);
   *btn_ns = hl_gi->btn_ns;
   printf("btn_ns        %d\n", hl_gi->btn_ns);
@@ -127,49 +127,49 @@ static void navPrint_HL_GI(hl_gi_t *hl_gi, int *btngr_ns, int *btn_ns) {
 
 static void navPrint_BTN_COLIT(btn_colit_t *btn_colit) {
   int i, j;
-  
+
   j = 0;
   for(i = 0; i < 6; i++)
     j |= btn_colit->btn_coli[i/2][i&1];
   if(j == 0)
     return;
-  
+
   printf("btn_colit:\n");
   for(i = 0; i < 3; i++)
     for(j = 0; j < 2; j++)
       printf("btn_cqoli %d  %s_coli:  %08x\n",
-	     i, (j == 0) ? "sl" : "ac",
-	     btn_colit->btn_coli[i][j]);
+             i, (j == 0) ? "sl" : "ac",
+             btn_colit->btn_coli[i][j]);
 }
 
 static void navPrint_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns) {
   int i, j;
-  
+
   printf("btnit:\n");
   printf("btngr_ns: %i\n", btngr_ns);
   printf("btn_ns: %i\n", btn_ns);
-  
+
   if(btngr_ns == 0)
     return;
-  
+
   for(i = 0; i < btngr_ns; i++) {
     for(j = 0; j < (36 / btngr_ns); j++) {
       if(j < btn_ns) {
-	btni_t *btni = &btni_table[(36 / btngr_ns) * i + j];
-	
-	printf("group %d btni %d:  ", i+1, j+1);
-	printf("btn_coln %d, auto_action_mode %d\n",
-	       btni->btn_coln, btni->auto_action_mode);
-	printf("coords   (%d, %d) .. (%d, %d)\n",
-	       btni->x_start, btni->y_start, btni->x_end, btni->y_end);
-	
-	printf("up %d, ", btni->up);
-	printf("down %d, ", btni->down);
-	printf("left %d, ", btni->left);
-	printf("right %d\n", btni->right);
-	
-	/* ifoPrint_COMMAND(&btni->cmd); */
-	printf("\n");
+        btni_t *btni = &btni_table[(36 / btngr_ns) * i + j];
+
+        printf("group %d btni %d:  ", i+1, j+1);
+        printf("btn_coln %d, auto_action_mode %d\n",
+               btni->btn_coln, btni->auto_action_mode);
+        printf("coords   (%d, %d) .. (%d, %d)\n",
+               btni->x_start, btni->y_start, btni->x_end, btni->y_end);
+
+        printf("up %d, ", btni->up);
+        printf("down %d, ", btni->down);
+        printf("left %d, ", btni->left);
+        printf("right %d\n", btni->right);
+
+        /* ifoPrint_COMMAND(&btni->cmd); */
+        printf("\n");
       }
     }
   }
@@ -177,7 +177,7 @@ static void navPrint_BTNIT(btni_t *btni_table, int btngr_ns, int btn_ns) {
 
 static void navPrint_HLI(hli_t *hli) {
   int btngr_ns = 0, btn_ns = 0;
-  
+
   printf("hli:\n");
   navPrint_HL_GI(&hli->hl_gi, & btngr_ns, & btn_ns);
   navPrint_BTN_COLIT(&hli->btn_colit);
@@ -217,14 +217,14 @@ static void navPrint_SML_PBI(sml_pbi_t *sml_pbi) {
     printf("VOBU at the beginning of ILVU\n");
   if(sml_pbi->category & 0x1000)
     printf("VOBU at end of PREU of ILVU\n");
-  
+
   printf("ilvu_ea       0x%08x\n", sml_pbi->ilvu_ea);
   printf("nxt_ilvu_sa   0x%08x\n", sml_pbi->ilvu_sa);
   printf("nxt_ilvu_size 0x%04x\n", sml_pbi->size);
-  
+
   printf("vob_v_s_s_ptm 0x%08x\n", sml_pbi->vob_v_s_s_ptm);
   printf("vob_v_e_e_ptm 0x%08x\n", sml_pbi->vob_v_e_e_ptm);
-  
+
   /* $$$ more code needed here */
 }
 
@@ -233,14 +233,14 @@ static void navPrint_SML_AGLI(sml_agli_t *sml_agli) {
   printf("sml_agli:\n");
   for(i = 0; i < 9; i++) {
     printf("agl_c%d address: 0x%08x size 0x%04x\n", i,
-	   sml_agli->data[i].address, sml_agli->data[i].size);
+           sml_agli->data[i].address, sml_agli->data[i].size);
   }
 }
 
 static void navPrint_VOBU_SRI(vobu_sri_t *vobu_sri) {
   int i;
-  int stime[19] = { 240, 120, 60, 20, 15, 14, 13, 12, 11, 
-		     10,   9,  8,  7,  6,  5,  4,  3,  2, 1};
+  int stime[19] = { 240, 120, 60, 20, 15, 14, 13, 12, 11,
+                     10,   9,  8,  7,  6,  5,  4,  3,  2, 1};
   printf("vobu_sri:\n");
   printf("Next VOBU with Video %08x\n", vobu_sri->next_video);
   for(i = 0; i < 19; i++) {
@@ -259,7 +259,7 @@ static void navPrint_VOBU_SRI(vobu_sri_t *vobu_sri) {
 
 static void navPrint_SYNCI(synci_t *synci) {
   int i;
-  
+
   printf("synci:\n");
   /* $$$ more code needed here */
   for(i = 0; i < 8; i++)

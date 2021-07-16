@@ -6,7 +6,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -32,7 +32,7 @@
 dvd_input_t (*dvdinput_open)  (const char *);
 int         (*dvdinput_close) (dvd_input_t);
 int         (*dvdinput_seek)  (dvd_input_t, int);
-int         (*dvdinput_title) (dvd_input_t, int); 
+int         (*dvdinput_title) (dvd_input_t, int);
 int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
 char *      (*dvdinput_error) (dvd_input_t);
 int         (*dvdinput_is_encrypted) (dvd_input_t);
@@ -129,7 +129,7 @@ typedef struct dvdcss_s *dvdcss_handle;
 static dvdcss_handle (*DVDcss_open)  (const char *);
 static int           (*DVDcss_close) (dvdcss_handle);
 static int           (*DVDcss_seek)  (dvdcss_handle, int, int);
-static int           (*DVDcss_title) (dvdcss_handle, int); 
+static int           (*DVDcss_title) (dvdcss_handle, int);
 static int           (*DVDcss_read)  (dvdcss_handle, void *, int, int);
 static char *        (*DVDcss_error) (dvdcss_handle);
 static int           (*DVDcss_is_scrambled) (dvdcss_handle);
@@ -140,7 +140,7 @@ static int           (*DVDcss_is_scrambled) (dvdcss_handle);
 struct dvd_input_s {
   /* libdvdcss handle */
   dvdcss_handle dvdcss;
-  
+
   /* dummy file input */
   int fd;
 };
@@ -152,14 +152,14 @@ struct dvd_input_s {
 static dvd_input_t css_open(const char *target)
 {
   dvd_input_t dev;
-    
+
   /* Allocate the handle structure */
   dev = (dvd_input_t) malloc(sizeof(*dev));
   if(dev == NULL) {
     fprintf(stderr, "libdvdread: Could not allocate memory.\n");
     return NULL;
   }
-  
+
   /* Really open it with libdvdcss */
   dev->dvdcss = DVDcss_open(target);
   if(dev->dvdcss == 0) {
@@ -167,7 +167,7 @@ static dvd_input_t css_open(const char *target)
     free(dev);
     return NULL;
   }
-  
+
   return dev;
 }
 
@@ -250,14 +250,14 @@ static int css_is_encrypted (dvd_input_t dev)
 static dvd_input_t file_open(const char *target)
 {
   dvd_input_t dev;
-  
+
   /* Allocate the library structure */
   dev = (dvd_input_t) malloc(sizeof(*dev));
   if(dev == NULL) {
     fprintf(stderr, "libdvdread: Could not allocate memory.\n");
     return NULL;
   }
-  
+
   /* Open the device */
 #ifndef WIN32
   dev->fd = open(target, O_RDONLY);
@@ -269,7 +269,7 @@ static dvd_input_t file_open(const char *target)
     free(dev);
     return NULL;
   }
-  
+
   return dev;
 }
 
@@ -321,28 +321,28 @@ static int file_read(dvd_input_t dev, void *buffer, int blocks, int flags)
   (void)flags;
 
   len = (size_t)blocks * DVD_VIDEO_LB_LEN;
-  
+
   while(len > 0) {
-    
+
     ret = read(dev->fd, q, len);
-    
+
     if(ret < 0) {
       /* One of the reads failed, too bad.  We won't even bother
        * returning the reads that went ok, and as in the posix spec
        * the file postition is left unspecified after a failure. */
       return ret;
     }
-    
+
     if(ret == 0) {
       /* Nothing more to read.  Return the whole blocks, if any, that we got.
-	 and adjust the file possition back to the previous block boundary. */
+         and adjust the file possition back to the previous block boundary. */
       size_t bytes = (size_t)blocks * DVD_VIDEO_LB_LEN - len;
       off_t over_read = -(bytes % DVD_VIDEO_LB_LEN);
       /*off_t pos =*/ lseek(dev->fd, over_read, SEEK_CUR);
       /* should have pos % 2048 == 0 */
       return (int) (bytes / DVD_VIDEO_LB_LEN);
     }
-    
+
     q += ret;
     len -= ret;
   }
@@ -419,26 +419,26 @@ int dvdinput_setup(void)
       dlsym(dvdcss_library, U_S "dvdcss_error");
     DVDcss_is_scrambled = (int (*)(dvdcss_handle))
       dlsym(dvdcss_library, U_S "dvdcss_is_scrambled");
-    
+
     dvdcss_version = (char **)dlsym(dvdcss_library, U_S "dvdcss_interface_2");
 
     if(dlsym(dvdcss_library, U_S "dvdcss_crack")) {
-      fprintf(stderr, 
-	      "libdvdread: Old (pre-0.0.2) version of libdvdcss found.\n"
-	      "libdvdread: You should get the latest version from "
-	      "http://www.videolan.org/\n" );
+      fprintf(stderr,
+              "libdvdread: Old (pre-0.0.2) version of libdvdcss found.\n"
+              "libdvdread: You should get the latest version from "
+              "http://www.videolan.org/\n" );
       dlclose(dvdcss_library);
       dvdcss_library = NULL;
     } else if(!DVDcss_open  || !DVDcss_close || !DVDcss_seek
-	      || !DVDcss_read || !DVDcss_error) {
+              || !DVDcss_read || !DVDcss_error) {
       fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss, "
-	      "this shouldn't happen !\n");
+              "this shouldn't happen !\n");
       dlclose(dvdcss_library);
       dvdcss_library = NULL;
     }
   }
 #endif /* HAVE_DVDCSS_DVDCSS_H */
-  
+
   if(dvdcss_library != NULL) {
     /*
     char *psz_method = getenv( "DVDCSS_METHOD" );
@@ -447,8 +447,8 @@ int dvdinput_setup(void)
     fprintf(stderr, "DVDCSS_VERBOSE %s\n", psz_verbose);
     */
     fprintf(stderr, "libdvdread: Using libdvdcss version %s for DVD access\n",
-	    dvdcss_version ? *dvdcss_version : "?");
-    
+            dvdcss_version ? *dvdcss_version : "?");
+
     /* libdvdcss wrapper functions */
     dvdinput_open  = css_open;
     dvdinput_close = css_close;
@@ -458,7 +458,7 @@ int dvdinput_setup(void)
     dvdinput_error = css_error;
     dvdinput_is_encrypted = css_is_encrypted;
     return 1;
-    
+
   } else {
     fprintf(stderr, "libdvdread: Encrypted DVD support unavailable.\n");
 
