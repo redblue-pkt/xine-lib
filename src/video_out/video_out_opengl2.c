@@ -1,6 +1,6 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2012-2020 the xine project
+ * Copyright (C) 2012-2021 the xine project
  * Copyright (C) 2012 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -119,7 +119,6 @@ typedef struct {
   uint32_t           ovls_drawn;
   opengl2_overlay_t  overlays[XINE_VORAW_MAX_OVL];
 
-  opengl2_program_t  sharpness_program;
   float              csc_matrix[3 * 4];
   int                color_standard;
   int                update_csc;
@@ -127,8 +126,11 @@ typedef struct {
   int                contrast;
   int                brightness;
   int                hue;
-  int                update_sharpness;
-  int                sharpness;
+  struct {
+    int              value, changed;
+    float            mid, side, corn;
+    opengl2_program_t program;
+  }                  sharp;
 
   opengl2_program_t  bicubic_pass1_program;
   opengl2_program_t  bicubic_pass2_program;
@@ -347,24 +349,19 @@ static int create_lut_texture( opengl2_driver_t *that )
 static const char *blur_sharpen_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex;\n"
-"uniform float value;\n"
+"uniform float mid, side, corn;\n"
 "void main() {\n"
 "  vec2 pos = gl_TexCoord[0].xy;\n"
 "  vec4 c1;\n"
-"  float K;\n"
-"  if ( value < 0.0 )\n"
-"    K = value / 8.0;\n"
-"  else\n"
-"    K = value / 4.0;\n"
-"  c1 = texture2DRect( tex, pos ) * (1.0 + (8.0 * K));\n"
-"  c1 -= texture2DRect( tex, pos + vec2( 1.0, 0.0 ) ) * K;\n"
-"  c1 -= texture2DRect( tex, pos + vec2( -1.0, 0.0 ) ) * K;\n"
-"  c1 -= texture2DRect( tex, pos + vec2( 0.0, 1.0 ) ) * K;\n"
-"  c1 -= texture2DRect( tex, pos + vec2( 0.0, -1.0 ) ) * K;\n"
-"  c1 -= texture2DRect( tex, pos + vec2( 1.0, 1.0 ) ) * K;\n"
-"  c1 -= texture2DRect( tex, pos + vec2( -1.0, 1.0 ) ) * K;\n"
-"  c1 -= texture2DRect( tex, pos + vec2( -1.0, -1.0 ) ) * K;\n"
-"  c1 -= texture2DRect( tex, pos + vec2( 1.0, -1.0 ) ) * K;\n"
+"  c1 =   texture2DRect (tex, pos) * mid\n"
+"     +  (texture2DRect (tex, pos + vec2 (-1.0,  0.0))\n"
+"       + texture2DRect (tex, pos + vec2 ( 0.0, -1.0))\n"
+"       + texture2DRect (tex, pos + vec2 ( 1.0,  0.0))\n"
+"       + texture2DRect (tex, pos + vec2 ( 0.0,  1.0))) * side\n"
+"     +  (texture2DRect (tex, pos + vec2 (-1.0, -1.0))\n"
+"       + texture2DRect (tex, pos + vec2 ( 1.0, -1.0))\n"
+"       + texture2DRect (tex, pos + vec2 (-1.0,  1.0))\n"
+"       + texture2DRect (tex, pos + vec2 ( 1.0,  1.0))) * corn;\n"
 "  gl_FragColor = c1 ;\n"
 "}\n";
 
@@ -548,7 +545,7 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
   glGenTextures( 1, &this->videoTex );
   _config_texture(this->videoTex, w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
   glGenTextures( 1, &this->videoTex2 );
-  _config_texture(this->videoTex, w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
+  _config_texture(this->videoTex2, w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
 
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
 
@@ -819,7 +816,7 @@ static int opengl2_redraw_needed( vo_driver_t *this_gen )
     _x_vo_scale_compute_output_size( &this->sc );
     return 1;
   }
-  return this->update_csc | this->update_sharpness;
+  return this->update_csc | this->sharp.changed;
 }
 
 
@@ -1056,8 +1053,8 @@ static GLuint opengl2_sharpness( opengl2_driver_t *that, opengl2_frame_t *frame,
 {
   GLuint ret = video_texture;
   
-  if ( !that->sharpness_program.compiled ) {
-    if ( !opengl2_build_program( that, &that->sharpness_program, &blur_sharpen_frag, "blur_sharpen_frag" ) )
+  if (!that->sharp.program.compiled) {
+    if (!opengl2_build_program (that, &that->sharp.program, &blur_sharpen_frag, "blur_sharpen_frag"))
       return ret;
   }
 
@@ -1065,12 +1062,11 @@ static GLuint opengl2_sharpness( opengl2_driver_t *that, opengl2_frame_t *frame,
   glActiveTexture( GL_TEXTURE0 );
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
 
-  float value = that->sharpness / 100.0 * frame->width / 1920.0;
-
-  glUseProgram( that->sharpness_program.program );
-  glUniform1i( glGetUniformLocationARB( that->sharpness_program.program, "tex" ), 0 );
-  glUniform1f( glGetUniformLocationARB( that->sharpness_program.program, "value" ), value );
-  //fprintf(stderr, "vo_opengl2 : sharpness = %f\n", value);
+  glUseProgram (that->sharp.program.program);
+  glUniform1i (glGetUniformLocationARB (that->sharp.program.program, "tex"), 0);
+  glUniform1f (glGetUniformLocationARB (that->sharp.program.program, "mid"), that->sharp.mid);
+  glUniform1f (glGetUniformLocationARB (that->sharp.program.program, "side"), that->sharp.side);
+  glUniform1f (glGetUniformLocationARB (that->sharp.program.program, "corn"), that->sharp.corn);
 
   glBegin( GL_QUADS );
     glTexCoord2f( 0, 0 );                           glVertex3f( 0, 0, 0.);
@@ -1339,7 +1335,6 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   }
 
   opengl2_update_csc_matrix( that, frame );
-  that->update_sharpness = 0;
 
   glBindFramebuffer( GL_FRAMEBUFFER, that->fbo );
 
@@ -1410,7 +1405,18 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glUseProgram( 0 );
 
   // post-processing
-  if ( that->sharpness != 0 )
+  if (that->sharp.changed) {
+    that->sharp.side = that->sharp.value / 100.0 * frame->width / 1920.0;
+    if (that->sharp.value < 0)
+      that->sharp.side /= -6.8;
+    else
+      that->sharp.side /= -3.4;
+    that->sharp.corn = that->sharp.side * 0.707;
+    that->sharp.mid = 1.0 - 4.0 * (that->sharp.side + that->sharp.corn);
+    that->sharp.changed = 0;
+    xprintf (that->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": sharpness %d\n", that->sharp.value);
+  }
+  if (that->sharp.value)
     video_texture = opengl2_sharpness( that, frame, video_texture );
 
   // draw scaled overlays
@@ -1536,7 +1542,7 @@ static int opengl2_get_property( vo_driver_t *this_gen, int property )
     case VO_PROP_BRIGHTNESS:
       return this->brightness;
     case VO_PROP_SHARPNESS:
-      return this->sharpness;
+      return this->sharp.value;
     case VO_PROP_ZOOM_X:
       return this->zoom_x;
     case VO_PROP_ZOOM_Y:
@@ -1587,7 +1593,7 @@ static int opengl2_set_property( vo_driver_t *this_gen, int property, int value 
     case VO_PROP_SATURATION: this->saturation = value; this->update_csc = 1; break;
     case VO_PROP_CONTRAST: this->contrast = value; this->update_csc = 1; break;
     case VO_PROP_BRIGHTNESS: this->brightness = value; this->update_csc = 1; break;
-    case VO_PROP_SHARPNESS: this->sharpness = value; this->update_sharpness = 1; break;
+    case VO_PROP_SHARPNESS: this->sharp.value = value; this->sharp.changed = 1; break;
   }
 
   return value;
@@ -1712,8 +1718,8 @@ static void opengl2_dispose( vo_driver_t *this_gen )
   opengl2_delete_program( &this->yuv420_program );
   opengl2_delete_program( &this->yuv422_program );
 
-  if ( this->sharpness_program.compiled )
-    opengl2_delete_program( &this->sharpness_program );
+  if (this->sharp.program.compiled)
+    opengl2_delete_program (&this->sharp.program);
 
   if ( this->bicubic_pass1_program.compiled )
     opengl2_delete_program( &this->bicubic_pass1_program );
@@ -1770,9 +1776,9 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
 #ifndef HAVE_ZERO_SAFE_MEM
   this->hue                            = 0;
   this->brightness                     = 0;
-  this->update_sharpness               = 0;
-  this->sharpness                      = 0;
-  this->sharpness_program.compiled     = 0;
+  this->sharp.changed                  = 0;
+  this->sharp.value                    = 0;
+  this->sharp.program.compiled         = 0;
   this->bicubic_pass1_program.compiled = 0;
   this->bicubic_pass2_program.compiled = 0;
   this->bicubic_lut_texture            = 0;
