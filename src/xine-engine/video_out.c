@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2728,24 +2728,20 @@ static int vo_get_property (xine_video_port_t *this_gen, int property) {
   case XINE_PARAM_VO_CONTRAST:
   case XINE_PARAM_VO_BRIGHTNESS:
   case XINE_PARAM_VO_GAMMA:
-   {
-    int v, min_v, max_v, range_v;
+    {
+      int v, min_v = 0, max_v = 0xffff, range_v;
 
-    pthread_mutex_lock( &this->driver_lock );
-    this->driver->get_property_min_max (this->driver,
-					property & 0xffffff,
-					&min_v, &max_v);
+      pthread_mutex_lock (&this->driver_lock);
+      this->driver->get_property_min_max (this->driver, property & 0xffffff, &min_v, &max_v);
+      v = this->driver->get_property (this->driver, property & 0xffffff);
+      pthread_mutex_unlock (&this->driver_lock);
 
-    v = this->driver->get_property (this->driver, property & 0xffffff);
-
-    range_v = max_v - min_v + 1;
-
-    if (range_v > 0)
-      ret = ((v-min_v) * 65536 + 32768) / range_v;
-    else
-      ret = 0;
-    pthread_mutex_unlock( &this->driver_lock );
-  }
+      range_v = max_v - min_v;
+      if (range_v > 0)
+        ret = ((v - min_v) * 0xffff + (range_v >> 1)) / range_v;
+      else
+        ret = 0;
+    }
     break;
 
   default:
@@ -2861,20 +2857,14 @@ static int vo_set_property (xine_video_port_t *this_gen, int property, int value
   case XINE_PARAM_VO_BRIGHTNESS:
   case XINE_PARAM_VO_GAMMA:
     if (!this->grab_only) {
-      int v, min_v, max_v, range_v;
+      int v, min_v = 0, max_v = 0xffff, range_v;
 
-      pthread_mutex_lock( &this->driver_lock );
-
-      this->driver->get_property_min_max (this->driver,
-					property & 0xffffff,
-					&min_v, &max_v);
-
-      range_v = max_v - min_v + 1;
-
-      v = (value * range_v + (range_v/2)) / 65536 + min_v;
-
-      this->driver->set_property(this->driver, property & 0xffffff, v);
-      pthread_mutex_unlock( &this->driver_lock );
+      pthread_mutex_lock (&this->driver_lock);
+      this->driver->get_property_min_max (this->driver, property & 0xffffff, &min_v, &max_v);
+      range_v = max_v - min_v;
+      v = (value * range_v + 0x7fff) / 0xffff + min_v;
+      this->driver->set_property (this->driver, property & 0xffffff, v);
+      pthread_mutex_unlock (&this->driver_lock);
       ret = value;
     } else
       ret = 0;
