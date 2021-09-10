@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -3241,18 +3241,18 @@ static int demux_ts_get_optional_data(demux_plugin_t *this_gen,
 static int detect_ts (const uint32_t *buf, size_t len) {
   uint32_t stats_ts[188 / 4], stats_hdmv[192 / 4];
   /* Fold 188 or 192 counter slots over the buffer.
-   * Count bytes that "fail" to be 0x47.
-   * Consider a slot failed when >= 20% (1/5) of its bytes fail.
+   * Count bytes that are 0x47.
+   * Consider a slot passed when >= 80% (4/5) of its bytes match.
    * NOTE: this works with buffer size <= 188 * 127, or 23876.
    * we just need 2048. */
   {
     uint32_t i, v;
-    v = 128 - len / (5 * 188);
+    v = 128 - len * 4 / (5 * 188);
     v += v << 8;
     v += v << 16;
     for (i = 0; i < 188 / 4; i++)
       stats_ts[i] = v;
-    v = 128 - len / (5 * 192);
+    v = 128 - len * 4 / (5 * 192);
     v += v << 8;
     v += v << 16;
     for (i = 0; i < 192 / 4; i++)
@@ -3266,12 +3266,8 @@ static int detect_ts (const uint32_t *buf, size_t len) {
     while (b < e) {
       /* misuse plain int as a vector register.
        * endian does not matter here. */
-      uint32_t a = *b++;
-      a ^= 0x47474747;
-      a |= a >> 4;
-      a |= a >> 2;
-      a |= a >> 1;
-      a &= 0x01010101;
+      uint32_t a = *b++ ^ ~0x47474747;
+      a = (a & ((a & 0x7f7f7f7f) + 0x01010101) >> 7) & 0x01010101;
       stats_ts[i] += a;
       stats_hdmv[j] += a;
       if (--i < 0)
@@ -3289,7 +3285,6 @@ static int detect_ts (const uint32_t *buf, size_t len) {
     s += s >> 16;
     s += s >> 8;
     s &= 0x000000ff;
-    s = 188 - s;
     /* 0x47 may appear again in packet head. */
     if ((s > 0) && (s < 5))
       return 0;
@@ -3299,7 +3294,6 @@ static int detect_ts (const uint32_t *buf, size_t len) {
     s += s >> 16;
     s += s >> 8;
     s &= 0x000000ff;
-    s = 192 - s;
     /* 0x47 may appear again in packet head, and in timestamp field.
      * FIXME: main read resync code is not really prepared for the latter. */
     if ((s > 0) && (s < 7))
