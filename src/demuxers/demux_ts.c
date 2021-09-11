@@ -3267,7 +3267,7 @@ static int detect_ts (const uint32_t *buf, size_t len) {
       /* misuse plain int as a vector register.
        * endian does not matter here. */
       uint32_t a = *b++ ^ ~0x47474747;
-      a = (a & ((a & 0x7f7f7f7f) + 0x01010101) >> 7) & 0x01010101;
+      a = ((a & 0x80808080) & ((a & 0x7f7f7f7f) + 0x01010101)) >> 7;
       stats_ts[i] += a;
       stats_hdmv[j] += a;
       if (--i < 0)
