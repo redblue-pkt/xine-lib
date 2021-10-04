@@ -331,6 +331,7 @@ typedef struct {
   double          compression_factor;   /* current compression */
   double          compression_factor_max; /* user limit on compression */
   double          amp_factor;
+  int             amp_level;
 
   /* 10-band equalizer */
 
@@ -2722,7 +2723,7 @@ static int ao_get_property (xine_audio_port_t *this_gen, int property) {
     break;
 
   case AO_PROP_AMP:
-    ret = this->amp_factor*100;
+    ret = this->amp_level;
     break;
 
   case AO_PROP_AMP_MUTE:
@@ -2808,12 +2809,19 @@ static int ao_set_property (xine_audio_port_t *this_gen, int property, int value
     break;
 
   case AO_PROP_AMP:
-
-    this->amp_factor = (double) value / 100.0;
-
-    this->do_amp = (this->amp_factor != 1.0 || this->amp_mute);
-
-    ret = this->amp_factor*100;
+    this->amp_level = value;
+    this->do_amp = (value != 100) || this->amp_mute;
+    ret = value;
+    if (value) {
+      static const uint32_t mant[12] = {
+        2147483648u, 2275179671u, 2410468894u, 2553802834u, 2705659852u, 2866546760u,
+        3037000500u, 3217589947u, 3408917802u, 3611622603u, 3826380858u, 4053909305u
+      };
+      value += 20;
+      this->amp_factor = (double)mant[value % 12] * (double)(1 << (value / 12)) * (1.0 / (2147483648.0 * (1 << 10)));
+    } else {
+      this->amp_factor = 0;
+    }
     break;
 
   case AO_PROP_AMP_MUTE:
@@ -3183,6 +3191,7 @@ xine_audio_port_t *_x_ao_new_port (xine_t *xine, ao_driver_t *driver,
 
   this->compression_factor = 2.0;
   this->amp_factor         = 1.0;
+  this->amp_level          = 100;
 
   /*
    * pre-allocate memory for samples
