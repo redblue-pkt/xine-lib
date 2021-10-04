@@ -328,7 +328,7 @@ int  xine_get_param (xine_stream_t *stream, int param) XINE_PROTECTED;
 #define XINE_PARAM_AUDIO_VOLUME            6 /* 0..100                      */
 #define XINE_PARAM_AUDIO_MUTE              7 /* 1=>mute, 0=>unmute          */
 #define XINE_PARAM_AUDIO_COMPR_LEVEL       8 /* <100=>off, % compress otherw*/
-#define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, 100=>100% (default) */
+#define XINE_PARAM_AUDIO_AMP_LEVEL         9 /* 0..200, (val - 100) / 2 dB, 100 = default */
 #define XINE_PARAM_AUDIO_REPORT_LEVEL     10 /* 1=>send events, 0=> don't   */
 #define XINE_PARAM_VERBOSITY              11 /* control console output      */
 #define XINE_PARAM_SPU_OFFSET             12 /* unit: 1/90000 sec           */
