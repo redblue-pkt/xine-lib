@@ -1,4 +1,15 @@
+xine-lib (1.2.12)
+  * Add string tree library (generic info parser).
   * Add OpenSL ES audio output plugin.
+  * Add mpeg-dash input plugin.
+  * Better hls support.
+  * Improved DVB/live stream timing.
+  * Fix RSS parser.
+  * Fix output parameter setting (audio amplification, video hue etc.).
+  * Diverse small fixes and optimizations.
+  * Update german translation.
+  * Code cleanup.
+  * Build fixes.
 
 xine-lib (1.2.11) 2020-12-06
   * Add gopher input plugin.
