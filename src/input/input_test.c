@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 the xine project
+ * Copyright (C) 2012-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
