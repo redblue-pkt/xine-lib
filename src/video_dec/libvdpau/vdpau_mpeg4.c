@@ -1,7 +1,7 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
  *
- * Copyright (C) 2010-2019 the xine project
+ * Copyright (C) 2010-2021 the xine project
  * Copyright (C) 2010 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.

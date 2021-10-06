@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  * March 2003 - Miguel Freitas
  * This plugin was sponsored by 1Control
  *
