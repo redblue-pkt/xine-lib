@@ -1,3 +1,5 @@
+  * Use external libdvdnav by default.
+
 xine-lib (1.2.7) 2016-10-25
   * Add faad preamp gain control and channel mixer.
   * Add "Time Domain Audio Analyzer" Visualization Post Plugin.
