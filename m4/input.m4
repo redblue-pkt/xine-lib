@@ -20,7 +20,7 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
     default_enable_vdr=yes
     default_enable_bluray=yes
     default_enable_avformat=yes
-    default_with_external_dvdnav=no
+    default_with_external_dvdnav=yes
 
     case "$host_os" in
         cygwin* | mingw*)
@@ -127,7 +127,7 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
 
     dnl dvdnav
     dnl XXX: This could be cleaned up so that code does not have to ifdef so much
-    XINE_ARG_WITH([external-dvdnav], [Use external dvdnav library (not recommended)])
+    XINE_ARG_WITH([external-dvdnav], [Use external dvdnav library])
     if test x"$with_external_dvdnav" != x"no"; then
         PKG_CHECK_MODULES([DVDREAD], [dvdread],
                           [PKG_CHECK_MODULES([DVDNAV], [dvdnav],
