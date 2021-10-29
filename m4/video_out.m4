@@ -103,6 +103,7 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
     if test x"$have_caca$have_cucul" = x"yesyes"; then
         HAVE_CUCUL=1
         AC_SUBST([HAVE_CUCUL])
+        AC_DEFINE([HAVE_CUCUL], [], [Define this if you have the legacy libcaca with separate libcucul.])
     fi
 
 
