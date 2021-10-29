@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2019 the xine project
+ * Copyright (C) 2003-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -35,12 +35,20 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+
 #ifdef HAVE_CUCUL
-#include <cucul.h>
+#  include <cucul.h>
+#  define caca_canvas_t cucul_canvas_t
+#  define caca_create_canvas cucul_create_canvas
+#  define caca_get_canvas_width cucul_get_canvas_width
+#  define caca_get_canvas_height cucul_get_canvas_height
+#  define caca_free_canvas cucul_free_canvas
+#  define caca_dither_t cucul_dither_t
+#  define caca_create_dither define cucul_create_dither
+#  define caca_dither_bitmap cucul_dither_bitmap
+#  define caca_free_dither cucul_free_dither
 #endif
 #include <caca.h>
-
-
 
 #include "xine.h"
 #include <xine/video_out.h>
@@ -56,7 +64,7 @@ typedef struct caca_frame_s {
 
   vo_frame_t         vo_frame;
 
-  cucul_dither_t *pixmap_s;  /* pixmap info structure */
+  caca_dither_t *pixmap_s;  /* pixmap info structure */
   uint8_t            *pixmap_d;  /* pixmap data */
   unsigned int       width, height;
 
@@ -74,7 +82,7 @@ typedef struct {
 
   yuv2rgb_factory_t *yuv2rgb_factory;
 
-  cucul_canvas_t *cv;
+  caca_canvas_t *cv;
   caca_display_t *dp;
 
 } caca_driver_t;
@@ -104,7 +112,7 @@ static void caca_dispose_frame (vo_frame_t *vo_img) {
 
   free (frame->pixmap_d);
   if (frame->pixmap_s)
-    cucul_free_dither (frame->pixmap_s);
+    caca_free_dither (frame->pixmap_s);
 
   frame->yuv2rgb->dispose (frame->yuv2rgb);
 
@@ -163,7 +171,7 @@ static void caca_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
     _x_freep (&frame->pixmap_d);
 
     if (frame->pixmap_s) {
-      cucul_free_dither (frame->pixmap_s);
+      caca_free_dither (frame->pixmap_s);
       frame->pixmap_s = NULL;
     }
 
@@ -172,7 +180,7 @@ static void caca_update_frame_format (vo_driver_t *this_gen, vo_frame_t *img,
     frame->format = format;
 
     frame->pixmap_d = (uint8_t *) calloc (height, width * 4);
-    frame->pixmap_s = cucul_create_dither (32, width, height, width * 4,
+    frame->pixmap_s = caca_create_dither (32, width, height, width * 4,
       0xff0000, 0xff00, 0xff, 0);
 
     if (format == XINE_IMGFMT_YV12) {
@@ -214,7 +222,7 @@ static void caca_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   frame->vo_frame.free (&frame->vo_frame);
 
-  cucul_dither_bitmap(this->cv, 0, 0, cucul_get_canvas_width(this->cv)-1, cucul_get_canvas_height(this->cv)-1,
+  caca_dither_bitmap(this->cv, 0, 0, caca_get_canvas_width(this->cv)-1, caca_get_canvas_height(this->cv)-1,
     frame->pixmap_s, frame->pixmap_d);
   caca_refresh_display (this->dp);
 }
@@ -262,7 +270,7 @@ static void caca_dispose_driver (vo_driver_t *this_gen) {
   caca_driver_t *this = (caca_driver_t*) this_gen;
   this->yuv2rgb_factory->dispose (this->yuv2rgb_factory);
   caca_free_display(this->dp);
-  cucul_free_canvas(this->cv);
+  caca_free_canvas(this->cv);
 
   free(this);
 }
@@ -309,7 +317,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     this->cv = caca_get_canvas(dp);
     this->dp = dp;
   } else {
-    this->cv = cucul_create_canvas(0, 0);
+    this->cv = caca_create_canvas(0, 0);
     this->dp = caca_create_display(this->cv);
   }
 
