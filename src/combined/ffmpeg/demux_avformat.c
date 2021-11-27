@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2020 the xine project
+ * Copyright (C) 2013-2021 the xine project
  * Copyright (C) 2013-2020 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -546,28 +546,28 @@ static int send_avpacket(avformat_demux_plugin_t *this)
 {
   int64_t  stream_pos    = avio_tell(this->fmt_ctx->pb);
   int64_t  stream_length = avio_size(this->fmt_ctx->pb);
-  AVPacket pkt;
+  XFF_PACKET_DECL (pkt);
   uint32_t buffer_type = 0;
   fifo_buffer_t *fifo = NULL;
 
-  av_init_packet(&pkt);
-  pkt.data = NULL;
-  pkt.size = 0;
+  XFF_PACKET_NEW (pkt);
+  pkt->data = NULL;
+  pkt->size = 0;
 
   /* read frame from the file */
-  if (av_read_frame(this->fmt_ctx, &pkt) < 0) {
+  if (av_read_frame(this->fmt_ctx, pkt) < 0) {
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE": av_read_frame() failed\n");
     return -1;
   }
 
   /* map to xine fifo / buffer type */
-  if (pkt.stream_index >= 0 && (unsigned)pkt.stream_index < this->num_streams) {
-    buffer_type = this->xine_buf_type[pkt.stream_index];
+  if (pkt->stream_index >= 0 && (unsigned)pkt->stream_index < this->num_streams) {
+    buffer_type = this->xine_buf_type [pkt->stream_index];
   } else {
     // TODO: new streams found
   }
 
-  if (this->video_stream_idx >= 0 && pkt.stream_index == this->video_stream_idx) {
+  if (this->video_stream_idx >= 0 && pkt->stream_index == this->video_stream_idx) {
     fifo = this->stream->video_fifo;
   } else {
     fifo = this->stream->audio_fifo;
@@ -580,17 +580,17 @@ static int send_avpacket(avformat_demux_plugin_t *this)
     int      total_time    = (int)((int64_t)this->fmt_ctx->duration * 1000 / AV_TIME_BASE);
     int      input_time    = input_normpos * total_time / 65535;
 
-    if (pkt.pts != AV_NOPTS_VALUE) {
-      AVStream *stream = this->fmt_ctx->streams[pkt.stream_index];
-      pts = (int64_t)(pkt.pts * stream->time_base.num * 90000 / stream->time_base.den);
+    if (pkt->pts != AV_NOPTS_VALUE) {
+      AVStream *stream = this->fmt_ctx->streams [pkt->stream_index];
+      pts = (int64_t)(pkt->pts * stream->time_base.num * 90000 / stream->time_base.den);
       check_newpts(this, pts);
     }
 
-    _x_demux_send_data(fifo, pkt.data, pkt.size, pts, buffer_type, 0/*decoder_flags*/,
+    _x_demux_send_data (fifo, pkt->data, pkt->size, pts, buffer_type, 0/*decoder_flags*/,
                        input_normpos, input_time, total_time, 0/*frame_number*/);
   }
 
-  XFF_PACKET_UNREF(&pkt);
+  XFF_PACKET_UNREF (pkt);
 
   return 1;
 }
