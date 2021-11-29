@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
@@ -752,11 +753,23 @@ static void demux_avformat_dispose (demux_plugin_t *this_gen) {
 
 static int pb_input_read_packet(void *opaque, uint8_t *buf, int buf_size) {
   input_plugin_t *input = (input_plugin_t *)opaque;
-  return input->read(input, buf, buf_size);
+  int r = input->read (input, buf, buf_size);
+  /* avoid eternal misunderstanding :-O */
+  if (r > 0)
+    return r;
+  if (r == 0) {
+#ifdef AVERROR_EOF
+    return AVERROR_EOF;
+#else
+    return 0;
+#endif
+  }
+  return AVERROR (errno);
 }
 
 static int64_t pb_input_seek(void *opaque, int64_t offset, int whence) {
   input_plugin_t *input = (input_plugin_t *)opaque;
+  int64_t r;
 
   if (whence == AVSEEK_SIZE) {
     off_t len = input->get_length(input);
@@ -765,7 +778,10 @@ static int64_t pb_input_seek(void *opaque, int64_t offset, int whence) {
     return -1;
   }
 
-  return input->seek(input, offset, whence);
+  r = input->seek (input, offset, whence);
+  if (r >= 0)
+    return r;
+  return AVERROR (errno);
 }
 
 static AVIOContext *get_io_context(xine_stream_t *stream, input_plugin_t *input)
