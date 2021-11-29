@@ -564,6 +564,14 @@ static void *demux_loop (void *stream_gen) {
   return NULL;
 }
 
+int _x_demux_called_from (xine_stream_t *s) {
+  xine_stream_private_t *stream = (xine_stream_private_t *)s;
+
+  if (!stream->demux.thread_running)
+    return 0;
+  return pthread_equal (pthread_self (), stream->demux.thread);
+}
+
 int _x_demux_start_thread (xine_stream_t *s) {
 
   xine_stream_private_t *stream = (xine_stream_private_t *)s;

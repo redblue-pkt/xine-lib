@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -260,6 +260,7 @@ void _x_demux_control_headers_done (xine_stream_t *stream) XINE_PROTECTED;
 void _x_demux_control_start        (xine_stream_t *stream) XINE_PROTECTED;
 void _x_demux_control_end          (xine_stream_t *stream, uint32_t flags) XINE_PROTECTED;
 int _x_demux_start_thread          (xine_stream_t *stream) XINE_PROTECTED;
+int _x_demux_called_from           (xine_stream_t *stream) XINE_PROTECTED;
 int _x_demux_stop_thread           (xine_stream_t *stream) XINE_PROTECTED;
 int _x_demux_read_header           (input_plugin_t *input, void *buffer, off_t size) XINE_PROTECTED;
 int _x_demux_check_extension       (const char *mrl, const char *extensions);
@@ -391,4 +392,3 @@ typedef struct {
 #endif
 
 #endif
-

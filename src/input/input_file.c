@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <time.h>
 #include <errno.h>
 
 #ifdef HAVE_MMAP
@@ -78,6 +79,12 @@ typedef struct {
   xine_stream_t    *stream;
 
   int               fh;
+  enum {
+    FILE_STATIC = 0,
+    FILE_PROGRESSIVE,
+    FILE_DONE
+  }                 state;
+  off_t             size;
 #ifdef HAVE_MMAP
   int               mmap_on;
   uint8_t          *mmap_base;
@@ -88,6 +95,18 @@ typedef struct {
 
 } file_input_plugin_t;
 
+static void file_input_size (file_input_plugin_t *this, const struct stat *sbuf) {
+  if ((sbuf->st_size != this->size) &&
+#ifdef HAVE_MMAP
+    !this->mmap_on &&
+#endif
+    (this->state != FILE_PROGRESSIVE) && S_ISREG (sbuf->st_mode)) {
+    this->state = FILE_PROGRESSIVE;
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+      LOG_MODULE ": \"%s\" changed size, will wait for possible updates.\n", this->mrl);
+  }
+  this->size = sbuf->st_size;
+}
 
 static uint32_t file_input_get_capabilities (input_plugin_t *this_gen) {
 
@@ -102,12 +121,17 @@ static uint32_t file_input_get_capabilities (input_plugin_t *this_gen) {
 	return INPUT_CAP_CLONE | INPUT_CAP_SEEKABLE;
 #else
   if (fstat (this->fh, &buf) == 0) {
+    file_input_size (this, &buf);
     if (S_ISREG(buf.st_mode))
       return INPUT_CAP_CLONE | INPUT_CAP_SEEKABLE;
     else
       return 0;
-  } else
-    perror ("system call fstat");
+  } else {
+    int e = errno;
+
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        LOG_MODULE ": fstat (): %s.\n", strerror (e));
+  }
   return 0;
 #endif /* _MSC_VER */
 }
@@ -138,12 +162,17 @@ static int file_input_check_mmap (file_input_plugin_t *this) {
     return 0;
   }
 
+  file_input_size (this, &sbuf);
+
   return 1;
 }
 #endif
 
 static off_t file_input_read (input_plugin_t *this_gen, void *buf, off_t len) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
+  uint8_t *b;
+  ssize_t r, left;
+  int try;
 
   if (len < 0)
     return -1;
@@ -161,7 +190,51 @@ static off_t file_input_read (input_plugin_t *this_gen, void *buf, off_t len) {
   }
 #endif
 
-  return read (this->fh, buf, len);
+  b = (uint8_t *)buf;
+  left = len;
+  r = 0;
+  while (left > 0) {
+    r = read (this->fh, b, left);
+    if (r <= 0)
+      break;
+    b += r;
+    left -= r;
+  }
+  if (r < 0)
+    return r;
+  r = b - (uint8_t *)buf;
+  if (r == len)
+    return len;
+
+  /* poll for updates only when playing, dont delay plain xine_open (). */
+  if (this->state != FILE_PROGRESSIVE)
+    return r;
+  if (!_x_demux_called_from (this->stream))
+    return r;
+
+  try = 2 - 1;
+  while (left > 0) {
+    /* _x_io_select (, this->fh, ) tends to return XIO_READY immediately. */
+    if (_x_io_select (this->stream, -1, XIO_READ_READY, 1000) == XIO_ABORTED)
+      break;
+    r = read (this->fh, b, left);
+    if (r > 0) {
+      try = 2 - 1;
+      b += r;
+      left -= r;
+    } else if (r < 0) {
+      return r;
+    } else if (--try < 0) {
+      break;
+    }
+  }
+  r = b - (uint8_t *)buf;
+  if (r != len) {
+    this->state = FILE_DONE;
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+      LOG_MODULE ": \"%s\": no update, assuming real EOF.\n", this->mrl);
+  }
+  return r;
 }
 
 static buf_element_t *file_input_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
@@ -258,6 +331,7 @@ static off_t file_input_get_length (input_plugin_t *this_gen) {
 #endif
 
   if (fstat (this->fh, &buf) == 0) {
+    file_input_size (this, &buf);
     return buf.st_size;
   } else
     perror ("system call fstat");
@@ -313,6 +387,7 @@ static int file_input_open (input_plugin_t *this_gen ) {
   file_input_plugin_t *this = (file_input_plugin_t *) this_gen;
   char                *filename;
   struct stat          sbuf;
+  int                  sres;
 
   lprintf("file_input_open\n");
 
@@ -330,8 +405,8 @@ static int file_input_open (input_plugin_t *this_gen ) {
   if (!filename)
     return -1;
 
-  this->fh = xine_open_cloexec(filename, O_RDONLY|O_BINARY);
-
+  this->fh = xine_open_cloexec (filename, O_RDONLY | O_BINARY);
+  _x_freep (&filename);
   if (this->fh == -1) {
     if (errno == EACCES) {
       _x_message(this->stream, XINE_MSG_PERMISSION_ERROR, this->mrl, NULL);
@@ -342,12 +417,23 @@ static int file_input_open (input_plugin_t *this_gen ) {
       xine_log (this->stream->xine, XINE_LOG_MSG,
                 _("input_file: File not found: >%s<\n"), this->mrl);
     }
-
-    free(filename);
     return -1;
   }
 
-  _x_freep(&filename);
+  sres = fstat (this->fh, &sbuf);
+
+  if (!sres) {
+    this->size = sbuf.st_size;
+    if (S_ISREG (sbuf.st_mode)) {
+      time_t now = time (NULL);
+
+      if ((sbuf.st_mtime <= now) && (sbuf.st_mtime + 10 >= now)) {
+        this->state = FILE_PROGRESSIVE;
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          LOG_MODULE ": \"%s\" is quite recent, will wait for possible updates.\n", this->mrl);
+      }
+    }
+  }
 
 #ifdef HAVE_MMAP
   this->mmap_on = 0;
@@ -357,23 +443,32 @@ static int file_input_open (input_plugin_t *this_gen ) {
 #endif
 
   /* don't check length of fifo or character device node */
-  if (fstat (this->fh, &sbuf) == 0) {
-    if (!S_ISREG(sbuf.st_mode))
-      return 1;
-  }
+  if (!sres && !S_ISREG (sbuf.st_mode))
+    return 1;
 
 #ifdef HAVE_MMAP
-  {
-    size_t tmp_size = sbuf.st_size; /* may cause truncation - if it does, DON'T mmap! */
-    if ((tmp_size == sbuf.st_size) &&
-	( (this->mmap_base = mmap(NULL, tmp_size, PROT_READ, MAP_SHARED, this->fh, 0)) != (void*)-1 )) {
-      this->mmap_on = 1;
-      this->mmap_curr = this->mmap_base;
-      this->mmap_len = sbuf.st_size;
-    } else {
-      this->mmap_base = NULL;
+  this->mmap_base = NULL;
+  do {
+    uint8_t mmap_base;
+    size_t tmp_size;
+    /* may cause truncation - if it does, DON'T mmap! */
+    tmp_size = (size_t)sbuf.st_size;
+    if ((off_t)tmp_size != sbuf.st_size)
+      break;
+    mmap_base = mmap (NULL, tmp_size, PROT_READ, MAP_SHARED, this->fh, 0):
+    if (mmap_base == (void*)-1)
+      break;
+    /* paranoia */
+    sres = fstat (this->fh, &sbuf);
+    if (sres || (off_t)tmp_size != sbuf.st_size) {
+      munmap (mmap_base, tmp_size);
+      break;
     }
-  }
+    this->mmap_on = 1;
+    this->mmap_base =
+    this->mmap_curr = mmap_base;
+    this->mmap_len = sbuf.st_size;
+  } while (0);
 #endif
 
   if (file_input_get_length (this_gen) == 0) {
@@ -409,6 +504,8 @@ static input_plugin_t *file_input_get_instance (input_class_t *cls_gen, xine_str
   this->stream = stream;
   this->mrl    = strdup(mrl);
   this->fh     = -1;
+  this->state  = FILE_STATIC;
+  this->size   = 0;
 
   this->input_plugin.open               = file_input_open;
   this->input_plugin.get_capabilities   = file_input_get_capabilities;
@@ -999,4 +1096,3 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
 #endif
-
