@@ -68,6 +68,8 @@ typedef struct {
   int reported_video_step;
   int reported_width;
   int reported_height;
+
+  int used;
 } vdpau_h264_alter_decoder_t;
 
 static VdpDecoderProfile vdpau_h264_map_profile (int profile_idc) {
@@ -97,11 +99,16 @@ static __attribute__((format (printf, 3, 4))) int vdpau_h264_alter_logg (void *u
 
 static int vdpau_h264_alter_frame_new (void *user_data, vdec_hw_h264_frame_t *frame) {
   vdpau_h264_alter_decoder_t * this = (vdpau_h264_alter_decoder_t *)user_data;
-  int flags = (frame->flags & VDEC_HW_H264_FRAME_TOP_FIELD ? VO_TOP_FIELD : 0)
-            | (frame->flags & VDEC_HW_H264_FRAME_BOTTOM_FIELD ? VO_BOTTOM_FIELD : 0)
-            | (frame->flags & VDEC_HW_H264_FRAME_NEW_SEQ ? VO_NEW_SEQUENCE_FLAG : 0);
+  int flags = ((frame->flags & VDEC_HW_H264_FRAME_TOP_FIELD) ? VO_TOP_FIELD : 0)
+            | ((frame->flags & VDEC_HW_H264_FRAME_BOTTOM_FIELD) ? VO_BOTTOM_FIELD : 0)
+            | ((frame->flags & VDEC_HW_H264_FRAME_NEW_SEQ) ? VO_NEW_SEQUENCE_FLAG : 0);
   vo_frame_t *img;
 
+  if (frame->user_data) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+      LOG_MODULE ": ERROR: user frame set already.\n");
+    return 0;
+  }
   VO_SET_FLAGS_CM (frame->color_matrix, flags);
   frame->user_data = img = this->stream->video_out->get_frame (this->stream->video_out,
     frame->width, frame->height, frame->ratio, XINE_IMGFMT_VDPAU, flags);
@@ -110,6 +117,11 @@ static int vdpau_h264_alter_frame_new (void *user_data, vdec_hw_h264_frame_t *fr
   img->duration = frame->duration;
   img->progressive_frame = frame->progressive_frame;
   img->bad_frame = frame->bad_frame;
+  this->used += 1;
+  if (this->used > 19) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+      LOG_MODULE ": WARNING: too many frames (%d).\n", this->used);
+  }
   return 1;
 }
 
@@ -291,6 +303,11 @@ static void vdpau_h264_alter_frame_delete (void *user_data, vdec_hw_h264_frame_t
   if (img) {
     img->free (img);
     frame->user_data = NULL;
+    this->used -= 1;
+    if (this->used < 0) {
+      xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
+        LOG_MODULE ": WARNING: too few frames (%d).\n", this->used);
+    }
   }
 }
 
@@ -465,6 +482,8 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->reported_video_step = 0;
   this->reported_width = 0;
   this->reported_height = 0;
+
+  this->used = 0;
 
   this->decoder = VDP_INVALID_HANDLE;
   this->accel_vdpau = NULL;
