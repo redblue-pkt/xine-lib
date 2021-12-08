@@ -26,123 +26,257 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-
-
 typedef struct {
-  const uint8_t *buffer, *start;
-  int offbits, length, oflow;
+  const uint32_t *read;
+  const uint8_t *end;
+  uint32_t val, bits, oflow;
 } bits_reader_t;
 
+static void bits_reader_set (bits_reader_t *br, const uint8_t *buf, uint32_t len) {
+  const union {
+    uint32_t word;
+    uint8_t  little;
+  } endian_is = {1};
+  uint32_t v;
 
-
-static void
-bits_reader_set (bits_reader_t * br, const uint8_t * buf, int len)
-{
-  br->buffer = br->start = buf;
-  br->offbits = 0;
-  br->length = len;
+  br->end = buf + len;
+  br->read = (const uint32_t *)((uintptr_t)buf & ~(uintptr_t)3);
+  br->bits = 32 - (buf - (const uint8_t *)br->read) * 8;
+  v = *br->read++;
+  if (endian_is.little)
+    v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
+  br->val = v << (32 - br->bits);
   br->oflow = 0;
 }
 
+/* NOTE: mathematically, uint32_t << 32 yields 0.
+ * however, real life truncates the shift width to 5 bits (32 == 0),
+ * and thus has no effect. lets use some paranoia that gcc will
+ * optimize away in most cases where width is constant. */
 
+/** NOTE: old code bailed out when end of bitstream was reached exactly. */
+static uint32_t _read_slow_bits (bits_reader_t *br, uint32_t bits) {
+  const union {
+    uint32_t word;
+    uint8_t  little;
+  } endian_is = {1};
+  uint32_t v1, v2;
+  int left = (br->end - (const uint8_t *)br->read) * 8;
 
-static inline uint32_t
-more_rbsp_data (bits_reader_t * br)
-{
-  uint8_t val[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-  const uint8_t *buf = br->start + br->length;
-  int bit;
-
-  while (--buf >= br->buffer)
-  {
-    for (bit = 7; bit > -1; bit--)
-      if (*buf & val[bit])
-	return ((buf - br->buffer) * 8) - br->offbits + bit;
+  if (br->bits) {
+    v1 = br->val >> (32 - br->bits);
+    bits -= br->bits;
+    v1 <<= bits;
+  } else {
+    v1 = 0;
   }
+  if (left < 32) {
+    if (left < (int)bits) {
+      br->read = (const uint32_t *)(((uintptr_t)br->end + 3) & ~(uintptr_t)3);
+      br->bits = 0;
+      br->oflow = 1;
+      return 0;
+    }
+  } else {
+    left = 32;
+  }
+  v2 = *br->read++;
+  if (endian_is.little)
+    v2 = (v2 >> 24) | ((v2 >> 8) & 0x0000ff00) | ((v2 << 8) & 0x00ff0000) | (v2 << 24);
+  /* bits > 0 is sure here. */
+  v1 |= v2 >> (32 - bits);
+  br->val = v2 << bits;
+  br->bits = left - bits;
+  return v1;
+}
+
+/** bits <= 32 */
+static inline uint32_t read_bits (bits_reader_t *br, const uint32_t bits) {
+  uint32_t v;
+
+  if (!bits)
+    return 0;
+  if (br->bits >= bits) {
+    v = br->val >> (32 - bits);
+    br->val <<= bits;
+    br->bits -= bits;
+    return v;
+  }
+  return _read_slow_bits (br, bits);
+}
+
+static void _skip_slow_bits (bits_reader_t *br, uint32_t bits) {
+  const union {
+    uint32_t word;
+    uint8_t  little;
+  } endian_is = {1};
+  uint32_t v2;
+  int left = (br->end - (const uint8_t *)br->read) * 8;
+
+  bits -= br->bits;
+  left -= bits;
+  if (left < 0) {
+    br->read = (const uint32_t *)(((uintptr_t)br->end + 3) & ~(uintptr_t)3);
+    br->bits = 0;
+    br->oflow = 1;
+    return;
+  }
+  br->read += bits >> 5;
+  v2 = *br->read++;
+  if (endian_is.little)
+    v2 = (v2 >> 24) | ((v2 >> 8) & 0x0000ff00) | ((v2 << 8) & 0x00ff0000) | (v2 << 24);
+  bits &= 31;
+  br->val = v2 << bits;
+  br->bits = (left >= 32 ? 32 : left);
+}
+
+/** bits unlimited */
+static inline void skip_bits (bits_reader_t *br, const uint32_t bits) {
+  if (!bits)
+    return;
+  if (br->bits >= bits) {
+    br->val <<= bits;
+    br->bits -= bits;
+  } else {
+    _skip_slow_bits (br, bits);
+  }
+}
+
+/** how many bits are left from here to the last "1"? NOTE: old code was off by -1. */
+static uint32_t more_rbsp_data (bits_reader_t *br) {
+  static const uint32_t mask[4] = {0x00000000, 0xff000000, 0xffff0000, 0xffffff00};
+  const union {
+    uint32_t word;
+    uint8_t  little;
+  } endian_is = {1};
+  const uint32_t *p = (const uint32_t *)((uintptr_t)br->end & ~(uintptr_t)3);
+  uint32_t v;
+  int n;
+
+  v = *p;
+  if (endian_is.little)
+    v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
+  v &= mask[br->end - (const uint8_t *)p];
+
+  while (!v && (p > br->read)) {
+    v = *--p;
+    if (endian_is.little)
+      v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
+  }
+  n = (p - br->read) * 32 + br->bits;
+  while (v)
+    n++, v <<= 1;
+  return n;
+}
+
+static uint32_t read_exp_ue (bits_reader_t * br) {
+  const union {
+    uint32_t word;
+    uint8_t  little;
+  } endian_is = {1};
+  uint32_t size;
+  /* count leading 0 bits */
+  if (br->bits && br->val) {
+    uint32_t v1 = br->val;
+
+    size = 0;
+    while (!(v1 & 0x80000000))
+      v1 <<= 1, size++;
+    br->val = v1;
+    br->bits -= size;
+  } else {
+    int left = (br->end - (const uint8_t *)br->read) * 8;
+    uint32_t v2, rest;
+
+    if (left <= 0) {
+      br->read = (const uint32_t *)(((uintptr_t)br->end + 3) & ~(uintptr_t)3);
+      br->bits = 0;
+      br->oflow = 1;
+      return 0;
+    }
+    size = br->bits;
+    rest = 32 - size;
+    if (rest > (uint32_t)left)
+      rest = left;
+    v2 = *br->read++;
+    if (endian_is.little)
+      v2 = (v2 >> 24) | ((v2 >> 8) & 0x0000ff00) | ((v2 << 8) & 0x00ff0000) | (v2 << 24);
+    if (v2 & (0xffffffff << (32 - rest))) {
+      while (!(v2 & 0x80000000))
+        v2 <<= 1, size++;
+    } else {
+      v2 <<= rest;
+      size += rest;
+    }
+    br->val = v2;
+    br->bits = (left > 32 ? 32 : left) + br->bits - size;
+  }
+  /* get sized value */
+  size++;
+  if (br->bits >= size) {
+    uint32_t res = br->val >> (32 - size);
+
+    br->val <<= size;
+    br->bits -= size;
+    return res - 1;
+  } else {
+    uint32_t v2, res;
+    int left = (br->end - (const uint8_t *)br->read) * 8;
+
+    size -= br->bits;
+    if (left < (int)size) {
+      br->read = (const uint32_t *)(((uintptr_t)br->end + 3) & ~(uintptr_t)3);
+      br->bits = 0;
+      br->oflow = 1;
+      return 0;
+    }
+    res = br->bits ? br->val >> (32 - br->bits) : 0;
+    v2 = *br->read++;
+    if (endian_is.little)
+      v2 = (v2 >> 24) | ((v2 >> 8) & 0x0000ff00) | ((v2 << 8) & 0x00ff0000) | (v2 << 24);
+    res = (res << size) + (v2 >> (32 - size));
+    br->val = v2 << size;
+    br->bits = (left > 32 ? 32 : left) - size;
+    return res - 1;
+  }
+}
+
+static inline int32_t read_exp_se (bits_reader_t * br) {
+  uint32_t res = read_exp_ue (br);
+
+  return (res & 1) ? (int32_t)((res + 1) >> 1) : -(int32_t)(res >> 1);
+}
+
+#ifdef TEST_THIS_FILE
+#  include <stdio.h>
+
+int main (int argc, char **argv) {
+  static const uint8_t test[] = "\x75\x99\xfb\x07\x55\xd8\xff\x23\x11\xab\xa8";
+  bits_reader_t br;
+  unsigned int v1, v2, v3, v4, v5, v6, v7, v8, v9, m;
+
+  (void)argc;
+  (void)argv;
+  bits_reader_set (&br, test + 1, sizeof (test) - 1);
+  skip_bits (&br, 1);
+  v1 = read_bits (&br, 3);
+  v2 = read_bits (&br, 7);
+  v3 = read_bits (&br, 5);
+  skip_bits (&br, 8);
+  v4 = read_bits (&br, 8);
+  skip_bits (&br, 7);
+  v5 = read_bits (&br, 1);
+  m = more_rbsp_data (&br);
+  v6 = read_bits (&br, 12);
+  v7 = read_bits (&br, 4);
+  v8 = read_bits (&br, 23);
+  v9 = read_bits (&br, 9);
+  printf ("%s\n", __FILE__);
+  printf ("(1)        3        7        5 (8)        8 (7)        1       12        4       23        9\n");
+  printf ("--- %08x %08x %08x --- %08x --- %08x %08x %08x %08x %08x\n", v1, v2, v3, v4, v5, v6, v7, v8, v9);
+  printf ("more: %08x\n", m);
   return 0;
 }
 
-
-
-static inline uint8_t
-bits_reader_shift (bits_reader_t * br)
-{
-  br->offbits = 0;
-  if ((br->buffer + 1) > (br->start + br->length - 1))
-  {
-    br->oflow = 1;
-    //printf("!!!!! buffer overflow !!!!!\n");
-    return 0;
-  }
-  ++br->buffer;
-  if ((*(br->buffer) == 3) && ((br->buffer - br->start) > 2)
-      && (*(br->buffer - 2) == 0) && (*(br->buffer - 1) == 0))
-  {
-    if ((br->buffer + 1) > (br->start + br->length - 1))
-    {
-      br->oflow = 1;
-      //printf("!!!!! buffer overflow !!!!!\n");
-      return 0;
-    }
-    ++br->buffer;
-  }
-  return 1;
-}
-
-
-
-static inline uint32_t
-read_bits (bits_reader_t * br, int nbits)
-{
-  uint8_t val[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-  uint32_t res = 0;
-
-  while (nbits)
-  {
-    res = (res << 1) + ((*br->buffer & val[br->offbits]) ? 1 : 0);
-    --nbits;
-    ++br->offbits;
-    if (br->offbits > 7)
-      if (!bits_reader_shift (br))
-	return 1;
-  }
-  return res;
-}
-
-
-
-static inline void
-skip_bits (bits_reader_t * br, int nbits)
-{
-  while (nbits)
-  {
-    --nbits;
-    ++br->offbits;
-    if (br->offbits > 7)
-      bits_reader_shift (br);
-  }
-}
-
-
-
-static inline uint32_t
-read_exp_ue (bits_reader_t * br)
-{
-  int leading = -1;
-  uint8_t b;
-
-  for (b = 0; !b; leading++)
-    b = read_bits (br, 1);
-
-  return (1 << leading) - 1 + read_bits (br, leading);
-}
-
-
-
-static inline int32_t
-read_exp_se (bits_reader_t * br)
-{
-  uint32_t res = read_exp_ue (br);
-  return (res & 0x01) ? (res + 1) / 2 : -(res / 2);
-}
+#endif
 #endif /* ALTERH264_BITS_READER_H */
