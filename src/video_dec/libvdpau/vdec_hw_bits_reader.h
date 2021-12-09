@@ -127,7 +127,7 @@ static void _skip_slow_bits (bits_reader_t *br, uint32_t bits) {
     v2 = (v2 >> 24) | ((v2 >> 8) & 0x0000ff00) | ((v2 << 8) & 0x00ff0000) | (v2 << 24);
   bits &= 31;
   br->val = v2 << bits;
-  br->bits = (left >= 32 ? 32 : left);
+  br->bits = (left >= 32 ? 32 : left) - bits;
 }
 
 /** bits unlimited */
@@ -153,17 +153,27 @@ static uint32_t more_rbsp_data (bits_reader_t *br) {
   uint32_t v;
   int n;
 
-  v = *p;
-  if (endian_is.little)
-    v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
-  v &= mask[br->end - (const uint8_t *)p];
+  n = br->end - (const uint8_t *)p;
+  if (n > 0) {
+    v = *p;
+    if (endian_is.little)
+      v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
+    v &= mask[n];
+  } else {
+    v = 0;
+  }
 
   while (!v && (p > br->read)) {
     v = *--p;
     if (endian_is.little)
       v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
   }
-  n = (p - br->read) * 32 + br->bits;
+
+  if (!v && br->bits) {
+    v = br->val;
+    p--;
+  }
+  n = (p + 1 - br->read) * 32;
   while (v)
     n++, v <<= 1;
   return n;

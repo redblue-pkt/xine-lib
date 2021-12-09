@@ -284,6 +284,8 @@ struct vdec_hw_h264_s {
   uint32_t ref_frames_max;
   uint32_t ref_frames_used;
   vdec_hw_h264_frame_int_t frames[MAX_REF_FRAMES + 1];
+
+  uint8_t tempbuf[1 << 16];
 };
 
 static const uint8_t zigzag_4x4[16] = {
@@ -876,8 +878,11 @@ static void _vdec_hw_h264_read_vui (vdec_hw_h264_t *vdec, vdec_hw_h264_vui_t *vu
         * vui->num_units_in_tick / vui->time_scale;
       if (vdec->seq.video_step < 90) {
         /* bad: 2 * 1 / 60000. seen this once from broken h.264 video usability info (VUI).
-         * VAAPI seems to apply a similar HACK.*/
+         * VAAPI seems to apply a similar HACK. */
         vdec->seq.video_step = (uint64_t)90000000 * 2 * vui->num_units_in_tick / vui->time_scale;
+        /* seen 1 / 180000, ignore. */
+        if (vdec->seq.video_step < 1500)
+          vdec->seq.video_step = 0;
       }
     }
   }
@@ -1118,7 +1123,8 @@ static void _vdec_hw_h264_read_pps (vdec_hw_h264_t *vdec) {
   more = more_rbsp_data (&vdec->seq.br);
   lprintf ("more bits = %d (buflen = %d) (still = %zd)\n", (int)more,
     (int)vdec->seq.br.length, (ssize_t)(vdec->seq.br.start + vdec->seq.br.length - vdec->seq.br.buffer));
-  if (more) {
+  /* no typo, we want at least 2 "1" bits. */
+  if (more > 1) {
     bits = read_bits (&vdec->seq.br, 2);
     pps->transform_8x8_mode_flag = (bits >> 1) & 1;
     pps->pic_scaling_matrix_present_flag = (bits >> 0) & 1;
@@ -1841,6 +1847,7 @@ static void _vdec_hw_h264_decode_picture (vdec_hw_h264_t *vdec) {
 static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, uint32_t len) {
   int ret = 0;
   uint8_t nal_ref_idc, nal_unit_type;
+  uint32_t ulen;
   vdec_hw_h264_sps_t *sps;
 
   /* forbidden_zero_bit 7 */
@@ -1853,9 +1860,6 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
    * frame timing fields who are plain uint32, not exp_ue.
    * encoders/muxers work around and insert 0x03 break bytes.
    * remove them here (not generally in bits reader like before). */
-  if ((nal_unit_type == NAL_SEQUENCE) || (nal_unit_type == NAL_PICTURE))
-    len = _vdec_hw_h264_unescape (buf + 1, len);
-  bits_reader_set (&vdec->seq.br, buf + 1, len);
 
   switch (nal_unit_type) {
     case NAL_END_SEQUENCE:
@@ -1871,6 +1875,9 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
         sps->reused = 1;
       break;
     case NAL_SEQUENCE:
+      /* this is just for us, unescape and read in place. */
+      ulen = _vdec_hw_h264_unescape (buf + 1, len);
+      bits_reader_set (&vdec->seq.br, buf + 1, ulen);
       sps = _vdec_hw_h264_read_sps (vdec);
       if (!sps) {
         vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_ERR,
@@ -1878,22 +1885,19 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
       }
       break;
     case NAL_PICTURE:
+      /* this is just for us, unescape and read in place. */
+      ulen = _vdec_hw_h264_unescape (buf + 1, len);
+      bits_reader_set (&vdec->seq.br, buf + 1, ulen);
       _vdec_hw_h264_read_pps (vdec);
       break;
     case NAL_SLICE_IDR:
-      vdec->seq.slice_mode = NAL_SLICE_IDR;
-      _vdec_hw_h264_slice_header (vdec, nal_ref_idc, nal_unit_type);
-      vdec->seq.slices_bitstream[vdec->seq.slices_count] = buf;
-      vdec->seq.slices_bytes[vdec->seq.slices_count] = len;
-      if (vdec->seq.slices_count < MAX_SLICES) {
-        vdec->seq.slices_count++;
-      } else {
-        vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_ERR,
-          LOG_MODULE ": too many slices!!\n");
-      }
-      break;
     case NAL_SLICE_NO_IDR:
-      vdec->seq.slice_mode = NAL_SLICE_NO_IDR;
+      vdec->seq.slice_mode = nal_unit_type;
+      /* copy, unescape and read the small head here, and pass the whole original to hw later. */
+      ulen = len > 256 ? 256 : len;
+      memcpy (vdec->tempbuf, buf + 1, ulen);
+      ulen = _vdec_hw_h264_unescape (vdec->tempbuf, ulen);
+      bits_reader_set (&vdec->seq.br, vdec->tempbuf, ulen);
       _vdec_hw_h264_slice_header (vdec, nal_ref_idc, nal_unit_type);
       vdec->seq.slices_bitstream[vdec->seq.slices_count] = buf;
       vdec->seq.slices_bytes[vdec->seq.slices_count] = len;
@@ -1917,53 +1921,45 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
 }
 
 int vdec_hw_h264_put_config (vdec_hw_h264_t *vdec, const uint8_t *bitstream, uint32_t num_bytes) {
-  const uint8_t *buffer;
-  uint8_t count;
-  int i;
+  const uint8_t *buf;
+  uint32_t count, i;
 
   if (!vdec || !bitstream || !num_bytes)
     return 0;
-
-  buffer = bitstream;
-  bits_reader_set (&vdec->seq.br, bitstream, num_bytes);
 
   lprintf ("vdec_hw_h264_put_config\n");
 
   vdec->seq.flag_header = 1;
   vdec->seq.mode_frame = 1;
 
-  // reserved
-  skip_bits (&vdec->seq.br, 8);
-  skip_bits (&vdec->seq.br, 8); /* profile_idc */
-  skip_bits (&vdec->seq.br, 8);
-  skip_bits (&vdec->seq.br, 8); /* level_idc */
-  skip_bits (&vdec->seq.br, 6);
+  /* reserved:8, profile_idc:8, reserved:8, level_idc:8, reserved:6 frame_header_size_minus_1:2 */
+  vdec->seq.frame_header_size = (bitstream[4] & 3) + 1;
 
-  vdec->seq.frame_header_size = read_bits (&vdec->seq.br, 2) + 1;
-  // vdec->seq.frame_header_size = 3;
-  skip_bits (&vdec->seq.br, 3);
+  buf = bitstream + 5;
+  /* reserved:3, sps_count:5 */
+  count = *buf++ & 31;
+  for (i = 0; i < count; i++) {
+    uint32_t sps_size, s2;
 
-  count = read_bits (&vdec->seq.br, 5);
-  buffer += 6;
-  for (i = 0; i < (int)count; i++) {
-    uint16_t sps_size;
-
-    bits_reader_set (&vdec->seq.br, buffer, num_bytes - (buffer - bitstream));
-    sps_size = read_bits (&vdec->seq.br, 16);
-    skip_bits (&vdec->seq.br, 8);
+    sps_size = ((uint32_t)buf[0] << 8) + buf[1], buf += 2;
+    memcpy (vdec->tempbuf, buf, sps_size);
+    s2 = _vdec_hw_h264_unescape (vdec->tempbuf, sps_size);
+    /* reserved:8 */
+    bits_reader_set (&vdec->seq.br, vdec->tempbuf + 1, s2 ? s2 - 1 : 0);
     _vdec_hw_h264_read_sps (vdec);
-    buffer += sps_size + 2;
+    buf += sps_size;
   }
-  count = buffer[0];
-  ++buffer;
-  for (i = 0; i < (int)count; i++) {
-    uint16_t pps_size;
+  count = *buf++;
+  for (i = 0; i < count; i++) {
+    uint32_t pps_size, s2;
 
-    bits_reader_set (&vdec->seq.br, buffer, num_bytes - (buffer - bitstream));
-    pps_size = read_bits (&vdec->seq.br, 16);
-    skip_bits (&vdec->seq.br, 8);
+    pps_size = ((uint32_t)buf[0] << 8) + buf[1], buf += 2;
+    memcpy (vdec->tempbuf, buf, pps_size);
+    s2 = _vdec_hw_h264_unescape (vdec->tempbuf, pps_size);
+    /* reserved:8 */
+    bits_reader_set (&vdec->seq.br, vdec->tempbuf + 1, s2 ? s2 - 1 : 0);
     _vdec_hw_h264_read_pps (vdec);
-    buffer += pps_size + 2;
+    buf += pps_size;
   }
   return 1;
 }
