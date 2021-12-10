@@ -142,6 +142,9 @@ static inline void skip_bits (bits_reader_t *br, const uint32_t bits) {
   }
 }
 
+/* needing this func at all is a nasty kludge.
+ * h.264 PPS has an optional extension that has been added without defining
+ * a presence flag earlier... */
 /** how many bits are left from here to the last "1"? NOTE: old code was off by -1. */
 static uint32_t more_rbsp_data (bits_reader_t *br) {
   static const uint32_t mask[4] = {0x00000000, 0xff000000, 0xffff0000, 0xffffff00};
@@ -149,31 +152,42 @@ static uint32_t more_rbsp_data (bits_reader_t *br) {
     uint32_t word;
     uint8_t  little;
   } endian_is = {1};
-  const uint32_t *p = (const uint32_t *)((uintptr_t)br->end & ~(uintptr_t)3);
   uint32_t v;
   int n;
 
-  n = br->end - (const uint8_t *)p;
-  if (n > 0) {
-    v = *p;
-    if (endian_is.little)
-      v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
-    v &= mask[n];
-  } else {
-    v = 0;
-  }
+  do {
+    /* search yet unread bits for last "1". */
+    if ((const uint8_t *)br->read < br->end) {
+      const uint32_t *p = (const uint32_t *)((uintptr_t)br->end & ~(uintptr_t)3);
 
-  while (!v && (p > br->read)) {
-    v = *--p;
-    if (endian_is.little)
-      v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
-  }
+      n = br->end - (const uint8_t *)p;
+      if (n > 0) {
+        v = *p;
+        if (endian_is.little)
+          v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
+        v &= mask[n];
+      } else {
+        v = 0;
+      }
 
-  if (!v && br->bits) {
-    v = br->val;
-    p--;
-  }
-  n = (p + 1 - br->read) * 32;
+      while (!v && (p > br->read)) {
+        v = *--p;
+        if (endian_is.little)
+          v = (v >> 24) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000) | (v << 24);
+      }
+      n = (p - br->read) * 32 + br->bits;
+      if (v)
+        break;
+    }
+    /* well, only value cache is left to test. */
+    if (!br->bits)
+      return 0;
+    /* for performance, we dont end mask br->val generally. */
+    n = 32 - br->bits;
+    v = br->val >> n << n;
+    n = 0;
+  } while (0);
+
   while (v)
     n++, v <<= 1;
   return n;
@@ -290,3 +304,4 @@ int main (int argc, char **argv) {
 
 #endif
 #endif /* ALTERH264_BITS_READER_H */
+

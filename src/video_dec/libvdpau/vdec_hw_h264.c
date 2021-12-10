@@ -26,7 +26,7 @@
 #endif
 
 #undef LOG
-#define LOG_MODULE "vdec_h264"
+#define LOG_MODULE "vdec_hw_h264"
 
 #ifdef LOG
 #  define lprintf(_fmt, ...) fprintf (stderr, LOG_MODULE _fmt, ...)
@@ -1033,7 +1033,7 @@ static vdec_hw_h264_sps_t *_vdec_hw_h264_read_sps (vdec_hw_h264_t *vdec) {
   if (!sps) {
     vdec->seq.sps[tsps.sps_id] = sps = malloc  (sizeof (*sps));
     if (!sps) {
-      vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_ERR, "no memory for SPS #%d.}n", (int)tsps.sps_id);
+      vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_ERR, LOG_MODULE ": no memory for SPS #%d.}n", (int)tsps.sps_id);
       return NULL;
     }
   } else {
@@ -1042,45 +1042,34 @@ static vdec_hw_h264_sps_t *_vdec_hw_h264_read_sps (vdec_hw_h264_t *vdec) {
       return sps;
   }
   memcpy (sps, &tsps, sizeof (tsps));
-  vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_INFO, "new SPS #%d.\n", (int)tsps.sps_id);
+  vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_INFO, LOG_MODULE ": new SPS #%d.\n", (int)tsps.sps_id);
   return sps;
 }
 
-static void _vdec_hw_h264_read_pps (vdec_hw_h264_t *vdec) {
-  vdec_hw_h264_pps_t *pps;
+static vdec_hw_h264_pps_t *_vdec_hw_h264_read_pps (vdec_hw_h264_t *vdec) {
+  vdec_hw_h264_pps_t *pps, tpps;
   vdec_hw_h264_sps_t *sps;
   uint32_t more;
-  uint8_t pps_id, sps_id, num_slice_groups_minus1, bits;
+  uint8_t num_slice_groups_minus1, bits;
   int i;
 
-  pps_id = read_exp_ue (&vdec->seq.br);
-  lprintf ("new PPS #%d\n", (int)pps_id);
-  pps = vdec->seq.pps[pps_id];
-  if (!pps) {
-    vdec->seq.pps[pps_id] = pps = calloc (1, sizeof (*pps));
-    if (!pps) {
-      vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_ERR,
-        LOG_MODULE ": no memory for PPS #%d.\n", (int)pps_id);
-      return;
-    }
-  }
+  memset (&tpps, 0, sizeof (tpps));
 
-  sps_id = read_exp_ue (&vdec->seq.br);
-  lprintf ("using SPS #%d\n", (int)sps_id);
-  if (sps_id > 31) {
-    lprintf ("referenced SPS #%d does not exist!!\n", (int)sps_id);
-    return;
+  tpps.pps_id = read_exp_ue (&vdec->seq.br);
+  tpps.sps_id = read_exp_ue (&vdec->seq.br);
+  if (tpps.sps_id > 31) {
+    lprintf ("referenced SPS #%d does not exist!!\n", (int)tpps.sps_id);
+    return NULL;
   }
-  sps = vdec->seq.sps[sps_id];
+  sps = vdec->seq.sps[tpps.sps_id];
   if (!sps) {
-    lprintf ("referenced SPS #%d does not exist!!\n", (int)sps_id);
-    return;
+    lprintf ("referenced SPS #%d does not exist!!\n", (int)tpps.sps_id);
+    return NULL;
   }
 
-  pps->sps_id = sps_id;
   bits = read_bits (&vdec->seq.br, 2);
-  pps->entropy_coding_mode_flag = (bits >> 1) & 1;
-  pps->pic_order_present_flag   = (bits >> 0) & 1;
+  tpps.entropy_coding_mode_flag = (bits >> 1) & 1;
+  tpps.pic_order_present_flag   = (bits >> 0) & 1;
 
   num_slice_groups_minus1 = read_exp_ue (&vdec->seq.br);
   lprintf ("num_slice_groups_minus1 = %d\n", (int)num_slice_groups_minus1);
@@ -1104,56 +1093,69 @@ static void _vdec_hw_h264_read_pps (vdec_hw_h264_t *vdec) {
     }
   }
 
-  pps->num_ref_idx_l0_active_minus1 = read_exp_ue (&vdec->seq.br);
-  pps->num_ref_idx_l1_active_minus1 = read_exp_ue (&vdec->seq.br);
+  tpps.num_ref_idx_l0_active_minus1 = read_exp_ue (&vdec->seq.br);
+  tpps.num_ref_idx_l1_active_minus1 = read_exp_ue (&vdec->seq.br);
 
   bits = read_bits (&vdec->seq.br, 3);
-  pps->weighted_pred_flag  = (bits >> 2) & 1;
-  pps->weighted_bipred_idc = (bits >> 0) & 3;
+  tpps.weighted_pred_flag  = (bits >> 2) & 1;
+  tpps.weighted_bipred_idc = (bits >> 0) & 3;
 
-  pps->pic_init_qp_minus26 = read_exp_se (&vdec->seq.br);
-  pps->pic_init_qs_minus26 = read_exp_se (&vdec->seq.br);
-  pps->chroma_qp_index_offset = read_exp_se (&vdec->seq.br);
+  tpps.pic_init_qp_minus26 = read_exp_se (&vdec->seq.br);
+  tpps.pic_init_qs_minus26 = read_exp_se (&vdec->seq.br);
+  tpps.chroma_qp_index_offset = read_exp_se (&vdec->seq.br);
 
   bits = read_bits (&vdec->seq.br, 3);
-  pps->deblocking_filter_control_present_flag = (bits >> 2) & 1;
-  pps->constrained_intra_pred_flag = (bits >> 1) & 1;
-  pps->redundant_pic_cnt_present_flag = (bits >> 0) & 1;
+  tpps.deblocking_filter_control_present_flag = (bits >> 2) & 1;
+  tpps.constrained_intra_pred_flag = (bits >> 1) & 1;
+  tpps.redundant_pic_cnt_present_flag = (bits >> 0) & 1;
 
   more = more_rbsp_data (&vdec->seq.br);
-  lprintf ("more bits = %d (buflen = %d) (still = %zd)\n", (int)more,
-    (int)vdec->seq.br.length, (ssize_t)(vdec->seq.br.start + vdec->seq.br.length - vdec->seq.br.buffer));
   /* no typo, we want at least 2 "1" bits. */
   if (more > 1) {
     bits = read_bits (&vdec->seq.br, 2);
-    pps->transform_8x8_mode_flag = (bits >> 1) & 1;
-    pps->pic_scaling_matrix_present_flag = (bits >> 0) & 1;
-    if (pps->pic_scaling_matrix_present_flag) {
+    tpps.transform_8x8_mode_flag = (bits >> 1) & 1;
+    tpps.pic_scaling_matrix_present_flag = (bits >> 0) & 1;
+    if (tpps.pic_scaling_matrix_present_flag) {
       for (i = 0; i < 8; i++) {
-        if ((i < 6) || pps->transform_8x8_mode_flag)
-          pps->pic_scaling_list_present_flag[i] = read_bits (&vdec->seq.br, 1);
+        if ((i < 6) || tpps.transform_8x8_mode_flag)
+          tpps.pic_scaling_list_present_flag[i] = read_bits (&vdec->seq.br, 1);
         else
-          pps->pic_scaling_list_present_flag[i] = 0;
-        if (pps->pic_scaling_list_present_flag[i]) {
+          tpps.pic_scaling_list_present_flag[i] = 0;
+        if (tpps.pic_scaling_list_present_flag[i]) {
           if (i < 6)
-            parse_scaling_list (&vdec->seq.br, &pps->scaling_lists_4x4[i][0], 16, i);
+            parse_scaling_list (&vdec->seq.br, &tpps.scaling_lists_4x4[i][0], 16, i);
           else
-            parse_scaling_list (&vdec->seq.br, &pps->scaling_lists_8x8[i - 6][0], 64, i);
+            parse_scaling_list (&vdec->seq.br, &tpps.scaling_lists_8x8[i - 6][0], 64, i);
         } else {
           if (!sps->seq_scaling_matrix_present_flag)
-            _vdec_hw_h264_scaling_list_fallback_A ((uint8_t *)pps->scaling_lists_4x4, (uint8_t *)pps->scaling_lists_8x8, i);
+            _vdec_hw_h264_scaling_list_fallback_A ((uint8_t *)tpps.scaling_lists_4x4, (uint8_t *)tpps.scaling_lists_8x8, i);
           else
-            _vdec_hw_h264_scaling_list_fallback_B (sps, pps, i);
+            _vdec_hw_h264_scaling_list_fallback_B (sps, &tpps, i);
         }
       }
     }
-    pps->second_chroma_qp_index_offset = read_exp_se (&vdec->seq.br);
-    lprintf ("second_chroma_qp_index_offset = %d\n", (int)pps->second_chroma_qp_index_offset);
+    tpps.second_chroma_qp_index_offset = read_exp_se (&vdec->seq.br);
+    lprintf ("second_chroma_qp_index_offset = %d\n", (int)tpps.second_chroma_qp_index_offset);
   } else {
-    pps->transform_8x8_mode_flag = 0;
-    pps->pic_scaling_matrix_present_flag = 0;
-    pps->second_chroma_qp_index_offset = pps->chroma_qp_index_offset;
+    tpps.transform_8x8_mode_flag = 0;
+    tpps.pic_scaling_matrix_present_flag = 0;
+    tpps.second_chroma_qp_index_offset = tpps.chroma_qp_index_offset;
   }
+
+  pps = vdec->seq.pps[tpps.pps_id];
+  if (!pps) {
+    vdec->seq.pps[tpps.pps_id] = pps = malloc  (sizeof (*pps));
+    if (!pps) {
+      vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_ERR, LOG_MODULE ": no memory for PPS #%d.}n", (int)tpps.pps_id);
+      return NULL;
+    }
+  } else {
+    if (!memcmp (&tpps, pps, sizeof (tpps)))
+      return pps;
+  }
+  memcpy (pps, &tpps, sizeof (tpps));
+  vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_INFO, LOG_MODULE ": new PPS #%d.\n", (int)tpps.sps_id);
+  return pps;
 }
 
 static void _vdec_hw_h264_pred_weight_table (vdec_hw_h264_t *vdec,
@@ -1921,10 +1923,10 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
 }
 
 int vdec_hw_h264_put_config (vdec_hw_h264_t *vdec, const uint8_t *bitstream, uint32_t num_bytes) {
-  const uint8_t *buf;
+  const uint8_t *buf, *e;
   uint32_t count, i;
 
-  if (!vdec || !bitstream || !num_bytes)
+  if (!vdec || !bitstream || (num_bytes < 7))
     return 0;
 
   lprintf ("vdec_hw_h264_put_config\n");
@@ -1936,12 +1938,17 @@ int vdec_hw_h264_put_config (vdec_hw_h264_t *vdec, const uint8_t *bitstream, uin
   vdec->seq.frame_header_size = (bitstream[4] & 3) + 1;
 
   buf = bitstream + 5;
+  e = bitstream + num_bytes;
   /* reserved:3, sps_count:5 */
   count = *buf++ & 31;
   for (i = 0; i < count; i++) {
     uint32_t sps_size, s2;
 
+    if (buf + 2 > e)
+      return 1;
     sps_size = ((uint32_t)buf[0] << 8) + buf[1], buf += 2;
+    if (buf + sps_size > e)
+      sps_size = e - buf;
     memcpy (vdec->tempbuf, buf, sps_size);
     s2 = _vdec_hw_h264_unescape (vdec->tempbuf, sps_size);
     /* reserved:8 */
@@ -1949,11 +1956,17 @@ int vdec_hw_h264_put_config (vdec_hw_h264_t *vdec, const uint8_t *bitstream, uin
     _vdec_hw_h264_read_sps (vdec);
     buf += sps_size;
   }
+  if (buf + 1 > e)
+    return 1;
   count = *buf++;
   for (i = 0; i < count; i++) {
     uint32_t pps_size, s2;
 
+    if (buf + 2 > e)
+      return 1;
     pps_size = ((uint32_t)buf[0] << 8) + buf[1], buf += 2;
+    if (buf + pps_size > e)
+      pps_size = e - buf;
     memcpy (vdec->tempbuf, buf, pps_size);
     s2 = _vdec_hw_h264_unescape (vdec->tempbuf, pps_size);
     /* reserved:8 */
