@@ -455,7 +455,7 @@ static int file_input_open (input_plugin_t *this_gen ) {
     tmp_size = (size_t)sbuf.st_size;
     if ((off_t)tmp_size != sbuf.st_size)
       break;
-    mmap_base = mmap (NULL, tmp_size, PROT_READ, MAP_SHARED, this->fh, 0):
+    mmap_base = mmap (NULL, tmp_size, PROT_READ, MAP_SHARED, this->fh, 0);
     if (mmap_base == (void*)-1)
       break;
     /* paranoia */
