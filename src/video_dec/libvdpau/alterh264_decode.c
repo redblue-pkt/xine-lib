@@ -56,13 +56,15 @@ typedef struct {
   vdpau_accel_t *accel;
 
   VdpDecoderProfile profile;
-  int vdp_runtime_nr;
   vdpau_accel_t *accel_vdpau;
   VdpDecoder decoder;
   VdpDecoderProfile decoder_profile;
+  int vdp_runtime_nr;
 
   int decoder_width;
   int decoder_height;
+
+  int seek;
 
   double reported_ratio;
   int reported_video_step;
@@ -289,6 +291,16 @@ static int vdpau_h264_alter_frame_ready (void *user_data, vdec_hw_h264_frame_t *
   if (!img)
     return 0;
 
+  /* the render call above is asynchroneous. it uploads frame info, and returns.
+   * this is OK with most frames as they show "much" later.
+   * however, first frame after seek is an exception. xine engine wants to show
+   * the user where the seek has landed early. we dont know when that frame is
+   * really done, so wait a fixed amount instead. */
+  if (this->seek) {
+    this->seek = 0;
+    xine_usec_sleep (10000);
+  }
+
   img->pts = frame->pts;
   img->top_field_first = frame->top_field_first;
   img->draw (img, this->stream);
@@ -378,6 +390,7 @@ static void vdpau_h264_alter_reset (video_decoder_t *this_gen) {
   lprintf ("vdpau_h264_alter_reset\n");
 
   vdec_hw_h264_reset (this->vdec);
+  this->seek = 1;
 }
 
 /*
@@ -489,6 +502,7 @@ static video_decoder_t *open_plugin (video_decoder_class_t *class_gen, xine_stre
   this->accel_vdpau = NULL;
 
   stream->video_out->open (stream->video_out, stream);
+  this->seek = 1;
 
   return &this->video_decoder;
 }
