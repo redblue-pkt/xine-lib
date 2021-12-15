@@ -2261,7 +2261,7 @@ int vdec_hw_h264_reset (vdec_hw_h264_t *vdec) {
     return 0;
 
   n = vdec->ref_frames_used;
-  _vdec_hw_h264_dpb_reset (vdec);
+  _vdec_hw_h264_reset_sequence (vdec);
   return n;
 }
 
