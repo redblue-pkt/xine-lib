@@ -1,7 +1,7 @@
 /*
  * attributes.h
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
- * Copyright (C) 2001-2008 xine developers
+ * Copyright (C) 2001-2021 xine developers
  *
  * This file was originally part of mpeg2dec, a free MPEG-2 video stream
  * decoder.
@@ -28,7 +28,7 @@
 
 #ifdef XINE_COMPILE
 # if defined(HAVE_CONFIG_H) && !defined(__XINE_LIB_CONFIG_H__)
-#  error config.h not included in source file !
+#  warning Define XINE_COMPILE _only_ when tweaking xine-lib itself, and then include xine config.h early in your source file!
 # endif
 #else
 # if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95 )
