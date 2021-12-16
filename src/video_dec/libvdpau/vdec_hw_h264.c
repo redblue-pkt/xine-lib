@@ -158,15 +158,17 @@ typedef struct{
   int8_t pic_init_qp_minus26;
   int8_t pic_init_qs_minus26;
   int8_t chroma_qp_index_offset;
+  int8_t second_chroma_qp_index_offset;
   uint8_t deblocking_filter_control_present_flag;
   uint8_t constrained_intra_pred_flag;
   uint8_t redundant_pic_cnt_present_flag;
   uint8_t transform_8x8_mode_flag;
   uint8_t pic_scaling_matrix_present_flag;
   uint8_t pic_scaling_list_present_flag[8];
+  uint8_t num_slice_groups_minus1;
+  uint8_t slice_group_map_type;
   uint8_t scaling_lists_4x4[6][16];
   uint8_t scaling_lists_8x8[2][64];
-  int8_t second_chroma_qp_index_offset;
 } vdec_hw_h264_pps_t;
 
 typedef struct {
@@ -1059,7 +1061,7 @@ static vdec_hw_h264_pps_t *_vdec_hw_h264_read_pps (vdec_hw_h264_t *vdec) {
   vdec_hw_h264_pps_t *pps, tpps;
   vdec_hw_h264_sps_t *sps;
   uint32_t more;
-  uint8_t num_slice_groups_minus1, bits;
+  uint8_t bits;
   int i;
 
   memset (&tpps, 0, sizeof (tpps));
@@ -1080,26 +1082,35 @@ static vdec_hw_h264_pps_t *_vdec_hw_h264_read_pps (vdec_hw_h264_t *vdec) {
   tpps.entropy_coding_mode_flag = (bits >> 1) & 1;
   tpps.pic_order_present_flag   = (bits >> 0) & 1;
 
-  num_slice_groups_minus1 = read_exp_ue (&vdec->seq.br);
-  lprintf ("num_slice_groups_minus1 = %d\n", (int)num_slice_groups_minus1);
-  if (num_slice_groups_minus1 > 0) {
-    uint8_t slice_group_map_type = read_exp_ue (&vdec->seq.br);
-
+  tpps.num_slice_groups_minus1 = read_exp_ue (&vdec->seq.br);
+  lprintf ("num_slice_groups_minus1 = %d\n", (int)tpps.num_slice_groups_minus1);
+  if (tpps.num_slice_groups_minus1 > 0) {
+    tpps.slice_group_map_type = read_exp_ue (&vdec->seq.br);
     lprintf ("slice_group_map_type = %d\n", (int)slice_group_map_type);
-    if (!slice_group_map_type) {
-      for (i = 0; i < (int)num_slice_groups_minus1; i++)
+    switch (tpps.slice_group_map_type) {
+      case 0:
+        for (i = 0; i < (int)tpps.num_slice_groups_minus1; i++)
+          read_exp_ue (&vdec->seq.br);
+        break;
+      case 2:
+        for (i = 0; i < (int)tpps.num_slice_groups_minus1; i++) {
+          read_exp_ue (&vdec->seq.br);
+          read_exp_ue (&vdec->seq.br);
+        }
+        break;
+      case 3:
+      case 4:
+      case 5:
+        read_bits (&vdec->seq.br, 1);
         read_exp_ue (&vdec->seq.br);
-    } else if (slice_group_map_type == 2) {
-      for (i = 0; i < (int)num_slice_groups_minus1; i++) {
+        break;
+      case 6:
         read_exp_ue (&vdec->seq.br);
-        read_exp_ue (&vdec->seq.br);
-      }
-    } else if ((slice_group_map_type == 3) || (slice_group_map_type == 4) || (slice_group_map_type == 5)) {
-      read_bits (&vdec->seq.br, 1);
-      read_exp_ue (&vdec->seq.br);
-    } else if (slice_group_map_type == 6) {
-      read_exp_ue (&vdec->seq.br);
+        break;
+      default: ;
     }
+  } else {
+    tpps.slice_group_map_type = 0;
   }
 
   tpps.num_ref_idx_l0_active_minus1 = read_exp_ue (&vdec->seq.br);
@@ -1725,15 +1736,21 @@ static void _vdec_hw_h264_render (vdec_hw_h264_t *vdec, int bad_frame) {
   info.field_pic_flag = lps->field_pic_flag;
   info.bottom_field_flag = lps->bottom_field_flag;
   info.num_ref_frames = sps->ref_frames_used;
+  info.gaps_in_frame_num_value_allowed_flag = sps->gaps_in_frame_num_value_allowed_flag;
   info.mb_adaptive_frame_field_flag = sps->mb_adaptive_frame_field_flag && !lps->field_pic_flag;
   info.constrained_intra_pred_flag = pps->constrained_intra_pred_flag;
   info.weighted_pred_flag = pps->weighted_pred_flag;
   info.weighted_bipred_idc = pps->weighted_bipred_idc;
   info.frame_mbs_only_flag = sps->frame_mbs_only_flag;
   info.transform_8x8_mode_flag = pps->transform_8x8_mode_flag;
+  info.bit_depth_luma_minus8 = sps->bit_depth_luma_minus8;
+  info.bit_depth_chroma_minus8 = sps->bit_depth_chroma_minus8;
+  info.chroma_format_idc = sps->chroma_format_idc;
+  info.separate_colour_plane_flag = sps->separate_colour_plane_flag;
   info.chroma_qp_index_offset = pps->chroma_qp_index_offset;
   info.second_chroma_qp_index_offset = pps->second_chroma_qp_index_offset;
   info.pic_init_qp_minus26 = pps->pic_init_qp_minus26;
+  info.pic_init_qs_minus26 = pps->pic_init_qs_minus26;
   info.num_ref_idx_l0_active_minus1 = pps->num_ref_idx_l0_active_minus1;
   info.num_ref_idx_l1_active_minus1 = pps->num_ref_idx_l1_active_minus1;
   info.log2_max_frame_num_minus4 = sps->log2_max_frame_num_minus4;
@@ -1745,6 +1762,9 @@ static void _vdec_hw_h264_render (vdec_hw_h264_t *vdec, int bad_frame) {
   info.pic_order_present_flag = pps->pic_order_present_flag;
   info.deblocking_filter_control_present_flag = pps->deblocking_filter_control_present_flag;
   info.redundant_pic_cnt_present_flag = pps->redundant_pic_cnt_present_flag;
+
+  info.num_slice_groups_minus1 = pps->num_slice_groups_minus1;
+  info.slice_group_map_type = pps->slice_group_map_type;
 
   info.slice_count = vdec->seq.slices_count;
   info.slices_bitstream = (const uint8_t * const *)vdec->seq.slices_bitstream;

@@ -78,15 +78,21 @@ struct vdec_hw_h264_frame_info_s {
   uint8_t  field_pic_flag;
   uint8_t  bottom_field_flag;
   uint8_t  num_ref_frames;
+  uint8_t  gaps_in_frame_num_value_allowed_flag;
   uint8_t  mb_adaptive_frame_field_flag;
   uint8_t  constrained_intra_pred_flag;
   uint8_t  weighted_pred_flag;
   uint8_t  weighted_bipred_idc;
   uint8_t  frame_mbs_only_flag;
   uint8_t  transform_8x8_mode_flag;
+  uint8_t  chroma_format_idc;
+  uint8_t  separate_colour_plane_flag;
+  uint8_t  bit_depth_luma_minus8;
+  uint8_t  bit_depth_chroma_minus8;
   int8_t   chroma_qp_index_offset;
   int8_t   second_chroma_qp_index_offset;
   int8_t   pic_init_qp_minus26;
+  int8_t   pic_init_qs_minus26;
   uint8_t  num_ref_idx_l0_active_minus1;
   uint8_t  num_ref_idx_l1_active_minus1;
   uint8_t  log2_max_frame_num_minus4;
@@ -98,6 +104,8 @@ struct vdec_hw_h264_frame_info_s {
   uint8_t  pic_order_present_flag;
   uint8_t  deblocking_filter_control_present_flag;
   uint8_t  redundant_pic_cnt_present_flag;
+  uint8_t  num_slice_groups_minus1;
+  uint8_t  slice_group_map_type;
 
   uint8_t scaling_lists_4x4[6][16];
   uint8_t scaling_lists_8x8[2][64];
@@ -137,3 +145,4 @@ int vdec_hw_h264_put_frame (vdec_hw_h264_t *dec, int64_t pts, const uint8_t *bit
 void vdec_hw_h264_delete (vdec_hw_h264_t **dec);
 
 #endif
+
