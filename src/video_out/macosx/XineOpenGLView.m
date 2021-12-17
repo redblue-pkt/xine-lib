@@ -23,6 +23,10 @@
 #define LOG
 */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/OpenGL.h>
 #import <OpenGL/gl.h>
