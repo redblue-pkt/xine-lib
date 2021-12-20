@@ -28,17 +28,18 @@
 
 typedef struct {
   const uint32_t *read;
-  const uint8_t *end;
+  const uint8_t *start, *end;
   uint32_t val, bits, oflow;
 } bits_reader_t;
 
-static void bits_reader_set (bits_reader_t *br, const uint8_t *buf, uint32_t len) {
+static void bits_set_buf (bits_reader_t *br, const uint8_t *buf, uint32_t len) {
   const union {
     uint32_t word;
     uint8_t  little;
   } endian_is = {1};
   uint32_t v;
 
+  br->start = buf;
   br->end = buf + len;
   br->read = (const uint32_t *)((uintptr_t)buf & ~(uintptr_t)3);
   br->bits = 32 - (buf - (const uint8_t *)br->read) * 8;
@@ -49,13 +50,17 @@ static void bits_reader_set (bits_reader_t *br, const uint8_t *buf, uint32_t len
   br->oflow = 0;
 }
 
+static inline uint32_t bits_tell (bits_reader_t *br) {
+  return ((const uint8_t *)br->read - br->start) * 8 - br->bits;
+}
+
 /* NOTE: mathematically, uint32_t << 32 yields 0.
  * however, real life truncates the shift width to 5 bits (32 == 0),
  * and thus has no effect. lets use some paranoia that gcc will
  * optimize away in most cases where width is constant. */
 
 /** NOTE: old code bailed out when end of bitstream was reached exactly. */
-static uint32_t _read_slow_bits (bits_reader_t *br, uint32_t bits) {
+static uint32_t _bits_read_slow (bits_reader_t *br, uint32_t bits) {
   const union {
     uint32_t word;
     uint8_t  little;
@@ -91,7 +96,7 @@ static uint32_t _read_slow_bits (bits_reader_t *br, uint32_t bits) {
 }
 
 /** bits <= 32 */
-static inline uint32_t read_bits (bits_reader_t *br, const uint32_t bits) {
+static inline uint32_t bits_read (bits_reader_t *br, const uint32_t bits) {
   uint32_t v;
 
   if (!bits)
@@ -102,10 +107,10 @@ static inline uint32_t read_bits (bits_reader_t *br, const uint32_t bits) {
     br->bits -= bits;
     return v;
   }
-  return _read_slow_bits (br, bits);
+  return _bits_read_slow (br, bits);
 }
 
-static void _skip_slow_bits (bits_reader_t *br, uint32_t bits) {
+static void _bits_skip_slow (bits_reader_t *br, uint32_t bits) {
   const union {
     uint32_t word;
     uint8_t  little;
@@ -131,14 +136,14 @@ static void _skip_slow_bits (bits_reader_t *br, uint32_t bits) {
 }
 
 /** bits unlimited */
-static inline void skip_bits (bits_reader_t *br, const uint32_t bits) {
+static inline void bits_skip (bits_reader_t *br, const uint32_t bits) {
   if (!bits)
     return;
   if (br->bits >= bits) {
     br->val <<= bits;
     br->bits -= bits;
   } else {
-    _skip_slow_bits (br, bits);
+    _bits_skip_slow (br, bits);
   }
 }
 
@@ -146,7 +151,7 @@ static inline void skip_bits (bits_reader_t *br, const uint32_t bits) {
  * h.264 PPS has an optional extension that has been added without defining
  * a presence flag earlier... */
 /** how many bits are left from here to the last "1"? NOTE: old code was off by -1. */
-static uint32_t more_rbsp_data (bits_reader_t *br) {
+static uint32_t bits_valid_left (bits_reader_t *br) {
   static const uint32_t mask[4] = {0x00000000, 0xff000000, 0xffff0000, 0xffffff00};
   const union {
     uint32_t word;
@@ -193,7 +198,7 @@ static uint32_t more_rbsp_data (bits_reader_t *br) {
   return n;
 }
 
-static uint32_t read_exp_ue (bits_reader_t * br) {
+static uint32_t bits_exp_ue (bits_reader_t * br) {
   const union {
     uint32_t word;
     uint8_t  little;
@@ -265,8 +270,8 @@ static uint32_t read_exp_ue (bits_reader_t * br) {
   }
 }
 
-static inline int32_t read_exp_se (bits_reader_t * br) {
-  uint32_t res = read_exp_ue (br);
+static inline int32_t bits_exp_se (bits_reader_t * br) {
+  uint32_t res = bits_exp_ue (br);
 
   return (res & 1) ? (int32_t)((res + 1) >> 1) : -(int32_t)(res >> 1);
 }
@@ -281,20 +286,20 @@ int main (int argc, char **argv) {
 
   (void)argc;
   (void)argv;
-  bits_reader_set (&br, test + 1, sizeof (test) - 1);
-  skip_bits (&br, 1);
-  v1 = read_bits (&br, 3);
-  v2 = read_bits (&br, 7);
-  v3 = read_bits (&br, 5);
-  skip_bits (&br, 8);
-  v4 = read_bits (&br, 8);
-  skip_bits (&br, 7);
-  v5 = read_bits (&br, 1);
-  m = more_rbsp_data (&br);
-  v6 = read_bits (&br, 12);
-  v7 = read_bits (&br, 4);
-  v8 = read_bits (&br, 23);
-  v9 = read_bits (&br, 9);
+  bits_set_buf (&br, test + 1, sizeof (test) - 1);
+  bits_skip (&br, 1);
+  v1 = bits_read (&br, 3);
+  v2 = bits_read (&br, 7);
+  v3 = bits_read (&br, 5);
+  bits_skip (&br, 8);
+  v4 = bits_read (&br, 8);
+  bits_skip (&br, 7);
+  v5 = bits_read (&br, 1);
+  m = bits_valid_left (&br);
+  v6 = bits_read (&br, 12);
+  v7 = bits_read (&br, 4);
+  v8 = bits_read (&br, 23);
+  v9 = bits_read (&br, 9);
   printf ("%s\n", __FILE__);
   printf ("(1)        3        7        5 (8)        8 (7)        1       12        4       23        9\n");
   printf ("--- %08x %08x %08x --- %08x --- %08x %08x %08x %08x %08x\n", v1, v2, v3, v4, v5, v6, v7, v8, v9);
