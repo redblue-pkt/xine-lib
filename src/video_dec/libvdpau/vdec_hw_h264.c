@@ -255,7 +255,7 @@ typedef struct {
   int color_matrix;
 
   int slices_count;
-  int slice_mode;
+  uint32_t slice_mode;
   const uint8_t *slices_bitstream[MAX_SLICES];
   uint32_t slices_bytes[MAX_SLICES];
 
@@ -1907,8 +1907,23 @@ static void _vdec_hw_h264_decode_picture (vdec_hw_h264_t *vdec) {
   lprintf ("\n___________________________________________________________________________________________\n\n");
 }
 
-static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, uint32_t len) {
-  int ret = 0;
+static int _vdec_hw_h264_flush_slices (vdec_hw_h264_t *vdec, uint32_t new_type) {
+  if (vdec->seq.slices_count && ((new_type != vdec->seq.slice_mode) || (vdec->seq.slices_count >= MAX_SLICES))) {
+    _vdec_hw_h264_decode_picture (vdec);
+    vdec->seq.slices_count = 0;
+    vdec->seq.slice_mode = new_type;
+    return 1;
+  }
+  vdec->seq.slice_mode = new_type;
+  return 0;
+}
+
+static int _vdec_hw_h264_nal_unit (vdec_hw_h264_t *vdec, uint8_t *buf, uint32_t len) {
+  static const uint8_t flush[32] = {
+    [NAL_SLICE_IDR] = NAL_SLICE_IDR,
+    [NAL_SLICE_NO_IDR] = NAL_SLICE_NO_IDR
+  };
+  int ret;
   uint8_t nal_ref_idc, nal_unit_type;
   uint32_t ulen;
   vdec_hw_h264_sps_t *sps;
@@ -1923,6 +1938,8 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
    * frame timing fields who are plain uint32, not exp_ue.
    * encoders/muxers work around and insert 0x03 break bytes.
    * remove them here (not generally in bits reader like before). */
+
+  ret = _vdec_hw_h264_flush_slices (vdec, flush[nal_unit_type]);
 
   switch (nal_unit_type) {
     case NAL_END_SEQUENCE:
@@ -1955,7 +1972,6 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
       break;
     case NAL_SLICE_IDR:
     case NAL_SLICE_NO_IDR:
-      vdec->seq.slice_mode = nal_unit_type;
       /* copy, unescape and read the small head here, and pass the whole original to hw later. */
       ulen = len > 256 ? 256 : len;
       memcpy (vdec->tempbuf, buf + 1, ulen);
@@ -1964,14 +1980,9 @@ static int _vdec_hw_h264_parse_startcodes (vdec_hw_h264_t *vdec, uint8_t *buf, u
       _vdec_hw_h264_slice_header (vdec, nal_ref_idc, nal_unit_type);
       vdec->seq.slices_bitstream[vdec->seq.slices_count] = buf;
       vdec->seq.slices_bytes[vdec->seq.slices_count] = len;
-      if (vdec->seq.slices_count < MAX_SLICES) {
-        vdec->seq.slices_count++;
-        if ((int)vdec->seq.slices_count > vdec->stats.slices)
-          vdec->stats.slices = vdec->seq.slices_count;
-      } else {
-        vdec->logg (vdec->user_data, VDEC_HW_H264_LOGG_ERR,
-          LOG_MODULE ": too many slices!!\n");
-      }
+      vdec->seq.slices_count++;
+      if ((int)vdec->seq.slices_count > vdec->stats.slices)
+        vdec->stats.slices = vdec->seq.slices_count;
       break;
     case NAL_SEI:
     case NAL_SEEK_POINT:
@@ -2055,8 +2066,11 @@ static void _vdec_hw_h264_flush_buffer (vdec_hw_h264_t *vdec) {
   }
   vdec->seq.buf.write = keep;
   vdec->seq.buf.read -= drop;
-  if (vdec->seq.buf.nal_unit >= 0)
+  if (vdec->seq.buf.nal_unit >= 0) {
     vdec->seq.buf.nal_unit -= drop;
+    if ((uint32_t)vdec->seq.buf.nal_unit > vdec->seq.buf.write)
+      vdec->seq.buf.nal_unit = -1;
+  }
 }
 
 int vdec_hw_h264_put_frame (vdec_hw_h264_t *vdec, int64_t pts, const uint8_t *bitstream, uint32_t num_bytes, int frame_end) {
@@ -2111,6 +2125,8 @@ int vdec_hw_h264_put_frame (vdec_hw_h264_t *vdec, int64_t pts, const uint8_t *bi
 
   /* TJ. I once made an .mp4 file with ffmpeg -vcodec copy. It has a global config (just fine),
    * but then the frames have standard nal units... */
+  if (vdec->seq.buf.nal_unit >= 0)
+    nal_unit_prefix = 0;
   if (nal_unit_prefix && (vdec->seq.buf.write - vdec->seq.buf.read > 4)) {
     if (!memcmp (vdec->seq.buf.mem + vdec->seq.buf.read, "\x00\x00\x00\x01", 4)
         && ((vdec->seq.buf.mem[vdec->seq.buf.read + 4] & 0x1f) != NAL_END_SEQUENCE))
@@ -2125,7 +2141,6 @@ int vdec_hw_h264_put_frame (vdec_hw_h264_t *vdec, int64_t pts, const uint8_t *bi
 
       lprintf ("frame_end && vdec->seq.nal_unit_prefix\n");
       while (p < e) {
-        uint8_t tb;
         uint32_t s = 0;
 
         vdec->seq.buf.read = p - vdec->seq.buf.mem;
@@ -2149,20 +2164,13 @@ int vdec_hw_h264_put_frame (vdec_hw_h264_t *vdec, int64_t pts, const uint8_t *bi
           break;
         if ((s > 0x00ffffff) || (p + s > e))
           s = e - p;
-        tb = *p & 0x1F;
-        if (vdec->seq.slice_mode && (tb != vdec->seq.slice_mode)) {
-          _vdec_hw_h264_decode_picture (vdec);
-          _vdec_hw_h264_reset_slices (vdec);
-        }
-        _vdec_hw_h264_parse_startcodes (vdec, p, s);
+        _vdec_hw_h264_nal_unit (vdec, p, s);
         p += s;
       }
-      if (vdec->seq.slice_mode) {
-        _vdec_hw_h264_decode_picture (vdec);
-        _vdec_hw_h264_reset_slices (vdec);
-      }
+      _vdec_hw_h264_flush_slices (vdec, 0);
       vdec->seq.buf.read =
       vdec->seq.buf.write = 0;
+      vdec->seq.buf.nal_unit = -1;
     }
     return 0;
   }
@@ -2187,7 +2195,7 @@ int vdec_hw_h264_put_frame (vdec_hw_h264_t *vdec, int64_t pts, const uint8_t *bi
     }
     vdec->seq.buf.read = b - vdec->seq.buf.mem - 3;
     if (vdec->seq.buf.nal_unit >= 0) {
-      _vdec_hw_h264_parse_startcodes (vdec, vdec->seq.buf.mem + vdec->seq.buf.nal_unit + 3,
+      flush += _vdec_hw_h264_nal_unit (vdec, vdec->seq.buf.mem + vdec->seq.buf.nal_unit + 3,
         vdec->seq.buf.read - vdec->seq.buf.nal_unit - 3);
       vdec->seq.buf.nal_unit = -1;
     }
@@ -2197,11 +2205,6 @@ int vdec_hw_h264_put_frame (vdec_hw_h264_t *vdec, int64_t pts, const uint8_t *bi
       vdec->seq.buf.nal_unit = vdec->seq.buf.read;
       if (((tb == NAL_SLICE_NO_IDR) || (tb == NAL_SLICE_IDR)) && !vdec->seq.pic_pts)
         vdec->seq.pic_pts = pts;
-      if (vdec->seq.slice_mode && (tb != vdec->seq.slice_mode)) {
-        _vdec_hw_h264_decode_picture (vdec);
-        _vdec_hw_h264_reset_slices (vdec);
-        flush = 1;
-      }
       if (tb == NAL_END_SEQUENCE) {
         _vdec_hw_h264_dpb_draw_frames (vdec, MAX_POC, DPB_DRAW_CLEAR);
         lprintf ("NAL_END_SEQUENCE\n");
@@ -2211,10 +2214,27 @@ int vdec_hw_h264_put_frame (vdec_hw_h264_t *vdec, int64_t pts, const uint8_t *bi
     if (vdec->seq.buf.read > vdec->seq.buf.write)
       vdec->seq.buf.read = vdec->seq.buf.write;
   }
-  /* sequence end just has the type byte. do it right now. */
-  if ((vdec->seq.buf.nal_unit >= 0) && ((vdec->seq.buf.mem[vdec->seq.buf.nal_unit + 3] & 0x1f) == NAL_END_SEQUENCE)) {
-    _vdec_hw_h264_parse_startcodes (vdec, vdec->seq.buf.mem + vdec->seq.buf.nal_unit + 3, 1);
-    vdec->seq.buf.nal_unit = -1;
+  if (vdec->seq.buf.nal_unit >= 0) {
+    /* in nal_unit_prefix workaround mode, assume this last nalu complete. */
+    if (vdec->seq.nal_unit_prefix) {
+      if (frame_end) {
+        uint8_t tb = vdec->seq.buf.mem[vdec->seq.buf.nal_unit + 3] & 0x1f;
+
+        _vdec_hw_h264_nal_unit (vdec, vdec->seq.buf.mem + vdec->seq.buf.nal_unit + 3,
+          vdec->seq.buf.write - vdec->seq.buf.nal_unit - 3);
+        if (((tb == NAL_SLICE_NO_IDR) || (tb == NAL_SLICE_IDR)) && !vdec->seq.pic_pts)
+          vdec->seq.pic_pts = pts;
+        _vdec_hw_h264_flush_slices (vdec, 0);
+        vdec->seq.buf.read =
+        vdec->seq.buf.write = 0;
+        vdec->seq.buf.nal_unit = -1;
+      }
+    }
+    /* sequence end just has the type byte. do it right now. */
+    else if ((vdec->seq.buf.mem[vdec->seq.buf.nal_unit + 3] & 0x1f) == NAL_END_SEQUENCE) {
+      _vdec_hw_h264_nal_unit (vdec, vdec->seq.buf.mem + vdec->seq.buf.nal_unit + 3, 1);
+      vdec->seq.buf.nal_unit = -1;
+    }
   }
   /* frame_end seems to be unreliable here. */
   if (flush)
@@ -2229,14 +2249,11 @@ int vdec_hw_h264_flush (vdec_hw_h264_t *vdec) {
   if (!vdec)
     return 0;
   if ((vdec->seq.buf.nal_unit >= 0) && ((uint32_t)vdec->seq.buf.nal_unit + 3 < vdec->seq.buf.write)) {
-    _vdec_hw_h264_parse_startcodes (vdec, vdec->seq.buf.mem + vdec->seq.buf.nal_unit + 3,
+    _vdec_hw_h264_nal_unit (vdec, vdec->seq.buf.mem + vdec->seq.buf.nal_unit + 3,
       vdec->seq.buf.write - vdec->seq.buf.nal_unit - 3);
     vdec->seq.buf.nal_unit = -1;
-    if (vdec->seq.slice_mode) {
-      _vdec_hw_h264_decode_picture (vdec);
-      _vdec_hw_h264_reset_slices (vdec);
-    }
   }
+  _vdec_hw_h264_flush_slices (vdec, 0);
   n = vdec->ref_frames_used;
   _vdec_hw_h264_dpb_draw_frames (vdec, MAX_POC, DPB_DRAW_REFS);
   _vdec_hw_h264_flush_buffer (vdec);
@@ -2277,6 +2294,7 @@ vdec_hw_h264_t *vdec_hw_h264_new (
   vdec->seq.buf.max = MIN_BUFFER_SIZE;
   vdec->seq.buf.read = 0;
   vdec->seq.buf.write = 0;
+  vdec->seq.buf.nal_unit = -1;
 
   for (u = 0; u < MAX_REF_FRAMES + 1; u++)
     vdec->seq.dpb[u] = vdec->frames + u;
@@ -2365,3 +2383,4 @@ void vdec_hw_h264_delete (vdec_hw_h264_t **dec) {
 
   free (vdec);
 }
+
