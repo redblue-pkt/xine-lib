@@ -387,11 +387,15 @@ int  xine_get_param (xine_stream_t *stream, int param) XINE_PROTECTED;
 #define XINE_PARAM_VO_WINDOW_HEIGHT        0x01000010 /* readonly           */
 #define XINE_PARAM_VO_SHARPNESS            0x01000018 /* 0..65535           */
 #define XINE_PARAM_VO_NOISE_REDUCTION      0x01000019 /* 0..65535           */
+#define XINE_PARAM_VO_TRANSFORM            0x0100001f /* see below          */
 #define XINE_PARAM_VO_CROP_LEFT            0x01000020 /* crop frame pixels  */
 #define XINE_PARAM_VO_CROP_RIGHT           0x01000021 /* crop frame pixels  */
 #define XINE_PARAM_VO_CROP_TOP             0x01000022 /* crop frame pixels  */
 #define XINE_PARAM_VO_CROP_BOTTOM          0x01000023 /* crop frame pixels  */
 #define XINE_PARAM_VO_SINGLE_STEP          0x01000024 /* 1 = "advance to next frame, then pause" */
+
+#define XINE_VO_TRANSFORM_FLIP_H           0x00000001
+#define XINE_VO_TRANSFORM_FLIP_V           0x00000002
 
 #define XINE_VO_ZOOM_STEP                  100
 #define XINE_VO_ZOOM_MAX                   400
@@ -492,6 +496,7 @@ int  xine_get_current_frame_data (xine_stream_t *stream,
 
 /* xine image formats */
 #define XINE_IMGFMT_YV12 (('2'<<24)|('1'<<16)|('V'<<8)|'Y')
+#define XINE_IMGFMT_NV12 (('2'<<24)|('1'<<16)|('V'<<8)|'N')
 #define XINE_IMGFMT_YUY2 (('2'<<24)|('Y'<<16)|('U'<<8)|'Y')
 #define XINE_IMGFMT_XVMC (('C'<<24)|('M'<<16)|('v'<<8)|'X')
 #define XINE_IMGFMT_XXMC (('C'<<24)|('M'<<16)|('x'<<8)|'X')

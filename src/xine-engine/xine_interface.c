@@ -506,6 +506,7 @@ void xine_set_param (xine_stream_t *s, int param, int value) {
   case XINE_PARAM_VO_CROP_RIGHT:
   case XINE_PARAM_VO_CROP_TOP:
   case XINE_PARAM_VO_CROP_BOTTOM:
+  case XINE_PARAM_VO_TRANSFORM:
     xine->port_ticket->acquire (xine->port_ticket, 1);
     stream->s.video_out->set_property (stream->s.video_out, param, value);
     xine->port_ticket->release (xine->port_ticket, 1);
@@ -701,6 +702,7 @@ int xine_get_param (xine_stream_t *s, int param) {
   case XINE_PARAM_VO_CROP_RIGHT:
   case XINE_PARAM_VO_CROP_TOP:
   case XINE_PARAM_VO_CROP_BOTTOM:
+  case XINE_PARAM_VO_TRANSFORM:
     xine->port_ticket->acquire (xine->port_ticket, 1);
     ret = stream->s.video_out->get_property(stream->s.video_out, param);
     xine->port_ticket->release (xine->port_ticket, 1);

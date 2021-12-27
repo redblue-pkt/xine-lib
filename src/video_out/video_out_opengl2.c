@@ -47,8 +47,6 @@
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
 
-
-
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -60,7 +58,6 @@ typedef struct {
   int                width, height, format, flags;
   double             ratio;
 } opengl2_frame_t;
-
 
 typedef struct {
   int       ovl_w, ovl_h;
@@ -76,27 +73,28 @@ typedef struct {
   int       extent_height;
 } opengl2_overlay_t;
 
-
-
 typedef struct {
   int    compiled;
   GLuint shader;
   GLuint program;
 } opengl2_program_t;
 
-
+typedef enum {
+  OGL2_TEX_y = 0,
+  OGL2_TEX_u,
+  OGL2_TEX_v,
+  OGL2_TEX_yuv,
+  OGL2_TEX_uv,
+  OGL2_TEX_LAST
+} opengl2_tex_t;
 
 typedef struct {
-  GLuint y, u, v;
-  GLuint yuv;
+  GLuint tex[OGL2_TEX_LAST];
   int width;
   int height;
 } opengl2_yuvtex_t;
 
-
-
 typedef struct {
-
   vo_driver_t        vo_driver;
   vo_scale_t         sc;
 
@@ -104,12 +102,13 @@ typedef struct {
 
   int                texture_float;
   opengl2_program_t  yuv420_program;
+  opengl2_program_t  nv12_program;
   opengl2_program_t  yuv422_program;
   opengl2_yuvtex_t   yuvtex;
   GLuint             videoPBO;
   GLuint             overlayPBO;
   GLuint             fbo;
-  GLuint             videoTex, videoTex2;
+  GLuint             videoTex[2];
   int                last_gui_width;
   int                last_gui_height;
 
@@ -131,6 +130,9 @@ typedef struct {
     float            mid, side, corn;
     opengl2_program_t program;
   }                  sharp;
+  struct {
+    int              flags, changed;
+  }                  transform;
 
   opengl2_program_t  bicubic_pass1_program;
   opengl2_program_t  bicubic_pass2_program;
@@ -239,8 +241,6 @@ typedef struct {
   unsigned             visual_type;
 } opengl2_class_t;
 
-
-
 static const char *bicubic_pass1_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex, lut;\n"
@@ -256,8 +256,6 @@ static const char *bicubic_pass1_frag=
 "    gl_FragColor = sum;\n"
 "}\n";
 
-
-
 static const char *bicubic_pass2_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex, lut;\n"
@@ -272,8 +270,6 @@ static const char *bicubic_pass2_frag=
 "         sum += texture2DRect( tex, TexCoord + vec2( 0.0,  2.0 ) ) * wlut[3];\n"
 "    gl_FragColor = sum;\n"
 "}\n";
-
-
 
 #define LUTWIDTH 1000
 #define N_SPLINES 2
@@ -344,8 +340,6 @@ static int create_lut_texture( opengl2_driver_t *that )
   return 1;
 }
 
-
-
 static const char *blur_sharpen_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex;\n"
@@ -365,9 +359,7 @@ static const char *blur_sharpen_frag=
 "  gl_FragColor = c1 ;\n"
 "}\n";
 
-
-
-static const char *yuv420_frag=
+static const char *yuv420_frag =
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect texY, texU, texV;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
@@ -387,9 +379,27 @@ static const char *yuv420_frag=
 "    gl_FragColor = rgb;\n"
 "}\n";
 
+static const char *nv12_frag =
+"#extension GL_ARB_texture_rectangle : enable\n"
+"uniform sampler2DRect texY, texUV;\n"
+"uniform vec4 r_coefs, g_coefs, b_coefs;\n"
+"void main (void) {\n"
+"    vec4 rgb;\n"
+"    vec4 yuv;\n"
+"    vec2 ycoord = gl_TexCoord[0].xy;\n"
+"    vec2 uvcoord = vec2 (ycoord.x - step (1.0, mod (ycoord.x, 2.0)), ycoord.y / 2.0);\n"
+"    yuv.r = texture2DRect (texY, ycoord).r;\n"
+"    yuv.g = texture2DRect (texUV, uvcoord).r;\n"
+"    yuv.b = texture2DRect (texUV, uvcoord + vec2 (1.0, 0.0)).r;\n"
+"    yuv.a = 1.0;\n"
+"    rgb.r = dot( yuv, r_coefs );\n"
+"    rgb.g = dot( yuv, g_coefs );\n"
+"    rgb.b = dot( yuv, b_coefs );\n"
+"    rgb.a = 1.0;\n"
+"    gl_FragColor = rgb;\n"
+"}\n";
 
-
-static const char *yuv422_frag=
+static const char *yuv422_frag =
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect texYUV;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
@@ -409,16 +419,12 @@ static const char *yuv422_frag=
 "    gl_FragColor = vec4(rgb, 1.0);\n"
 "}\n";
 
-
-
 static void load_csc_matrix( GLuint prog, float *cf )
 {
     glUniform4f( glGetUniformLocationARB( prog, "r_coefs" ), cf[0], cf[1], cf[2], cf[3] );
     glUniform4f( glGetUniformLocationARB( prog, "g_coefs" ), cf[4], cf[5], cf[6], cf[7] );
     glUniform4f( glGetUniformLocationARB( prog, "b_coefs" ), cf[8], cf[9], cf[10], cf[11] );
 }
-
-
 
 static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *prog, const char **source, const char *name )
 {
@@ -466,14 +472,11 @@ static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *pro
   return 1;
 }
 
-
-
 static void opengl2_delete_program( opengl2_program_t *prog )
 {
   glDeleteProgram( prog->program );
   glDeleteShader( prog->shader );
 }
-
 
 static void _config_texture(GLuint texture, GLsizei width, GLsizei height,
                             GLenum format, GLenum type, GLenum minmag_filter)
@@ -497,18 +500,8 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
   if ( (w == ytex->width) && (h == ytex->height) )
     return 1;
 
-  if ( ytex->y )
-    glDeleteTextures( 1, &ytex->y );
-  if ( ytex->u )
-    glDeleteTextures( 1, &ytex->u );
-  if ( ytex->v )
-    glDeleteTextures( 1, &ytex->v );
-  if ( ytex->yuv )
-    glDeleteTextures( 1, &ytex->yuv );
-  if ( this->videoTex )
-    glDeleteTextures( 1, &this->videoTex );
-  if ( this->videoTex2 )
-    glDeleteTextures( 1, &this->videoTex2 );
+  glDeleteTextures (OGL2_TEX_LAST, ytex->tex);
+  glDeleteTextures (2, this->videoTex);
 
   if ( !this->videoPBO ) {
     glGenBuffers( 1, &this->videoPBO );
@@ -522,30 +515,22 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
       return 0;
   }
 
-  glGenTextures( 1, &this->videoTex );
-  if ( !this->videoTex )
+  glGenTextures (2, this->videoTex);
+  if (!this->videoTex[0] || !this->videoTex[1])
     return 0;
 
-  glGenTextures( 1, &this->videoTex2 );
-  if ( !this->videoTex2 )
-    return 0;
-
-  glGenTextures( 1, &ytex->y );
-  _config_texture(ytex->y, w, h, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
-  glGenTextures( 1, &ytex->u );
-  _config_texture(ytex->u, w/2, h/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
-  glGenTextures( 1, &ytex->v );
-  _config_texture(ytex->v, w/2, h/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
-  glGenTextures( 1, &ytex->yuv );
-  _config_texture(ytex->yuv, w, h, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
+  glGenTextures (OGL2_TEX_LAST, ytex->tex);
+  _config_texture (ytex->tex[OGL2_TEX_y],   w,      h,      GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (ytex->tex[OGL2_TEX_u],   w >> 1, h >> 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (ytex->tex[OGL2_TEX_v],   w >> 1, h >> 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (ytex->tex[OGL2_TEX_yuv], w,      h,      GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (ytex->tex[OGL2_TEX_uv],  w,      h >> 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
 
   ytex->width = w;
   ytex->height = h;
 
-  glGenTextures( 1, &this->videoTex );
-  _config_texture(this->videoTex, w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
-  glGenTextures( 1, &this->videoTex2 );
-  _config_texture(this->videoTex2, w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
+  _config_texture (this->videoTex[0], w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
+  _config_texture (this->videoTex[1], w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
 
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
 
@@ -554,8 +539,8 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
   glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
 
   glBindFramebuffer( GL_FRAMEBUFFER, this->fbo );
-  glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, this->videoTex, 0 );
-  glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE_ARB, this->videoTex2, 0 );
+  glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, this->videoTex[0], 0 );
+  glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE_ARB, this->videoTex[1], 0 );
   glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
   return 1;
@@ -779,6 +764,21 @@ static void opengl2_update_frame_format( vo_driver_t *this_gen, vo_frame_t *fram
       frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
       memset (frame->vo_frame.base[1], 128, 2 * uvsize);
       frame->vo_frame.base[2] = frame->vo_frame.base[1] + uvsize;
+    } else if (format == XINE_IMGFMT_NV12) {
+      int w = (width + 15) & ~15;
+      int ysize = w * height;
+      int uvsize = w * ((height + 1) >> 1);
+      frame->vo_frame.pitches[0] =
+      frame->vo_frame.pitches[1] = w;
+      frame->vo_frame.base[0] = xine_malloc_aligned (ysize + uvsize);
+      if (!frame->vo_frame.base[0]) {
+        frame->width = 0;
+        frame->vo_frame.width = 0;
+        return;
+      }
+      memset (frame->vo_frame.base[0], 0, ysize);
+      frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
+      memset (frame->vo_frame.base[1], 128, uvsize);
     } else if (format == XINE_IMGFMT_YUY2){
       frame->vo_frame.pitches[0] = ((width + 15) & ~15) << 1;
       frame->vo_frame.base[0] = xine_malloc_aligned (frame->vo_frame.pitches[0] * height);
@@ -816,7 +816,7 @@ static int opengl2_redraw_needed( vo_driver_t *this_gen )
     _x_vo_scale_compute_output_size( &this->sc );
     return 1;
   }
-  return this->update_csc | this->sharp.changed;
+  return this->update_csc | this->sharp.changed | this->transform.changed;
 }
 
 
@@ -1038,13 +1038,13 @@ static void opengl2_draw_unscaled_overlays( opengl2_driver_t *that )
 
 static GLuint opengl2_swap_textures( opengl2_driver_t *that, GLuint current_dest )
 {
-  if ( current_dest == that->videoTex ) {
+  if (current_dest == that->videoTex[0]) {
     glDrawBuffer( GL_COLOR_ATTACHMENT1 );
-    return that->videoTex2;
+    return that->videoTex[1];
   }
 
   glDrawBuffer( GL_COLOR_ATTACHMENT0 );
-  return that->videoTex;
+  return that->videoTex[0];
 }
 
 
@@ -1081,247 +1081,236 @@ static GLuint opengl2_sharpness( opengl2_driver_t *that, opengl2_frame_t *frame,
 }
 
 
+typedef struct {
+  int guiw, guih;
+  int sx1, sx2, sy1, sy2, dx1, dx2, dy1, dy2, dw, dh;
+  GLuint video_texture;
+} opengl2_draw_info_t;
 
-static int opengl2_draw_video_bicubic( opengl2_driver_t *that, int guiw, int guih, GLfloat u, GLfloat v, GLfloat u1, GLfloat v1,
-    GLfloat x, GLfloat y, GLfloat x1, GLfloat y1, GLuint video_texture )
-{
-  if ( !that->bicubic_lut_texture ) {
-    if ( !create_lut_texture( that ) )
+static int opengl2_draw_video_bicubic (opengl2_driver_t *that, const opengl2_draw_info_t *info) {
+  if (!that->bicubic_lut_texture) {
+    if (!create_lut_texture (that))
       return 0;
   }
 
-  if ( !that->bicubic_pass1_program.compiled && !opengl2_build_program( that, &that->bicubic_pass1_program, &bicubic_pass1_frag, "bicubic_pass1_frag" ) )
+  if (!that->bicubic_pass1_program.compiled
+    && !opengl2_build_program (that, &that->bicubic_pass1_program, &bicubic_pass1_frag, "bicubic_pass1_frag"))
     return 0;
-  if ( !that->bicubic_pass2_program.compiled && !opengl2_build_program( that, &that->bicubic_pass2_program, &bicubic_pass2_frag, "bicubic_pass2_frag" ) )
+  if (!that->bicubic_pass2_program.compiled
+    && !opengl2_build_program (that, &that->bicubic_pass2_program, &bicubic_pass2_frag, "bicubic_pass2_frag"))
     return 0;
-  if ( !that->bicubic_fbo ) {
-    glGenFramebuffers( 1, &that->bicubic_fbo );
-    if ( !that->bicubic_fbo )
+  if (!that->bicubic_fbo) {
+    glGenFramebuffers (1, &that->bicubic_fbo);
+    if (!that->bicubic_fbo)
       return 0;
   }
-  if ( (that->bicubic_pass1_texture_width != (x1 - x)) || (that->bicubic_pass1_texture_height != (v1 - v) ) ) {
-    if ( that->bicubic_pass1_texture )
-      glDeleteTextures( 1, &that->bicubic_pass1_texture );
-    glGenTextures( 1, &that->bicubic_pass1_texture );
-    if ( !that->bicubic_pass1_texture )
+  if ((that->bicubic_pass1_texture_width != info->dw) || (that->bicubic_pass1_texture_height != info->dh)) {
+    if (that->bicubic_pass1_texture)
+      glDeleteTextures (1, &that->bicubic_pass1_texture);
+    glGenTextures (1, &that->bicubic_pass1_texture);
+    if (!that->bicubic_pass1_texture)
       return 0;
-    _config_texture(that->bicubic_pass1_texture, x1 - x, v1 - v, GL_RGBA, GL_UNSIGNED_BYTE, GL_NEAREST);
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
-    that->bicubic_pass1_texture_width = x1 - x;
-    that->bicubic_pass1_texture_height = v1 - v;
+    _config_texture (that->bicubic_pass1_texture, info->dw, info->dh, GL_RGBA, GL_UNSIGNED_BYTE, GL_NEAREST);
+    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, 0);
+    that->bicubic_pass1_texture_width  = info->dw;
+    that->bicubic_pass1_texture_height = info->dh;
   }
-  glBindFramebuffer( GL_FRAMEBUFFER, that->bicubic_fbo );
-  glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, that->bicubic_pass1_texture, 0 );
+  glBindFramebuffer (GL_FRAMEBUFFER, that->bicubic_fbo);
+  glFramebufferTexture2D (GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, that->bicubic_pass1_texture, 0);
 
-  glViewport( 0, 0, x1 - x, v1 - v );
-  glMatrixMode( GL_PROJECTION );
-  glLoadIdentity();
-  glOrtho( 0.0, x1 - x, 0.0, v1 - v, -1.0, 1.0 );
-  glMatrixMode( GL_MODELVIEW );
-  glLoadIdentity();
+  glViewport (0, 0, info->dw, info->dh);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, info->dw, 0, info->dh, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
 
-  glActiveTexture( GL_TEXTURE0 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-  glActiveTexture( GL_TEXTURE1 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture );
-  glUseProgram( that->bicubic_pass1_program.program );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass1_program.program, "tex" ), 0 );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass1_program.program, "lut" ), 1 );
-  glUniform1f( glGetUniformLocationARB( that->bicubic_pass1_program.program, "spline" ), CATMULLROM_SPLINE );
+  glActiveTexture (GL_TEXTURE0);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, info->video_texture);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glActiveTexture (GL_TEXTURE1);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
+  glUseProgram (that->bicubic_pass1_program.program);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "tex"), 0);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "lut"), 1);
+  glUniform1f (glGetUniformLocationARB (that->bicubic_pass1_program.program, "spline"), CATMULLROM_SPLINE);
 
-  glBegin( GL_QUADS );
-    glTexCoord2f( u, v );    glVertex3f( 0.0, 0.0, 0.);
-    glTexCoord2f( u, v1 );   glVertex3f( 0.0, v1 - v, 0.);
-    glTexCoord2f( u1, v1 );  glVertex3f( x1 - x, v1 - v, 0.);
-    glTexCoord2f( u1, v );   glVertex3f( x1 - x, 0.0, 0.);
-  glEnd();
+  glBegin (GL_QUADS);
+    glTexCoord2f (info->sx1, info->sy1); glVertex3f (       0,        0, 0);
+    glTexCoord2f (info->sx1, info->sy2); glVertex3f (       0, info->dh, 0);
+    glTexCoord2f (info->sx2, info->sy2); glVertex3f (info->dw, info->dh, 0);
+    glTexCoord2f (info->sx2, info->sy1); glVertex3f (info->dw,        0, 0);
+  glEnd ();
 
-  glActiveTexture( GL_TEXTURE0 );
-  glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+  glActiveTexture (GL_TEXTURE0);
+  glBindFramebuffer (GL_FRAMEBUFFER, 0);
 
-  glViewport( 0, 0, guiw, guih );
-  glMatrixMode( GL_PROJECTION );
-  glLoadIdentity();
-  glOrtho( 0.0, guiw, guih, 0.0, -1.0, 1.0 );
-  glMatrixMode( GL_MODELVIEW );
-  glLoadIdentity();
+  glViewport (0, 0, info->guiw, info->guih);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, info->guiw, info->guih, 0, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
 
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glActiveTexture( GL_TEXTURE0 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->bicubic_pass1_texture );
-  glActiveTexture( GL_TEXTURE1 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture );
-  glUseProgram( that->bicubic_pass2_program.program );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass2_program.program, "tex" ), 0 );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass2_program.program, "lut" ), 1 );
-  glUniform1f( glGetUniformLocationARB( that->bicubic_pass2_program.program, "spline" ), CATMULLROM_SPLINE );
+  glActiveTexture (GL_TEXTURE0);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_pass1_texture);
+  glActiveTexture (GL_TEXTURE1);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
+  glUseProgram (that->bicubic_pass2_program.program);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "tex"), 0);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "lut"), 1);
+  glUniform1f (glGetUniformLocationARB (that->bicubic_pass2_program.program, "spline"), CATMULLROM_SPLINE);
 
-  glBegin( GL_QUADS );
-    glTexCoord2f( 0.0, 0.0 );        glVertex3f( x, y, 0.);
-    glTexCoord2f( 0.0, v1 - v );     glVertex3f( x, y1, 0.);
-    glTexCoord2f( x1 - x, v1 - v );  glVertex3f( x1, y1, 0.);
-    glTexCoord2f( x1 - x, 0.0 );     glVertex3f( x1, y, 0.);
-  glEnd();
+  glBegin (GL_QUADS);
+    glTexCoord2f (       0,        0); glVertex3f (info->dx1, info->dy1, 0);
+    glTexCoord2f (       0, info->dh); glVertex3f (info->dx1, info->dy2, 0);
+    glTexCoord2f (info->dw, info->dh); glVertex3f (info->dx2, info->dy2, 0);
+    glTexCoord2f (info->dw,        0); glVertex3f (info->dx2, info->dy1, 0);
+  glEnd ();
 
-  glUseProgram( 0 );
+  glUseProgram (0);
 
   return 1;
 }
 
-
-
-static int opengl2_draw_video_cubic_x( opengl2_driver_t *that, int guiw, int guih, GLfloat u, GLfloat v, GLfloat u1, GLfloat v1,
-    GLfloat x, GLfloat y, GLfloat x1, GLfloat y1, GLuint video_texture )
-{
-  if ( !that->bicubic_lut_texture ) {
-    if ( !create_lut_texture( that ) )
+static int opengl2_draw_video_cubic_x (opengl2_driver_t *that, const opengl2_draw_info_t *info) {
+  if (!that->bicubic_lut_texture) {
+    if (!create_lut_texture (that))
       return 0;
   }
 
-  if ( !that->bicubic_pass1_program.compiled && !opengl2_build_program( that, &that->bicubic_pass1_program, &bicubic_pass1_frag, "bicubic_pass1_frag" ) )
+  if (!that->bicubic_pass1_program.compiled
+    && !opengl2_build_program (that, &that->bicubic_pass1_program, &bicubic_pass1_frag, "bicubic_pass1_frag"))
     return 0;
 
-  glViewport( 0, 0, guiw, guih );
-  glMatrixMode( GL_PROJECTION );
-  glLoadIdentity();
-  glOrtho( 0.0, guiw, guih, 0.0, -1.0, 1.0 );
-  glMatrixMode( GL_MODELVIEW );
-  glLoadIdentity();
+  glViewport (0, 0, info->guiw, info->guih);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, info->guiw, info->guih, 0, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
 
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glActiveTexture( GL_TEXTURE0 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-  glActiveTexture( GL_TEXTURE1 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture );
-  glUseProgram( that->bicubic_pass1_program.program );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass1_program.program, "tex" ), 0 );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass1_program.program, "lut" ), 1 );
-  glUniform1f( glGetUniformLocationARB( that->bicubic_pass1_program.program, "spline" ), CATMULLROM_SPLINE );
+  glActiveTexture (GL_TEXTURE0);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, info->video_texture);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glActiveTexture (GL_TEXTURE1);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
+  glUseProgram (that->bicubic_pass1_program.program);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "tex"), 0);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "lut"), 1);
+  glUniform1f (glGetUniformLocationARB (that->bicubic_pass1_program.program, "spline"), CATMULLROM_SPLINE);
 
-  glBegin( GL_QUADS );
-    glTexCoord2f( u, v );     glVertex3f( x, y, 0.);
-    glTexCoord2f( u, v1 );    glVertex3f( x, y1, 0.);
-    glTexCoord2f( u1, v1 );   glVertex3f( x1, y1, 0.);
-    glTexCoord2f( u1, v );    glVertex3f( x1, y, 0.);
-  glEnd();
+  glBegin (GL_QUADS);
+    glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
+    glTexCoord2f (info->sx1, info->sy2); glVertex3f (info->dx1, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy2); glVertex3f (info->dx2, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy1); glVertex3f (info->dx2, info->dy1, 0);
+  glEnd ();
 
-  glUseProgram( 0 );
+  glUseProgram (0);
 
   return 1;
 }
 
-
-
-static int opengl2_draw_video_cubic_y( opengl2_driver_t *that, int guiw, int guih, GLfloat u, GLfloat v, GLfloat u1, GLfloat v1,
-    GLfloat x, GLfloat y, GLfloat x1, GLfloat y1, GLuint video_texture )
-{
-  if ( !that->bicubic_lut_texture ) {
-    if ( !create_lut_texture( that ) )
+static int opengl2_draw_video_cubic_y (opengl2_driver_t *that, const opengl2_draw_info_t *info) {
+  if (!that->bicubic_lut_texture) {
+    if (!create_lut_texture (that))
       return 0;
   }
 
-  if ( !that->bicubic_pass2_program.compiled && !opengl2_build_program( that, &that->bicubic_pass2_program, &bicubic_pass2_frag, "bicubic_pass2_frag" ) )
+  if (!that->bicubic_pass2_program.compiled
+    && !opengl2_build_program (that, &that->bicubic_pass2_program, &bicubic_pass2_frag, "bicubic_pass2_frag"))
     return 0;
 
-  glViewport( 0, 0, guiw, guih );
-  glMatrixMode( GL_PROJECTION );
-  glLoadIdentity();
-  glOrtho( 0.0, guiw, guih, 0.0, -1.0, 1.0 );
-  glMatrixMode( GL_MODELVIEW );
-  glLoadIdentity();
+  glViewport (0, 0, info->guiw, info->guih);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, info->guiw, info->guih, 0, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
 
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glActiveTexture( GL_TEXTURE0 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-  glActiveTexture( GL_TEXTURE1 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture );
-  glUseProgram( that->bicubic_pass2_program.program );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass2_program.program, "tex" ), 0 );
-  glUniform1i( glGetUniformLocationARB( that->bicubic_pass2_program.program, "lut" ), 1 );
-  glUniform1f( glGetUniformLocationARB( that->bicubic_pass2_program.program, "spline" ), CATMULLROM_SPLINE );
+  glActiveTexture (GL_TEXTURE0);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, info->video_texture);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glActiveTexture (GL_TEXTURE1);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
+  glUseProgram (that->bicubic_pass2_program.program);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "tex"), 0);
+  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "lut"), 1);
+  glUniform1f (glGetUniformLocationARB (that->bicubic_pass2_program.program, "spline"), CATMULLROM_SPLINE);
 
-  glBegin( GL_QUADS );
-    glTexCoord2f( u, v );     glVertex3f( x, y, 0.);
-    glTexCoord2f( u, v1 );    glVertex3f( x, y1, 0.);
-    glTexCoord2f( u1, v1 );   glVertex3f( x1, y1, 0.);
-    glTexCoord2f( u1, v );    glVertex3f( x1, y, 0.);
-  glEnd();
+  glBegin (GL_QUADS);
+    glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
+    glTexCoord2f (info->sx1, info->sy2); glVertex3f (info->dx1, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy2); glVertex3f (info->dx2, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy1); glVertex3f (info->dx2, info->dy1, 0);
+  glEnd ();
 
-  glUseProgram( 0 );
+  glUseProgram (0);
 
   return 1;
 }
 
-
-
-static int opengl2_draw_video_simple( opengl2_driver_t *that, int guiw, int guih, GLfloat u, GLfloat v, GLfloat u1, GLfloat v1,
-    GLfloat x, GLfloat y, GLfloat x1, GLfloat y1, GLuint video_texture )
-{
+static int opengl2_draw_video_simple (opengl2_driver_t *that, const opengl2_draw_info_t *info) {
   (void)that;
 
-  glViewport( 0, 0, guiw, guih );
-  glMatrixMode( GL_PROJECTION );
-  glLoadIdentity();
-  glOrtho( 0.0, guiw, guih, 0.0, -1.0, 1.0 );
-  glMatrixMode( GL_MODELVIEW );
-  glLoadIdentity();
+  glViewport (0, 0, info->guiw, info->guih);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, info->guiw, info->guih, 0, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
 
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glActiveTexture( GL_TEXTURE0 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  glActiveTexture (GL_TEXTURE0);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, info->video_texture);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-  glBegin( GL_QUADS );
-    glTexCoord2f( u, v );     glVertex3f( x, y, 0.);
-    glTexCoord2f( u, v1 );    glVertex3f( x, y1, 0.);
-    glTexCoord2f( u1, v1 );   glVertex3f( x1, y1, 0.);
-    glTexCoord2f( u1, v );    glVertex3f( x1, y, 0.);
-  glEnd();
+  glBegin (GL_QUADS);
+    glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
+    glTexCoord2f (info->sx1, info->sy2); glVertex3f (info->dx1, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy2); glVertex3f (info->dx2, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy1); glVertex3f (info->dx2, info->dy1, 0);
+  glEnd ();
 
   return 1;
 }
 
-
-
-static void opengl2_draw_video_bilinear( opengl2_driver_t *that, int guiw, int guih, GLfloat u, GLfloat v, GLfloat u1, GLfloat v1,
-    GLfloat x, GLfloat y, GLfloat x1, GLfloat y1, GLuint video_texture )
-{
+static void opengl2_draw_video_bilinear (opengl2_driver_t *that, const opengl2_draw_info_t *info) {
   (void)that;
 
-  glViewport( 0, 0, guiw, guih );
-  glMatrixMode( GL_PROJECTION );
-  glLoadIdentity();
-  glOrtho( 0.0, guiw, guih, 0.0, -1.0, 1.0 );
-  glMatrixMode( GL_MODELVIEW );
-  glLoadIdentity();
+  glViewport (0, 0, info->guiw, info->guih);
+  glMatrixMode (GL_PROJECTION);
+  glLoadIdentity ();
+  glOrtho (0, info->guiw, info->guih, 0, -1, 1);
+  glMatrixMode (GL_MODELVIEW);
+  glLoadIdentity ();
 
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glActiveTexture( GL_TEXTURE0 );
-  glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+  glActiveTexture (GL_TEXTURE0);
+  glBindTexture (GL_TEXTURE_RECTANGLE_ARB, info->video_texture);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri (GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  glBegin( GL_QUADS );
-    glTexCoord2f( u, v );     glVertex3f( x, y, 0.);
-    glTexCoord2f( u, v1 );    glVertex3f( x, y1, 0.);
-    glTexCoord2f( u1, v1 );   glVertex3f( x1, y1, 0.);
-    glTexCoord2f( u1, v );    glVertex3f( x1, y, 0.);
-  glEnd();
+  glBegin (GL_QUADS);
+    glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
+    glTexCoord2f (info->sx1, info->sy2); glVertex3f (info->dx1, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy2); glVertex3f (info->dx2, info->dy2, 0);
+    glTexCoord2f (info->sx2, info->sy1); glVertex3f (info->dx2, info->dy1, 0);
+  glEnd ();
 }
-
-
 
 static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
 {
@@ -1339,43 +1328,76 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glBindFramebuffer( GL_FRAMEBUFFER, that->fbo );
 
   if ( frame->format == XINE_IMGFMT_YV12 ) {
-    glActiveTexture( GL_TEXTURE0 );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.y );
+    void *mem;
+
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, that->videoPBO );
-    void *mem = glMapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY );
+
+    glActiveTexture( GL_TEXTURE0 );
+    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y]);
+    mem = glMapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY );
     xine_fast_memcpy (mem, frame->vo_frame.base[0], frame->vo_frame.pitches[0] * frame->height);
     glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
     glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[0], frame->height, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0 );
+
     glActiveTexture( GL_TEXTURE1 );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.u );
+    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_u]);
     mem = glMapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY );
     xine_fast_memcpy (mem, frame->vo_frame.base[1], frame->vo_frame.pitches[1] * frame->height / 2);
     glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
     glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[1], frame->height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0 );
+
     glActiveTexture( GL_TEXTURE2 );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.v );
+    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_v]);
     mem = glMapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY );
     xine_fast_memcpy (mem, frame->vo_frame.base[2], frame->vo_frame.pitches[2] * frame->height / 2);
     glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
     glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[2], frame->height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0 );
-    glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
 
+    glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
     glUseProgram( that->yuv420_program.program );
     glUniform1i( glGetUniformLocationARB( that->yuv420_program.program, "texY" ), 0 );
     glUniform1i( glGetUniformLocationARB( that->yuv420_program.program, "texU" ), 1 );
     glUniform1i( glGetUniformLocationARB( that->yuv420_program.program, "texV" ), 2 );
     load_csc_matrix( that->yuv420_program.program, that->csc_matrix );
   }
+  else if (frame->format == XINE_IMGFMT_NV12) {
+    void *mem;
+
+    glBindBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, that->videoPBO);
+
+    glActiveTexture (GL_TEXTURE0);
+    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y]);
+    mem = glMapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY);
+    xine_fast_memcpy (mem, frame->vo_frame.base[0], frame->vo_frame.pitches[0] * frame->height);
+    glUnmapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB);
+    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[0], frame->height, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0);
+
+    glActiveTexture (GL_TEXTURE1);
+    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_uv]);
+    mem = glMapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY);
+    xine_fast_memcpy (mem, frame->vo_frame.base[1], frame->vo_frame.pitches[1] * frame->height / 2);
+    glUnmapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB);
+    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[1], frame->height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0);
+
+    glBindBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+    glUseProgram (that->nv12_program.program);
+    glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texY"), 0);
+    glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texUV"), 1);
+    load_csc_matrix( that->yuv420_program.program, that->csc_matrix );
+  }
   else if ( frame->format == XINE_IMGFMT_YUY2 ) {
-    glActiveTexture( GL_TEXTURE0 );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.yuv );
+    void *mem;
+
     glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, that->videoPBO );
-    void *mem = glMapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY );
+
+    glActiveTexture( GL_TEXTURE0 );
+    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_yuv]);
+    mem = glMapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY );
     xine_fast_memcpy (mem, frame->vo_frame.base[0], frame->vo_frame.pitches[0] * frame->height);
     glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
     glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[0] / 2, frame->height, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, 0 );
-    glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
 
+    glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
     glUseProgram( that->yuv422_program.program );
     glUniform1i( glGetUniformLocationARB( that->yuv422_program.program, "texYUV" ), 0 );
     load_csc_matrix( that->yuv422_program.program, that->csc_matrix );
@@ -1392,7 +1414,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glMatrixMode( GL_MODELVIEW );
   glLoadIdentity();
 
-  GLuint video_texture = that->videoTex;
+  GLuint video_texture = that->videoTex[0];
   glDrawBuffer( GL_COLOR_ATTACHMENT0 );
 
   glBegin( GL_QUADS );
@@ -1426,46 +1448,64 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
   // draw on screen
-  GLfloat u, u1, v, v1, x, x1, y, y1;
+  {
+    int res = 0;
+    opengl2_draw_info_t info;
 
-  u = that->sc.displayed_xoffset;
-  v = that->sc.displayed_yoffset;
-  u1 = that->sc.displayed_width + that->sc.displayed_xoffset;
-  v1 = that->sc.displayed_height + that->sc.displayed_yoffset;
-  x = that->sc.output_xoffset;
-  y = that->sc.output_yoffset;
-  x1 = that->sc.output_xoffset + that->sc.output_width;
-  y1 = that->sc.output_yoffset + that->sc.output_height;
+    info.video_texture = video_texture;
 
-  int res = 0;
+    info.guiw = that->sc.gui_width;
+    info.guih = that->sc.gui_height;
 
-  if ( that->scale_bicubic ) {
-    if ( that->sc.displayed_width != that->sc.output_width ) {
-      if ( that->sc.displayed_height != that->sc.output_height )
-        res = opengl2_draw_video_bicubic( that, that->sc.gui_width, that->sc.gui_height, u, v, u1, v1, x, y, x1, y1, video_texture );
-      else
-        res = opengl2_draw_video_cubic_x( that, that->sc.gui_width, that->sc.gui_height, u, v, u1, v1, x, y, x1, y1, video_texture );
+    info.sx1 = that->sc.displayed_xoffset;
+    info.sy1 = that->sc.displayed_yoffset;
+    info.sx2 = that->sc.displayed_width + that->sc.displayed_xoffset;
+    info.sy2 = that->sc.displayed_height + that->sc.displayed_yoffset;
+
+    info.dw  = that->sc.output_width;
+    info.dh  = that->sc.output_height;
+    if (!(that->transform.flags & XINE_VO_TRANSFORM_FLIP_H)) {
+      info.dx1 = that->sc.output_xoffset;
+      info.dx2 = that->sc.output_xoffset + that->sc.output_width;
     } else {
-      if ( that->sc.displayed_height != that->sc.output_height )
-        res = opengl2_draw_video_cubic_y( that, that->sc.gui_width, that->sc.gui_height, u, v, u1, v1, x, y, x1, y1, video_texture );
-      else
-        res = opengl2_draw_video_simple( that, that->sc.gui_width, that->sc.gui_height, u, v, u1, v1, x, y, x1, y1, video_texture );
+      info.dx1 = that->sc.output_xoffset + that->sc.output_width;
+      info.dx2 = that->sc.output_xoffset;
     }
+    if (!(that->transform.flags & XINE_VO_TRANSFORM_FLIP_V)) {
+      info.dy1 = that->sc.output_yoffset;
+      info.dy2 = that->sc.output_yoffset + that->sc.output_height;
+    } else {
+      info.dy1 = that->sc.output_yoffset + that->sc.output_height;
+      info.dy2 = that->sc.output_yoffset;
+    }
+    that->transform.changed = 0;
+
+    if (that->scale_bicubic) {
+      if (that->sc.displayed_width != that->sc.output_width) {
+        if (that->sc.displayed_height != that->sc.output_height)
+          res = opengl2_draw_video_bicubic (that, &info);
+        else
+          res = opengl2_draw_video_cubic_x (that, &info);
+      } else {
+        if (that->sc.displayed_height != that->sc.output_height)
+          res = opengl2_draw_video_cubic_y (that, &info);
+        else
+          res = opengl2_draw_video_simple (that, &info);
+      }
+    }
+    if (!res)
+      opengl2_draw_video_bilinear (that, &info);
   }
-  if (!res)
-    opengl2_draw_video_bilinear( that, that->sc.gui_width, that->sc.gui_height, u, v, u1, v1, x, y, x1, y1, video_texture );
 
   // draw unscaled overlays
-  opengl2_draw_unscaled_overlays( that );
+  opengl2_draw_unscaled_overlays (that);
 
-  //if ( that->mglXSwapInterval )
-    //that->mglXSwapInterval( 1 );
+  // if (that->mglXSwapInterval)
+    //that->mglXSwapInterval (1);
 
-  that->gl->swap_buffers(that->gl);
-  that->gl->release_current(that->gl);
+  that->gl->swap_buffers (that->gl);
+  that->gl->release_current (that->gl);
 }
-
-
 
 static void opengl2_display_frame( vo_driver_t *this_gen, vo_frame_t *frame_gen )
 {
@@ -1553,6 +1593,10 @@ static int opengl2_get_property( vo_driver_t *this_gen, int property )
       return this->max_video_width;
     case VO_PROP_MAX_VIDEO_HEIGHT:
       return this->max_video_height;
+    case VO_PROP_CAPS2:
+      return VO_CAP2_NV12 | VO_CAP2_TRANSFORM;
+    case VO_PROP_TRANSFORM:
+      return this->transform.flags;
   }
 
   return -1;
@@ -1594,6 +1638,11 @@ static int opengl2_set_property( vo_driver_t *this_gen, int property, int value 
     case VO_PROP_CONTRAST: this->contrast = value; this->update_csc = 1; break;
     case VO_PROP_BRIGHTNESS: this->brightness = value; this->update_csc = 1; break;
     case VO_PROP_SHARPNESS: this->sharp.value = value; this->sharp.changed = 1; break;
+    case VO_PROP_TRANSFORM:
+      value &= XINE_VO_TRANSFORM_FLIP_H | XINE_VO_TRANSFORM_FLIP_V;
+      this->transform.changed |= value ^ this->transform.flags;
+      this->transform.flags = value;
+      break;
   }
 
   return value;
@@ -1697,13 +1746,10 @@ static void opengl2_set_bicubic( void *this_gen, xine_cfg_entry_t *entry )
   xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": scale_bicubic=%d\n", this->scale_bicubic );
 }
 
-
-
-static void opengl2_dispose( vo_driver_t *this_gen )
-{
+static void opengl2_dispose (vo_driver_t *this_gen) {
   opengl2_driver_t *this = (opengl2_driver_t *) this_gen;
 
-  opengl2_exit_unregister( this );
+  opengl2_exit_unregister (this);
 
   /* cm_close already does this.
   this->xine->config->unregister_callbacks (this->xine->config, "video.output.opengl2_bicubic_scaling", NULL, this, sizeof (*this));
@@ -1715,8 +1761,9 @@ static void opengl2_dispose( vo_driver_t *this_gen )
 
   this->gl->make_current(this->gl);
 
-  opengl2_delete_program( &this->yuv420_program );
-  opengl2_delete_program( &this->yuv422_program );
+  opengl2_delete_program (&this->yuv420_program);
+  opengl2_delete_program (&this->nv12_program);
+  opengl2_delete_program (&this->yuv422_program);
 
   if (this->sharp.program.compiled)
     opengl2_delete_program (&this->sharp.program);
@@ -1732,18 +1779,8 @@ static void opengl2_dispose( vo_driver_t *this_gen )
   if ( this->bicubic_fbo )
     glDeleteFramebuffers( 1, &this->bicubic_fbo );
 
-  if ( this->yuvtex.y )
-    glDeleteTextures( 1, &this->yuvtex.y );
-  if ( this->yuvtex.u )
-    glDeleteTextures( 1, &this->yuvtex.u );
-  if ( this->yuvtex.v )
-    glDeleteTextures( 1, &this->yuvtex.v );
-  if ( this->yuvtex.yuv )
-    glDeleteTextures( 1, &this->yuvtex.yuv );
-  if ( this->videoTex )
-    glDeleteTextures( 1, &this->videoTex );
-  if ( this->videoTex2 )
-    glDeleteTextures( 1, &this->videoTex2 );
+  glDeleteTextures (OGL2_TEX_LAST, this->yuvtex.tex);
+  glDeleteTextures (2, this->videoTex);
   if ( this->fbo )
     glDeleteFramebuffers( 1, &this->fbo );
   if ( this->videoPBO )
@@ -1762,13 +1799,10 @@ static void opengl2_dispose( vo_driver_t *this_gen )
   free (this);
 }
 
-
-
-static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const void *visual_gen )
-{
-  opengl2_class_t     *class   = (opengl2_class_t *) class_gen;
-  opengl2_driver_t    *this;
-  config_values_t     *config  = class->xine->config;
+static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
+  opengl2_class_t  *class = (opengl2_class_t *)class_gen;
+  opengl2_driver_t *this;
+  config_values_t  *config = class->xine->config;
 
   this = calloc (1, sizeof (*this));
   if (!this)
@@ -1778,6 +1812,8 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   this->brightness                     = 0;
   this->sharp.changed                  = 0;
   this->sharp.value                    = 0;
+  this->transform.flags                = 0;
+  this->transform.changed              = 0;
   this->sharp.program.compiled         = 0;
   this->bicubic_pass1_program.compiled = 0;
   this->bicubic_pass2_program.compiled = 0;
@@ -1788,16 +1824,17 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   this->bicubic_fbo                    = 0;
   this->ovl_changed                    = 0;
   this->num_ovls                       = 0;
-  this->yuvtex.y                       = 0;
-  this->yuvtex.u                       = 0;
-  this->yuvtex.v                       = 0;
-  this->yuvtex.yuv                     = 0;
+  this->yuvtex.tex[OGL2_TEX_y]         = 0;
+  this->yuvtex.tex[OGL2_TEX_u]         = 0;
+  this->yuvtex.tex[OGL2_TEX_v]         = 0;
+  this->yuvtex.tex[OGL2_TEX_yuv]       = 0;
+  this->yuvtex.tex[OGL2_TEX_uv]        = 0;
   this->yuvtex.width                   = 0;
   this->yuvtex.height                  = 0;
   this->fbo                            = 0;
   this->videoPBO                       = 0;
-  this->videoTex                       = 0;
-  this->videoTex2                      = 0;
+  this->videoTex[0]                    = 0;
+  this->videoTex[1]                    = 0;
   {
     int i;
     for (i = 0; i < XINE_VORAW_MAX_OVL; ++i) {
@@ -1810,180 +1847,152 @@ static vo_driver_t *opengl2_open_plugin( video_driver_class_t *class_gen, const 
   }
 #endif
 
-  this->gl = _x_load_gl(class->xine, class->visual_type, visual_gen, XINE_GL_API_OPENGL);
-  if (!this->gl) {
-    goto fail_gl_init;
-  }
-
-  {
-    /* TJ. If X server link gets lost, our next render attempt will fire the
-     * Xlib fatal error handler -> exit () -> opengl2_exit () with drawable_lock held.
-     * opengl2_display_frame () does quite a lot anyway so the "recursive mutex"
-     * performance drop should not matter. */
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init (&attr);
-    pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init (&this->drawable_lock, &attr);
-    pthread_mutexattr_destroy (&attr);
-  }
-
-  _x_vo_scale_init(&this->sc, 1, 0, config);
-
-  if (class->visual_type == XINE_VISUAL_TYPE_X11) {
-    const x11_visual_t  *visual  = (const x11_visual_t *) visual_gen;
-    this->sc.frame_output_cb  = visual->frame_output_cb;
-    this->sc.dest_size_cb     = visual->dest_size_cb;
-    this->sc.user_data        = visual->user_data;
-  } else /*if (class->visual_type == XINE_VISUAL_TYPE_WAYLAND)*/ {
-    const xine_wayland_visual_t  *visual  = (const xine_wayland_visual_t *) visual_gen;
-    this->sc.frame_output_cb  = visual->frame_output_cb;
-    this->sc.user_data        = visual->user_data;
-  }
-  this->sc.user_ratio       = XINE_VO_ASPECT_AUTO;
-
-  this->zoom_x = 100;
-  this->zoom_y = 100;
-
-  this->xine   = class->xine;
-  this->config = config;
-
-  this->vo_driver.get_capabilities     = opengl2_get_capabilities;
-  this->vo_driver.alloc_frame          = opengl2_alloc_frame;
-  this->vo_driver.update_frame_format  = opengl2_update_frame_format;
-  this->vo_driver.overlay_begin        = opengl2_overlay_begin;
-  this->vo_driver.overlay_blend        = opengl2_overlay_blend;
-  this->vo_driver.overlay_end          = opengl2_overlay_end;
-  this->vo_driver.display_frame        = opengl2_display_frame;
-  this->vo_driver.get_property         = opengl2_get_property;
-  this->vo_driver.set_property         = opengl2_set_property;
-  this->vo_driver.get_property_min_max = opengl2_get_property_min_max;
-  this->vo_driver.gui_data_exchange    = opengl2_gui_data_exchange;
-  this->vo_driver.dispose              = opengl2_dispose;
-  this->vo_driver.redraw_needed        = opengl2_redraw_needed;
-
-  if (!this->gl->make_current(this->gl)) {
-    xprintf( this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": display unavailable for initialization\n" );
-    goto fail_make_current;
-  }
-
-  {
-    GLint v[1] = {0};
-    glGetIntegerv (GL_MAX_TEXTURE_SIZE, v);
-    if (v[0] > 0) {
-      this->max_video_width  =
-      this->max_video_height = v[0];
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": max video size %dx%d.\n",
-        this->max_video_width, this->max_video_height);
+  this->gl = _x_load_gl (class->xine, class->visual_type, visual_gen, XINE_GL_API_OPENGL);
+  if (this->gl) {
+    {
+      /* TJ. If X server link gets lost, our next render attempt will fire the
+       * Xlib fatal error handler -> exit () -> opengl2_exit () with drawable_lock held.
+       * opengl2_display_frame () does quite a lot anyway so the "recursive mutex"
+       * performance drop should not matter. */
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init (&attr);
+      pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
+      pthread_mutex_init (&this->drawable_lock, &attr);
+      pthread_mutexattr_destroy (&attr);
     }
-  }
 
-  {
-    GLint v[2] = {0, 0};
-    glGetIntegerv (GL_MAX_VIEWPORT_DIMS, v);
-    if (v[0] > 0) {
-      this->max_display_width  = v[0];
-      this->max_display_height = v[1] > 0 ? v[1] : v[0];
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": max output size %dx%d.\n",
-        this->max_display_width, this->max_display_height);
+    _x_vo_scale_init (&this->sc, 1, 0, config);
+
+    if (class->visual_type == XINE_VISUAL_TYPE_X11) {
+      const x11_visual_t *visual = (const x11_visual_t *)visual_gen;
+      this->sc.frame_output_cb   = visual->frame_output_cb;
+      this->sc.dest_size_cb      = visual->dest_size_cb;
+      this->sc.user_data         = visual->user_data;
+    } else /* class->visual_type == XINE_VISUAL_TYPE_WAYLAND) */ {
+      const xine_wayland_visual_t *visual = (const xine_wayland_visual_t *)visual_gen;
+      this->sc.frame_output_cb            = visual->frame_output_cb;
+      this->sc.user_data                  = visual->user_data;
     }
-  }
 
-  glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-  glClearDepth( 1.0f );
-  glDepthFunc( GL_LEQUAL );
-  glDisable( GL_DEPTH_TEST );
-  glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-  glDisable( GL_BLEND );
-  glShadeModel( GL_SMOOTH );
-  glEnable( GL_TEXTURE_RECTANGLE_ARB );
-  glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
+    this->sc.user_ratio = XINE_VO_ASPECT_AUTO;
+    this->zoom_x = 100;
+    this->zoom_y = 100;
 
-  const char *extensions = glGetString( GL_EXTENSIONS );
-  if ( strstr( extensions, "ARB_texture_float" ) )
-    this->texture_float = 1;
-  else
-    this->texture_float = 0;
+    this->xine   = class->xine;
+    this->config = config;
+
+    this->vo_driver.get_capabilities     = opengl2_get_capabilities;
+    this->vo_driver.alloc_frame          = opengl2_alloc_frame;
+    this->vo_driver.update_frame_format  = opengl2_update_frame_format;
+    this->vo_driver.overlay_begin        = opengl2_overlay_begin;
+    this->vo_driver.overlay_blend        = opengl2_overlay_blend;
+    this->vo_driver.overlay_end          = opengl2_overlay_end;
+    this->vo_driver.display_frame        = opengl2_display_frame;
+    this->vo_driver.get_property         = opengl2_get_property;
+    this->vo_driver.set_property         = opengl2_set_property;
+    this->vo_driver.get_property_min_max = opengl2_get_property_min_max;
+    this->vo_driver.gui_data_exchange    = opengl2_gui_data_exchange;
+    this->vo_driver.dispose              = opengl2_dispose;
+    this->vo_driver.redraw_needed        = opengl2_redraw_needed;
+
+    if (!this->gl->make_current (this->gl)) {
+      xprintf (this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": display unavailable for initialization\n");
+    } else {
+      {
+        GLint v[1] = {0};
+        glGetIntegerv (GL_MAX_TEXTURE_SIZE, v);
+        if (v[0] > 0) {
+          this->max_video_width  =
+          this->max_video_height = v[0];
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": max video size %dx%d.\n",
+            this->max_video_width, this->max_video_height);
+        }
+      }
+      {
+        GLint v[2] = {0, 0};
+        glGetIntegerv (GL_MAX_VIEWPORT_DIMS, v);
+        if (v[0] > 0) {
+          this->max_display_width  = v[0];
+          this->max_display_height = v[1] > 0 ? v[1] : v[0];
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": max output size %dx%d.\n",
+            this->max_display_width, this->max_display_height);
+        }
+      }
+
+      glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
+      glClearDepth (1.0f);
+      glDepthFunc (GL_LEQUAL);
+      glDisable (GL_DEPTH_TEST);
+      glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glDisable (GL_BLEND);
+      glShadeModel (GL_SMOOTH);
+      glEnable (GL_TEXTURE_RECTANGLE_ARB);
+      glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+      {
+        const char *extensions = glGetString (GL_EXTENSIONS);
+
+        this->texture_float = (extensions && strstr (extensions, "ARB_texture_float")) ? 1 : 0;
+      }
 
 #define INITWIDTH  720
 #define INITHEIGHT 576
+      if (opengl2_check_textures_size (this, INITWIDTH, INITHEIGHT)
+        && opengl2_build_program (this, &this->yuv420_program, &yuv420_frag, "yuv420_frag")
+        && opengl2_build_program (this, &this->nv12_program,   &nv12_frag,   "nv12_frag")
+        && opengl2_build_program (this, &this->yuv422_program, &yuv422_frag, "yuv422_frag")) {
+        this->gl->release_current (this->gl);
 
-  if ( !opengl2_check_textures_size( this, INITWIDTH, INITHEIGHT ) ) {
-    goto fail;
+        this->update_csc = 1;
+        this->color_standard = 10;
+        this->saturation = 128;
+        this->contrast = 128;
+        cm_init (this);
+
+        if (this->texture_float) {
+          this->scale_bicubic = config->register_bool (config,
+            "video.output.opengl2_bicubic_scaling", 0,
+            _("opengl2: use a bicubic algo to scale the video"),
+            _("Set to true if you want bicubic scaling.\n\n"),
+            10, opengl2_set_bicubic, this);
+        } else {
+          this->scale_bicubic = 0;
+        }
+
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": initialized.\n");
+        return &this->vo_driver;
+      }
+      this->gl->release_current (this->gl);
+    }
+    pthread_mutex_destroy (&this->drawable_lock);
+    this->gl->dispose (&this->gl);
   }
-
-  if ( !opengl2_build_program( this, &this->yuv420_program, &yuv420_frag, "yuv420_frag" ) ) {
-    goto fail;
-  }
-  if ( !opengl2_build_program( this, &this->yuv422_program, &yuv422_frag, "yuv422_frag" ) ) {
-    goto fail;
-  }
-
-  this->gl->release_current(this->gl);
-
-  this->update_csc = 1;
-  this->color_standard = 10;
-  this->saturation = 128;
-  this->contrast = 128;
-
-  cm_init (this);
-
-  if ( this->texture_float ) {
-    this->scale_bicubic = config->register_bool( config, "video.output.opengl2_bicubic_scaling", 0,
-      _("opengl2: use a bicubic algo to scale the video"),
-      _("Set to true if you want bicubic scaling.\n\n"),
-      10, opengl2_set_bicubic, this );
-  }
-  else
-    this->scale_bicubic = 0;
-
-  xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": initialized.\n");
-
-  return &this->vo_driver;
-
- fail:
-  this->gl->release_current(this->gl);
- fail_make_current:
-  this->gl->dispose(&this->gl);
- fail_gl_init:
-  free(this);
+  free (this);
   return NULL;
 }
 
-static int opengl2_check_platform( xine_t *xine, unsigned visual_type, const void *visual )
-{
-  const char *extensions;
+static int opengl2_check_platform (xine_t *xine, unsigned visual_type, const void *visual) {
   xine_gl_t  *gl;
   int result = 0;
 
-  gl = _x_load_gl(xine, visual_type, visual, XINE_GL_API_OPENGL);
+  gl = _x_load_gl (xine, visual_type, visual, XINE_GL_API_OPENGL);
   if (!gl)
     return 0;
 
-  if (!gl->make_current(gl))
-    goto fail_released;
+  if (gl->make_current (gl)) {
+    const char *extensions = glGetString (GL_EXTENSIONS);
 
-  extensions = glGetString(GL_EXTENSIONS);
-  if (!extensions)
-    goto fail;
-
-  if (!strstr( extensions, "ARB_texture_rectangle"))
-    goto fail;
-  if (!strstr( extensions, "ARB_texture_non_power_of_two"))
-    goto fail;
-  if (!strstr( extensions, "ARB_pixel_buffer_object"))
-    goto fail;
-  if (!strstr( extensions, "ARB_framebuffer_object"))
-    goto fail;
-  if (!strstr( extensions, "ARB_fragment_shader"))
-    goto fail;
-  if (!strstr( extensions, "ARB_vertex_shader"))
-    goto fail;
-  result = 1;
-
- fail:
-  gl->release_current(gl);
- fail_released:
-  gl->dispose(&gl);
+    if (extensions
+      && strstr (extensions, "ARB_texture_rectangle")
+      && strstr (extensions, "ARB_texture_non_power_of_two")
+      && strstr (extensions, "ARB_pixel_buffer_object")
+      && strstr (extensions, "ARB_framebuffer_object")
+      && strstr (extensions, "ARB_fragment_shader")
+      && strstr (extensions, "ARB_vertex_shader"))
+      result = 1;
+    gl->release_current (gl);
+  }
+  gl->dispose (&gl);
   return result;
 }
 
@@ -2014,16 +2023,13 @@ static void *opengl2_init_class( xine_t *xine, unsigned visual_type, const void 
   return this;
 }
 
-static void *opengl2_init_class_x11( xine_t *xine, const void *visual_gen )
-{
-  return opengl2_init_class(xine, XINE_VISUAL_TYPE_X11, visual_gen);
+static void *opengl2_init_class_x11 (xine_t *xine, const void *visual_gen) {
+  return opengl2_init_class (xine, XINE_VISUAL_TYPE_X11, visual_gen);
 }
 
-static void *opengl2_init_class_wl( xine_t *xine, const void *visual_gen )
-{
-  return opengl2_init_class(xine, XINE_VISUAL_TYPE_WAYLAND, visual_gen);
+static void *opengl2_init_class_wl (xine_t *xine, const void *visual_gen) {
+  return opengl2_init_class (xine, XINE_VISUAL_TYPE_WAYLAND, visual_gen);
 }
-
 
 static const vo_info_t vo_info_opengl2 = {
   .priority    = 8,

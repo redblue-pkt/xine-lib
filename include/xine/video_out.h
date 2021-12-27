@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2021 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -237,7 +237,8 @@ struct xine_video_port_s {
 
 };
 
-/* constants for the get/set property functions */
+/* constants for the get/set property functions.
+ * MAINTAINERS: please keep in sync with xine.h/XINE_PARAM_VO_*. */
 #define VO_PROP_INTERLACED            0
 #define VO_PROP_ASPECT_RATIO          1
 #define VO_PROP_HUE                   2
@@ -272,7 +273,9 @@ struct xine_video_port_s {
 #define VO_PROP_BUFS_FREE             27 /* read-only */
 #define VO_PROP_MAX_VIDEO_WIDTH       28 /* read-only */
 #define VO_PROP_MAX_VIDEO_HEIGHT      29 /* read-only */
-#define VO_NUM_PROPERTIES             30
+#define VO_PROP_CAPS2                 30 /* read-only. second capability flags, see below. */
+#define VO_PROP_TRANSFORM             31 /* XINE_VO_TRANSFORM_* */
+#define VO_NUM_PROPERTIES             32
 
 /* number of colors in the overlay palette. Currently limited to 256
    at most, because some alphablend functions use an 8-bit index into
@@ -332,7 +335,9 @@ struct xine_video_port_s {
 #define VO_CAP_GAMMA                  0x08000000
 #define VO_CAP_SHARPNESS              0x10000000
 #define VO_CAP_NOISE_REDUCTION        0x20000000
-
+/* retrieved via VO_PROP_CAPS2 if != -1 */
+#define VO_CAP2_NV12                  0x00000001 /* driver can handle YUV 4:2:0 pictures as 2 planes (Y plus interleaved UV) */
+#define VO_CAP2_TRANSFORM             0x00000002 /* driver can flip image */
 
 /*
  * vo_driver_s contains the functions every display driver
