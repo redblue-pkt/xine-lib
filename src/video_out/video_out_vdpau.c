@@ -2420,46 +2420,72 @@ static void vdpau_dispose_grab_video_frame(xine_grab_video_frame_t *frame_gen)
 
 /*
  * grab next displayed output surface.
- * Note: This feature only supports grabbing of next displayed frame (implicit VO_GRAB_FRAME_FLAGS_WAIT_NEXT)
  */
 static int vdpau_grab_grab_video_frame (xine_grab_video_frame_t *frame_gen) {
   vdpau_grab_video_frame_t *frame = (vdpau_grab_video_frame_t *) frame_gen;
   vdpau_driver_t *this = (vdpau_driver_t *) frame->vo_driver;
-  struct timeval tvnow, tvdiff, tvtimeout;
-  struct timespec ts;
+  int yes = 0;
 
-  /* calculate absolute timeout time */
-  tvdiff.tv_sec = frame->grab_frame.timeout / 1000;
-  tvdiff.tv_usec = frame->grab_frame.timeout % 1000;
-  tvdiff.tv_usec *= 1000;
-  gettimeofday(&tvnow, NULL);
-  timeradd(&tvnow, &tvdiff, &tvtimeout);
-  ts.tv_sec  = tvtimeout.tv_sec;
-  ts.tv_nsec = tvtimeout.tv_usec;
-  ts.tv_nsec *= 1000;
+  do {
+    if (frame->grab_frame.flags & XINE_GRAB_VIDEO_FRAME_FLAGS_WAIT_NEXT)
+      break;
+    pthread_mutex_lock (&this->drawable_lock);
+    if (this->back_frame[0]) {
+      vdpau_grab_video_frame_t *pending_frame;
 
-  pthread_mutex_lock(&this->grab_lock);
+      pthread_mutex_lock (&this->grab_lock);
+      pending_frame = this->pending_grab_request;
+      this->pending_grab_request = frame;
+      pthread_mutex_unlock (&this->grab_lock);
 
-  /* wait until other pending grab request is finished */
-  while (this->pending_grab_request) {
-    if (pthread_cond_timedwait(&this->grab_cond, &this->grab_lock, &ts) == ETIMEDOUT) {
-      pthread_mutex_unlock(&this->grab_lock);
-      return 1;   /* no frame available */
+      vdpau_grab_current_output_surface (this, this->back_frame[0]->vo_frame.vpts);
+
+      pthread_mutex_lock (&this->grab_lock);
+      this->pending_grab_request = pending_frame;
+      pthread_mutex_unlock (&this->grab_lock);
+
+      yes = 1;
     }
-  }
+    pthread_mutex_unlock (&this->drawable_lock);
+  } while (0);
 
-  this->pending_grab_request = frame;
-
-  /* wait until our request is finished */
-  while (this->pending_grab_request) {
-    if (pthread_cond_timedwait(&this->grab_cond, &this->grab_lock, &ts) == ETIMEDOUT) {
-      this->pending_grab_request = NULL;
-      pthread_mutex_unlock(&this->grab_lock);
-      return 1;   /* no frame available */
+  if (!yes) {
+    struct timeval tvnow;
+    struct timespec ts;
+    /* calculate absolute timeout time */
+    gettimeofday (&tvnow, NULL);
+    tvnow.tv_sec += frame->grab_frame.timeout / 1000;
+    tvnow.tv_usec += (frame->grab_frame.timeout % 1000) * 1000;
+    if (tvnow.tv_usec >= 1000000) {
+      tvnow.tv_usec -= 1000000;
+      tvnow.tv_sec += 1;
     }
-  }
+    ts.tv_sec  = tvnow.tv_sec;
+    ts.tv_nsec = tvnow.tv_usec * 1000;
 
-  pthread_mutex_unlock(&this->grab_lock);
+    pthread_mutex_lock (&this->grab_lock);
+
+    /* wait until other pending grab request is finished */
+    while (this->pending_grab_request) {
+      if (pthread_cond_timedwait (&this->grab_cond, &this->grab_lock, &ts) == ETIMEDOUT) {
+        pthread_mutex_unlock (&this->grab_lock);
+        return 1;   /* no frame available */
+      }
+    }
+
+    this->pending_grab_request = frame;
+
+    /* wait until our request is finished */
+    while (this->pending_grab_request) {
+      if (pthread_cond_timedwait (&this->grab_cond, &this->grab_lock, &ts) == ETIMEDOUT) {
+        this->pending_grab_request = NULL;
+        pthread_mutex_unlock (&this->grab_lock);
+        return 1;   /* no frame available */
+      }
+    }
+
+    pthread_mutex_unlock (&this->grab_lock);
+  }
 
   if (frame->grab_frame.vpts == -1)
     return -1; /* error happened */
@@ -2492,6 +2518,14 @@ static xine_grab_video_frame_t * vdpau_new_grab_video_frame(vo_driver_t *this)
   }
 
   return (xine_grab_video_frame_t *) frame;
+}
+
+static void vdpau_set_process_snapshots (void *this_gen, xine_cfg_entry_t *entry) {
+  vdpau_driver_t *this = (vdpau_driver_t *)this_gen;
+
+  /* vdpau_new_grab_video_frame () is always there, and the pointer to it
+   * reads and writes atomically. i guess we dont need locks here ;-) */
+  this->vo_driver.new_grab_video_frame = entry->num_value ? vdpau_new_grab_video_frame : NULL;
 }
 
 
@@ -2725,7 +2759,7 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
   this->vo_driver.gui_data_exchange    = vdpau_gui_data_exchange;
   this->vo_driver.dispose              = vdpau_dispose;
   this->vo_driver.redraw_needed        = vdpau_redraw_needed;
-  this->vo_driver.new_grab_video_frame = vdpau_new_grab_video_frame;
+  this->vo_driver.new_grab_video_frame = NULL; /* see below */
 
   this->video_mixer = VDP_INVALID_HANDLE;
   for ( i=0; i<NOUTPUTSURFACE; ++i )
@@ -3067,6 +3101,13 @@ static vo_driver_t *vdpau_open_plugin (video_driver_class_t *class_gen, const vo
       config->update_num (config, "engine.buffers.video_num_frames", 22);
   }
 
+  this->vo_driver.new_grab_video_frame = config->register_bool (config,
+    "video.output.vdpau_process_snapshots", 0,
+    _("vdpau: make snapshots like visible on screen"),
+    _("If set, snapshots will be scaled, cropped, padded and subtitled.\n"
+      "Otherwise, you get the pure original video image.\n"),
+    10, vdpau_set_process_snapshots, this) ? vdpau_new_grab_video_frame : NULL;
+
   this->capabilities = VO_CAP_YV12 | VO_CAP_YUY2
                      | VO_CAP_COLOR_MATRIX | VO_CAP_FULLRANGE
                      | VO_CAP_CROP
@@ -3180,3 +3221,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_VIDEO_OUT, 22, "vdpau", XINE_VERSION_CODE, &vo_info_vdpau, vdpau_init_class },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
+
