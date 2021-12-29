@@ -44,6 +44,7 @@ struct xine_gl {
   void (*dispose)          (xine_gl_t **);
 
   void *(*get_proc_address)(xine_gl_t *, const char *);
+  const char * (*query_extensions)(xine_gl_t *);
 };
 
 xine_gl_t *_x_load_gl(xine_t *xine, unsigned visual_type, const void *visual, unsigned flags);
