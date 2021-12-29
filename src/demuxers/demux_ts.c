@@ -818,6 +818,9 @@ static void demux_ts_dynamic_pmt_clean (demux_ts_t *this) {
   this->audio_tracks_count = tracks;
   /* should really have no effect */
   this->spu_langs_count = spus;
+
+  _x_stream_info_set (this->stream, XINE_STREAM_INFO_HAS_VIDEO, this->videoPid == INVALID_PID ? 0 : 1);
+  _x_stream_info_set (this->stream, XINE_STREAM_INFO_HAS_AUDIO, this->audio_tracks_count > 0 ? 1 : 0);
 }
 
 static void demux_ts_dynamic_pmt_clear (demux_ts_t *this) {
@@ -3469,4 +3472,3 @@ void *demux_ts_init_class (xine_t *xine, const void *data) {
 
   return (void *)&demux_ts_class;
 }
-
