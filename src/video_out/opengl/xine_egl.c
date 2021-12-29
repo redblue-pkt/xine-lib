@@ -43,6 +43,7 @@
 #endif
 
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 #define EGL(_gl) xine_container_of(_gl, xine_egl_t, p.gl)
 
@@ -57,6 +58,11 @@ typedef struct {
 #if defined(XINE_EGL_USE_WAYLAND)
   struct wl_egl_window *window;
   int width, height;
+#endif
+
+#ifdef EGL_KHR_image
+  PFNEGLCREATEIMAGEKHRPROC    eglCreateImageKHR;
+  PFNEGLDESTROYIMAGEKHRPROC   eglDestroyImageKHR;
 #endif
 
   /* DEBUG */
@@ -179,6 +185,22 @@ static void *_egl_get_proc_address(xine_gl_t *gl, const char *procname)
   return (void *)eglGetProcAddress(procname);
 }
 
+#ifdef EGL_KHR_image
+static void *_egl_create_image_khr(xine_gl_t *gl, unsigned target, void *buffer, const int32_t *attrib_list)
+{
+  xine_egl_t *egl = EGL(gl);
+
+  return egl->eglCreateImageKHR(egl->display, egl->context, target, buffer, attrib_list);
+}
+
+static int _egl_destroy_image_khr(xine_gl_t *gl, void *image)
+{
+  xine_egl_t *egl = EGL(gl);
+
+  return egl->eglDestroyImageKHR(egl->display, image);
+}
+#endif /* EGL_KHR_image */
+
 static int _egl_init(xine_egl_t *egl, EGLNativeDisplayType native_display, int api)
 {
   static const EGLint attributes[] = {
@@ -297,6 +319,15 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
 
   egl->p.gl.query_extensions  = _egl_query_extensions;
   egl->p.gl.get_proc_address  = _egl_get_proc_address;
+
+#ifdef EGL_KHR_image
+  egl->eglCreateImageKHR  = (void *)eglGetProcAddress("eglCreateImageKHR");
+  egl->eglDestroyImageKHR = (void *)eglGetProcAddress("eglDestroyImageKHR");
+  if (egl->eglCreateImageKHR && egl->eglDestroyImageKHR) {
+    egl->p.gl.eglCreateImageKHR  = _egl_create_image_khr;
+    egl->p.gl.eglDestroyImageKHR = _egl_destroy_image_khr;
+  }
+#endif /* EGL_KHR_image */
 
   egl->p.xine = params->xine;
 
