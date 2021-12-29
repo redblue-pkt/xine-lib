@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018-2021 the xine project
- * Copyright (C) 2018-2019 Petri Hintukainen <phintuka@users.sourceforge.net>
+ * Copyright (C) 2018-2021 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
  *
@@ -161,6 +161,12 @@ static void _egl_resize(xine_gl_t *gl, int w, int h)
 #endif
 }
 
+static void *_egl_get_proc_address(xine_gl_t *gl, const char *procname)
+{
+  (void)gl;
+  return (void *)eglGetProcAddress(procname);
+}
+
 static int _egl_init(xine_egl_t *egl, EGLNativeDisplayType native_display, int api)
 {
   static const EGLint attributes[] = {
@@ -276,6 +282,8 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
   egl->p.gl.resize            = _egl_resize;
   egl->p.gl.set_native_window = _egl_set_native_window;
   egl->p.gl.dispose           = NULL;
+
+  egl->p.gl.get_proc_address  = _egl_get_proc_address;
 
   egl->p.xine = params->xine;
 
