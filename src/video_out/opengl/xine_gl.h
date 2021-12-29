@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018-2021 the xine project
- * Copyright (C) 2018-2019 Petri Hintukainen <phintuka@users.sourceforge.net>
+ * Copyright (C) 2018-2021 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
  *
@@ -42,6 +42,8 @@ struct xine_gl {
   void (*set_native_window)(xine_gl_t *, void *);
 
   void (*dispose)          (xine_gl_t **);
+
+  void *(*get_proc_address)(xine_gl_t *, const char *);
 };
 
 xine_gl_t *_x_load_gl(xine_t *xine, unsigned visual_type, const void *visual, unsigned flags);
