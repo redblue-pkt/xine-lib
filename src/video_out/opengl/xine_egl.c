@@ -161,6 +161,18 @@ static void _egl_resize(xine_gl_t *gl, int w, int h)
 #endif
 }
 
+static const char *_egl_query_string(xine_gl_t *gl, int type)
+{
+  xine_egl_t *egl = EGL(gl);
+
+  return eglQueryString(egl->display, type);
+}
+
+static const char *_egl_query_extensions(xine_gl_t *gl)
+{
+  return _egl_query_string(gl, EGL_EXTENSIONS);
+}
+
 static void *_egl_get_proc_address(xine_gl_t *gl, const char *procname)
 {
   (void)gl;
@@ -283,6 +295,7 @@ static xine_module_t *_egl_get_instance(xine_module_class_t *class_gen, const vo
   egl->p.gl.set_native_window = _egl_set_native_window;
   egl->p.gl.dispose           = NULL;
 
+  egl->p.gl.query_extensions  = _egl_query_extensions;
   egl->p.gl.get_proc_address  = _egl_get_proc_address;
 
   egl->p.xine = params->xine;
