@@ -2040,6 +2040,8 @@ static int decode_video_wrapper (ff_video_decoder_t *this,
   return len;
 }
 
+static void ff_reset (video_decoder_t *this_gen);
+
 static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
 
   vo_frame_t *img;
@@ -2123,8 +2125,20 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
     flush = next_flush;
 
     if ((err < 0) && (err != AVERROR (EAGAIN))) {
-      xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-        "ffmpeg_video_dec: error decompressing frame (%d).\n", err);
+#ifdef AVERROR_EOF
+      if (err == AVERROR_EOF) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "ffmpeg_video_dec: lost track, reinitializing.\n");
+        ff_reset (&this->video_decoder);
+      } else
+#endif
+      {
+        char b[20];
+
+        _x_tag32_me2str (b, -err);
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+          "ffmpeg_video_dec: error decompressing frame [%s] (%d).\n", b, err);
+      }
     }
     size -= len;
     offset += len;
@@ -2377,8 +2391,20 @@ static void ff_handle_buffer (ff_video_decoder_t *this, buf_element_t *buf) {
             this->size -= len;
             continue;
           }
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-            "ffmpeg_video_dec: error decompressing frame (%d).\n", err);
+#ifdef AVERROR_EOF
+          if (err == AVERROR_EOF) {
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "ffmpeg_video_dec: lost track, reinitializing.\n");
+            ff_reset (&this->video_decoder);
+          } else
+#endif
+          {
+            char b[20];
+
+            _x_tag32_me2str (b, -err);
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+              "ffmpeg_video_dec: error decompressing frame [%s] (%d).\n", b, err);
+          }
           this->size = 0;
 
         } else {
