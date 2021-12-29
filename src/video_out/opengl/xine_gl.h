@@ -45,6 +45,13 @@ struct xine_gl {
 
   void *(*get_proc_address)(xine_gl_t *, const char *);
   const char * (*query_extensions)(xine_gl_t *);
+
+  /* EGL */
+  void       * (*eglCreateImageKHR) (xine_gl_t *,
+                                     unsigned /* EGLenum target */,
+                                     void * /* EGLClientBuffer buffer */,
+                                     const int32_t * /*const EGLint * attrib_list */);
+  int          (*eglDestroyImageKHR) (xine_gl_t *, void *);
 };
 
 xine_gl_t *_x_load_gl(xine_t *xine, unsigned visual_type, const void *visual, unsigned flags);
