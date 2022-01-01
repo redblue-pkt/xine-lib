@@ -187,7 +187,7 @@ xineplug_vo_out_opengl_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(GLUT_LIBS) \
 	$(GLUT_LIBS) $(GLU_LIBS) $(X_LIBS) $(PTHREAD_LIBS) $(DYNAMIC_LD_LIBS) $(LTLIBINTL) $(X11OSD_LIB) -lm
 xineplug_vo_out_opengl_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)
 
-xineplug_vo_out_opengl2_la_SOURCES = video_out_opengl2.c
+xineplug_vo_out_opengl2_la_SOURCES = video_out_opengl2.c mem_frame.h
 xineplug_vo_out_opengl2_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(XINE_GL_LIB) -lm
 xineplug_vo_out_opengl2_la_CFLAGS = $(AM_CFLAGS)
 

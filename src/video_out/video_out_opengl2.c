@@ -1,6 +1,6 @@
 /*
  * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
- * Copyright (C) 2012-2021 the xine project
+ * Copyright (C) 2012-2022 the xine project
  * Copyright (C) 2012 Christophe Thommeret <hftom@free.fr>
  *
  * This file is part of xine, a free video player.
@@ -53,11 +53,8 @@
 
 #include "opengl/xine_gl.h"
 
-typedef struct {
-  vo_frame_t         vo_frame;
-  int                width, height, format, flags;
-  double             ratio;
-} opengl2_frame_t;
+#include "mem_frame.h"
+typedef mem_frame_t opengl2_frame_t;
 
 typedef struct {
   int       ovl_w, ovl_h;
@@ -675,137 +672,6 @@ static void opengl2_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img)
 
   this->gl->release_current(this->gl);
 }
-
-
-
-
-static void opengl2_frame_proc_slice( vo_frame_t *vo_img, uint8_t **src )
-{
-  (void)src;
-  vo_img->proc_called = 1;
-}
-
-
-
-static void opengl2_frame_field( vo_frame_t *vo_img, int which_field )
-{
-  (void)vo_img;
-  (void)which_field;
-}
-
-
-
-static void opengl2_frame_dispose( vo_frame_t *vo_img )
-{
-  opengl2_frame_t  *frame = (opengl2_frame_t *) vo_img ;
-
-  xine_free_aligned (frame->vo_frame.base[0]);
-  pthread_mutex_destroy (&frame->vo_frame.mutex);
-  free (frame);
-}
-
-
-
-static vo_frame_t *opengl2_alloc_frame( vo_driver_t *this_gen )
-{
-  opengl2_frame_t  *frame;
-
-  frame = (opengl2_frame_t *) calloc(1, sizeof(opengl2_frame_t));
-
-  if (!frame)
-    return NULL;
-
-  frame->vo_frame.base[0] = frame->vo_frame.base[1] = frame->vo_frame.base[2] = NULL;
-  frame->width = frame->height = frame->format = frame->flags = 0;
-
-  pthread_mutex_init (&frame->vo_frame.mutex, NULL);
-
-  /*
-   * supply required functions/fields
-   */
-  frame->vo_frame.proc_slice = opengl2_frame_proc_slice;
-  frame->vo_frame.proc_frame = NULL;
-  frame->vo_frame.field      = opengl2_frame_field;
-  frame->vo_frame.dispose    = opengl2_frame_dispose;
-  frame->vo_frame.driver     = this_gen;
-
-  return (vo_frame_t *) frame;
-}
-
-
-
-static void opengl2_update_frame_format( vo_driver_t *this_gen, vo_frame_t *frame_gen,
-      uint32_t width, uint32_t height, double ratio, int format, int flags )
-{
-  opengl2_frame_t *frame = (opengl2_frame_t *) frame_gen;
-
-  (void)this_gen;
-  /* Check frame size and format and reallocate if necessary */
-  if ( (frame->width != (int)width) || (frame->height != (int)height) || (frame->format != format) ) {
-
-    /* (re-) allocate render space */
-    xine_freep_aligned (&frame->vo_frame.base[0]);
-    frame->vo_frame.base[1] = NULL;
-    frame->vo_frame.base[2] = NULL;
-
-    if (format == XINE_IMGFMT_YV12) {
-      int w = (width + 15) & ~15;
-      int ysize = w * height;
-      int uvsize = (w >> 1) * ((height + 1) >> 1);
-      frame->vo_frame.pitches[0] = w;
-      frame->vo_frame.pitches[1] = w >> 1;
-      frame->vo_frame.pitches[2] = w >> 1;
-      frame->vo_frame.base[0] = xine_malloc_aligned (ysize + 2 * uvsize);
-      if (!frame->vo_frame.base[0]) {
-        frame->width = 0;
-        frame->vo_frame.width = 0; /* tell vo_get_frame () to retry later */
-        return;
-      }
-      memset (frame->vo_frame.base[0], 0, ysize);
-      frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
-      memset (frame->vo_frame.base[1], 128, 2 * uvsize);
-      frame->vo_frame.base[2] = frame->vo_frame.base[1] + uvsize;
-    } else if (format == XINE_IMGFMT_NV12) {
-      int w = (width + 15) & ~15;
-      int ysize = w * height;
-      int uvsize = w * ((height + 1) >> 1);
-      frame->vo_frame.pitches[0] =
-      frame->vo_frame.pitches[1] = w;
-      frame->vo_frame.base[0] = xine_malloc_aligned (ysize + uvsize);
-      if (!frame->vo_frame.base[0]) {
-        frame->width = 0;
-        frame->vo_frame.width = 0;
-        return;
-      }
-      memset (frame->vo_frame.base[0], 0, ysize);
-      frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
-      memset (frame->vo_frame.base[1], 128, uvsize);
-    } else if (format == XINE_IMGFMT_YUY2){
-      frame->vo_frame.pitches[0] = ((width + 15) & ~15) << 1;
-      frame->vo_frame.base[0] = xine_malloc_aligned (frame->vo_frame.pitches[0] * height);
-      if (frame->vo_frame.base[0]) {
-        const union {uint8_t bytes[4]; uint32_t word;} black = {{0, 128, 0, 128}};
-        uint32_t *q = (uint32_t *)frame->vo_frame.base[0];
-        int i;
-        for (i = frame->vo_frame.pitches[0] * height / 4; i > 0; i--)
-          *q++ = black.word;
-      } else {
-        frame->width = 0;
-        frame->vo_frame.width = 0; /* tell vo_get_frame () to retry later */
-        return;
-      }
-    }
-
-    frame->width = width;
-    frame->height = height;
-    frame->format = format;
-  }
-  /* flags dont matter for buffers yet, so just copy them */
-  frame->flags = flags;
-
-  frame->ratio = ratio;
-}
-
 
 
 static int opengl2_redraw_needed( vo_driver_t *this_gen )
@@ -1877,8 +1743,8 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
     this->config = config;
 
     this->vo_driver.get_capabilities     = opengl2_get_capabilities;
-    this->vo_driver.alloc_frame          = opengl2_alloc_frame;
-    this->vo_driver.update_frame_format  = opengl2_update_frame_format;
+    this->vo_driver.alloc_frame          = mem_frame_alloc_frame;
+    this->vo_driver.update_frame_format  = mem_frame_update_frame_format;
     this->vo_driver.overlay_begin        = opengl2_overlay_begin;
     this->vo_driver.overlay_blend        = opengl2_overlay_blend;
     this->vo_driver.overlay_end          = opengl2_overlay_end;
