@@ -237,15 +237,12 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
     dnl sndio support
     XINE_ARG_ENABLE([sndio], [Enable sndio support])
     if test x"$enable_sndio" != "xno"; then
-	AC_CHECK_LIB([sndio], [sio_open], [SNDIO_LIBS=-lsndio; have_sndio=yes],
-		     [have_sndio=no])
-	if test "x$hard_enable_sndio" = "xyes" && test "x$have_sndio" = "xno"; then
-	    AC_MSG_ERROR([sndio support requested, but sndio not found])
-	fi
+        PKG_CHECK_MODULES([SNDIO], [sndio], [have_sndio=yes], [have_sndio=no])
+        if test x"$hard_enable_sndio" = x"yes" && test x"$have_sndio" != x"yes"; then
+            AC_MSG_ERROR([sndio support requested, but sndio not found])
+        fi
     fi
     AM_CONDITIONAL([ENABLE_SNDIO], [test "x$have_sndio" = "xyes"])
-    AC_SUBST([SNDIO_CFLAGS])
-    AC_SUBST([SNDIO_LIBS])
 
     dnl OpenSL ES
     XINE_ARG_WITH([opensles], [Build with OpenSL ES audio output support])
