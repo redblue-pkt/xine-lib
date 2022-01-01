@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -39,13 +39,9 @@
 #include <xine/xineutils.h>
 #include <xine/vo_scale.h>
 
-typedef struct {
-  vo_frame_t           vo_frame;
-  unsigned int         width;
-  unsigned int         height;
-  double               ratio;
-  int                  format;
-} vo_none_frame_t;
+#include "mem_frame.h"
+
+typedef mem_frame_t vo_none_frame_t;
 
 typedef struct {
   vo_driver_t          vo_driver;
@@ -59,123 +55,11 @@ typedef struct {
 } vo_none_class_t;
 
 
-static void vo_none_free_framedata(vo_none_frame_t* frame) {
-  if(frame->vo_frame.base[0]) {
-    xine_free_aligned(frame->vo_frame.base[0]);
-    frame->vo_frame.base[0] = NULL;
-    frame->vo_frame.base[1] = NULL;
-    frame->vo_frame.base[2] = NULL;
-  }
-}
-
-static void vo_none_frame_dispose(vo_frame_t *vo_frame) {
-  vo_none_frame_t *frame = (vo_none_frame_t *)vo_frame;
-  vo_none_free_framedata(frame);
-  pthread_mutex_destroy (&frame->vo_frame.mutex);
-  free (frame);
-}
-
-static void vo_none_frame_field(vo_frame_t *vo_frame, int which_field) {
-  /* do nothing */
-  (void)vo_frame;
-  (void)which_field;
-}
-
 static uint32_t vo_none_get_capabilities(vo_driver_t *vo_driver) {
   /* No, we dont crop. Neither do we interpret color matrix or range. */
   /* But we also dont ask decoders to convert data just for the trash ;-) */
   (void)vo_driver;
   return VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CROP | VO_CAP_COLOR_MATRIX | VO_CAP_FULLRANGE;
-}
-
-static vo_frame_t *vo_none_alloc_frame(vo_driver_t *vo_driver) {
-  /* none_driver_t *this = (none_driver_t *) vo_driver; */
-  vo_none_frame_t  *frame;
-
-  frame = calloc(1, sizeof(vo_none_frame_t));
-  if(!frame)
-    return NULL;
-
-  pthread_mutex_init(&frame->vo_frame.mutex, NULL);
-
-  frame->vo_frame.base[0] = NULL;
-  frame->vo_frame.base[1] = NULL;
-  frame->vo_frame.base[2] = NULL;
-
-  frame->vo_frame.proc_slice = NULL;
-  frame->vo_frame.proc_frame = NULL;
-  frame->vo_frame.field      = vo_none_frame_field;
-  frame->vo_frame.dispose    = vo_none_frame_dispose;
-  frame->vo_frame.driver     = vo_driver;
-
-  return (vo_frame_t *)frame;
-}
-
-static void vo_none_update_frame_format(vo_driver_t *vo_driver, vo_frame_t *vo_frame,
-				     uint32_t width, uint32_t height,
-				     double ratio, int format, int flags) {
-  vo_none_driver_t *this = (vo_none_driver_t *) vo_driver;
-  vo_none_frame_t  *frame = (vo_none_frame_t *) vo_frame;
-
-  (void)flags;
-  if((frame->width != width) || (frame->height != height) || (frame->format != format)) {
-
-    vo_none_free_framedata(frame);
-
-    frame->width  = width;
-    frame->height = height;
-    frame->format = format;
-
-    switch(format) {
-
-    case XINE_IMGFMT_YV12:
-      {
-	int y_size, uv_size;
-
-	frame->vo_frame.pitches[0] = 8*((width + 7) / 8);
-	frame->vo_frame.pitches[1] = 8*((width + 15) / 16);
-	frame->vo_frame.pitches[2] = 8*((width + 15) / 16);
-
-	y_size  = frame->vo_frame.pitches[0] * height;
-	uv_size = frame->vo_frame.pitches[1] * ((height+1)/2);
-
-	frame->vo_frame.base[0] = xine_malloc_aligned (y_size + 2*uv_size);
-        if (frame->vo_frame.base[0]) {
-          frame->vo_frame.base[1] = frame->vo_frame.base[0] + y_size;
-          frame->vo_frame.base[2] = frame->vo_frame.base[0] + y_size + uv_size;
-        } else {
-          frame->vo_frame.base[1] = NULL;
-          frame->vo_frame.base[2] = NULL;
-          xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-            "video_out_none: error. (framedata allocation failed: out of memory)\n");
-          frame->width = 0;
-          frame->vo_frame.width = 0;
-        }
-      }
-      break;
-
-    case XINE_IMGFMT_YUY2:
-      frame->vo_frame.pitches[0] = 8*((width + 3) / 4);
-      frame->vo_frame.base[0] = xine_malloc_aligned(frame->vo_frame.pitches[0] * height);
-      frame->vo_frame.base[1] = NULL;
-      frame->vo_frame.base[2] = NULL;
-      if (!frame->vo_frame.base[0]) {
-        xprintf (this->xine, XINE_VERBOSITY_DEBUG,
-          "video_out_none: error. (framedata allocation failed: out of memory)\n");
-        frame->width = 0;
-        frame->vo_frame.width = 0;
-      }
-      break;
-
-    default:
-      xprintf (this->xine, XINE_VERBOSITY_DEBUG, "video_out_none: unknown frame format %04x)\n", format);
-      frame->width = 0;
-      frame->vo_frame.width = 0;
-      break;
-    }
-  }
-
-  frame->ratio = ratio;
 }
 
 static void vo_none_display_frame(vo_driver_t *vo_driver, vo_frame_t *vo_frame) {
@@ -193,6 +77,9 @@ static int vo_none_get_property(vo_driver_t *vo_driver, int property) {
   case VO_PROP_ASPECT_RATIO:
     return driver->ratio;
     break;
+
+  case VO_PROP_CAPS2:
+    return VO_CAP2_NV12;
 
   default:
     break;
@@ -268,8 +155,8 @@ static vo_driver_t *vo_none_open_plugin(video_driver_class_t *driver_class, cons
   driver->ratio  = XINE_VO_ASPECT_AUTO;
 
   driver->vo_driver.get_capabilities     = vo_none_get_capabilities;
-  driver->vo_driver.alloc_frame          = vo_none_alloc_frame ;
-  driver->vo_driver.update_frame_format  = vo_none_update_frame_format;
+  driver->vo_driver.alloc_frame          = mem_frame_alloc_frame;
+  driver->vo_driver.update_frame_format  = mem_frame_update_frame_format;
   driver->vo_driver.overlay_begin        = NULL;
   driver->vo_driver.overlay_blend        = NULL;
   driver->vo_driver.overlay_end          = NULL;

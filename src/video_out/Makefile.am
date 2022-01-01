@@ -246,7 +246,7 @@ xineplug_vo_out_directx_la_SOURCES = video_out_directx.c
 xineplug_vo_out_directx_la_LIBADD = $(XINE_LIB) $(DIRECTX_VIDEO_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL)
 xineplug_vo_out_directx_la_CPPFLAGS = $(AM_CPPFLAGS) $(DIRECTX_CPPFLAGS)
 
-xineplug_vo_out_none_la_SOURCES =  video_out_none.c
+xineplug_vo_out_none_la_SOURCES =  video_out_none.c mem_frame.h
 xineplug_vo_out_none_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(LTLIBINTL)
 
 xineplug_vo_out_raw_la_SOURCES = video_out_raw.c
