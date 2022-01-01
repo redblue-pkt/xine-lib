@@ -1244,7 +1244,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     glUseProgram (that->nv12_program.program);
     glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texY"), 0);
     glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texUV"), 1);
-    load_csc_matrix( that->yuv420_program.program, that->csc_matrix );
+    load_csc_matrix( that->nv12_program.program, that->csc_matrix );
   }
   else if ( frame->format == XINE_IMGFMT_YUY2 ) {
     void *mem;
