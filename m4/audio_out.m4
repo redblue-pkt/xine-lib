@@ -14,7 +14,7 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
     dnl - OSS is most unix variants
     dnl - PulseAudio has been tested on Linux, Solaris, FreeBSD, Windows
     dnl - SunAudio is NetBSD, Solaris (anything else?)
-    dnl - sndio is OpenBSD only
+    dnl - sndio is *BSD, Linux
 
     default_enable_coreaudio=no
     default_enable_irixal=no
@@ -42,6 +42,7 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
         freebsd*|kfreebsd*)
             default_with_pulseaudio=yes
             default_with_jack=yes
+            default_enable_sndio=yes
             ;;
         gnu*)
             default_with_pulseaudio=yes
@@ -61,9 +62,11 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
             default_with_alsa=yes
             default_with_jack=yes
             default_with_pulseaudio=yes
+            default_enable_sndio=yes
             ;;
         netbsd*)
             default_enable_sunaudio=yes
+            default_enable_sndio=yes
             ;;
         openbsd*)
             default_enable_oss=no
