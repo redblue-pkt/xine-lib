@@ -51,12 +51,6 @@
 #ifdef HAVE_SYS_SOUNDCARD_H
 # include <sys/soundcard.h>
 #endif
-#ifdef HAVE_MACHINE_SOUNDCARD_H
-# include <sys/soundcard.h>
-#endif
-#ifdef HAVE_SOUNDCARD_H
-# include <soundcard.h>
-#endif
 
 #define LOG_MODULE "audio_oss_out"
 #define LOG_VERBOSE
