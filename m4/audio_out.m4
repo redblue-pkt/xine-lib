@@ -171,19 +171,13 @@ AC_DEFUN([XINE_AUDIO_OUT_PLUGINS], [
        ;;
    esac
 
-        AC_CHECK_HEADERS([sys/soundcard.h machine/soundcard.h soundcard.h], [break])
+        AC_CHECK_HEADERS([sys/soundcard.h], [break])
         AC_CHECK_DECL([SNDCTL_DSP_SETFRAGMENT], [have_oss=yes], [have_oss=no],
                       [#ifdef __NetBSD__
                        #include <sys/ioctl.h>
                        #endif
                        #ifdef HAVE_SYS_SOUNDCARD_H
                        # include <sys/soundcard.h>
-                       #endif
-                       #ifdef HAVE_MACHINE_SOUNDCARD_H
-                       # include <sys/soundcard.h>
-                       #endif
-                       #ifdef HAVE_SOUNDCARD_H
-                       # include <soundcard.h>
                        #endif])
         if test x"$hard_enable_oss" = x"yes" && test x"$have_oss" != x"yes"; then
             AC_MSG_ERROR([OSS support requested, but OSS not found])
