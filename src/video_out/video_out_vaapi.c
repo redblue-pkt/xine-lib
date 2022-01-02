@@ -810,10 +810,8 @@ static int vaapi_glx_unbind_texture(vaapi_driver_t *this)
   return 0;
 }
 
-static void vaapi_glx_render_frame(vo_frame_t *frame_gen, int left, int top, int right, int bottom)
+static void vaapi_glx_render_frame(vaapi_driver_t *this, vaapi_frame_t *frame, int left, int top, int right, int bottom)
 {
-  vaapi_driver_t        *this = (vaapi_driver_t *) frame_gen->driver;
-  vaapi_frame_t         *frame = (vaapi_frame_t *) frame_gen;
   ff_vaapi_context_t    *va_context = this->va_context;
   int             x1, x2, y1, y2;
   float           tx, ty;
@@ -849,13 +847,11 @@ static void vaapi_glx_render_frame(vo_frame_t *frame_gen, int left, int top, int
     return;
 }
 
-static void vaapi_glx_flip_page(vo_frame_t *frame_gen, int left, int top, int right, int bottom)
+static void vaapi_glx_flip_page(vaapi_driver_t *this, vaapi_frame_t *frame, int left, int top, int right, int bottom)
 {
-  vaapi_driver_t *this = (vaapi_driver_t *) frame_gen->driver;
-
   glClear(GL_COLOR_BUFFER_BIT);
 
-  vaapi_glx_render_frame(frame_gen, left, top, right, bottom);
+  vaapi_glx_render_frame(this, frame, left, top, right, bottom);
 
   //if (gl_finish)
   //  glFinish();
@@ -3186,9 +3182,8 @@ static void yuy2_to_nv12(const uint8_t *src_yuy2_map, int yuy2_pitch,
 }
 
 
-static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, vo_frame_t *frame_gen,
+static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, vaapi_frame_t *frame,
                                             VAImage *va_image, VASurfaceID va_surface_id) {
-  vaapi_frame_t      *frame           = (vaapi_frame_t *) frame_gen;
   ff_vaapi_context_t *va_context      = this->va_context;
   void               *p_base          = NULL;
   VAStatus           vaStatus;
@@ -3231,26 +3226,26 @@ static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, vo_frame_t *fr
 
       yv12_to_yv12(
               /* Y */
-              frame_gen->base[0], frame_gen->pitches[0],
+              frame->vo_frame.base[0], frame->vo_frame.pitches[0],
               dst[0], pitches[0],
               /* U */
-              frame_gen->base[1], frame_gen->pitches[1],
+              frame->vo_frame.base[1], frame->vo_frame.pitches[1],
               dst[1], pitches[1],
               /* V */
-              frame_gen->base[2], frame_gen->pitches[2],
+              frame->vo_frame.base[2], frame->vo_frame.pitches[2],
               dst[2], pitches[2],
               /* width x height */
-              frame_gen->width, frame_gen->height);
+              frame->vo_frame.width, frame->vo_frame.height);
 
     } else if (va_image->format.fourcc == VA_FOURCC( 'N', 'V', '1', '2' )) {
       lprintf("vaapi_software_render_frame yv12 -> nv12 convert\n");
 
-      yv12_to_nv12(frame_gen->base[0], frame_gen->pitches[0],
-                   frame_gen->base[1], frame_gen->pitches[1],
-                   frame_gen->base[2], frame_gen->pitches[2],
+      yv12_to_nv12(frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+                   frame->vo_frame.base[1], frame->vo_frame.pitches[1],
+                   frame->vo_frame.base[2], frame->vo_frame.pitches[2],
                    (uint8_t *)p_base + va_image->offsets[0], va_image->pitches[0],
                    (uint8_t *)p_base + va_image->offsets[1], va_image->pitches[1],
-                   frame_gen->width, frame_gen->height);
+                   frame->vo_frame.width, frame->vo_frame.height);
 
     }
   } else if (frame->format == XINE_IMGFMT_YUY2) {
@@ -3259,19 +3254,19 @@ static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, vo_frame_t *fr
         va_image->format.fourcc == VA_FOURCC( 'I', '4', '2', '0' ) ) {
       lprintf("vaapi_software_render_frame yuy2 -> yv12 convert\n");
 
-      yuy2_to_yv12(frame_gen->base[0], frame_gen->pitches[0],
+      yuy2_to_yv12(frame->vo_frame.base[0], frame->vo_frame.pitches[0],
                   dst[0], pitches[0],
                   dst[1], pitches[1],
                   dst[2], pitches[2],
-                  frame_gen->width, frame_gen->height);
+                  frame->vo_frame.width, frame->vo_frame.height);
 
     } else if (va_image->format.fourcc == VA_FOURCC( 'N', 'V', '1', '2' )) {
       lprintf("vaapi_software_render_frame yuy2 -> nv12 convert\n");
 
-      yuy2_to_nv12(frame_gen->base[0], frame_gen->pitches[0],
+      yuy2_to_nv12(frame->vo_frame.base[0], frame->vo_frame.pitches[0],
                    (uint8_t *)p_base + va_image->offsets[0], va_image->pitches[0],
                    (uint8_t *)p_base + va_image->offsets[1], va_image->pitches[1],
-                   frame_gen->width, frame_gen->height);
+                   frame->vo_frame.width, frame->vo_frame.height);
     }
 
   }
@@ -3291,9 +3286,8 @@ static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, vo_frame_t *fr
   return VA_STATUS_SUCCESS;
 }
 
-static VAStatus vaapi_hardware_render_frame (vaapi_driver_t *this, vo_frame_t *frame_gen,
+static VAStatus vaapi_hardware_render_frame (vaapi_driver_t *this, vaapi_frame_t *frame,
                                              VASurfaceID va_surface_id) {
-  vaapi_frame_t      *frame           = (vaapi_frame_t *) frame_gen;
   ff_vaapi_context_t *va_context      = this->va_context;
   VAStatus           vaStatus         = VA_STATUS_ERROR_UNKNOWN; 
   int                i                = 0;
@@ -3356,7 +3350,7 @@ static VAStatus vaapi_hardware_render_frame (vaapi_driver_t *this, vo_frame_t *f
       if(!vaapi_check_status(this, vaStatus, msg))
         return vaStatus;
 
-      vaapi_glx_flip_page(frame_gen, 0, 0, va_context->width, va_context->height);
+      vaapi_glx_flip_page(this, frame, 0, 0, va_context->width, va_context->height);
 
     } else
 #endif
@@ -3580,9 +3574,9 @@ static void vaapi_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     /* transfer image data to a VAAPI surface */
     if (frame->format != XINE_IMGFMT_VAAPI) {
-      vaapi_software_render_frame(this, frame_gen, va_image, va_surface_id);
+      vaapi_software_render_frame(this, frame, va_image, va_surface_id);
     }
-    vaapi_hardware_render_frame(this, frame_gen, va_surface_id);
+    vaapi_hardware_render_frame(this, frame, va_surface_id);
   }
 
   XSync(this->display, False);
