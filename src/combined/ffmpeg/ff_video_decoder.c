@@ -65,7 +65,7 @@
 # endif
 #endif
 
-#ifdef HAVE_VA_VA_X11_H
+#ifdef HAVE_VA_VA_H
 # if XFF_VAAPI == 1
 #  include <libavcodec/vaapi.h>
 # elif XFF_VAAPI == 2
