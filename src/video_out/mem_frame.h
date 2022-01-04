@@ -25,10 +25,9 @@
  */
 
 typedef struct mem_frame_t {
-  vo_frame_t         vo_frame;
-  unsigned           width, height;
-  int                format, flags;
-  double             ratio;
+  vo_frame_t vo_frame;
+  int width, height, format, flags;
+  double ratio;
 } mem_frame_t;
 
 static void _mem_frame_proc_slice(vo_frame_t *vo_img, uint8_t **src)
@@ -91,11 +90,12 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
 
   (void)this_gen;
 
+  /* vo_none and vo_opengl2 need no buffer adjustment for these. */
   frame->flags = flags;
   frame->ratio = ratio;
 
-  /* Check frame size and format and reallocate if necessary */
-  if (frame->width == width && frame->height == height && frame->format == format)
+  /* Check frame size and format and reallocate if necessary (rare case). */
+  if (!((frame->width ^ width) | (frame->height ^ height) | (frame->format ^ format)))
     return;
 
   frame->width  = width;
@@ -108,9 +108,10 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
   frame->vo_frame.base[2] = NULL;
 
   if (format == XINE_IMGFMT_YV12) {
-    unsigned w = (width + 15) & ~15;
-    unsigned ysize = w * height;
-    unsigned uvsize = (w >> 1) * ((height + 1) >> 1);
+    uint32_t w = (width + 15) & ~15;
+    uint32_t ysize = w * height;
+    uint32_t uvsize = (w >> 1) * ((height + 1) >> 1);
+
     frame->vo_frame.pitches[0] = w;
     frame->vo_frame.pitches[1] = w >> 1;
     frame->vo_frame.pitches[2] = w >> 1;
@@ -123,11 +124,12 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
     }
 
   } else if (format == XINE_IMGFMT_NV12) {
-    int w = (width + 15) & ~15;
-    int ysize = w * height;
-    int uvsize = w * ((height + 1) >> 1);
+    uint32_t w = (width + 15) & ~15;
+    uint32_t ysize = w * height;
+    uint32_t uvsize = w * ((height + 1) >> 1);
+
     frame->vo_frame.pitches[0] =
-      frame->vo_frame.pitches[1] = w;
+    frame->vo_frame.pitches[1] = w;
     frame->vo_frame.base[0] = xine_malloc_aligned (ysize + uvsize);
     if (frame->vo_frame.base[0]) {
       memset (frame->vo_frame.base[0], 0, ysize);
