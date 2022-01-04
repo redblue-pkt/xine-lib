@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2862,6 +2862,123 @@ static void demux_ts_parse_packet (demux_ts_t*this) {
   }
 }
 
+/* 0 (go on), 1 (recheck), 2 (stop) */
+static int demux_ts_parse_pat_pmt_packet (demux_ts_t*this) {
+
+  const uint8_t *originalPkt;
+  uint32_t       tsp_head;
+  uint32_t       pid;
+  unsigned int   data_offset;
+  unsigned int   data_len;
+  uint32_t       index;
+
+  /* get next synchronised packet, or NULL */
+#if TS_PACKET_READER == 2
+  originalPkt = sync_next (this);
+#elif TS_PACKET_READER == 1
+  originalPkt = demux_synchronise(this);
+#endif
+  if (originalPkt == NULL)
+    return 2;
+
+  tsp_head = _X_BE_32 (originalPkt);
+  pid      = (tsp_head & TSP_pid) >> 8;
+
+  /*
+   * Discard packets that are obviously bad.
+   */
+  if ((tsp_head >> 24) != SYNC_BYTE)
+    return 2;
+  if (tsp_head & TSP_transport_error)
+    return 0;
+  if (tsp_head & TSP_scrambling_control)
+    return 0;
+
+  data_offset = 4;
+
+  if (tsp_head & TSP_adaptation_field_1) {
+    uint32_t adaptation_field_length = originalPkt[4];
+    if (adaptation_field_length > PKT_SIZE - 5)
+      return 0;
+
+    if (adaptation_field_length > 0) {
+      int64_t pcr = demux_ts_adaptation_field_parse (originalPkt+5, adaptation_field_length);
+      if (pid == this->pcr_pid)
+        demux_ts_tbre_update (this, TBRE_MODE_PCR, pcr);
+      else if (pid == this->tbre_pid)
+        demux_ts_tbre_update (this, TBRE_MODE_AUDIO_PCR, pcr);
+    }
+    /*
+     * Skip adaptation header.
+     */
+    data_offset += adaptation_field_length + 1;
+    if (data_offset >= PKT_SIZE) {
+      /* no payload or invalid header */
+      return 0;
+    }
+  }
+
+  if (!(tsp_head & TSP_adaptation_field_0)) {
+    return 0;
+  }
+
+  data_len = PKT_SIZE - data_offset;
+  index = this->pid_index[pid];
+
+  if (!(index & 0x80))
+    return 0;
+
+  if (index != 0xff) {
+    /* PMT */
+    index &= 0x7f;
+    demux_ts_parse_pmt (this, originalPkt + data_offset, tsp_head & TSP_payload_unit_start, data_len, index, pid);
+    return 1;
+  }
+
+  /* PAT */
+  if (pid == 0) {
+    demux_ts_parse_pat (this, originalPkt + data_offset, tsp_head & TSP_payload_unit_start, data_len);
+    return 1;
+  }
+
+  return 0;
+}
+
+static void demux_ts_scan_pat_pmt (demux_ts_t *this) {
+  unsigned int max;
+
+  if ((this->videoPid != INVALID_PID) || (this->audio_tracks_count > 0))
+    return;
+
+  /* we naed first pat/pmt before outputting anything anyway.
+   * do the scan even if the rewind below fails. */
+  for (max = (2 << 20) / 188; max; max--) {
+    int r = demux_ts_parse_pat_pmt_packet (this);
+
+    if (r == 2)
+      break;
+    if (r == 1) {
+      if ((this->videoPid != INVALID_PID) || (this->audio_tracks_count > 0))
+        break;
+    }
+  }
+
+  if ((this->videoPid != INVALID_PID) || (this->audio_tracks_count > 0)) {
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+      LOG_MODULE ": found pat/pmt after %u packets.\n", (2 << 20) / 188 + 1 - max);
+  }
+
+  if (this->input->seek (this->input, 0, SEEK_SET) == 0) {
+    /* in dvb, pat/pmt repeat every half second regardless of key frames.
+     * rewind did work, lets try to play the very beginning as well :-) */
+#if TS_PACKET_READER == 2
+    this->buf_pos  = 0;
+    this->buf_size = 0;
+#endif
+  }
+}
+
+
 /*
  * check for pids change events
  */
@@ -2982,9 +3099,10 @@ static void demux_ts_send_headers (demux_plugin_t *this_gen) {
   this->spu_langs_count = 0;
   this->current_spu_channel = -1;
 
-  /* FIXME ? */
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
-  _x_stream_info_set(this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+  _x_stream_info_set (this->stream, XINE_STREAM_INFO_HAS_VIDEO, 1);
+  _x_stream_info_set (this->stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
+
+  demux_ts_scan_pat_pmt (this);
 }
 
 static int demux_ts_seek (demux_plugin_t *this_gen,
