@@ -3949,13 +3949,13 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
         20, vaapi_opengl_use_tfp, this );
 
 
-  LOCK_DISPLAY (this);
   if(this->opengl_render) {
+      LOCK_DISPLAY (this);
       this->opengl_render = vaapi_opengl_verify_direct (visual);
+      UNLOCK_DISPLAY (this);
       if(!this->opengl_render)
         xprintf (this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Opengl indirect/software rendering does not work. Fallback to plain VAAPI output !!!!\n");
   }
-  UNLOCK_DISPLAY (this);
 
   this->gl_context                      = NULL;
   this->gl_pixmap                       = None;
