@@ -670,31 +670,24 @@ static void vaapi_get_functions(void *(*getProcAddress)(const GLubyte *),
     void       *funcptr;
     const char *extstr;
     const char *funcnames[4];
-    void       *fallback;
   } extfuncs[] = {
     { &mpglBindTexture,
       NULL,
-      { "glBindTexture", "glBindTextureARB", "glBindTextureEXT", NULL },
-      NULL },
+      { "glBindTexture", "glBindTextureARB", "glBindTextureEXT", NULL } },
     { &mpglXBindTexImage,
       "GLX_EXT_texture_from_pixmap",
-      {" glXBindTexImageEXT", NULL },
-      NULL },
+      {" glXBindTexImageEXT", NULL }, },
     { &mpglXReleaseTexImage,
       "GLX_EXT_texture_from_pixmap",
-      { "glXReleaseTexImageEXT", NULL},
-      NULL },
+      { "glXReleaseTexImageEXT", NULL} },
     { &mpglXCreatePixmap,
       "GLX_EXT_texture_from_pixmap",
-      { "glXCreatePixmap", NULL },
-      NULL },
+      { "glXCreatePixmap", NULL } },
     { &mpglXDestroyPixmap,
       "GLX_EXT_texture_from_pixmap",
-      { "glXDestroyPixmap", NULL },
-      NULL },
+      { "glXDestroyPixmap", NULL } },
     { &mpglGenPrograms, "_program",
-      { "glGenProgramsARB", NULL },
-      NULL },
+      { "glGenProgramsARB", NULL } },
 };
 
   const char *extensions;
@@ -724,8 +717,6 @@ static void vaapi_get_functions(void *(*getProcAddress)(const GLubyte *),
       for (i = 0; !ptr && extfuncs[ext].funcnames[i]; i++)
         ptr = getProcAddress((const GLubyte *)extfuncs[ext].funcnames[i]);
     }
-    if (!ptr)
-        ptr = extfuncs[ext].fallback;
     *(void **)extfuncs[ext].funcptr = ptr;
   }
   lprintf("\n");
