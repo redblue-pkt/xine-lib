@@ -337,7 +337,6 @@ static int vaapi_lock_decode(vo_frame_t *frame_gen)
 
   if (this->guarded_render) {
     pthread_mutex_lock(&this->vaapi_lock);
-    //LOCK_DISPLAY (this);
     return 1;
   }
   return 0;
@@ -348,7 +347,6 @@ static void vaapi_unlock_decode(vo_frame_t *frame_gen)
   vaapi_driver_t  *this = (vaapi_driver_t *) frame_gen->driver;
 
   /* unconditional unlock - this is called only if lock was acquired */
-  //UNLOCK_DISPLAY (this);
   pthread_mutex_unlock(&this->vaapi_lock);
 }
 
@@ -427,7 +425,6 @@ static void render_vaapi_surface(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_s
     return;
 
   pthread_mutex_lock(&this->vaapi_lock);
-  //LOCK_DISPLAY (this);
 
   accel->index = va_surface->index;
 
@@ -436,7 +433,6 @@ static void render_vaapi_surface(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_s
   printf("render_vaapi_surface 0x%08x\n", va_surface->va_surface_id);
 #endif
 
-  //UNLOCK_DISPLAY (this);
   pthread_mutex_unlock(&this->vaapi_lock);
 }
 
@@ -3085,11 +3081,15 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
     vaapi_frame_field ((vo_frame_t *)frame, flags);
   }
 
-  pthread_mutex_lock(&this->vaapi_lock);
-  LOCK_DISPLAY (this);
-
   if(this->guarded_render) {
+    /*
+     * This code handles frames that were dropped (used in decoder, but not drawn).
+     * -> we need to lock because of surface may still be in use in decoder.
+     */
     ff_vaapi_surface_t *va_surface = &this->va_context->va_render_surfaces[accel->index];
+
+    pthread_mutex_lock(&this->vaapi_lock);
+    LOCK_DISPLAY (this);
 
     if(va_surface->status == SURFACE_RENDER_RELEASE) {
       va_surface->status = SURFACE_FREE;
@@ -3102,10 +3102,10 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
       printf("release_surface vaapi_update_frame_format 0x%08x\n", va_surface->va_surface_id);
 #endif
     }
-  }
 
-  UNLOCK_DISPLAY (this);
-  pthread_mutex_unlock(&this->vaapi_lock);
+    UNLOCK_DISPLAY (this);
+    pthread_mutex_unlock(&this->vaapi_lock);
+  }
 
   frame->ratio  = ratio;
   frame->vo_frame.future_frame = NULL;
