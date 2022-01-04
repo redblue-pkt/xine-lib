@@ -300,7 +300,6 @@ static void yv12_to_nv12(const uint8_t *y_src, int y_src_pitch,
                          int width, int height);
 
 #ifdef ENABLE_VA_GLX
-void (GLAPIENTRY *mpglGenTextures)(GLsizei, GLuint *);
 void (GLAPIENTRY *mpglBindTexture)(GLenum, GLuint);
 void (GLAPIENTRY *mpglXBindTexImage)(Display *, GLXDrawable, int, const int *);
 void (GLAPIENTRY *mpglXReleaseTexImage)(Display *, GLXDrawable, int);
@@ -667,14 +666,12 @@ static void *vaapi_getdladdr (const char *s) {
 static void vaapi_get_functions(void *(*getProcAddress)(const GLubyte *),
                                 const char *ext2)
 {
-#define DEF_FUNC_DESC(name) {&mpgl##name, NULL, {"gl"#name, NULL}, gl ##name}
   static const struct {
     void       *funcptr;
     const char *extstr;
     const char *funcnames[4];
     void       *fallback;
   } extfuncs[] = {
-    DEF_FUNC_DESC(GenTextures),
     { &mpglBindTexture,
       NULL,
       { "glBindTexture", "glBindTextureARB", "glBindTextureEXT", NULL },
@@ -699,7 +696,6 @@ static void vaapi_get_functions(void *(*getProcAddress)(const GLubyte *),
       { "glGenProgramsARB", NULL },
       NULL },
 };
-#undef DEF_FUNC_DESC
 
   const char *extensions;
   char *allexts;
