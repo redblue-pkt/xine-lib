@@ -290,7 +290,6 @@ static VAStatus vaapi_destroy_soft_surfaces(vaapi_driver_t *this);
 static VAStatus vaapi_destroy_render_surfaces(vaapi_driver_t *this);
 static const char *vaapi_profile_to_string(VAProfile profile);
 static int vaapi_set_property (vo_driver_t *this_gen, int property, int value);
-static void vaapi_show_display_props(vaapi_driver_t *this);
 
 static void yv12_to_nv12(const uint8_t *y_src, int y_src_pitch, 
                          const uint8_t *u_src, int u_src_pitch, 
@@ -1799,8 +1798,6 @@ static void vaapi_property_callback (void *property_gen, xine_cfg_entry_t *entry
   /*VAStatus vaStatus = */ vaSetDisplayAttributes(va_context->va_display, &attr, 1);
   //vaapi_check_status(this, vaStatus, "vaSetDisplayAttributes()");
 
-  vaapi_show_display_props(this);
-
   UNLOCK_DISPLAY (this);
   pthread_mutex_unlock(&this->vaapi_lock);
 }
@@ -1851,21 +1848,6 @@ static void vaapi_check_capability (vaapi_driver_t *this,
   } else {
     this->props[property].value  = int_default;
   }
-}
-
-static void vaapi_show_display_props(vaapi_driver_t *this) {
-#if 0
-  if(this->capabilities & VO_CAP_BRIGHTNESS)
-    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : brightness     : %d\n", this->props[VO_PROP_BRIGHTNESS].value);
-  if(this->capabilities & VO_CAP_CONTRAST)
-    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : contrast       : %d\n", this->props[VO_PROP_CONTRAST].value);
-  if(this->capabilities & VO_CAP_HUE)
-    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : hue            : %d\n", this->props[VO_PROP_HUE].value);
-  if(this->capabilities & VO_CAP_SATURATION)
-    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : saturation     : %d\n", this->props[VO_PROP_SATURATION].value); 
-#else
-  (void)this;
-#endif
 }
 
 /* VAAPI display attributes. */
@@ -1959,8 +1941,6 @@ static void vaapi_display_attribs(vaapi_driver_t *this) {
         = (this->props[VO_PROP_BRIGHTNESS].max - this->props[VO_PROP_BRIGHTNESS].min) >> 1;
     }
   }
-
-  vaapi_show_display_props(this);
 }
 
 static void vaapi_set_background_color(vaapi_driver_t *this) {
@@ -3690,8 +3670,6 @@ static int vaapi_set_property (vo_driver_t *this_gen, int property, int value) {
 
     if (this->props[property].entry)
       this->props[property].entry->num_value = this->props[property].value;
-
-    vaapi_show_display_props(this);
 
     return this->props[property].value;
   } else {
