@@ -3069,7 +3069,6 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
     ff_vaapi_surface_t *va_surface = &this->va_context->va_render_surfaces[accel->index];
 
     pthread_mutex_lock(&this->vaapi_lock);
-    LOCK_DISPLAY (this);
 
     if(va_surface->status == SURFACE_RENDER_RELEASE) {
       va_surface->status = SURFACE_FREE;
@@ -3083,7 +3082,6 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
 #endif
     }
 
-    UNLOCK_DISPLAY (this);
     pthread_mutex_unlock(&this->vaapi_lock);
   }
 
@@ -3734,13 +3732,11 @@ static int vaapi_gui_data_exchange (vo_driver_t *this_gen,
      * This works with opengl2 and vdpau.
      * FIXME: With vaapi here, 2. does _not_ work. Why? */
     pthread_mutex_lock(&this->vaapi_lock);
-    LOCK_DISPLAY (this);
     lprintf("XINE_GUI_SEND_EXPOSE_EVENT:\n");
     this->sc.force_redraw = 1;
 #ifdef ENABLE_VA_GLX
     this->init_opengl_render = 1;
 #endif
-    UNLOCK_DISPLAY (this);
     pthread_mutex_unlock(&this->vaapi_lock);
   }
   break;
