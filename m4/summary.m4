@@ -219,7 +219,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
         test x"$have_glx" = x"yes" -a x"$no_x" != x"yes"        && echo "       - X11 (GLX) backend"     || disgl="$disgl GLX"
         test x"$have_egl" = x"yes" -a x"$no_x" != x"yes"        && echo "       - X11 (EGL) backend"     || disgl="$disgl EGL-X11"
         test x"$have_egl" = x"yes" -a x"$have_wayland" = x"yes" && echo "       - Wayland (EGL) backend" || disgl="$disgl EGL-Wayland"
-        test x"$disgh" != x"" && echo "       (disabled plugins:$disgl)"
+        test x"$disgl" != x"" && echo "       (disabled plugins:$disgl)"
     else dis="$dis OpenGL2"
     fi
     if test x"$no_x" != x"yes"; then
