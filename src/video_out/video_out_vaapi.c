@@ -475,7 +475,7 @@ static VADisplay vaapi_get_display(Display *display, int opengl_render)
   return NULL;
 }
 
-static VAStatus vaapi_terminate(ff_vaapi_context_t *va_context)
+static VAStatus _x_va_terminate(ff_vaapi_context_t *va_context)
 {
   VAStatus vaStatus = VA_STATUS_SUCCESS;
 
@@ -490,7 +490,7 @@ static VAStatus vaapi_terminate(ff_vaapi_context_t *va_context)
   return vaStatus;
 }
 
-static VAStatus vaapi_initialize(ff_vaapi_context_t *va_context, Display *display, int opengl_render)
+static VAStatus _x_va_initialize(ff_vaapi_context_t *va_context, Display *display, int opengl_render)
 {
   VAStatus vaStatus;
   int      maj, min;
@@ -522,8 +522,7 @@ static VAStatus vaapi_initialize(ff_vaapi_context_t *va_context, Display *displa
   return vaStatus;
 
 fail:
-  _x_freep(&va_context->va_image_formats);
-  vaapi_terminate(va_context);
+  _x_va_terminate(va_context);
   return vaStatus;
 }
 
@@ -2064,16 +2063,6 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
   VAStatus            vaStatus;
 
   vaapi_close(this);
-
-  if (!this->va_context->va_display) {
-#ifdef ENABLE_VA_GLX
-    vaStatus = vaapi_initialize(va_context, this->display, this->opengl_render);
-#else
-    vaStatus = vaapi_initialize(va_context, this->display, 0);
-#endif
-    if(!vaapi_check_status(this, vaStatus, "vaInitialize()"))
-      goto error;
-  }
 
   va_context->valid_context = 1;
 
@@ -3800,7 +3789,7 @@ static void vaapi_dispose_locked (vaapi_driver_t *this) {
 
   vaapi_close(this);
 
-  vaapi_terminate(va_context);
+  _x_va_terminate(va_context);
 
   _x_freep(&this->overlay_bitmap);
 
@@ -3901,6 +3890,7 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   XVisualInfo             *vi;
   int                     depth;
   int                     i;
+  VAStatus                vaStatus;
   const int               x11_event_mask = ExposureMask | 
                                            StructureNotifyMask;
 
@@ -4097,6 +4087,16 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   this->props[VO_PROP_ZOOM_Y].value          = 100;
 
   this->last_sub_image_fmt                   = 0;
+
+#ifdef ENABLE_VA_GLX
+  vaStatus = _x_va_initialize(this->va_context, this->display, this->opengl_render);
+#else
+  vaStatus = _x_va_initialize(this->va_context, this->display, 0);
+#endif
+  if(!vaapi_check_status(this, vaStatus, "vaInitialize()")) {
+    vaapi_dispose_locked(this);
+    return NULL;
+  }
 
   if(vaapi_init_internal(this, SW_CONTEXT_INIT_FORMAT, SW_WIDTH, SW_HEIGHT) != VA_STATUS_SUCCESS) {
     vaapi_dispose_locked(this);
