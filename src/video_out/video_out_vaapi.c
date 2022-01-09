@@ -235,7 +235,8 @@ struct vaapi_driver_s {
   VASurfaceID         *va_soft_surface_ids;
   VAImage             *va_soft_images;
   unsigned int        va_soft_head;
-  int                 is_bound;
+  int                 soft_image_is_bound;
+
   /* subpicture */
   VAImageFormat       *va_subpic_formats;
   int                 va_num_subpic_formats;
@@ -1395,7 +1396,7 @@ static void vaapi_destroy_image(vaapi_driver_t *this, VAImage *va_image) {
 }
 
 /* Allocated VAAPI image */
-static VAStatus vaapi_create_image(vaapi_driver_t *this, VASurfaceID va_surface_id, VAImage *va_image, int width, int height, int clear) {
+static VAStatus _x_va_create_image(vaapi_driver_t *this, VASurfaceID va_surface_id, VAImage *va_image, int width, int height, int clear, int *is_bound) {
   ff_vaapi_context_t    *va_context = this->va_context;
 
   int i = 0;
@@ -1404,16 +1405,16 @@ static VAStatus vaapi_create_image(vaapi_driver_t *this, VASurfaceID va_surface_
   if(!va_context->valid_context || va_context->va_image_formats == NULL || va_context->va_num_image_formats == 0)
     return VA_STATUS_ERROR_UNKNOWN;
 
-  this->is_bound = 0;
+  *is_bound = 0;
 
   vaStatus = vaDeriveImage(va_context->va_display, va_surface_id, va_image);
   if(vaStatus == VA_STATUS_SUCCESS) {
     if (va_image->image_id != VA_INVALID_ID && va_image->buf != VA_INVALID_ID) {
-      this->is_bound = 1;
+      *is_bound = 1;
     }
   }
 
-  if (!this->is_bound) {
+  if (!*is_bound) {
     for (i = 0; i < va_context->va_num_image_formats; i++) {
       if (va_context->va_image_formats[i].fourcc == VA_FOURCC( 'Y', 'V', '1', '2' ) ||
           va_context->va_image_formats[i].fourcc == VA_FOURCC( 'I', '4', '2', '0' ) /*||
@@ -1447,7 +1448,7 @@ static VAStatus vaapi_create_image(vaapi_driver_t *this, VASurfaceID va_surface_
   vaStatus = vaUnmapBuffer( va_context->va_display, va_image->buf );
   vaapi_check_status(this, vaStatus, "vaUnmapBuffer()");
 
-  lprintf("vaapi_create_image 0x%08x width %d height %d format %s\n", va_image->image_id, va_image->width, va_image->height,
+  lprintf("_x_va_create_image 0x%08x width %d height %d format %s\n", va_image->image_id, va_image->width, va_image->height,
       string_of_VAImageFormat(&va_image->format));
 
   return VA_STATUS_SUCCESS;
@@ -2027,13 +2028,13 @@ static VAStatus vaapi_init_soft_surfaces(vaapi_driver_t *this, int width, int he
   /* allocate software surfaces */
   for(i = 0; i < SOFT_SURFACES; i++) {
 
-    vaStatus = vaapi_create_image(this, this->va_soft_surface_ids[i], &this->va_soft_images[i], width, height, 1);
-    if(!vaapi_check_status(this, vaStatus, "vaapi_create_image()")) {
+    vaStatus = _x_va_create_image(this, this->va_soft_surface_ids[i], &this->va_soft_images[i], width, height, 1, &this->soft_image_is_bound);
+    if (!vaapi_check_status(this, vaStatus, "_x_va_create_image()")) {
       this->va_soft_images[i].image_id = VA_INVALID_ID;
       goto error;
     }
 
-    if (!this->is_bound) {
+    if (!this->soft_image_is_bound) {
       vaStatus = vaPutImage(va_context->va_display, this->va_soft_surface_ids[i], this->va_soft_images[i].image_id,
                0, 0, this->va_soft_images[i].width, this->va_soft_images[i].height,
                0, 0, this->va_soft_images[i].width, this->va_soft_images[i].height);
@@ -2151,8 +2152,9 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
 #if 0
       /* this seems to break decoding to the surface ? */
       VAImage va_image;
-      vaStatus = vaapi_create_image(this, va_context->va_surface_ids[i], &va_image, width, height, 1);
-      if(vaapi_check_status(this, vaStatus, "vaapi_create_image()") && !this->is_bound) {
+      int is_bound;
+      vaStatus = _x_va_create_image(this, va_context->va_surface_ids[i], &va_image, width, height, 1, &is_bound);
+      if (vaapi_check_status(this, vaStatus, "_x_va_create_image()") && !is_bound) {
         vaStatus = vaPutImage(va_context->va_display, va_context->va_surface_ids[i], va_image.image_id,
                               0, 0, va_image.width, va_image.height,
                               0, 0, va_image.width, va_image.height);
@@ -2177,7 +2179,7 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
   xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : glxrender      : %d\n", this->opengl_render);
   xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : glxrender tfp  : %d\n", this->opengl_use_tfp);
 #endif
-  xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : is_bound       : %d\n", this->is_bound);
+  //xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : is_bound       : %d\n", this->is_bound);
   xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : scaling level  : name %s value 0x%08x\n", scaling_level_enum_names[this->scaling_level_enum], this->scaling_level);
 
 #ifdef ENABLE_VA_GLX
@@ -2776,6 +2778,7 @@ static void vaapi_provide_standard_frame_data (vo_frame_t *this, xine_current_fr
     VAImage   va_image;
     VAStatus  vaStatus;
     void      *p_base;
+    int        is_bound;
 
     vaStatus = vaSyncSurface(va_context->va_display, va_surface->va_surface_id);
     vaapi_check_status(driver, vaStatus, "vaSyncSurface()");
@@ -2792,8 +2795,8 @@ static void vaapi_provide_standard_frame_data (vo_frame_t *this, xine_current_fr
     if(surf_status != VASurfaceReady)
       goto error;
 
-    vaStatus = vaapi_create_image(driver, va_surface->va_surface_id, &va_image, width, height, 0);
-    if(!vaapi_check_status(driver, vaStatus, "vaapi_create_image()"))
+    vaStatus = _x_va_create_image(driver, va_surface->va_surface_id, &va_image, width, height, 0, &is_bound);
+    if (!vaapi_check_status(driver, vaStatus, "_x_va_create_image()"))
       goto error;
 
     lprintf("vaapi_provide_standard_frame_data accel->va_surface_id 0x%08x va_image.image_id 0x%08x va_context->width %d va_context->height %d va_image.width %d va_image.height %d width %d height %d size1 %d size2 %d %d %d %d status %d num_planes %d\n", 
@@ -2803,7 +2806,7 @@ static void vaapi_provide_standard_frame_data (vo_frame_t *this, xine_current_fr
     if(va_image.image_id == VA_INVALID_ID)
       goto error;
 
-    if (!driver->is_bound) {
+    if (!is_bound) {
       vaStatus = vaGetImage(va_context->va_display, va_surface->va_surface_id, 0, 0,
                           va_image.width, va_image.height, va_image.image_id);
     } else {
@@ -2916,15 +2919,16 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
   int this_height = va_context->height;
   int orig_width = va_context->width;
   int orig_height = va_context->height;
+  int this_is_bound, orig_is_bound;
 
-  vaStatus = vaapi_create_image(driver, va_surface_orig->va_surface_id, &va_image_orig, orig_width, orig_height, 0);
-  if(!vaapi_check_status(driver, vaStatus, "vaapi_create_image()")) {
+  vaStatus = _x_va_create_image(driver, va_surface_orig->va_surface_id, &va_image_orig, orig_width, orig_height, 0, &orig_is_bound);
+  if (!vaapi_check_status(driver, vaStatus, "_x_va_create_image()")) {
     va_image_orig.image_id = VA_INVALID_ID;
     goto error;
   }
 
-  vaStatus = vaapi_create_image(driver, va_surface_this->va_surface_id, &va_image_this, this_width, this_height, 0);
-  if(!vaapi_check_status(driver, vaStatus, "vaapi_create_image()")) {
+  vaStatus = _x_va_create_image(driver, va_surface_this->va_surface_id, &va_image_this, this_width, this_height, 0, &this_is_bound);
+  if (!vaapi_check_status(driver, vaStatus, "_x_va_create_image()")) {
     va_image_this.image_id = VA_INVALID_ID;
     goto error;
   }
@@ -2938,7 +2942,7 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
        va_image_orig.image_id, va_image_orig.width, va_image_orig.height, this->width, this->height, va_image_orig.data_size, 
        va_image_orig.pitches[0], va_image_orig.pitches[1], va_image_orig.pitches[2]);
 
-  if (!driver->is_bound) {
+  if (!orig_is_bound) {
     vaStatus = vaGetImage(va_context->va_display, va_surface_orig->va_surface_id, 0, 0,
                           va_image_orig.width, va_image_orig.height, va_image_orig.image_id);
   } else {
@@ -2947,7 +2951,7 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
 
   if(vaapi_check_status(driver, vaStatus, "vaGetImage()")) {
     
-    if (!driver->is_bound) {
+    if (!this_is_bound) {
       vaStatus = vaPutImage(va_context->va_display, va_surface_this->va_surface_id, va_image_orig.image_id,
                             0, 0, va_image_orig.width, va_image_orig.height,
                             0, 0, va_image_this.width, va_image_this.height);
@@ -3150,7 +3154,7 @@ static void yuy2_to_nv12(const uint8_t *src_yuy2_map, int yuy2_pitch,
 
 
 static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, vaapi_frame_t *frame,
-                                            VAImage *va_image, VASurfaceID va_surface_id) {
+                                            VAImage *va_image, int is_bound, VASurfaceID va_surface_id) {
   ff_vaapi_context_t *va_context      = this->va_context;
   void               *p_base          = NULL;
   VAStatus           vaStatus;
@@ -3242,7 +3246,7 @@ static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, vaapi_frame_t 
   if(!vaapi_check_status(this, vaStatus, "vaUnmapBuffer()"))
     return vaStatus;
 
-  if (!this->is_bound) {
+  if (!is_bound) {
     vaStatus = vaPutImage(va_context->va_display, va_surface_id, va_image->image_id,
                         0, 0, va_image->width, va_image->height,
                         0, 0, va_image->width, va_image->height);
@@ -3539,7 +3543,7 @@ static void vaapi_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
     /* transfer image data to a VAAPI surface */
     if (frame->format != XINE_IMGFMT_VAAPI) {
-      vaapi_software_render_frame(this, frame, va_image, va_surface_id);
+      vaapi_software_render_frame(this, frame, va_image, this->soft_image_is_bound, va_surface_id);
     }
     vaapi_hardware_render_frame(this, frame, va_surface_id);
   }
