@@ -1316,7 +1316,7 @@ static void vaapi_init_subpicture(vaapi_driver_t *this) {
 }
 
 /* Init vaapi context */
-static void vaapi_init_va_context(ff_vaapi_context_t *va_context) {
+static void _x_va_reset_va_context(ff_vaapi_context_t *va_context) {
   int i;
 
   va_context->va_config_id              = VA_INVALID_ID;
@@ -1369,6 +1369,8 @@ static void vaapi_close(vaapi_driver_t *this) {
   this->va_num_subpic_formats = 0;
 
   va_context->valid_context = 0;
+
+  _x_va_reset_va_context(va_context);
 }
 
 /* Returns internal VAAPI context */
@@ -2062,7 +2064,6 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
   VAStatus            vaStatus;
 
   vaapi_close(this);
-  vaapi_init_va_context(this->va_context);
 
   if (!this->va_context->va_display) {
 #ifdef ENABLE_VA_GLX
@@ -2198,7 +2199,6 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
 
 error:
   vaapi_close(this);
-  vaapi_init_va_context(this->va_context);
   va_context->valid_context = 0;
   xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : error init vaapi\n");
 
@@ -3973,7 +3973,7 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
     this->va_soft_images[i].image_id    = VA_INVALID_ID;
   }
 
-  vaapi_init_va_context(this->va_context);
+  _x_va_reset_va_context(this->va_context);
   vaapi_init_subpicture(this);
 
   _x_vo_scale_init (&this->sc, 1, 0, config );
