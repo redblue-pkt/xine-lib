@@ -408,7 +408,7 @@ static void vo_unref_obsolete (vos_t *this) {
     for (a = d; *a; a++)
       xine_refs_sub (&(*a)->refs, 1);
     xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-      "video_out: freed %d obsolete stream refs.\n", (int)(a - d));
+      LOG_MODULE ": freed %d obsolete stream refs.\n", (int)(a - d));
   }
 }
 
@@ -524,7 +524,7 @@ static void vo_ticket_revoked (void *user_data, int flags) {
   const char *s1 = (flags & XINE_TICKET_FLAG_ATOMIC) ? " atomic" : "";
   const char *s2 = (flags & XINE_TICKET_FLAG_REWIRE) ? " port_rewire" : "";
   pthread_cond_signal (&this->free_queue.not_empty);
-  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: port ticket revoked%s%s.\n", s1, s2);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": port ticket revoked%s%s.\n", s1, s2);
 }
 
 static void vo_display_reref_append (vos_t *this, vo_frame_t *img) {
@@ -637,7 +637,7 @@ static vo_frame_t *vo_get_unblock_frame (vos_t *this) {
   if (this->free_queue.first) {
     f = vo_free_queue_pop_int (this);
     pthread_mutex_unlock (&this->free_queue.mutex);
-    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: got unblock frame from free queue.\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": got unblock frame from free queue.\n");
     return f;
   }
   pthread_mutex_unlock (&this->free_queue.mutex);
@@ -661,7 +661,7 @@ static vo_frame_t *vo_get_unblock_frame (vos_t *this) {
     }
     pthread_mutex_unlock (&this->display_queue.mutex);
     vo_frame_dec2_lock_int (this, f);
-    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: got unblock frame from display queue.\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": got unblock frame from display queue.\n");
     return f;
   }
   pthread_mutex_unlock (&this->display_queue.mutex);
@@ -732,7 +732,7 @@ static vo_frame_t *vo_free_queue_get (vos_t *this,
           img = vo_get_unblock_frame (this);
           if (img)
             return img;
-          xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: allow port rewire.\n");
+          xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": allow port rewire.\n");
           this->xine->port_ticket->renew (this->xine->port_ticket, XINE_TICKET_FLAG_REWIRE);
           pthread_mutex_lock (&this->free_queue.mutex);
           continue;
@@ -1470,7 +1470,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
       }
       if (this->num_frames_burst) {
         xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-          "video_out: dropped %d bad frames after seek.\n", this->num_frames_burst);
+          LOG_MODULE ": dropped %d bad frames after seek.\n", this->num_frames_burst);
         this->num_frames_burst = 0;
       }
     }
@@ -1482,7 +1482,7 @@ static int vo_frame_draw (vo_frame_t *img, xine_stream_t *s) {
       if (this->keyframe_mode == 0) {
         if (!stream->index_array && stream->input_plugin && INPUT_IS_SEEKABLE (stream->input_plugin)) {
           xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
-            "video_out: no keyframe index found, lets do it from this side.\n");
+            LOG_MODULE ": no keyframe index found, lets do it from this side.\n");
           this->keyframe_mode = 1;
         } else {
           this->keyframe_mode = -1;
@@ -2044,7 +2044,7 @@ static vo_frame_t *next_frame (vos_t *this, int64_t *vpts) {
     /* Report success. */
     if (n) {
       xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-        "video_out: flushed out %d frames (now=%"PRId64", discard=%d).\n",
+        LOG_MODULE ": flushed out %d frames (now=%"PRId64", discard=%d).\n",
         n, *vpts, this->display_queue.discard_frames);
     }
     this->redraw_needed = 0;
@@ -2059,7 +2059,7 @@ static vo_frame_t *next_frame (vos_t *this, int64_t *vpts) {
 
     if (img->is_first > 0) {
 #ifdef LOG_FLUSH
-      printf ("video_out: first frame pts=%"PRId64", now=%"PRId64", discard=%d\n",
+      printf (LOG_MODULE ": first frame pts=%"PRId64", now=%"PRId64", discard=%d\n",
         img->vpts, *vpts, this->display_queue.discard_frames);
 #endif
       /* The user seek brake feature: display first frame after seek right now
@@ -2288,7 +2288,7 @@ static void paused_loop( vos_t *this, int64_t vpts )
           vpts = f->vpts;
           this->clock->adjust_clock (this->clock, vpts);
           xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-            "video_out: SINGLE_STEP: vpts %"PRId64".\n", vpts);
+            LOG_MODULE ": SINGLE_STEP: vpts %"PRId64".\n", vpts);
           overlay_and_display_frame (this, f, vpts);
           vo_grab_current_frame (this, f, vpts);
         }
@@ -2359,7 +2359,7 @@ static void *video_out_loop (void *this_gen) {
 #ifndef WIN32
   errno = 0;
   if (nice(-2) == -1 && errno)
-    xine_log(&this->xine->x, XINE_LOG_MSG, "video_out: can't raise nice priority by 2: %s\n", strerror(errno));
+    xine_log(&this->xine->x, XINE_LOG_MSG, LOG_MODULE ": can't raise nice priority by 2: %s\n", strerror(errno));
 #endif /* WIN32 */
 
   this->disable_decoder_flush_from_video_out = this->xine->x.config->register_bool (this->xine->x.config,
@@ -2459,13 +2459,13 @@ static void *video_out_loop (void *this_gen) {
     lprintf ("next_frame_vpts is %" PRId64 "\n", next_frame_vpts);
     if ((next_frame_vpts - vpts) > 2 * 90000) {
       xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-      "video_out: vpts/clock error, next_vpts=%" PRId64 " cur_vpts=%" PRId64 "\n", next_frame_vpts, vpts);
+      LOG_MODULE ": vpts/clock error, next_vpts=%" PRId64 " cur_vpts=%" PRId64 "\n", next_frame_vpts, vpts);
       if (this->rp.ready_first && this->rp.ready_first->next) {
         int64_t d = this->rp.ready_first->next->vpts - vpts;
         if ((d >= 0) && (d <= 2 * 90000)) {
           d = (d >> 1) + vpts;
           xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-            "video_out: looks like a missed decoder flush, fixing next_vpts to %" PRId64 ".\n", d);
+            LOG_MODULE ": looks like a missed decoder flush, fixing next_vpts to %" PRId64 ".\n", d);
           this->rp.ready_first->vpts = d;
           next_frame_vpts = d;
         }
@@ -2646,7 +2646,7 @@ static void vo_open (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
   vos_t      *this = (vos_t *) this_gen;
 
-  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: vo_open (%p)\n", (void*)stream);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": vo_open (%p)\n", (void*)stream);
 
   this->video_opened = 1;
   pthread_mutex_lock (&this->display_queue.mutex);
@@ -2667,7 +2667,7 @@ static void vo_close (xine_video_port_t *this_gen, xine_stream_t *stream) {
 
   vos_t      *this = (vos_t *) this_gen;
 
-  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: vo_close (%p)\n", (void*)stream);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": vo_close (%p)\n", (void*)stream);
 
   /* this will make sure all hide events were processed */
   if (this->overlay_source)
@@ -2936,14 +2936,14 @@ static void vo_speed_change_cb (void *this_gen, int new_speed) {
   }
   this->trigger_drawing.speed = new_speed;
   pthread_mutex_unlock (&this->trigger_drawing.mutex);
-  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: new speed %d.\n", new_speed);
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": new speed %d.\n", new_speed);
 }
 
 static void vo_exit (xine_video_port_t *this_gen) {
 
   vos_t      *this = (vos_t *) this_gen;
 
-  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: exit.\n");
+  xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": exit.\n");
 
   this->xine->port_ticket->revoke_cb_unregister (this->xine->port_ticket, vo_ticket_revoked, this);
   
@@ -2966,7 +2966,7 @@ static void vo_exit (xine_video_port_t *this_gen) {
     int n = this->driver->set_property (this->driver, VO_PROP_DISCARD_FRAMES, -1);
     if (n > 0)
       xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-        "video_out: returned %d held frames from driver.\n", n);
+        LOG_MODULE ": returned %d held frames from driver.\n", n);
   }
 
   {
@@ -2988,7 +2988,7 @@ static void vo_exit (xine_video_port_t *this_gen) {
     for (i = 0; i < this->frames_total; i++) {
       if (this->display_queue.frames[i]) {
         xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG,
-          "video_out: BUG: frame #%d (%p) still in use (%d refs).\n",
+          LOG_MODULE ": BUG: frame #%d (%p) still in use (%d refs).\n",
           i, (void*)this->display_queue.frames[i], this->display_queue.frames[i]->lock_counter);
       }
     }
@@ -3311,7 +3311,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
     pthread_attr_destroy(&pth_attrs);
 
     if (err != 0) {
-      xprintf (&this->xine->x, XINE_VERBOSITY_NONE, "video_out: can't create thread (%s)\n", strerror(err));
+      xprintf (&this->xine->x, XINE_VERBOSITY_NONE, LOG_MODULE ": can't create thread (%s)\n", strerror(err));
       /* FIXME: how does this happen ? */
       xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
 	       _("video_out: sorry, this should not happen. please restart xine.\n"));
@@ -3324,7 +3324,7 @@ xine_video_port_t *_x_vo_new_port (xine_t *xine, vo_driver_t *driver, int grabon
     this->clock->register_speed_change_callback (this->clock, vo_speed_change_cb, this);
     this->trigger_drawing.speed = this->clock->speed;
 
-    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, "video_out: thread created\n");
+    xprintf (&this->xine->x, XINE_VERBOSITY_DEBUG, LOG_MODULE ": thread created\n");
 
   }
 
