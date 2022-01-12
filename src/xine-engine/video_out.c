@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1280,15 +1280,21 @@ static vo_frame_t *vo_get_frame (xine_video_port_t *this_gen,
 
   lprintf ("get_frame (%d x %d)\n", width, height);
 
+  if (width * height == 0) {
+    /* drivers need not support or trap this. */
+    xprintf (&this->xine->x, XINE_VERBOSITY_LOG,
+      LOG_MODULE ": vo_get_frame: invalid frame size %u x %u.\n", (unsigned int)width, (unsigned int)height);
+    width = height = 16;
+  }
+  /* some decoders report strange ratios */
+  if (ratio <= 0.0)
+    ratio = (double)width / (double)height;
+
   while (1) {
 
     img = vo_free_queue_get (this, width, height, ratio, format, flags);
 
     lprintf ("got a frame -> pthread_mutex_lock (&img->mutex)\n");
-
-    /* some decoders report strange ratios */
-    if (ratio <= 0.0)
-      ratio = (double)width / (double)height;
 
     pthread_mutex_lock (&img->mutex);
     img->lock_counter   = 1;

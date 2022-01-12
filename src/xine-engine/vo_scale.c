@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -52,13 +52,14 @@ void _x_vo_scale_compute_ideal_size (vo_scale_t *this) {
 
   } else {
     double image_ratio, desired_ratio;
+    int vw = this->delivered_width - this->crop_left - this->crop_right;
+    int vh = this->delivered_height - this->crop_top - this->crop_bottom;
 
     /*
      * aspect ratio
      */
 
-    image_ratio = (double) (this->delivered_width - (this->crop_left + this->crop_right)) /
-                  (double) (this->delivered_height - (this->crop_top + this->crop_bottom));
+    image_ratio = vh > 0 ? (double)vw / (double)vh : 1.0;
 
     switch (this->user_ratio) {
     case XINE_VO_ASPECT_AUTO:
@@ -80,7 +81,7 @@ void _x_vo_scale_compute_ideal_size (vo_scale_t *this) {
 
     this->video_pixel_aspect = desired_ratio / image_ratio;
 
-    _x_assert(this->gui_pixel_aspect != 0.0);
+    _x_assert (this->gui_pixel_aspect > 0.0);
 
     /* dont scale just for tiny pixel aspect shift */
     if (this->scaling_disabled & 1) {
@@ -283,11 +284,13 @@ int _x_vo_scale_redraw_needed (vo_scale_t *this) {
 			 &gui_x, &gui_y, &gui_width, &gui_height,
 			 &gui_pixel_aspect, &gui_win_x, &gui_win_y );
 
-  if ( (gui_x != this->gui_x) || (gui_y != this->gui_y)
-      || (gui_width != this->gui_width) || (gui_height != this->gui_height)
-      || (gui_pixel_aspect != this->gui_pixel_aspect)
-      || (gui_win_x != this->gui_win_x) || (gui_win_y != this->gui_win_y) ) {
-
+  /* test for the rare change case in just 2 branches. */
+  if (!((gui_x ^ this->gui_x) | (gui_y ^ this->gui_y)
+      | (gui_width ^ this->gui_width) | (gui_height ^ this->gui_height)
+      | (gui_win_x ^ this->gui_win_x) | (gui_win_y ^ this->gui_win_y))
+    && (gui_pixel_aspect == this->gui_pixel_aspect)) {
+    ret = this->force_redraw;
+  } else {
     this->gui_x      = gui_x;
     this->gui_y      = gui_y;
     this->gui_width  = gui_width;
@@ -295,11 +298,8 @@ int _x_vo_scale_redraw_needed (vo_scale_t *this) {
     this->gui_win_x  = gui_win_x;
     this->gui_win_y  = gui_win_y;
     this->gui_pixel_aspect = gui_pixel_aspect;
-
     ret = 1;
   }
-  else
-    ret = this->force_redraw;
 
   this->force_redraw = 0;
   return ret;
@@ -466,22 +466,59 @@ void _x_vo_scale_cleanup(vo_scale_t *self, config_values_t *config) {
   config->unregister_callbacks (config, NULL, NULL, self, sizeof (*self));
 }
 
-void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
-                   config_values_t *config ) {
+void _x_vo_scale_init (vo_scale_t *this, int support_zoom, int scaling_disabled, config_values_t *config) {
+#ifdef HAVE_ZERO_SAFE_MEM
+  memset (this, 0, sizeof (*this));
+#else
+  this->delivered_width    = 0;
+  this->delivered_height   = 0;
+  this->crop_left          = 0;
+  this->crop_right         = 0;
+  this->crop_top           = 0;
+  this->crop_bottom        = 0;
+  this->displayed_xoffset  = 0;
+  this->displayed_yoffset  = 0;
+  this->displayed_width    = 0;
+  this->displayed_height   = 0;
+  this->gui_x              = 0;
+  this->gui_y              = 0;
+  this->gui_width          = 0;
+  this->gui_height         = 0;
+  this->gui_win_x          = 0;
+  this->gui_win_y          = 0;
+  this->output_width       = 0;
+  this->output_height      = 0;
+  this->output_xoffset     = 0;
+  this->output_yoffset     = 0;
+  this->user_data          = NULL;
+  this->frame_output_cb    = NULL;
+  this->dest_size_cb       = NULL;
+  this->border[0].x        = 0;
+  this->border[0].y        = 0;
+  this->border[0].w        = 0;
+  this->border[0].h        = 0;
+  this->border[1].x        = 0;
+  this->border[1].y        = 0;
+  this->border[1].w        = 0;
+  this->border[1].h        = 0;
+  this->border[2].x        = 0;
+  this->border[2].y        = 0;
+  this->border[2].w        = 0;
+  this->border[2].h        = 0;
+  this->border[3].x        = 0;
+  this->border[3].y        = 0;
+  this->border[3].w        = 0;
+  this->border[3].h        = 0;
+#endif
 
-  memset( this, 0, sizeof(vo_scale_t) );
   this->support_zoom = support_zoom;
   this->force_redraw = 1;
   this->zoom_factor_x = 1.0;
   this->zoom_factor_y = 1.0;
   this->gui_pixel_aspect = 1.0;
+  this->video_pixel_aspect = 1.0;
   this->user_ratio = XINE_VO_ASPECT_AUTO;
-  this->delivered_ratio = 0.0;
-
-  this->crop_left   = 0;
-  this->crop_right  = 0;
-  this->crop_top    = 0;
-  this->crop_bottom = 0;
+  this->delivered_ratio = 1.0;
 
   this->output_horizontal_position =
     config->register_range(config, "video.output.horizontal_position", 50, 0, 100,
@@ -520,4 +557,3 @@ void _x_vo_scale_init(vo_scale_t *this, int support_zoom, int scaling_disabled,
 	"sharpness.\n"),
       10, vo_scale_square_pixels_changed, this);
 }
-
