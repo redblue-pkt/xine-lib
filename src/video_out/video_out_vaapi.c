@@ -1132,12 +1132,10 @@ static void vaapi_close(vaapi_driver_t *this) {
   vaapi_destroy_subpicture(this);
   vaapi_destroy_soft_surfaces(this);
 
-  _x_freep(&this->va_subpic_formats);
-  this->va_num_subpic_formats = 0;
-
   _x_va_close(this->va);
 }
 
+ 
 /* Returns internal VAAPI context */
 static ff_vaapi_context_t *get_context(vo_frame_t *frame_gen) {
   vaapi_driver_t        *this = (vaapi_driver_t *) frame_gen->driver;
@@ -1727,34 +1725,9 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
 
   vaapi_close(this);
 
-  int fmt_count = 0;
-  fmt_count = vaMaxNumSubpictureFormats( va_context->va_display );
-  this->va_subpic_formats = calloc( fmt_count, sizeof(*this->va_subpic_formats) );
-
-  vaStatus = vaQuerySubpictureFormats( va_context->va_display, this->va_subpic_formats, 0, &this->va_num_subpic_formats );
-  if(!vaapi_check_status(this, vaStatus, "vaQuerySubpictureFormats()"))
-    goto error;
-
-  vaapi_set_background_color(this);
-  vaapi_display_attribs(this);
-
   vaStatus = _x_va_init(this->va, va_profile, width, height);
   if (vaStatus != VA_STATUS_SUCCESS)
     goto error;
-
-  const char *vendor = vaQueryVendorString(va_context->va_display);
-  xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Vendor : %s\n", vendor);
-
-  const char *p = vendor;
-  for (i = strlen (vendor); i > 0; i--, p++) {
-    if(strncmp(p, "VDPAU", strlen("VDPAU")) == 0) {
-      xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
-#ifdef ENABLE_VA_GLX
-      this->opengl_use_tfp = 0;
-#endif
-      break;
-    }
-  }
 
   /* xine was told to allocate RENDER_SURFACES frames. assign the frames the rendering surfaces. */
   for(i = 0; i < RENDER_SURFACES; i++) {
@@ -3363,6 +3336,9 @@ static void vaapi_dispose_locked (vaapi_driver_t *this) {
 
   UNLOCK_DISPLAY (this);
 
+  _x_freep(&this->va_subpic_formats);
+  this->va_num_subpic_formats = 0;
+
   pthread_mutex_unlock(&this->vaapi_lock);
   pthread_mutex_destroy(&this->vaapi_lock);
 
@@ -3435,6 +3411,58 @@ static void vaapi_csc_mode(void *this_gen, xine_cfg_entry_t *entry)
   vaapi_set_csc_mode (this, new_mode);
 }
 
+static int vaapi_initialize(vaapi_driver_t *this)
+{
+  VAStatus vaStatus;
+
+#ifdef ENABLE_VA_GLX
+  vaStatus = _x_va_initialize(this->va_context,  this->display, this->opengl_render);
+#else
+  vaStatus = _x_va_initialize(this->va_context,  this->display, 0);
+#endif
+  if (!vaapi_check_status(this, vaStatus, "vaInitialize()")) {
+    return 0;
+  }
+
+  this->va_context->driver = &this->vo_driver;
+
+#ifdef ENABLE_VA_GLX
+  {
+    const char *p, *vendor;
+    size_t i;
+
+    vendor = vaQueryVendorString(this->va_context->va_display);
+    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Vendor : %s\n", vendor);
+
+    for (p = vendor, i = strlen (vendor); i > 0; i--, p++) {
+      if(strncmp(p, "VDPAU", strlen("VDPAU")) == 0) {
+        xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
+        this->opengl_use_tfp = 0;
+        break;
+      }
+    }
+  }
+#endif
+
+  vaapi_set_background_color(this);
+  vaapi_display_attribs(this);
+
+  int fmt_count = 0;
+  fmt_count = vaMaxNumSubpictureFormats( this->va_context->va_display );
+  this->va_subpic_formats = calloc( fmt_count, sizeof(*this->va_subpic_formats) );
+
+  vaStatus = vaQuerySubpictureFormats( this->va_context->va_display, this->va_subpic_formats, 0, &this->va_num_subpic_formats );
+  if(!vaapi_check_status(this, vaStatus, "vaQuerySubpictureFormats()"))
+    return 0;
+
+  if(vaapi_init_internal(this, SW_CONTEXT_INIT_FORMAT, SW_WIDTH, SW_HEIGHT) != VA_STATUS_SUCCESS)
+    return 0;
+
+  vaapi_close(this);
+
+  return 1;
+}
+
 static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
 
   vaapi_class_t           *class  = (vaapi_class_t *) class_gen;
@@ -3449,7 +3477,6 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   XVisualInfo             *vi;
   int                     depth;
   int                     i;
-  VAStatus                vaStatus;
   const int               x11_event_mask = ExposureMask | 
                                            StructureNotifyMask;
 
@@ -3650,23 +3677,10 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
 
   this->last_sub_image_fmt                   = 0;
 
-#ifdef ENABLE_VA_GLX
-  vaStatus = _x_va_initialize(this->va_context, this->display, this->opengl_render);
-#else
-  vaStatus = _x_va_initialize(this->va_context, this->display, 0);
-#endif
-  if(!vaapi_check_status(this, vaStatus, "vaInitialize()")) {
+  if (!vaapi_initialize(this)) {
     vaapi_dispose_locked(this);
     return NULL;
   }
-
-  if(vaapi_init_internal(this, SW_CONTEXT_INIT_FORMAT, SW_WIDTH, SW_HEIGHT) != VA_STATUS_SUCCESS) {
-    vaapi_dispose_locked(this);
-    return NULL;
-  }
-  vaapi_close(this);
-  this->va_context->valid_context = 0;
-  this->va_context->driver        = (vo_driver_t *)this;
 
   this->csc_mode = this->xine->config->register_enum (this->xine->config, "video.output.vaapi_csc_mode", 3,
     (char **)vaapi_csc_mode_labels,
