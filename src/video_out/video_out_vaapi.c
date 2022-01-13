@@ -1233,7 +1233,7 @@ static void vaapi_destroy_subpicture(vaapi_driver_t *this) {
 
   if (this->va_subpic_id != VA_INVALID_ID) {
     vaStatus = vaDestroySubpicture(va_context->va_display, this->va_subpic_id);
-    vaapi_check_status(this, vaStatus, "vaDeassociateSubpicture()");
+    vaapi_check_status(this, vaStatus, "vaDestroySubpicture()");
   }
   this->va_subpic_id = VA_INVALID_ID;
 
