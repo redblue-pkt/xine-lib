@@ -2383,13 +2383,8 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
   vaapi_accel_t *accel_this = this_gen->accel_data;
   vaapi_accel_t *accel_orig = original->accel_data;
 
-  ff_vaapi_surface_t *va_surface_this = &va_context->va_render_surfaces[accel_this->index];
-  ff_vaapi_surface_t *va_surface_orig = &va_context->va_render_surfaces[accel_orig->index];
-
-  lprintf("vaapi_duplicate_frame_data %s %s 0x%08x 0x%08x\n", 
-      (this_gen->format == XINE_IMGFMT_VAAPI) ? "XINE_IMGFMT_VAAPI" : ((this_gen->format == XINE_IMGFMT_YV12) ? "XINE_IMGFMT_YV12" : "XINE_IMGFMT_YUY2"),
-      (original->format == XINE_IMGFMT_VAAPI) ? "XINE_IMGFMT_VAAPI" : ((original->format == XINE_IMGFMT_YV12) ? "XINE_IMGFMT_YV12" : "XINE_IMGFMT_YUY2"),
-      va_surface_this->va_surface_id, va_surface_orig->va_surface_id);
+  ff_vaapi_surface_t *va_surface_this;
+  ff_vaapi_surface_t *va_surface_orig;
 
   if (orig->vo_frame.format != XINE_IMGFMT_VAAPI) {
     xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", orig->format);
@@ -2400,6 +2395,28 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
     xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", this->format);
     return;
   }
+
+  if (driver->guarded_render) {
+    if ((unsigned)accel_orig->index >= RENDER_SURFACES) {
+      xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: invalid source surface\n");
+      return;
+    }
+    va_surface_orig = &va_context->va_render_surfaces[accel_orig->index];
+
+    va_surface_this = alloc_vaapi_surface(this_gen);
+    if (!va_surface_this) {
+      xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: surface allocation failed\n");
+      return;
+    }
+  } else {
+    _x_assert ((unsigned)accel_this->index < RENDER_SURFACES); /* "fixed" in this mode */
+    _x_assert ((unsigned)accel_orig->index < RENDER_SURFACES); /* "fixed" in this mode */
+    va_surface_this = &va_context->va_render_surfaces[accel_this->index];
+    va_surface_orig = &va_context->va_render_surfaces[accel_orig->index];
+  }
+
+  lprintf("vaapi_duplicate_frame_data  0x%08x <- 0x%08x\n",
+          va_surface_this->va_surface_id, va_surface_orig->va_surface_id);
 
   pthread_mutex_lock(&driver->vaapi_lock);
   LOCK_DISPLAY (driver);
@@ -2474,7 +2491,7 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
 
   if (driver->guarded_render) {
     accel_this->index = va_surface_this->index;
-    va_surface_this->status = SURFACE_RENDER;
+    va_surface_this->status = SURFACE_RENDER_RELEASE;
   }
 
 error:
