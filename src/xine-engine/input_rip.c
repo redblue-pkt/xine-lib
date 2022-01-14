@@ -407,7 +407,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
   rip_input_plugin_t *this = (rip_input_plugin_t *)this_gen;
   size_t left;
 
-  lprintf("reading %"PRId64" bytes (curpos = %"PRId64", savepos = %"PRId64") (block)\n", todo, this->curpos, this->savepos);
+  lprintf("reading %"PRId64" bytes (curpos = %"PRId64", savepos = %"PRId64") (block)\n", len, this->curpos, this->savepos);
 
   /* bail out on bogus args */
   if (!this || !fifo || (len <= 0))
