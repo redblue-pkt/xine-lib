@@ -1001,108 +1001,14 @@ static uint32_t vaapi_get_capabilities (vo_driver_t *this_gen) {
   return this->capabilities;
 }
 
-static int vaapi_has_profile(VAProfile *va_profiles, int va_num_profiles, VAProfile profile)
-{
-  if (va_profiles && va_num_profiles > 0) {
-    int i;
-    for (i = 0; i < va_num_profiles; i++) {
-      if (va_profiles[i] == profile)
-        return 1;
-      }
-  }
-  return 0;
-}
-
 static int profile_from_imgfmt(vo_frame_t *frame_gen, unsigned format)
 {
   vo_driver_t         *this_gen   = (vo_driver_t *) frame_gen->driver;
   vaapi_driver_t      *this       = (vaapi_driver_t *) this_gen;
-  ff_vaapi_context_t  *va_context = this->va_context;
-  VAStatus            vaStatus;
-  int                 profile     = -1;
-  int                 i;
-  int                 va_num_profiles;
-  int                 max_profiles;
-  VAProfile           *va_profiles = NULL;
 
-  _x_assert(va_context->va_display);
+  _x_assert(this->va->c.va_display);
 
-  max_profiles = vaMaxNumProfiles(va_context->va_display);
-  va_profiles = calloc(max_profiles, sizeof(*va_profiles));
-  if (!va_profiles)
-    goto out;
-
-  vaStatus = vaQueryConfigProfiles(va_context->va_display, va_profiles, &va_num_profiles);
-  if(!vaapi_check_status(this, vaStatus, "vaQueryConfigProfiles()"))
-    goto out;
-
-  xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Supported Profiles : ");
-  for (i = 0; i < va_num_profiles; i++) {
-    printf("%s ", _x_va_profile_to_string(va_profiles[i]));
-  }
-  printf("\n");
-
-  static const int mpeg2_profiles[] = { VAProfileMPEG2Main, VAProfileMPEG2Simple, -1 };
-  static const int mpeg4_profiles[] = { VAProfileMPEG4Main, VAProfileMPEG4AdvancedSimple, VAProfileMPEG4Simple, -1 };
-  static const int h264_profiles[]  = { VAProfileH264High, VAProfileH264Main, -1 };
-#if VA_CHECK_VERSION(0, 37, 0)
-  static const int hevc_profiles[]  = { VAProfileHEVCMain, VAProfileHEVCMain10, -1 };
-  static const int hevc_profiles10[]  = { VAProfileHEVCMain10, -1 };
-#endif
-  static const int wmv3_profiles[]  = { VAProfileVC1Main, VAProfileVC1Simple, -1 };
-  static const int vc1_profiles[]   = { VAProfileVC1Advanced, -1 };
-
-  const int *profiles = NULL;
-  switch (IMGFMT_VAAPI_CODEC(format)) 
-  {
-    case IMGFMT_VAAPI_CODEC_MPEG2:
-      profiles = mpeg2_profiles;
-      break;
-    case IMGFMT_VAAPI_CODEC_MPEG4:
-      profiles = mpeg4_profiles;
-      break;
-    case IMGFMT_VAAPI_CODEC_H264:
-      profiles = h264_profiles;
-      break;
-#if VA_CHECK_VERSION(0, 37, 0)
-    case IMGFMT_VAAPI_CODEC_HEVC:
-      switch (format) {
-        case IMGFMT_VAAPI_HEVC_MAIN10:
-          profiles = hevc_profiles10;
-          break;
-        case IMGFMT_VAAPI_HEVC:
-        default:
-          profiles = hevc_profiles;
-          break;
-      }
-      break;
-#endif
-    case IMGFMT_VAAPI_CODEC_VC1:
-      switch (format) {
-        case IMGFMT_VAAPI_WMV3:
-          profiles = wmv3_profiles;
-          break;
-        case IMGFMT_VAAPI_VC1:
-            profiles = vc1_profiles;
-            break;
-      }
-      break;
-  }
-
-  if (profiles) {
-    int i;
-    for (i = 0; profiles[i] != -1; i++) {
-      if (vaapi_has_profile(va_profiles, va_num_profiles, profiles[i])) {
-        profile = profiles[i];
-        xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Profile %s supported by your hardware\n", _x_va_profile_to_string(profiles[i]));
-        break;
-      }
-    }
-  }
-
-out:
-  free(va_profiles);
-  return profile;
+  return _x_va_profile_from_imgfmt(this->va, format);
 }
 
 
@@ -1726,7 +1632,6 @@ error:
 }
 
 static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int width, int height) {
-  ff_vaapi_context_t  *va_context = this->va_context;
   int                 i;
   VAStatus            vaStatus;
 
@@ -1738,11 +1643,6 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
 
   /* xine was told to allocate RENDER_SURFACES frames. assign the frames the rendering surfaces. */
   for(i = 0; i < RENDER_SURFACES; i++) {
-    ff_vaapi_surface_t *va_surface  = &va_context->va_render_surfaces[i];
-    va_surface->index               = i;
-    va_surface->status              = SURFACE_FREE;
-    va_surface->va_surface_id       = va_context->va_surface_ids[i];
-
     if(this->frames[i]) {
       vaapi_frame_t *frame                  = this->frames[i];
       frame->vaapi_accel_data.index         = i;

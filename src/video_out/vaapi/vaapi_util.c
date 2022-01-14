@@ -384,10 +384,116 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
     }
   }
 
+  /* assign surfaces */
+  for (i = 0; i < RENDER_SURFACES; i++) {
+    ff_vaapi_surface_t *va_surface  = &va_context->c.va_render_surfaces[i];
+    va_surface->index               = i;
+    va_surface->status              = SURFACE_FREE;
+    va_surface->va_surface_id       = va_context->c.va_surface_ids[i];
+  }
+
   va_context->c.valid_context = 1;
   return VA_STATUS_SUCCESS;
 
  error:
   _x_va_close(va_context);
   return VA_STATUS_ERROR_UNKNOWN;
+}
+
+static int _x_va_has_profile(VAProfile *va_profiles, int va_num_profiles, VAProfile profile)
+{
+  int i;
+  for (i = 0; i < va_num_profiles; i++) {
+    if (va_profiles[i] == profile)
+      return 1;
+  }
+  return 0;
+}
+
+int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
+{
+  VAStatus            vaStatus;
+  int                 profile     = -1;
+  int                 i;
+  int                 va_num_profiles;
+  int                 max_profiles;
+  VAProfile           *va_profiles = NULL;
+
+  _x_assert(va_context->c.va_display);
+
+  max_profiles = vaMaxNumProfiles(va_context->c.va_display);
+  va_profiles = calloc(max_profiles, sizeof(*va_profiles));
+  if (!va_profiles)
+    goto out;
+
+  vaStatus = vaQueryConfigProfiles(va_context->c.va_display, va_profiles, &va_num_profiles);
+  if(!_x_va_check_status(va_context, vaStatus, "vaQueryConfigProfiles()"))
+    goto out;
+
+  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Supported Profiles :\n");
+  for (i = 0; i < va_num_profiles; i++) {
+    xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE "    %s\n", _x_va_profile_to_string(va_profiles[i]));
+  }
+
+  static const int mpeg2_profiles[] = { VAProfileMPEG2Main, VAProfileMPEG2Simple, -1 };
+  static const int mpeg4_profiles[] = { VAProfileMPEG4Main, VAProfileMPEG4AdvancedSimple, VAProfileMPEG4Simple, -1 };
+  static const int h264_profiles[]  = { VAProfileH264High, VAProfileH264Main, -1 };
+#if VA_CHECK_VERSION(0, 37, 0)
+  static const int hevc_profiles[]  = { VAProfileHEVCMain, VAProfileHEVCMain10, -1 };
+  static const int hevc_profiles10[]  = { VAProfileHEVCMain10, -1 };
+#endif
+  static const int wmv3_profiles[]  = { VAProfileVC1Main, VAProfileVC1Simple, -1 };
+  static const int vc1_profiles[]   = { VAProfileVC1Advanced, -1 };
+
+  const int *profiles = NULL;
+  switch (IMGFMT_VAAPI_CODEC(format)) 
+  {
+    case IMGFMT_VAAPI_CODEC_MPEG2:
+      profiles = mpeg2_profiles;
+      break;
+    case IMGFMT_VAAPI_CODEC_MPEG4:
+      profiles = mpeg4_profiles;
+      break;
+    case IMGFMT_VAAPI_CODEC_H264:
+      profiles = h264_profiles;
+      break;
+#if VA_CHECK_VERSION(0, 37, 0)
+    case IMGFMT_VAAPI_CODEC_HEVC:
+      switch (format) {
+        case IMGFMT_VAAPI_HEVC_MAIN10:
+          profiles = hevc_profiles10;
+          break;
+        case IMGFMT_VAAPI_HEVC:
+        default:
+          profiles = hevc_profiles;
+          break;
+      }
+      break;
+#endif
+    case IMGFMT_VAAPI_CODEC_VC1:
+      switch (format) {
+        case IMGFMT_VAAPI_WMV3:
+          profiles = wmv3_profiles;
+          break;
+        case IMGFMT_VAAPI_VC1:
+            profiles = vc1_profiles;
+            break;
+      }
+      break;
+  }
+
+  if (profiles) {
+    int i;
+    for (i = 0; profiles[i] != -1; i++) {
+      if (_x_va_has_profile(va_profiles, va_num_profiles, profiles[i])) {
+        profile = profiles[i];
+        xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Profile %s supported by your hardware\n", _x_va_profile_to_string(profiles[i]));
+        break;
+      }
+    }
+  }
+
+out:
+  free(va_profiles);
+  return profile;
 }
