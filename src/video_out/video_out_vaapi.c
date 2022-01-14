@@ -253,6 +253,11 @@ struct vaapi_driver_s {
   int                 have_user_csc_matrix;
   float               user_csc_matrix[12];
 
+  /* keep last frame surface alive (video_out shamelessy uses it ...) */
+  /* XXX maybe this issue could be solved with some kind of release callback.
+   * Such callback could be useful with dropped frames too. */
+  vo_frame_t        *recent_frames[VO_NUM_RECENT_FRAMES];
+
   /* */
   VASurfaceID         va_soft_surface_ids_storage[SOFT_SURFACES + 1];
   VAImage             va_soft_images_storage[SOFT_SURFACES + 1];
@@ -416,7 +421,7 @@ static void render_vaapi_surface(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_s
 
   va_surface->status = SURFACE_RENDER;
 #ifdef DEBUG_SURFACE
-  printf("render_vaapi_surface 0x%08x\n", va_surface->va_surface_id);
+  printf("render_vaapi_surface 0x%08x frame %p\n", va_surface->va_surface_id, frame_gen);
 #endif
 
   pthread_mutex_unlock(&this->vaapi_lock);
@@ -1631,11 +1636,25 @@ error:
   return VA_STATUS_ERROR_UNKNOWN;
 }
 
+static int _flush_recent_frames (vaapi_driver_t *this) {
+  int i, n = 0;
+  for (i = 0; i < VO_NUM_RECENT_FRAMES; i++) {
+    if (this->recent_frames[i]) {
+      this->recent_frames[i]->free (this->recent_frames[i]);
+      this->recent_frames[i] = NULL;
+      n++;
+    }
+  }
+  return n;
+}
+
 static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int width, int height) {
   int                 i;
   VAStatus            vaStatus;
 
   vaapi_close(this);
+
+  _flush_recent_frames (this);
 
   vaStatus = _x_va_init(this->va, va_profile, width, height);
   if (vaStatus != VA_STATUS_SUCCESS)
@@ -2801,6 +2820,49 @@ static double timeOfDay()
 }
 */
 
+static void _x_va_frame_rendered(ff_vaapi_context_t *va_context, vo_frame_t *vo_frame)
+{
+  vaapi_accel_t *accel = vo_frame->accel_data;
+
+  if ((unsigned)accel->index < RENDER_SURFACES) {
+    ff_vaapi_surface_t *va_surface = &va_context->va_render_surfaces[accel->index];
+
+    if (va_surface->status == SURFACE_RENDER_RELEASE) {
+      va_surface->status = SURFACE_FREE;
+#ifdef DEBUG_SURFACE
+      printf("release_surface vaapi_display_frame 0x%08x frame %p\n", va_surface->va_surface_id, vo_frame);
+#endif
+    } else if (va_surface->status == SURFACE_RENDER) {
+      va_surface->status = SURFACE_RELEASE;
+#ifdef DEBUG_SURFACE
+      printf("release_surface vaapi_display_frame 0x%08x frame %p (decoder ref exists)\n",
+             va_surface->va_surface_id, vo_frame);
+#endif
+    } else {
+#ifdef DEBUG_SURFACE
+      printf("release_surface vaapi_display_frame 0x%08x frame %p (INVALID STATE %d)\n",
+             va_surface->va_surface_id, vo_frame, va_surface->status);
+#endif
+    }
+  }
+}
+
+static void _add_recent_frame (vaapi_driver_t *this, vo_frame_t *vo_frame) {
+  int i;
+
+  i = VO_NUM_RECENT_FRAMES-1;
+  if (this->recent_frames[i]) {
+    if (this->guarded_render && vo_frame->format == XINE_IMGFMT_VAAPI)
+      _x_va_frame_rendered(this->va_context, this->recent_frames[i]);
+    this->recent_frames[i]->free (this->recent_frames[i]);
+  }
+
+  for( ; i ; i-- )
+    this->recent_frames[i] = this->recent_frames[i-1];
+
+  this->recent_frames[0] = vo_frame;
+}
+
 static void vaapi_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   vaapi_driver_t     *this          = (vaapi_driver_t *) this_gen;
   vaapi_accel_t      *accel         = frame_gen->accel_data;
@@ -2999,26 +3061,10 @@ static void vaapi_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
 
   //end_time = timeOfDay();
 
-  if(this->guarded_render) {
-    ff_vaapi_surface_t *va_surface = &va_context->va_render_surfaces[accel->index];
-
-    if(va_surface->status == SURFACE_RENDER_RELEASE) {
-      va_surface->status = SURFACE_FREE;
-#ifdef DEBUG_SURFACE
-      printf("release_surface vaapi_display_frame 0x%08x\n", va_surface->va_surface_id);
-#endif
-    } else if(va_surface->status == SURFACE_RENDER) {
-      va_surface->status = SURFACE_RELEASE;
-#ifdef DEBUG_SURFACE
-      printf("release_surface vaapi_display_frame 0x%08x\n", va_surface->va_surface_id);
-#endif
-    }
-  }
+  _add_recent_frame (this, frame_gen);
 
   pthread_mutex_unlock(&this->vaapi_lock);
   UNLOCK_DISPLAY (this);
-
-  frame_gen->free( frame_gen );
 
   /*
   elapse_time = end_time - start_time;
@@ -3136,6 +3182,10 @@ static int vaapi_set_property (vo_driver_t *this_gen, int property, int value) {
           _x_vo_scale_compute_ideal_size (&this->sc);
           this->sc.force_redraw = 1;
         }
+        break;
+
+      case VO_PROP_DISCARD_FRAMES:
+        this->props[property].value = _flush_recent_frames (this);
         break;
     }
   }
@@ -3260,6 +3310,8 @@ static void vaapi_dispose_locked (vaapi_driver_t *this) {
 
   pthread_mutex_unlock(&this->vaapi_lock);
   pthread_mutex_destroy(&this->vaapi_lock);
+
+  _x_assert(this->recent_frames[0] == NULL);
 
   free (this);
 }
