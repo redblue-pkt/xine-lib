@@ -1664,8 +1664,11 @@ static VAStatus vaapi_init_internal(vaapi_driver_t *this, int va_profile, int wi
   for(i = 0; i < RENDER_SURFACES; i++) {
     if(this->frames[i]) {
       vaapi_frame_t *frame                  = this->frames[i];
-      frame->vaapi_accel_data.index         = i;
-
+      if (!this->guarded_render) {
+        frame->vaapi_accel_data.index = i;
+      } else {
+        frame->vaapi_accel_data.index = RENDER_SURFACES; /* invalid */
+      }
 #if 0
       /* this seems to break decoding to the surface ? */
       VAImage va_image;
@@ -1753,7 +1756,7 @@ static void vaapi_frame_dispose (vo_frame_t *vo_img) {
 
   lprintf("vaapi_frame_dispose\n");
 
-  if(this->guarded_render) {
+  if (this->guarded_render && accel->index < RENDER_SURFACES) {
     ff_vaapi_surface_t *va_surface = &this->va_context->va_render_surfaces[accel->index];
     va_surface->status = SURFACE_FREE;
   }
@@ -2250,6 +2253,11 @@ static void vaapi_provide_standard_frame_data (vo_frame_t *this, xine_current_fr
   if (!accel)
     return;
 
+  if (accel->index >= RENDER_SURFACES /* invalid */) {
+    xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_provide_standard_frame_data: invalid surface\n");
+    return;
+  }
+
   va_surface = &va_context->va_render_surfaces[accel->index];
   if (va_surface->va_surface_id == VA_INVALID_SURFACE)
     return;
@@ -2397,7 +2405,7 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
   }
 
   if (driver->guarded_render) {
-    if ((unsigned)accel_orig->index >= RENDER_SURFACES) {
+    if (accel_orig->index >= RENDER_SURFACES) {
       xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: invalid source surface\n");
       return;
     }
@@ -2409,8 +2417,8 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
       return;
     }
   } else {
-    _x_assert ((unsigned)accel_this->index < RENDER_SURFACES); /* "fixed" in this mode */
-    _x_assert ((unsigned)accel_orig->index < RENDER_SURFACES); /* "fixed" in this mode */
+    _x_assert (accel_this->index < RENDER_SURFACES); /* "fixed" in this mode */
+    _x_assert (accel_orig->index < RENDER_SURFACES); /* "fixed" in this mode */
     va_surface_this = &va_context->va_render_surfaces[accel_this->index];
     va_surface_orig = &va_context->va_render_surfaces[accel_orig->index];
   }
@@ -2545,6 +2553,9 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
      * -> we need to lock because of surface may still be in use in decoder.
      */
     vaapi_accel_t      *accel      = frame_gen->accel_data;
+
+    if (accel->index < RENDER_SURFACES) {
+
     ff_vaapi_surface_t *va_surface = &this->va_context->va_render_surfaces[accel->index];
 
     pthread_mutex_lock(&this->vaapi_lock);
@@ -2561,7 +2572,10 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
 #endif
     }
 
+    accel->index = RENDER_SURFACES; /* invalid */
+
     pthread_mutex_unlock(&this->vaapi_lock);
+    }
   }
 }
 
@@ -2841,7 +2855,7 @@ static void _x_va_frame_rendered(ff_vaapi_context_t *va_context, vo_frame_t *vo_
 {
   vaapi_accel_t *accel = vo_frame->accel_data;
 
-  if ((unsigned)accel->index < RENDER_SURFACES) {
+  if (accel->index < RENDER_SURFACES) {
     ff_vaapi_surface_t *va_surface = &va_context->va_render_surfaces[accel->index];
 
     if (va_surface->status == SURFACE_RENDER_RELEASE) {
@@ -2861,6 +2875,8 @@ static void _x_va_frame_rendered(ff_vaapi_context_t *va_context, vo_frame_t *vo_
              va_surface->va_surface_id, vo_frame, va_surface->status);
 #endif
     }
+
+    accel->index = RENDER_SURFACES; /* invalid */
   }
 }
 
@@ -3022,7 +3038,7 @@ static void vaapi_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
     va_surface_id = this->va_soft_surface_ids[this->va_soft_head];
     va_image = &this->va_soft_images[this->va_soft_head];
     this->va_soft_head = (this->va_soft_head + 1) % (SOFT_SURFACES);
-  } else { // (frame->format == XINE_IMGFMT_VAAPI)
+  } else if (accel->index < RENDER_SURFACES) { // (frame->format == XINE_IMGFMT_VAAPI)
     ff_vaapi_surface_t *va_surface = &va_context->va_render_surfaces[accel->index];
     if (this->guarded_render) {
       if (va_surface->status == SURFACE_RENDER || va_surface->status == SURFACE_RENDER_RELEASE) {
