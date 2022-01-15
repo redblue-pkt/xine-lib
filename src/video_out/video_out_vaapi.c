@@ -352,56 +352,8 @@ static ff_vaapi_surface_t *get_vaapi_surface(vo_frame_t *frame_gen) {
 static ff_vaapi_surface_t *alloc_vaapi_surface(vo_frame_t *frame_gen) {
 
   vaapi_driver_t      *this       = (vaapi_driver_t *) frame_gen->driver;
-  ff_vaapi_context_t  *va_context = this->va_context;
-  ff_vaapi_surface_t  *va_surface = NULL;
-  VAStatus            vaStatus;
 
-  lprintf("get_vaapi_surface\n");
-
-  if (!va_context->va_render_surfaces)
-    return NULL;
-
-  {
-    /* Get next VAAPI surface marked as SURFACE_FREE */
-    for(;;) {
-      int old_head = va_context->va_head;
-      va_context->va_head = (va_context->va_head + 1) % ((RENDER_SURFACES));
-
-      va_surface = &va_context->va_render_surfaces[old_head];
-
-      if( va_surface->status == SURFACE_FREE ) {
-
-        VASurfaceStatus surf_status = 0;
-
-        if(this->va->query_va_status) {
-          vaStatus = vaQuerySurfaceStatus(va_context->va_display, va_surface->va_surface_id, &surf_status);
-          vaapi_check_status(this, vaStatus, "vaQuerySurfaceStatus()");
-        } else {
-          surf_status = VASurfaceReady;
-        }
-
-        if(surf_status == VASurfaceReady) {
-
-          va_surface->status = SURFACE_ALOC;
-
-#ifdef DEBUG_SURFACE
-          printf("get_vaapi_surface 0x%08x\n", va_surface->va_surface_id);
-#endif
-
-          return &va_context->va_render_surfaces[old_head];
-        } else {
-#ifdef DEBUG_SURFACE
-          printf("get_vaapi_surface busy\n");
-#endif
-        }
-      }
-#ifdef DEBUG_SURFACE
-      printf("get_vaapi_surface miss\n");
-#endif
-    }
-  }
-
-  return va_surface;
+  return _x_va_alloc_surface(this->va);
 }
 
 /* Set VAAPI surface status to render */
@@ -409,41 +361,15 @@ static void render_vaapi_surface(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_s
   vaapi_driver_t  *this = (vaapi_driver_t *) frame_gen->driver;
   vaapi_accel_t *accel = (vaapi_accel_t*)frame_gen->accel_data;
 
-  lprintf("render_vaapi_surface\n");
-
-  if (!accel || !va_surface)
-    return;
-
-  pthread_mutex_lock(&this->vaapi_lock);
-
   accel->index = va_surface->index;
-
-  va_surface->status = SURFACE_RENDER;
-#ifdef DEBUG_SURFACE
-  printf("render_vaapi_surface 0x%08x frame %p\n", va_surface->va_surface_id, frame_gen);
-#endif
-
-  pthread_mutex_unlock(&this->vaapi_lock);
+  _x_va_render_surface(this->va, va_surface);
 }
 
 /* Set VAAPI surface status to free */
 static void release_vaapi_surface(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_surface) {
-  (void)frame_gen;
+  vaapi_driver_t  *this = (vaapi_driver_t *) frame_gen->driver;
 
-  lprintf("release_vaapi_surface\n");
-
-  if (va_surface == NULL) {
-    return;
-  }
-
-  if(va_surface->status == SURFACE_RENDER) {
-    va_surface->status = SURFACE_RENDER_RELEASE;
-  } else if (va_surface->status != SURFACE_RENDER_RELEASE) {
-    va_surface->status = SURFACE_FREE;
-#ifdef DEBUG_SURFACE
-    printf("release_surface 0x%08x\n", va_surface->va_surface_id);
-#endif
-  }
+  _x_va_release_surface(this->va, va_surface);
 }
 
 typedef struct {
@@ -2525,6 +2451,19 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
   vaapi_driver_t      *this       = (vaapi_driver_t *) this_gen;
   mem_frame_t         *frame      = xine_container_of(frame_gen, mem_frame_t, vo_frame);
 
+  if (this->guarded_render && frame->format == XINE_IMGFMT_VAAPI) {
+    /*
+     * This code handles frames that were dropped (used in decoder, but not drawn).
+     * -> we need to lock because of surface may still be in use in decoder.
+     */
+    vaapi_accel_t      *accel      = frame_gen->accel_data;
+    if (accel->index < RENDER_SURFACES) {
+      ff_vaapi_surface_t *va_surface = &this->va_context->va_render_surfaces[accel->index];
+      _x_va_surface_displayed(this->va, va_surface);
+      accel->index = RENDER_SURFACES; /* invalid */
+    }
+  }
+
   lprintf("vaapi_update_frame_format %s %s width %d height %d\n", 
         (frame->format == XINE_IMGFMT_VAAPI) ? "XINE_IMGFMT_VAAPI" : ((frame->format == XINE_IMGFMT_YV12) ? "XINE_IMGFMT_YV12" : "XINE_IMGFMT_YUY2") ,
         (format == XINE_IMGFMT_VAAPI) ? "XINE_IMGFMT_VAAPI" : ((format == XINE_IMGFMT_YV12) ? "XINE_IMGFMT_YV12" : "XINE_IMGFMT_YUY2") ,
@@ -2543,37 +2482,6 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
     } else {
       frame->vo_frame.proc_duplicate_frame_data = NULL;
       frame->vo_frame.proc_provide_standard_frame_data = NULL;
-    }
-  }
-
-  if(this->guarded_render) {
-    /*
-     * This code handles frames that were dropped (used in decoder, but not drawn).
-     * -> we need to lock because of surface may still be in use in decoder.
-     */
-    vaapi_accel_t      *accel      = frame_gen->accel_data;
-
-    if (accel->index < RENDER_SURFACES) {
-
-    ff_vaapi_surface_t *va_surface = &this->va_context->va_render_surfaces[accel->index];
-
-    pthread_mutex_lock(&this->vaapi_lock);
-
-    if(va_surface->status == SURFACE_RENDER_RELEASE) {
-      va_surface->status = SURFACE_FREE;
-#ifdef DEBUG_SURFACE
-      printf("release_surface vaapi_update_frame_format 0x%08x\n", va_surface->va_surface_id);
-#endif
-    } else if(va_surface->status == SURFACE_RENDER) {
-      va_surface->status = SURFACE_RELEASE;
-#ifdef DEBUG_SURFACE
-      printf("release_surface vaapi_update_frame_format 0x%08x\n", va_surface->va_surface_id);
-#endif
-    }
-
-    accel->index = RENDER_SURFACES; /* invalid */
-
-    pthread_mutex_unlock(&this->vaapi_lock);
     }
   }
 }
@@ -2850,31 +2758,13 @@ static double timeOfDay()
 }
 */
 
-static void _x_va_frame_rendered(ff_vaapi_context_t *va_context, vo_frame_t *vo_frame)
+static void _x_va_frame_displayed(vaapi_context_impl_t *va_context, vo_frame_t *vo_frame)
 {
   vaapi_accel_t *accel = vo_frame->accel_data;
 
   if (accel->index < RENDER_SURFACES) {
-    ff_vaapi_surface_t *va_surface = &va_context->va_render_surfaces[accel->index];
-
-    if (va_surface->status == SURFACE_RENDER_RELEASE) {
-      va_surface->status = SURFACE_FREE;
-#ifdef DEBUG_SURFACE
-      printf("release_surface vaapi_display_frame 0x%08x frame %p\n", va_surface->va_surface_id, vo_frame);
-#endif
-    } else if (va_surface->status == SURFACE_RENDER) {
-      va_surface->status = SURFACE_RELEASE;
-#ifdef DEBUG_SURFACE
-      printf("release_surface vaapi_display_frame 0x%08x frame %p (decoder ref exists)\n",
-             va_surface->va_surface_id, vo_frame);
-#endif
-    } else {
-#ifdef DEBUG_SURFACE
-      printf("release_surface vaapi_display_frame 0x%08x frame %p (INVALID STATE %d)\n",
-             va_surface->va_surface_id, vo_frame, va_surface->status);
-#endif
-    }
-
+    ff_vaapi_surface_t *va_surface = &va_context->c.va_render_surfaces[accel->index];
+    _x_va_surface_displayed(va_context, va_surface);
     accel->index = RENDER_SURFACES; /* invalid */
   }
 }
@@ -2885,7 +2775,7 @@ static void _add_recent_frame (vaapi_driver_t *this, vo_frame_t *vo_frame) {
   i = VO_NUM_RECENT_FRAMES-1;
   if (this->recent_frames[i]) {
     if (this->guarded_render && vo_frame->format == XINE_IMGFMT_VAAPI)
-      _x_va_frame_rendered(this->va_context, this->recent_frames[i]);
+      _x_va_frame_displayed(this->va, this->recent_frames[i]);
     this->recent_frames[i]->free (this->recent_frames[i]);
   }
 

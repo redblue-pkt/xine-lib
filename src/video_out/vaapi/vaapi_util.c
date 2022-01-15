@@ -29,6 +29,7 @@
 #include "vaapi_util.h"
 
 #include <stdlib.h>
+#include <pthread.h>
 
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
@@ -176,6 +177,8 @@ void _x_va_free(vaapi_context_impl_t **p_va_context)
     vaStatus = _x_va_terminate(&va_context->c);
     _x_va_check_status(va_context, vaStatus, "vaTerminate()");
 
+    pthread_mutex_destroy(&va_context->surfaces_lock);
+
     _x_freep(p_va_context);
   }
 }
@@ -188,7 +191,7 @@ VAStatus _x_va_initialize(ff_vaapi_context_t *va_context, int visual_type, const
 
   va_context->va_display = _get_display(visual_type, visual, opengl_render);
   if (!va_context->va_display) {
-    return VA_STATUS_ERROR_UNKNOWN;
+    return VA_STATUS_ERROR_INVALID_DISPLAY;
   }
 
   vaStatus = vaInitialize(va_context->va_display, &maj, &min);
@@ -232,6 +235,8 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   va_context->c.va_surface_ids      = va_context->va_surface_ids_storage;
 
   _x_va_reset_va_context(&va_context->c);
+
+  pthread_mutex_init(&va_context->surfaces_lock, NULL);
 
   vaStatus = _x_va_initialize(&va_context->c, visual_type, visual, opengl_render);
 
@@ -338,6 +343,8 @@ static VAStatus _x_va_destroy_render_surfaces(vaapi_context_impl_t *va_context)
   int                 i;
   VAStatus            vaStatus;
 
+  pthread_mutex_lock(&va_context->surfaces_lock);
+
   for (i = 0; i < RENDER_SURFACES; i++) {
     if (va_context->c.va_surface_ids[i] != VA_INVALID_SURFACE) {
       vaStatus = vaSyncSurface(va_context->c.va_display, va_context->c.va_surface_ids[i]);
@@ -352,6 +359,8 @@ static VAStatus _x_va_destroy_render_surfaces(vaapi_context_impl_t *va_context)
       va_surface->va_surface_id       = va_context->c.va_surface_ids[i];
     }
   }
+
+  pthread_mutex_unlock(&va_context->surfaces_lock);
 
   return VA_STATUS_SUCCESS;
 }
@@ -375,8 +384,6 @@ void _x_va_close(vaapi_context_impl_t *va_context)
   }
 
   va_context->c.valid_context = 0;
-
-  _x_va_reset_va_context(&va_context->c);
 }
 
 VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width, int height)
@@ -432,6 +439,8 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
     }
   }
 
+  pthread_mutex_lock(&va_context->surfaces_lock);
+
   /* assign surfaces */
   for (i = 0; i < RENDER_SURFACES; i++) {
     ff_vaapi_surface_t *va_surface  = &va_context->c.va_render_surfaces[i];
@@ -439,6 +448,9 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
     va_surface->status              = SURFACE_FREE;
     va_surface->va_surface_id       = va_context->c.va_surface_ids[i];
   }
+  va_context->c.va_head = 0;
+
+  pthread_mutex_unlock(&va_context->surfaces_lock);
 
   va_context->c.valid_context = 1;
   return VA_STATUS_SUCCESS;
@@ -544,4 +556,100 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
 out:
   free(va_profiles);
   return profile;
+}
+
+#ifdef DEBUG_SURFACE
+# define DBG_SURFACE printf
+#else
+# define DBG_SURFACE(...) do { } while (0)
+#endif
+
+ff_vaapi_surface_t *_x_va_alloc_surface(vaapi_context_impl_t *va_context)
+{
+  ff_vaapi_surface_t   *va_surface = NULL;
+  VAStatus              vaStatus;
+
+  lprintf("get_vaapi_surface\n");
+
+  pthread_mutex_lock(&va_context->surfaces_lock);
+
+  /* Get next VAAPI surface marked as SURFACE_FREE */
+  while (1) {
+    va_surface = &va_context->c.va_render_surfaces[va_context->c.va_head];
+    va_context->c.va_head = (va_context->c.va_head + 1) % RENDER_SURFACES;
+
+    if (va_surface->status == SURFACE_FREE) {
+
+      VASurfaceStatus surf_status = 0;
+
+      if (va_context->query_va_status) {
+        vaStatus = vaQuerySurfaceStatus(va_context->c.va_display, va_surface->va_surface_id, &surf_status);
+        _x_va_check_status(va_context, vaStatus, "vaQuerySurfaceStatus()");
+      } else {
+        surf_status = VASurfaceReady;
+      }
+
+      if (surf_status == VASurfaceReady) {
+        va_surface->status = SURFACE_ALOC;
+        DBG_SURFACE("alloc_vaapi_surface 0x%08x\n", va_surface->va_surface_id);
+        break;
+      }
+      DBG_SURFACE("alloc_vaapi_surface busy\n");
+    }
+    DBG_SURFACE("alloc_vaapi_surface miss\n");
+  }
+
+  pthread_mutex_unlock(&va_context->surfaces_lock);
+
+  return va_surface;
+}
+
+void _x_va_render_surface(vaapi_context_impl_t *va_context, ff_vaapi_surface_t *va_surface)
+{
+  DBG_SURFACE("render_vaapi_surface 0x%08x\n", va_surface->va_surface_id);
+  _x_assert(va_surface->status == SURFACE_ALOC);
+
+  pthread_mutex_lock(&va_context->surfaces_lock);
+  va_surface->status = SURFACE_RENDER;
+  pthread_mutex_unlock(&va_context->surfaces_lock);
+}
+
+void _x_va_release_surface(vaapi_context_impl_t *va_context, ff_vaapi_surface_t *va_surface)
+{
+  _x_assert(va_surface->status == SURFACE_ALOC ||
+            va_surface->status == SURFACE_RENDER ||
+            va_surface->status == SURFACE_RENDER_RELEASE);
+
+  pthread_mutex_lock(&va_context->surfaces_lock);
+
+  if (va_surface->status == SURFACE_RENDER) {
+    va_surface->status = SURFACE_RENDER_RELEASE;
+    DBG_SURFACE("release_surface 0x%08x -> RENDER_RELEASE\n", va_surface->va_surface_id);
+  } else if (va_surface->status != SURFACE_RENDER_RELEASE) {
+    va_surface->status = SURFACE_FREE;
+    DBG_SURFACE("release_surface 0x%08x -> FREE\n", va_surface->va_surface_id);
+  }
+
+  pthread_mutex_unlock(&va_context->surfaces_lock);
+}
+
+void _x_va_surface_displayed(vaapi_context_impl_t *va_context, ff_vaapi_surface_t *va_surface)
+{
+  _x_assert(va_surface->status == SURFACE_RENDER ||
+            va_surface->status == SURFACE_RENDER_RELEASE);
+
+  pthread_mutex_lock(&va_context->surfaces_lock);
+
+  if (va_surface->status == SURFACE_RENDER_RELEASE) {
+    va_surface->status = SURFACE_FREE;
+    DBG_SURFACE("release_surface 0x%08x -> FREE\n", va_surface->va_surface_id, vo_frame);
+  } else if (va_surface->status == SURFACE_RENDER) {
+    va_surface->status = SURFACE_RELEASE;
+    DBG_SURFACE("release_surface 0x%08x -> RELEASE\n", va_surface->va_surface_id, vo_frame);
+  } else {
+    DBG_SURFACE("release_surface 0x%08x INVALID STATE %d\n",
+                va_surface->va_surface_id, vo_frame, va_surface->status);
+  }
+
+  pthread_mutex_unlock(&va_context->surfaces_lock);
 }
