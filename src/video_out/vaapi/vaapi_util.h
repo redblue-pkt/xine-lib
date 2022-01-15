@@ -28,6 +28,8 @@
 #include <xine/video_out.h>
 #include "accel_vaapi.h"
 
+#include <sys/types.h>
+
 #include <va/va.h>
 
 /*
@@ -57,6 +59,7 @@ struct vaapi_context_impl {
 
   int query_va_status;
 
+  pthread_mutex_t     surfaces_lock;
   ff_vaapi_surface_t  va_render_surfaces_storage[RENDER_SURFACES + 1];
   VASurfaceID         va_surface_ids_storage[RENDER_SURFACES + 1];
 };
@@ -77,5 +80,10 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
 
 void _x_va_close(vaapi_context_impl_t *va_context);
 VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width, int height);
+
+ff_vaapi_surface_t *_x_va_alloc_surface(vaapi_context_impl_t *va_context);
+void _x_va_render_surface(vaapi_context_impl_t *va_context, ff_vaapi_surface_t *va_surface);
+void _x_va_release_surface(vaapi_context_impl_t *va_context, ff_vaapi_surface_t *va_surface);
+void _x_va_surface_displayed(vaapi_context_impl_t *va_context, ff_vaapi_surface_t *va_surface);
 
 #endif /* XINE_VAAPI_UTIL_H */
