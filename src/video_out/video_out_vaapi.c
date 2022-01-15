@@ -74,9 +74,8 @@
 # define ENABLE_VA_GLX
 #endif /* OPENGL */
 
-#include "accel_vaapi.h"
 #include "vaapi/vaapi_util.h"
-#include "mem_frame.h"
+#include "vaapi/vaapi_frame.h"
 
 #include <pthread.h>
 
@@ -142,11 +141,6 @@ typedef struct vaapi_driver_s vaapi_driver_t;
 typedef struct {
     int x1, y1, x2, y2;
 } vaapi_rect_t;
-
-typedef struct {
-  mem_frame_t       mem_frame;
-  vaapi_accel_t     vaapi_accel_data;
-} vaapi_frame_t;
 
 typedef struct {
   VADisplayAttribType type;
@@ -314,12 +308,6 @@ static int vaapi_check_status(vaapi_driver_t *this, VAStatus vaStatus, const cha
   return 1;
 }
 
-static int vaapi_lock_decode_dummy(vo_frame_t *vo_frame)
-{
-  (void)vo_frame;
-  return 0;
-}
-
 static int vaapi_lock_decode_guarded(vo_frame_t *frame_gen)
 {
   vaapi_driver_t  *this = (vaapi_driver_t *) frame_gen->driver;
@@ -336,46 +324,11 @@ static void vaapi_unlock_decode_guarded(vo_frame_t *frame_gen)
   pthread_mutex_unlock(&this->vaapi_lock);
 }
 
-static int guarded_render(vo_frame_t *frame_gen) {
-  vaapi_driver_t  *this = (vaapi_driver_t *) frame_gen->driver;
-
-  return this->guarded_render;
-}
-
-static ff_vaapi_surface_t *get_vaapi_surface(vo_frame_t *frame_gen) {
-  vaapi_driver_t      *this       = (vaapi_driver_t *) frame_gen->driver;
-  vaapi_frame_t       *frame      = (vaapi_frame_t *) frame_gen;
-  ff_vaapi_context_t  *va_context = this->va_context;
-  return &va_context->va_render_surfaces[frame->vaapi_accel_data.index];
-}
-
-static ff_vaapi_surface_t *alloc_vaapi_surface(vo_frame_t *frame_gen) {
-
-  vaapi_driver_t      *this       = (vaapi_driver_t *) frame_gen->driver;
-
-  return _x_va_alloc_surface(this->va);
-}
-
-/* Set VAAPI surface status to render */
-static void render_vaapi_surface(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_surface) {
-  vaapi_driver_t  *this = (vaapi_driver_t *) frame_gen->driver;
-  vaapi_accel_t *accel = (vaapi_accel_t*)frame_gen->accel_data;
-
-  accel->index = va_surface->index;
-  _x_va_render_surface(this->va, va_surface);
-}
-
-/* Set VAAPI surface status to free */
-static void release_vaapi_surface(vo_frame_t *frame_gen, ff_vaapi_surface_t *va_surface) {
-  vaapi_driver_t  *this = (vaapi_driver_t *) frame_gen->driver;
-
-  _x_va_release_surface(this->va, va_surface);
-}
-
 typedef struct {
   video_driver_class_t driver_class;
 
   xine_t              *xine;
+  unsigned             visual_type;
 } vaapi_class_t;
 
 static void vaapi_x11_wait_event(Display *dpy, Window w, int type)
@@ -931,17 +884,6 @@ static uint32_t vaapi_get_capabilities (vo_driver_t *this_gen) {
   return this->capabilities;
 }
 
-static int profile_from_imgfmt(vo_frame_t *frame_gen, unsigned format)
-{
-  vo_driver_t         *this_gen   = (vo_driver_t *) frame_gen->driver;
-  vaapi_driver_t      *this       = (vaapi_driver_t *) this_gen;
-
-  _x_assert(this->va->c.va_display);
-
-  return _x_va_profile_from_imgfmt(this->va, format);
-}
-
-
 /* Init subpicture */
 static void vaapi_init_subpicture(vaapi_driver_t *this) {
   this->va_subpic_width               = 0;
@@ -976,14 +918,6 @@ static void vaapi_close(vaapi_driver_t *this) {
   vaapi_destroy_soft_surfaces(this);
 
   _x_va_close(this->va);
-}
-
- 
-/* Returns internal VAAPI context */
-static ff_vaapi_context_t *get_context(vo_frame_t *frame_gen) {
-  vaapi_driver_t        *this = (vaapi_driver_t *) frame_gen->driver;
-
-  return this->va_context;
 }
 
 /* Deassociate and free subpicture */
@@ -1694,27 +1628,27 @@ static vo_frame_t *vaapi_alloc_frame (vo_driver_t *this_gen) {
   vaapi_frame_t   *frame;
   static const struct vaapi_accel_funcs_s accel_funcs = {
     .vaapi_init                = vaapi_init,
-    .profile_from_imgfmt       = profile_from_imgfmt,
-    .get_context               = get_context,
-    .lock_vaapi                = vaapi_lock_decode_dummy,
+    .profile_from_imgfmt       = _x_va_accel_profile_from_imgfmt,
+    .get_context               = _x_va_accel_get_context,
+    .lock_vaapi                = _x_va_accel_lock_decode_dummy,
     .unlock_vaapi              = NULL,
 
-    .get_vaapi_surface         = get_vaapi_surface,
+    .get_vaapi_surface         = _x_va_accel_get_vaapi_surface,
     .render_vaapi_surface      = NULL,
     .release_vaapi_surface     = NULL,
-    .guarded_render            = guarded_render,
+    .guarded_render            = _x_va_accel_guarded_render,
   };
   static const struct vaapi_accel_funcs_s accel_funcs_guarded = {
     .vaapi_init                = vaapi_init,
-    .profile_from_imgfmt       = profile_from_imgfmt,
-    .get_context               = get_context,
+    .profile_from_imgfmt       = _x_va_accel_profile_from_imgfmt,
+    .get_context               = _x_va_accel_get_context,
     .lock_vaapi                = vaapi_lock_decode_guarded,
     .unlock_vaapi              = vaapi_unlock_decode_guarded,
 
-    .get_vaapi_surface         = alloc_vaapi_surface,
-    .render_vaapi_surface      = render_vaapi_surface,
-    .release_vaapi_surface     = release_vaapi_surface,
-    .guarded_render            = guarded_render,
+    .get_vaapi_surface         = _x_va_accel_alloc_vaapi_surface,
+    .render_vaapi_surface      = _x_va_accel_render_vaapi_surface,
+    .release_vaapi_surface     = _x_va_accel_release_vaapi_surface,
+    .guarded_render            = _x_va_accel_guarded_render,
   };
 
   if (this->num_frame_buffers >= sizeof(this->frames) / sizeof(this->frames[0])) {
@@ -1733,6 +1667,7 @@ static vo_frame_t *vaapi_alloc_frame (vo_driver_t *this_gen) {
   this->frames[this->num_frame_buffers++] = frame;
 
   frame->mem_frame.vo_frame.accel_data = &frame->vaapi_accel_data;
+  frame->ctx_impl = this->va;
 
   /*
    * supply required functions
@@ -2336,7 +2271,7 @@ static void vaapi_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origin
     }
     va_surface_orig = &va_context->va_render_surfaces[accel_orig->index];
 
-    va_surface_this = alloc_vaapi_surface(this_gen);
+    va_surface_this = _x_va_accel_alloc_vaapi_surface(this_gen);
     if (!va_surface_this) {
       xprintf(driver->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_duplicate_frame_data: surface allocation failed\n");
       return;
@@ -2452,16 +2387,8 @@ static void vaapi_update_frame_format (vo_driver_t *this_gen,
   mem_frame_t         *frame      = xine_container_of(frame_gen, mem_frame_t, vo_frame);
 
   if (this->guarded_render && frame->format == XINE_IMGFMT_VAAPI) {
-    /*
-     * This code handles frames that were dropped (used in decoder, but not drawn).
-     * -> we need to lock because of surface may still be in use in decoder.
-     */
-    vaapi_accel_t      *accel      = frame_gen->accel_data;
-    if (accel->index < RENDER_SURFACES) {
-      ff_vaapi_surface_t *va_surface = &this->va_context->va_render_surfaces[accel->index];
-      _x_va_surface_displayed(this->va, va_surface);
-      accel->index = RENDER_SURFACES; /* invalid */
-    }
+    /* This code handles frames that were dropped (used in decoder, but not drawn). */
+    _x_va_frame_displayed(frame_gen);
   }
 
   lprintf("vaapi_update_frame_format %s %s width %d height %d\n", 
@@ -2758,24 +2685,13 @@ static double timeOfDay()
 }
 */
 
-static void _x_va_frame_displayed(vaapi_context_impl_t *va_context, vo_frame_t *vo_frame)
-{
-  vaapi_accel_t *accel = vo_frame->accel_data;
-
-  if (accel->index < RENDER_SURFACES) {
-    ff_vaapi_surface_t *va_surface = &va_context->c.va_render_surfaces[accel->index];
-    _x_va_surface_displayed(va_context, va_surface);
-    accel->index = RENDER_SURFACES; /* invalid */
-  }
-}
-
 static void _add_recent_frame (vaapi_driver_t *this, vo_frame_t *vo_frame) {
   int i;
 
   i = VO_NUM_RECENT_FRAMES-1;
   if (this->recent_frames[i]) {
     if (this->guarded_render && vo_frame->format == XINE_IMGFMT_VAAPI)
-      _x_va_frame_displayed(this->va, this->recent_frames[i]);
+      _x_va_frame_displayed(this->recent_frames[i]);
     this->recent_frames[i]->free (this->recent_frames[i]);
   }
 
@@ -3371,7 +3287,7 @@ static int vaapi_initialize(vaapi_driver_t *this, int visual_type, const void *v
   this->va = _x_va_new(this->xine, visual_type, visual, 0);
 #endif
   if (!this->va)
-     return 0;
+    return 0;
 
   this->va_context = &this->va->c;
   this->va_context->driver = &this->vo_driver;
