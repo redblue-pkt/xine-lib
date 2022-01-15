@@ -3306,7 +3306,6 @@ static int vaapi_gui_data_exchange (vo_driver_t *this_gen,
 }
 
 static void vaapi_dispose_locked (vaapi_driver_t *this) {
-  ff_vaapi_context_t  *va_context = this->va_context;
   config_values_t     *config = this->xine->config;
 
   /* cm_close already does this.
@@ -3414,6 +3413,63 @@ static void vaapi_csc_mode(void *this_gen, xine_cfg_entry_t *entry)
   vaapi_set_csc_mode (this, new_mode);
 }
 
+static int vaapi_init_x11(vaapi_driver_t *this)
+{
+  XSetWindowAttributes    xswa;
+  unsigned long           xswa_mask;
+  XWindowAttributes       wattr;
+  unsigned long           black_pixel;
+  XVisualInfo             visualInfo;
+  XVisualInfo             *vi;
+  int                     depth;
+  int                     result = 0;
+  const int               x11_event_mask = ExposureMask |
+                                           StructureNotifyMask;
+
+  LOCK_DISPLAY (this);
+
+  black_pixel = BlackPixel(this->display, this->screen);
+
+  XGetWindowAttributes(this->display, this->drawable, &wattr);
+
+  depth = wattr.depth;
+  if (depth != 15 && depth != 16 && depth != 24 && depth != 32)
+    depth = 24;
+
+  vi = &visualInfo;
+  XMatchVisualInfo(this->display, this->screen, depth, TrueColor, vi);
+
+  xswa_mask             = CWBorderPixel | CWBackPixel | CWColormap;
+  xswa.border_pixel     = black_pixel;
+  xswa.background_pixel = black_pixel;
+  xswa.colormap         = CopyFromParent;
+
+  vaapi_x11_trap_errors();
+  this->window = XCreateWindow(this->display, this->drawable,
+                             0, 0, 1, 1, 0, depth,
+                             InputOutput, vi->visual, xswa_mask, &xswa);
+  XSync(this->display, False);
+  if (vaapi_x11_untrap_errors() || this->window == None) {
+    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " XCreateWindow() failed\n");
+    goto out;
+  }
+
+  XSelectInput(this->display, this->window, x11_event_mask);
+
+  XMapWindow(this->display, this->window);
+  vaapi_x11_wait_event(this->display, this->window, MapNotify);
+
+  result = 1;
+
+ out:
+  UNLOCK_DISPLAY (this);
+
+  if (vi != &visualInfo)
+    XFree(vi);
+
+  return result;
+}
+
 static int vaapi_initialize(vaapi_driver_t *this, int visual_type, const void *visual)
 {
   VAStatus vaStatus;
@@ -3472,16 +3528,7 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   const x11_visual_t      *visual = (const x11_visual_t *) visual_gen;
   vaapi_driver_t          *this;
   config_values_t         *config = class->xine->config;
-  XSetWindowAttributes    xswa;
-  unsigned long           xswa_mask;
-  XWindowAttributes       wattr;
-  unsigned long           black_pixel;
-  XVisualInfo             visualInfo;
-  XVisualInfo             *vi;
-  int                     depth;
   int                     i;
-  const int               x11_event_mask = ExposureMask | 
-                                           StructureNotifyMask;
 
   this = (vaapi_driver_t *) calloc(1, sizeof(vaapi_driver_t));
   if (!this)
@@ -3556,46 +3603,6 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   this->sc.dest_size_cb         = visual->dest_size_cb;
   this->sc.user_data            = visual->user_data;
   this->sc.user_ratio           = XINE_VO_ASPECT_AUTO;
-
-  LOCK_DISPLAY (this);
-
-  black_pixel         = BlackPixel(this->display, this->screen);
-
-  XGetWindowAttributes(this->display, this->drawable, &wattr);
-
-  depth = wattr.depth;
-  if (depth != 15 && depth != 16 && depth != 24 && depth != 32)
-    depth = 24;
-
-  vi = &visualInfo;
-  XMatchVisualInfo(this->display, this->screen, depth, TrueColor, vi);
-
-  xswa_mask             = CWBorderPixel | CWBackPixel | CWColormap;
-  xswa.border_pixel     = black_pixel;
-  xswa.background_pixel = black_pixel;
-  xswa.colormap         = CopyFromParent;
-
-  vaapi_x11_trap_errors();
-  this->window = XCreateWindow(this->display, this->drawable,
-                             0, 0, 1, 1, 0, depth,
-                             InputOutput, vi->visual, xswa_mask, &xswa);
-  XSync(this->display, False);
-  if (vaapi_x11_untrap_errors() || this->window == None) {
-    UNLOCK_DISPLAY (this);
-    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " XCreateWindow() failed\n");
-    vaapi_dispose_locked(this);
-    return NULL;
-  }
-
-  XSelectInput(this->display, this->window, x11_event_mask);
-
-  XMapWindow(this->display, this->window);
-  vaapi_x11_wait_event(this->display, this->window, MapNotify);
-
-  UNLOCK_DISPLAY (this);
-
-  if(vi != &visualInfo)
-    XFree(vi);
 
   this->capabilities            = VO_CAP_YV12 | VO_CAP_YUY2 | VO_CAP_CROP | VO_CAP_UNSCALED_OVERLAY | VO_CAP_ARGB_LAYER_OVERLAY | VO_CAP_VAAPI | VO_CAP_CUSTOM_EXTENT_OVERLAY;
 
@@ -3672,11 +3679,6 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
 
   this->last_sub_image_fmt                   = 0;
 
-  if (!vaapi_initialize(this, XINE_VISUAL_TYPE_X11, visual_gen)) {
-    vaapi_dispose_locked(this);
-    return NULL;
-  }
-
   this->csc_mode = this->xine->config->register_enum (this->xine->config, "video.output.vaapi_csc_mode", 3,
     (char **)vaapi_csc_mode_labels,
     _("VAAPI colour conversion method"),
@@ -3696,6 +3698,13 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
 #ifdef ENABLE_VA_GLX
   xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Opengl render : %d\n", this->opengl_render);
 #endif
+
+  if (!vaapi_init_x11(this) ||
+      !vaapi_initialize(this, XINE_VISUAL_TYPE_X11, visual_gen)) {
+
+    vaapi_dispose_locked(this);
+    return NULL;
+  }
 
   pthread_mutex_unlock(&this->vaapi_lock);
 
