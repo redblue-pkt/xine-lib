@@ -261,7 +261,6 @@ struct vaapi_driver_s {
   /* */
   VASurfaceID         va_soft_surface_ids_storage[SOFT_SURFACES + 1];
   VAImage             va_soft_images_storage[SOFT_SURFACES + 1];
-  vaapi_context_impl_t va_context_storage;
   vaapi_context_impl_t *va;
 };
 
@@ -3323,7 +3322,7 @@ static void vaapi_dispose_locked (vaapi_driver_t *this) {
 
   vaapi_close(this);
 
-  _x_va_terminate(va_context);
+  _x_va_free(&this->va);
 
   _x_freep(&this->overlay_bitmap);
 
@@ -3415,19 +3414,20 @@ static void vaapi_csc_mode(void *this_gen, xine_cfg_entry_t *entry)
   vaapi_set_csc_mode (this, new_mode);
 }
 
-static int vaapi_initialize(vaapi_driver_t *this)
+static int vaapi_initialize(vaapi_driver_t *this, int visual_type, const void *visual)
 {
   VAStatus vaStatus;
+  int fmt_count = 0;
 
 #ifdef ENABLE_VA_GLX
-  vaStatus = _x_va_initialize(this->va_context,  this->display, this->opengl_render);
+  this->va = _x_va_new(this->xine, visual_type, visual, this->opengl_render);
 #else
-  vaStatus = _x_va_initialize(this->va_context,  this->display, 0);
+  this->va = _x_va_new(this->xine, visual_type, visual, 0);
 #endif
-  if (!vaapi_check_status(this, vaStatus, "vaInitialize()")) {
-    return 0;
-  }
+  if (!this->va)
+     return 0;
 
+  this->va_context = &this->va->c;
   this->va_context->driver = &this->vo_driver;
 
 #ifdef ENABLE_VA_GLX
@@ -3451,7 +3451,6 @@ static int vaapi_initialize(vaapi_driver_t *this)
   vaapi_set_background_color(this);
   vaapi_display_attribs(this);
 
-  int fmt_count = 0;
   fmt_count = vaMaxNumSubpictureFormats( this->va_context->va_display );
   this->va_subpic_formats = calloc( fmt_count, sizeof(*this->va_subpic_formats) );
 
@@ -3496,10 +3495,6 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
   this->display                 = visual->display;
   this->screen                  = visual->screen;
   this->drawable                = visual->d;
-
-  this->va_context              = &this->va_context_storage.c;
-  this->va                      = &this->va_context_storage;
-  this->va_context_storage.xine = class->xine;
 
   /* number of video frames from config - register it with the default value. */
   int frame_num = config->register_num (config, "engine.buffers.video_num_frames", MIN_SURFACES, /* default */
@@ -3547,16 +3542,12 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
 
   this->va_soft_surface_ids             = this->va_soft_surface_ids_storage;
   this->va_soft_images                  = this->va_soft_images_storage;
-  this->va_context->va_render_surfaces  = this->va_context_storage.va_render_surfaces_storage;
-  this->va_context->va_surface_ids      = this->va_context_storage.va_surface_ids_storage;
-
 
   for (i = 0; i < SOFT_SURFACES; i++) {
     this->va_soft_surface_ids[i]        = VA_INVALID_SURFACE;
     this->va_soft_images[i].image_id    = VA_INVALID_ID;
   }
 
-  _x_va_reset_va_context(this->va_context);
   vaapi_init_subpicture(this);
 
   _x_vo_scale_init (&this->sc, 1, 0, config );
@@ -3681,7 +3672,7 @@ static vo_driver_t *vaapi_open_plugin (video_driver_class_t *class_gen, const vo
 
   this->last_sub_image_fmt                   = 0;
 
-  if (!vaapi_initialize(this)) {
+  if (!vaapi_initialize(this, XINE_VISUAL_TYPE_X11, visual_gen)) {
     vaapi_dispose_locked(this);
     return NULL;
   }

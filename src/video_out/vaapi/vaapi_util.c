@@ -124,18 +124,26 @@ void _x_va_reset_va_context(ff_vaapi_context_t *va_context)
   }
 }
 
-static VADisplay _get_display(void *native_display, int opengl_render)
+static VADisplay _get_display(int visual_type, const void *visual, int opengl_render)
 {
   VADisplay ret;
 
-  if (opengl_render) {
+  if (visual_type == XINE_VISUAL_TYPE_X11) {
+    if (opengl_render) {
 #if defined(HAVE_VA_VA_GLX_H)
-    ret = vaGetDisplayGLX(native_display);
+      ret = vaGetDisplayGLX(((const x11_visual_t *)visual)->display);
 #else
-    return NULL;
+      return NULL;
 #endif
+    } else {
+#if defined(HAVE_VA_VA_X11_H)
+      ret = vaGetDisplay(((const x11_visual_t *)visual)->display);
+#else
+      return NULL;
+#endif
+    }
   } else {
-    ret = vaGetDisplay(native_display);
+    return NULL;
   }
 
   if (vaDisplayIsValid(ret))
@@ -159,13 +167,26 @@ VAStatus _x_va_terminate(ff_vaapi_context_t *va_context)
   return vaStatus;
 }
 
-VAStatus _x_va_initialize(ff_vaapi_context_t *va_context, void *display, int opengl_render)
+void _x_va_free(vaapi_context_impl_t **p_va_context)
+{
+  if (*p_va_context) {
+    vaapi_context_impl_t *va_context = *p_va_context;
+    VAStatus vaStatus;
+
+    vaStatus = _x_va_terminate(&va_context->c);
+    _x_va_check_status(va_context, vaStatus, "vaTerminate()");
+
+    _x_freep(p_va_context);
+  }
+}
+
+VAStatus _x_va_initialize(ff_vaapi_context_t *va_context, int visual_type, const void *visual, int opengl_render)
 {
   VAStatus vaStatus;
   int      maj, min;
   int      fmt_count = 0;
 
-  va_context->va_display = _get_display(display, opengl_render);
+  va_context->va_display = _get_display(visual_type, visual, opengl_render);
   if (!va_context->va_display) {
     return VA_STATUS_ERROR_UNKNOWN;
   }
@@ -194,6 +215,47 @@ fail:
   _x_va_terminate(va_context);
   return vaStatus;
 }
+
+vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, int opengl_render)
+{
+  vaapi_context_impl_t *va_context;
+  const char *p, *vendor;
+  VAStatus vaStatus;
+  size_t   i;
+
+  va_context = calloc(1, sizeof(*va_context));
+  if (!va_context)
+    return NULL;
+
+  va_context->xine = xine;
+  va_context->c.va_render_surfaces  = va_context->va_render_surfaces_storage;
+  va_context->c.va_surface_ids      = va_context->va_surface_ids_storage;
+
+  _x_va_reset_va_context(&va_context->c);
+
+  vaStatus = _x_va_initialize(&va_context->c, visual_type, visual, opengl_render);
+
+  if (!_x_va_check_status(va_context, vaStatus, "vaInitialize()")) {
+    _x_va_free(&va_context);
+    return NULL;
+  }
+
+  va_context->query_va_status = 1;
+
+  vendor = vaQueryVendorString(va_context->c.va_display);
+  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Vendor : %s\n", vendor);
+
+  for (p = vendor, i = strlen (vendor); i > 0; i--, p++) {
+    if (strncmp(p, "VDPAU", strlen("VDPAU")) == 0) {
+      xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
+      va_context->query_va_status = 0;
+      break;
+    }
+  }
+
+  return va_context;
+}
+
 
 void _x_va_destroy_image(vaapi_context_impl_t *va_context, VAImage *va_image)
 {
@@ -324,20 +386,6 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
   size_t         i;
 
   _x_va_close(va_context);
-
-  va_context->query_va_status = 1;
-
-  const char *vendor = vaQueryVendorString(va_context->c.va_display);
-  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Vendor : %s\n", vendor);
-
-  const char *p = vendor;
-  for (i = strlen (vendor); i > 0; i--, p++) {
-    if (strncmp(p, "VDPAU", strlen("VDPAU")) == 0) {
-      xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
-      va_context->query_va_status = 0;
-      break;
-    }
-  }
 
   va_context->c.width = width;
   va_context->c.height = height;
