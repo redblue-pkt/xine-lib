@@ -490,9 +490,9 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
   if(!_x_va_check_status(va_context, vaStatus, "vaQueryConfigProfiles()"))
     goto out;
 
-  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Supported Profiles :\n");
+  xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE " VAAPI Supported Profiles :\n");
   for (i = 0; i < va_num_profiles; i++) {
-    xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE "    %s\n", _x_va_profile_to_string(va_profiles[i]));
+    xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE "    %s\n", _x_va_profile_to_string(va_profiles[i]));
   }
 
   static const int mpeg2_profiles[] = { VAProfileMPEG2Main, VAProfileMPEG2Simple, -1 };
