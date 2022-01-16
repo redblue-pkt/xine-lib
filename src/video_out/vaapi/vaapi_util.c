@@ -618,7 +618,7 @@ void _x_va_release_surface(vaapi_context_impl_t *va_context, ff_vaapi_surface_t 
 {
   _x_assert(va_surface->status == SURFACE_ALOC ||
             va_surface->status == SURFACE_RENDER ||
-            va_surface->status == SURFACE_RENDER_RELEASE);
+            va_surface->status == SURFACE_RELEASE);
 
   pthread_mutex_lock(&va_context->surfaces_lock);
 
