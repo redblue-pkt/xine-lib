@@ -178,6 +178,7 @@ void _x_va_free(vaapi_context_impl_t **p_va_context)
     _x_va_check_status(va_context, vaStatus, "vaTerminate()");
 
     pthread_mutex_destroy(&va_context->surfaces_lock);
+    pthread_mutex_destroy(&va_context->ctx_lock);
 
     _x_freep(p_va_context);
   }
@@ -237,6 +238,7 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   _x_va_reset_va_context(&va_context->c);
 
   pthread_mutex_init(&va_context->surfaces_lock, NULL);
+  pthread_mutex_init(&va_context->ctx_lock, NULL);
 
   vaStatus = _x_va_initialize(&va_context->c, visual_type, visual, opengl_render);
 
@@ -369,6 +371,8 @@ void _x_va_close(vaapi_context_impl_t *va_context)
 {
   VAStatus vaStatus;
 
+  pthread_mutex_lock(&va_context->ctx_lock);
+
   if (va_context->c.va_context_id != VA_INVALID_ID) {
     vaStatus = vaDestroyContext(va_context->c.va_display, va_context->c.va_context_id);
     _x_va_check_status(va_context, vaStatus, "vaDestroyContext()");
@@ -384,6 +388,8 @@ void _x_va_close(vaapi_context_impl_t *va_context)
   }
 
   va_context->c.valid_context = 0;
+
+  pthread_mutex_unlock(&va_context->ctx_lock);
 }
 
 VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width, int height)
@@ -393,6 +399,8 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
   size_t         i;
 
   _x_va_close(va_context);
+
+  pthread_mutex_lock(&va_context->ctx_lock);
 
   va_context->c.width = width;
   va_context->c.height = height;
@@ -452,10 +460,27 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
 
   pthread_mutex_unlock(&va_context->surfaces_lock);
 
+  /* unbind frames from surfaces */
+  for (i = 0; i < RENDER_SURFACES; i++) {
+    if (va_context->frames[i]) {
+      vaapi_accel_t *accel = va_context->frames[i]->accel_data;
+      if (!accel->f->render_vaapi_surface) {
+        _x_assert(accel->index == i);
+      } else {
+        accel->index = RENDER_SURFACES;
+      }
+    }
+  }
+
   va_context->c.valid_context = 1;
+
+  pthread_mutex_unlock(&va_context->ctx_lock);
+
   return VA_STATUS_SUCCESS;
 
  error:
+  pthread_mutex_unlock(&va_context->ctx_lock);
+  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE "Error initializing VAAPI decoding\n");
   _x_va_close(va_context);
   return VA_STATUS_ERROR_UNKNOWN;
 }
@@ -552,6 +577,9 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
       }
     }
   }
+
+  if (profile < 0)
+    xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Profile for video format %d not supported by hardware\n", format);
 
 out:
   free(va_profiles);

@@ -37,6 +37,22 @@ typedef struct {
   vaapi_context_impl_t *ctx_impl;
 } vaapi_frame_t;
 
+
+vaapi_frame_t *_x_va_frame_alloc_frame (vaapi_context_impl_t *va, vo_driver_t *driver,
+                                        int guarded_render);
+void _x_va_frame_update_frame_format (vo_driver_t *this_gen,
+                                      vo_frame_t *frame_gen,
+                                      uint32_t width, uint32_t height,
+                                      double ratio, int format, int flags);
+
+void _x_va_frame_dispose (vo_frame_t *vo_img);
+void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current_frame_data_t *data);
+void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *original);
+
+/*
+ *
+ */
+
 static inline
 vaapi_context_impl_t *_ctx_from_frame(vo_frame_t *vo_frame)
 {
@@ -63,7 +79,7 @@ ff_vaapi_context_t *_x_va_accel_get_context(vo_frame_t *vo_frame)
 }
 
 static inline
-int _x_va_accel_init(vo_frame_t *vo_frame, int va_profile, int width, int height)
+int _x_va_accel_vaapi_init(vo_frame_t *vo_frame, int va_profile, int width, int height)
 {
   vaapi_context_impl_t *va = _ctx_from_frame(vo_frame);
   return _x_va_init(va, va_profile, width, height);

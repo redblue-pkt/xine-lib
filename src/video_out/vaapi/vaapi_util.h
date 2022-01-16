@@ -59,6 +59,11 @@ struct vaapi_context_impl {
 
   int query_va_status;
 
+  pthread_mutex_t     ctx_lock; /* lock init / close / surface usage */
+
+  unsigned int        num_frames;
+  vo_frame_t         *frames[RENDER_SURFACES];
+
   pthread_mutex_t     surfaces_lock;
   ff_vaapi_surface_t  va_render_surfaces_storage[RENDER_SURFACES + 1];
   VASurfaceID         va_surface_ids_storage[RENDER_SURFACES + 1];
