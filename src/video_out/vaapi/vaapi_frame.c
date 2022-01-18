@@ -26,8 +26,6 @@
 #include "config.h"
 #endif
 
-#include "vaapi_frame.h"
-
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -36,6 +34,8 @@
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
 #include <xine/video_out.h>
+
+#include "vaapi_frame.h"
 
 #include "accel_vaapi.h"
 
