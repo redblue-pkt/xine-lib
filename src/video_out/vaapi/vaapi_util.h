@@ -41,12 +41,14 @@ const char *_x_va_entrypoint_to_string(VAEntrypoint entrypoint);
 
 void _x_va_reset_va_context(ff_vaapi_context_t *va_context);
 
-VAStatus _x_va_initialize(ff_vaapi_context_t *va_context, int visual_type, const void *visual, int opengl_render);
+VAStatus _x_va_initialize(ff_vaapi_context_t *va_context);
 VAStatus _x_va_terminate(ff_vaapi_context_t *va_context);
 
 /*
  *
  */
+
+struct xine_va_display_t;
 
 typedef struct vaapi_context_impl vaapi_context_impl_t;
 
@@ -57,6 +59,7 @@ struct vaapi_context_impl {
 
   xine_t *xine;
 
+  struct xine_va_display_t *va_display_plugin;
   int query_va_status;
 
   pthread_mutex_t     ctx_lock; /* lock init / close / surface usage */

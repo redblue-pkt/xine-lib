@@ -29,6 +29,10 @@ opengl_xine_gl_la_SOURCES = opengl/xine_gl.c opengl/xine_gl.h opengl/xine_gl_plu
 opengl_xine_gl_la_CFLAGS = $(AM_CFLAGS)
 opengl_xine_gl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
+vaapi_xine_vaapi_la_SOURCES = vaapi/xine_vaapi.c vaapi/xine_vaapi.h vaapi/xine_va_display_plugin.h
+vaapi_xine_vaapi_la_CFLAGS = $(AM_CFLAGS)
+vaapi_xine_vaapi_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
+
 hw_frame_la_SOURCES = hw_frame.h hw_frame.c
 hw_frame_la_CFLAGS = $(AM_CFLAGS)
 hw_frame_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
@@ -43,6 +47,11 @@ if ENABLE_OPENGL2
 XINE_HWFRAME_LIB = hw_frame.la
 XINE_GL_LIB = opengl/xine_gl.la
 opengl2_module = xineplug_vo_out_opengl2.la
+endif
+
+# vaapi loader
+if ENABLE_VAAPI
+XINE_VAAPI_LIB = vaapi/xine_vaapi.la
 endif
 
 if HAVE_X11
@@ -72,8 +81,10 @@ if ENABLE_VDPAU
 vdpau_module = xineplug_vo_out_vdpau.la
 endif
 
-if ENABLE_VAAPI
+if HAVE_X11
+if ENABLE_VAAPI_X11
 vaapi_module = xineplug_vo_out_vaapi.la
+endif
 endif
 
 if ENABLE_XCB
@@ -131,7 +142,7 @@ if ENABLE_MACOSX_VIDEO
 macosx_module = xineplug_vo_out_macosx.la
 endif
 
-noinst_LTLIBRARIES = $(X11OSD_LIB) $(XCBOSD_LIB) $(XINE_GL_LIB) $(XINE_HWFRAME_LIB)
+noinst_LTLIBRARIES = $(X11OSD_LIB) $(XCBOSD_LIB) $(XINE_GL_LIB) $(XINE_VAAPI_LIB) $(XINE_HWFRAME_LIB)
 
 xineplug_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   $(opengl_module) \
@@ -159,8 +170,8 @@ xineplug_vo_out_vdpau_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(X_LIBS) $(LTLIBI
 xineplug_vo_out_vdpau_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS) $(VDPAU_CFLAGS)
 
 xineplug_vo_out_vaapi_la_SOURCES = video_out_vaapi.c vaapi/vaapi_util.h vaapi/vaapi_util.c vaapi/vaapi_frame.h vaapi/vaapi_frame.c
-xineplug_vo_out_vaapi_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(DYNAMIC_LD_LIBS) $(GLU_LIBS) $(LIBVA_LIBS) $(LIBVA_GLX_LIBS) -lm
-xineplug_vo_out_vaapi_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS) $(XV_CFLAGS) $(LIBVA_CFLAGS) $(LIBVA_GLX_CFLAGS)
+xineplug_vo_out_vaapi_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(DYNAMIC_LD_LIBS) $(GLU_LIBS) $(LIBVA_LIBS) $(LIBVA_GLX_LIBS) $(LIBVA_X11_LIBS) $(XINE_VAAPI_LIB) -lm
+xineplug_vo_out_vaapi_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS) $(XV_CFLAGS) $(LIBVA_CFLAGS) $(LIBVA_GLX_CFLAGS) $(LIBVA_X11_CFLAGS)
 
 xineplug_vo_out_xcbshm_la_SOURCES = video_out_xcbshm.c
 xineplug_vo_out_xcbshm_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(XCB_LIBS) $(XCBSHM_LIBS) $(LTLIBINTL) $(XCBOSD_LIB)
@@ -294,3 +305,42 @@ xineplug_vo_gl_egl_x11_la_CFLAGS = -DXINE_EGL_USE_X11 $(AM_CFLAGS) $(X_CFLAGS) $
 xineplug_vo_gl_egl_wl_la_SOURCES = opengl/xine_egl.c opengl/xine_gl_plugin.h
 xineplug_vo_gl_egl_wl_la_LIBADD = $(XINE_LIB) $(WAYLAND_LIBS) $(EGL_LIBS) $(LTLIBINTL)
 xineplug_vo_gl_egl_wl_la_CFLAGS = -DXINE_EGL_USE_WAYLAND $(AM_CFLAGS) $(WAYLAND_CFLAGS) $(EGL_CFLAGS)
+
+# vaapi display provider plugins
+
+if ENABLE_VAAPI
+if ENABLE_VAAPI_X11
+va_display_x11_module = xineplug_va_display_x11.la
+endif
+if ENABLE_VAAPI_GLX
+va_display_glx_module = xineplug_va_display_glx.la
+endif # ENABLE_VAAPI_GLX
+if ENABLE_VAAPI_WAYLAND
+va_display_wl_module = xineplug_va_display_wl.la
+endif # ENABLE_VAAPI_WAYLAND
+if ENABLE_VAAPI_DRM
+va_display_drm_module = xineplug_va_display_drm.la
+endif # ENABLE_VAAPI_DRM
+endif # ENABLE_VAAPI
+
+xineplug_LTLIBRARIES += \
+                  $(va_display_x11_module) \
+                  $(va_display_glx_module) \
+                  $(va_display_wl_module) \
+                  $(va_display_drm_module)
+
+xineplug_va_display_x11_la_SOURCES = vaapi/xine_va_display_x11.c vaapi/xine_va_display_plugin.h
+xineplug_va_display_x11_la_LIBADD = $(XINE_LIB) $(LIBVA_LIBS) $(LIBVA_X11_LIBS) $(LTLIBINTL)
+xineplug_va_display_x11_la_CFLAGS = $(AM_CFLAGS) $(LIBVA_CFLAGS) $(LIBVA_X11_CFLAGS)
+
+xineplug_va_display_glx_la_SOURCES = vaapi/xine_va_display_glx.c vaapi/xine_va_display_plugin.h
+xineplug_va_display_glx_la_LIBADD = $(XINE_LIB) $(LIBVA_LIBS) $(LIBVA_GLX_LIBS) $(LTLIBINTL)
+xineplug_va_display_glx_la_CFLAGS = $(AM_CFLAGS) $(LIBVA_CFLAGS) $(LIBVA_GLX_CFLAGS)
+
+xineplug_va_display_wl_la_SOURCES = vaapi/xine_va_display_wl.c vaapi/xine_va_display_plugin.h
+xineplug_va_display_wl_la_LIBADD = $(XINE_LIB) $(LIBVA_LIBS) $(LIBVA_WAYLAND_LIBS) $(LTLIBINTL)
+xineplug_va_display_wl_la_CFLAGS = $(AM_CFLAGS) $(LIBVA_CFLAGS) $(LIBVA_WAYLAND_CFLAGS)
+
+xineplug_va_display_drm_la_SOURCES = vaapi/xine_va_display_drm.c vaapi/xine_va_display_plugin.h
+xineplug_va_display_drm_la_LIBADD = $(XINE_LIB) $(LIBVA_LIBS) $(LIBVA_DRM_LIBS) $(LTLIBINTL)
+xineplug_va_display_drm_la_CFLAGS = $(AM_CFLAGS) $(LIBVA_CFLAGS) $(LIBVA_DRM_CFLAGS)
