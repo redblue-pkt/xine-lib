@@ -29,6 +29,10 @@ opengl_xine_gl_la_SOURCES = opengl/xine_gl.c opengl/xine_gl.h opengl/xine_gl_plu
 opengl_xine_gl_la_CFLAGS = $(AM_CFLAGS)
 opengl_xine_gl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
+hw_frame_la_SOURCES = hw_frame.h hw_frame.c
+hw_frame_la_CFLAGS = $(AM_CFLAGS)
+hw_frame_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
+
 #
 
 if !ENABLE_LIBXINE_BUILTINS
@@ -36,6 +40,7 @@ vo_builtins = xineplug_vo_out_none.la
 endif
 
 if ENABLE_OPENGL2
+XINE_HWFRAME_LIB = hw_frame.la
 XINE_GL_LIB = opengl/xine_gl.la
 opengl2_module = xineplug_vo_out_opengl2.la
 endif
@@ -126,7 +131,7 @@ if ENABLE_MACOSX_VIDEO
 macosx_module = xineplug_vo_out_macosx.la
 endif
 
-noinst_LTLIBRARIES = $(X11OSD_LIB) $(XCBOSD_LIB) $(XINE_GL_LIB)
+noinst_LTLIBRARIES = $(X11OSD_LIB) $(XCBOSD_LIB) $(XINE_GL_LIB) $(XINE_HWFRAME_LIB)
 
 xineplug_LTLIBRARIES = $(xshm_module) $(xv_module) $(xvmc_module) \
                   $(opengl_module) \
@@ -188,7 +193,7 @@ xineplug_vo_out_opengl_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(GLUT_LIBS) \
 xineplug_vo_out_opengl_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS)
 
 xineplug_vo_out_opengl2_la_SOURCES = video_out_opengl2.c mem_frame.h
-xineplug_vo_out_opengl2_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(XINE_GL_LIB) -lm
+xineplug_vo_out_opengl2_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(XINE_GL_LIB) $(XINE_HWFRAME_LIB) -lm
 xineplug_vo_out_opengl2_la_CFLAGS = $(AM_CFLAGS)
 
 xineplug_vo_out_pgx64_la_SOURCES = video_out_pgx64.c
