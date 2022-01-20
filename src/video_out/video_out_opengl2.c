@@ -54,6 +54,7 @@
 #include "opengl/xine_gl.h"
 
 #include "mem_frame.h"
+#include "hw_frame.h"
 typedef mem_frame_t opengl2_frame_t;
 
 typedef struct {
@@ -81,6 +82,11 @@ typedef enum {
   OGL2_TEX_u_v,
   OGL2_TEX_yuv,
   OGL2_TEX_uv,
+
+  OGL2_TEX_HW0,
+  OGL2_TEX_HW1,
+  OGL2_TEX_HW2,
+
   OGL2_TEX_LAST
 } opengl2_tex_t;
 
@@ -162,6 +168,10 @@ typedef struct {
 
   int                exit_indx;
   int                exiting;
+
+  /* HW decoding support */
+  xine_hwdec_t  *hw;
+  xine_glconv_t *glconv;
 } opengl2_driver_t;
 
 /* libGL likes to install its own exit handlers.
@@ -487,7 +497,8 @@ static void _config_texture(GLuint texture, GLsizei width, GLsizei height,
 {
   if (texture) {
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texture);
-    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, format, width, height, 0, format, type, NULL);
+    if (format)
+      glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, format, width, height, 0, format, type, NULL);
     glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, minmag_filter);
@@ -499,7 +510,7 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
 {
   opengl2_driver_t *this = this_gen;
   opengl2_yuvtex_t *ytex = &this->yuvtex;
-  int uvh;
+  int uvh, i;
 
   w = (w + 15) & ~15;
   if ( (w == ytex->width) && (h == ytex->height) )
@@ -530,6 +541,12 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
   _config_texture (ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
   _config_texture (ytex->tex[OGL2_TEX_yuv], w,      h,       GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
   _config_texture (ytex->tex[OGL2_TEX_uv],  w,      uvh,     GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+
+  if (this->hw) {
+    for (i = 0; i < 3; i++) {
+      _config_texture (ytex->tex[OGL2_TEX_HW0 + i], 0, 0, 0, 0, GL_NEAREST);
+    }
+  }
 
   ytex->width = w;
   ytex->height = h;
@@ -1201,6 +1218,25 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
 
   glBindFramebuffer( GL_FRAMEBUFFER, that->fbo );
 
+  if (that->hw && frame->format == that->hw->frame_format) {
+    unsigned tex, num_texture, sw_format;
+    that->glconv->get_textures(that->glconv, &frame->vo_frame, GL_TEXTURE_2D,
+                               &that->yuvtex.tex[OGL2_TEX_HW0], &num_texture, &sw_format);
+    for (tex = 0; tex < num_texture; tex++) {
+      glActiveTexture (GL_TEXTURE0 + tex);
+      glBindTexture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_HW0 + tex]);
+    }
+    switch (sw_format) {
+      case XINE_IMGFMT_NV12:
+        glUseProgram (that->nv12_program.program);
+        glUniform1i (glGetUniformLocation (that->nv12_program.program, "texY"), 0);
+        glUniform1i (glGetUniformLocation (that->nv12_program.program, "texUV"), 1);
+        load_csc_matrix( that->nv12_program.program, that->csc_matrix );
+        break;
+      default:
+        break;
+    }
+  }
   if (frame->format == XINE_IMGFMT_YV12) {
     void *mem;
     int uvh = (frame->height + 1) >> 1;
@@ -1586,10 +1622,11 @@ static int opengl2_gui_data_exchange( vo_driver_t *this_gen, int data_type, void
 
 static uint32_t opengl2_get_capabilities( vo_driver_t *this_gen )
 {
-  (void)this_gen;
+  opengl2_driver_t *this = (opengl2_driver_t *) this_gen;
 
   return VO_CAP_YV12 |
          VO_CAP_YUY2 |
+        (this->hw ? this->hw->driver_capabilities : 0) |
          VO_CAP_CROP |
          VO_CAP_UNSCALED_OVERLAY |
          VO_CAP_CUSTOM_EXTENT_OVERLAY |
@@ -1618,6 +1655,9 @@ static void opengl2_dispose (vo_driver_t *this_gen) {
   opengl2_driver_t *this = (opengl2_driver_t *) this_gen;
 
   opengl2_exit_unregister (this);
+
+  if (this->hw)
+    this->hw->destroy(&this->hw);
 
   /* cm_close already does this.
   this->xine->config->unregister_callbacks (this->xine->config, "video.output.opengl2_bicubic_scaling", NULL, this, sizeof (*this));
@@ -1669,7 +1709,16 @@ static void opengl2_dispose (vo_driver_t *this_gen) {
 
 static vo_frame_t *opengl2_alloc_frame (vo_driver_t *this_gen) {
   opengl2_driver_t *this = (opengl2_driver_t *)this_gen;
-  vo_frame_t *frame = mem_frame_alloc_frame (&this->vo_driver);
+  vo_frame_t *frame;
+
+  if (this->hw) {
+    mem_frame_t *mem_frame = this->hw->alloc_frame(this->hw);
+    if (mem_frame) {
+      return &mem_frame->vo_frame;
+    }
+  }
+
+  frame = mem_frame_alloc_frame (&this->vo_driver);
 
   if (frame)
     frame->accel_data = &this->accel;
@@ -1839,6 +1888,15 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
             10, opengl2_set_bicubic, this);
         } else {
           this->scale_bicubic = 0;
+        }
+
+        this->hw = _x_hwdec_new(this->xine, &this->vo_driver, class->visual_type, visual_gen, 0);
+        if (this->hw) {
+          this->glconv = this->hw->opengl_interop(this->hw, this->gl);
+          if (!this->glconv)
+            this->hw->destroy(&this->hw);
+          else
+            this->vo_driver.update_frame_format = this->hw->update_frame_format;
         }
 
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": initialized.\n");
