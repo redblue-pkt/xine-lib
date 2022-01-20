@@ -585,12 +585,8 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
 
     dnl VAAPI
     XINE_ARG_ENABLE([vaapi], [Disable VAAPI output plugin])
-    if test x"$no_x" != x"yes" && test x"$enable_vaapi" != x"no"; then
-        PKG_CHECK_MODULES([LIBVA], [libva libva-x11],
-                          [ have_vaapi=yes
-                            PKG_CHECK_MODULES([LIBVA_GLX], [libva-glx],
-                              [AC_CHECK_HEADERS([va/va_glx.h])],
-                              [AC_MSG_WARN([${LIBVA_GLX_PKG_ERRORS}.])] )],
+    if test x"$enable_vaapi" != x"no"; then
+        PKG_CHECK_MODULES([LIBVA], [libva], [have_vaapi=yes],
                           [ have_vaapi=no
                             AS_IF([test x"$hard_enable_vaapi" = x"yes"], [
                                 AC_MSG_ERROR([${LIBVA_PKG_ERRORS}.])
@@ -599,8 +595,28 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
                             ])
                           ])
         AC_CHECK_HEADERS([va/va.h], , [have_vaapi=no])
-        AC_CHECK_HEADERS([va/va_x11.h], , [have_vaapi=no])
     fi
-    AM_CONDITIONAL([ENABLE_VAAPI], test x"$have_vaapi" = x"yes")
+    if test x"$have_vaapi" = x"yes"; then
+        dnl vaapi display providers
+        AC_CHECK_HEADERS([va/va_glx.h va/va_x11.h va/va_wayland.h va/va_drm.h va/va_drmcommon.h])
+        PKG_CHECK_MODULES([LIBVA_X11],     [libva libva-x11],     [have_vaapi_x11=yes])
+        PKG_CHECK_MODULES([LIBVA_GLX],     [libva libva-glx],     [have_vaapi_glx=yes])
+        PKG_CHECK_MODULES([LIBVA_WAYLAND], [libva libva-wayland], [have_vaapi_wayland=yes])
+        PKG_CHECK_MODULES([LIBVA_DRM],     [libva libva-drm],     [have_vaapi_drm=yes])
+        if test x"$have_vaapi_x11" != x"yes" && test x"$have_vaapi_glx" != x"yes" && test x"$have_vaapi_wayland" != x"yes" && test x"$have_vaapi_drm" != x"yes"; then
+            if test x"$hard_enable_vaapi" = x"yes"; then
+                AC_MSG_ERROR([No VAAPI display providers found.])
+            else
+                AC_MSG_WARN([No VAAPI display providers found.])
+                have_vaapi=no
+            fi
+        fi
+    fi
+
+    AM_CONDITIONAL([ENABLE_VAAPI],         test x"$have_vaapi" = x"yes")
+    AM_CONDITIONAL([ENABLE_VAAPI_X11],     test x"$have_vaapi_x11" = x"yes")
+    AM_CONDITIONAL([ENABLE_VAAPI_GLX],     test x"$have_vaapi_glx" = x"yes")
+    AM_CONDITIONAL([ENABLE_VAAPI_DRM],     test x"$have_vaapi_drm" = x"yes")
+    AM_CONDITIONAL([ENABLE_VAAPI_WAYLAND], test x"$have_vaapi_wayland" = x"yes")
 
 ])dnl XINE_VIDEO_OUT_PLUGIN

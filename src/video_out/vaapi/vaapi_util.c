@@ -35,11 +35,8 @@
 #include <xine/xineutils.h>
 
 #include <va/va.h>
-#include <va/va_x11.h>
 
-#if defined(HAVE_VA_VA_GLX_H)
-# include <va/va_glx.h>
-#endif
+#include "xine_vaapi.h"
 
 #if defined(LOG) || defined(DEBUG)
 static const char *_x_va_string_of_VAImageFormat(VAImageFormat *imgfmt)
@@ -125,34 +122,6 @@ void _x_va_reset_va_context(ff_vaapi_context_t *va_context)
   }
 }
 
-static VADisplay _get_display(int visual_type, const void *visual, int opengl_render)
-{
-  VADisplay ret;
-
-  if (visual_type == XINE_VISUAL_TYPE_X11) {
-    if (opengl_render) {
-#if defined(HAVE_VA_VA_GLX_H)
-      ret = vaGetDisplayGLX(((const x11_visual_t *)visual)->display);
-#else
-      return NULL;
-#endif
-    } else {
-#if defined(HAVE_VA_VA_X11_H)
-      ret = vaGetDisplay(((const x11_visual_t *)visual)->display);
-#else
-      return NULL;
-#endif
-    }
-  } else {
-    return NULL;
-  }
-
-  if (vaDisplayIsValid(ret))
-    return ret;
-
-  return NULL;
-}
-
 VAStatus _x_va_terminate(ff_vaapi_context_t *va_context)
 {
   VAStatus vaStatus = VA_STATUS_SUCCESS;
@@ -174,6 +143,10 @@ void _x_va_free(vaapi_context_impl_t **p_va_context)
     vaapi_context_impl_t *va_context = *p_va_context;
     VAStatus vaStatus;
 
+    if (va_context->va_display_plugin)
+      va_context->va_display_plugin->dispose(&va_context->va_display_plugin);
+    va_context->c.va_display = NULL;
+
     vaStatus = _x_va_terminate(&va_context->c);
     _x_va_check_status(va_context, vaStatus, "vaTerminate()");
 
@@ -184,13 +157,12 @@ void _x_va_free(vaapi_context_impl_t **p_va_context)
   }
 }
 
-VAStatus _x_va_initialize(ff_vaapi_context_t *va_context, int visual_type, const void *visual, int opengl_render)
+VAStatus _x_va_initialize(ff_vaapi_context_t *va_context)
 {
   VAStatus vaStatus;
   int      maj, min;
   int      fmt_count = 0;
 
-  va_context->va_display = _get_display(visual_type, visual, opengl_render);
   if (!va_context->va_display) {
     return VA_STATUS_ERROR_INVALID_DISPLAY;
   }
@@ -223,25 +195,33 @@ fail:
 vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, int opengl_render)
 {
   vaapi_context_impl_t *va_context;
+  xine_va_display_t *va_display;
   const char *p, *vendor;
   VAStatus vaStatus;
   size_t   i;
 
-  va_context = calloc(1, sizeof(*va_context));
-  if (!va_context)
+  va_display = _x_va_display_open(xine, visual_type, visual, opengl_render ? XINE_VA_DISPLAY_GLX : 0);
+  if (!va_display)
     return NULL;
 
+  va_context = calloc(1, sizeof(*va_context));
+  if (!va_context) {
+    va_display->dispose(&va_display);
+    return NULL;
+  }
+
   va_context->xine = xine;
+  va_context->va_display_plugin = va_display;
   va_context->c.va_render_surfaces  = va_context->va_render_surfaces_storage;
   va_context->c.va_surface_ids      = va_context->va_surface_ids_storage;
+  va_context->c.va_display          = va_context->va_display_plugin->va_display;
 
   _x_va_reset_va_context(&va_context->c);
 
   pthread_mutex_init(&va_context->surfaces_lock, NULL);
   pthread_mutex_init(&va_context->ctx_lock, NULL);
 
-  vaStatus = _x_va_initialize(&va_context->c, visual_type, visual, opengl_render);
-
+  vaStatus = _x_va_initialize(&va_context->c);
   if (!_x_va_check_status(va_context, vaStatus, "vaInitialize()")) {
     _x_va_free(&va_context);
     return NULL;

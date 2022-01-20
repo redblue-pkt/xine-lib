@@ -248,7 +248,19 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
             fi
         else dis="$dis OpenGL"
         fi
-        test x"$have_vaapi" = x"yes" -a x"$enable_ffmpeg" != x"no" && echo "   - vaapi (Video Acceleration (VA) API for Linux)" || dis="$dis vaapi"
+        if test x"$have_vaapi" = x"yes" -a x"$enable_ffmpeg" != x"no"; then
+            echo "   - vaapi (Video Acceleration (VA) API for Linux)"
+            dis_va=""
+            ena_va=""
+            test x"$have_vaapi_x11" = x"yes" && ena_va="$ena_va x11" || dis_va="$dis_va x11"
+            test x"$have_vaapi_glx" = x"yes" && ena_va="$ena_va glx" || dis_va="$dis_va glx"
+            test x"$have_vaapi_drm" = x"yes" && ena_va="$ena_va drm" || dis_va="$dis_va drm"
+            test x"$have_vaapi_wayland" = x"yes" && ena_va="$ena_va wayland" || dis_va="$dis_va wayland"
+            ena_va="       - display plugins:$ena_va"
+            test x"$dis_va" != x"" && ena_va="$ena_va (disabled plugins:$dis_va)"
+            echo "$ena_va"
+        else dis="$dis vaapi"
+        fi
         test x"$have_vdpau" = x"yes"  && echo "   - vdpau (X11 Video Decode and Presentation API for Unix)" || dis="$dis vdpau"
         test x"$have_xvmc" = x"yes"   && echo "   - XvMC (XVideo motion compensation)"                      || dis="$dis xvmc"
         if test x"$have_sunfb" = x"yes" -a x"$have_sundga" = x"yes"; then
