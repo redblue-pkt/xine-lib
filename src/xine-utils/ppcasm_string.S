@@ -32,7 +32,6 @@
 #define __stringify(x)          __stringify_1(x)
 
 #define _GLOBFN(n)\
-        .stabs __stringify(n:F-1),N_FUN,0,0,n;\
         .type  n,@function; \
 	.globl n;\
 	.hidden n;\
@@ -42,9 +41,6 @@ n:
        .size n, .-n
 
 	.text
-
-       .stabs  "src/xine-utils",N_SO,0,0,.
-       .stabs  "ppcasm_string.S",N_SO,0,0,.
 
 #warning FIXME:        Get cache line sizes from /proc
 #define L1_CACHE_LINE_SIZE 32
