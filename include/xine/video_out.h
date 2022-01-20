@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -56,6 +56,17 @@ typedef struct video_overlay_manager_s video_overlay_manager_t;
  * adaption of the post plugin decoration layer. Be sure to look into
  * src/xine-engine/post.[ch].
  */
+
+typedef struct {
+  void (*lock) (vo_frame_t *frame, int lock);
+  void *display;
+  enum {
+    VO_DISP_TYPE_UNKNOWN = 0,
+    VO_DISP_TYPE_X11,
+    VO_DISP_TYPE_WAYLAND
+  } disp_type;
+} vo_accel_generic_t;
+
 struct vo_frame_s {
   /*
    * member functions
@@ -338,6 +349,7 @@ struct xine_video_port_s {
 /* retrieved via VO_PROP_CAPS2 if != -1 */
 #define VO_CAP2_NV12                  0x00000001 /* driver can handle YUV 4:2:0 pictures as 2 planes (Y plus interleaved UV) */
 #define VO_CAP2_TRANSFORM             0x00000002 /* driver can flip image */
+#define VO_CAP2_ACCEL_GENERIC         0x00000004 /* vo_frame_t.accel_data == vo_accel_generic_t * */
 
 /*
  * vo_driver_s contains the functions every display driver

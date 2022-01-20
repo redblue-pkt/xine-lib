@@ -158,6 +158,8 @@ typedef struct {
   int                max_display_width;
   int                max_display_height;
 
+  vo_accel_generic_t accel;
+
   int                exit_indx;
   int                exiting;
 } opengl2_driver_t;
@@ -236,6 +238,11 @@ typedef struct {
   xine_t              *xine;
   unsigned             visual_type;
 } opengl2_class_t;
+
+static void opengl2_accel_lock (vo_frame_t *frame, int lock) {
+  (void)frame;
+  (void)lock;
+}
 
 static const char *bicubic_pass1_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
@@ -1455,7 +1462,7 @@ static int opengl2_get_property( vo_driver_t *this_gen, int property )
     case VO_PROP_MAX_VIDEO_HEIGHT:
       return this->max_video_height;
     case VO_PROP_CAPS2:
-      return VO_CAP2_NV12 | VO_CAP2_TRANSFORM;
+      return VO_CAP2_NV12 | VO_CAP2_TRANSFORM | VO_CAP2_ACCEL_GENERIC;
     case VO_PROP_TRANSFORM:
       return this->transform.flags;
   }
@@ -1660,6 +1667,15 @@ static void opengl2_dispose (vo_driver_t *this_gen) {
   free (this);
 }
 
+static vo_frame_t *opengl2_alloc_frame (vo_driver_t *this_gen) {
+  opengl2_driver_t *this = (opengl2_driver_t *)this_gen;
+  vo_frame_t *frame = mem_frame_alloc_frame (&this->vo_driver);
+
+  if (frame)
+    frame->accel_data = &this->accel;
+  return frame;
+}
+
 static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const void *visual_gen) {
   opengl2_class_t  *class = (opengl2_class_t *)class_gen;
   opengl2_driver_t *this;
@@ -1724,15 +1740,20 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
 
     _x_vo_scale_init (&this->sc, 1, 0, config);
 
+    this->accel.lock = opengl2_accel_lock;
     if (class->visual_type == XINE_VISUAL_TYPE_X11) {
       const x11_visual_t *visual = (const x11_visual_t *)visual_gen;
       this->sc.frame_output_cb   = visual->frame_output_cb;
       this->sc.dest_size_cb      = visual->dest_size_cb;
       this->sc.user_data         = visual->user_data;
+      this->accel.display        = visual->display;
+      this->accel.disp_type      = VO_DISP_TYPE_X11;
     } else /* class->visual_type == XINE_VISUAL_TYPE_WAYLAND) */ {
       const xine_wayland_visual_t *visual = (const xine_wayland_visual_t *)visual_gen;
       this->sc.frame_output_cb            = visual->frame_output_cb;
       this->sc.user_data                  = visual->user_data;
+      this->accel.display                 = visual->display;
+      this->accel.disp_type               = VO_DISP_TYPE_WAYLAND;
     }
 
     this->sc.user_ratio = XINE_VO_ASPECT_AUTO;
@@ -1743,7 +1764,7 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
     this->config = config;
 
     this->vo_driver.get_capabilities     = opengl2_get_capabilities;
-    this->vo_driver.alloc_frame          = mem_frame_alloc_frame;
+    this->vo_driver.alloc_frame          = opengl2_alloc_frame;
     this->vo_driver.update_frame_format  = mem_frame_update_frame_format;
     this->vo_driver.overlay_begin        = opengl2_overlay_begin;
     this->vo_driver.overlay_blend        = opengl2_overlay_blend;
@@ -1912,4 +1933,3 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_VIDEO_OUT, 22, "opengl2", XINE_VERSION_CODE, &vo_info_opengl2_wl, opengl2_init_class_wl },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
-
