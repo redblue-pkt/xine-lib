@@ -461,7 +461,7 @@ a52_init ();
 			 [AC_CHECK_HEADERS([mpc/mpcdec.h], [have_external_libmpcdec=yes], [have_external_libmpcdec=no])],
 			 [AC_CHECK_LIB([mpcdec], [mpc_decoder_decode],
 				       [AC_CHECK_HEADERS([mpcdec/mpcdec.h], [have_external_libmpcdec=yes], [have_external_libmpcdec=no])],
-							 [have_external_libmpcdec=no])])
+							 [have_external_libmpcdec=no], [-lm])], [-lm])
             if test x"$have_external_libmpcdec" != x"yes"; then
                 AC_MSG_RESULT([*** no usable version of libmpcdec found, using internal copy ***])
             else
