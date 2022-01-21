@@ -27,7 +27,6 @@
 #endif
 
 #include "xine_va_display_plugin.h"
-#include "xine_vaapi.h"
 
 #include <stdlib.h>
 #include <unistd.h>

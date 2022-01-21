@@ -29,7 +29,7 @@ opengl_xine_gl_la_SOURCES = opengl/xine_gl.c opengl/xine_gl.h opengl/xine_gl_plu
 opengl_xine_gl_la_CFLAGS = $(AM_CFLAGS)
 opengl_xine_gl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
-vaapi_xine_vaapi_la_SOURCES = vaapi/xine_vaapi.c vaapi/xine_vaapi.h vaapi/xine_va_display_plugin.h
+vaapi_xine_vaapi_la_SOURCES = vaapi/xine_va_display.c vaapi/xine_va_display.h vaapi/xine_va_display_plugin.h
 vaapi_xine_vaapi_la_CFLAGS = $(AM_CFLAGS)
 vaapi_xine_vaapi_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
@@ -49,7 +49,6 @@ XINE_GL_LIB = opengl/xine_gl.la
 opengl2_module = xineplug_vo_out_opengl2.la
 endif
 
-# vaapi loader
 if ENABLE_VAAPI
 XINE_VAAPI_LIB = vaapi/xine_vaapi.la
 endif
