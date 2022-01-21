@@ -33,7 +33,7 @@ vaapi_xine_vaapi_la_SOURCES = vaapi/xine_va_display.c vaapi/xine_va_display.h va
 vaapi_xine_vaapi_la_CFLAGS = $(AM_CFLAGS)
 vaapi_xine_vaapi_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
-hw_frame_la_SOURCES = hw_frame.h hw_frame.c
+hw_frame_la_SOURCES = hw_frame.h hw_frame.c xine_hw_frame_plugin.h
 hw_frame_la_CFLAGS = $(AM_CFLAGS)
 hw_frame_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
