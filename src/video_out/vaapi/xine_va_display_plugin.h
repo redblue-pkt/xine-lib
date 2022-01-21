@@ -31,7 +31,7 @@
 #include <xine.h>
 #include <xine/xine_module.h>
 
-#include "xine_vaapi.h"
+#include "xine_va_display.h"
 
 #define VA_DISPLAY_PLUGIN_TYPE "va_display_v1"
 

@@ -18,7 +18,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
  *
- * xine_vaapi.c, VAAPI loader
+ * xine_va_display.c: VAAPI display plugin loader
  *
  */
 
@@ -26,7 +26,6 @@
 #include "config.h"
 #endif
 
-#include "xine_vaapi.h"
 #include "xine_va_display_plugin.h"
 
 #include <stddef.h>

@@ -36,7 +36,7 @@
 
 #include <va/va.h>
 
-#include "xine_vaapi.h"
+#include "xine_va_display.h"
 
 #if defined(LOG) || defined(DEBUG)
 static const char *_x_va_string_of_VAImageFormat(VAImageFormat *imgfmt)
