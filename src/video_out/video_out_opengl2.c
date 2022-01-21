@@ -401,10 +401,10 @@ static const char *nv12_frag =
 "    vec4 rgb;\n"
 "    vec4 yuv;\n"
 "    vec2 ycoord = gl_TexCoord[0].xy;\n"
-"    vec2 uvcoord = vec2 (ycoord.x - step (1.0, mod (ycoord.x, 2.0)), ycoord.y / 2.0);\n"
+"    vec2 uvcoord = ycoord / 2.0;\n"
 "    yuv.r = texture2DRect (texY, ycoord).r;\n"
 "    yuv.g = texture2DRect (texUV, uvcoord).r;\n"
-"    yuv.b = texture2DRect (texUV, uvcoord + vec2 (1.0, 0.0)).r;\n"
+"    yuv.b = texture2DRect (texUV, uvcoord).a;\n"
 "    yuv.a = 1.0;\n"
 "    rgb.r = dot( yuv, r_coefs );\n"
 "    rgb.g = dot( yuv, g_coefs );\n"
@@ -558,7 +558,7 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
   _config_texture (ytex->tex[OGL2_TEX_y],   w,      h,       GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
   _config_texture (ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
   _config_texture (ytex->tex[OGL2_TEX_yuv], w,      h,       GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (ytex->tex[OGL2_TEX_uv],  w,      uvh,     GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (ytex->tex[OGL2_TEX_uv],  w >> 1, uvh,     GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
 
   if (this->hw) {
     for (i = 0; i < 3; i++) {
@@ -1299,7 +1299,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     mem = glMapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY);
     xine_fast_memcpy (mem, frame->vo_frame.base[1], frame->vo_frame.pitches[1] * frame->height / 2);
     glUnmapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB);
-    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[1], frame->height/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0);
+    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[1]/2, frame->height/2, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, 0);
 
     glBindBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     glUseProgram (that->nv12_program.program);
