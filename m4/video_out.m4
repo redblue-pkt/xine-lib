@@ -10,7 +10,6 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
     dnl - directx is Windows only
     dnl - dxr3 is Linux only
     dnl - Mac OS X video is Mac OS X only
-    dnl - OpenGL requires Xwindows
     dnl - Vidix is FreeBSD and Linux only
     dnl - XvMC and xxmc depend on Xv
 
@@ -301,17 +300,18 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
 
     if test x"$have_opengl2" = x"yes" ; then
         PKG_CHECK_MODULES([EGL], [egl], [have_egl=yes], [have_egl=no])
-            AC_MSG_CHECKING([for OpenGL GLX 2.0])
-            ac_save_LIBS="$LIBS"
-            LIBS="$LIBS $X_LIBS -lGL -lm"
-            AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-                  #include <GL/glx.h>
-                ]],[[
-                  /* GLX ARB 2.0 */
-                  glXGetProcAddressARB ("proc");]])],
-                [have_glx=yes], [have_glx=no])
-            LIBS="$ac_save_LIBS"
-            AC_MSG_RESULT($have_glx)
+
+        AC_MSG_CHECKING([for OpenGL GLX 2.0])
+        ac_save_LIBS="$LIBS"
+        LIBS="$LIBS $X_LIBS -lGL -lm"
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+              #include <GL/glx.h>
+            ]],[[
+              /* GLX ARB 2.0 */
+              glXGetProcAddressARB ("proc");]])],
+            [have_glx=yes], [have_glx=no])
+        LIBS="$ac_save_LIBS"
+        AC_MSG_RESULT($have_glx)
 
         if test x"$have_glx" != x"yes" && test x"$have_egl" != x"yes" && test x"$have_wayland" != x"yes"; then
             AC_MSG_WARN([OpenGL 2.0 requires GLX, EGL or Wayland.])
