@@ -47,9 +47,17 @@ static void _mem_frame_field(vo_frame_t *vo_img, int which_field)
   (void)which_field;
 }
 
+static void _mem_frame_free_framedata(vo_frame_t *vo_img)
+{
+  xine_freep_aligned (&vo_img->base[0]);
+  vo_img->base[1] = NULL;
+  vo_img->base[2] = NULL;
+  vo_img->pitches[0] = vo_img->pitches[1] = vo_img->pitches[2] = 0;
+}
+
 static void _mem_frame_dispose(vo_frame_t *vo_img)
 {
-  xine_free_aligned (vo_img->base[0]);
+  _mem_frame_free_framedata(vo_img);
   pthread_mutex_destroy (&vo_img->mutex);
   free (vo_img);
 }
@@ -108,9 +116,7 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
   frame->format = format;
 
   /* (re-) allocate render space */
-  xine_freep_aligned (&frame->vo_frame.base[0]);
-  frame->vo_frame.base[1] = NULL;
-  frame->vo_frame.base[2] = NULL;
+  _mem_frame_free_framedata(frame_gen);
 
   if (format == XINE_IMGFMT_YV12) {
     uint32_t w = (width + 15) & ~15;
