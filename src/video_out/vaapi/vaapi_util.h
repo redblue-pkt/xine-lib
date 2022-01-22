@@ -68,6 +68,7 @@ struct vaapi_context_impl {
   vo_frame_t         *frames[RENDER_SURFACES];
 
   pthread_mutex_t     surfaces_lock;
+  unsigned            va_head;
   ff_vaapi_surface_t  va_render_surfaces_storage[RENDER_SURFACES + 1];
   VASurfaceID         va_surface_ids_storage[RENDER_SURFACES + 1];
 };

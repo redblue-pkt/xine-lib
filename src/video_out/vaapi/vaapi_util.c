@@ -109,7 +109,6 @@ void _x_va_reset_va_context(ff_vaapi_context_t *va_context)
   va_context->va_config_id              = VA_INVALID_ID;
   va_context->va_context_id             = VA_INVALID_ID;
   va_context->valid_context             = 0;
-  va_context->va_head                   = 0;
 
   for(i = 0; i < RENDER_SURFACES; i++) {
     ff_vaapi_surface_t *va_surface      = &va_context->va_render_surfaces[i];
@@ -228,6 +227,7 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   }
 
   va_context->query_va_status = 1;
+  va_context->va_head         = 0;
 
   vendor = vaQueryVendorString(va_context->c.va_display);
   xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Vendor : %s\n", vendor);
@@ -436,7 +436,7 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
     va_surface->status              = SURFACE_FREE;
     va_surface->va_surface_id       = va_context->c.va_surface_ids[i];
   }
-  va_context->c.va_head = 0;
+  va_context->va_head = 0;
 
   pthread_mutex_unlock(&va_context->surfaces_lock);
 
@@ -583,8 +583,8 @@ ff_vaapi_surface_t *_x_va_alloc_surface(vaapi_context_impl_t *va_context)
 
   /* Get next VAAPI surface marked as SURFACE_FREE */
   while (1) {
-    va_surface = &va_context->c.va_render_surfaces[va_context->c.va_head];
-    va_context->c.va_head = (va_context->c.va_head + 1) % RENDER_SURFACES;
+    va_surface = &va_context->c.va_render_surfaces[va_context->va_head];
+    va_context->va_head = (va_context->va_head + 1) % RENDER_SURFACES;
 
     if (va_surface->status == SURFACE_FREE) {
 
