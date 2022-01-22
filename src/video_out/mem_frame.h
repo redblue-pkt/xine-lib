@@ -24,6 +24,11 @@
  *
  */
 
+#ifndef XINE_MEM_FRAME_H
+#define XINE_MEM_FRAME_H
+
+#include <xine/xineutils.h>
+
 typedef struct mem_frame_t {
   vo_frame_t vo_frame;
   int width, height, format, flags;
@@ -155,3 +160,5 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
     frame->vo_frame.width = 0;
   }
 }
+
+#endif /* XINE_MEM_FRAME_H */
