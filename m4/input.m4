@@ -26,6 +26,8 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
     default_enable_nfs=yes
     default_enable_tls=yes
     default_with_external_dvdnav=yes
+    default_with_openssl=yes
+    default_with_gnutls=yes
 
     case "$host_os" in
         cygwin* | mingw*)
@@ -255,14 +257,26 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
     AM_CONDITIONAL(ENABLE_NFS, test "x$have_libnfs" = "xyes")
 
     dnl TLS support (ftps, https)
-    XINE_ARG_ENABLE([tls], [Enable TLS support using gnutls (enables secure http (https) and ftp (ftps)])
+    XINE_ARG_ENABLE([tls], [Enable TLS support (enables secure http (https) and ftp (ftps)])
+    XINE_ARG_WITH([openssl], [Use openssl library for tls])
+    XINE_ARG_WITH([gnutls], [Use gnutls library for tls])
     if test "x$enable_tls" != "xno"; then
-        PKG_CHECK_MODULES([GNUTLS], [gnutls >= 2.8.6], [have_gnutls=yes], [have_gnutls=no])
-        PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.0.0], [have_openssl=yes], [have_openssl=no])
+        if test "x$with_gnutls" != "xno"; then
+            PKG_CHECK_MODULES([GNUTLS], [gnutls >= 2.8.6], [have_gnutls=yes], [have_gnutls=no])
+            if test x"$have_gnutls" != x"yes" && test x"$hard_with_gnutls" = x"yes"; then
+                AC_MSG_ERROR([gnutls support requested, but gnutls not found])
+            fi
+        fi
+        if test "x$with_openssl" != "xno"; then
+            PKG_CHECK_MODULES([OPENSSL], [openssl >= 1.0.0], [have_openssl=yes], [have_openssl=no])
+            if test x"$have_openssl" != x"yes" && test x"$hard_with_openssl" = x"yes"; then
+                AC_MSG_ERROR([openssl support requested, but openssl not found])
+            fi
+        fi
         if test x"$have_gnutls" = x"yes" || test x"$have_openssl" = x"yes"; then
             have_tls=yes
         elif test x"$hard_enable_tls" = x"yes"; then
-            AC_MSG_ERROR([TLS support requested, but gnutls not found])
+            AC_MSG_ERROR([TLS support requested, but openssl or gnutls not found])
         fi
     fi
     AC_SUBST(OPENSSL_CFLAGS)
