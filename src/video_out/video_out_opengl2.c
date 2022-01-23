@@ -1221,6 +1221,20 @@ static void opengl2_draw_video_bilinear (opengl2_driver_t *that, const opengl2_d
   glEnd ();
 }
 
+static void _upload_texture(GLenum target, GLuint tex, GLenum format, GLenum type,
+                            void *data, unsigned pitch, unsigned height, GLuint pbo)
+{
+  GLenum pbo_target = (target == GL_TEXTURE_2D ? GL_PIXEL_UNPACK_BUFFER : GL_PIXEL_UNPACK_BUFFER_ARB);
+  void *mem;
+  glBindBuffer (pbo_target, pbo);
+  glBindTexture (target, tex);
+  mem = glMapBuffer (pbo_target, GL_WRITE_ONLY);
+  xine_fast_memcpy (mem, data, pitch * height);
+  glUnmapBuffer (pbo_target);
+  glTexSubImage2D (target, 0, 0, 0, pitch >> (format == GL_LUMINANCE_ALPHA), height, format, type, 0);
+  glBindBuffer (pbo_target, 0);
+}
+
 static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
 {
   if (!that->gl->make_current(that->gl)) {
@@ -1256,26 +1270,16 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     }
   }
   if (frame->format == XINE_IMGFMT_YV12) {
-    void *mem;
     int uvh = (frame->height + 1) >> 1;
 
-    glBindBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, that->videoPBO);
-
     glActiveTexture (GL_TEXTURE0);
-    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y]);
-    mem = glMapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY);
-    xine_fast_memcpy (mem, frame->vo_frame.base[0], frame->vo_frame.pitches[0] * frame->height);
-    glUnmapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB);
-    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[0], frame->height, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0);
+    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y], GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[0], frame->vo_frame.pitches[0], frame->height, that->videoPBO);
 
     glActiveTexture (GL_TEXTURE1);
-    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_u_v]);
-    mem = glMapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY);
-    xine_fast_memcpy (mem, frame->vo_frame.base[1], frame->vo_frame.pitches[1] * uvh * 2);
-    glUnmapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB);
-    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[1], uvh * 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0);
+    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_u_v], GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[1], frame->vo_frame.pitches[1], uvh * 2, that->videoPBO);
 
-    glBindBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     glUseProgram (that->yuv420_program.program);
     glUniform2f (glGetUniformLocationARB (that->yuv420_program.program, "offsV"), 0, uvh);
     glUniform1i (glGetUniformLocationARB (that->yuv420_program.program, "texY"), 0);
@@ -1283,43 +1287,26 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     load_csc_matrix (that->yuv420_program.program, that->csc_matrix);
   }
   else if (frame->format == XINE_IMGFMT_NV12) {
-    void *mem;
-
-    glBindBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, that->videoPBO);
 
     glActiveTexture (GL_TEXTURE0);
-    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y]);
-    mem = glMapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY);
-    xine_fast_memcpy (mem, frame->vo_frame.base[0], frame->vo_frame.pitches[0] * frame->height);
-    glUnmapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB);
-    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[0], frame->height, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0);
+    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y], GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[0], frame->vo_frame.pitches[0], frame->height, that->videoPBO);
 
     glActiveTexture (GL_TEXTURE1);
-    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_uv]);
-    mem = glMapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY);
-    xine_fast_memcpy (mem, frame->vo_frame.base[1], frame->vo_frame.pitches[1] * frame->height / 2);
-    glUnmapBuffer (GL_PIXEL_UNPACK_BUFFER_ARB);
-    glTexSubImage2D (GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[1]/2, frame->height/2, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, 0);
+    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_uv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[1], frame->vo_frame.pitches[1], frame->height/2, that->videoPBO);
 
-    glBindBuffer (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
     glUseProgram (that->nv12_program.program);
     glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texY"), 0);
     glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texUV"), 1);
     load_csc_matrix( that->nv12_program.program, that->csc_matrix );
   }
   else if ( frame->format == XINE_IMGFMT_YUY2 ) {
-    void *mem;
-
-    glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, that->videoPBO );
 
     glActiveTexture( GL_TEXTURE0 );
-    glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_yuv]);
-    mem = glMapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY );
-    xine_fast_memcpy (mem, frame->vo_frame.base[0], frame->vo_frame.pitches[0] * frame->height);
-    glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
-    glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0, 0, frame->vo_frame.pitches[0] / 2, frame->height, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, 0 );
+    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_yuv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[0], frame->vo_frame.pitches[0], frame->height, that->videoPBO);
 
-    glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
     glUseProgram( that->yuv422_program.program );
     glUniform1i( glGetUniformLocationARB( that->yuv422_program.program, "texYUV" ), 0 );
     load_csc_matrix( that->yuv422_program.program, that->csc_matrix );
