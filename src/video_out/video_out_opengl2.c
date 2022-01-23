@@ -510,17 +510,17 @@ static void opengl2_delete_program( opengl2_program_t *prog )
   glDeleteShader( prog->shader );
 }
 
-static void _config_texture(GLuint texture, GLsizei width, GLsizei height,
+static void _config_texture(GLenum target, GLuint texture, GLsizei width, GLsizei height,
                             GLenum format, GLenum type, GLenum minmag_filter)
 {
   if (texture) {
-    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texture);
+    glBindTexture(target, texture);
     if (format)
-      glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, format, width, height, 0, format, type, NULL);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, minmag_filter);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, minmag_filter);
+      glTexImage2D(target, 0, format, width, height, 0, format, type, NULL);
+    glTexParameterf(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minmag_filter);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, minmag_filter);
   }
 }
 
@@ -555,22 +555,22 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
 
   glGenTextures (OGL2_TEX_LAST, ytex->tex);
   uvh = (h + 1) >> 1;
-  _config_texture (ytex->tex[OGL2_TEX_y],   w,      h,       GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (ytex->tex[OGL2_TEX_yuv], w,      h,       GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (ytex->tex[OGL2_TEX_uv],  w >> 1, uvh,     GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_y], w,      h,         GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_yuv], w,      h,       GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_uv],  w >> 1, uvh,     GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
 
   if (this->hw) {
     for (i = 0; i < 3; i++) {
-      _config_texture (ytex->tex[OGL2_TEX_HW0 + i], 0, 0, 0, 0, GL_NEAREST);
+      _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_HW0 + i], 0, 0, 0, 0, GL_NEAREST);
     }
   }
 
   ytex->width = w;
   ytex->height = h;
 
-  _config_texture (this->videoTex[0], w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
-  _config_texture (this->videoTex[1], w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
+  _config_texture (GL_TEXTURE_RECTANGLE_ARB, this->videoTex[0], w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
+  _config_texture (GL_TEXTURE_RECTANGLE_ARB, this->videoTex[1], w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
 
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
 
@@ -1019,7 +1019,8 @@ static int opengl2_draw_video_bicubic (opengl2_driver_t *that, const opengl2_dra
     glGenTextures (1, &that->bicubic_pass1_texture);
     if (!that->bicubic_pass1_texture)
       return 0;
-    _config_texture (that->bicubic_pass1_texture, info->dw, info->dh, GL_RGBA, GL_UNSIGNED_BYTE, GL_NEAREST);
+    _config_texture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_pass1_texture,
+                     info->dw, info->dh, GL_RGBA, GL_UNSIGNED_BYTE, GL_NEAREST);
     glBindTexture (GL_TEXTURE_RECTANGLE_ARB, 0);
     that->bicubic_pass1_texture_width  = info->dw;
     that->bicubic_pass1_texture_height = info->dh;
