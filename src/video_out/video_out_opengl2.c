@@ -461,10 +461,19 @@ static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *pro
   glGetShaderInfoLog( prog->shader, length, &length, log );
   if ( length ) {
     xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": Shader %s Compilation Log:\n", name );
-    if ( this->xine->verbosity >= XINE_VERBOSITY_DEBUG )
+    if ( this->xine->verbosity >= XINE_VERBOSITY_DEBUG ) {
       fwrite( log, 1, length, stdout );
+      fflush( stdout );
+    }
   }
   free( log );
+
+  GLint result;
+  glGetShaderiv( prog->shader, GL_COMPILE_STATUS, &result );
+  if (result != GL_TRUE) {
+    xprintf( this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": compiling shader %s failed\n", name );
+    return 0;
+  }
 
   glAttachShader( prog->program, prog->shader );
   glLinkProgram( prog->program );
@@ -476,10 +485,19 @@ static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *pro
   glGetProgramInfoLog( prog->program, length, &length, log );
   if ( length ) {
     xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": Shader %s Linking Log:\n", name );
-    if ( this->xine->verbosity >= XINE_VERBOSITY_DEBUG )
+    if ( this->xine->verbosity >= XINE_VERBOSITY_DEBUG ) {
       fwrite( log, 1, length, stdout );
+      fwrite( "\n", 1, 1, stdout );
+      fflush( stdout );
+    }
   }
   free( log );
+
+  glGetProgramiv( prog->program, GL_LINK_STATUS, &result );
+  if (result != GL_TRUE) {
+    xprintf( this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": linking shader %s failed\n", name );
+    return 0;
+  }
 
   prog->compiled = 1;
 
