@@ -599,10 +599,10 @@ AC_DEFUN([XINE_VIDEO_OUT_PLUGINS], [
     if test x"$have_vaapi" = x"yes"; then
         dnl vaapi display providers
         AC_CHECK_HEADERS([va/va_glx.h va/va_x11.h va/va_wayland.h va/va_drm.h va/va_drmcommon.h])
-        PKG_CHECK_MODULES([LIBVA_X11],     [libva libva-x11],     [have_vaapi_x11=yes])
-        PKG_CHECK_MODULES([LIBVA_GLX],     [libva libva-glx],     [have_vaapi_glx=yes])
-        PKG_CHECK_MODULES([LIBVA_WAYLAND], [libva libva-wayland], [have_vaapi_wayland=yes])
-        PKG_CHECK_MODULES([LIBVA_DRM],     [libva libva-drm],     [have_vaapi_drm=yes])
+        PKG_CHECK_MODULES([LIBVA_X11],     [libva libva-x11],     [have_vaapi_x11=yes],    [have_vaapi_x11=no])
+        PKG_CHECK_MODULES([LIBVA_GLX],     [libva libva-glx],     [have_vaapi_glx=yes],    [have_vaapi_glx=no])
+        PKG_CHECK_MODULES([LIBVA_WAYLAND], [libva libva-wayland], [have_vaapi_wayland=yes],[have_vaapi_wayland=no])
+        PKG_CHECK_MODULES([LIBVA_DRM],     [libva libva-drm],     [have_vaapi_drm=yes],    [have_vaapi_drm=no])
         if test x"$have_vaapi_x11" != x"yes" && test x"$have_vaapi_glx" != x"yes" && test x"$have_vaapi_wayland" != x"yes" && test x"$have_vaapi_drm" != x"yes"; then
             if test x"$hard_enable_vaapi" = x"yes"; then
                 AC_MSG_ERROR([No VAAPI display providers found.])
