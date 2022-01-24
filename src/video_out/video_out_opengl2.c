@@ -79,7 +79,8 @@ typedef struct {
 
 typedef enum {
   OGL2_TEX_y = 0,
-  OGL2_TEX_u_v,
+  OGL2_TEX_u,
+  OGL2_TEX_v,
   OGL2_TEX_yuv,
   OGL2_TEX_uv,
 
@@ -373,18 +374,15 @@ static const char *blur_sharpen_frag=
 "}\n";
 
 static const char *yuv420_frag =
-"#extension GL_ARB_texture_rectangle : enable\n"
-"uniform sampler2DRect texY, texU_V;\n"
-"uniform vec2 offsV;\n"
+"uniform sampler2D texY, texU, texV;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
 "void main(void) {\n"
 "    vec4 rgb;\n"
 "    vec4 yuv;\n"
-"    vec2 ycoord = gl_TexCoord[0].xy;\n"
-"    vec2 uvcoord = ycoord / 2.0;\n"
-"    yuv.r = texture2DRect (texY, ycoord).r;\n"
-"    yuv.g = texture2DRect (texU_V, uvcoord).r;\n"
-"    yuv.b = texture2DRect (texU_V, uvcoord + offsV).r;\n"
+"    vec2 coord = gl_TexCoord[0].xy;\n"
+"    yuv.r = texture2D (texY, coord).r;\n"
+"    yuv.g = texture2D (texU, coord).r;\n"
+"    yuv.b = texture2D (texV, coord).r;\n"
 "    yuv.a = 1.0;\n"
 "    rgb.r = dot (yuv, r_coefs);\n"
 "    rgb.g = dot (yuv, g_coefs);\n"
@@ -394,17 +392,15 @@ static const char *yuv420_frag =
 "}\n";
 
 static const char *nv12_frag =
-"#extension GL_ARB_texture_rectangle : enable\n"
-"uniform sampler2DRect texY, texUV;\n"
+"uniform sampler2D texY, texUV;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
 "void main (void) {\n"
 "    vec4 rgb;\n"
 "    vec4 yuv;\n"
-"    vec2 ycoord = gl_TexCoord[0].xy;\n"
-"    vec2 uvcoord = ycoord / 2.0;\n"
-"    yuv.r = texture2DRect (texY, ycoord).r;\n"
-"    yuv.g = texture2DRect (texUV, uvcoord).r;\n"
-"    yuv.b = texture2DRect (texUV, uvcoord).a;\n"
+"    vec2 coord = gl_TexCoord[0].xy;\n"
+"    yuv.r = texture2D (texY, coord).r;\n"
+"    yuv.g = texture2D (texUV, coord).r;\n"
+"    yuv.b = texture2D (texUV, coord).a;\n"
 "    yuv.a = 1.0;\n"
 "    rgb.r = dot( yuv, r_coefs );\n"
 "    rgb.g = dot( yuv, g_coefs );\n"
@@ -414,18 +410,21 @@ static const char *nv12_frag =
 "}\n";
 
 static const char *yuv422_frag =
-"#extension GL_ARB_texture_rectangle : enable\n"
-"uniform sampler2DRect texYUV;\n"
+"uniform sampler2D texYUV;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
+"uniform vec2 texSize;\n"
 "void main(void) {\n"
+"    float pixel_x;\n"
 "    vec3 rgb;\n"
 "    vec4 yuv;\n"
 "    vec4 coord = gl_TexCoord[0].xyxx;\n"
-"    coord.z -= step(1.0, mod(coord.x, 2.0));\n"
-"    coord.w = coord.z + 1.0;\n"
-"    yuv.r = texture2DRect(texYUV, coord.xy).r;\n"
-"    yuv.g = texture2DRect(texYUV, coord.zy).a;\n"
-"    yuv.b = texture2DRect(texYUV, coord.wy).a;\n"
+"    pixel_x = floor(coord.x * texSize.x);"
+"    pixel_x = pixel_x - step(1.0, mod(pixel_x, 2.0));\n"
+"    coord.z = (pixel_x + 0.5) / texSize.x;\n"
+"    coord.w = (pixel_x + 1.5) / texSize.x;\n"
+"    yuv.r = texture2D(texYUV, coord.xy).r;\n"
+"    yuv.g = texture2D(texYUV, coord.zy).a;\n"
+"    yuv.b = texture2D(texYUV, coord.wy).a;\n"
 "    yuv.a = 1.0;\n"
 "    rgb.r = dot( yuv, r_coefs );\n"
 "    rgb.g = dot( yuv, g_coefs );\n"
@@ -435,9 +434,9 @@ static const char *yuv422_frag =
 
 static void load_csc_matrix( GLuint prog, float *cf )
 {
-    glUniform4f( glGetUniformLocationARB( prog, "r_coefs" ), cf[0], cf[1], cf[2], cf[3] );
-    glUniform4f( glGetUniformLocationARB( prog, "g_coefs" ), cf[4], cf[5], cf[6], cf[7] );
-    glUniform4f( glGetUniformLocationARB( prog, "b_coefs" ), cf[8], cf[9], cf[10], cf[11] );
+    glUniform4f( glGetUniformLocation( prog, "r_coefs" ), cf[0], cf[1], cf[2], cf[3] );
+    glUniform4f( glGetUniformLocation( prog, "g_coefs" ), cf[4], cf[5], cf[6], cf[7] );
+    glUniform4f( glGetUniformLocation( prog, "b_coefs" ), cf[8], cf[9], cf[10], cf[11] );
 }
 
 static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *prog, const char **source, const char *name )
@@ -555,16 +554,23 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
 
   glGenTextures (OGL2_TEX_LAST, ytex->tex);
   uvh = (h + 1) >> 1;
-  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_y], w,      h,         GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_yuv], w,      h,       GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_RECTANGLE_ARB, ytex->tex[OGL2_TEX_uv],  w >> 1, uvh,     GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_y],   w,      h,   GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u],   w >> 1, uvh, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_v],   w >> 1, uvh, GL_LUMINANCE, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_yuv], w,      h,   GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_uv],  w >> 1, uvh, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, GL_NEAREST);
 
   if (this->hw) {
     for (i = 0; i < 3; i++) {
       _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_HW0 + i], 0, 0, 0, 0, GL_NEAREST);
     }
   }
+
+  glBindTexture( GL_TEXTURE_2D, 0 );
+
+  glBindBuffer( GL_PIXEL_UNPACK_BUFFER, this->videoPBO );
+  glBufferData( GL_PIXEL_UNPACK_BUFFER, w * h * 2, NULL, GL_STREAM_DRAW );
+  glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 
   ytex->width = w;
   ytex->height = h;
@@ -573,10 +579,6 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
   _config_texture (GL_TEXTURE_RECTANGLE_ARB, this->videoTex[1], w, h, GL_RGBA, GL_UNSIGNED_BYTE, GL_LINEAR);
 
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
-
-  glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, this->videoPBO );
-  glBufferData( GL_PIXEL_UNPACK_BUFFER_ARB, w * h * 2, NULL, GL_STREAM_DRAW );
-  glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
 
   glBindFramebuffer( GL_FRAMEBUFFER, this->fbo );
   glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, this->videoTex[0], 0 );
@@ -865,6 +867,10 @@ static void opengl2_draw_scaled_overlays( opengl2_driver_t *that, opengl2_frame_
 {
   int i;
 
+  glMatrixMode( GL_PROJECTION );
+  glLoadIdentity();
+  glOrtho( 0.0, frame->width, 0.0, frame->height, -1.0, 1.0 );
+
   glEnable( GL_BLEND );
 
   that->ovls_drawn = 0;
@@ -968,6 +974,11 @@ static GLuint opengl2_sharpness( opengl2_driver_t *that, opengl2_frame_t *frame,
   }
 
   ret = opengl2_swap_textures( that, video_texture );
+
+  glMatrixMode( GL_PROJECTION );
+  glLoadIdentity();
+  glOrtho( 0.0, frame->width, 0.0, frame->height, -1.0, 1.0 );
+
   glActiveTexture( GL_TEXTURE0 );
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
 
@@ -1274,42 +1285,44 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     int uvh = (frame->height + 1) >> 1;
 
     glActiveTexture (GL_TEXTURE0);
-    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y], GL_LUMINANCE, GL_UNSIGNED_BYTE,
+    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], GL_LUMINANCE, GL_UNSIGNED_BYTE,
                     frame->vo_frame.base[0], frame->vo_frame.pitches[0], frame->height, that->videoPBO);
-
     glActiveTexture (GL_TEXTURE1);
-    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_u_v], GL_LUMINANCE, GL_UNSIGNED_BYTE,
-                    frame->vo_frame.base[1], frame->vo_frame.pitches[1], uvh * 2, that->videoPBO);
+    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u], GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[1], frame->vo_frame.pitches[1], uvh, that->videoPBO);
+    glActiveTexture (GL_TEXTURE2);
+    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_v], GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[2], frame->vo_frame.pitches[2], uvh, that->videoPBO);
 
     glUseProgram (that->yuv420_program.program);
-    glUniform2f (glGetUniformLocationARB (that->yuv420_program.program, "offsV"), 0, uvh);
-    glUniform1i (glGetUniformLocationARB (that->yuv420_program.program, "texY"), 0);
-    glUniform1i (glGetUniformLocationARB (that->yuv420_program.program, "texU_V" ), 1);
+    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texY"), 0);
+    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texU" ), 1);
+    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texV" ), 2);
     load_csc_matrix (that->yuv420_program.program, that->csc_matrix);
   }
   else if (frame->format == XINE_IMGFMT_NV12) {
 
     glActiveTexture (GL_TEXTURE0);
-    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_y], GL_LUMINANCE, GL_UNSIGNED_BYTE,
+    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], GL_LUMINANCE, GL_UNSIGNED_BYTE,
                     frame->vo_frame.base[0], frame->vo_frame.pitches[0], frame->height, that->videoPBO);
 
     glActiveTexture (GL_TEXTURE1);
-    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_uv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
-                    frame->vo_frame.base[1], frame->vo_frame.pitches[1], frame->height/2, that->videoPBO);
+    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_uv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
+                    frame->vo_frame.base[1], frame->vo_frame.pitches[1], (frame->height+1)/2, that->videoPBO);
 
     glUseProgram (that->nv12_program.program);
-    glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texY"), 0);
-    glUniform1i (glGetUniformLocationARB (that->nv12_program.program, "texUV"), 1);
+    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texY"), 0);
+    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texUV"), 1);
     load_csc_matrix( that->nv12_program.program, that->csc_matrix );
   }
   else if ( frame->format == XINE_IMGFMT_YUY2 ) {
-
     glActiveTexture( GL_TEXTURE0 );
-    _upload_texture(GL_TEXTURE_RECTANGLE_ARB, that->yuvtex.tex[OGL2_TEX_yuv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
+    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_yuv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
                     frame->vo_frame.base[0], frame->vo_frame.pitches[0], frame->height, that->videoPBO);
 
     glUseProgram( that->yuv422_program.program );
-    glUniform1i( glGetUniformLocationARB( that->yuv422_program.program, "texYUV" ), 0 );
+    glUniform2f (glGetUniformLocationARB( that->yuv422_program.program, "texSize"), frame->width/*vo_frame.pitches[0]/2*/, 0);
+    glUniform1i (glGetUniformLocation( that->yuv422_program.program, "texYUV" ), 0 );
     load_csc_matrix( that->yuv422_program.program, that->csc_matrix );
   }
   else {
@@ -1320,7 +1333,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glViewport( 0, 0, frame->width, frame->height );
   glMatrixMode( GL_PROJECTION );
   glLoadIdentity();
-  glOrtho( 0.0, frame->width, 0.0, frame->height, -1.0, 1.0 );
+  glOrtho( 0.0, 1.0, 0.0, 1.0, -1.0, 1.0 );
   glMatrixMode( GL_MODELVIEW );
   glLoadIdentity();
 
@@ -1328,10 +1341,10 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glDrawBuffer( GL_COLOR_ATTACHMENT0 );
 
   glBegin( GL_QUADS );
-    glTexCoord2f( 0, 0 );                           glVertex3f( 0, 0, 0.);
-    glTexCoord2f( 0, frame->height );               glVertex3f( 0, frame->height, 0.);
-    glTexCoord2f( frame->width, frame->height );    glVertex3f( frame->width, frame->height, 0.);
-    glTexCoord2f( frame->width, 0 );                glVertex3f( frame->width, 0, 0.);
+    glTexCoord2f( 0, 0 );    glVertex2i( 0, 0 );
+    glTexCoord2f( 0, 1 );    glVertex2i( 0, 1 );
+    glTexCoord2f( 1, 1 );    glVertex2i( 1, 1 );
+    glTexCoord2f( 1, 0 );    glVertex2i( 1, 0 );
   glEnd();
 
   glUseProgram( 0 );
