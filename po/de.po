@@ -6,14 +6,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2021-12-25 15:42+0100\n"
+"POT-Creation-Date: 2022-01-24 19:12+0200\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: de\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #: lib/hstrerror.c
@@ -3611,8 +3611,8 @@ msgid ""
 "See the help for the title_format for the meanings of these."
 msgstr ""
 "Das selbe Format wie für Fenstertitel. Ähnlich dem Unix date-Befehl. "
-"Formatangaben starten mit einem Prozentzeichen. Formatfelder sind %A, %C, %"
-"c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, und %%.\n"
+"Formatangaben starten mit einem Prozentzeichen. Formatfelder sind %A, %C, "
+"%c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, und %%.\n"
 "Siehe Hilfe für title_format bezüglich deren Bedeutung."
 
 #: src/input/vcd/xineplug_inp_vcd.c
@@ -6446,6 +6446,11 @@ msgstr "input_rip: Fehlschlag beim Lesen der gespeicherten Daten: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
+msgid "input_rip: seeking failed: %s\n"
+msgstr "input_rip: Positionierung fehlgeschlagen: %s\n"
+
+#: src/xine-engine/input_rip.c
+#, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: Lesefehler im input_rip-Plugin\n"
 
@@ -6463,11 +6468,6 @@ msgstr "input_rip: open()-Funktion sollte niemals aufgerufen werden\n"
 #, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_rip: Positionierung fehlgeschlagen\n"
-
-#: src/xine-engine/input_rip.c
-#, c-format
-msgid "input_rip: seeking failed: %s\n"
-msgstr "input_rip: Positionierung fehlgeschlagen: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
@@ -7087,11 +7087,6 @@ msgstr "xine: Kann kein Plugin für Medienadresse [%s] finden\n"
 
 #: src/xine-engine/xine.c
 #, c-format
-msgid "xine: no value for \"%s\", ignoring.\n"
-msgstr "xine: Ignoriere \"%s\" ohne Wertangabe.\n"
-
-#: src/xine-engine/xine.c
-#, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: Demultiplexer %s startete nicht\n"
 
@@ -7149,6 +7144,11 @@ msgstr "xine: Ignoriere unbekannte Option \"%s\".\n"
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
 msgstr "xine: Das Ändern der Option '%s' per Medienadresse ist verboten\n"
+
+#: src/xine-engine/xine.c
+#, c-format
+msgid "xine: no value for \"%s\", ignoring.\n"
+msgstr "xine: Ignoriere \"%s\" ohne Wertangabe.\n"
 
 #: src/xine-engine/xine.c
 #, c-format

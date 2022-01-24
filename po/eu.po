@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib-1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2019-12-13 18:25+0200\n"
+"POT-Creation-Date: 2022-01-24 19:12+0200\n"
 "PO-Revision-Date: 2005-02-17 14:29+0100\n"
 "Last-Translator: Piarres Beobide <pi@beobide.net>\n"
 "Language-Team: lubrezale <librezale@librezale.org>\n"
@@ -220,129 +220,8 @@ msgstr ""
 "nahaslearen irudi grafikoa denbora errealean eraldatuko du."
 
 #: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_lib_error_set_handler() failed: %d"
-msgstr "snd_lib_error_set_handler() hutsa: %d"
-
-#: src/audio_out/audio_alsa_out.c
-msgid "sound card can do mmap"
-msgstr "soinu txartelak mmap egin dezake"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
-"You can try enabling it and check, if everything works. If it does, this "
-"will increase performance."
-msgstr ""
-"Zure soinu txartelak eta alsa kontrolatzaileak mapaturiko IO obartzen badute "
-"gaitu\n"
-"Gaitu eta frogaru dezakezu beldurrik gabe, denak behar bezala funtzionatu "
-"ezkero portamoldea obetuko du."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for mono output"
-msgstr "mono irteerarako erabiliko den gailua"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output mono sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"Xinek alsa gailua erabiliko du mono soinuarentzat.\n"
-"Irakurri alsa dokumentazioa alsa gailuei buruzko informazio gehiago behar "
-"izan ezkero."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for stereo output"
-msgstr "Estereo irteerak erabiltzen duen gailua"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output stereo sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"Xinek alsa gailua erabiliko du estereo soinuarentzat.\n"
-"Irakurri alsa dokumentazioa alsa gailuei buruzko informazio gehiago behar "
-"izan ezkero."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 4-channel output"
-msgstr "4 kanaletako irteerak erabiltzen duen gailua"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"Xinek alsa gailua erabiliko du 4 kanaleko (4.0) soinuarentzat.\n"
-"Irakurri alsa dokumentazioa alsa gailei buruzko informazio gehiago behar "
-"izan ezkero."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 5.1-channel output"
-msgstr "5.1 kanaletako irteerak erabiltzen duen gailua"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
-"sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"Xinek alsa gailua erabiliko du 5 kanaleko (5.1) soinuarentzat.\n"
-"Irakurri alsa dokumentazioa alsa gailei buruzko informazio gehiago behar "
-"izan ezkero."
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output undecoded digital surround sound. "
-"This can be used be external surround decoders.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xinel alda gailu hau erabiliko du kodifikatu gabeko ingurugiro soinuentzako. "
-"hau kanpo ingurugiro dekodifikatzaileez erabil daiteke.\n"
-"Begiratu alsa dokumentazioa argibide gehiagorako."
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_pcm_open() failed:%d:%s\n"
-msgstr "snd_pcm_open()-ek huts egin du:%d:%s\n"
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid ">>> Check if another program already uses PCM <<<\n"
-msgstr ">>> Egiaztatu beste programa batek PCM darabilkien<<<\n"
-
-#: src/audio_out/audio_alsa_out.c
 msgid "audio_alsa_out : supported modes are"
 msgstr "audio_alsa_out : Onartutako moduak:"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 8bit"
-msgstr " 8bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 16bit"
-msgstr " 16bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 24bit"
-msgstr " 24bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 32bit"
-msgstr " 32bit"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " mono"
-msgstr " mono"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " stereo"
-msgstr " estereo"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " 4-channel"
-msgstr " 4-kanal"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " (4-channel not enabled in xine config)"
@@ -365,20 +244,146 @@ msgid " (5-channel not enabled in xine config)"
 msgstr " (5-kanal ez dago gaiturik xine konfigruaketan)"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " (5.1-channel not enabled in xine config)"
+msgstr " (5.1-kanal ez dago gaiturik xine konfigruaketan)"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " (a/52 and DTS pass-through not enabled in xine config)"
+msgstr " (a/52 eta DTS pass-through ez daude gaiturik xine konfiguraketan)"
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid "snd_pcm_open() failed:%d:%s\n"
+msgstr "snd_pcm_open()-ek huts egin du:%d:%s\n"
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid ">>> Check if another program already uses PCM <<<\n"
+msgstr ">>> Egiaztatu beste programa batek PCM darabilkien<<<\n"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 8bit"
+msgstr " 8bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 16bit"
+msgstr " 16bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 24bit"
+msgstr " 24bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 32bit"
+msgstr " 32bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "sound card can do mmap"
+msgstr "soinu txartelak mmap egin dezake"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
+"You can try enabling it and check, if everything works. If it does, this "
+"will increase performance."
+msgstr ""
+"Zure soinu txartelak eta alsa kontrolatzaileak mapaturiko IO obartzen badute "
+"gaitu\n"
+"Gaitu eta frogaru dezakezu beldurrik gabe, denak behar bezala funtzionatu "
+"ezkero portamoldea obetuko du."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " mono"
+msgstr " mono"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for mono output"
+msgstr "mono irteerarako erabiliko den gailua"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output mono sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"Xinek alsa gailua erabiliko du mono soinuarentzat.\n"
+"Irakurri alsa dokumentazioa alsa gailuei buruzko informazio gehiago behar "
+"izan ezkero."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " stereo"
+msgstr " estereo"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for stereo output"
+msgstr "Estereo irteerak erabiltzen duen gailua"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output stereo sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"Xinek alsa gailua erabiliko du estereo soinuarentzat.\n"
+"Irakurri alsa dokumentazioa alsa gailuei buruzko informazio gehiago behar "
+"izan ezkero."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " 4-channel"
+msgstr " 4-kanal"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 4-channel output"
+msgstr "4 kanaletako irteerak erabiltzen duen gailua"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"Xinek alsa gailua erabiliko du 4 kanaleko (4.0) soinuarentzat.\n"
+"Irakurri alsa dokumentazioa alsa gailei buruzko informazio gehiago behar "
+"izan ezkero."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " 5.1-channel"
 msgstr " 5.1-kanal"
 
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " (5.1-channel not enabled in xine config)"
-msgstr " (5.1-kanal ez dago gaiturik xine konfigruaketan)"
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 5.1-channel output"
+msgstr "5.1 kanaletako irteerak erabiltzen duen gailua"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
+"sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"Xinek alsa gailua erabiliko du 5 kanaleko (5.1) soinuarentzat.\n"
+"Irakurri alsa dokumentazioa alsa gailei buruzko informazio gehiago behar "
+"izan ezkero."
 
 #: src/audio_out/audio_alsa_out.c
 msgid " a/52 and DTS pass-through"
 msgstr " a/52 eta DTS pass-through"
 
 #: src/audio_out/audio_alsa_out.c
-msgid " (a/52 and DTS pass-through not enabled in xine config)"
-msgstr " (a/52 eta DTS pass-through ez daude gaiturik xine konfiguraketan)"
+#, fuzzy
+msgid "device used for a/52 and DTS pass-through"
+msgstr " a/52 eta DTS pass-through"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output undecoded digital surround sound. "
+"This can be used be external surround decoders.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xinel alda gailu hau erabiliko du kodifikatu gabeko ingurugiro soinuentzako. "
+"hau kanpo ingurugiro dekodifikatzaileez erabil daiteke.\n"
+"Begiratu alsa dokumentazioa argibide gehiagorako."
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid "snd_lib_error_set_handler() failed: %d"
+msgstr "snd_lib_error_set_handler() hutsa: %d"
 
 #: src/audio_out/audio_alsa_out.c
 msgid "alsa mixer device"
@@ -1742,10 +1747,11 @@ msgid "try to sync video every frame"
 msgstr "saiatu bideoa marko bakoitzean sinkronizatzen"
 
 #: src/dxr3/dxr3_decode_video.c
+#, fuzzy
 msgid ""
 "Tries to set a synchronization timestamp for every frame. Normally this is "
-"not necessary, because sync is sufficent even when the timestamp is set only "
-"every now and then.\n"
+"not necessary, because sync is sufficient even when the timestamp is set "
+"only every now and then.\n"
 "This is relevant for progressive video only (most PAL films)."
 msgstr ""
 "Sinkronizazio denbora-marka bat marko bakoitzean ezartzen saiatu. Arruntean "
@@ -2865,6 +2871,11 @@ msgstr ""
 "aukeratu MMS enkapsulatzeko metodoa.\n"
 "TCP obea da baina suebaki baten atzean HTTP beharko duzu."
 
+#: src/input/input_mpegdash.c
+#, fuzzy
+msgid "MPEG Dynamic Adaptive Streaming over Http input plugin"
+msgstr "stdin korronte sarrera plugina"
+
 #: src/input/input_net.c
 msgid "net input plugin as shipped with xine"
 msgstr "sare sarrera plugina, xinerekin anatzen dena"
@@ -2872,6 +2883,11 @@ msgstr "sare sarrera plugina, xinerekin anatzen dena"
 #: src/input/input_net.c
 #, fuzzy
 msgid "tls input plugin"
+msgstr "fitxategi sarrera plugina"
+
+#: src/input/input_net.c
+#, fuzzy
+msgid "gopher input plugin"
 msgstr "fitxategi sarrera plugina"
 
 #: src/input/input_nfs.c
@@ -5165,6 +5181,16 @@ msgid ""
 msgstr ""
 
 #: src/video_out/video_out_vdpau.c
+msgid "vdpau: make snapshots like visible on screen"
+msgstr ""
+
+#: src/video_out/video_out_vdpau.c
+msgid ""
+"If set, snapshots will be scaled, cropped, padded and subtitled.\n"
+"Otherwise, you get the pure original video image.\n"
+msgstr ""
+
+#: src/video_out/video_out_vdpau.c
 msgid "xine video output plugin using VDPAU hardware acceleration"
 msgstr "xine bideo irteera plugina VDPAU liburutegia erabiliaz"
 
@@ -5632,7 +5658,7 @@ msgstr "audio buffer kopurua"
 
 #: src/xine-engine/audio_decoder.c
 msgid ""
-"The number of audio buffers (each is 8k in size) xine uses in its internal "
+"The number of audio buffers (each is 2k in size) xine uses in its internal "
 "queue. Higher values mean smoother playback for unreliable inputs, but also "
 "increased latency and memory consumption."
 msgstr ""
@@ -5690,6 +5716,16 @@ msgid ""
 "shorter to compensate the audio drift error. This does not work for digital "
 "passthrough, where audio data is passed to an external decoder in digital "
 "form."
+msgstr ""
+
+#: src/xine-engine/audio_out.c
+msgid "a/v sync precision"
+msgstr ""
+
+#: src/xine-engine/audio_out.c
+msgid ""
+"Normal: keep current drift within driver gap tolerance.\n"
+"Fine:   keep average drift within 1/8 tolerance."
 msgstr ""
 
 #: src/xine-engine/audio_out.c
@@ -5864,6 +5900,11 @@ msgstr "input_rip: huts grabatutako datuak irakurtzerkaoan: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
+msgid "input_rip: seeking failed: %s\n"
+msgstr "input_rip: bilaketak huts egin du: %s\n"
+
+#: src/xine-engine/input_rip.c
+#, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: huts sarrera pluginetik irakirtzerakoan\n"
 
@@ -5881,11 +5922,6 @@ msgstr "input_rip: open() funtzioa ez zen inoiz deitu beharko\n"
 #, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_rip: bilaketak huts egin du\n"
-
-#: src/xine-engine/input_rip.c
-#, c-format
-msgid "input_rip: seeking failed: %s\n"
-msgstr "input_rip: bilaketak huts egin du: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
@@ -6444,11 +6480,6 @@ msgstr "xine: ezin da [%s] MRL-aren plugina aurkitu\n"
 
 #: src/xine-engine/xine.c
 #, c-format
-msgid "xine: no value for \"%s\", ignoring.\n"
-msgstr ""
-
-#: src/xine-engine/xine.c
-#, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr ""
 
@@ -6506,6 +6537,11 @@ msgstr ""
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
 msgstr "xine: MRL-ko '%s' aukera aldaketa ez da onartzen\n"
+
+#: src/xine-engine/xine.c
+#, c-format
+msgid "xine: no value for \"%s\", ignoring.\n"
+msgstr ""
 
 #: src/xine-engine/xine.c
 #, c-format
@@ -6632,6 +6668,16 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/xine.c
+msgid "Internet Protocol version(s) to use"
+msgstr ""
+
+#: src/xine-engine/xine.c
+msgid ""
+"\"auto\" just tries what the name query returned.\n"
+"Otherwise, IPv4 may offer more compatibility and privacy."
+msgstr ""
+
+#: src/xine-engine/xine.c
 msgid "Auto join separate audio/video files"
 msgstr ""
 
@@ -6708,6 +6754,15 @@ msgstr ""
 #: src/xine-engine/xine_interface.c
 msgid "File is empty:"
 msgstr ""
+
+#: src/xine-engine/xine_interface.c
+msgid "Authentication needed"
+msgstr ""
+
+#: src/xine-engine/xine_interface.c
+#, fuzzy
+msgid "Recording done:"
+msgstr "Indizea bersortzen..."
 
 #: src/xine-utils/memcpy.c
 #, c-format

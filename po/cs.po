@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0.1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2019-12-13 18:25+0200\n"
+"POT-Creation-Date: 2022-01-24 19:12+0200\n"
 "PO-Revision-Date: 2008-11-10 16:33+0200\n"
 "Last-Translator: František Dvořák <valtri@civ.zcu.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
@@ -233,126 +233,8 @@ msgstr ""
 "za běhu aktualizovat svoji grafickou reprezentaci nastavení mixeru."
 
 #: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_lib_error_set_handler() failed: %d"
-msgstr "snd_lib_error_set_handler() selhalo: %d"
-
-#: src/audio_out/audio_alsa_out.c
-msgid "sound card can do mmap"
-msgstr "zvuková karta umožňuje provádět mmap"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
-"You can try enabling it and check, if everything works. If it does, this "
-"will increase performance."
-msgstr ""
-"Toto povolte, pokud vaše zvuková karta a ovladač ALSA podporují I/O mapované "
-"do paměti.\n"
-"Můžete to zkusit povolit a zkontrolovat, zda vše funguje. Pokud ano, zlepší "
-"toto nastavení výkon."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for mono output"
-msgstr "zařízení použité pro mono výstup"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output mono sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine použije toto zařízení ALSA pro výstup zvuku mono.\n"
-"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for stereo output"
-msgstr "zařízení použité pro stereo výstup"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output stereo sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine použije toto zařízení ALSA pro výstup zvuku stereo.\n"
-"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 4-channel output"
-msgstr "zařízení použité pro čtyřkanálový výstup"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine použije toto zařízení ALSA pro výstup surround zvuku 4kanálově (4.0).\n"
-"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 5.1-channel output"
-msgstr "zařízení použité pro 5.1-kanálový výstup"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
-"sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine použije toto zařízení ALSA pro výstup surround zvuku 5kanálově s LFE "
-"(5.1).\n"
-"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output undecoded digital surround sound. "
-"This can be used be external surround decoders.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine použije toto zařízení ALSA pro výstup nedekódovaného surround zvuku. "
-"Může to být použito vnějšími surround dekodéry.\n"
-"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_pcm_open() failed:%d:%s\n"
-msgstr "snd_cm_open() selhalo:%d:%s\n"
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid ">>> Check if another program already uses PCM <<<\n"
-msgstr ">>> Zkontrolujte, jestli už jiný program nepoužívá PCM <<<\n"
-
-#: src/audio_out/audio_alsa_out.c
 msgid "audio_alsa_out : supported modes are"
 msgstr "audio_alsa_out : podporované režimy jsou"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 8bit"
-msgstr " 8bitový"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 16bit"
-msgstr " 16bitový"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 24bit"
-msgstr " 24bitový"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 32bit"
-msgstr " 32bitový"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " mono"
-msgstr " mono"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " stereo"
-msgstr " stereo"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " 4-channel"
-msgstr " 4kanálový"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " (4-channel not enabled in xine config)"
@@ -375,20 +257,143 @@ msgid " (5-channel not enabled in xine config)"
 msgstr " (5kanálový není povolen v konfifuraci xine)"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " (5.1-channel not enabled in xine config)"
+msgstr " (5.1kanálový není povolen v konfiguraci xine)"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " (a/52 and DTS pass-through not enabled in xine config)"
+msgstr " (a/52 a DTS pass-through nejsou povoleny v konfiguraci xine)"
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid "snd_pcm_open() failed:%d:%s\n"
+msgstr "snd_cm_open() selhalo:%d:%s\n"
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid ">>> Check if another program already uses PCM <<<\n"
+msgstr ">>> Zkontrolujte, jestli už jiný program nepoužívá PCM <<<\n"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 8bit"
+msgstr " 8bitový"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 16bit"
+msgstr " 16bitový"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 24bit"
+msgstr " 24bitový"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 32bit"
+msgstr " 32bitový"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "sound card can do mmap"
+msgstr "zvuková karta umožňuje provádět mmap"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
+"You can try enabling it and check, if everything works. If it does, this "
+"will increase performance."
+msgstr ""
+"Toto povolte, pokud vaše zvuková karta a ovladač ALSA podporují I/O mapované "
+"do paměti.\n"
+"Můžete to zkusit povolit a zkontrolovat, zda vše funguje. Pokud ano, zlepší "
+"toto nastavení výkon."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " mono"
+msgstr " mono"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for mono output"
+msgstr "zařízení použité pro mono výstup"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output mono sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine použije toto zařízení ALSA pro výstup zvuku mono.\n"
+"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " stereo"
+msgstr " stereo"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for stereo output"
+msgstr "zařízení použité pro stereo výstup"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output stereo sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine použije toto zařízení ALSA pro výstup zvuku stereo.\n"
+"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " 4-channel"
+msgstr " 4kanálový"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 4-channel output"
+msgstr "zařízení použité pro čtyřkanálový výstup"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine použije toto zařízení ALSA pro výstup surround zvuku 4kanálově (4.0).\n"
+"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " 5.1-channel"
 msgstr " 5.1kanálový"
 
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " (5.1-channel not enabled in xine config)"
-msgstr " (5.1kanálový není povolen v konfiguraci xine)"
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 5.1-channel output"
+msgstr "zařízení použité pro 5.1-kanálový výstup"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
+"sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine použije toto zařízení ALSA pro výstup surround zvuku 5kanálově s LFE "
+"(5.1).\n"
+"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
 
 #: src/audio_out/audio_alsa_out.c
 msgid " a/52 and DTS pass-through"
 msgstr " a/52 a DTS pass-through"
 
 #: src/audio_out/audio_alsa_out.c
-msgid " (a/52 and DTS pass-through not enabled in xine config)"
-msgstr " (a/52 a DTS pass-through nejsou povoleny v konfiguraci xine)"
+#, fuzzy
+msgid "device used for a/52 and DTS pass-through"
+msgstr " a/52 a DTS pass-through"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output undecoded digital surround sound. "
+"This can be used be external surround decoders.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine použije toto zařízení ALSA pro výstup nedekódovaného surround zvuku. "
+"Může to být použito vnějšími surround dekodéry.\n"
+"Informace o zařízeních ALSA naleznete v dokumentaci k ALSA."
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid "snd_lib_error_set_handler() failed: %d"
+msgstr "snd_lib_error_set_handler() selhalo: %d"
 
 #: src/audio_out/audio_alsa_out.c
 msgid "alsa mixer device"
@@ -1778,10 +1783,11 @@ msgid "try to sync video every frame"
 msgstr "Zkusit synchronizovat video každý snímek"
 
 #: src/dxr3/dxr3_decode_video.c
+#, fuzzy
 msgid ""
 "Tries to set a synchronization timestamp for every frame. Normally this is "
-"not necessary, because sync is sufficent even when the timestamp is set only "
-"every now and then.\n"
+"not necessary, because sync is sufficient even when the timestamp is set "
+"only every now and then.\n"
 "This is relevant for progressive video only (most PAL films)."
 msgstr ""
 "Zkouší nastavit pro každý snímek synchronizační časovou značku. Běžně toto "
@@ -2988,6 +2994,11 @@ msgstr ""
 "Vyberte protokol zapouzdřující MMS. TCP je lepší, ale za firewallem můžete "
 "potřebovat HTTP."
 
+#: src/input/input_mpegdash.c
+#, fuzzy
+msgid "MPEG Dynamic Adaptive Streaming over Http input plugin"
+msgstr "vstupní modul pro data ze standardního vstupu"
+
 #: src/input/input_net.c
 msgid "net input plugin as shipped with xine"
 msgstr "vstupní modul pro síť dodaný se xine"
@@ -2995,6 +3006,11 @@ msgstr "vstupní modul pro síť dodaný se xine"
 #: src/input/input_net.c
 #, fuzzy
 msgid "tls input plugin"
+msgstr "modul pro vstup ze souboru"
+
+#: src/input/input_net.c
+#, fuzzy
+msgid "gopher input plugin"
 msgstr "modul pro vstup ze souboru"
 
 #: src/input/input_nfs.c
@@ -5537,6 +5553,16 @@ msgid ""
 msgstr ""
 
 #: src/video_out/video_out_vdpau.c
+msgid "vdpau: make snapshots like visible on screen"
+msgstr ""
+
+#: src/video_out/video_out_vdpau.c
+msgid ""
+"If set, snapshots will be scaled, cropped, padded and subtitled.\n"
+"Otherwise, you get the pure original video image.\n"
+msgstr ""
+
+#: src/video_out/video_out_vdpau.c
 msgid "xine video output plugin using VDPAU hardware acceleration"
 msgstr "výstupní modul videa xine použije VDPAU."
 
@@ -6058,8 +6084,9 @@ msgid "number of audio buffers"
 msgstr "počet bufferů zvuku"
 
 #: src/xine-engine/audio_decoder.c
+#, fuzzy
 msgid ""
-"The number of audio buffers (each is 8k in size) xine uses in its internal "
+"The number of audio buffers (each is 2k in size) xine uses in its internal "
 "queue. Higher values mean smoother playback for unreliable inputs, but also "
 "increased latency and memory consumption."
 msgstr ""
@@ -6139,6 +6166,16 @@ msgstr ""
 "nebo kratší a kompenzovalo to chybu zvukové odchylky. Toto nefunguje s "
 "digital passthrough, kde jsou zvuková data posílána do vnějšího dekodéru v "
 "digitální formě."
+
+#: src/xine-engine/audio_out.c
+msgid "a/v sync precision"
+msgstr ""
+
+#: src/xine-engine/audio_out.c
+msgid ""
+"Normal: keep current drift within driver gap tolerance.\n"
+"Fine:   keep average drift within 1/8 tolerance."
+msgstr ""
 
 #: src/xine-engine/audio_out.c
 msgid "enable resampling"
@@ -6325,6 +6362,11 @@ msgstr "input_rip: čtení uložených dat selhalo: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
+msgid "input_rip: seeking failed: %s\n"
+msgstr "input_rip: selhalo nastavení pozice: %s\n"
+
+#: src/xine-engine/input_rip.c
+#, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: čtení vstupním modulem selhalo\n"
 
@@ -6342,11 +6384,6 @@ msgstr "input_rip: funkce open() by nikdy neměla být volána\n"
 #, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_rip: selhalo nastavení pozice\n"
-
-#: src/xine-engine/input_rip.c
-#, c-format
-msgid "input_rip: seeking failed: %s\n"
-msgstr "input_rip: selhalo nastavení pozice: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
@@ -6945,11 +6982,6 @@ msgstr "xine: nelze nalézt vstupní modul pro MRL [%s]\n"
 
 #: src/xine-engine/xine.c
 #, c-format
-msgid "xine: no value for \"%s\", ignoring.\n"
-msgstr ""
-
-#: src/xine-engine/xine.c
-#, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: selhalo spuštění demultiplexoru %s\n"
 
@@ -7007,6 +7039,11 @@ msgstr ""
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
 msgstr "xine: změna volby '%s' z MRL není povolena\n"
+
+#: src/xine-engine/xine.c
+#, c-format
+msgid "xine: no value for \"%s\", ignoring.\n"
+msgstr ""
 
 #: src/xine-engine/xine.c
 #, c-format
@@ -7152,6 +7189,16 @@ msgstr ""
 "příliš vysoké hodnoty zablokují přehrávač, pokud se ztratí spojení."
 
 #: src/xine-engine/xine.c
+msgid "Internet Protocol version(s) to use"
+msgstr ""
+
+#: src/xine-engine/xine.c
+msgid ""
+"\"auto\" just tries what the name query returned.\n"
+"Otherwise, IPv4 may offer more compatibility and privacy."
+msgstr ""
+
+#: src/xine-engine/xine.c
 msgid "Auto join separate audio/video files"
 msgstr ""
 
@@ -7226,6 +7273,15 @@ msgstr "Chyba povolení přístupu"
 #: src/xine-engine/xine_interface.c
 msgid "File is empty:"
 msgstr "Soubor je prázdný:"
+
+#: src/xine-engine/xine_interface.c
+msgid "Authentication needed"
+msgstr ""
+
+#: src/xine-engine/xine_interface.c
+#, fuzzy
+msgid "Recording done:"
+msgstr "Obnovuje se index..."
 
 #: src/xine-utils/memcpy.c
 #, c-format

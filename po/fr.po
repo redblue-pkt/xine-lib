@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.1.9\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2019-12-13 18:25+0200\n"
+"POT-Creation-Date: 2022-01-24 19:12+0200\n"
 "PO-Revision-Date: 2014-03-11 23:17+0100\n"
 "Last-Translator: Xavier Bachelot <xavier@bachelot.org>\n"
 "Language-Team: french <fr@li.org>\n"
@@ -229,132 +229,8 @@ msgstr ""
 "représentation graphique du mixeur."
 
 #: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_lib_error_set_handler() failed: %d"
-msgstr "snd_lib_error_set_handler() a échoué: %d"
-
-#: src/audio_out/audio_alsa_out.c
-msgid "sound card can do mmap"
-msgstr "La carte son peut utiliser mmap"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
-"You can try enabling it and check, if everything works. If it does, this "
-"will increase performance."
-msgstr ""
-"Activez ceci si votre carte son et votre pilote alsa supportent memory "
-"mapped IO.\n"
-"Essayez de l'activer et contrôlez que tout fonctionne correctement.Si c'est "
-"le cas,cela augmentera les performances ."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for mono output"
-msgstr "périphérique utilisé pour la sortie mono"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output mono sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine utilisera ce périphérique alsa pour la sortie son mono.\n"
-"Voir la documentation alsa pour toutes informations complémentaires sur les "
-"périphériques alsa."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for stereo output"
-msgstr "périphérique utilisé pour la sortie stéréo"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output stereo sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine utilisera ce périphérique alsa pour la sortie son stéréo.\n"
-"Voir la documentation alsa pour toutes informations complémentaires sur les "
-"périphériques alsa"
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 4-channel output"
-msgstr "périphérique utilisé pour la sortie 4 canaux"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine utilisera ce périphérique alsa pour la sortie son 4 canaux ( 4.0 ) "
-"surround.\n"
-"Voir la documentation alsa pour toutes informations complémentaires sur les "
-"périphériques alsa."
-
-#: src/audio_out/audio_alsa_out.c
-msgid "device used for 5.1-channel output"
-msgstr "périphérique utilisé pour la sortie 5.1 canaux"
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
-"sound.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine utilisera ce périphérique alsa pour la sortie son 5 canaux plus LFE "
-"(5.1) surround.\n"
-"Voir la documentation alsa pour toutes informations complémentaires sur les "
-"périphériques alsa."
-
-#: src/audio_out/audio_alsa_out.c
-msgid ""
-"xine will use this alsa device to output undecoded digital surround sound. "
-"This can be used be external surround decoders.\n"
-"See the alsa documentation for information on alsa devices."
-msgstr ""
-"xine utilisera ce périphérique alsa pour une sortie son numérique surround "
-"non décodée. Celle-ci peut être utilisée par un décodeur surround externe.\n"
-"Voir la documentation alsa pour toutes informations complémentaires sur les "
-"périphériques alsa."
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid "snd_pcm_open() failed:%d:%s\n"
-msgstr "snd_pcm_open() a échoué:%d:%s\n"
-
-#: src/audio_out/audio_alsa_out.c
-#, c-format
-msgid ">>> Check if another program already uses PCM <<<\n"
-msgstr ">>> Vérifiez si un autre programme utilise déjà PCM <<<\n"
-
-#: src/audio_out/audio_alsa_out.c
 msgid "audio_alsa_out : supported modes are"
 msgstr "audio_alsa_out : les modes supportés sont"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 8bit"
-msgstr " 8bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 16bit"
-msgstr " 16bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 24bit"
-msgstr " 24bit"
-
-#: src/audio_out/audio_alsa_out.c
-msgid " 32bit"
-msgstr " 32bit"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " mono"
-msgstr " mono"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " stereo"
-msgstr " stéréo"
-
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " 4-channel"
-msgstr " 4-canaux"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " (4-channel not enabled in xine config)"
@@ -377,20 +253,149 @@ msgid " (5-channel not enabled in xine config)"
 msgstr " (Sortie 5 canaux non activée dans la configuration de xine)"
 
 #: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " (5.1-channel not enabled in xine config)"
+msgstr " (Sortie 5.1 canaux non activée dans la configuration de xine)"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " (a/52 and DTS pass-through not enabled in xine config)"
+msgstr " (a/52 et DTS pass-through non activés dans la configuration de xine)"
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid "snd_pcm_open() failed:%d:%s\n"
+msgstr "snd_pcm_open() a échoué:%d:%s\n"
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid ">>> Check if another program already uses PCM <<<\n"
+msgstr ">>> Vérifiez si un autre programme utilise déjà PCM <<<\n"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 8bit"
+msgstr " 8bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 16bit"
+msgstr " 16bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 24bit"
+msgstr " 24bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid " 32bit"
+msgstr " 32bit"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "sound card can do mmap"
+msgstr "La carte son peut utiliser mmap"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"Enable this, if your sound card and alsa driver support memory mapped IO.\n"
+"You can try enabling it and check, if everything works. If it does, this "
+"will increase performance."
+msgstr ""
+"Activez ceci si votre carte son et votre pilote alsa supportent memory "
+"mapped IO.\n"
+"Essayez de l'activer et contrôlez que tout fonctionne correctement.Si c'est "
+"le cas,cela augmentera les performances ."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " mono"
+msgstr " mono"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for mono output"
+msgstr "périphérique utilisé pour la sortie mono"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output mono sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine utilisera ce périphérique alsa pour la sortie son mono.\n"
+"Voir la documentation alsa pour toutes informations complémentaires sur les "
+"périphériques alsa."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " stereo"
+msgstr " stéréo"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for stereo output"
+msgstr "périphérique utilisé pour la sortie stéréo"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output stereo sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine utilisera ce périphérique alsa pour la sortie son stéréo.\n"
+"Voir la documentation alsa pour toutes informations complémentaires sur les "
+"périphériques alsa"
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
+msgid " 4-channel"
+msgstr " 4-canaux"
+
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 4-channel output"
+msgstr "périphérique utilisé pour la sortie 4 canaux"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 4 channel (4.0) surround sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine utilisera ce périphérique alsa pour la sortie son 4 canaux ( 4.0 ) "
+"surround.\n"
+"Voir la documentation alsa pour toutes informations complémentaires sur les "
+"périphériques alsa."
+
+#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
 msgid " 5.1-channel"
 msgstr " Sortie 5.1 canaux"
 
-#: src/audio_out/audio_alsa_out.c src/audio_out/audio_oss_out.c
-msgid " (5.1-channel not enabled in xine config)"
-msgstr " (Sortie 5.1 canaux non activée dans la configuration de xine)"
+#: src/audio_out/audio_alsa_out.c
+msgid "device used for 5.1-channel output"
+msgstr "périphérique utilisé pour la sortie 5.1 canaux"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output 5 channel plus LFE (5.1) surround "
+"sound.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine utilisera ce périphérique alsa pour la sortie son 5 canaux plus LFE "
+"(5.1) surround.\n"
+"Voir la documentation alsa pour toutes informations complémentaires sur les "
+"périphériques alsa."
 
 #: src/audio_out/audio_alsa_out.c
 msgid " a/52 and DTS pass-through"
 msgstr " a/52 et DTS pass-through"
 
 #: src/audio_out/audio_alsa_out.c
-msgid " (a/52 and DTS pass-through not enabled in xine config)"
-msgstr " (a/52 et DTS pass-through non activés dans la configuration de xine)"
+#, fuzzy
+msgid "device used for a/52 and DTS pass-through"
+msgstr " a/52 et DTS pass-through"
+
+#: src/audio_out/audio_alsa_out.c
+msgid ""
+"xine will use this alsa device to output undecoded digital surround sound. "
+"This can be used be external surround decoders.\n"
+"See the alsa documentation for information on alsa devices."
+msgstr ""
+"xine utilisera ce périphérique alsa pour une sortie son numérique surround "
+"non décodée. Celle-ci peut être utilisée par un décodeur surround externe.\n"
+"Voir la documentation alsa pour toutes informations complémentaires sur les "
+"périphériques alsa."
+
+#: src/audio_out/audio_alsa_out.c
+#, c-format
+msgid "snd_lib_error_set_handler() failed: %d"
+msgstr "snd_lib_error_set_handler() a échoué: %d"
 
 #: src/audio_out/audio_alsa_out.c
 msgid "alsa mixer device"
@@ -1866,8 +1871,8 @@ msgstr "Essayer de synchroniser la vidéo à chaque trame"
 #: src/dxr3/dxr3_decode_video.c
 msgid ""
 "Tries to set a synchronization timestamp for every frame. Normally this is "
-"not necessary, because sync is sufficent even when the timestamp is set only "
-"every now and then.\n"
+"not necessary, because sync is sufficient even when the timestamp is set "
+"only every now and then.\n"
 "This is relevant for progressive video only (most PAL films)."
 msgstr ""
 
@@ -2970,6 +2975,11 @@ msgstr ""
 "Sélectionne le protocole d'encapsulation de MMS.\n"
 "TCP est meilleur mais vous pouvez avoir besoin de HTTP derrière un pare-feu."
 
+#: src/input/input_mpegdash.c
+#, fuzzy
+msgid "MPEG Dynamic Adaptive Streaming over Http input plugin"
+msgstr "plugin d'entré de flux stdin"
+
 #: src/input/input_net.c
 msgid "net input plugin as shipped with xine"
 msgstr "plugin d'entré réseau fournis avec xine"
@@ -2977,6 +2987,11 @@ msgstr "plugin d'entré réseau fournis avec xine"
 #: src/input/input_net.c
 #, fuzzy
 msgid "tls input plugin"
+msgstr "plugin d'entrée fichier"
+
+#: src/input/input_net.c
+#, fuzzy
+msgid "gopher input plugin"
 msgstr "plugin d'entrée fichier"
 
 #: src/input/input_nfs.c
@@ -5239,6 +5254,16 @@ msgid ""
 msgstr ""
 
 #: src/video_out/video_out_vdpau.c
+msgid "vdpau: make snapshots like visible on screen"
+msgstr ""
+
+#: src/video_out/video_out_vdpau.c
+msgid ""
+"If set, snapshots will be scaled, cropped, padded and subtitled.\n"
+"Otherwise, you get the pure original video image.\n"
+msgstr ""
+
+#: src/video_out/video_out_vdpau.c
 msgid "xine video output plugin using VDPAU hardware acceleration"
 msgstr "plugin de sortie vidéo xine utilisant VDPAU."
 
@@ -5720,7 +5745,7 @@ msgstr "nombre de tampons audio"
 
 #: src/xine-engine/audio_decoder.c
 msgid ""
-"The number of audio buffers (each is 8k in size) xine uses in its internal "
+"The number of audio buffers (each is 2k in size) xine uses in its internal "
 "queue. Higher values mean smoother playback for unreliable inputs, but also "
 "increased latency and memory consumption."
 msgstr ""
@@ -5778,6 +5803,16 @@ msgid ""
 "shorter to compensate the audio drift error. This does not work for digital "
 "passthrough, where audio data is passed to an external decoder in digital "
 "form."
+msgstr ""
+
+#: src/xine-engine/audio_out.c
+msgid "a/v sync precision"
+msgstr ""
+
+#: src/xine-engine/audio_out.c
+msgid ""
+"Normal: keep current drift within driver gap tolerance.\n"
+"Fine:   keep average drift within 1/8 tolerance."
 msgstr ""
 
 #: src/xine-engine/audio_out.c
@@ -5954,6 +5989,11 @@ msgstr "input_rip: la lecture des données sauvegardées a échouée: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
+msgid "input_rip: seeking failed: %s\n"
+msgstr "input_rip: la recherche a échouée: %s\n"
+
+#: src/xine-engine/input_rip.c
+#, c-format
 msgid "input_rip: reading by input plugin failed\n"
 msgstr "input_rip: la lecture par le plugin d'entré a echoué\n"
 
@@ -5971,11 +6011,6 @@ msgstr "input_rip: la fonction open() ne devrait jamais être appelée\n"
 #, c-format
 msgid "input_rip: seeking failed\n"
 msgstr "input_rip: la recherche a échouée\n"
-
-#: src/xine-engine/input_rip.c
-#, c-format
-msgid "input_rip: seeking failed: %s\n"
-msgstr "input_rip: la recherche a échouée: %s\n"
 
 #: src/xine-engine/input_rip.c
 #, c-format
@@ -6539,11 +6574,6 @@ msgstr "xine: impossible de trouver un plugin d'entrée pour le MRL [%s]\n"
 
 #: src/xine-engine/xine.c
 #, c-format
-msgid "xine: no value for \"%s\", ignoring.\n"
-msgstr ""
-
-#: src/xine-engine/xine.c
-#, c-format
 msgid "xine: specified demuxer %s failed to start\n"
 msgstr "xine: le démultiplexeur spécifié %s n'a pas réussi a démarré\n"
 
@@ -6601,6 +6631,11 @@ msgstr ""
 #, c-format
 msgid "xine: changing option '%s' from MRL isn't permitted\n"
 msgstr "xine: changer l'option '%s' depuis le MRL n'est pas permis\n"
+
+#: src/xine-engine/xine.c
+#, c-format
+msgid "xine: no value for \"%s\", ignoring.\n"
+msgstr ""
 
 #: src/xine-engine/xine.c
 #, c-format
@@ -6719,6 +6754,16 @@ msgid ""
 msgstr ""
 
 #: src/xine-engine/xine.c
+msgid "Internet Protocol version(s) to use"
+msgstr ""
+
+#: src/xine-engine/xine.c
+msgid ""
+"\"auto\" just tries what the name query returned.\n"
+"Otherwise, IPv4 may offer more compatibility and privacy."
+msgstr ""
+
+#: src/xine-engine/xine.c
 msgid "Auto join separate audio/video files"
 msgstr ""
 
@@ -6792,6 +6837,15 @@ msgstr "Erreur de permission"
 #: src/xine-engine/xine_interface.c
 msgid "File is empty:"
 msgstr "Le fichier est vide:"
+
+#: src/xine-engine/xine_interface.c
+msgid "Authentication needed"
+msgstr ""
+
+#: src/xine-engine/xine_interface.c
+#, fuzzy
+msgid "Recording done:"
+msgstr "Restauration de l'index..."
 
 #: src/xine-utils/memcpy.c
 #, c-format
