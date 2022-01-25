@@ -189,8 +189,15 @@ static void *_egl_get_proc_address(xine_gl_t *gl, const char *procname)
 static void *_egl_create_image_khr(xine_gl_t *gl, unsigned target, void *buffer, const int32_t *attrib_list)
 {
   xine_egl_t *egl = EGL(gl);
+  void *img;
 
-  return egl->eglCreateImageKHR(egl->display, egl->context, target, buffer, attrib_list);
+  img = egl->eglCreateImageKHR(egl->display, EGL_NO_CONTEXT, target, buffer, attrib_list);
+
+  if (!img) {
+    _egl_log_error(egl->p.xine, "eglCreateImageKHR");
+  }
+
+  return img;
 }
 
 static int _egl_destroy_image_khr(xine_gl_t *gl, void *image)
