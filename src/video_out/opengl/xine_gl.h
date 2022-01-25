@@ -56,6 +56,21 @@ struct xine_gl {
 
 xine_gl_t *_x_load_gl(xine_t *xine, unsigned visual_type, const void *visual, unsigned flags);
 
+
+static inline int _x_gl_has_extension(const char *extensions, const char * const ext) {
+  if (extensions)
+    while (*extensions) {
+      const char *p = ext;
+      while (*extensions == ' ') extensions++;
+      while (*p && *p == *extensions) p++, extensions++;
+      if (*p == 0 && (*extensions == 0 || *extensions == ' '))
+        return 1;
+      while (*extensions && *extensions != ' ')
+        extensions++;
+    }
+  return 0;
+}
+
 /* flags */
 #define XINE_GL_API_OPENGL     0x0001
 #define XINE_GL_API_OPENGLES   0x0002
