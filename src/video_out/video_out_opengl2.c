@@ -1689,6 +1689,8 @@ static void opengl2_dispose (vo_driver_t *this_gen) {
 
   opengl2_exit_unregister (this);
 
+  if (this->glconv)
+    this->glconv->destroy(&this->glconv);
   if (this->hw)
     this->hw->destroy(&this->hw);
 
@@ -1942,6 +1944,8 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
           else
             this->vo_driver.update_frame_format = this->hw->update_frame_format;
         }
+        xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+                 "%s hardware decoding.\n", this->hw ? "Enabled" : "Not using");
 
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": initialized.\n");
         return &this->vo_driver;

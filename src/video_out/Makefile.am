@@ -29,7 +29,9 @@ opengl_xine_gl_la_SOURCES = opengl/xine_gl.c opengl/xine_gl.h opengl/xine_gl_plu
 opengl_xine_gl_la_CFLAGS = $(AM_CFLAGS)
 opengl_xine_gl_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
-vaapi_xine_vaapi_la_SOURCES = vaapi/xine_va_display.c vaapi/xine_va_display.h vaapi/xine_va_display_plugin.h
+vaapi_xine_vaapi_la_SOURCES = \
+	vaapi/xine_va_display.c vaapi/xine_va_display.h vaapi/xine_va_display_plugin.h \
+	vaapi/vaapi_util.h vaapi/vaapi_util.c vaapi/vaapi_frame.h vaapi/vaapi_frame.c
 vaapi_xine_vaapi_la_CFLAGS = $(AM_CFLAGS)
 vaapi_xine_vaapi_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 
@@ -168,7 +170,7 @@ xineplug_vo_out_vdpau_la_SOURCES = video_out_vdpau.c
 xineplug_vo_out_vdpau_la_LIBADD = $(XINE_LIB) $(PTHREAD_LIBS) $(X_LIBS) $(LTLIBINTL) $(VDPAU_LIBS) -lm
 xineplug_vo_out_vdpau_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS) $(VDPAU_CFLAGS)
 
-xineplug_vo_out_vaapi_la_SOURCES = video_out_vaapi.c vaapi/vaapi_util.h vaapi/vaapi_util.c vaapi/vaapi_frame.h vaapi/vaapi_frame.c
+xineplug_vo_out_vaapi_la_SOURCES = video_out_vaapi.c
 xineplug_vo_out_vaapi_la_LIBADD = $(XINE_LIB) $(OPENGL_LIBS) $(X_LIBS) $(PTHREAD_LIBS) $(LTLIBINTL) $(DYNAMIC_LD_LIBS) $(GLU_LIBS) $(LIBVA_LIBS) $(LIBVA_GLX_LIBS) $(LIBVA_X11_LIBS) $(XINE_VAAPI_LIB) -lm
 xineplug_vo_out_vaapi_la_CFLAGS = $(AM_CFLAGS) $(X_CFLAGS) $(XV_CFLAGS) $(LIBVA_CFLAGS) $(LIBVA_GLX_CFLAGS) $(LIBVA_X11_CFLAGS)
 
@@ -304,6 +306,19 @@ xineplug_vo_gl_egl_x11_la_CFLAGS = -DXINE_EGL_USE_X11 $(AM_CFLAGS) $(X_CFLAGS) $
 xineplug_vo_gl_egl_wl_la_SOURCES = opengl/xine_egl.c opengl/xine_gl_plugin.h
 xineplug_vo_gl_egl_wl_la_LIBADD = $(XINE_LIB) $(WAYLAND_LIBS) $(EGL_LIBS) $(LTLIBINTL)
 xineplug_vo_gl_egl_wl_la_CFLAGS = -DXINE_EGL_USE_WAYLAND $(AM_CFLAGS) $(WAYLAND_CFLAGS) $(EGL_CFLAGS)
+
+# HW decoding
+
+if ENABLE_VAAPI
+va_hw_frame_module = xineplug_hw_frame_vaapi.la
+endif
+
+xineplug_LTLIBRARIES += \
+		$(va_hw_frame_module)
+
+xineplug_hw_frame_vaapi_la_SOURCES = vaapi/xine_hw_frame_vaapi.c xine_hw_frame_plugin.h vaapi/vaapi_egl.c vaapi/vaapi_egl.h
+xineplug_hw_frame_vaapi_la_LIBADD = $(XINE_LIB) $(LIBVA_LIBS) $(LTLIBINTL) $(XINE_VAAPI_LIB)
+xineplug_hw_frame_vaapi_la_CFLAGS = $(AM_CFLAGS) $(LIBVA_CFLAGS)
 
 # vaapi display provider plugins
 
