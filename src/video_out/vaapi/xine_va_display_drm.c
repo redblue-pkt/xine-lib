@@ -106,6 +106,7 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
   if (!impl) {
     vaTerminate(dpy);
     close(drm_fd);
+    return NULL;
   }
 
   impl->drm_fd               = drm_fd;
