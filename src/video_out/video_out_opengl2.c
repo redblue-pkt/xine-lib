@@ -1876,7 +1876,7 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
       {
         const char *extensions = glGetString (GL_EXTENSIONS);
 
-        this->texture_float = (extensions && strstr (extensions, "ARB_texture_float")) ? 1 : 0;
+        this->texture_float = !!_x_gl_has_extension(extensions, "GL_ARB_texture_float");
       }
 
 #define INITWIDTH  720
@@ -1936,12 +1936,12 @@ static int opengl2_check_platform (xine_t *xine, unsigned visual_type, const voi
     const char *extensions = glGetString (GL_EXTENSIONS);
 
     if (extensions
-      && strstr (extensions, "ARB_texture_rectangle")
-      && strstr (extensions, "ARB_texture_non_power_of_two")
-      && strstr (extensions, "ARB_pixel_buffer_object")
-      && strstr (extensions, "ARB_framebuffer_object")
-      && strstr (extensions, "ARB_fragment_shader")
-      && strstr (extensions, "ARB_vertex_shader"))
+      && _x_gl_has_extension (extensions, "GL_ARB_texture_rectangle")
+      && _x_gl_has_extension (extensions, "GL_ARB_texture_non_power_of_two")
+      && _x_gl_has_extension (extensions, "GL_ARB_pixel_buffer_object")
+      && _x_gl_has_extension (extensions, "GL_ARB_framebuffer_object")
+      && _x_gl_has_extension (extensions, "GL_ARB_fragment_shader")
+      && _x_gl_has_extension (extensions, "GL_ARB_vertex_shader"))
       result = 1;
     gl->release_current (gl);
   }
