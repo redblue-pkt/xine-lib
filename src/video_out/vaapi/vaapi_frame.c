@@ -26,6 +26,8 @@
 #include "config.h"
 #endif
 
+#define LOG_MODULE "vaapi_frame"
+
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -58,14 +60,14 @@ void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current
   int       width, height;
 
   if (vo_frame->format != XINE_IMGFMT_VAAPI) {
-    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE " "
+    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
             "vaapi_provide_standard_frame_data: unexpected frame format 0x%08x!\n",
             vo_frame->format);
     return;
   }
 
   if (accel->index >= RENDER_SURFACES /* invalid */) {
-    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE " "
+    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
             "vaapi_provide_standard_frame_data: invalid surface\n");
     return;
   }
@@ -211,13 +213,13 @@ void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origina
   int       this_is_bound, orig_is_bound;
 
   if (orig->vo_frame.format != XINE_IMGFMT_VAAPI) {
-    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE " "
+    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
             "vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", orig->format);
     return;
   }
 
   if (this->vo_frame.format != XINE_IMGFMT_VAAPI) {
-    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE " "
+    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
             "vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", this->format);
     return;
   }
@@ -229,7 +231,7 @@ void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origina
 
   if (_x_va_accel_guarded_render(this_gen)) {
     if (accel_orig->index >= RENDER_SURFACES) {
-      xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE " "
+      xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
               "vaapi_duplicate_frame_data: invalid source surface\n");
       goto error;
     }
@@ -237,7 +239,7 @@ void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origina
 
     va_surface_this = _x_va_accel_alloc_vaapi_surface(this_gen);
     if (!va_surface_this) {
-      xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE " "
+      xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
               "vaapi_duplicate_frame_data: surface allocation failed\n");
       goto error;
     }
@@ -425,7 +427,7 @@ vaapi_frame_t *_x_va_frame_alloc_frame (vaapi_context_impl_t *va, vo_driver_t *d
   vaapi_frame_t   *frame;
 
   if (va->num_frames >= sizeof(va->frames) / sizeof(va->frames[0])) {
-    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE " alloc_frame: "
+    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
             "frame limit (%u) exceeded\n", va->num_frames);
     return NULL;
   }
