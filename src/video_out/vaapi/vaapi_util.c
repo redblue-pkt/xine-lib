@@ -26,6 +26,8 @@
 #include "config.h"
 #endif
 
+#define LOG_MODULE "vaapi"
+
 #include "vaapi_util.h"
 
 #include <stdlib.h>
@@ -96,7 +98,8 @@ const char *_x_va_entrypoint_to_string(VAEntrypoint entrypoint)
 int _x_va_check_status(vaapi_context_impl_t *this, VAStatus vaStatus, const char *msg)
 {
   if (vaStatus != VA_STATUS_SUCCESS) {
-    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE " Error : %s: %s\n", msg, vaErrorStr(vaStatus));
+    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+            "Error : %s: %s [0x%04x]\n", msg, vaErrorStr(vaStatus), vaStatus);
     return 0;
   }
   return 1;
@@ -230,11 +233,13 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   va_context->va_head         = 0;
 
   vendor = vaQueryVendorString(va_context->c.va_display);
-  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Vendor : %s\n", vendor);
+  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+          "vaapi_open: Vendor : %s\n", vendor);
 
   for (p = vendor, i = strlen (vendor); i > 0; i--, p++) {
     if (strncmp(p, "VDPAU", strlen("VDPAU")) == 0) {
-      xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_open: Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
+      xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+              "vaapi_open: Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
       va_context->query_va_status = 0;
       break;
     }
@@ -385,7 +390,8 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
   va_context->c.width = width;
   va_context->c.height = height;
 
-  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : Context width %d height %d\n", va_context->c.width, va_context->c.height);
+  xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+          "vaapi_init : Context width %d height %d\n", va_context->c.width, va_context->c.height);
 
   /* allocate decoding surfaces */
   unsigned rt_format = VA_RT_FORMAT_YUV420;
@@ -400,7 +406,8 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
 
   /* hardware decoding needs more setup */
   if (va_profile >= 0) {
-    xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " vaapi_init : Profile: %d (%s) Entrypoint %d (%s) Surfaces %d\n",
+    xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+            "vaapi_init : Profile: %d (%s) Entrypoint %d (%s) Surfaces %d\n",
             va_profile, _x_va_profile_to_string(va_profile), VAEntrypointVLD, _x_va_entrypoint_to_string(VAEntrypointVLD), RENDER_SURFACES);
 
     memset (&va_attrib, 0, sizeof(va_attrib));
@@ -460,7 +467,8 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
 
  error:
   pthread_mutex_unlock(&va_context->ctx_lock);
-  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE "Error initializing VAAPI decoding\n");
+  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+          "Error initializing VAAPI decoding\n");
   _x_va_close(va_context);
   return VA_STATUS_ERROR_UNKNOWN;
 }
@@ -495,9 +503,9 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
   if(!_x_va_check_status(va_context, vaStatus, "vaQueryConfigProfiles()"))
     goto out;
 
-  xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE " VAAPI Supported Profiles :\n");
+  xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": VAAPI Supported Profiles :\n");
   for (i = 0; i < va_num_profiles; i++) {
-    xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE "    %s\n", _x_va_profile_to_string(va_profiles[i]));
+    xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ":    %s\n", _x_va_profile_to_string(va_profiles[i]));
   }
 
   static const int mpeg2_profiles[] = { VAProfileMPEG2Main, VAProfileMPEG2Simple, -1 };
@@ -552,14 +560,16 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
     for (i = 0; profiles[i] != -1; i++) {
       if (_x_va_has_profile(va_profiles, va_num_profiles, profiles[i])) {
         profile = profiles[i];
-        xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Profile %s supported by your hardware\n", _x_va_profile_to_string(profiles[i]));
+        xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+                "VAAPI Profile %s supported by your hardware\n", _x_va_profile_to_string(profiles[i]));
         break;
       }
     }
   }
 
   if (profile < 0)
-    xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE " VAAPI Profile for video format %d not supported by hardware\n", format);
+    xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+            "VAAPI Profile for video format 0x%08x not supported by hardware\n", format);
 
 out:
   free(va_profiles);
