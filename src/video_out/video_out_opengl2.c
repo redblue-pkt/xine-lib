@@ -1249,6 +1249,8 @@ static void _upload_texture(GLenum target, GLuint tex, GLenum format, GLenum typ
 
 static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
 {
+  unsigned sw_format = frame->format;
+
   if (!that->gl->make_current(that->gl)) {
     return;
   }
@@ -1263,22 +1265,12 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glBindFramebuffer( GL_FRAMEBUFFER, that->fbo );
 
   if (that->hw && frame->format == that->hw->frame_format) {
-    unsigned tex, num_texture, sw_format;
+    unsigned tex, num_texture;
     that->glconv->get_textures(that->glconv, &frame->vo_frame, GL_TEXTURE_2D,
                                &that->yuvtex.tex[OGL2_TEX_HW0], &num_texture, &sw_format);
     for (tex = 0; tex < num_texture; tex++) {
       glActiveTexture (GL_TEXTURE0 + tex);
       glBindTexture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_HW0 + tex]);
-    }
-    switch (sw_format) {
-      case XINE_IMGFMT_NV12:
-        glUseProgram (that->nv12_program.program);
-        glUniform1i (glGetUniformLocation (that->nv12_program.program, "texY"), 0);
-        glUniform1i (glGetUniformLocation (that->nv12_program.program, "texUV"), 1);
-        load_csc_matrix( that->nv12_program.program, that->csc_matrix );
-        break;
-      default:
-        break;
     }
   }
   if (frame->format == XINE_IMGFMT_YV12) {
@@ -1293,12 +1285,6 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     glActiveTexture (GL_TEXTURE2);
     _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_v], GL_LUMINANCE, GL_UNSIGNED_BYTE,
                     frame->vo_frame.base[2], frame->vo_frame.pitches[2], uvh, that->videoPBO);
-
-    glUseProgram (that->yuv420_program.program);
-    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texY"), 0);
-    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texU" ), 1);
-    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texV" ), 2);
-    load_csc_matrix (that->yuv420_program.program, that->csc_matrix);
   }
   else if (frame->format == XINE_IMGFMT_NV12) {
 
@@ -1309,25 +1295,33 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     glActiveTexture (GL_TEXTURE1);
     _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_uv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
                     frame->vo_frame.base[1], frame->vo_frame.pitches[1], (frame->height+1)/2, that->videoPBO);
-
-    glUseProgram (that->nv12_program.program);
-    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texY"), 0);
-    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texUV"), 1);
-    load_csc_matrix( that->nv12_program.program, that->csc_matrix );
   }
   else if ( frame->format == XINE_IMGFMT_YUY2 ) {
     glActiveTexture( GL_TEXTURE0 );
     _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_yuv], GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE,
                     frame->vo_frame.base[0], frame->vo_frame.pitches[0], frame->height, that->videoPBO);
-
-    glUseProgram( that->yuv422_program.program );
-    glUniform2f (glGetUniformLocationARB( that->yuv422_program.program, "texSize"), frame->width/*vo_frame.pitches[0]/2*/, 0);
-    glUniform1i (glGetUniformLocation( that->yuv422_program.program, "texYUV" ), 0 );
-    load_csc_matrix( that->yuv422_program.program, that->csc_matrix );
   }
   else {
     /* unknown format */
     xprintf( that->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": unknown image format 0x%08x\n", frame->format );
+  }
+
+  if (sw_format == XINE_IMGFMT_YV12) {
+    glUseProgram (that->yuv420_program.program);
+    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texY"), 0);
+    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texU" ), 1);
+    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texV" ), 2);
+    load_csc_matrix (that->yuv420_program.program, that->csc_matrix);
+  } else if (sw_format == XINE_IMGFMT_NV12) {
+    glUseProgram (that->nv12_program.program);
+    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texY"), 0);
+    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texUV"), 1);
+    load_csc_matrix( that->nv12_program.program, that->csc_matrix );
+  } else if (sw_format == XINE_IMGFMT_YUY2) {
+    glUseProgram( that->yuv422_program.program );
+    glUniform2f (glGetUniformLocationARB( that->yuv422_program.program, "texSize"), frame->width/*vo_frame.pitches[0]/2*/, 0);
+    glUniform1i (glGetUniformLocation( that->yuv422_program.program, "texYUV" ), 0 );
+    load_csc_matrix( that->yuv422_program.program, that->csc_matrix );
   }
 
   glViewport( 0, 0, frame->width, frame->height );
