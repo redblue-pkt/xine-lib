@@ -113,7 +113,7 @@ void _x_va_reset_va_context(ff_vaapi_context_t *va_context)
   va_context->va_context_id             = VA_INVALID_ID;
   va_context->valid_context             = 0;
 
-  for(i = 0; i < RENDER_SURFACES; i++) {
+  for(i = 0; i < RENDER_SURFACES + 1; i++) {
     ff_vaapi_surface_t *va_surface      = &va_context->va_render_surfaces[i];
 
     va_surface->index                   = i;
@@ -194,7 +194,7 @@ fail:
   return vaStatus;
 }
 
-vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, int opengl_render)
+vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, int glx_render)
 {
   vaapi_context_impl_t *va_context;
   xine_va_display_t *va_display;
@@ -202,7 +202,7 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   VAStatus vaStatus;
   size_t   i;
 
-  va_display = _x_va_display_open(xine, visual_type, visual, opengl_render ? XINE_VA_DISPLAY_GLX : 0);
+  va_display = _x_va_display_open(xine, visual_type, visual, glx_render ? XINE_VA_DISPLAY_GLX : 0);
   if (!va_display)
     return NULL;
 
