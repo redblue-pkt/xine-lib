@@ -45,6 +45,7 @@ typedef struct {
 
   Display    *display;
   Drawable    drawable;
+  int         screen;
   GLXContext  context;
 
   int         lock1, lock2;
@@ -122,6 +123,31 @@ static void _glx_resize(xine_gl_t *gl, int w, int h)
   (void)w;
   (void)h;
 }
+
+static void *_glx_get_proc_address(xine_gl_t *gl, const char *procname)
+{
+  (void)gl;
+#ifdef GLX_ARB_get_proc_address
+  return glXGetProcAddressARB(procname);
+#else
+# warning GLX_ARB_get_proc_address extension missing
+  (void)procname;
+  return NULL;
+#endif
+}
+
+static const char *_glx_query_extensions(xine_gl_t *gl)
+{
+#ifdef GLX_VERSION_1_1
+  xine_glx_t *glx = GLX(gl);
+
+  return glXQueryExtensionsString (glx->display, glx->screen);
+#else
+# warning GLX version 1.1 not detected !
+  return NULL;
+#endif
+}
+
 
 /*
  * xine module
@@ -239,11 +265,15 @@ static xine_module_t *_glx_get_instance(xine_module_class_t *class_gen, const vo
   glx->p.gl.set_native_window = _glx_set_native_window;
   glx->p.gl.dispose           = NULL;
 
+  glx->p.gl.query_extensions  = _glx_query_extensions;
+  glx->p.gl.get_proc_address  = _glx_get_proc_address;
+
   glx->p.xine   = params->xine;
 
   glx->context  = ctx;
   glx->display  = vis->display;
   glx->drawable = vis->d;
+  glx->screen   = vis->screen;
 
   _register_config(glx->p.xine->config, glx);
 
