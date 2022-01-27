@@ -50,7 +50,7 @@
 
 void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current_frame_data_t *data)
 {
-  vaapi_context_impl_t *va = _ctx_from_frame(vo_frame);
+  vaapi_context_impl_t *va;
   vaapi_accel_t        *accel = vo_frame->accel_data;
   ff_vaapi_surface_t   *va_surface;
 
@@ -59,12 +59,9 @@ void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current
   uint8_t  *base[3];
   int       width, height;
 
-  if (vo_frame->format != XINE_IMGFMT_VAAPI) {
-    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
-            "vaapi_provide_standard_frame_data: unexpected frame format 0x%08x!\n",
-            vo_frame->format);
-    return;
-  }
+  _x_assert(vo_frame->format == XINE_IMGFMT_VAAPI);
+
+  va = _ctx_from_frame(vo_frame);
 
   if (accel->index >= RENDER_SURFACES /* invalid */) {
     xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
@@ -194,13 +191,10 @@ error:
 
 void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *original)
 {
-  vaapi_context_impl_t *va = _ctx_from_frame(this_gen);
-
-  mem_frame_t *this = xine_container_of(this_gen, mem_frame_t, vo_frame);
-  mem_frame_t *orig = xine_container_of(original, mem_frame_t, vo_frame);
-
   vaapi_accel_t *accel_this = this_gen->accel_data;
   vaapi_accel_t *accel_orig = original->accel_data;
+
+  vaapi_context_impl_t *va;
 
   ff_vaapi_surface_t *va_surface_this = NULL;
   ff_vaapi_surface_t *va_surface_orig;
@@ -212,15 +206,13 @@ void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origina
   void     *p_base_this = NULL;
   int       this_is_bound, orig_is_bound;
 
-  if (orig->vo_frame.format != XINE_IMGFMT_VAAPI) {
-    xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
-            "vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", orig->format);
-    return;
-  }
+  _x_assert (this_gen->format == XINE_IMGFMT_VAAPI);
 
-  if (this->vo_frame.format != XINE_IMGFMT_VAAPI) {
+  va = _ctx_from_frame(this_gen);
+
+  if (original->format != XINE_IMGFMT_VAAPI) {
     xprintf(va->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
-            "vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", this->format);
+            "vaapi_duplicate_frame_data: unexpected frame format 0x%08x!\n", original->format);
     return;
   }
 
@@ -279,7 +271,7 @@ void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *origina
           "va_image_orig.width %d va_image_orig.height %d width %d height %d "
           "size %d %d %d %d\n",
           va_image_orig.image_id, va_image_orig.width, va_image_orig.height,
-          this->width, this->height, va_image_orig.data_size,
+          this_gen->width, this_gen->height, va_image_orig.data_size,
           va_image_orig.pitches[0], va_image_orig.pitches[1], va_image_orig.pitches[2]);
 
   if (!orig_is_bound) {
