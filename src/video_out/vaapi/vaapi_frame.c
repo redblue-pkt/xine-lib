@@ -372,24 +372,6 @@ void _x_va_frame_update_frame_format (vo_driver_t *this_gen,
 #endif
 }
 
-void _x_va_frame_dispose (vo_frame_t *vo_frame)
-{
-  vaapi_frame_t  *frame = xine_container_of(vo_frame, vaapi_frame_t, mem_frame.vo_frame);
-  vaapi_accel_t  *accel = &frame->vaapi_accel_data;
-  vaapi_context_impl_t *va = frame->ctx_impl;
-
-  if (accel->index < RENDER_SURFACES) {
-    if (_x_va_accel_guarded_render(vo_frame)) {
-      ff_vaapi_surface_t *va_surface = &va->c.va_render_surfaces[accel->index];
-      pthread_mutex_lock(&va->surfaces_lock);
-      va_surface->status = SURFACE_FREE;
-      pthread_mutex_unlock(&va->surfaces_lock);
-    }
-  }
-
-  _mem_frame_dispose(vo_frame);
-}
-
 vaapi_frame_t *_x_va_frame_alloc_frame (vaapi_context_impl_t *va, vo_driver_t *driver, int guarded_render)
 {
   static const struct vaapi_accel_funcs_s accel_funcs = {
@@ -429,7 +411,6 @@ vaapi_frame_t *_x_va_frame_alloc_frame (vaapi_context_impl_t *va, vo_driver_t *d
   if (!frame)
     return NULL;
 
-  frame->mem_frame.vo_frame.dispose = _x_va_frame_dispose;
   frame->mem_frame.vo_frame.accel_data = &frame->vaapi_accel_data;
   frame->ctx_impl = va;
 
