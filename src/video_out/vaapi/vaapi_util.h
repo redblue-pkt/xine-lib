@@ -41,9 +41,6 @@ const char *_x_va_entrypoint_to_string(VAEntrypoint entrypoint);
 
 void _x_va_reset_va_context(ff_vaapi_context_t *va_context);
 
-VAStatus _x_va_initialize(ff_vaapi_context_t *va_context);
-VAStatus _x_va_terminate(ff_vaapi_context_t *va_context);
-
 /*
  *
  */

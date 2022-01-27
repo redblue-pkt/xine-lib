@@ -26,6 +26,8 @@
 #include "config.h"
 #endif
 
+#define LOG_MODULE "va_display_drm"
+
 #include "xine_va_display_plugin.h"
 
 #include <stdlib.h>
@@ -66,13 +68,14 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
   const va_display_plugin_params_t *params = data;
   xine_va_display_impl_t *impl;
   VADisplay dpy = NULL;
+  VAStatus vaStatus;
   static const char *default_drm_device[] = {
     "/dev/dri/renderD128",
     "/dev/dri/card0",
     "/dev/dri/renderD129",
     "/dev/dri/card1",
   };
-  int drm_fd = -1;
+  int drm_fd = -1, maj, min;
   size_t i;
 
   (void)class_gen;
@@ -102,6 +105,15 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
   if (!vaDisplayIsValid(dpy))
     return NULL;
 
+  vaStatus = vaInitialize(dpy, &maj, &min);
+  if (vaStatus != VA_STATUS_SUCCESS) {
+    xprintf(params->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+            "Error: vaInitialize: %s [0x%04x]\n", vaErrorStr(vaStatus), vaStatus);
+    vaTerminate(dpy);
+    close(drm_fd);
+    return NULL;
+  }
+
   impl = calloc(1, sizeof(*impl));
   if (!impl) {
     vaTerminate(dpy);
@@ -113,6 +125,8 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
   impl->p.xine               = params->xine;
   impl->p.module.dispose     = _module_dispose;
   impl->p.display.va_display = dpy;
+
+  xprintf(params->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": Using libva %d.%d\n", maj, min);
   return &impl->p.module;
 }
 
