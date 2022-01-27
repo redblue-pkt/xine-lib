@@ -26,6 +26,8 @@
 #include "config.h"
 #endif
 
+#define LOG_MODULE "va_display_wayland"
+
 #include "xine_va_display_plugin.h"
 
 #include <stdlib.h>
@@ -53,6 +55,8 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
   const xine_wayland_visual_t *vis_wl = params->visual;
   xine_va_display_plugin_t *p;
   VADisplay dpy = NULL;
+  VAStatus vaStatus;
+  int maj, min;
 
   (void)class_gen;
 
@@ -62,6 +66,14 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
   dpy = vaGetDisplayWl(vis_wl->display);
   if (!vaDisplayIsValid(dpy))
     return NULL;
+
+  vaStatus = vaInitialize(dpy, &maj, &min);
+  if (vaStatus != VA_STATUS_SUCCESS) {
+    xprintf(params->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+            "Error: vaInitialize: %s [0x%04x]\n", vaErrorStr(vaStatus), vaStatus);
+    vaTerminate(dpy);
+    return NULL;
+  }
 
   p = calloc(1, sizeof(*p));
   if (!p) {
@@ -73,6 +85,7 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
   p->display.va_display = dpy;
   p->module.dispose     = _module_dispose;
 
+  xprintf(params->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": Using libva %d.%d\n", maj, min);
   return &p->module;
 }
 

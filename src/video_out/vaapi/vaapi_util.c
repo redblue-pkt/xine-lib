@@ -124,33 +124,17 @@ void _x_va_reset_va_context(ff_vaapi_context_t *va_context)
   }
 }
 
-VAStatus _x_va_terminate(ff_vaapi_context_t *va_context)
-{
-  VAStatus vaStatus = VA_STATUS_SUCCESS;
-
-  _x_freep(&va_context->va_image_formats);
-  va_context->va_num_image_formats  = 0;
-
-  if (va_context->va_display) {
-    vaStatus = vaTerminate(va_context->va_display);
-    va_context->va_display = NULL;
-  }
-
-  return vaStatus;
-}
-
 void _x_va_free(vaapi_context_impl_t **p_va_context)
 {
   if (*p_va_context) {
     vaapi_context_impl_t *va_context = *p_va_context;
-    VAStatus vaStatus;
 
     if (va_context->va_display_plugin)
       va_context->va_display_plugin->dispose(&va_context->va_display_plugin);
     va_context->c.va_display = NULL;
 
-    vaStatus = _x_va_terminate(&va_context->c);
-    _x_va_check_status(va_context, vaStatus, "vaTerminate()");
+    _x_freep(&va_context->c.va_image_formats);
+    va_context->c.va_num_image_formats  = 0;
 
     pthread_mutex_destroy(&va_context->surfaces_lock);
     pthread_mutex_destroy(&va_context->ctx_lock);
@@ -159,47 +143,13 @@ void _x_va_free(vaapi_context_impl_t **p_va_context)
   }
 }
 
-VAStatus _x_va_initialize(ff_vaapi_context_t *va_context)
-{
-  VAStatus vaStatus;
-  int      maj, min;
-  int      fmt_count = 0;
-
-  if (!va_context->va_display) {
-    return VA_STATUS_ERROR_INVALID_DISPLAY;
-  }
-
-  vaStatus = vaInitialize(va_context->va_display, &maj, &min);
-  if (vaStatus != VA_STATUS_SUCCESS) {
-    goto fail;
-  }
-
-  lprintf("libva: %d.%d\n", maj, min);
-
-  fmt_count = vaMaxNumImageFormats(va_context->va_display);
-  va_context->va_image_formats = calloc(fmt_count, sizeof(*va_context->va_image_formats));
-  if (!va_context->va_image_formats) {
-    goto fail;
-  }
-
-  vaStatus = vaQueryImageFormats(va_context->va_display, va_context->va_image_formats, &va_context->va_num_image_formats);
-  if (vaStatus != VA_STATUS_SUCCESS) {
-    goto fail;
-  }
-
-  return vaStatus;
-
-fail:
-  _x_va_terminate(va_context);
-  return vaStatus;
-}
-
 vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, int glx_render)
 {
   vaapi_context_impl_t *va_context;
   xine_va_display_t *va_display;
   const char *p, *vendor;
   VAStatus vaStatus;
+  int      fmt_count = 0;
   size_t   i;
 
   va_display = _x_va_display_open(xine, visual_type, visual, glx_render ? XINE_VA_DISPLAY_GLX : 0);
@@ -223,8 +173,16 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   pthread_mutex_init(&va_context->surfaces_lock, NULL);
   pthread_mutex_init(&va_context->ctx_lock, NULL);
 
-  vaStatus = _x_va_initialize(&va_context->c);
-  if (!_x_va_check_status(va_context, vaStatus, "vaInitialize()")) {
+  fmt_count = vaMaxNumImageFormats(va_context->c.va_display);
+  va_context->c.va_image_formats = calloc(fmt_count, sizeof(*va_context->c.va_image_formats));
+  if (!va_context->c.va_image_formats) {
+    _x_va_free(&va_context);
+    return NULL;
+  }
+
+  vaStatus = vaQueryImageFormats(va_context->c.va_display, va_context->c.va_image_formats,
+                                 &va_context->c.va_num_image_formats);
+  if (!_x_va_check_status(va_context, vaStatus, "vaQueryImageFormats")) {
     _x_va_free(&va_context);
     return NULL;
   }
@@ -233,13 +191,13 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   va_context->va_head         = 0;
 
   vendor = vaQueryVendorString(va_context->c.va_display);
-  xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
-          "vaapi_open: Vendor : %s\n", vendor);
+  xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
+          "Vendor : %s\n", vendor);
 
   for (p = vendor, i = strlen (vendor); i > 0; i--, p++) {
     if (strncmp(p, "VDPAU", strlen("VDPAU")) == 0) {
       xprintf(va_context->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
-              "vaapi_open: Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
+              "Enable Splitted-Desktop Systems VDPAU-VIDEO workarounds.\n");
       va_context->query_va_status = 0;
       break;
     }
@@ -391,7 +349,7 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
   va_context->c.height = height;
 
   xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
-          "vaapi_init : Context width %d height %d\n", va_context->c.width, va_context->c.height);
+          "Context width %d height %d\n", va_context->c.width, va_context->c.height);
 
   /* allocate decoding surfaces */
   unsigned rt_format = VA_RT_FORMAT_YUV420;
@@ -407,7 +365,7 @@ VAStatus _x_va_init(vaapi_context_impl_t *va_context, int va_profile, int width,
   /* hardware decoding needs more setup */
   if (va_profile >= 0) {
     xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": "
-            "vaapi_init : Profile: %d (%s) Entrypoint %d (%s) Surfaces %d\n",
+            "Profile: %d (%s) Entrypoint %d (%s) Surfaces %d\n",
             va_profile, _x_va_profile_to_string(va_profile), VAEntrypointVLD, _x_va_entrypoint_to_string(VAEntrypointVLD), RENDER_SURFACES);
 
     memset (&va_attrib, 0, sizeof(va_attrib));
@@ -503,9 +461,9 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
   if(!_x_va_check_status(va_context, vaStatus, "vaQueryConfigProfiles()"))
     goto out;
 
-  xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": VAAPI Supported Profiles :\n");
+  xprintf(va_context->xine, XINE_VERBOSITY_DEBUG + 1, LOG_MODULE ": VAAPI Supported Profiles :\n");
   for (i = 0; i < va_num_profiles; i++) {
-    xprintf(va_context->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ":    %s\n", _x_va_profile_to_string(va_profiles[i]));
+    xprintf(va_context->xine, XINE_VERBOSITY_DEBUG + 1, LOG_MODULE ":    %s\n", _x_va_profile_to_string(va_profiles[i]));
   }
 
   static const int mpeg2_profiles[] = { VAProfileMPEG2Main, VAProfileMPEG2Simple, -1 };
@@ -519,7 +477,7 @@ int _x_va_profile_from_imgfmt(vaapi_context_impl_t *va_context, unsigned format)
   static const int vc1_profiles[]   = { VAProfileVC1Advanced, -1 };
 
   const int *profiles = NULL;
-  switch (IMGFMT_VAAPI_CODEC(format)) 
+  switch (IMGFMT_VAAPI_CODEC(format))
   {
     case IMGFMT_VAAPI_CODEC_MPEG2:
       profiles = mpeg2_profiles;
