@@ -143,7 +143,7 @@ void _x_va_free(vaapi_context_impl_t **p_va_context)
   }
 }
 
-vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, int glx_render)
+vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, unsigned va_display_flags)
 {
   vaapi_context_impl_t *va_context;
   xine_va_display_t *va_display;
@@ -152,7 +152,7 @@ vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visua
   int      fmt_count = 0;
   size_t   i;
 
-  va_display = _x_va_display_open(xine, visual_type, visual, glx_render ? XINE_VA_DISPLAY_GLX : 0);
+  va_display = _x_va_display_open(xine, visual_type, visual, va_display_flags);
   if (!va_display)
     return NULL;
 
