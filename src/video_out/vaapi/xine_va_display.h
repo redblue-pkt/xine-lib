@@ -36,7 +36,8 @@ struct xine_va_display_t {
 };
 
 /* flags */
-#define XINE_VA_DISPLAY_GLX    0x0001
+#define XINE_VA_DISPLAY_GLX    0x0001  /* Require GLX interop (vaCopySurfaceGLX) */
+#define XINE_VA_DISPLAY_X11    0x0002  /* Require X11 interop (vaPutSurface)     */
 
 xine_va_display_t *_x_va_display_open(xine_t *xine, unsigned visual_type, const void *visual, unsigned flags);
 

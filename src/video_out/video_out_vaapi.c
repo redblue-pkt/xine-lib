@@ -76,6 +76,7 @@
 
 #include "vaapi/vaapi_util.h"
 #include "vaapi/vaapi_frame.h"
+#include "vaapi/xine_va_display.h" /* interop flags */
 
 #include <pthread.h>
 
@@ -2921,12 +2922,14 @@ static int vaapi_initialize(vaapi_driver_t *this, int visual_type, const void *v
 {
   VAStatus vaStatus;
   int fmt_count = 0;
+  unsigned interop_flags = XINE_VA_DISPLAY_X11;
 
 #ifdef ENABLE_VA_GLX
-  this->va = _x_va_new(this->xine, visual_type, visual, this->opengl_render);
-#else
-  this->va = _x_va_new(this->xine, visual_type, visual, 0);
+  if (this->opengl_render)
+    interop_flags = XINE_VA_DISPLAY_GLX;
 #endif
+
+  this->va = _x_va_new(this->xine, visual_type, visual, interop_flags);
   if (!this->va)
     return 0;
 

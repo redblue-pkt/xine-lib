@@ -80,14 +80,12 @@ static xine_module_t *_get_instance(xine_module_class_t *class_gen, const void *
 
   (void)class_gen;
 
-#if 0
-  /* bail out if GLX requested */
+  /* bail out if X11 or GLX interop requested */
   if (params->visual_type == XINE_VISUAL_TYPE_X11) {
-    if (params->flags & XINE_VA_DISPLAY_GLX) {
+    if (params->flags & (XINE_VA_DISPLAY_GLX | XINE_VA_DISPLAY_X11)) {
       return NULL;
     }
   }
-#endif
 
   /* accept all other visuals */
 
@@ -149,15 +147,11 @@ static void *_init_class(xine_t *xine, const void *params)
   return (void *)&xine_class;
 }
 
-# if 0
-/* Currently there's no no DRM support in video_out_vaapi.c */
 static const xine_module_info_t module_info_x11 = {
   .priority  = 1,
   .type      = "va_display_v1",
   .sub_type  = XINE_VISUAL_TYPE_X11,
 };
-# endif
-
 static const xine_module_info_t module_info_wl = {
   .priority  = 1,
   .type      = "va_display_v1",
@@ -176,7 +170,7 @@ static const xine_module_info_t module_info_fb = {
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
-  //{ PLUGIN_XINE_MODULE, 1, "va_display_drm", XINE_VERSION_CODE, &module_info_x11, _init_class },
+  { PLUGIN_XINE_MODULE, 1, "va_display_drm", XINE_VERSION_CODE, &module_info_x11,  _init_class },
   { PLUGIN_XINE_MODULE, 1, "va_display_drm", XINE_VERSION_CODE, &module_info_wl,   _init_class },
   { PLUGIN_XINE_MODULE, 1, "va_display_drm", XINE_VERSION_CODE, &module_info_fb,   _init_class },
   { PLUGIN_XINE_MODULE, 1, "va_display_drm", XINE_VERSION_CODE, &module_info_none, _init_class },

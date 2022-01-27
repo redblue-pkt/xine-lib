@@ -70,7 +70,7 @@ struct vaapi_context_impl {
   VASurfaceID         va_surface_ids_storage[RENDER_SURFACES + 1];
 };
 
-vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, int glx_render);
+vaapi_context_impl_t *_x_va_new(xine_t *xine, int visual_type, const void *visual, unsigned va_display_flags);
 void _x_va_free(vaapi_context_impl_t **va_context);
 
 int _x_va_check_status(vaapi_context_impl_t *va_context, VAStatus vaStatus, const char *msg);
