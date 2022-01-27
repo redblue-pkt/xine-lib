@@ -3118,7 +3118,7 @@ void *init_video_plugin (xine_t *xine, const void *data) {
   config = xine->config;
 
 #ifdef HAVE_POSTPROC
-  this->pp_quality = xine->config->register_range(config, "video.processing.ffmpeg_pp_quality", 3,
+  this->pp_quality = config->register_range(config, "video.processing.ffmpeg_pp_quality", 3,
     0, PP_QUALITY_MAX,
     _("MPEG-4 postprocessing quality"),
     _("You can adjust the amount of post processing applied to MPEG-4 video.\n"
@@ -3129,7 +3129,7 @@ void *init_video_plugin (xine_t *xine, const void *data) {
     10, pp_quality_cb, this);
 #endif /* HAVE_POSTPROC */
 
-  this->thread_count = xine->config->register_num(config, "video.processing.ffmpeg_thread_count", 1,
+  this->thread_count = config->register_num(config, "video.processing.ffmpeg_thread_count", 1,
     _("FFmpeg video decoding thread count"),
     _("You can adjust the number of video decoding threads which FFmpeg may use.\n"
       "Higher values should speed up decoding but it depends on the codec used "
@@ -3142,7 +3142,7 @@ void *init_video_plugin (xine_t *xine, const void *data) {
   else if (this->thread_count > 8)
     this->thread_count = 8;
 
-  this->skip_loop_filter_enum = xine->config->register_enum(config, "video.processing.ffmpeg_skip_loop_filter", 0,
+  this->skip_loop_filter_enum = config->register_enum(config, "video.processing.ffmpeg_skip_loop_filter", 0,
     (char **)skip_loop_filter_enum_names,
     _("Skip loop filter"),
     _("You can control for which frames the loop filter shall be skipped after "
@@ -3153,26 +3153,26 @@ void *init_video_plugin (xine_t *xine, const void *data) {
       "A change of this setting will take effect with playing the next stream."),
     10, skip_loop_filter_enum_cb, this);
 
-  this->choose_speed_over_accuracy = xine->config->register_bool(config, "video.processing.ffmpeg_choose_speed_over_accuracy", 0,
+  this->choose_speed_over_accuracy = config->register_bool(config, "video.processing.ffmpeg_choose_speed_over_accuracy", 0,
     _("Choose speed over specification compliance"),
     _("You may want to allow speed cheats which violate codec specification.\n"
       "Cheating may speed up decoding but can also lead to decoding artefacts.\n"
       "A change of this setting will take effect with playing the next stream."),
     10, choose_speed_over_accuracy_cb, this);
 
-  this->enable_dri = xine->config->register_bool(config, "video.processing.ffmpeg_direct_rendering", 1,
+  this->enable_dri = config->register_bool(config, "video.processing.ffmpeg_direct_rendering", 1,
     _("Enable direct rendering"),
     _("Disable direct rendering if you are experiencing lock-ups with\n"
       "streams with lot of reference frames."),
     10, dri_cb, this);
 
 #ifdef ENABLE_VAAPI
-  this->vaapi_mpeg_softdec = xine->config->register_bool(config, "video.processing.vaapi_mpeg_softdec", 0,
+  this->vaapi_mpeg_softdec = config->register_bool(config, "video.processing.vaapi_mpeg_softdec", 0,
     _("VAAPI Mpeg2 softdecoding"),
     _("If the machine freezes on mpeg2 decoding use mpeg2 software decoding."),
     10, vaapi_mpeg_softdec_func, this);
 
-  this->enable_vaapi = xine->config->register_bool(config, "video.processing.ffmpeg_enable_vaapi", 1,
+  this->enable_vaapi = config->register_bool(config, "video.processing.ffmpeg_enable_vaapi", 1,
     _("Enable VAAPI"),
     _("Enable or disable usage of vaapi"),
     10, vaapi_enable_vaapi, this);
