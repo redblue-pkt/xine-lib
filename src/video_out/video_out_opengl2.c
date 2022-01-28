@@ -104,6 +104,7 @@ typedef struct {
   GLuint tex[OGL2_TEX_LAST];
   int width;
   int height;
+  float relw, yuy2_mul, yuy2_div;
 } opengl2_yuvtex_t;
 
 typedef struct {
@@ -424,24 +425,23 @@ static const char *yuv420_frag =
 #define yuv422_frag                                             \
   "uniform sampler2D texYUV;\n"                                 \
   "uniform vec4 r_coefs, g_coefs, b_coefs;\n"                   \
-  "uniform vec2 texSize;\n"                                     \
+  "uniform vec2 yuy2vals;\n"                                    \
   "void main(void) {\n"                                         \
-  "    float pixel_x;\n"                                        \
-  "    vec3 rgb;\n"                                             \
+  "    vec4 rgba;\n"                                            \
   "    vec4 yuv;\n"                                             \
   "    vec4 coord = gl_TexCoord[0].xyxx;\n"                     \
-  "    pixel_x = floor(coord.x * texSize.x);"                   \
-  "    pixel_x = pixel_x - step(1.0, mod(pixel_x, 2.0));\n"     \
-  "    coord.z = (pixel_x + 0.5) / texSize.x;\n"                \
-  "    coord.w = (pixel_x + 1.5) / texSize.x;\n"                \
-  "    yuv.r = texture2D(texYUV, coord.xy).r;\n"                \
-  "      yuv.g = texture2D(texYUV, coord.zy).%s;\n"             \
-  "      yuv.b = texture2D(texYUV, coord.wy).%s;\n"             \
+  "    float group_x = floor (coord.x * yuy2vals.x);\n"         \
+  "    coord.z = (group_x + 0.25) * yuy2vals.y;\n"              \
+  "    coord.w = (group_x + 0.75) * yuy2vals.y;\n"              \
+  "    yuv.r = texture2D (texYUV, coord.xy).r;\n"               \
+  "    yuv.g = texture2D (texYUV, coord.zy).%s;\n"              \
+  "    yuv.b = texture2D (texYUV, coord.wy).%s;\n"              \
   "    yuv.a = 1.0;\n"                                          \
-  "    rgb.r = dot( yuv, r_coefs );\n"                          \
-  "    rgb.g = dot( yuv, g_coefs );\n"                          \
-  "    rgb.b = dot( yuv, b_coefs );\n"                          \
-  "    gl_FragColor = vec4(rgb, 1.0);\n"                        \
+  "    rgba.r = dot (yuv, r_coefs);\n"                          \
+  "    rgba.g = dot (yuv, g_coefs);\n"                          \
+  "    rgba.b = dot (yuv, b_coefs);\n"                          \
+  "    rgba.a = 1.0;\n"                                         \
+  "    gl_FragColor = rgba;\n"                                  \
   "}\n"
 
 static void load_csc_matrix( GLuint prog, float *cf )
@@ -547,11 +547,14 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
 {
   opengl2_driver_t *this = this_gen;
   opengl2_yuvtex_t *ytex = &this->yuvtex;
-  int uvh, i;
+  int realw = w, uvh, i;
 
   w = (w + 15) & ~15;
   if ( (w == ytex->width) && (h == ytex->height) )
     return 1;
+  ytex->relw = (float)realw / (float)w;
+  ytex->yuy2_mul = w >> 1;
+  ytex->yuy2_div = 1.0 / ytex->yuy2_mul;
 
   glDeleteTextures (OGL2_TEX_LAST, ytex->tex);
   glDeleteTextures (2, this->videoTex);
@@ -1339,7 +1342,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     load_csc_matrix( that->nv12_program.program, that->csc_matrix );
   } else if (sw_format == XINE_IMGFMT_YUY2) {
     glUseProgram( that->yuv422_program.program );
-    glUniform2f (glGetUniformLocationARB( that->yuv422_program.program, "texSize"), frame->width/*vo_frame.pitches[0]/2*/, 0);
+    glUniform2f (glGetUniformLocationARB( that->yuv422_program.program, "yuy2vals"), that->yuvtex.yuy2_mul, that->yuvtex.yuy2_div);
     glUniform1i (glGetUniformLocation( that->yuv422_program.program, "texYUV" ), 0 );
     load_csc_matrix( that->yuv422_program.program, that->csc_matrix );
   }
@@ -1347,7 +1350,7 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   glViewport( 0, 0, frame->width, frame->height );
   glMatrixMode( GL_PROJECTION );
   glLoadIdentity();
-  glOrtho( 0.0, 1.0, 0.0, 1.0, -1.0, 1.0 );
+  glOrtho( 0.0, that->yuvtex.relw, 0.0, 1.0, -1.0, 1.0 );
   glMatrixMode( GL_MODELVIEW );
   glLoadIdentity();
 
