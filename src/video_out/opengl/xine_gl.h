@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 the xine project
+ * Copyright (C) 2018-2022 the xine project
  * Copyright (C) 2018-2021 Petri Hintukainen <phintuka@users.sourceforge.net>
  *
  * This file is part of xine, a free video player.
@@ -27,7 +27,11 @@
 #ifndef XINE_GL_H_
 #define XINE_GL_H_
 
+#include <stdlib.h>
+#include <string.h>
+
 #include <xine.h>
+#include <xine/sorted_array.h>
 
 typedef struct xine_gl xine_gl_t;
 
@@ -74,5 +78,52 @@ static inline int _x_gl_has_extension(const char *extensions, const char * const
 /* flags */
 #define XINE_GL_API_OPENGL     0x0001
 #define XINE_GL_API_OPENGLES   0x0002
+
+typedef struct {
+  xine_sarray_t *list;
+  unsigned char *buf;
+} xine_gl_extensions_t;
+
+static inline void xine_gl_extensions_unload (xine_gl_extensions_t *e) {
+  xine_sarray_delete (e->list);
+  free (e->buf);
+  e->list = NULL;
+  e->buf  = NULL;
+}
+
+static inline void xine_gl_extensions_load (xine_gl_extensions_t *e, const char *list) {
+  size_t llen;
+  unsigned char *p;
+
+  e->list = NULL;
+  e->buf  = NULL;
+  if (!list)
+    return;
+
+  llen = strlen (list) + 1;
+  e->buf = malloc (llen);
+  /* TJ. I got 298 strings here :-) */
+  e->list = xine_sarray_new (1024, (xine_sarray_comparator_t)strcmp);
+  if (!e->list || !e->buf) {
+    xine_gl_extensions_unload (e);
+    return;
+  }
+
+  p = e->buf;
+  memcpy (p, list, llen);
+  while (*p) {
+    unsigned char *q = p;
+    while (*p > ' ')
+      p++;
+    if (*p)
+      *p++ = 0;
+    if (*q)
+      xine_sarray_add (e->list, q);
+  }
+}
+
+static inline int xine_gl_extensions_test (xine_gl_extensions_t *e, const char *name) {
+  return xine_sarray_binary_search (e->list, (void *)name) >= 0; /** << will not be written to */
+}
 
 #endif /* XINE_GL_H_ */
