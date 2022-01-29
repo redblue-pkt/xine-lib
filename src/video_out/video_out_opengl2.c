@@ -261,6 +261,8 @@ typedef struct {
   video_driver_class_t driver_class;
   xine_t              *xine;
   unsigned             visual_type;
+  uint8_t              texture_float;
+  uint8_t              texture_rg;
 } opengl2_class_t;
 
 static void opengl2_accel_lock (vo_frame_t *frame, int lock) {
@@ -1899,16 +1901,9 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
       glEnable (GL_TEXTURE_RECTANGLE_ARB);
       glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
-      {
-        const char *extensions = glGetString (GL_EXTENSIONS);
-        int gl_red = 0;
-        if (extensions) {
-          this->texture_float = _x_gl_has_extension (extensions, "GL_ARB_texture_float");
-          gl_red              = _x_gl_has_extension (extensions, "GL_ARB_texture_rg");
-        }
-        this->fmt_1p = gl_red ? GL_RED : GL_LUMINANCE;
-        this->fmt_2p = gl_red ? GL_RG  : GL_LUMINANCE_ALPHA;
-      }
+      this->texture_float = class->texture_float;
+      this->fmt_1p = class->texture_rg ? GL_RED : GL_LUMINANCE;
+      this->fmt_2p = class->texture_rg ? GL_RG  : GL_LUMINANCE_ALPHA;
 
 #define INITWIDTH  720
 #define INITHEIGHT 576
@@ -1962,26 +1957,30 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
   return NULL;
 }
 
-static int opengl2_check_platform (xine_t *xine, unsigned visual_type, const void *visual) {
+static uint32_t opengl2_check_platform (xine_t *xine, unsigned visual_type, const void *visual) {
   xine_gl_t  *gl;
-  int result = 0;
+  uint32_t result = 0;
 
   gl = _x_load_gl (xine, visual_type, visual, XINE_GL_API_OPENGL);
   if (!gl)
     return 0;
 
   if (gl->make_current (gl)) {
-    const char *extensions = glGetString (GL_EXTENSIONS);
+    xine_gl_extensions_t extensions;
+    const char *names = glGetString (GL_EXTENSIONS);
 
-    if (extensions
-      && _x_gl_has_extension (extensions, "GL_ARB_texture_rectangle")
-      && _x_gl_has_extension (extensions, "GL_ARB_texture_non_power_of_two")
-      && _x_gl_has_extension (extensions, "GL_ARB_pixel_buffer_object")
-      && _x_gl_has_extension (extensions, "GL_ARB_framebuffer_object")
-      && _x_gl_has_extension (extensions, "GL_ARB_fragment_shader")
-      && _x_gl_has_extension (extensions, "GL_ARB_vertex_shader"))
-      result = 1;
+    xine_gl_extensions_load (&extensions, names);
+    result  = xine_gl_extensions_test (&extensions, "GL_ARB_texture_float") ? 2 : 0;
+    result |= xine_gl_extensions_test (&extensions, "GL_ARB_texture_rg")    ? 4 : 0;
+    if  (xine_gl_extensions_test (&extensions, "GL_ARB_texture_rectangle")
+      && xine_gl_extensions_test (&extensions, "GL_ARB_texture_non_power_of_two")
+      && xine_gl_extensions_test (&extensions, "GL_ARB_pixel_buffer_object")
+      && xine_gl_extensions_test (&extensions, "GL_ARB_framebuffer_object")
+      && xine_gl_extensions_test (&extensions, "GL_ARB_fragment_shader")
+      && xine_gl_extensions_test (&extensions, "GL_ARB_vertex_shader"))
+      result |= 1;
     gl->release_current (gl);
+    xine_gl_extensions_unload (&extensions);
   }
   gl->dispose (&gl);
   return result;
@@ -1994,15 +1993,14 @@ static int opengl2_check_platform (xine_t *xine, unsigned visual_type, const voi
 static void *opengl2_init_class( xine_t *xine, unsigned visual_type, const void *visual_gen )
 {
   opengl2_class_t *this;
+  uint32_t ext = opengl2_check_platform (xine, visual_type, visual_gen);
 
-  if (!opengl2_check_platform( xine, visual_type, visual_gen)) {
+  if (!(ext & 1))
     return NULL;
-  }
 
-  this = calloc(1, sizeof(*this));
-  if (!this) {
+  this = calloc (1, sizeof (*this));
+  if (!this)
     return NULL;
-  }
 
   this->driver_class.open_plugin     = opengl2_open_plugin;
   this->driver_class.identifier      = "opengl2";
@@ -2010,6 +2008,8 @@ static void *opengl2_init_class( xine_t *xine, unsigned visual_type, const void 
   this->driver_class.dispose         = default_video_driver_class_dispose;
   this->xine                         = xine;
   this->visual_type                  = visual_type;
+  this->texture_float                = !!(ext & 2);
+  this->texture_rg                   = !!(ext & 4);
 
   return this;
 }
