@@ -226,7 +226,7 @@ VAStatus _x_va_create_image(vaapi_context_impl_t *va_context, VASurfaceID va_sur
   int i = 0;
   VAStatus vaStatus;
 
-  if (!va_context->c.valid_context || va_context->c.va_image_formats == NULL || va_context->c.va_num_image_formats == 0)
+  if (va_context->c.va_image_formats == NULL || va_context->c.va_num_image_formats == 0)
     return VA_STATUS_ERROR_UNKNOWN;
 
   *is_bound = 0;
