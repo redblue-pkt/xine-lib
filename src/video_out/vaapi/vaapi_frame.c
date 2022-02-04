@@ -89,11 +89,11 @@ void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current
     goto error;
 
   pitches[0] = width;
-  pitches[2] = width / 2;
   pitches[1] = width / 2;
+  pitches[2] = width / 2;
   base[0] = data->img;
-  base[2] = data->img + width * height;
-  base[1] = data->img + width * height + width * vo_frame->height / 4;
+  base[1] = data->img + width * height;
+  base[2] = data->img + width * height + width * height / 4;
 
   VAImage   va_image;
   void     *p_base;
@@ -152,9 +152,9 @@ void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current
     yv12_to_yv12((uint8_t*)p_base + va_image.offsets[0], va_image.pitches[0],
                  base[0], pitches[0],
                  (uint8_t*)p_base + va_image.offsets[1], va_image.pitches[1],
-                 base[1], pitches[1],
-                 (uint8_t*)p_base + va_image.offsets[2], va_image.pitches[2],
                  base[2], pitches[2],
+                 (uint8_t*)p_base + va_image.offsets[2], va_image.pitches[2],
+                 base[1], pitches[1],
                  va_image.width, va_image.height);
 
   } else if (va_image.format.fourcc == VA_FOURCC( 'N', 'V', '1', '2' )) {
@@ -164,9 +164,6 @@ void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current
             va_image.offsets[0], va_image.offsets[1], va_image.offsets[2], va_image.data_size, va_image.width * va_image.height,
             data->img_size, width, height, va_image.width, va_image.height);
 
-    base[0] = data->img;
-    base[1] = data->img + width * height;
-    base[2] = data->img + width * height + width * height / 4;
     _x_nv12_to_yv12((uint8_t *)p_base + va_image.offsets[0], va_image.pitches[0],
                     (uint8_t *)p_base + va_image.offsets[1], va_image.pitches[1],
                     base[0], pitches[0],
