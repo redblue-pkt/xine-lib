@@ -85,6 +85,8 @@ void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current
   data->img_size = width * height
                    + ((width + 1) / 2) * ((height + 1) / 2)
                    + ((width + 1) / 2) * ((height + 1) / 2);
+  data->width  = width;
+  data->height = height;
   if (!data->img)
     goto error;
 
