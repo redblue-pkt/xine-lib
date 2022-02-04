@@ -45,7 +45,6 @@ void _x_va_frame_update_frame_format (vo_driver_t *this_gen,
                                       uint32_t width, uint32_t height,
                                       double ratio, int format, int flags);
 
-void _x_va_frame_dispose (vo_frame_t *vo_img);
 void _x_va_frame_provide_standard_frame_data (vo_frame_t *vo_frame, xine_current_frame_data_t *data);
 void _x_va_frame_duplicate_frame_data (vo_frame_t *this_gen, vo_frame_t *original);
 
