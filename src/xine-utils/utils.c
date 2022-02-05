@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1140,3 +1140,132 @@ uint32_t xine_crc16_ansi (uint32_t crc, const uint8_t *data, size_t len) {
   }
 }
 
+/* fast string layout [uint32_t] (char):
+ *   <alignment>
+ *   [main_offs]
+ *   [max_strlen | (application supplied ? 0x80000000 : 0)]
+ *   [strlen]
+ * fast_string_ptr ->
+ *   (string) (0x00) (0x00)
+ */
+
+#define XFST_ALIGN (16)
+#define XFST_MIN_SIZE ((XFST_ALIGN + 2 + XFST_ALIGN - 1) & ~(XFST_ALIGN - 1))
+
+static const union {
+  uint8_t z[4];
+  uint32_t v;
+} _xine_fast_string_mask[8] = {
+  {{0xff, 0xff, 0xff, 0xff}},
+  {{0x00, 0xff, 0xff, 0xff}},
+  {{0x00, 0x00, 0xff, 0xff}},
+  {{0x00, 0x00, 0x00, 0xff}},
+  {{0x00, 0x00, 0x00, 0x00}},
+  {{0xff, 0x00, 0x00, 0x00}},
+  {{0xff, 0xff, 0x00, 0x00}},
+  {{0xff, 0xff, 0xff, 0x00}}
+};
+
+size_t xine_fast_string_need (size_t max_strlen) {
+  return (XFST_ALIGN + max_strlen + 2 + XFST_ALIGN - 1) & ~(XFST_ALIGN - 1);
+}
+
+char *xine_fast_string_init (char *buf, size_t bsize) {
+  uint32_t *fs;
+
+  if (!buf || (bsize < XFST_MIN_SIZE))
+    return NULL;
+  fs = (uint32_t *)(((uintptr_t)buf + 3 * 4 + XFST_ALIGN - 1) & ~(XFST_ALIGN - 1));
+  fs[-3] = (char *)fs - buf;
+  fs[-2] = (bsize - fs[-3] - 2) | 0x80000000;
+  fs[-1] = 0;
+  fs[0]  = 0;
+  return (char *)fs;
+}
+
+size_t xine_fast_string_max (char *fast_string) {
+  uint32_t *fs = (uint32_t *)fast_string;
+
+  return fs ? (fs[-2] & 0x7fffffff) : 0;
+}
+
+char *xine_fast_string_set (char *fast_string, const char *text, size_t tsize) {
+  uint32_t *fs = (uint32_t *)fast_string;
+
+  if (fs) {
+    if (fs[-2] & 0x80000000) {
+      /* application supplied */
+      if (tsize > (fs[-2] & 0x7fffffff))
+        tsize = fs[-2] & 0x7fffffff;
+    } else {
+      /* auto reuse */
+      if (tsize > fs[-2]) {
+        /* realloc */
+        size_t asize = (XFST_ALIGN + tsize + 2 + XFST_ALIGN - 1) & ~(XFST_ALIGN - 1);
+        uint32_t *nfs = realloc (fs - (XFST_ALIGN >> 2), asize);
+
+        if (nfs) {
+          fs = nfs + (XFST_ALIGN >> 2);
+          fs[-2] = asize - XFST_ALIGN - 2;
+        } else {
+          if (tsize > fs[-2])
+            tsize = fs[-2];
+        }
+      }
+    }
+  } else {
+    /* auto new */
+    size_t asize = (XFST_ALIGN + tsize + 2 + XFST_ALIGN - 1) & ~(XFST_ALIGN - 1);
+
+    fs = malloc (asize);
+    if (!fs)
+      return NULL;
+    fs += XFST_ALIGN >> 2;
+    fs[-3] = XFST_ALIGN >> 2;
+    fs[-2] = asize - XFST_ALIGN - 2;
+  }
+  fs[-1] = tsize;
+  if (text)
+    memcpy (fs, text, tsize);
+  fs[tsize >> 2] &= _xine_fast_string_mask[4 + (tsize & 3)].v;
+  tsize++;
+  fs[tsize >> 2] &= _xine_fast_string_mask[4 + (tsize & 3)].v;
+  return (char *)fs;
+}
+
+int xine_fast_string_cmp (char *fast_string1, char *fast_string2) {
+  const union {
+    uint32_t v;
+    char *is_little;
+  } endian = {1};
+  uint32_t *fs1 = (uint32_t *)fast_string1, *fs2 = (uint32_t *)fast_string2, *test1 = fs1, *test2 = fs2;
+  uint32_t end = fs1[-1] + 1, v1, v2;
+
+  fs1[end >> 2] |= _xine_fast_string_mask[end & 3].v;
+  while (*test1 == *test2)
+    test1++, test2++;
+  fs1[end >> 2] &= _xine_fast_string_mask[4 + (end & 3)].v;
+  v1 = *test1;
+  v2 = *test2;
+  if (endian.is_little) {
+    v1 = (v1 >> 24) | ((v1 & 0x00ff0000) >> 8) | ((v1 & 0x0000ff00) << 8) | (v1 << 24);
+    v2 = (v2 >> 24) | ((v2 & 0x00ff0000) >> 8) | ((v2 & 0x0000ff00) << 8) | (v2 << 24);
+  }
+  return v1 < v2 ? -1
+       : v1 > v2 ?  1
+       :  0;
+}
+
+void xine_fast_string_free (char **fast_string) {
+  uint32_t *fs;
+
+  if (!fast_string)
+    return;
+  fs = (uint32_t *)*fast_string;
+  if (!fs)
+    return;
+  *fast_string = NULL;
+  if (fs[-2] & 0x80000000)
+    return;
+  free ((char *)fs - fs[-3]);
+}
