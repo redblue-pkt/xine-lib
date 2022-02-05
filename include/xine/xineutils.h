@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -733,6 +733,26 @@ int xine_monotonic_clock(struct timeval *tv, struct timezone *tz) XINE_PROTECTED
  */
 void _x_report_video_fourcc (xine_t *, const char *module, uint32_t) XINE_PROTECTED;
 void _x_report_audio_format_tag (xine_t *, const char *module, uint32_t) XINE_PROTECTED;
+
+/** fast strings are either inside an application supplied buffer,
+ *  or they are (re)allocated by xine_fast_string_set ().
+ *  the returned pointer will be at least 8 byte aligned,
+ *  and can be read like an ordinary C string. */
+#define XINE_FAST_STRING 1
+/** return the byte size needed for an application supplied buffer. */
+size_t xine_fast_string_need (size_t max_strlen) XINE_PROTECTED;
+/** return the actual max strlen. */
+size_t xine_fast_string_max (char *fast_string) XINE_PROTECTED;
+/** set up a fast string inside an application supplied buffer. */
+char *xine_fast_string_init (char *buf, size_t bsize) XINE_PROTECTED;
+/** set or change the contents of a fast string.
+ *  fast_text may be NULL, to allocate a new one.
+ *  you can even edit the string manually, then apply the new size with text == NULL. */
+char *xine_fast_string_set (char *fast_string, const char *text, size_t tsize) XINE_PROTECTED;
+/** fast strcmp () */
+int xine_fast_string_cmp (char *fast_string1, char *fast_string2) XINE_PROTECTED;
+/** free a fast string if it is not application supplied. */
+void xine_fast_string_free (char **fast_string) XINE_PROTECTED;
 
 /* don't harm following code */
 #ifdef extern
