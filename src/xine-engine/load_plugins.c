@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1485,49 +1485,111 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
       continue;
 
     if ((value = strchr (line, '='))) {
-      unsigned int index = 0;
+      typedef enum {
+        _K_NONE = 0,
+        _K_cache_catalog_version,
+        _K_size,
+        _K_mtime,
+        _K_type,
+        _K_api,
+        _K_id,
+        _K_version,
+        _K_visual_type,
+        _K_supported_types,
+        _K_vo_priority,
+        _K_ao_priority,
+        _K_decoder_priority,
+        _K_demuxer_priority,
+        _K_input_priority,
+        _K_post_type,
+        _K_config_key,
+        _K_module_priority,
+        _K_module_sub_type,
+        _K_module_type,
+        _K_LAST
+      } _k_t;
+      _k_t index = _K_NONE;
+      unsigned int klen = value - line;
       const char *val;
       *value++ = 0;
       val = value;
       /* get known key */
-      {
-        static const char * const known_keys[] = {
-          "\x0b""ao_priority",
-          "\x05""api",
-          "\x01""cache_catalog_version",
-          "\x10""config_key",
-          "\x0c""decoder_priority",
-          "\x0d""demuxer_priority",
-          "\x06""id",
-          "\x0e""input_priority",
-          "\x11""module_priority",
-          "\x12""module_sub_type",
-          "\x13""module_type",
-          "\x03""mtime",
-          "\x0f""post_type",
-          "\x02""size",
-          "\x09""supported_types",
-          "\x04""type",
-          "\x07""version",
-          "\x08""visual_type",
-          "\x0a""vo_priority"
-        };
-        unsigned int b = 0, e = sizeof (known_keys) / sizeof (known_keys[0]), m = e >> 1;
-        do {
-          int d = strcmp (line, known_keys[m] + 1);
+      switch (klen) {
+        int d;
+        case 2:
+          if (!memcmp (line, "id", 2))
+            index = _K_id;
+          break;
+        case 3:
+          if (!memcmp (line, "api", 3))
+            index = _K_api;
+          break;
+        case 4:
+          if (!memcmp (line, "size", 4))
+            index = _K_size;
+          else if (!memcmp (line, "type", 4))
+            index = _K_type;
+          break;
+        case 5:
+          if (!memcmp (line, "mtime", 5))
+            index = _K_mtime;
+          break;
+        case 7:
+          if (!memcmp (line, "version", 7))
+            index = _K_version;
+          break;
+        case 9:
+          if (!memcmp (line, "post_type", 9))
+            index = _K_post_type;
+          break;
+        case 10:
+          if (!memcmp (line, "config_key", 10))
+            index = _K_config_key;
+          break;
+        case 11:
+          d = memcmp (line, "module_type", 11);
           if (d == 0) {
-            index = known_keys[m][0];
-            break;
+            index = _K_module_type;
+          } else if (d < 0) {
+            if (!memcmp (line, "ao_priority", 11))
+              index = _K_ao_priority;
+          } else {
+            if (!memcmp (line, "visual_type", 11))
+              index = _K_visual_type;
+            else if (!memcmp (line, "vo_priority", 11))
+              index = _K_vo_priority;
           }
-          if (d < 0)
-            e = m;
-          else
-            b = m + 1;
-          m = (b + e) >> 1;
-        } while (b != e);
+          break;
+        case 14:
+          if (!memcmp (line, "input_priority", 14))
+            index = _K_input_priority;
+          break;
+        case 15:
+          d = memcmp (line, "module_sub_type", 15);
+          if (d == 0) {
+            index = _K_module_sub_type;
+          } else if (d < 0) {
+            if (!memcmp (line, "module_priority", 15))
+              index = _K_module_priority;
+          } else {
+            if (!memcmp (line, "supported_types", 15))
+              index = _K_supported_types;
+          }
+          break;
+        case 16:
+          if (!memcmp (line, "decoder_priority", 16))
+            index = _K_decoder_priority;
+          else if (!memcmp (line, "demuxer_priority", 16))
+            index = _K_demuxer_priority;
+          break;
+        case 21:
+          if (!memcmp (line, "cache_catalog_version", 21))
+            index = _K_cache_catalog_version;
+          break;
+        default: ;
       }
       if( !version_ok ) {
-        if (index == 1) { /* "cache_catalog_version" */
+        if (index == _K_cache_catalog_version) {
           if (xine_str2uint32 (&val) == CACHE_CATALOG_VERSION)
             version_ok = 1;
           else {
@@ -1542,36 +1604,42 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
           int i;
         } v = {0};
         unsigned int mask = 1u << index;
-        if (0x027d30 & mask) /* 17,14,13,12,11,10,8,5,4 */
+        const uint32_t
+          set_int32 = (1 << _K_type) | (1 << _K_api) | (1 << _K_visual_type) | (1 << _K_vo_priority)
+                    | (1 << _K_ao_priority) | (1 << _K_decoder_priority) | (1 << _K_demuxer_priority)
+                    | (1 << _K_input_priority) | (1 << _K_module_priority),
+          set_uint32 = (1 << _K_version) | (1 << _K_post_type) | (1 << _K_module_sub_type),
+          set_uint64 = (1 << _K_size) | (1 << _K_mtime);
+        if (set_int32 & mask)
           v.i = xine_str2int32 (&val);
-        else if (0x048080 & mask) /* 18,15,7 */
+        else if (set_uint32 & mask)
           v.u = xine_str2uint32 (&val);
-        else if (0x0000c & mask) /* 3,2 */
+        else if (set_uint64 & mask)
           v.llu = xine_str2uint64 (&val);
         switch (index) {
-          case  2: /* "size" */
+          case _K_size:
             node.file.filesize = v.llu;
             break;
-          case  3: /* "mtime" */
+          case _K_mtime:
             node.file.filemtime = v.llu;
             break;
-          case  4: /* "type" */
+          case _K_type:
             node.info[0].type = v.i;
             break;
-          case  5: /* "api" */
+          case _K_api:
             node.info[0].API = v.i;
             break;
-          case  6: /* "id" */
+          case _K_id:
             node.info[0].id = value;
             idlen = lend - value + 1;
             break;
-          case  7: /* "version" */
+          case _K_version:
             node.info[0].version = v.u;
             break;
-          case  8: /* "visual_type" */
+          case _K_visual_type:
             node.ainfo.vo_info.visual_type = v.i;
             break;
-          case  9: { /* "supported_types" */
+          case _K_supported_types: {
             int i;
             for (i = 0; i < 255; i++) {
               if ((supported_types[i] = xine_str2uint32 (&val)) == 0)
@@ -1581,35 +1649,35 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
             stlen = i * sizeof (*supported_types);
             break;
           }
-          case 10: /* "vo_priority" */
+          case _K_vo_priority:
             node.ainfo.vo_info.priority = v.i;
             break;
-          case 11: /* "ao_priority" */
+          case _K_ao_priority:
             node.ainfo.ao_info.priority = v.i;
             break;
-          case 12: /* "decoder_priority" */
+          case _K_decoder_priority:
             node.ainfo.decoder_info.priority = v.i;
             break;
-          case 13: /* "demuxer_priority" */
+          case _K_demuxer_priority:
             node.ainfo.demuxer_info.priority = v.i;
             break;
-          case 14: /* "input_priority" */
+          case _K_input_priority:
             node.ainfo.input_info.priority = v.i;
             break;
-          case 15: /* "post_type" */
+          case _K_post_type:
             node.ainfo.post_info.type = v.u;
             break;
-          case 16: /* "config_key" */
+          case _K_config_key:
             if (numcfgs < 255)
               cfgentries[numcfgs++] = value;
             break;
-          case 17: /* "module_priority" */
+          case _K_module_priority:
             node.ainfo.module_info.priority = v.i;
             break;
-          case 18: /* "module_sub_type" */
+          case _K_module_sub_type:
             node.ainfo.module_info.sub_type = v.u;
             break;
-          case 19: /* "module_type" */
+          case _K_module_type:
             strlcpy(node.ainfo.module_info.type, value, sizeof(node.ainfo.module_info.type));
           default: ;
         }
