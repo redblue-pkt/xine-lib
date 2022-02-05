@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -456,68 +456,113 @@ static const char *config_xlate_old (const char *s) {
   return NULL;
 }
 
+static int config_section_enum (const uint8_t *s, uint32_t l) {
+  int d;
 
-static int config_section_enum(const char *sect) {
-  static const char * const known_section[] = {
-    "\x03""audio",
-    "\x08""codec",
-    "\x09""decoder",
-    "\x05""dxr3",
-    "\x0c""effects",
-    "\x0d""engine",
-    "\x01""gui",
-    "\x06""input",
-    "\x07""media",
-    "\x0e""misc",
-    "\x0b""post",
-    "\x0a""subtitles",
-    "\x02""ui",
-    "\x04""video"
-  };
-  int b = 0, e = sizeof (known_section) / sizeof (known_section[0]), m = e >> 1;
-  do {
-    int d = strcmp (sect, known_section[m] + 1);
-    if (d == 0)
-      return known_section[m][0];
-    if (d < 0)
-      e = m;
-    else
-      b = m + 1;
-    m = (b + e) >> 1;
-  } while (b != e);
+  switch (l) {
+    case 2:
+      if (!memcmp (s, "ui", 2))
+        return 2;
+      break;
+    case 3:
+      if (!memcmp (s, "gui", 3))
+        return 1;
+      break;
+    case 4:
+      d = memcmp (s, "misc", 4);
+      if (d == 0)
+        return 14;
+      if (d < 0) {
+        if (!memcmp (s, "dxr3", 4))
+          return 5;
+      } else {
+        if (!memcmp (s, "post", 4))
+          return 11;
+      }
+      break;
+    case 5:
+      d = memcmp (s, "input", 5);
+      if (d == 0)
+        return 6;
+      if (d < 0) {
+        if (!memcmp (s, "audio", 5))
+          return 3;
+        if (!memcmp (s, "codec", 5))
+          return 8;
+      } else {
+        if (!memcmp (s, "media", 5))
+          return 7;
+        if (!memcmp (s, "video", 5))
+          return 4;
+      }
+      break;
+    case 6:
+      if (!memcmp (s, "engine", 6))
+        return 13;
+      break;
+    case 7:
+      if (!memcmp (s, "decoder", 7))
+        return 9;
+      if (!memcmp (s, "effects", 7))
+        return 12;
+      break;
+    case 9:
+      if (!memcmp (s, "subtitles", 9))
+        return 10;
+      break;
+    default: ;
+  }
   return 0;
 }
 
 #define MAX_SORT_KEY 320
-static void config_make_sort_key (char *dest, const char *key, int exp_level) {
-  char *q = dest, *e = dest + MAX_SORT_KEY - 7;
-  const char *p;
+static size_t config_make_sort_key (char *dest, const char *key, int exp_level) {
+  uint8_t *q = (uint8_t *)dest, *e = q + MAX_SORT_KEY - 7;
+  const uint8_t *p = (const uint8_t *)key, *b;
   int n;
-  p = key;
+  uint32_t l;
+
   /* section name */
-  while (q < e) {
-    char z = *p;
-    if (z == 0) break;
+  b = p;
+  while (1) {
+    while (*p > '.')
+      p++;
+    if (!*p || (*p == '.'))
+      break;
     p++;
-    if (z == '.') break;
-    *q++ = z;
   }
-  *q = 0;
-  n = config_section_enum (dest);
-  if (n) {
-    q = dest;
+  l = p - b;
+  n = config_section_enum (b, l);
+  if (n > 0) {
     *q++ = n;
+  } else {
+    if (l > (uint32_t)(e - q))
+      l = e - q;
+    memcpy (q, b, l);
+    q += l;
   }
-  *q++ = 0x1f;
-  /* subsection name */
-  while (q < e) {
-    char z = *p;
-    if (z == 0) break;
+  if (*p)
     p++;
-    if (z == '.') break;
-    *q++ = z;
-  }
   *q++ = 0x1f;
+
+  /* subsection name */
+  b = p;
+  while (1) {
+    while (*p > '.')
+      p++;
+    if (!*p || (*p == '.'))
+      break;
+    p++;
+  }
+  l = p - b;
+  if (l > (uint32_t)(e - q))
+    l = e - q;
+  memcpy (q, b, l);
+  q += l;
+  if (*p)
+    p++;
+  *q++ = 0x1f;
+
   /* TJ. original code did sort by section/subsection/exp/name.
    * We can do that here as well but that means inefficient
    * adding (2 passes) and finding (linear scanning).
@@ -539,14 +584,16 @@ static void config_make_sort_key (char *dest, const char *key, int exp_level) {
 #else
   (void)exp_level;
 #endif
+
   /* entry name */
-  while (q < e) {
-    char z = *p;
-    if (z == 0) break;
-    p++;
-    *q++ = z;
-  }
+  b = p;
+  l = strlen ((const char *)b);
+  if (l > (uint32_t)(e - q))
+    l = e - q;
+  memcpy (q, b, l);
+  q += l;
   *q = 0;
+  return q - (uint8_t *)dest;
 }
 
 /* Ugly: rebuild index every time. Maybe we could cache it somewhere? */
@@ -578,8 +625,10 @@ static cfg_entry_t **config_array (config_values_t *this, cfg_entry_t **tab, int
 
 #define FIND_ONLY 0x7fffffff
 static cfg_entry_t *config_insert (config_values_t *this, const char *key, int exp_level) {
-  char new_sortkey[MAX_SORT_KEY];
-  char cur_sortkey[MAX_SORT_KEY];
+  char new_buf[MAX_SORT_KEY + 32];
+  char cur_buf[MAX_SORT_KEY + 32];
+  char *new_sortkey = xine_fast_string_init (new_buf, sizeof (new_buf));
+  char *cur_sortkey = xine_fast_string_init (cur_buf, sizeof (cur_buf));
   cfg_entry_t *entry;
 
   do {
@@ -600,15 +649,15 @@ static cfg_entry_t *config_insert (config_values_t *this, const char *key, int e
       break;
     }
 
-    config_make_sort_key (new_sortkey, key, exp_level);
+    xine_fast_string_set (new_sortkey, NULL, config_make_sort_key (new_sortkey, key, exp_level));
 
     /* Most frequent case is loading a config file entry.
      * Unless edited by user, these come in already sorted.
      * Thus try last pos first.
      */
     if (exp_level != FIND_ONLY) {
-      config_make_sort_key (cur_sortkey, this->last->key, this->last->exp_level);
-      if (strcmp (new_sortkey, cur_sortkey) > 0) {
+      xine_fast_string_set (cur_sortkey, NULL, config_make_sort_key (cur_sortkey, this->last->key, this->last->exp_level));
+      if (xine_fast_string_cmp (new_sortkey, cur_sortkey) > 0) {
         entry = calloc (1, sizeof (cfg_entry_t));
         if (!entry)
           return NULL;
@@ -634,8 +683,8 @@ static cfg_entry_t *config_insert (config_values_t *this, const char *key, int e
 
       b = 0; e = n; m = n >> 1;
       do {
-        config_make_sort_key (cur_sortkey, entries[m]->key, entries[m]->exp_level);
-        d = strcmp (new_sortkey, cur_sortkey);
+        xine_fast_string_set (cur_sortkey, NULL, config_make_sort_key (cur_sortkey, entries[m]->key, entries[m]->exp_level));
+        d = xine_fast_string_cmp (new_sortkey, cur_sortkey);
         if (d == 0)
           break;
         if (d < 0)
