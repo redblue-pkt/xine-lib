@@ -46,13 +46,7 @@ typedef mem_frame_t vo_none_frame_t;
 typedef struct {
   vo_driver_t          vo_driver;
   int                  ratio;
-  xine_t               *xine;
 } vo_none_driver_t;
-
-typedef struct {
-  video_driver_class_t  driver_class;
-  xine_t               *xine;
-} vo_none_class_t;
 
 
 static uint32_t vo_none_get_capabilities(vo_driver_t *vo_driver) {
@@ -143,15 +137,15 @@ static int vo_none_redraw_needed(vo_driver_t *vo_driver) {
 }
 
 static vo_driver_t *vo_none_open_plugin(video_driver_class_t *driver_class, const void *visual) {
-  vo_none_class_t    *class = (vo_none_class_t *) driver_class;
   vo_none_driver_t   *driver;
 
   (void)visual;
+  (void)driver_class;
+
   driver = calloc(1, sizeof(vo_none_driver_t));
   if (!driver)
     return NULL;
 
-  driver->xine   = class->xine;
   driver->ratio  = XINE_VO_ASPECT_AUTO;
 
   driver->vo_driver.get_capabilities     = vo_none_get_capabilities;
@@ -175,21 +169,17 @@ static vo_driver_t *vo_none_open_plugin(video_driver_class_t *driver_class, cons
  * Class related functions.
  */
 static void *vo_none_init_class (xine_t *xine, const void *visual) {
-  vo_none_class_t        *this;
+  static const video_driver_class_t driver_class = {
+    .open_plugin     = vo_none_open_plugin,
+    .identifier      = "none",
+    .description     = N_("xine video output plugin which displays nothing"),
+    .dispose         = NULL,
+  };
 
   (void)visual;
-  this = calloc(1, sizeof(vo_none_class_t));
-  if (!this)
-    return NULL;
+  (void)xine;
 
-  this->driver_class.open_plugin     = vo_none_open_plugin;
-  this->driver_class.identifier      = "none";
-  this->driver_class.description     = N_("xine video output plugin which displays nothing");
-  this->driver_class.dispose         = default_video_driver_class_dispose;
-
-  this->xine                         = xine;
-
-  return this;
+  return (void*)&driver_class;
 }
 
 static const vo_info_t vo_info_none = {
