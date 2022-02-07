@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -1118,6 +1118,75 @@ static void report_progress (xine_stream_t *stream, int p) {
   xine_event_send (stream, &event);
 }
 
+typedef enum {
+  _K_NONE = 0,
+  _K_content_length,
+  _K_content_type,
+  _K_content_encoding,
+  _K_content_range,
+  _K_transfer_encoding,
+  _K_accept_ranges,
+  _K_location,
+  _K_server,
+  _K_www_authenticate,
+  _K_icy_name,
+  _K_icy_genre,
+  _K_icy_notice2,
+  _K_icy_metaint,
+  _K_LAST
+} _k_t;
+
+static _k_t http_key_num (const char *key, uint32_t klen) {
+  switch (klen) {
+    case 6:
+      if (!memcmp (key, "server", 6))
+        return _K_server;
+      break;
+    case 8:
+      if (!memcmp (key, "icy-name", 8))
+        return _K_icy_name;
+      if (!memcmp (key, "location", 8))
+        return _K_location;
+      break;
+    case 9:
+      if (!memcmp (key, "icy-genre", 9))
+        return _K_icy_genre;
+      break;
+    case 11:
+      if (!memcmp (key, "icy-metaint", 11))
+        return _K_icy_metaint;
+      if (!memcmp (key, "icy-notice2", 11))
+        return _K_icy_notice2;
+      break;
+    case 12:
+      if (!memcmp (key, "content-type", 12))
+        return _K_content_type;
+      break;
+    case 13:
+      if (!memcmp (key, "accept-ranges", 13))
+        return _K_accept_ranges;
+      if (!memcmp (key, "content-range", 13))
+        return _K_content_range;
+      break;
+    case 14:
+      if (!memcmp (key, "content-length", 14))
+        return _K_content_length;
+      break;
+    case 16:
+      if (!memcmp (key, "content-encoding", 16))
+        return _K_content_encoding;
+      if (!memcmp (key, "www-authenticate", 16))
+        return _K_www_authenticate;
+      break;
+    case 17:
+      if (!memcmp (key, "transfer-encoding", 17))
+        return _K_transfer_encoding;
+      break;
+    default: ;
+  }
+  return _K_NONE;
+}
+
 static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
   static const uint8_t tab_tolower[256] = {
       0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
@@ -1311,7 +1380,8 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
       }
       /* get props */
       while (1) {
-        uint32_t key;
+        _k_t key;
+        uint32_t klen;
         uint8_t *line, *p1, *p2;
         {
           int32_t i = sbuf_get_string (this, &line);
@@ -1328,50 +1398,21 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
         /* find value string */
         *p1 = ':';
         for (p2 = line; *p2 != ':'; p2++) *p2 = tab_tolower[*p2];
+        klen = p2 - line;
         *p1 = 0;
         if (p2 != p1) {
           *p2++ = 0;
           while (*p2 == ' ') p2++;
         }
         /* find key */
-        {
-          static const char * const keys[] = {
-            "\x06""accept-ranges",
-            "\x03""content-encoding",
-            "\x01""content-length",
-            "\x04""content-range",
-            "\x02""content-type",
-            "\x0b""icy-genre",
-            "\x0d""icy-metaint",
-            "\x0a""icy-name",
-            "\x0c""icy-notice2",
-            "\x07""location",
-            "\x08""server",
-            "\x05""transfer-encoding",
-            "\x09""www-authenticate"
-          };
-          uint32_t b = 0, e = sizeof (keys) / sizeof (keys[0]), m = e >> 1;
-          key = 0;
-          do {
-            int d = strcmp ((char *)line, keys[m] + 1);
-            if (d == 0) {
-              key = keys[m][0];
-              break;
-            }
-            if (d < 0)
-              e = m;
-            else
-              b = m + 1;
-            m = (b + e) >> 1;
-          } while (b != e);
-        }
+        key = http_key_num (line, klen);
         switch (key) {
-          case 0x1: /* content-length */
+          case _K_content_length:
             if (!this->contentlength)
               this->contentlength = str2uint64 (&p2);
             this->mode |= MODE_HAS_LENGTH;
             break;
-          case 0x2: /* content type */
+          case _K_content_type:
             strlcpy (mime_type, (char *)p2, sizeof (mime_type));
             this->mode |= MODE_HAS_TYPE;
             if (!strncasecmp ((char *)p2, "audio/x-mpegurl", 15)) {
@@ -1383,11 +1424,11 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
               this->mode |= MODE_NSV;
             }
             break;
-          case 0x3: /* content-encoding */
+          case _K_content_encoding:
             if ((!memcmp (p2, "gzip", 4)) || (!memcmp (p2, "deflate", 7)))
               this->mode |= MODE_DEFLATED;
             break;
-          case 0x4: /* content-range */
+          case _K_content_range:
             if (!memcmp (p2, "bytes", 5))
               p2 += 5;
             while (*p2 == ' ')
@@ -1402,11 +1443,11 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
               this->range_total = str2uint64 (&p2);
             }
             break;
-          case 0x5: /* transfer-encoding */
+          case _K_transfer_encoding:
             if ((!memcmp (p2, "chunked", 7)))
               this->mode |= MODE_CHUNKED | MODE_HAVE_CHUNK;
             break;
-          case 0x6: /* accept-ranges */
+          case _K_accept_ranges:
             if (strstr ((char *)line + 14, "bytes")) {
               xprintf (this->xine, XINE_VERBOSITY_DEBUG,
                 "input_http: Server supports request ranges. Enabling seeking support.\n");
@@ -1417,7 +1458,7 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
               this->mode &= ~MODE_SEEKABLE;
             }
             break;
-          case 0x7: /* location */
+          case _K_location:
             /* check redirection */
             if  ((this->status == 302) /* found */
               || (this->status == 301) /* moved permanently */
@@ -1427,29 +1468,29 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
               _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, (char *)p2);
             }
             break;
-          case 0x8: /* server */
+          case _K_server:
             if (!strncasecmp ((char *)p2, "last.fm", 7)) {
               lprintf ("last.fm streaming server detected\n");
               this->mode |= MODE_LASTFM;
             }
             break;
-          case 0x9: /* www-authenticate */
+          case _K_www_authenticate:
             if (this->status == 401)
               _x_message (this->stream, XINE_MSG_AUTHENTICATION_NEEDED, this->mrl, (char *)p2, NULL);
             break;
           /* Icecast / ShoutCast Stuff */
-          case 0xa: /* icy-name */
+          case _K_icy_name:
             if (this->stream) {
               _x_meta_info_set (this->stream, XINE_META_INFO_ALBUM, (char *)p2);
               _x_meta_info_set (this->stream, XINE_META_INFO_TITLE, (char *)p2);
             }
             break;
-          case 0xb: /* icy-genre */
+          case _K_icy_genre:
             if (this->stream)
               _x_meta_info_set (this->stream, XINE_META_INFO_GENRE, (char *)p2);
             break;
           /* icy-notice1 is always the same */
-          case 0xc: /* icy-notice2 */
+          case _K_icy_notice2:
             {
               char *end = strstr ((char *)p2, "<BR>");
               if (end)
@@ -1458,13 +1499,14 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
                 _x_meta_info_set (this->stream, XINE_META_INFO_COMMENT, (char *)p2);
             }
             break;
-          case 0xd: /* icy-metaint */
+          case _K_icy_metaint:
             /* metadata interval (in byte) */
             this->shoutcast_interval = this->shoutcast_left = str2uint32 (&p2);
             lprintf ("shoutcast_interval: %d\n", this->shoutcast_interval);
             if (this->shoutcast_interval)
               this->mode |= MODE_SHOUTCAST;
             break;
+          default: ;
         }
       }
       if (this->sgot > this->sdelivered)
