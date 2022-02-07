@@ -749,8 +749,10 @@ char *xine_fast_string_init (char *buf, size_t bsize) XINE_PROTECTED;
  *  fast_text may be NULL, to allocate a new one.
  *  you can even edit the string manually, then apply the new size with text == NULL. */
 char *xine_fast_string_set (char *fast_string, const char *text, size_t tsize) XINE_PROTECTED;
-/** fast strcmp () */
-int xine_fast_string_cmp (char *fast_string1, char *fast_string2) XINE_PROTECTED;
+/** fast strcmp ().
+ *  BTW: XINE_PROTECTED does not link on some systems when doing
+ *  xine_sarray_new (size, (xine_sarray_comparator_t)xine_fast_string_cmp);. */
+int xine_fast_string_cmp (char *fast_string1, char *fast_string2) EXPORTED;
 /** free a fast string if it is not application supplied. */
 void xine_fast_string_free (char **fast_string) XINE_PROTECTED;
 
