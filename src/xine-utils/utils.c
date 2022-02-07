@@ -1167,7 +1167,8 @@ static const union {
 };
 
 size_t xine_fast_string_need (size_t max_strlen) {
-  return (XFST_ALIGN + max_strlen + 2 + XFST_ALIGN - 1) & ~(XFST_ALIGN - 1);
+  /* should be <= max_strlen + 32. */
+  return XFST_ALIGN - 1 + 3 * 4 + ((max_strlen + 2 + 3) & ~3);
 }
 
 char *xine_fast_string_init (char *buf, size_t bsize) {
