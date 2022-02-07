@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2019 the xine project
+ * Copyright (C) 2004-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -237,38 +237,84 @@ typedef enum {
 #define SPC (space + 2 * (MAX_AMF_LEVELS - level))
 #define NEEDBYTES(n) if ((unsigned long int)(end - p) < n) return 0
 
-static unsigned int key_num (const char *key) {
-  static const char * const known_keys[] = {
-    "\x0b""audiocodecid",
-    "\x0a""audiodatarate",
-    "\x0d""audiodelay",
-    "\x07""audiosamplerate",
-    "\x08""audiosamplesize",
-    "\x01""duration",
-    "\x10""filepositions",
-    "\x0c""filesize",
-    "\x04""framerate",
-    "\x03""height",
-    "\x0e""onMetaData",
-    "\x09""stereo",
-    "\x0f""times",
-    "\x06""videocodecid",
-    "\x05""videodatarate",
-    "\x04""videoframerate",
-    "\x02""width"
-  };
-  unsigned int b = 0, e = sizeof (known_keys) / sizeof (known_keys[0]), m = e >> 1;
-  do {
-    int d = strcmp (key, known_keys[m] + 1);
-    if (d < 0)
-      e = m;
-    else if (d > 0)
-      b = m + 1;
-    else
-      return known_keys[m][0];
-    m = (b + e) >> 1;
-  } while (b != e);
-  return 0;
+typedef enum {
+  _K_NONE = 0,
+  _K_duration,
+  _K_width,
+  _K_height,
+  _K_videoframerate,
+  _K_videodatarate,
+  _K_videocodecid,
+  _K_audiosamplerate,
+  _K_audiosamplesize,
+  _K_stereo,
+  _K_audiodatarate,
+  _K_audiocodecid,
+  _K_filesize,
+  _K_audiodelay,
+  _K_onMetaData,
+  _K_times,
+  _K_filepositions,
+  _K_LAST
+} _k_t;
+
+static _k_t key_num (const char *key, uint32_t klen) {
+  switch (klen) {
+    case 5:
+      if (!memcmp (key, "times", 5))
+        return _K_times;
+      if (!memcmp (key, "width", 5))
+        return _K_width;
+      break;
+    case 6:
+      if (!memcmp (key, "height", 6))
+        return _K_height;
+      if (!memcmp (key, "stereo", 6))
+        return _K_stereo;
+      break;
+    case 8:
+      if (!memcmp (key, "duration", 8))
+        return _K_duration;
+      if (!memcmp (key, "filesize", 8))
+        return _K_filesize;
+      break;
+    case 9:
+      if (!memcmp (key, "framerate", 9))
+        return _K_videoframerate;
+      break;
+    case 10:
+      if (!memcmp (key, "audiodelay", 10))
+        return _K_audiodelay;
+      if (!memcmp (key, "onMetaData", 10))
+        return _K_onMetaData;
+      break;
+    case 12:
+      if (!memcmp (key, "audiocodecid", 12))
+        return _K_audiocodecid;
+      if (!memcmp (key, "videocodecid", 12))
+        return _K_videocodecid;
+      break;
+    case 13:
+      if (!memcmp (key, "audiodatarate", 13))
+        return _K_audiodatarate;
+      if (!memcmp (key, "filepositions", 13))
+        return _K_filepositions;
+      if (!memcmp (key, "videodatarate", 13))
+        return _K_videodatarate;
+      break;
+    case 14:
+      if (!memcmp (key, "videoframerate", 14))
+        return _K_videoframerate;
+      break;
+    case 15:
+      if (!memcmp (key, "audiosamplerate", 15))
+        return _K_audiosamplerate;
+      if (!memcmp (key, "audiosamplesize", 15))
+        return _K_audiosamplesize;
+      break;
+    default: ;
+  }
+  return _K_NONE;
 }
 
 static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
@@ -285,7 +331,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
   /* top level has nameless vars */
   count[0] = 10000;
   while (1) {
-    unsigned int keynum;
+    _k_t keynum;
     if (count[level] > 0) {
       /* next strict array item */
       if (--count[level] == 0) {
@@ -297,7 +343,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
       if (p >= end) break;
       type = *p++;
       name = NULL;
-      keynum = 0;
+      keynum = _K_NONE;
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "%s", SPC);
     } else {
       /* get current name */
@@ -318,7 +364,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
       type = *p;
       *p++ = 0x00;
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "%s%s = ", SPC, name);
-      keynum = key_num ((char *)name);
+      keynum = key_num ((char *)name, u);
     }
     switch (type) {
       case AMF0_NUMBER:
@@ -330,51 +376,51 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         p += 8;
         if (info) {
           switch (keynum) {
-            case 0x01: /* "duration" */
+            case _K_duration:
               this->length = val * (double)1000;
             break;
-            case 0x02: /* "width" */
+            case _K_width:
               this->width = i;
               _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_WIDTH, i);
             break;
-            case 0x03: /* "height" */
+            case _K_height:
               this->height = i;
               _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_HEIGHT, i);
             break;
-            case 0x04: /* "framerate", "videoframerate" */
+            case _K_videoframerate:
               if ((i > 0) && (i < 1000)) {
                 this->duration = (double)90000 / val;
                 _x_stream_info_set (this->stream, XINE_STREAM_INFO_FRAME_DURATION, this->duration);
               }
             break;
-            case 0x05: /* "videodatarate" */
+            case _K_videodatarate:
               _x_stream_info_set (this->stream, XINE_STREAM_INFO_VIDEO_BITRATE, val * (double)1000);
             break;
-            case 0x06: /* "videocodecid" */
+            case _K_videocodecid:
               this->videocodec = i;
             break;
-            case 0x07: /* "audiosamplerate" */
+            case _K_audiosamplerate:
               this->samplerate = i;
               _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_SAMPLERATE, i);
             break;
-            case 0x08: /* "audiosamplesize" */
+            case _K_audiosamplesize:
               this->samplesize = i;
               _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_BITS, i);
             break;
-            case 0x09: /* "stereo" */
+            case _K_stereo:
               this->audio_channels = i ? 2 : 1;
               _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_CHANNELS, i);
             break;
-            case 0x0a: /* "audiodatarate" */
+            case _K_audiodatarate:
               _x_stream_info_set (this->stream, XINE_STREAM_INFO_AUDIO_BITRATE, val * (double)1000);
             break;
-            case 0x0b: /* "audiocodecid" */
+            case _K_audiocodecid:
               this->audiocodec = i;
             break;
-            case 0x0c: /* "filesize" */
+            case _K_filesize:
               this->filesize = val;
             break;
-            case 0x0d: /* "audiodelay" */
+            case _K_audiodelay:
               this->audiodelay = val * (double)-1000;
             break;
             default: ;
@@ -386,7 +432,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         i = !!(*p++);
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "%s\n", i ? "yes" : "no");
         if (info) {
-          if (keynum == 0x09) /* "stereo" */
+          if (keynum == _K_stereo)
             this->audio_channels = i ? 2 : 1;
         }
       break;
@@ -401,15 +447,15 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         if (!level && !memcmp (p, "onMetaData", 11)) info = this->got_info = 1;
         if (info) {
           switch (keynum) {
-            case 0x0b: /* "audiocodecid" */
+            case _K_audiocodecid:
               if (!memcmp (p, "mp4a", 5))
                 this->audiocodec = AF_AAC;
             break;
-            case 0x06: /* "videocodecid" */
+            case _K_videocodecid:
               if (!memcmp (p, "avc1", 5))
                 this->videocodec = VF_H264;
             break;
-            case 0x09: /* "stereo" */
+            case _K_stereo:
               if (!memcmp (p, "true", 5) || !memcmp (p, "yes", 4))
                 this->audio_channels = 2;
             break;
@@ -448,7 +494,7 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
         NEEDBYTES (4);
         u = _X_BE_32 (p);
         p += 4;
-        if ((keynum == 0x0f) || (keynum == 0x10)) { /* "times", "filepositions" */
+        if ((keynum == _K_times) || (keynum == _K_filepositions)) {
           NEEDBYTES (u * 9);
           xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "[%d] {..}\n", u);
           if (!this->index || (this->num_indices != u)) {
@@ -457,13 +503,13 @@ static int parse_amf (demux_flv_t *this, unsigned char *buf, int size) {
             if (!this->index) return 0;
             this->num_indices = u;
           }
-          if (keynum == 0x0f) { /* "times" */
+          if (keynum == _K_times) {
             for (i = 0; i < (int)u; i++) {
               if (*p++ != AMF0_NUMBER) return 0;
               this->index[i].pts = BE_F64 (p) * (double)1000;
               p += 8;
             }
-          } else { /* "filepositions" */
+          } else { /* _K_filepositions */
             for (i = 0; i < (int)u; i++) {
               if (*p++ != AMF0_NUMBER) return 0;
               this->index[i].offset = BE_F64 (p);
