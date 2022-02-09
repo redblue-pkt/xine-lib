@@ -80,14 +80,29 @@ typedef struct {
   int       extent_height;
 } opengl2_overlay_t;
 
+typedef enum {
+  OGL2_cscs_NONE = 0,
+  OGL2_cscs_yuv420,
+  OGL2_cscs_yuv420j,
+  OGL2_cscs_nv12,
+  OGL2_cscs_yuv422,
+  OGL2_cscs_LAST
+} opengl2_csc_shader_t;
+
 typedef struct {
   int    compiled;
+  /* The uniform locatiins if this shaders arguments.
+   * They seem not to change after compilation, so lets
+   * caache them here and avoid many server round trips. */
+  GLint args[7];
   GLuint shader;
   GLuint program;
+  const char *name;
 } opengl2_program_t;
 
 typedef enum {
   OGL2_TEX_y = 0,
+  OGL2_TEX_u_v,
   OGL2_TEX_u,
   OGL2_TEX_v,
   OGL2_TEX_yuv,
@@ -117,9 +132,9 @@ typedef struct {
   GLenum             fmt_1p; /* texture format for single Y/U/V plane */
   GLenum             fmt_2p; /* texture format for interleaved YUY2 or UV plane */
 
-  opengl2_program_t  yuv420_program;
-  opengl2_program_t  nv12_program;
-  opengl2_program_t  yuv422_program;
+  opengl2_program_t  csc_shaders[OGL2_cscs_LAST];
+  opengl2_csc_shader_t last_csc_shader;
+
   opengl2_yuvtex_t   yuvtex;
   GLuint             videoPBO;
   GLuint             overlayPBO;
@@ -270,6 +285,7 @@ static void opengl2_accel_lock (vo_frame_t *frame, int lock) {
   (void)lock;
 }
 
+static const char * const bicubic_pass1_args[] = {"ARB", "tex", "lut", "spline", NULL};
 static const char *bicubic_pass1_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex, lut;\n"
@@ -285,6 +301,7 @@ static const char *bicubic_pass1_frag=
 "    gl_FragColor = sum;\n"
 "}\n";
 
+static const char * const bicubic_pass2_args[] = {"ARB", "tex", "lut", "spline", NULL};
 static const char *bicubic_pass2_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex, lut;\n"
@@ -369,6 +386,7 @@ static int create_lut_texture( opengl2_driver_t *that )
   return 1;
 }
 
+static const char * const blur_sharpen_args[] = {"ARB", "tex", "mid", "side", "corn", NULL};
 static const char *blur_sharpen_frag=
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex;\n"
@@ -388,6 +406,7 @@ static const char *blur_sharpen_frag=
 "  gl_FragColor = c1 ;\n"
 "}\n";
 
+static const char * const yuv420_args[] = {"r_coefs", "g_coefs", "b_coefs", "texY", "texU", "texV", NULL};
 static const char *yuv420_frag =
 "uniform sampler2D texY, texU, texV;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
@@ -406,6 +425,27 @@ static const char *yuv420_frag =
 "    gl_FragColor = rgb;\n"
 "}\n";
 
+static const char * const yuv420j_args[] = {"r_coefs", "g_coefs", "b_coefs", "texY", "tex_U_V", NULL};
+static const char *yuv420j_frag =
+"uniform sampler2D texY, tex_U_V;\n"
+"uniform vec4 r_coefs, g_coefs, b_coefs;\n"
+"void main(void) {\n"
+"    vec4 rgb;\n"
+"    vec4 yuv;\n"
+"    vec2 coord_y = gl_TexCoord[0].xy;\n"
+"    vec2 coord_u_v = coord_y * vec2 (1.0, 0.5);\n"
+"    yuv.r = texture2D (texY, coord_y).r;\n"
+"    yuv.g = texture2D (tex_U_V, coord_u_v).r;\n"
+"    yuv.b = texture2D (tex_U_V, coord_u_v + vec2 (0.0, 0.5)).r;\n"
+"    yuv.a = 1.0;\n"
+"    rgb.r = dot (yuv, r_coefs);\n"
+"    rgb.g = dot (yuv, g_coefs);\n"
+"    rgb.b = dot (yuv, b_coefs);\n"
+"    rgb.a = 1.0;\n"
+"    gl_FragColor = rgb;\n"
+"}\n";
+
+static const char * const nv12_args[] = {"r_coefs", "g_coefs", "b_coefs", "texY", "texUV", NULL};
 #define nv12_frag                               \
   "uniform sampler2D texY, texUV;\n"            \
   "uniform vec4 r_coefs, g_coefs, b_coefs;\n"   \
@@ -424,6 +464,7 @@ static const char *yuv420_frag =
   "    gl_FragColor = rgb;\n"                   \
   "}\n"
 
+static const char * const yuv422_args[] = {"r_coefs", "g_coefs", "b_coefs", "texYUV", "yuy2vals", NULL};
 #define yuv422_frag                                             \
   "uniform sampler2D texYUV;\n"                                 \
   "uniform vec4 r_coefs, g_coefs, b_coefs;\n"                   \
@@ -446,26 +487,23 @@ static const char *yuv420_frag =
   "    gl_FragColor = rgba;\n"                                  \
   "}\n"
 
-static void load_csc_matrix( GLuint prog, float *cf )
-{
-    glUniform4f( glGetUniformLocation( prog, "r_coefs" ), cf[0], cf[1], cf[2], cf[3] );
-    glUniform4f( glGetUniformLocation( prog, "g_coefs" ), cf[4], cf[5], cf[6], cf[7] );
-    glUniform4f( glGetUniformLocation( prog, "b_coefs" ), cf[8], cf[9], cf[10], cf[11] );
-}
+static int opengl2_build_program (opengl2_driver_t *this,
+  opengl2_program_t *prog, const char *source, const char *name,
+  const char * const *arg_names) {
+  const char *s = source;
+  GLint length;
+  GLchar *log;
 
-static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *prog, const char **source, const char *name )
-{
   xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": compiling shader %s\n", name );
+  prog->name = name;
   if ( !(prog->shader = glCreateShader( GL_FRAGMENT_SHADER )) )
     return 0;
   if ( !(prog->program = glCreateProgram()) )
     return 0;
 
-  glShaderSource( prog->shader, 1, source, NULL );
-  glCompileShader( prog->shader );
+  glShaderSource (prog->shader, 1, &s, NULL);
+  glCompileShader (prog->shader);
 
-  GLint length;
-  GLchar *log;
   glGetShaderiv( prog->shader, GL_INFO_LOG_LENGTH, &length );
   log = (GLchar*)malloc( length );
   if ( !log )
@@ -514,15 +552,20 @@ static int opengl2_build_program( opengl2_driver_t *this, opengl2_program_t *pro
 
   prog->compiled = 1;
 
-  return 1;
-}
+  {
+    unsigned int u;
+    if (!strcmp (arg_names[0], "ARB")) {
+      for (u = 0; arg_names[u + 1]; u++)
+        prog->args[u] = glGetUniformLocationARB (prog->program, arg_names[u + 1]);
+    } else {
+      for (u = 0; arg_names[u]; u++)
+        prog->args[u] = glGetUniformLocation (prog->program, arg_names[u]);
+    }
+    for (; u < sizeof (prog->args) / sizeof (prog->args[0]); u++)
+      prog->args[u] = 0;
+  }
 
-static int opengl2_build_program_p( opengl2_driver_t *this, opengl2_program_t *prog, char *source, const char *name)
-{
-  const char *_source = source;
-  int result = opengl2_build_program(this, prog, &_source, name);
-  free(source);
-  return result;
+  return 1;
 }
 
 static void opengl2_delete_program( opengl2_program_t *prog )
@@ -579,11 +622,12 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
 
   glGenTextures (OGL2_TEX_LAST, ytex->tex);
   uvh = (h + 1) >> 1;
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_y],   w,      h,   this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u],   w >> 1, uvh, this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_v],   w >> 1, uvh, this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_yuv], w,      h,   this->fmt_2p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_uv],  w >> 1, uvh, this->fmt_2p, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_y],   w,      h,       this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u],   w >> 1, uvh,     this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_v],   w >> 1, uvh,     this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_yuv], w,      h,       this->fmt_2p, GL_UNSIGNED_BYTE, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_uv],  w >> 1, uvh,     this->fmt_2p, GL_UNSIGNED_BYTE, GL_NEAREST);
 
   if (this->hw) {
     for (i = 0; i < 3; i++) {
@@ -994,7 +1038,7 @@ static GLuint opengl2_sharpness( opengl2_driver_t *that, opengl2_frame_t *frame,
   GLuint ret = video_texture;
   
   if (!that->sharp.program.compiled) {
-    if (!opengl2_build_program (that, &that->sharp.program, &blur_sharpen_frag, "blur_sharpen_frag"))
+    if (!opengl2_build_program (that, &that->sharp.program, blur_sharpen_frag, "blur_sharpen_frag", blur_sharpen_args))
       return ret;
   }
 
@@ -1008,10 +1052,10 @@ static GLuint opengl2_sharpness( opengl2_driver_t *that, opengl2_frame_t *frame,
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, video_texture );
 
   glUseProgram (that->sharp.program.program);
-  glUniform1i (glGetUniformLocationARB (that->sharp.program.program, "tex"), 0);
-  glUniform1f (glGetUniformLocationARB (that->sharp.program.program, "mid"), that->sharp.mid);
-  glUniform1f (glGetUniformLocationARB (that->sharp.program.program, "side"), that->sharp.side);
-  glUniform1f (glGetUniformLocationARB (that->sharp.program.program, "corn"), that->sharp.corn);
+  glUniform1i (that->sharp.program.args[0], 0);
+  glUniform1f (that->sharp.program.args[1], that->sharp.mid);
+  glUniform1f (that->sharp.program.args[2], that->sharp.side);
+  glUniform1f (that->sharp.program.args[3], that->sharp.corn);
 
   glBegin( GL_QUADS );
     glTexCoord2f( 0, 0 );                           glVertex3f( 0, 0, 0.);
@@ -1039,10 +1083,10 @@ static int opengl2_draw_video_bicubic (opengl2_driver_t *that, const opengl2_dra
   }
 
   if (!that->bicubic_pass1_program.compiled
-    && !opengl2_build_program (that, &that->bicubic_pass1_program, &bicubic_pass1_frag, "bicubic_pass1_frag"))
+    && !opengl2_build_program (that, &that->bicubic_pass1_program, bicubic_pass1_frag, "bicubic_pass1_frag", bicubic_pass1_args))
     return 0;
   if (!that->bicubic_pass2_program.compiled
-    && !opengl2_build_program (that, &that->bicubic_pass2_program, &bicubic_pass2_frag, "bicubic_pass2_frag"))
+    && !opengl2_build_program (that, &that->bicubic_pass2_program, bicubic_pass2_frag, "bicubic_pass2_frag", bicubic_pass2_args))
     return 0;
   if (!that->bicubic_fbo) {
     glGenFramebuffers (1, &that->bicubic_fbo);
@@ -1078,9 +1122,9 @@ static int opengl2_draw_video_bicubic (opengl2_driver_t *that, const opengl2_dra
   glActiveTexture (GL_TEXTURE1);
   glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
   glUseProgram (that->bicubic_pass1_program.program);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "tex"), 0);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "lut"), 1);
-  glUniform1f (glGetUniformLocationARB (that->bicubic_pass1_program.program, "spline"), CATMULLROM_SPLINE);
+  glUniform1i (that->bicubic_pass1_program.args[0], 0);
+  glUniform1i (that->bicubic_pass1_program.args[1], 1);
+  glUniform1f (that->bicubic_pass1_program.args[2], CATMULLROM_SPLINE);
 
   glBegin (GL_QUADS);
     glTexCoord2f (info->sx1, info->sy1); glVertex3f (       0,        0, 0);
@@ -1106,9 +1150,9 @@ static int opengl2_draw_video_bicubic (opengl2_driver_t *that, const opengl2_dra
   glActiveTexture (GL_TEXTURE1);
   glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
   glUseProgram (that->bicubic_pass2_program.program);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "tex"), 0);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "lut"), 1);
-  glUniform1f (glGetUniformLocationARB (that->bicubic_pass2_program.program, "spline"), CATMULLROM_SPLINE);
+  glUniform1i (that->bicubic_pass2_program.args[0], 0);
+  glUniform1i (that->bicubic_pass2_program.args[1], 1);
+  glUniform1f (that->bicubic_pass2_program.args[2], CATMULLROM_SPLINE);
 
   glBegin (GL_QUADS);
     glTexCoord2f (       0,        0); glVertex3f (info->dx1, info->dy1, 0);
@@ -1129,7 +1173,7 @@ static int opengl2_draw_video_cubic_x (opengl2_driver_t *that, const opengl2_dra
   }
 
   if (!that->bicubic_pass1_program.compiled
-    && !opengl2_build_program (that, &that->bicubic_pass1_program, &bicubic_pass1_frag, "bicubic_pass1_frag"))
+    && !opengl2_build_program (that, &that->bicubic_pass1_program, bicubic_pass1_frag, "bicubic_pass1_frag", bicubic_pass1_args))
     return 0;
 
   glViewport (0, 0, info->guiw, info->guih);
@@ -1148,9 +1192,9 @@ static int opengl2_draw_video_cubic_x (opengl2_driver_t *that, const opengl2_dra
   glActiveTexture (GL_TEXTURE1);
   glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
   glUseProgram (that->bicubic_pass1_program.program);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "tex"), 0);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass1_program.program, "lut"), 1);
-  glUniform1f (glGetUniformLocationARB (that->bicubic_pass1_program.program, "spline"), CATMULLROM_SPLINE);
+  glUniform1i (that->bicubic_pass1_program.args[0], 0);
+  glUniform1i (that->bicubic_pass1_program.args[1], 1);
+  glUniform1f (that->bicubic_pass1_program.args[2], CATMULLROM_SPLINE);
 
   glBegin (GL_QUADS);
     glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
@@ -1171,7 +1215,7 @@ static int opengl2_draw_video_cubic_y (opengl2_driver_t *that, const opengl2_dra
   }
 
   if (!that->bicubic_pass2_program.compiled
-    && !opengl2_build_program (that, &that->bicubic_pass2_program, &bicubic_pass2_frag, "bicubic_pass2_frag"))
+    && !opengl2_build_program (that, &that->bicubic_pass2_program, bicubic_pass2_frag, "bicubic_pass2_frag", bicubic_pass2_args))
     return 0;
 
   glViewport (0, 0, info->guiw, info->guih);
@@ -1190,9 +1234,9 @@ static int opengl2_draw_video_cubic_y (opengl2_driver_t *that, const opengl2_dra
   glActiveTexture (GL_TEXTURE1);
   glBindTexture (GL_TEXTURE_RECTANGLE_ARB, that->bicubic_lut_texture);
   glUseProgram (that->bicubic_pass2_program.program);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "tex"), 0);
-  glUniform1i (glGetUniformLocationARB (that->bicubic_pass2_program.program, "lut"), 1);
-  glUniform1f (glGetUniformLocationARB (that->bicubic_pass2_program.program, "spline"), CATMULLROM_SPLINE);
+  glUniform1i (that->bicubic_pass2_program.args[0], 0);
+  glUniform1i (that->bicubic_pass2_program.args[1], 1);
+  glUniform1f (that->bicubic_pass2_program.args[2], CATMULLROM_SPLINE);
 
   glBegin (GL_QUADS);
     glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
@@ -1272,9 +1316,28 @@ static void _upload_texture(GLenum target, GLuint tex, GLenum format, GLenum typ
   glBindBuffer (pbo_target, 0);
 }
 
+static GLuint opengl2_use_csc (opengl2_driver_t *that, opengl2_csc_shader_t what) {
+  GLuint n;
+  if (what != that->last_csc_shader) {
+    that->last_csc_shader = what;
+    xprintf (that->xine, XINE_VERBOSITY_DEBUG,
+      LOG_MODULE ": using csc shader %s.\n", that->csc_shaders[what].name);
+  }
+  n = that->csc_shaders[what].program;
+  glUseProgram (n);
+  glUniform4f (that->csc_shaders[what].args[0],
+    that->csc_matrix[0], that->csc_matrix[1], that->csc_matrix[2], that->csc_matrix[3]);
+  glUniform4f (that->csc_shaders[what].args[1],
+    that->csc_matrix[4], that->csc_matrix[5], that->csc_matrix[6], that->csc_matrix[7]);
+  glUniform4f (that->csc_shaders[what].args[2],
+    that->csc_matrix[8], that->csc_matrix[9], that->csc_matrix[10], that->csc_matrix[11]);
+  return n;
+}
+
 static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
 {
-  unsigned sw_format = frame->format;
+  unsigned int sw_format = frame->format;
+  int uvh = 0;
 
   if (!that->gl->make_current(that->gl)) {
     return;
@@ -1299,17 +1362,27 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     }
   }
   else if (frame->format == XINE_IMGFMT_YV12) {
-    int uvh = (frame->height + 1) >> 1;
-
-    glActiveTexture (GL_TEXTURE0);
-    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], that->fmt_1p, GL_UNSIGNED_BYTE,
-                    frame->vo_frame.base[0], frame->vo_frame.pitches[0], 1, frame->height, that->videoPBO);
-    glActiveTexture (GL_TEXTURE1);
-    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u], that->fmt_1p, GL_UNSIGNED_BYTE,
-                    frame->vo_frame.base[1], frame->vo_frame.pitches[1], 1, uvh, that->videoPBO);
-    glActiveTexture (GL_TEXTURE2);
-    _upload_texture(GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_v], that->fmt_1p, GL_UNSIGNED_BYTE,
-                    frame->vo_frame.base[2], frame->vo_frame.pitches[2], 1, uvh, that->videoPBO);
+    uvh = (frame->height + 1) >> 1;
+    if ((frame->vo_frame.pitches[1] == frame->vo_frame.pitches[2])
+      && (frame->vo_frame.base[1] + frame->vo_frame.pitches[1] * uvh == frame->vo_frame.base[2])) {
+      glActiveTexture (GL_TEXTURE0);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], that->fmt_1p, GL_UNSIGNED_BYTE,
+        frame->vo_frame.base[0], frame->vo_frame.pitches[0], 1, frame->height, that->videoPBO);
+      glActiveTexture (GL_TEXTURE1);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u_v], that->fmt_1p, GL_UNSIGNED_BYTE,
+        frame->vo_frame.base[1], frame->vo_frame.pitches[1], 1, uvh * 2, that->videoPBO);
+    } else {
+      glActiveTexture (GL_TEXTURE0);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], that->fmt_1p, GL_UNSIGNED_BYTE,
+        frame->vo_frame.base[0], frame->vo_frame.pitches[0], 1, frame->height, that->videoPBO);
+      glActiveTexture (GL_TEXTURE1);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u], that->fmt_1p, GL_UNSIGNED_BYTE,
+        frame->vo_frame.base[1], frame->vo_frame.pitches[1], 1, uvh, that->videoPBO);
+      glActiveTexture (GL_TEXTURE2);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_v], that->fmt_1p, GL_UNSIGNED_BYTE,
+        frame->vo_frame.base[2], frame->vo_frame.pitches[2], 1, uvh, that->videoPBO);
+      uvh = 0;
+    }
   }
   else if (frame->format == XINE_IMGFMT_NV12) {
 
@@ -1332,21 +1405,24 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
   }
 
   if (sw_format == XINE_IMGFMT_YV12) {
-    glUseProgram (that->yuv420_program.program);
-    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texY"), 0);
-    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texU" ), 1);
-    glUniform1i (glGetUniformLocation (that->yuv420_program.program, "texV" ), 2);
-    load_csc_matrix (that->yuv420_program.program, that->csc_matrix);
+    if (uvh) {
+      opengl2_use_csc (that, OGL2_cscs_yuv420j);
+      glUniform1i (that->csc_shaders[OGL2_cscs_yuv420j].args[3], 0);
+      glUniform1i (that->csc_shaders[OGL2_cscs_yuv420j].args[4], 1);
+    } else {
+      opengl2_use_csc (that, OGL2_cscs_yuv420);
+      glUniform1i (that->csc_shaders[OGL2_cscs_yuv420].args[3], 0);
+      glUniform1i (that->csc_shaders[OGL2_cscs_yuv420].args[4], 1);
+      glUniform1i (that->csc_shaders[OGL2_cscs_yuv420].args[5], 2);
+    }
   } else if (sw_format == XINE_IMGFMT_NV12) {
-    glUseProgram (that->nv12_program.program);
-    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texY"), 0);
-    glUniform1i (glGetUniformLocation (that->nv12_program.program, "texUV"), 1);
-    load_csc_matrix( that->nv12_program.program, that->csc_matrix );
+    opengl2_use_csc (that, OGL2_cscs_nv12);
+    glUniform1i (that->csc_shaders[OGL2_cscs_nv12].args[3], 0);
+    glUniform1i (that->csc_shaders[OGL2_cscs_nv12].args[4], 1);
   } else if (sw_format == XINE_IMGFMT_YUY2) {
-    glUseProgram( that->yuv422_program.program );
-    glUniform2f (glGetUniformLocationARB( that->yuv422_program.program, "yuy2vals"), that->yuvtex.yuy2_mul, that->yuvtex.yuy2_div);
-    glUniform1i (glGetUniformLocation( that->yuv422_program.program, "texYUV" ), 0 );
-    load_csc_matrix( that->yuv422_program.program, that->csc_matrix );
+    opengl2_use_csc (that, OGL2_cscs_yuv422);
+    glUniform1i (that->csc_shaders[OGL2_cscs_yuv422].args[3], 0);
+    glUniform2f (that->csc_shaders[OGL2_cscs_yuv422].args[4], that->yuvtex.yuy2_mul, that->yuvtex.yuy2_div);
   }
 
   glViewport( 0, 0, frame->width, frame->height );
@@ -1709,9 +1785,11 @@ static void opengl2_dispose (vo_driver_t *this_gen) {
 
   this->gl->make_current(this->gl);
 
-  opengl2_delete_program (&this->yuv420_program);
-  opengl2_delete_program (&this->nv12_program);
-  opengl2_delete_program (&this->yuv422_program);
+  {
+    unsigned int u;
+    for (u = 1; u < OGL2_cscs_LAST; u++)
+      opengl2_delete_program (&this->csc_shaders[u]);
+  }
 
   if (this->sharp.program.compiled)
     opengl2_delete_program (&this->sharp.program);
@@ -1775,6 +1853,7 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
   if (!this)
     return NULL;
 #ifndef HAVE_ZERO_SAFE_MEM
+  this->last_csc_shader                = OGL2_cscs_NONE;
   this->hue                            = 0;
   this->brightness                     = 0;
   this->sharp.changed                  = 0;
@@ -1907,15 +1986,21 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
 
 #define INITWIDTH  720
 #define INITHEIGHT 576
-      const char *p2_swizzle = (this->fmt_2p == GL_RG) ? "g" : "a";
-      if (opengl2_check_textures_size (this, INITWIDTH, INITHEIGHT)
-        && opengl2_build_program (this, &this->yuv420_program, &yuv420_frag, "yuv420_frag")
-        && opengl2_build_program_p (this, &this->nv12_program,
-                                    _x_asprintf(nv12_frag, p2_swizzle),
-                                    "nv12_frag")
-        && opengl2_build_program_p (this, &this->yuv422_program,
-                                    _x_asprintf(yuv422_frag, p2_swizzle, p2_swizzle),
-                                    "yuv422_frag")) {
+      do {
+        char buf[1024];
+        const char *p2_swizzle = (this->fmt_2p == GL_RG) ? "g" : "a";
+        if (!opengl2_check_textures_size (this, INITWIDTH, INITHEIGHT))
+          break;
+        if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_yuv420], yuv420_frag, "yuv420_frag", yuv420_args))
+          break;
+        if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_yuv420j], yuv420j_frag, "yuv420j_frag", yuv420j_args))
+          break;
+        snprintf (buf, sizeof (buf), nv12_frag, p2_swizzle);
+        if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_nv12], buf, "nv12_frag", nv12_args))
+          break;
+        snprintf (buf, sizeof (buf), yuv422_frag, p2_swizzle, p2_swizzle);
+        if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_yuv422], buf, "yuv422_frag", yuv422_args))
+          break;
         this->gl->release_current (this->gl);
 
         this->update_csc = 1;
@@ -1947,7 +2032,7 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
 
         xprintf (this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": initialized.\n");
         return &this->vo_driver;
-      }
+      } while (0);
       this->gl->release_current (this->gl);
     }
     pthread_mutex_destroy (&this->drawable_lock);
