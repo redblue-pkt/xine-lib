@@ -752,7 +752,7 @@ char *xine_fast_string_set (char *fast_string, const char *text, size_t tsize) X
 /** fast strcmp ().
  *  BTW: XINE_PROTECTED does not link on some systems when doing
  *  xine_sarray_new (size, (xine_sarray_comparator_t)xine_fast_string_cmp);. */
-int xine_fast_string_cmp (char *fast_string1, char *fast_string2) EXPORTED;
+int xine_fast_string_cmp (char *fast_string1, char *fast_string2);
 /** free a fast string if it is not application supplied. */
 void xine_fast_string_free (char **fast_string) XINE_PROTECTED;
 
