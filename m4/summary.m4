@@ -57,6 +57,7 @@ AC_DEFUN([XINE_LIB_SUMMARY], [
     test x"$have_gnomevfs" = x"yes"  && echo "   - gnome-vfs" || dis="$dis gnome-vfs"
     test x"$enable_ffmpeg" != x"no" -a x"$have_avformat" = x"yes" && echo "   - avio (libavformat)" || dis="$dis avio"
     echo "   - test"
+    test x"$have_gcrypt" = x"yes"    && echo "   - crypto"    || dis="$dis crypto"
     test x"$dis" != x"" && echo "   (disabled plugins:$dis)"
     echo ""
 

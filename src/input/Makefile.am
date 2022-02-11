@@ -131,6 +131,10 @@ if ENABLE_MMS
 in_mms = xineplug_inp_mms.la
 endif
 
+if ENABLE_CRYPTO
+in_crypto = xineplug_inp_crypto.la
+endif
+
 if WITH_EXTERNAL_DVDNAV
 DVD_CFLAGS  = $(DVDNAV_CFLAGS) $(DVDREAD_CFLAGS)
 link_dvdnav = $(DVDNAV_LIBS) $(DVDREAD_LIBS)
@@ -178,6 +182,7 @@ xineplug_LTLIBRARIES = \
 	$(in_pvr) \
 	$(in_dvb) \
 	$(in_bluray) \
+	$(in_crypto) \
 	xineplug_inp_cdda.la
 
 xineplug_inp_file_la_SOURCES = input_file.c
@@ -263,6 +268,10 @@ xineplug_inp_nfs_la_CFLAGS = $(AM_CFLAGS) $(LIBNFS_CFLAGS)
 xineplug_inp_ssh_la_SOURCES = input_ssh.c
 xineplug_inp_ssh_la_LIBADD = $(XINE_LIB) $(LIBSSH2_LIBS) $(LTLIBINTL) http_helper.la input_helper.la
 xineplug_inp_ssh_la_CFLAGS = $(AM_CFLAGS) $(LIBSSH2_CFLAGS)
+
+xineplug_inp_crypto_la_SOURCES = input_crypto.c
+xineplug_inp_crypto_la_LIBADD = $(XINE_LIB) $(GCRYPT_LIBS) $(LTLIBINTL) input_helper.la
+xineplug_inp_crypto_la_CFLAGS = $(AM_CFLAGS) $(GCRYPT_CFLAGS)
 
 # TLS provider plugins
 

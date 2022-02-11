@@ -25,6 +25,7 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
     default_enable_sftp=yes
     default_enable_nfs=yes
     default_enable_tls=yes
+    default_enable_crypto=yes
     default_with_external_dvdnav=yes
     default_with_openssl=yes
     default_with_gnutls=yes
@@ -285,4 +286,14 @@ AC_DEFUN([XINE_INPUT_PLUGINS], [
     AC_SUBST(GNUTLS_LIBS)
     AM_CONDITIONAL([ENABLE_GNUTLS], [test x"$have_gnutls" = x"yes"])
     AM_CONDITIONAL([ENABLE_OPENSSL], [test x"$have_openssl" = x"yes"])
+
+    dnl crypto input support
+    XINE_ARG_ENABLE([crypto], [Enable crypto support using libgcrypt])
+    if test "x$enable_crypto" != "xno"; then
+        PKG_CHECK_MODULES([GCRYPT], [libgcrypt], [have_gcrypt=yes], [have_gcrypt=no])
+        if test x"$hard_enable_crypto" = x"yes" && test x"$have_gcrypt" != x"yes"; then
+            AC_MSG_ERROR([crypto support requested, but libgcrypt not found])
+        fi
+    fi
+    AM_CONDITIONAL([ENABLE_CRYPTO], [test x"$have_gcrypt" = x"yes"])
 ])
