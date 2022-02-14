@@ -1322,6 +1322,7 @@ xine_fast_text_t *xine_fast_text_load (const char *filename, size_t max_size) {
   w[filesize >> 2] = 0x0a0a0a0a;
   w[(filesize >> 2) + 1] = 0x0a0a0a0a;
   xft->text_len = fread (&xft->dummy[1], 1, filesize, f);
+  fclose (f);
   return xft;
 }
   
