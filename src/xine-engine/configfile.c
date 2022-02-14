@@ -769,22 +769,21 @@ static const char *config_xlate_internal (const char *key, const xine_config_ent
   return NULL;
 }
 
-static const char *config_translate_key (const char *key, char **tmp) {
+#define _MAX_CFG_KEY 320
+static const char *config_translate_key (const char *key, char *tmp, size_t klen) {
   /* Returns translated key or, if no translation found, NULL.
-   * Translated key may be in a static buffer allocated within this function.
-   * NOT re-entrant; assumes that config_lock is held.
-   */
-  unsigned trans;
-  const char *newkey = NULL;
+   * Translated key may be written to tmp. */
+  const char *newkey;
 
   /* first, special-case the decoder entries (so that new ones can be added
-   * without requiring modification of the translation table)
-   */
-  *tmp = NULL;
-  if (!strncmp (key, "decoder.", 8) &&
-      !strcmp (key + (trans = strlen (key)) - 9, "_priority")) {
-    *tmp = _x_asprintf ("engine.decoder_priorities.%.*s", trans - 17, key + 8);
-    return *tmp;
+   * without requiring modification of the translation table). */
+  if (!strncmp (key, "decoder.", 8)) {
+    if ((klen > 8 + 9) && !memcmp (key + klen - 9, "_priority", 9) && (klen < _MAX_CFG_KEY + 8 + 9 - 26 - 1)) {
+      memcpy (tmp, "engine.decoder_priorities.", 26);
+      memcpy (tmp + 26, key + 8, klen - 8 - 9);
+      tmp[26 + klen - 8 - 9] = 0;
+      return tmp;
+    }
   }
 
   /* search the translation table... */
@@ -797,7 +796,7 @@ static const char *config_translate_key (const char *key, char **tmp) {
 
 static cfg_entry_t *config_lookup_entry_int (config_values_t *this, const char *key) {
   cfg_entry_t *entry;
-  char *tmp = NULL;
+  char tmp[_MAX_CFG_KEY];
 
   /* try twice at most (second time with translation from old key name) */
   entry = config_insert (this, key, FIND_ONLY);
@@ -805,13 +804,10 @@ static cfg_entry_t *config_lookup_entry_int (config_values_t *this, const char *
     return entry;
   /* we did not find a match, maybe this is an old config entry name
    * trying to translate */
-  key = config_translate_key (key, &tmp);
-  if (!key) {
-    free (tmp);
+  key = config_translate_key (key, tmp, strlen (key));
+  if (!key)
     return NULL;
-  }
   entry = config_insert (this, key, FIND_ONLY);
-  free (tmp);
   return entry;
 }
 
@@ -1493,64 +1489,36 @@ void xine_config_set_translation_user (const xine_config_entry_translation_t *xl
  * load/save config data from/to afile (e.g. $HOME/.xine/config)
  */
 void xine_config_load (xine_t *xine, const char *filename) {
-
   config_values_t *this = xine->config;
+  xine_fast_text_t *xft;
+
   this->xine = xine;
 
   lprintf ("reading from file '%s'\n", filename);
 
-  do {
-    FILE *f_config;
+  /* TJ. I got far less than 32k, so > 2M is probably insane. */
+  xft = xine_fast_text_load (filename, 2 << 20);
+  if (xft) {
     int version;
-    char *buf, *line, *nextline;
-
-    f_config = fopen (filename, "rb");
-    if (!f_config)
-      break;
-    {
-      long int flen;
-      fseek (f_config, 0, SEEK_END);
-      flen = ftell (f_config);
-      if (flen < 0) {
-        fclose (f_config);
-        break;
-      }
-      /* TJ. I got far less than 32k, so > 2M is probably insane. */
-      if (flen > (2 << 20))
-        flen = 2 << 20;
-      buf = malloc (flen + 2);
-      if (!buf) {
-        fclose (f_config);
-        break;
-      }
-      fseek (f_config, 0, SEEK_SET);
-      flen = fread (buf, 1, flen, f_config);
-      buf[flen] = '\n';
-      buf[flen + 1] = 0;
-    }
-    fclose (f_config);
 
     pthread_mutex_lock (&this->config_lock);
     version = this->current_version;
     pthread_mutex_unlock (&this->config_lock);
 
-    for (line = buf; line[0]; line = nextline) {
+    while (1) {
+      size_t lsize;
+      char *line = xine_fast_text_line (xft, &lsize);
       char *value;
-      /* make string from line */
-      char *lend = strchr (line, '\n');
-      if (!lend) /* should not happen */
+
+      if (!line)
         break;
-      nextline = lend + 1;
-      if ((lend > line) && (lend[-1] == '\r'))
-        lend--;
-      lend[0] = 0;
 
       /* skip comments */
       if (line[0] == '#')
         continue;
 
       if (line[0] == '.') {
-        if (!strncmp (line, ".version:", 9)) {
+        if ((lsize > 9) && !memcmp (line + 1, "version:", 8)) {
           const char *val = line + 9;
           version = xine_str2int32 (&val);
           if (version > CONFIG_FILE_VERSION) {
@@ -1567,6 +1535,7 @@ void xine_config_load (xine_t *xine, const char *filename) {
       value = strchr (line, ':');
       if (value) {
         cfg_entry_t *entry;
+        size_t klen = value - line;
 
         *value++ = 0;
 
@@ -1576,12 +1545,11 @@ void xine_config_load (xine_t *xine, const char *filename) {
           /* old config file -> let's see if we have to rename this one */
           entry = config_insert (this, line, FIND_ONLY);
           if (!entry) {
-            char *tmp = NULL;
-            const char *key = config_translate_key (line, &tmp);
+            char tmp[_MAX_CFG_KEY];
+            const char *key = config_translate_key (line, tmp, klen);
             if (!key)
               key = line; /* no translation? fall back on untranslated key */
             entry = config_insert (this, key, 50);
-            free (tmp);
           }
         } else {
           entry = config_insert (this, line, 50);
@@ -1593,11 +1561,11 @@ void xine_config_load (xine_t *xine, const char *filename) {
         pthread_mutex_unlock (&this->config_lock);
       }
     }
-    free (buf);
+    xine_fast_text_unload (&xft);
     xine_log (xine, XINE_LOG_MSG,
       _("Loaded configuration from file '%s'\n"), filename);
     return;
-  } while (0);
+  }
 
   if (errno != ENOENT)
     xine_log (xine, XINE_LOG_MSG,
