@@ -268,6 +268,7 @@ static void opengl2_exit_register (opengl2_driver_t *this) {
 /* import common color matrix stuff */
 #define CM_LUT
 #define CM_HAVE_YCGCO_SUPPORT 1
+#define CM_HAVE_BT2020_SUPPORT 1
 #define CM_DRIVER_T opengl2_driver_t
 #include "color_matrix.c"
 
@@ -841,6 +842,8 @@ static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *
         case 1:  kb = 0.0722; kr = 0.2126; break; /* ITU-R 709 */
         case 4:  kb = 0.1100; kr = 0.3000; break; /* FCC */
         case 7:  kb = 0.0870; kr = 0.2120; break; /* SMPTE 240 */
+        case 10:
+        case 9:  kb = 0.0593; kr = 0.2627; break; /* BT.2020 */
         default: kb = 0.1140; kr = 0.2990;        /* ITU-R 601 */
       }
       vr = 2.0 * (1.0 - kr);
