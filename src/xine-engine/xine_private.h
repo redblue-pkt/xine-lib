@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -655,6 +655,16 @@ void xine_nbc_event (xine_stream_private_t *stream, uint32_t type) INTERNAL;
  * This is a kludge to detect less compatible plugins like vdr and vdr-xineliboutput.
  * Return actual state. */
 int xine_fbc_set (fifo_buffer_t *fifo, int on) INTERNAL;
+
+/** The fast text feature. */
+typedef struct xine_fast_text_s xine_fast_text_t;
+/** load fast text from file. */
+xine_fast_text_t *xine_fast_text_load (const char *filename, size_t max_size) INTERNAL;
+/** get next line. you may modify return[0] ... return[filesize].
+ *  it all stays valid until xine_fast_text_unload (). */
+char *xine_fast_text_line (xine_fast_text_t *xft, size_t *linesize) INTERNAL;
+/** free the text. */
+void xine_fast_text_unload (xine_fast_text_t **xft) INTERNAL;
 
 EXTERN_C_STOP
 

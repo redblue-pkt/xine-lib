@@ -1270,3 +1270,131 @@ void xine_fast_string_free (char **fast_string) {
     return;
   free ((char *)fs - fs[-3]);
 }
+
+/* The fast text feature. */
+struct xine_fast_text_s {
+  uint32_t scan_here;
+  uint32_t line_start;
+  uint32_t text_len;
+  uint32_t flags;
+  uint32_t dummy[3];
+};
+
+xine_fast_text_t *xine_fast_text_load (const char *filename, size_t max_size) {
+  size_t filesize;
+  FILE *f;
+  xine_fast_text_t *xft;
+  uint8_t *mem;
+  uint32_t *w;
+
+  if (!filename) {
+    errno = EINVAL;
+    return NULL;
+  }
+  if (!filename[0]) {
+    errno = EINVAL;
+    return NULL;
+  }
+
+  f = fopen (filename, "rb");
+  if (!f)
+    return NULL;
+  if (fseek (f, 0, SEEK_END))
+    return NULL;
+  filesize = ftell (f);
+  if (fseek (f, 0, SEEK_SET))
+    return NULL;
+
+  if (filesize > max_size)
+    filesize = max_size;
+  mem = malloc (sizeof (*xft) + ((filesize + 3) & ~3));
+  if (!mem) {
+    fclose (f);
+    errno = ENOMEM;
+    return NULL;
+  }
+  xft = (xine_fast_text_t *)mem;
+  xft->scan_here = 0;
+  xft->line_start = 0;
+  xft->flags = 0;
+  xft->dummy[0] = 0;
+  w = &xft->dummy[1];
+  w[filesize >> 2] = 0x0a0a0a0a;
+  w[(filesize >> 2) + 1] = 0x0a0a0a0a;
+  xft->text_len = fread (&xft->dummy[1], 1, filesize, f);
+  return xft;
+}
+  
+char *xine_fast_text_line (xine_fast_text_t *xft, size_t *linesize) {
+  const union {
+    uint8_t b[4];
+    uint32_t w;
+  }
+  b0 = {{0x80, 0, 0, 0}},
+  b1 = {{0, 0x80, 0, 0}},
+  b2 = {{0, 0, 0x80, 0}};
+  uint32_t v;
+  uint8_t *b, *e;
+
+  if (xft->line_start >= xft->text_len) {
+    *linesize = 0;
+    return NULL;
+  }
+  e = (uint8_t *)&xft->dummy[1] + xft->scan_here;
+  v = xft->flags;
+  switch (xft->scan_here & 3) {
+    case 0:
+      {
+        uint32_t *w = &xft->dummy[1] + (xft->scan_here >> 2); /* == (uint8_t *)e */
+
+        do {
+          v = *w++ ^ ~0x0a0a0a0a;
+          v = ((v & 0x7f7f7f7f) + 0x01010101) & v & 0x80808080;
+        } while (!v);
+        e = (uint8_t *)(w - 1);
+      }
+      if (v & b0.w) {
+        v &= ~b0.w;
+        xft->scan_here = e - (uint8_t *)&xft->dummy[1] + (v ? 1 : 4);
+        break;
+      }
+      e++;
+      /* fall through */
+    case 1:
+      if (v & b1.w) {
+        v &= ~b1.w;
+        xft->scan_here = e - (uint8_t *)&xft->dummy[1] + (v ? 1 : 3);
+        break;
+      }
+      e++;
+      /* fall through */
+    case 2:
+      if (v & b2.w) {
+        v &= ~b2.w;
+        xft->scan_here = e - (uint8_t *)&xft->dummy[1] + (v ? 1 : 2);
+        break;
+      }
+      e++;
+      /* fall through */
+    case 3:
+      /* v & b3.w always true */
+      v = 0;
+      xft->scan_here = e - (uint8_t *)&xft->dummy[1] + 1;
+      break;
+  }
+  xft->flags = v;
+  b = (uint8_t *)&xft->dummy[1] + xft->line_start;
+  xft->line_start = e - (uint8_t *)&xft->dummy[1] + 1;
+  e[0] = 0;
+  if (e[-1] == 0x0d)
+    *--e = 0;
+  *linesize = e - b;
+  return (char *)b;
+}
+
+void xine_fast_text_unload (xine_fast_text_t **xft) {
+  if (xft) {
+    free (*xft);
+    *xft = NULL;
+  }
+}
