@@ -1356,37 +1356,23 @@ static void save_plugin_list(xine_t *this, FILE *fp, xine_sarray_t *list) {
 /*
  *  load plugin list information from file (cached catalog)
  */
-static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
+static void load_plugin_list (xine_t *this, const char *filename, xine_sarray_t *plugins) {
 
   fat_node_t node; /** << node.file.filename is not a xine_fast_string_t, never passed there. */
   size_t stlen, fnlen, idlen;
   /* We dont have that many types yet ;-) */
   uint32_t supported_types[256];
-  char *cfgentries[256];
+  char *cfgentries[256], dummy_file[3] = "[]";
   int numcfgs;
 
-  char *buf, *line, *nextline, *stop;
-  int version_ok = 0;
+  xine_fast_text_t *xft;
+  int version_ok = 0, again = 1;
   int skip = 0;
 
-  {
-    long int flen;
-    fseek (fp, 0, SEEK_END);
-    flen = ftell (fp);
-    if (flen < 0)
-      return;
-    /* TJ. I got far less than 100k, so > 2M is probably insane. */
-    if (flen > (2 << 20))
-      flen = 2 << 20;
-    buf = malloc (flen + 22);
-    if (!buf)
-      return;
-    fseek (fp, 0, SEEK_SET);
-    flen = fread (buf, 1, flen, fp);
-    /* HACK: provoke clean exit */
-    stop = buf + flen;
-    memcpy (stop, "\n[libxine/builtins]\n\n", 22);
-  }
+  /* TJ. I got far less than 100k, so > 2M is probably insane. */
+  xft = xine_fast_text_load (filename, 2 << 20);
+  if (!xft)
+    return;
 
   _fat_node_init (&node);
   stlen = 0;
@@ -1394,25 +1380,23 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
   fnlen = 0;
   numcfgs = 0;
 
-  for (line = buf; line[0]; line = nextline) {
-    char *value;
-    /* make string from line */
-    char *lend = strchr (line, '\n');
-    if (!lend) { /* should not happen ('\0' in file) */
-      nextline = stop;
-      continue;
-    }
-    nextline = lend + 1;
-    if ((lend > line) && (lend[-1] == '\r'))
-      lend--;
-    lend[0] = 0;
+  while (again) {
+    size_t lsize;
+    char *value, *line = xine_fast_text_line (xft, &lsize);
 
-    /* skip comments */
-    if (line[0] == '#')
-      continue;
-    /* skip (almost) empty lines */
-    if (lend - line < 3)
-      continue;
+    if (line) {
+      /* skip comments */
+      if (line[0] == '#')
+        continue;
+      /* skip (almost) empty lines */
+      if (lsize < 3)
+        continue;
+    } else {
+      /* make sure to flush the last one */
+      again = 0;
+      line = dummy_file;
+      lsize = 2;
+    }
 
     /* file name */
     if (line[0] == '[' && version_ok) {
@@ -1486,14 +1470,14 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
         numcfgs = 0;
       }
 
-      line++; /* skip '[' */
-      value = strchr (line, ']');
-      if (value)
-        lend = value;
-      lend[0] = 0;
-      fnlen = lend - line;
+      *line++ = ']'; /* skip '[' */
+      for (value = line + lsize - 2; *value != ']'; value--) ;
+      if (value < line)
+        value = line + lsize - 1;
+      *value = 0;
+      fnlen = value - line;
 
-      if (!strcmp (line, "libxine/builtins")) {
+      if ((fnlen == 16) && !memcmp (line, "libxine/builtins", 16)) {
         skip = 1;
         continue;
       }
@@ -1615,7 +1599,7 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
           if (xine_str2uint32 (&val) == CACHE_CATALOG_VERSION)
             version_ok = 1;
           else {
-            free (buf);
+            xine_fast_text_unload (&xft);
             return;
           }
         }
@@ -1653,7 +1637,7 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
             break;
           case _K_id:
             node.info[0].id = value;
-            idlen = lend - value + 1;
+            idlen = (line + lsize) - value + 1;
             break;
           case _K_version:
             node.info[0].version = v.u;
@@ -1707,7 +1691,7 @@ static void load_plugin_list (xine_t *this, FILE *fp, xine_sarray_t *plugins) {
     }
   }
 
-  free (buf);
+  xine_fast_text_unload (&xft);
 }
 
 /**
@@ -1818,15 +1802,10 @@ static void save_catalog (xine_t *this) {
  * load cached catalog from file
  */
 static void load_cached_catalog (xine_t *this) {
-
-  FILE *fp;
   char *const cachefile = catalog_filename(this, 0);
   /* It can't return NULL without creating directories */
 
-  if ((fp = fopen (cachefile, "rb")) != NULL) {
-    load_plugin_list (this, fp, this->plugin_catalog->cache_list);
-    fclose(fp);
-  }
+  load_plugin_list (this, cachefile, this->plugin_catalog->cache_list);
   free(cachefile);
 }
 
@@ -3512,4 +3491,3 @@ void _x_dispose_plugins (xine_t *this) {
     _x_freep (&this->plugin_catalog);
   }
 }
-
