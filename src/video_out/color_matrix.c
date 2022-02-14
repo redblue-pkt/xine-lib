@@ -97,14 +97,13 @@ static const char * const cm_names[] = {
   "SMPTE 170M",
   "full range SMPTE 170M",
   "SMPTE 240M",
-  "full range SMPTE 240M"
-#ifdef CM_HAVE_YCGCO_SUPPORT
-  ,
+  "full range SMPTE 240M",
+#if defined(CM_HAVE_YCGCO_SUPPORT) || defined(CM_HAVE_BT2020_SUPPORT)
   "YCgCo",
   "YCgCo", /* this is always fullrange */
-  "#9",
+  "BT.2020 NCL",
   "fullrange #9",
-  "#10",
+  "BT.2020 CL",
   "fullrange #10",
   "#11",
   "fullrange #11",
@@ -115,7 +114,7 @@ static const char * const cm_names[] = {
   "#14",
   "fullrange #14",
   "#15",
-  "fullrange #15"
+  "fullrange #15",
 #endif
 };
 
@@ -138,15 +137,21 @@ static const char * const cr_conf_labels[] = {
 #  define CM_G 10
 #endif
 
+#ifdef CM_HAVE_BT2020_SUPPORT
+#  define CM_2020 18,20
+#else
+#  define CM_2020 10,10
+#endif
+
 static
 #ifdef CM_LUT
 const
 #endif
 uint8_t cm_m[] = {
-  10, 2,10, 6, 8,10,12,14,CM_G,10,10,10,10,10,10,10, /* SIGNAL */
-  10, 2, 0, 6, 8,10,12,14,CM_G,10,10,10,10,10,10,10, /* SIZE */
-  10,10,10,10,10,10,10,10,CM_G,10,10,10,10,10,10,10, /* SD */
-  10, 2, 2, 2, 2, 2, 2, 2,CM_G, 2, 2, 2, 2, 2, 2, 2  /* HD */
+  10, 2,10, 6, 8,10,12,14,CM_G,CM_2020,10,10,10,10,10, /* SIGNAL */
+  10, 2, 0, 6, 8,10,12,14,CM_G,CM_2020,10,10,10,10,10, /* SIZE */
+  10,10,10,10,10,10,10,10,CM_G, 10, 10,10,10,10,10,10, /* SD */
+  10, 2, 2, 2, 2, 2, 2, 2,CM_G,  2,  2, 2, 2, 2, 2, 2  /* HD */
 };
 
 static void cm_lut_setup (CM_DRIVER_T *this) {
