@@ -532,6 +532,17 @@ void _x_nv12_to_yv12(const uint8_t *y_src,  int y_src_pitch,
                      uint8_t *u_dst, int u_dst_pitch,
                      uint8_t *v_dst, int v_dst_pitch,
                      int width, int height) XINE_PROTECTED;
+void _x_yv12_to_nv12(const uint8_t *y_src, int y_src_pitch,
+                     const uint8_t *u_src, int u_src_pitch,
+                     const uint8_t *v_src, int v_src_pitch,
+                     uint8_t *y_dst,  int y_dst_pitch,
+                     uint8_t *uv_dst, int uv_dst_pitch,
+                     int width, int height) XINE_PROTECTED;
+void _x_yuy2_to_nv12(const uint8_t *src_yuy2_map, int yuy2_pitch,
+                     uint8_t *y_dst,  int y_dst_pitch,
+                     uint8_t *uv_dst, int uv_dst_pitch,
+                     int width, int height) XINE_PROTECTED;
+
 
 /* print a hexdump of the given data */
 void xine_hexdump (const void *buf, int length) XINE_PROTECTED;
