@@ -64,16 +64,7 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
   _x_post_frame_copy_down(frame, inverted_frame);
 
   switch (inverted_frame->format) {
-  case XINE_IMGFMT_YUY2:
-    size = inverted_frame->pitches[0] * inverted_frame->height;
-    for (i = 0; i < size; i++)
-      inverted_frame->base[0][i] = 0xff - frame->base[0][i];
-    break;
   case XINE_IMGFMT_YV12:
-    /* Y */
-    size = inverted_frame->pitches[0] * inverted_frame->height;
-    for (i = 0; i < size; i++)
-      inverted_frame->base[0][i] = 0xff - frame->base[0][i];
     /* U */
     size = inverted_frame->pitches[1] * ((inverted_frame->height + 1) / 2);
     for (i = 0; i < size; i++)
@@ -82,6 +73,12 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
     size = inverted_frame->pitches[2] * ((inverted_frame->height + 1) / 2);
     for (i = 0; i < size; i++)
       inverted_frame->base[2][i] = 0xff - frame->base[2][i];
+    /* fall thru */
+  case XINE_IMGFMT_YUY2:
+    /* Y or YUY2 */
+    size = inverted_frame->pitches[0] * inverted_frame->height;
+    for (i = 0; i < size; i++)
+      inverted_frame->base[0][i] = 0xff - frame->base[0][i];
     break;
   }
   skip = inverted_frame->draw(inverted_frame, stream);
