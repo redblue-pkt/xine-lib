@@ -42,7 +42,7 @@ static void invert_dispose(post_plugin_t *this)
 static int invert_intercept_frame(post_video_port_t *port, vo_frame_t *frame)
 {
   (void)port;
-  return (frame->format == XINE_IMGFMT_YV12 || frame->format == XINE_IMGFMT_YUY2);
+  return (frame->format == XINE_IMGFMT_YV12 || frame->format == XINE_IMGFMT_YUY2 || frame->format == XINE_IMGFMT_NV12);
 }
 
 
@@ -65,14 +65,16 @@ static int invert_draw(vo_frame_t *frame, xine_stream_t *stream)
 
   switch (inverted_frame->format) {
   case XINE_IMGFMT_YV12:
-    /* U */
-    size = inverted_frame->pitches[1] * ((inverted_frame->height + 1) / 2);
-    for (i = 0; i < size; i++)
-      inverted_frame->base[1][i] = 0xff - frame->base[1][i];
     /* V */
     size = inverted_frame->pitches[2] * ((inverted_frame->height + 1) / 2);
     for (i = 0; i < size; i++)
       inverted_frame->base[2][i] = 0xff - frame->base[2][i];
+    /* fall thru */
+  case XINE_IMGFMT_NV12:
+    /* U or UV */
+    size = inverted_frame->pitches[1] * ((inverted_frame->height + 1) / 2);
+    for (i = 0; i < size; i++)
+      inverted_frame->base[1][i] = 0xff - frame->base[1][i];
     /* fall thru */
   case XINE_IMGFMT_YUY2:
     /* Y or YUY2 */
