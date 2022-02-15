@@ -85,3 +85,65 @@ void _x_nv12_to_yv12(const uint8_t *restrict y_src,  int y_src_pitch,
   }
 }
 
+void _x_yv12_to_nv12(const uint8_t *y_src, int y_src_pitch,
+                     const uint8_t *u_src, int u_src_pitch,
+                     const uint8_t *v_src, int v_src_pitch,
+                     uint8_t *y_dst,  int y_dst_pitch,
+                     uint8_t *uv_dst, int uv_dst_pitch,
+                     int width, int height) {
+  int y, x;
+
+  _copy_plane(y_dst, y_src, y_dst_pitch, y_src_pitch, width, height);
+
+  /* Combine uv line to temporary (cached) buffer.
+     Avoids fetching destination plane to cache. */
+  uint8_t *line = xine_malloc_aligned(width + 1);
+  if (!line)
+    return;
+
+  for(y = 0; y < height / 2; y++) {
+    for(x = 0; x < width / 2; x++) {
+      line[2*x]     = *(u_src + x);
+      line[2*x + 1] = *(v_src + x);
+    }
+
+    xine_fast_memcpy(uv_dst, line, width);
+
+    uv_dst += uv_dst_pitch;
+    u_src += u_src_pitch;
+    v_src += v_src_pitch;
+  }
+
+  xine_free_aligned(line);
+}
+
+void _x_yuy2_to_nv12(const uint8_t *src_yuy2_map, int yuy2_pitch,
+                     uint8_t *y_dst,  int y_dst_pitch,
+                     uint8_t *uv_dst, int uv_dst_pitch,
+                     int width, int height) {
+  int y, x;
+
+  const uint8_t *yuy2_map = src_yuy2_map;
+  for(y = 0; y < height; y++) {
+    uint8_t *y_dst_tmp = y_dst;
+    const uint8_t *yuy2_src_tmp = yuy2_map;
+    for(x = 0; x < width / 2; x++) {
+      *(y_dst_tmp++   ) = *(yuy2_src_tmp++);
+      yuy2_src_tmp++;
+      *(y_dst_tmp++   ) = *(yuy2_src_tmp++);
+      yuy2_src_tmp++;
+    }
+    y_dst += y_dst_pitch;
+    yuy2_map += yuy2_pitch;
+  }
+
+  yuy2_map = src_yuy2_map;
+  for(y = 0; y < height; y += 2) {
+    for(x = 0; x < width; x += 2) {
+      *(uv_dst + x )     = *(yuy2_map + x*2 + 1);
+      *(uv_dst + x + 1 ) = *(yuy2_map + x*2 + 3);
+    }
+    uv_dst += uv_dst_pitch;
+    yuy2_map += yuy2_pitch * 2;
+  }
+}

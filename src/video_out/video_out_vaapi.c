@@ -268,13 +268,6 @@ static int vaapi_ovl_associate(vaapi_driver_t *this, int format, int bShow);
 static VAStatus vaapi_destroy_soft_surfaces(vaapi_driver_t *this);
 static int vaapi_set_property (vo_driver_t *this_gen, int property, int value);
 
-static void yv12_to_nv12(const uint8_t *y_src, int y_src_pitch, 
-                         const uint8_t *u_src, int u_src_pitch, 
-                         const uint8_t *v_src, int v_src_pitch,
-                         uint8_t *y_dst,  int y_dst_pitch,
-                         uint8_t *uv_dst, int uv_dst_pitch,
-                         int width, int height);
-
 #ifdef ENABLE_VA_GLX
 void (GLAPIENTRY *mpglBindTexture)(GLenum, GLuint);
 void (GLAPIENTRY *mpglXBindTexImage)(Display *, GLXDrawable, int, const int *);
@@ -2058,77 +2051,6 @@ static int vaapi_redraw_needed (vo_driver_t *this_gen) {
   return ret;
 }
 
-static void yv12_to_nv12(const uint8_t *y_src, int y_src_pitch, 
-                         const uint8_t *u_src, int u_src_pitch, 
-                         const uint8_t *v_src, int v_src_pitch,
-                         uint8_t *y_dst,  int y_dst_pitch,
-                         uint8_t *uv_dst, int uv_dst_pitch,
-                         int width, int height) {
-  int y, x;
-
-  lprintf("yv12_to_nv12 converter\n");
-
-  for (y = 0; y < height; y++) {
-    xine_fast_memcpy(y_dst, y_src, width);
-    y_src += y_src_pitch;
-    y_dst += y_dst_pitch;
-  }
-
-  /* Combine uv line to temporary (cached) buffer.
-     Avoids fetching destination plane to cache. */
-  uint8_t *line = xine_malloc_aligned(width + 1);
-  if (!line)
-    return;
-
-  for(y = 0; y < height / 2; y++) {
-    for(x = 0; x < width / 2; x++) {
-      line[2*x]     = *(u_src + x);
-      line[2*x + 1] = *(v_src + x);
-    }
-
-    xine_fast_memcpy(uv_dst, line, width);
-
-    uv_dst += uv_dst_pitch;
-    u_src += u_src_pitch;
-    v_src += v_src_pitch;
-  }
-
-  xine_free_aligned(line);
-}
-
-static void yuy2_to_nv12(const uint8_t *src_yuy2_map, int yuy2_pitch, 
-                         uint8_t *y_dst,  int y_dst_pitch,
-                         uint8_t *uv_dst, int uv_dst_pitch,
-                         int width, int height) {
-  int y, x;
-
-  const uint8_t *yuy2_map = src_yuy2_map;
-  for(y = 0; y < height; y++) {
-    uint8_t *y_dst_tmp = y_dst;
-    const uint8_t *yuy2_src_tmp = yuy2_map;
-    for(x = 0; x < width / 2; x++) {
-      *(y_dst_tmp++   ) = *(yuy2_src_tmp++);
-      yuy2_src_tmp++;
-      *(y_dst_tmp++   ) = *(yuy2_src_tmp++);
-      yuy2_src_tmp++;
-    }
-    y_dst += y_dst_pitch;
-    yuy2_map += yuy2_pitch;
-  }
-
-  yuy2_map = src_yuy2_map;
-  for(y = 0; y < height; y += 2) {
-    for(x = 0; x < width; x += 2) {
-      *(uv_dst + x )     = *(yuy2_map + x*2 + 1);
-      *(uv_dst + x + 1 ) = *(yuy2_map + x*2 + 3);
-    }
-    uv_dst += uv_dst_pitch;
-    yuy2_map += yuy2_pitch * 2;
-  }
-
-}
-
-
 static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, mem_frame_t *frame,
                                             VAImage *va_image, int is_bound, VASurfaceID va_surface_id) {
   ff_vaapi_context_t *va_context      = this->va_context;
@@ -2187,12 +2109,12 @@ static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, mem_frame_t *f
     } else if (va_image->format.fourcc == VA_FOURCC( 'N', 'V', '1', '2' )) {
       lprintf("vaapi_software_render_frame yv12 -> nv12 convert\n");
 
-      yv12_to_nv12(frame->vo_frame.base[0], frame->vo_frame.pitches[0],
-                   frame->vo_frame.base[1], frame->vo_frame.pitches[1],
-                   frame->vo_frame.base[2], frame->vo_frame.pitches[2],
-                   (uint8_t *)p_base + va_image->offsets[0], va_image->pitches[0],
-                   (uint8_t *)p_base + va_image->offsets[1], va_image->pitches[1],
-                   frame->vo_frame.width, frame->vo_frame.height);
+      _x_yv12_to_nv12(frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+                      frame->vo_frame.base[1], frame->vo_frame.pitches[1],
+                      frame->vo_frame.base[2], frame->vo_frame.pitches[2],
+                      (uint8_t *)p_base + va_image->offsets[0], va_image->pitches[0],
+                      (uint8_t *)p_base + va_image->offsets[1], va_image->pitches[1],
+                      frame->vo_frame.width, frame->vo_frame.height);
 
     }
   } else if (frame->format == XINE_IMGFMT_YUY2) {
@@ -2210,10 +2132,10 @@ static VAStatus vaapi_software_render_frame(vaapi_driver_t *this, mem_frame_t *f
     } else if (va_image->format.fourcc == VA_FOURCC( 'N', 'V', '1', '2' )) {
       lprintf("vaapi_software_render_frame yuy2 -> nv12 convert\n");
 
-      yuy2_to_nv12(frame->vo_frame.base[0], frame->vo_frame.pitches[0],
-                   (uint8_t *)p_base + va_image->offsets[0], va_image->pitches[0],
-                   (uint8_t *)p_base + va_image->offsets[1], va_image->pitches[1],
-                   frame->vo_frame.width, frame->vo_frame.height);
+      _x_yuy2_to_nv12(frame->vo_frame.base[0], frame->vo_frame.pitches[0],
+                      (uint8_t *)p_base + va_image->offsets[0], va_image->pitches[0],
+                      (uint8_t *)p_base + va_image->offsets[1], va_image->pitches[1],
+                      frame->vo_frame.width, frame->vo_frame.height);
     }
 
   }
