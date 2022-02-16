@@ -167,6 +167,25 @@ void xine_sarray_clear (xine_sarray_t *sarray) {
   }
 }
 
+void xine_sarray_move_location (xine_sarray_t *sarray, void *new_ptr, unsigned int position) {
+  if (sarray && (position < sarray->size)) {
+    if (new_ptr) {
+      sarray->chunk[position] = new_ptr;
+    } else {
+      void **here = sarray->chunk + position;
+      unsigned int u = sarray->size - position - 1;
+      while (u--) {
+        here[0] = here[1];
+        here++;
+      }
+      sarray->size--;
+      sarray->last_add[0] = 0;
+      sarray->last_add[1] = 0;
+      sarray->same_dir = 0;
+    }
+  }
+}
+
 void xine_sarray_remove (xine_sarray_t *sarray, unsigned int position) {
   if (sarray) {
     if (position < sarray->size) {

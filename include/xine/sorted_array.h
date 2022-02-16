@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -57,6 +57,9 @@
 #include <stddef.h> /* size_t */
 #include <xine/attributes.h>
 
+/* version */
+#define XINE_SARRAY 2
+
 /* Array type */
 typedef struct xine_sarray_s xine_sarray_t;
 
@@ -107,6 +110,12 @@ void *xine_sarray_get(xine_sarray_t *sarray, unsigned int position) XINE_PROTECT
    The insertion point is defined as the point at which the key would be
    inserted into the array. */
 int xine_sarray_binary_search(xine_sarray_t *sarray, void *key) XINE_PROTECTED;
+
+/* XINE_SARRAY >= 2: update the location of an existing entry,
+ * eg from a stack dummy to a neqly allocted real object.
+ * new_ptr == NULL does the same as xine_sarray_remove ().
+ * WARNING: this does _not_ recheck the sort order. */
+void xine_sarray_move_location (xine_sarray_t *sarray, void *new_ptr, unsigned int position) XINE_PROTECTED;
 
 #endif
 
