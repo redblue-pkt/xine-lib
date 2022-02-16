@@ -48,11 +48,38 @@
 #define SINGLE_CHUNK_ENUMS
 
 #include <xine/xineutils.h>
+#include <xine/sorted_array.h>
 #include <xine/xine_internal.h>
 #include "xine_private.h"
 
+#define MAX_SORT_KEY 320
+
 /* FIXME: static data, no expiry ?! */
 static const xine_config_entry_translation_t *config_entry_translation_user = NULL;
+
+typedef struct {
+  cfg_entry_t entry;
+  int *magic;
+  char *internal_key; /** << xine_fast_string_t * */
+} fat_cfg_entry_t;
+
+static void _config_set_fat_entry (fat_cfg_entry_t *entry) {
+  entry->magic = &entry->entry.range_min;
+}
+
+static int _config_is_fat_entry (fat_cfg_entry_t *entry) {
+  return entry->magic == &entry->entry.range_min;
+}
+
+typedef struct {
+  fat_cfg_entry_t entry;
+  char buf[MAX_SORT_KEY + 32];
+} very_fat_cfg_entry_t;
+
+typedef struct {
+  config_values_t config;
+  xine_sarray_t *key_index;
+} fat_config_values_t;
 
 typedef struct {
   xine_config_cb_t callback;
@@ -515,7 +542,6 @@ static int config_section_enum (const uint8_t *s, uint32_t l) {
   return 0;
 }
 
-#define MAX_SORT_KEY 320
 static size_t config_make_sort_key (char *dest, const char *key, int exp_level) {
   uint8_t *q = (uint8_t *)dest, *e = q + MAX_SORT_KEY - 7;
   const uint8_t *p = (const uint8_t *)key, *b;
@@ -596,6 +622,7 @@ static size_t config_make_sort_key (char *dest, const char *key, int exp_level) 
   return q - (uint8_t *)dest;
 }
 
+#if 0
 /* Ugly: rebuild index every time. Maybe we could cache it somewhere? */
 static cfg_entry_t **config_array (config_values_t *this, cfg_entry_t **tab, int *n) {
   cfg_entry_t *e;
@@ -622,142 +649,127 @@ static cfg_entry_t **config_array (config_values_t *this, cfg_entry_t **tab, int
   *n = i;
   return tab;
 }
-
-#define FIND_ONLY 0x7fffffff
-static cfg_entry_t *config_insert (config_values_t *this, const char *key, int exp_level) {
-  char new_buf[MAX_SORT_KEY + 32];
-  char cur_buf[MAX_SORT_KEY + 32];
-  char *new_sortkey = xine_fast_string_init (new_buf, sizeof (new_buf));
-  char *cur_sortkey = xine_fast_string_init (cur_buf, sizeof (cur_buf));
-  cfg_entry_t *entry;
-
-  do {
-    if (!this->first || !this->last) {
-      if (exp_level == FIND_ONLY)
-        return NULL;
-      entry = calloc (1, sizeof (cfg_entry_t));
-      if (!entry)
-        return NULL;
-#ifdef DEBUG_CONFIG_FIND
-      printf ("config_insert (\"%s\", %d) = new (0).\n", key, exp_level);
 #endif
-      this->first = entry;
-      this->last  = entry;
-#ifndef HAVE_ZERO_SAFE_MEM
-      entry->next = NULL;
-#endif
-      break;
-    }
 
-    xine_fast_string_set (new_sortkey, NULL, config_make_sort_key (new_sortkey, key, exp_level));
-
-    /* Most frequent case is loading a config file entry.
-     * Unless edited by user, these come in already sorted.
-     * Thus try last pos first.
-     */
-    if (exp_level != FIND_ONLY) {
-      xine_fast_string_set (cur_sortkey, NULL, config_make_sort_key (cur_sortkey, this->last->key, this->last->exp_level));
-      if (xine_fast_string_cmp (new_sortkey, cur_sortkey) > 0) {
-        entry = calloc (1, sizeof (cfg_entry_t));
-        if (!entry)
-          return NULL;
-#ifdef DEBUG_CONFIG_FIND
-        printf ("config_insert (\"%s\", %d) = new (last).\n", key, exp_level);
-#endif
-        this->last->next = entry;
-        this->last       = entry;
-#ifndef HAVE_ZERO_SAFE_MEM
-        entry->next      = NULL;
-#endif
-        break;
-      }
-    }
-
-    {
-      cfg_entry_t *aentr[1024], **entries;
-      int n, b, m, e, d;
-      n = 1024;
-      entries = config_array (this, aentr, &n);
-      if (!entries)
-        return NULL;
-
-      b = 0; e = n; m = n >> 1;
-      do {
-        xine_fast_string_set (cur_sortkey, NULL, config_make_sort_key (cur_sortkey, entries[m]->key, entries[m]->exp_level));
-        d = xine_fast_string_cmp (new_sortkey, cur_sortkey);
-        if (d == 0)
-          break;
-        if (d < 0)
-          e = m;
-        else
-          b = m + 1;
-        m = (b + e) >> 1;
-      } while (b != e);
-
-      if (d == 0) {
-        entry = entries[m];
-        if (entries != aentr)
-          free (entries);
-#ifdef DEBUG_CONFIG_FIND
-        printf ("config_insert (\"%s\", %d) = found (%d/%d).\n", key, exp_level, m, n);
-#endif
-        return entry;
-      }
-
-      if (exp_level == FIND_ONLY) {
-        if (entries != aentr)
-          free (entries);
-#ifdef DEBUG_CONFIG_FIND
-        printf ("config_insert (\"%s\", %d) = not found.\n", key, exp_level);
-#endif
-        return NULL;
-      }
-
-      entry = calloc (1, sizeof (cfg_entry_t));
-      if (!entry) {
-        if (entries != aentr)
-          free (entries);
-        return NULL;
-      }
-      if (m == 0) {
-        entry->next = this->first;
-        this->first = entry;
-      } else {
-        entries[m - 1]->next = entry;
-        if (m < n) {
-          entry->next = entries[m];
-        } else {
-          entry->next = NULL;
-          this->last = entry;
+static int config_validate (config_values_t *this_gen) {
+  fat_config_values_t *this = (fat_config_values_t *)this_gen;
+  fat_cfg_entry_t *entry;
+  int num_new = 0;
+  /* Paranoia:
+   * 1. Find manually added entries. */
+  for (entry = (fat_cfg_entry_t *)this->config.first; entry; entry = (fat_cfg_entry_t *)entry->entry.next) {
+    if (!_config_is_fat_entry (entry)) {
+      if (xine_sarray_add (this->key_index, entry) >= 0) {
+        num_new++;
+        if (this->config.xine) {
+          xprintf (this->config.xine, XINE_VERBOSITY_DEBUG,
+            LOG_MODULE ": WARNING: found manually added entry \"%s\".\n", entry->entry.key);
         }
       }
-      if (entries != aentr)
-        free (entries);
-#ifdef DEBUG_CONFIG_FIND
-      printf ("config_insert (\"%s\", %d) = new (%d/%d).\n", key, exp_level, m, n);
-#endif
     }
-  } while (0);
+  }
+  if (num_new) {
+    int index, num_entries = xine_sarray_size (this->key_index);
+    cfg_entry_t **prev;
 
-#ifndef HAVE_ZERO_SAFE_MEM
-  entry->num_value     = 0;
-  entry->num_default   = 0;
-  entry->range_min     = 0;
-  entry->range_max     = 0;
-  entry->enum_values   = NULL;
-  entry->unknown_value = NULL;
-  entry->str_value     = NULL;
-  entry->str_default   = NULL;
-  entry->help          = NULL;
-  entry->description   = NULL;
-  entry->callback      = NULL;
-  entry->callback_data = NULL;
+    for (prev = &this->config.first, index = 0; index < num_entries; prev = &entry->entry.next, index++) {
+      entry = xine_sarray_get (this->key_index, index);
+
+      *prev = &entry->entry;
+    }
+    this->config.last = &entry->entry;
+  }
+  return num_new;
+}
+
+#define FIND_ONLY 0x7fffffff
+static cfg_entry_t *config_insert (config_values_t *this_gen, const char *key, int exp_level) {
+  fat_config_values_t *this = (fat_config_values_t *)this_gen;
+  very_fat_cfg_entry_t dummy_entry;
+  size_t internal_key_len;
+  fat_cfg_entry_t *entry;
+  int index, num_entries;
+
+  _config_set_fat_entry (&dummy_entry.entry);
+  dummy_entry.entry.internal_key = xine_fast_string_init (dummy_entry.buf, sizeof (dummy_entry.buf));
+  internal_key_len = config_make_sort_key (dummy_entry.entry.internal_key, key, exp_level);
+  xine_fast_string_set (dummy_entry.entry.internal_key, NULL, internal_key_len);
+  num_entries = xine_sarray_size (this->key_index);
+
+  if (exp_level == FIND_ONLY) {
+    index = xine_sarray_binary_search (this->key_index, &dummy_entry);
+    if (index < 0) {
+      /* scan manually added entries */
+      if (config_validate (&this->config))
+        index = xine_sarray_binary_search (this->key_index, &dummy_entry);
+      if (index < 0)
+        return NULL;
+    }
+    entry = xine_sarray_get (this->key_index, index);
+  } else {
+    index = xine_sarray_add (this->key_index, &dummy_entry);
+    if (index >= 0) {
+      cfg_entry_t *e1, *e2;
+      char *buf;
+      /* new */
+      entry = malloc (sizeof (*entry) + internal_key_len + 32);
+      xine_sarray_move_location (this->key_index, entry, index);
+      if (!entry)
+        return NULL;
+#ifdef HAVE_ZERO_SAFE_MEM
+      memset (&entry->entry, 0, sizeof (entry->entry));
+#else
+      entry->entry.num_value     = 0;
+      entry->entry.num_default   = 0;
+      entry->entry.range_min     = 0;
+      entry->entry.range_max     = 0;
+      entry->entry.next          = NULL;
+      entry->entry.enum_values   = NULL;
+      entry->entry.unknown_value = NULL;
+      entry->entry.str_value     = NULL;
+      entry->entry.str_default   = NULL;
+      entry->entry.help          = NULL;
+      entry->entry.description   = NULL;
+      entry->entry.callback      = NULL;
+      entry->entry.callback_data = NULL;
 #endif
-  entry->config        = this;
-  entry->key           = strdup(key);
-  entry->type          = XINE_CONFIG_TYPE_UNKNOWN;
-  entry->exp_level     = exp_level;
-  return entry;
+      entry->entry.config        = &this->config;
+      entry->entry.key           = strdup (key);
+      entry->entry.type          = XINE_CONFIG_TYPE_UNKNOWN;
+      entry->entry.exp_level     = exp_level;
+      _config_set_fat_entry (entry);
+      buf = (char *)entry + sizeof (*entry);
+      entry->internal_key = xine_fast_string_init (buf, internal_key_len + 32);
+      xine_fast_string_set (entry->internal_key, dummy_entry.entry.internal_key, internal_key_len);
+      /* sigh. make public links. */
+      num_entries++;
+      e1 = index > 0 ? xine_sarray_get (this->key_index, index - 1) : NULL;
+      e2 = index < num_entries - 1 ? xine_sarray_get (this->key_index, index + 1) : NULL;
+      if (e1) {
+        if (e2) {
+          if (e1->next == e2) {
+            e1->next = &entry->entry;
+            entry->entry.next = e2;
+          }
+        } else {
+          e1->next = &entry->entry;
+          this->config.last = &entry->entry;
+        }
+      } else {
+        if (e2) {
+          this->config.first = &entry->entry;
+          entry->entry.next = e2;
+        } else {
+          this->config.first = this->config.last = &entry->entry;
+        }
+      }
+    } else {
+      /* found */
+      index = ~index;
+      entry = xine_sarray_get (this->key_index, index);
+    }
+  }
+  return &entry->entry;
 }
 
 static const char *config_xlate_internal (const char *key, const xine_config_entry_translation_t *trans)
@@ -1793,12 +1805,13 @@ void xine_config_save (xine_t *xine, const char *filename) {
     unlink(temp);
 }
 
-static void config_dispose (config_values_t *this) {
+static void config_dispose (config_values_t *this_gen) {
+  fat_config_values_t *this = (fat_config_values_t *)this_gen;
   cfg_entry_t *entry, *last;
   int n;
 
-  pthread_mutex_lock (&this->config_lock);
-  entry = this->first;
+  pthread_mutex_lock (&this->config.config_lock);
+  entry = this->config.first;
 
   lprintf ("dispose\n");
 
@@ -1808,7 +1821,7 @@ static void config_dispose (config_values_t *this) {
     entry = entry->next;
 
     last->next = NULL;
-    n += _cfg_cb_clear_report (this->xine, last);
+    n += _cfg_cb_clear_report (this->config.xine, last);
     _x_freep (&last->key);
     _x_freep (&last->unknown_value);
 
@@ -1817,13 +1830,16 @@ static void config_dispose (config_values_t *this) {
     free (last);
   }
 
-  pthread_mutex_unlock (&this->config_lock);
+  xine_sarray_delete (this->key_index);
+  this->key_index = NULL;
 
-  if (n && this->xine) {
-    xprintf (this->xine, XINE_VERBOSITY_DEBUG, "configfile: unregistered %d orphaned change callbacks.\n", n);
+  pthread_mutex_unlock (&this->config.config_lock);
+
+  if (n && this->config.xine) {
+    xprintf (this->config.xine, XINE_VERBOSITY_DEBUG, "configfile: unregistered %d orphaned change callbacks.\n", n);
   }
 
-  pthread_mutex_destroy (&this->config_lock);
+  pthread_mutex_destroy (&this->config.config_lock);
   free (this);
 }
 
@@ -2159,12 +2175,32 @@ static char* config_register_serialized_entry (config_values_t *this, const char
   return NULL;
 }
 
+static int _config_fat_entry_cmp (void *a, void *b) {
+  char buf1[MAX_SORT_KEY + 32], buf2[MAX_SORT_KEY + 32], *fs1, *fs2;
+  fat_cfg_entry_t *d = (fat_cfg_entry_t *)a;
+  fat_cfg_entry_t *e = (fat_cfg_entry_t *)b;
+
+  if (_config_is_fat_entry (d)) {
+    fs1 = d->internal_key;
+  } else {
+    fs1 = xine_fast_string_init (buf1, sizeof (buf1));
+    xine_fast_string_set (fs1, NULL, config_make_sort_key (fs1, d->entry.key, d->entry.exp_level));
+  }
+  if (_config_is_fat_entry (e)) {
+    fs2 = e->internal_key;
+  } else {
+    fs2 = xine_fast_string_init (buf2, sizeof (buf2));
+    xine_fast_string_set (fs2, NULL, config_make_sort_key (fs2, e->entry.key, e->entry.exp_level));
+  }
+  return xine_fast_string_cmp (fs1, fs2);
+}
+
 config_values_t *_x_config_init (void) {
 
 #ifdef HAVE_IRIXAL
   volatile /* is this a (old, 2.91.66) irix gcc bug?!? */
 #endif
-  config_values_t *this;
+  fat_config_values_t *this;
   pthread_mutexattr_t attr;
 
   this = calloc (1, sizeof (*this));
@@ -2174,10 +2210,10 @@ config_values_t *_x_config_init (void) {
   }
 
 #ifndef HAVE_ZERO_SAFE_MEM
-  this->first           = NULL;
-  this->last            = NULL;
-  this->current_version = 0;
-  this->xine            = NULL;
+  this->config.first           = NULL;
+  this->config.last            = NULL;
+  this->config.current_version = 0;
+  this->config.xine            = NULL;
 #endif
 
   /* warning: config_lock is a recursive mutex. it must NOT be
@@ -2185,31 +2221,34 @@ config_values_t *_x_config_init (void) {
    */
   pthread_mutexattr_init(&attr);
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init(&this->config_lock, &attr);
+  pthread_mutex_init (&this->config.config_lock, &attr);
   pthread_mutexattr_destroy(&attr);
 
-  this->register_string           = config_register_string;
-  this->register_filename         = config_register_filename;
-  this->register_range            = config_register_range;
-  this->register_enum             = config_register_enum;
-  this->register_num              = config_register_num;
-  this->register_bool             = config_register_bool;
-  this->register_serialized_entry = config_register_serialized_entry;
-  this->update_num                = config_update_num;
-  this->update_string             = config_update_string;
-  this->parse_enum                = config_parse_enum;
-  this->lookup_entry              = config_lookup_entry;
-  this->unregister_callback       = config_unregister_cb;
-  this->dispose                   = config_dispose;
-  this->set_new_entry_callback    = config_set_new_entry_callback;
-  this->unset_new_entry_callback  = config_unset_new_entry_callback;
-  this->get_serialized_entry      = config_get_serialized_entry;
-  this->unregister_callbacks      = config_unregister_callbacks;
-  this->lookup_num                = config_lookup_num;
-  this->lookup_string             = config_lookup_string;
-  this->free_string               = config_free_string;
+  this->config.register_string           = config_register_string;
+  this->config.register_filename         = config_register_filename;
+  this->config.register_range            = config_register_range;
+  this->config.register_enum             = config_register_enum;
+  this->config.register_num              = config_register_num;
+  this->config.register_bool             = config_register_bool;
+  this->config.register_serialized_entry = config_register_serialized_entry;
+  this->config.update_num                = config_update_num;
+  this->config.update_string             = config_update_string;
+  this->config.parse_enum                = config_parse_enum;
+  this->config.lookup_entry              = config_lookup_entry;
+  this->config.unregister_callback       = config_unregister_cb;
+  this->config.dispose                   = config_dispose;
+  this->config.set_new_entry_callback    = config_set_new_entry_callback;
+  this->config.unset_new_entry_callback  = config_unset_new_entry_callback;
+  this->config.get_serialized_entry      = config_get_serialized_entry;
+  this->config.unregister_callbacks      = config_unregister_callbacks;
+  this->config.lookup_num                = config_lookup_num;
+  this->config.lookup_string             = config_lookup_string;
+  this->config.free_string               = config_free_string;
 
-  return this;
+  this->key_index = xine_sarray_new (1024, _config_fat_entry_cmp);
+  xine_sarray_set_mode (this->key_index, XINE_SARRAY_MODE_UNIQUE);
+
+  return &this->config;
 }
 
 int _x_config_change_opt(config_values_t *config, const char *opt) {
