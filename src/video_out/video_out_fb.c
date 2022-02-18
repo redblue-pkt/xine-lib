@@ -1049,22 +1049,29 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
 
   xprintf(class->xine, XINE_VERBOSITY_DEBUG,
 	  "%s: video mode depth is %d (%d bpp),\n"
-	  "     red: %d/%d, green: %d/%d, blue: %d/%d\n",
+          "     red: %d/%d, green: %d/%d, blue: %d/%d\n"
+          "     resolution %dx%x\n",
 	  LOG_MODULE,
 	  this->depth, this->bpp,
 	  this->fb_var.red.length, this->fb_var.red.offset,
 	  this->fb_var.green.length, this->fb_var.green.offset,
-	  this->fb_var.blue.length, this->fb_var.blue.offset);
+          this->fb_var.blue.length, this->fb_var.blue.offset,
+          this->fb_var.xres, this->fb_var.yres);
 
-  if(!setup_yuv2rgb(this, config, &this->fb_var, &this->fb_fix))
+  if (!setup_yuv2rgb(this, config, &this->fb_var, &this->fb_fix)) {
+    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": yuv2rgb setup failed\n");
     goto error;
+  }
 
   /* mmap whole video memory */
   this->mem_size = this->fb_fix.smem_len;
   this->video_mem_base = mmap(0, this->mem_size, PROT_READ | PROT_WRITE,
                               MAP_SHARED, this->fd, 0);
-  if (this->video_mem_base == MAP_FAILED)
+  if (this->video_mem_base == MAP_FAILED) {
+    xprintf(this->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
+            "mapping frame buffer failed: %s\n", strerror(errno));
     goto error;
+  }
 
   return &this->vo_driver;
 
