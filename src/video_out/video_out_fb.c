@@ -997,6 +997,7 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
     return NULL;
 
   this->video_mem_base = MAP_FAILED;
+  this->xine = class->xine;
 
   _x_alphablend_init(&this->alphablend_extra_data, class->xine);
 
@@ -1022,8 +1023,6 @@ static vo_driver_t *fb_open_plugin(video_driver_class_t *class_gen,
       goto error;
     }
   }
-
-  this->xine = class->xine;
 
   if(this->fb_fix.line_length)
     this->fb_bytes_per_line = this->fb_fix.line_length;
