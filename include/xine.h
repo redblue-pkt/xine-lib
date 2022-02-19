@@ -502,6 +502,7 @@ int  xine_get_current_frame_data (xine_stream_t *stream,
 #define XINE_IMGFMT_XXMC (('C'<<24)|('M'<<16)|('x'<<8)|'X')
 #define XINE_IMGFMT_VDPAU (('A'<<24)|('P'<<16)|('D'<<8)|'V')
 #define XINE_IMGFMT_VAAPI (('P'<<24)|('A'<<16)|('A'<<8)|'V')
+#define XINE_IMGFMT_YV12_DEEP (('6'<<24)|('1'<<16)|('V'<<8)|'Y') /* Note: actual bit depth in frame flags */
 
 /* get current xine's virtual presentation timestamp (1/90000 sec)
  * note: this is mostly internal data.
