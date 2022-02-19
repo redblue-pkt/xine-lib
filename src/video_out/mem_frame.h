@@ -96,6 +96,15 @@ static inline vo_frame_t *mem_frame_alloc_frame(vo_driver_t *this_gen)
   return _mem_frame_alloc_frame(this_gen, sizeof(mem_frame_t));
 }
 
+static inline void *_memset32(void *mem, uint32_t val, size_t n)
+{
+  uint32_t *m32 = mem, *ret = mem;
+  size_t i;
+  for (i = n; i; i--)
+    *m32++ = val;
+  return ret;
+}
+
 static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame_t *frame_gen,
       uint32_t width, uint32_t height, double ratio, int format, int flags)
 {
@@ -132,6 +141,26 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
       frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
       memset (frame->vo_frame.base[1], 128, 2 * uvsize);
       frame->vo_frame.base[2] = frame->vo_frame.base[1] + uvsize;
+    }
+
+  } else if (format == XINE_IMGFMT_YV12_DEEP) {
+    unsigned w = (width + 15) & ~15;
+    unsigned ysize = 2 * w * height;
+    unsigned uvsize = w * ((height + 1) >> 1);
+
+    frame->vo_frame.base[0] = xine_malloc_aligned (ysize + 2 * uvsize);
+    if (frame->vo_frame.base[0]) {
+      unsigned depth = VO_GET_FLAGS_DEPTH(flags);
+      uint32_t black = 0x00010001U * (1U << (depth - 1));
+
+      frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
+      frame->vo_frame.base[2] = frame->vo_frame.base[1] + uvsize;
+      frame->vo_frame.pitches[0] = w * 2;
+      frame->vo_frame.pitches[1] = w;
+      frame->vo_frame.pitches[2] = w;
+
+      memset (frame->vo_frame.base[0], 0, ysize);
+      _memset32 (frame->vo_frame.base[1], black, 2 * uvsize / sizeof(uint32_t));
     }
 
   } else if (format == XINE_IMGFMT_NV12) {

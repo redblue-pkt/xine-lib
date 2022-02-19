@@ -317,6 +317,10 @@ struct xine_video_port_s {
 #define VO_GET_FLAGS_CM(flags) ((flags >> 8) & 31)
 #define VO_SET_FLAGS_CM(cm,flags) flags = ((flags) & ~0x1f00) | (((cm) & 31) << 8)
 
+/* deep color bit dept inside frame.flags bits 18-16: */
+#define VO_GET_FLAGS_DEPTH(flags) (16 - ((flags >> 16) & 7))
+#define VO_SET_FLAGS_DEPTH(depth,flags) flags = (((flags) & ~0x70000) | (((16 - depth) & 7) << 16))
+
 /* video driver capabilities */
 #define VO_CAP_YV12                   0x00000001 /* driver can handle YUV 4:2:0 pictures */
 #define VO_CAP_YUY2                   0x00000002 /* driver can handle YUY2 pictures */
@@ -346,11 +350,13 @@ struct xine_video_port_s {
 #define VO_CAP_GAMMA                  0x08000000
 #define VO_CAP_SHARPNESS              0x10000000
 #define VO_CAP_NOISE_REDUCTION        0x20000000
+#define VO_CAP_YV12_DEEP              0x40000000 /* driver can handle deep color YV12 (9...16 bits) */
 /* retrieved via VO_PROP_CAPS2 if != -1 */
 #define VO_CAP2_NV12                  0x00000001 /* driver can handle YUV 4:2:0 pictures as 2 planes (Y plus interleaved UV) */
 #define VO_CAP2_TRANSFORM             0x00000002 /* driver can flip image */
 #define VO_CAP2_ACCEL_GENERIC         0x00000004 /* vo_frame_t.accel_data == vo_accel_generic_t * */
 
+  
 /*
  * vo_driver_s contains the functions every display driver
  * has to implement. The vo_new_port function (see below)
