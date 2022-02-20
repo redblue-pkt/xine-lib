@@ -736,6 +736,20 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
     }
   }
 
+#ifdef AV_PIX_FMT_YUV420P9
+  if ((context->pix_fmt == AV_PIX_FMT_YUV420P9) &&
+      (this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_YV12_DEEP)) {
+    this->output_format = XINE_IMGFMT_YV12_DEEP;
+    VO_SET_FLAGS_DEPTH (9, this->frame_flags);
+  } else
+#endif
+#ifdef AV_PIX_FMT_YUV420P10
+  if ((context->pix_fmt == AV_PIX_FMT_YUV420P10) &&
+      (this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_YV12_DEEP)) {
+    this->output_format = XINE_IMGFMT_YV12_DEEP;
+    VO_SET_FLAGS_DEPTH (10, this->frame_flags);
+  } else
+#endif
   if (this->full2mpeg || guarded_render ||
     (context->pix_fmt != PIX_FMT_YUV420P && context->pix_fmt != PIX_FMT_YUVJ420P)) {
     if (!this->is_direct_rendering_disabled) {
@@ -822,7 +836,7 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
   av_frame->linesize[1] = img->pitches[1];
   av_frame->linesize[2] = img->pitches[2];
 
-  if (this->output_format == XINE_IMGFMT_YV12) {
+  if (this->output_format == XINE_IMGFMT_YV12 || this->output_format == XINE_IMGFMT_YV12_DEEP) {
     /* nasty hack: wrap left edge to the right side to get proper
        SSE2 alignment on all planes. */
     av_frame->data[0] += img->pitches[0] * top_edge;
