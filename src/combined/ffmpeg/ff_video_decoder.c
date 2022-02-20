@@ -717,25 +717,6 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
   buf_height += top_edge + this->edge + 15;
   buf_height &= ~15;
 
-  if (this->full2mpeg || guarded_render ||
-    (context->pix_fmt != PIX_FMT_YUV420P && context->pix_fmt != PIX_FMT_YUVJ420P)) {
-    if (!this->is_direct_rendering_disabled) {
-      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
-              _("ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"));
-      this->is_direct_rendering_disabled = 1;
-    }
-
-    /* FIXME: why should i have to do that ? */
-    av_frame->data[0]= NULL;
-    av_frame->data[1]= NULL;
-    av_frame->data[2]= NULL;
-# ifdef XFF_AV_BUFFER
-    return avcodec_default_get_buffer2(context, av_frame, flags);
-# else
-    return avcodec_default_get_buffer(context, av_frame);
-# endif
-  }
-
   if ((buf_width != width) || (buf_height != height)) {
     if (!(this->stream->video_out->get_capabilities(this->stream->video_out) & VO_CAP_CROP)) {
       if (!this->is_direct_rendering_disabled) {
@@ -753,6 +734,25 @@ static int get_buffer (AVCodecContext *context, AVFrame *av_frame)
       return avcodec_default_get_buffer(context, av_frame);
 # endif
     }
+  }
+
+  if (this->full2mpeg || guarded_render ||
+    (context->pix_fmt != PIX_FMT_YUV420P && context->pix_fmt != PIX_FMT_YUVJ420P)) {
+    if (!this->is_direct_rendering_disabled) {
+      xprintf(this->stream->xine, XINE_VERBOSITY_LOG,
+              _("ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"));
+      this->is_direct_rendering_disabled = 1;
+    }
+
+    /* FIXME: why should i have to do that ? */
+    av_frame->data[0]= NULL;
+    av_frame->data[1]= NULL;
+    av_frame->data[2]= NULL;
+# ifdef XFF_AV_BUFFER
+    return avcodec_default_get_buffer2(context, av_frame, flags);
+# else
+    return avcodec_default_get_buffer(context, av_frame);
+# endif
   }
 
   if (this->is_direct_rendering_disabled) {
