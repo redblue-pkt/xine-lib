@@ -1065,71 +1065,9 @@ static void vaapi_update_csc (vaapi_driver_t *that, mem_frame_t *frame) {
       float contrast = vaapi_normalized_prop (that, VO_PROP_CONTRAST);
       float brightness = (vaapi_normalized_prop (that, VO_PROP_BRIGHTNESS) - 1.0) * 128.0;
       float *matrix = that->user_csc_matrix;
-      float uvcos = saturation * cos( hue );
-      float uvsin = saturation * sin( hue );
-      int i;
       VADisplayAttribute attr;
 
-      if ((color_matrix >> 1) == 8) {
-        /* YCgCo. This is really quite simple. */
-        uvsin *= contrast;
-        uvcos *= contrast;
-        /* matrix[rgb][yuv1] */
-        matrix[1] = -1.0 * uvcos - 1.0 * uvsin;
-        matrix[2] =  1.0 * uvcos - 1.0 * uvsin;
-        matrix[5] =  1.0 * uvcos;
-        matrix[6] =                1.0 * uvsin;
-        matrix[9] = -1.0 * uvcos + 1.0 * uvsin;
-        matrix[10] = -1.0 * uvcos - 1.0 * uvsin;
-        for (i = 0; i < 12; i += 4) {
-          matrix[i] = contrast;
-          matrix[i + 3] = (brightness * contrast - 128.0 * (matrix[i + 1] + matrix[i + 2])) / 255.0;
-        }
-      } else {
-        /* YCbCr */
-        float kb, kr;
-        float vr, vg, ug, ub;
-        float ygain, yoffset;
-
-        switch (color_matrix >> 1) {
-          case 1:  kb = 0.0722; kr = 0.2126; break; /* ITU-R 709 */
-          case 4:  kb = 0.1100; kr = 0.3000; break; /* FCC */
-          case 7:  kb = 0.0870; kr = 0.2120; break; /* SMPTE 240 */
-          case 10:
-          case 9:  kb = 0.0593; kr = 0.2627; break; /* BT.2020 */
-          default: kb = 0.1140; kr = 0.2990;        /* ITU-R 601 */
-        }
-        vr = 2.0 * (1.0 - kr);
-        vg = -2.0 * kr * (1.0 - kr) / (1.0 - kb - kr);
-        ug = -2.0 * kb * (1.0 - kb) / (1.0 - kb - kr);
-        ub = 2.0 * (1.0 - kb);
-
-        if (color_matrix & 1) {
-          /* fullrange mode */
-          yoffset = brightness;
-          ygain = contrast;
-          uvcos *= contrast * 255.0 / 254.0;
-          uvsin *= contrast * 255.0 / 254.0;
-        } else {
-          /* mpeg range */
-          yoffset = brightness - 16.0;
-          ygain = contrast * 255.0 / 219.0;
-          uvcos *= contrast * 255.0 / 224.0;
-          uvsin *= contrast * 255.0 / 224.0;
-        }
-
-        /* matrix[rgb][yuv1] */
-        matrix[1] = -uvsin * vr;
-        matrix[2] = uvcos * vr;
-        matrix[5] = uvcos * ug - uvsin * vg;
-        matrix[6] = uvcos * vg + uvsin * ug;
-        matrix[9] = uvcos * ub;
-        matrix[10] = uvsin * ub;
-        for (i = 0; i < 12; i += 4) {
-          matrix[i] = ygain;
-          matrix[i + 3] = (yoffset * ygain - 128.0 * (matrix[i + 1] + matrix[i + 2])) / 255.0;
-        }
-      }
+      cm_fill_matrix(matrix, color_matrix, hue, saturation, contrast, brightness);
 
       attr.type   = VADisplayAttribCSCMatrix;
       /* libva design bug: VADisplayAttribute.value is plain int.
