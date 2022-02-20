@@ -119,6 +119,7 @@ typedef struct {
   GLuint tex[OGL2_TEX_LAST];
   int width;
   int height;
+  int bytes_per_pixel;
   float relw, yuy2_mul, yuy2_div;
 } opengl2_yuvtex_t;
 
@@ -152,6 +153,7 @@ typedef struct {
   float              csc_matrix[3 * 4];
   int                color_standard;
   int                update_csc;
+  int                input_scale;
   int                saturation;
   int                contrast;
   int                brightness;
@@ -589,18 +591,19 @@ static void _config_texture(GLenum target, GLuint texture, GLsizei width, GLsize
   }
 }
 
-static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h )
+static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h, int bytes_per_pixel )
 {
   opengl2_driver_t *this = this_gen;
   opengl2_yuvtex_t *ytex = &this->yuvtex;
-  int realw = w, uvh, i;
+  int realw = w, uvh, i, type;
 
   w = (w + 15) & ~15;
-  if ( (w == ytex->width) && (h == ytex->height) )
+  if ( (w == ytex->width) && (h == ytex->height) && (bytes_per_pixel == ytex->bytes_per_pixel))
     return 1;
   ytex->relw = (float)realw / (float)w;
   ytex->yuy2_mul = w >> 1;
   ytex->yuy2_div = 1.0 / ytex->yuy2_mul;
+  ytex->bytes_per_pixel = bytes_per_pixel;
 
   glDeleteTextures (OGL2_TEX_LAST, ytex->tex);
   glDeleteTextures (2, this->videoTex);
@@ -623,12 +626,13 @@ static int opengl2_check_textures_size( opengl2_driver_t *this_gen, int w, int h
 
   glGenTextures (OGL2_TEX_LAST, ytex->tex);
   uvh = (h + 1) >> 1;
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_y],   w,      h,       this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u],   w >> 1, uvh,     this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_v],   w >> 1, uvh,     this->fmt_1p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_yuv], w,      h,       this->fmt_2p, GL_UNSIGNED_BYTE, GL_NEAREST);
-  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_uv],  w >> 1, uvh,     this->fmt_2p, GL_UNSIGNED_BYTE, GL_NEAREST);
+  type = (bytes_per_pixel == 1) ? GL_UNSIGNED_BYTE : GL_UNSIGNED_SHORT;
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_y],   w,      h,       this->fmt_1p, type, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u_v], w >> 1, uvh * 2, this->fmt_1p, type, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_u],   w >> 1, uvh,     this->fmt_1p, type, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_v],   w >> 1, uvh,     this->fmt_1p, type, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_yuv], w,      h,       this->fmt_2p, type, GL_NEAREST);
+  _config_texture (GL_TEXTURE_2D, ytex->tex[OGL2_TEX_uv],  w >> 1, uvh,     this->fmt_2p, type, GL_NEAREST);
 
   if (this->hw) {
     for (i = 0; i < 3; i++) {
@@ -802,12 +806,12 @@ static int opengl2_redraw_needed( vo_driver_t *this_gen )
 
 
 
-static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *frame) {
+static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *frame, int input_scale ) {
   int color_standard;
 
   color_standard = cm_from_frame (&frame->vo_frame);
 
-  if ( that->update_csc || that->color_standard != color_standard ) {
+  if ( that->update_csc || that->color_standard != color_standard || that->input_scale != input_scale) {
     float hue = (float)that->hue * M_PI / 128.0;
     float saturation = (float)that->saturation / 128.0;
     float contrast = (float)that->contrast / 128.0;
@@ -815,8 +819,15 @@ static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *
 
     cm_fill_matrix(that->csc_matrix, color_standard, hue, saturation, contrast, brightness);
 
+    /* "upconvert" padded 9...15 bpp to 16bpp by scaling conversion matrix */
+    if (input_scale != 1)
+      for (int i = 0; i < 11; i++)
+        if (i != 3 && i != 7)
+          that->csc_matrix[i] = that->csc_matrix[i] * (float)input_scale;
+
     that->color_standard = color_standard;
     that->update_csc = 0;
+    that->input_scale = input_scale;
 
     xprintf (that->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": b %d c %d s %d h %d [%s]\n",
       that->brightness, that->contrast, that->saturation, that->hue, cm_names[color_standard]);
@@ -1275,6 +1286,8 @@ static GLuint opengl2_use_csc (opengl2_driver_t *that, opengl2_csc_shader_t what
 
 static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
 {
+  int bits = (frame->vo_frame.format == XINE_IMGFMT_YV12_DEEP) ? VO_GET_FLAGS_DEPTH(frame->vo_frame.flags) : 8;
+  int bpp = (bits + 7) / 8;
   unsigned int sw_format = frame->format;
   int uvh = 0;
 
@@ -1282,12 +1295,12 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     return;
   }
 
-  if ( !opengl2_check_textures_size( that, frame->width, frame->height ) ) {
+  if ( !opengl2_check_textures_size( that, frame->width, frame->height, bpp ) ) {
     that->gl->release_current(that->gl);
     return;
   }
 
-  opengl2_update_csc_matrix( that, frame );
+  opengl2_update_csc_matrix( that, frame, bits > 8 ? ((1<<(16-bits))) : 1 );
 
   glBindFramebuffer( GL_FRAMEBUFFER, that->fbo );
 
@@ -1300,26 +1313,29 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
       glBindTexture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_HW0 + tex]);
     }
   }
-  else if (frame->format == XINE_IMGFMT_YV12) {
+  else if (frame->format == XINE_IMGFMT_YV12 ||
+           frame->format == XINE_IMGFMT_YV12_DEEP) {
+    int type = (frame->format == XINE_IMGFMT_YV12) ? GL_UNSIGNED_BYTE : GL_UNSIGNED_SHORT;
     uvh = (frame->height + 1) >> 1;
+    sw_format = XINE_IMGFMT_YV12;
     if ((frame->vo_frame.pitches[1] == frame->vo_frame.pitches[2])
       && (frame->vo_frame.base[1] + frame->vo_frame.pitches[1] * uvh == frame->vo_frame.base[2])) {
       glActiveTexture (GL_TEXTURE0);
-      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], that->fmt_1p, GL_UNSIGNED_BYTE,
-        frame->vo_frame.base[0], frame->vo_frame.pitches[0], 1, frame->height, that->videoPBO);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], that->fmt_1p, type,
+        frame->vo_frame.base[0], frame->vo_frame.pitches[0], bpp, frame->height, that->videoPBO);
       glActiveTexture (GL_TEXTURE1);
-      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u_v], that->fmt_1p, GL_UNSIGNED_BYTE,
-        frame->vo_frame.base[1], frame->vo_frame.pitches[1], 1, uvh * 2, that->videoPBO);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u_v], that->fmt_1p, type,
+        frame->vo_frame.base[1], frame->vo_frame.pitches[1], bpp, uvh * 2, that->videoPBO);
     } else {
       glActiveTexture (GL_TEXTURE0);
-      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], that->fmt_1p, GL_UNSIGNED_BYTE,
-        frame->vo_frame.base[0], frame->vo_frame.pitches[0], 1, frame->height, that->videoPBO);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_y], that->fmt_1p, type,
+        frame->vo_frame.base[0], frame->vo_frame.pitches[0], bpp, frame->height, that->videoPBO);
       glActiveTexture (GL_TEXTURE1);
-      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u], that->fmt_1p, GL_UNSIGNED_BYTE,
-        frame->vo_frame.base[1], frame->vo_frame.pitches[1], 1, uvh, that->videoPBO);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_u], that->fmt_1p, type,
+        frame->vo_frame.base[1], frame->vo_frame.pitches[1], bpp, uvh, that->videoPBO);
       glActiveTexture (GL_TEXTURE2);
-      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_v], that->fmt_1p, GL_UNSIGNED_BYTE,
-        frame->vo_frame.base[2], frame->vo_frame.pitches[2], 1, uvh, that->videoPBO);
+      _upload_texture (GL_TEXTURE_2D, that->yuvtex.tex[OGL2_TEX_v], that->fmt_1p, type,
+        frame->vo_frame.base[2], frame->vo_frame.pitches[2], bpp, uvh, that->videoPBO);
       uvh = 0;
     }
   }
@@ -1678,6 +1694,7 @@ static uint32_t opengl2_get_capabilities( vo_driver_t *this_gen )
   opengl2_driver_t *this = (opengl2_driver_t *) this_gen;
 
   return VO_CAP_YV12 |
+         VO_CAP_YV12_DEEP |
          VO_CAP_YUY2 |
         (this->hw ? this->hw->driver_capabilities : 0) |
          VO_CAP_CROP |
@@ -1928,7 +1945,7 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
       do {
         char buf[1024];
         const char *p2_swizzle = (this->fmt_2p == GL_RG) ? "g" : "a";
-        if (!opengl2_check_textures_size (this, INITWIDTH, INITHEIGHT))
+        if (!opengl2_check_textures_size (this, INITWIDTH, INITHEIGHT, 1))
           break;
         if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_yuv420], yuv420_frag, "yuv420_frag", yuv420_args))
           break;
