@@ -48,6 +48,7 @@ typedef struct dav1d_decoder_s {
   Dav1dContext     *ctx;
   Dav1dPicAllocator default_allocator; /* used as fallback when dri is not possible */
 
+  uint8_t           cap_deep;
   uint8_t           dri;
   uint8_t           video_open;
   uint8_t           meta_set;
@@ -81,7 +82,7 @@ static int _alloc_frame_cb(Dav1dPicture *pic, void *cookie)
 {
   dav1d_decoder_t *this = cookie;
   vo_frame_t      *img;
-  int width, height, format;
+  int width, height, format, flags = 0;
   int i;
 
   if (!this->dri)
@@ -90,8 +91,7 @@ static int _alloc_frame_cb(Dav1dPicture *pic, void *cookie)
   switch (pic->p.layout) {
     case DAV1D_PIXEL_LAYOUT_I400:  /* monochrome */
     case DAV1D_PIXEL_LAYOUT_I420:  /* 4:2:0 planar */
-      format = XINE_IMGFMT_YV12;
-      this->dri = (pic->p.bpc == 8);
+      this->dri = (pic->p.bpc == 8 || this->cap_deep);
       break;
     case DAV1D_PIXEL_LAYOUT_I422:  /* 4:2:2 planar */
     case DAV1D_PIXEL_LAYOUT_I444:  /* 4:4:4 planar */
@@ -118,9 +118,15 @@ static int _alloc_frame_cb(Dav1dPicture *pic, void *cookie)
   width  = (pic->p.w + 127) & ~127;
   height = (pic->p.h + 127) & ~127;
 
+  if (pic->p.bpc > 8) {
+    format = XINE_IMGFMT_YV12_DEEP;
+    VO_SET_FLAGS_DEPTH (pic->p.bpc, flags);
+  } else {
+    format = XINE_IMGFMT_YV12;
+  }
   img = this->stream->video_out->get_frame (this->stream->video_out,
                                             width, height, this->ratio, format,
-                                            VO_BOTH_FIELDS | VO_GET_FRAME_MAY_FAIL);
+                                            VO_BOTH_FIELDS | VO_GET_FRAME_MAY_FAIL | flags);
 
   if (!img || img->width < width || img->height < height) {
     xprintf(this->stream->xine, XINE_VERBOSITY_LOG, LOG_MODULE ": "
@@ -519,6 +525,7 @@ static video_decoder_t *_open_plugin(video_decoder_class_t *class_gen, xine_stre
   this->stream        = stream;
   this->ratio         = 0.0;
   this->dri           = 1;
+  this->cap_deep      = !!(stream->video_out->get_capabilities(stream->video_out) & VO_CAP_YV12_DEEP);
 
   this->video_decoder.decode_data   = _dav1d_decode_data;
   this->video_decoder.flush         = _dav1d_flush;
