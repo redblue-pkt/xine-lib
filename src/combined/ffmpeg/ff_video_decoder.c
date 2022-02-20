@@ -322,6 +322,7 @@ static void ff_check_colorspace (ff_video_decoder_t *this) {
   /* report changes of colorspyce and/or color range */
   if (cm != this->color_matrix) {
     this->color_matrix = cm;
+    this->full2mpeg = 0;
     xprintf (this->stream->xine, XINE_VERBOSITY_LOG,
       "ffmpeg_video_dec: color matrix #%d [%s]\n", cm >> 1, cm_names[cm & 31]);
 
@@ -366,7 +367,7 @@ static void ff_check_colorspace (ff_video_decoder_t *this) {
           this->ytab[i] = this->ctab[i] = (i + 1) >> 1;
         this->ytab[i] = this->ctab[i] = 255;
       }
-    }
+    } else
 #endif
 #ifdef AV_PIX_FMT_YUV420P10
     if (this->context->pix_fmt == AV_PIX_FMT_YUV420P10) {
@@ -397,10 +398,8 @@ static void ff_check_colorspace (ff_video_decoder_t *this) {
         this->ytab[i] = this->ctab[i] = 255; i++;
         this->ytab[i] = this->ctab[i] = 255;
       }
-    }
+    } else
 #endif
-
-    this->full2mpeg = 0;
     if ((cm & 1) && !(caps & VO_CAP_FULLRANGE)) {
       /* sigh. fall back to manual conversion */
       cm &= ~1;
