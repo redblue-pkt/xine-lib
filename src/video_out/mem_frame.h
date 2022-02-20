@@ -132,15 +132,16 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
     uint32_t ysize = w * height;
     uint32_t uvsize = (w >> 1) * ((height + 1) >> 1);
 
-    frame->vo_frame.pitches[0] = w;
-    frame->vo_frame.pitches[1] = w >> 1;
-    frame->vo_frame.pitches[2] = w >> 1;
     frame->vo_frame.base[0] = xine_malloc_aligned (ysize + 2 * uvsize);
     if (frame->vo_frame.base[0]) {
-      memset (frame->vo_frame.base[0], 0, ysize);
       frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
-      memset (frame->vo_frame.base[1], 128, 2 * uvsize);
       frame->vo_frame.base[2] = frame->vo_frame.base[1] + uvsize;
+      frame->vo_frame.pitches[0] = w;
+      frame->vo_frame.pitches[1] = w >> 1;
+      frame->vo_frame.pitches[2] = w >> 1;
+
+      memset (frame->vo_frame.base[0], 0, ysize);
+      memset (frame->vo_frame.base[1], 128, 2 * uvsize);
     }
 
   } else if (format == XINE_IMGFMT_YV12_DEEP) {
@@ -168,24 +169,23 @@ static inline void mem_frame_update_frame_format(vo_driver_t *this_gen, vo_frame
     uint32_t ysize = w * height;
     uint32_t uvsize = w * ((height + 1) >> 1);
 
-    frame->vo_frame.pitches[0] =
-    frame->vo_frame.pitches[1] = w;
     frame->vo_frame.base[0] = xine_malloc_aligned (ysize + uvsize);
     if (frame->vo_frame.base[0]) {
-      memset (frame->vo_frame.base[0], 0, ysize);
       frame->vo_frame.base[1] = frame->vo_frame.base[0] + ysize;
+      frame->vo_frame.pitches[0] = w;
+      frame->vo_frame.pitches[1] = w;
+
+      memset (frame->vo_frame.base[0], 0, ysize);
       memset (frame->vo_frame.base[1], 128, uvsize);
     }
 
   } else if (format == XINE_IMGFMT_YUY2) {
-    frame->vo_frame.pitches[0] = ((width + 15) & ~15) << 1;
-    frame->vo_frame.base[0] = xine_malloc_aligned (frame->vo_frame.pitches[0] * height);
+    uint32_t w = (width + 15) & ~15;
+    frame->vo_frame.base[0] = xine_malloc_aligned ((w << 1) * height);
     if (frame->vo_frame.base[0]) {
       const union {uint8_t bytes[4]; uint32_t word;} black = {{0, 128, 0, 128}};
-      uint32_t *q = (uint32_t *)frame->vo_frame.base[0];
-      unsigned i;
-      for (i = frame->vo_frame.pitches[0] * height / 4; i > 0; i--)
-        *q++ = black.word;
+      frame->vo_frame.pitches[0] = w << 1;
+      _memset32 (frame->vo_frame.base[0], black.word, frame->vo_frame.pitches[0] * height / sizeof(uint32_t));
     }
   }
 
