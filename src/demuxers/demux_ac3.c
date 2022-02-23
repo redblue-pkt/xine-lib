@@ -72,6 +72,7 @@ typedef struct {
 
   uint32_t             buf_type;
 
+  unsigned             start_offset;
 } demux_ac3_t;
 
 /* returns 1 if the AC3 file was opened successfully, 0 otherwise */
@@ -181,6 +182,8 @@ static int open_ac3_file(demux_ac3_t *this) {
     }
     if (offset >= bsize - 2)
       break;
+
+    this->start_offset = offset;
 
     if (spdif_mode) {
       this->sample_rate = 44100;
@@ -360,6 +363,10 @@ static int demux_ac3_seek (demux_plugin_t *this_gen,
    * multiply by the frame alignment to determine the new starting block */
   start_pos /= this->frame_size;
   start_pos *= this->frame_size;
+
+  /* skip possible file header */
+  start_pos += this->start_offset;
+
   this->input->seek(this->input, start_pos, SEEK_SET);
 
   return this->status;
