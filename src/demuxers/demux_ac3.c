@@ -298,8 +298,26 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
     }
   } else {
     buf = this->audio_fifo->buffer_pool_alloc (this->audio_fifo);
-    buf->size = this->input->read(this->input, buf->content,
-                                  this->frame_size);
+    _x_assert(buf->max_size >= this->frame_size);
+
+    if (this->buf_type != BUF_AUDIO_A52) {
+      buf->size = this->input->read(this->input, buf->content, this->frame_size);
+    } else {
+
+      buf->size = this->input->read(this->input, buf->content, 8);
+      if (buf->size == 8) {
+
+        /* check frame size and read the rest */
+        if (buf->content[0] == 0x0b && buf->content[1] == 0x77) {
+          int got, frame_size = _frame_size(buf->content);
+          if (frame_size > 0)
+            this->frame_size = frame_size;
+          got = this->input->read(this->input, buf->content + buf->size, this->frame_size - buf->size);
+          if (got > 0)
+            buf->size += got;
+        }
+      }
+    }
   }
 
   if (buf->size <= 0) {
