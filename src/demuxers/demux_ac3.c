@@ -310,6 +310,15 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
       buf->size = this->input->read(this->input, buf->content, 8);
       if (buf->size == 8) {
 
+        /* re-sync (rare case, usually after seek) */
+        while (buf->content[0] != 0x0b || buf->content[1] != 0x77) {
+          memmove(buf->content, buf->content + 1, buf->size);
+          if (this->input->read(this->input, buf->content + buf->size - 1, 1) != 1) {
+            buf->size -= 1;
+            break;
+          }
+        }
+
         /* check frame size and read the rest */
         if (buf->content[0] == 0x0b && buf->content[1] == 0x77) {
           int got, frame_size = _frame_size(buf->content);
