@@ -69,6 +69,7 @@ typedef struct {
   int                  sample_rate;
   int                  frame_size;
   int                  running_time;
+  unsigned             frame_number;
 
   uint32_t             buf_type;
 
@@ -264,11 +265,12 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
   buf_element_t *buf = NULL;
   off_t current_stream_pos;
   int64_t audio_pts;
-  int frame_number;
   uint32_t blocksize;
 
   current_stream_pos = this->input->get_current_pos(this->input);
-  frame_number = current_stream_pos / this->frame_size;
+  if (this->seek_flag) {
+    this->frame_number = current_stream_pos / this->frame_size;
+  }
 
   /*
    * Each frame represents 256*6 new audio samples according to the a52 spec.
@@ -278,10 +280,11 @@ static int demux_ac3_send_chunk (demux_plugin_t *this_gen) {
    *                     -------------  *  -----------  *  ---------
    *                        1 frame        sample rate       1 sec
    */
-  audio_pts = frame_number;
+  audio_pts = this->frame_number;
   audio_pts *= 90000;
   audio_pts *= 256 * 6;
   audio_pts /= this->sample_rate;
+  this->frame_number++;
 
   if (this->seek_flag) {
     _x_demux_control_newpts(this->stream, audio_pts, BUF_FLAG_SEEK);
