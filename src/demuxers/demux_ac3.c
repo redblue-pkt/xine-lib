@@ -75,6 +75,34 @@ typedef struct {
   unsigned             start_offset;
 } demux_ac3_t;
 
+static int _frame_size(const uint8_t *buf)
+{
+  static const uint8_t byterates[19] = {
+    4,   5,   6,   7,   8,  10,  12,  14,
+    16,  20,  24,  28,  32,  40,  48,  56,
+    64,  72,  80
+  };
+  uint32_t idx, rate;
+  idx = buf[4];
+  if ((idx & 0x3f) > 37)
+    return -1;
+  rate = (uint32_t)byterates[(idx >> 1) & 0x1f];
+  if (idx & 0x80) {
+    if (idx & 0x40) {
+      return -1;
+    } else {
+      return rate * 24 * 2;
+    }
+  } else {
+    if (idx & 0x40) {
+      return ((rate * 16 * 48000 / 44100) + (idx & 0x01)) * 2;
+    } else {
+      return rate * 16 * 2;
+    }
+  }
+  return -1;
+}
+
 /* returns 1 if the AC3 file was opened successfully, 0 otherwise */
 static int open_ac3_file(demux_ac3_t *this) {
   buf_element_t *buf = NULL;
@@ -193,35 +221,14 @@ static int open_ac3_file(demux_ac3_t *this) {
       break;
     }
 
+    this->frame_size = _frame_size(b + offset);
+    if (this->frame_size < 0)
+      break;
     {
-      static const uint8_t byterates[19] = {
-         4,   5,   6,   7,   8,  10,  12,  14,
-        16,  20,  24,  28,  32,  40,  48,  56,
-        64,  72,  80
-      };
-      uint32_t idx, rate;
-      if (offset >= bsize - 4)
+      const uint16_t srate[4] = { 48000, 44100, 32000, 0 };
+      this->sample_rate = srate[b[offset + 4] >> 6];
+      if (this->sample_rate == 0)
         break;
-      idx = b[offset + 4];
-      if ((idx & 0x3f) > 37)
-        break;
-      rate = (uint32_t)byterates[(idx >> 1) & 0x1f];
-      if (idx & 0x80) {
-        if (idx & 0x40) {
-          break;
-        } else {
-          this->frame_size = rate * 24 * 2;
-          this->sample_rate = 32000;
-        }
-      } else {
-        if (idx & 0x40) {
-          this->frame_size = ((rate * 16 * 48000 / 44100) + (idx & 0x01)) * 2;
-          this->sample_rate = 44100;
-        } else {
-          this->frame_size = rate * 16 * 2;
-          this->sample_rate = 48000;
-        }
-      }
     }
 
     /* Look for a second sync word */
