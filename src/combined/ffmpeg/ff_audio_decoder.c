@@ -301,6 +301,7 @@ static void ff_audio_init_codec(ff_audio_decoder_t *this, unsigned int codec_typ
 #if XFF_PARSE > 1
   if (codec_type == BUF_AUDIO_AAC_LATM ||
       codec_type == BUF_AUDIO_EAC3 ||
+      codec_type == BUF_AUDIO_A52 ||
       codec_type == BUF_AUDIO_MPEG) {
 
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
