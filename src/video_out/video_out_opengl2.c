@@ -820,11 +820,12 @@ static void opengl2_update_csc_matrix (opengl2_driver_t *that, opengl2_frame_t *
     cm_fill_matrix(that->csc_matrix, color_standard, hue, saturation, contrast, brightness);
 
     /* "upconvert" padded 9...15 bpp to 16bpp by scaling conversion matrix */
-    if (input_scale != 1)
-      for (int i = 0; i < 11; i++)
+    if (input_scale != 1) {
+      int i;
+      for (i = 0; i < 11; i++)
         if (i != 3 && i != 7)
           that->csc_matrix[i] = that->csc_matrix[i] * (float)input_scale;
-
+    }
     that->color_standard = color_standard;
     that->update_csc = 0;
     that->input_scale = input_scale;
