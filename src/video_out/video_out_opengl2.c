@@ -1049,7 +1049,7 @@ static int _opengl2_setup_bicubic (opengl2_driver_t *that, uint32_t flags) {
   }
   if (flags & OGL2_BC_PROG_2) {
     if (!that->bicubic.pass2_program.compiled && !opengl2_build_program (that,
-      &that->bicubic.pass1_program, bicubic_pass2_frag, "bicubic_pass2_frag", bicubic_pass2_args))
+      &that->bicubic.pass2_program, bicubic_pass2_frag, "bicubic_pass2_frag", bicubic_pass2_args))
       return 0;
     that->bicubic.flags &= ~OGL2_BC_PROG_2;
   }
