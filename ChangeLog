@@ -2,10 +2,15 @@ xine-lib (1.2.12)
   * Add string tree library (generic info parser).
   * Add OpenSL ES audio output plugin.
   * Add mpeg-dash input plugin.
+  * Add crypto input plugin.
+  * Add VAAPI support to opengl2 video output (requires using EGL).
   * Better hls support.
   * Improved DVB/live stream timing.
+  * Improved BT.2020 support.
+  * Fix compatibility with ffmpeg 5.0.
   * Fix RSS parser.
   * Fix output parameter setting (audio amplification, video hue etc.).
+  * Fix AC3 demuxer.
   * Diverse small fixes and optimizations.
   * Update german translation.
   * Code cleanup.
