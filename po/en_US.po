@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib.hg\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-01-24 19:12+0200\n"
+"POT-Creation-Date: 2022-03-06 20:53+0200\n"
 "PO-Revision-Date: 2009-01-15 19:04+0000\n"
 "Last-Translator: Not translated <null@example.com>\n"
 "Language-Team: en_US <none>\n"
@@ -927,12 +927,12 @@ msgstr ""
 
 #: src/combined/ffmpeg/ff_video_decoder.c
 #, c-format
-msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
+msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
 msgstr ""
 
 #: src/combined/ffmpeg/ff_video_decoder.c
 #, c-format
-msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
+msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
 msgstr ""
 
 #: src/combined/ffmpeg/ff_video_decoder.c

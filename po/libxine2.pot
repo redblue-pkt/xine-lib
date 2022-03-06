@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Copyright (C) 2000-2019 the xine project
+# Copyright (C) YEAR Copyright (C) 2000-2022 the xine project
 # This file is distributed under the same license as the xine-lib package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 1.2.11-20220121hg15010+dirty\n"
+"Project-Id-Version: xine-lib 1.2.12-20220306hg15074+dirty\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-01-24 19:12+0200\n"
+"POT-Creation-Date: 2022-03-06 20:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -929,12 +929,12 @@ msgstr ""
 
 #: src/combined/ffmpeg/ff_video_decoder.c
 #, c-format
-msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
+msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
 msgstr ""
 
 #: src/combined/ffmpeg/ff_video_decoder.c
 #, c-format
-msgid "ffmpeg_video_dec: unsupported frame dimensions, DR1 disabled.\n"
+msgid "ffmpeg_video_dec: unsupported frame format, DR1 disabled.\n"
 msgstr ""
 
 #: src/combined/ffmpeg/ff_video_decoder.c
