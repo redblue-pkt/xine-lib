@@ -54,6 +54,12 @@
 
 #define MAX_SORT_KEY 320
 
+#if defined(WIN32)
+#  define PSEP '\\'
+#else
+#  define PSEP '/'
+#endif
+
 /* FIXME: static data, no expiry ?! */
 static const xine_config_entry_translation_t *config_entry_translation_user = NULL;
 
@@ -1584,74 +1590,122 @@ void xine_config_load (xine_t *xine, const char *filename) {
       _("Failed to load configuration from file '%s': %s\n"), filename, strerror (errno));
 }
 
-void xine_config_save (xine_t *xine, const char *filename) {
+static size_t xine_realpath (char *buf, const char *filename, size_t bsize, int *num_links) {
+  char tbuf[1536];
+  struct stat sbuf;
+  size_t used;
+  int try;
 
-  config_values_t *this = xine->config;
-  char             temp[XINE_PATH_MAX];
-  int              backup = 0;
-  struct stat      backup_stat, config_stat;
-  FILE            *f_config, *f_backup;
-
-  snprintf(temp, XINE_PATH_MAX, "%s~", filename);
-  unlink (temp);
-
-  if (stat(temp, &backup_stat) != 0) {
-
-    lprintf("backing up configfile to %s\n", temp);
-
-    f_backup = fopen(temp, "wb");
-    f_config = fopen(filename, "rb");
-
-    if (f_config && f_backup && (stat(filename, &config_stat) == 0)) {
-      char    *buf = NULL;
-      size_t   rlen;
-
-      buf = (char *) malloc(config_stat.st_size + 1);
-      if((rlen = fread(buf, 1, config_stat.st_size, f_config)) && ((off_t)rlen == config_stat.st_size)) {
-	if (rlen != fwrite(buf, 1, rlen, f_backup)) {
-	  lprintf("backing up configfile to %s failed\n", temp);
-	}
-      }
-      free(buf);
-
-      fclose(f_config);
-      fclose(f_backup);
-
-      if (stat(temp, &backup_stat) == 0 && config_stat.st_size == backup_stat.st_size)
-	backup = 1;
-      else
-	unlink(temp);
-
-    }
-    else {
-
-      if (f_config)
-        fclose(f_config);
-      else
-	backup = 1;
-
-      if (f_backup)
-        fclose(f_backup);
-
-    }
+  if (!filename || !buf || !bsize)
+    return 0;
+  if (!filename) {
+    buf[0] = 0;
+    return 0;
   }
 
-  if (!backup && (stat(filename, &config_stat) == 0)) {
-    xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: backing up configfile to %s failed\n"), temp);
+  used = strlcpy (buf, filename, bsize);
+  if (used >= bsize)
+    used = bsize - 1;
+
+  try = 8;
+#if defined(HAVE_LSTAT) && defined(HAVE_READLINK)
+  for (; try; try--) {
+    ssize_t r;
+
+    if (lstat (buf, &sbuf))
+      break;
+    if (!S_ISLNK (sbuf.st_mode))
+      break;
+    r = readlink (buf, tbuf, sizeof (tbuf) - 1);
+    if (r <= 0)
+      break;
+    tbuf[r] = 0;
+    if (tbuf[0] == PSEP) {
+      /* absolute link */
+      used = (size_t)r < bsize ? (size_t)r : bsize - 1;
+      memcpy (buf, tbuf, used);
+      buf[used] = 0;
+    } else {
+      size_t left;
+      char *p;
+      /* relative link */
+      for (p = buf + used; (p > buf) && (p[-1] != PSEP); p--) ;
+      left = bsize - (p - buf);
+      used = (size_t)r < left ? (size_t)r : left - 1;
+      memcpy (p, tbuf, used);
+      p[used] = 0;
+      used += p - buf;
+    }
+  }
+  if (!try)
+    return 0;
+#endif
+  *num_links = 8 - try;
+
+  return used;
+}
+
+void xine_config_save (xine_t *xine, const char *filename) {
+  config_values_t *this;
+  char fname[1536], bname[1536], tname[1536];
+  struct stat sbuf;
+  size_t blen;
+  FILE *f;
+#define XCF_HAVE_BACKUP 1
+#define XCF_HAVE_FILE   2
+#define XCF_HAVE_TFILE  4
+#define XCF_HAVE_ITEMS  8
+  uint32_t flags = 0;
+  int num_links = 0;
+
+  if (!xine || !filename)
+    return;
+
+  /* yes this _is_ relevant. */
+  blen = xine_realpath (fname, filename, sizeof (fname) - 48, &num_links);
+  if (!blen)
+    return;
+  if (num_links) {
+    xprintf (xine, XINE_VERBOSITY_DEBUG,
+      LOG_MODULE ": %s -> %s.\n", filename, fname);
+  }
+
+  /* When X server shuts down while multiple xine instances run,
+   * a) concurrent writes may trash the file, and/or
+   * b) write may be interrupted. */
+
+  this = xine->config;
+  xine_fast_memcpy (bname, fname, blen);
+  memcpy (bname + blen, "~", 2);
+  xine_fast_memcpy (tname, fname, blen);
+  {
+    char *p = tname + blen;
+
+    *p++ = '.';
+    xine_uint32_2str (&p, (uintptr_t)getpid ());
+    *p++ = '.';
+    xine_uint32_2str (&p, (uintptr_t)this);
+    *p = 0;
+  }
+
+/*  xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: backing up configfile to %s failed\n"), bname); */
+  xprintf (xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": writing %s.\n", tname);
+
+  f = fopen (tname, "wb");
+  if (!f) {
+    int e = errno;
+
+    xprintf (xine, XINE_VERBOSITY_LOG,
+      LOG_MODULE ": %s: %s (%d).\n", tname, strerror (e), e);
     xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: your configuration will not be saved\n"));
     return;
-  }
-
-  lprintf ("writing config file to %s\n", filename);
-
-  f_config = fopen (filename, "wb");
-
-  if (f_config) {
-
+  } else {
 #define XCS_BUF_SIZE 4096
     char buf[XCS_BUF_SIZE], *q, *e = buf + XCS_BUF_SIZE - 28 - 4 * XINE_MAX_INT32_STR;
     cfg_entry_t *entry;
+    size_t flen = 0;
 
+    flags |= XCF_HAVE_TFILE;
     q = buf;
     memcpy (q, "#\n# xine config file\n#\n.version:", 32); q += 32;
     xine_uint32_2str (&q, CONFIG_FILE_VERSION);
@@ -1662,7 +1716,7 @@ void xine_config_save (xine_t *xine, const char *filename) {
       "# Remove the \'#\' at the beginning of the line, if you want to change them.\n"
       "\n",
       151); q += 151;
-    fwrite (buf, 1, q - buf, f_config);
+    flen += fwrite (buf, 1, q - buf, f);
 
     pthread_mutex_lock(&this->config_lock);
 
@@ -1785,24 +1839,42 @@ void xine_config_save (xine_t *xine, const char *filename) {
         memcpy (q, "# bool", 6); q += 6;
         goto tail_num;
       }
-      fwrite (buf, 1, q - buf, f_config);
-
+      flen += fwrite (buf, 1, q - buf, f);
+      flags |= XCF_HAVE_ITEMS;
     }
     pthread_mutex_unlock(&this->config_lock);
 
-    if (fclose(f_config) != 0) {
-      xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: writing configuration to %s failed\n"), filename);
-      xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: removing possibly broken config file %s\n"), filename);
-      xprintf(xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: you should check the backup file %s\n"), temp);
-      /* writing config failed -> remove file, it might be broken ... */
-      unlink(filename);
-      /* ... but keep the backup */
-      backup = 0;
+    /* paranoia ... */
+    if (fclose (f))
+      flags &= ~XCF_HAVE_TFILE;
+    if (!stat (tname, &sbuf)) {
+      if ((off_t)flen != sbuf.st_size)
+        flags &= ~XCF_HAVE_TFILE;
+    } else {
+      flags &= ~XCF_HAVE_TFILE;
     }
-  }
 
-  if (backup)
-    unlink(temp);
+    if ((flags & (XCF_HAVE_TFILE | XCF_HAVE_ITEMS)) != (XCF_HAVE_TFILE | XCF_HAVE_ITEMS)) {
+      xprintf (xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: writing configuration to %s failed\n"), fname);
+      xprintf (xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: removing possibly broken config file %s\n"), tname);
+      xprintf (xine, XINE_VERBOSITY_LOG, _("configfile: WARNING: you should check the backup file %s\n"), bname);
+      /* writing config failed -> remove file, it might be broken. */
+      unlink (tname);
+      return;
+    }
+
+    if (!stat (bname, &sbuf) && S_ISREG (sbuf.st_mode))
+      flags |= XCF_HAVE_BACKUP;
+    if (!stat (fname, &sbuf) && S_ISREG (sbuf.st_mode))
+      flags |= XCF_HAVE_FILE;
+
+    if (flags & XCF_HAVE_FILE) {
+      if (flags & XCF_HAVE_BACKUP)
+        unlink (bname);
+      rename (fname, bname);
+    }
+    rename (tname, fname);
+  }
 }
 
 static void config_dispose (config_values_t *this_gen) {
