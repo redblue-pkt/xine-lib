@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.0\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-03-06 20:53+0200\n"
+"POT-Creation-Date: 2022-03-09 14:27+0200\n"
 "PO-Revision-Date: 2004-09-15 13:53+0100\n"
 "Last-Translator: \n"
 "Language-Team: Slovak <ski18n@lists.isternet.sk>\n"
@@ -5697,11 +5697,6 @@ msgstr ""
 
 #: src/xine-engine/configfile.c
 #, c-format
-msgid "configfile: WARNING: backing up configfile to %s failed\n"
-msgstr "configfile: VAROVANIE: záloha konf.súboru do %s zlyhala\n"
-
-#: src/xine-engine/configfile.c
-#, c-format
 msgid "configfile: WARNING: your configuration will not be saved\n"
 msgstr "configfile: VAROVANIE: vaša konfigurácia nebude uložená\n"
 
@@ -6635,6 +6630,10 @@ msgid ""
 "on todays computers. Therefore xine provides various tuned methods to do "
 "this copying. Usually, the best method is detected automatically."
 msgstr ""
+
+#, c-format
+#~ msgid "configfile: WARNING: backing up configfile to %s failed\n"
+#~ msgstr "configfile: VAROVANIE: záloha konf.súboru do %s zlyhala\n"
 
 #, fuzzy
 #~ msgid "%s: audio: %s\n"

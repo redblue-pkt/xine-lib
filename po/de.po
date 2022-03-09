@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-03-06 20:53+0200\n"
+"POT-Creation-Date: 2022-03-09 14:27+0200\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
@@ -6375,12 +6375,6 @@ msgstr "Lesen der Einstellungen von Datei '%s' schlug fehl: %s\n"
 
 #: src/xine-engine/configfile.c
 #, c-format
-msgid "configfile: WARNING: backing up configfile to %s failed\n"
-msgstr ""
-"configfile: WARNUNG: Sichern der Konfigurationsdatei nach %s schlug fehl\n"
-
-#: src/xine-engine/configfile.c
-#, c-format
 msgid "configfile: WARNING: your configuration will not be saved\n"
 msgstr "configfile: WARNUNG: Ihre Konfigurationsdatei wird nicht gesichert\n"
 
@@ -7408,6 +7402,11 @@ msgstr ""
 "in heutigen Computern. Deshalb unterstützt xine verschiedene optimierte "
 "Methoden für dieses Kopieren, von denen normalerweise automatisch die beste "
 "gewählt wird."
+
+#, c-format
+#~ msgid "configfile: WARNING: backing up configfile to %s failed\n"
+#~ msgstr ""
+#~ "configfile: WARNUNG: Sichern der Konfigurationsdatei nach %s schlug fehl\n"
 
 #~ msgid "Let FFmpeg use precise but slower math"
 #~ msgstr "Berechne genauer, wenn auch langsamer"
