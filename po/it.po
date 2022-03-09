@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-03-06 20:53+0200\n"
+"POT-Creation-Date: 2022-03-09 14:27+0200\n"
 "PO-Revision-Date: 2007-12-24 16:09+0100\n"
 "Last-Translator: Diego 'Flameeyes' Pettenò <flameeyes@gentoo.org>\n"
 "Language-Team: Italian\n"
@@ -6340,13 +6340,6 @@ msgstr ""
 
 #: src/xine-engine/configfile.c
 #, c-format
-msgid "configfile: WARNING: backing up configfile to %s failed\n"
-msgstr ""
-"configfile: ATTENZIONE: copia di backup del file di configurazione in %s "
-"fallita.\n"
-
-#: src/xine-engine/configfile.c
-#, c-format
 msgid "configfile: WARNING: your configuration will not be saved\n"
 msgstr "configfile: ATTENZIONE: la propria configurazione non sarà salvata.\n"
 
@@ -7366,6 +7359,12 @@ msgstr ""
 "La copia di grandi blocchi di memoria è una delle operazioni più costose nei "
 "computer moderni. Per questo xine fornisce diversi metodi raffinati per fare "
 "tale copia. Solitamente il metodo migliore è riconosciuto automaticamente."
+
+#, c-format
+#~ msgid "configfile: WARNING: backing up configfile to %s failed\n"
+#~ msgstr ""
+#~ "configfile: ATTENZIONE: copia di backup del file di configurazione in %s "
+#~ "fallita.\n"
 
 #, fuzzy
 #~ msgid "%s: audio: %s\n"

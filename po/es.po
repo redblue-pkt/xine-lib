@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib.hg\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-03-06 20:53+0200\n"
+"POT-Creation-Date: 2022-03-09 14:27+0200\n"
 "PO-Revision-Date: 2008-04-02 01:05+0200\n"
 "Last-Translator: Carlos E. R. M. <carloser@users.sourceforge.net>\n"
 "Language-Team: Spanish <none>\n"
@@ -6566,13 +6566,6 @@ msgstr ""
 
 #: src/xine-engine/configfile.c
 #, c-format
-msgid "configfile: WARNING: backing up configfile to %s failed\n"
-msgstr ""
-"configfile: AVISO: la copia de seguridad del fichero de configuración a %s "
-"falló\n"
-
-#: src/xine-engine/configfile.c
-#, c-format
 msgid "configfile: WARNING: your configuration will not be saved\n"
 msgstr "configfile: AVISO: su configuración no será guardada\n"
 
@@ -7599,6 +7592,12 @@ msgstr ""
 "costosas en las computadoras actuales. Por tanto xine provee varios metodos "
 "ajustados para hacer este copiado. Usualmente, el método mejor se detecta "
 "automáticamente."
+
+#, c-format
+#~ msgid "configfile: WARNING: backing up configfile to %s failed\n"
+#~ msgstr ""
+#~ "configfile: AVISO: la copia de seguridad del fichero de configuración a "
+#~ "%s falló\n"
 
 #, fuzzy
 #~ msgid "fooaudio: reference xine audio decoder plugin"

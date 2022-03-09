@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: xine-lib 1.2.12-20220306hg15074+dirty\n"
+"Project-Id-Version: xine-lib 1.2.12-20220309hg15077+dirty\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-03-06 20:53+0200\n"
+"POT-Creation-Date: 2022-03-09 14:27+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5393,11 +5393,6 @@ msgstr ""
 #: src/xine-engine/configfile.c
 #, c-format
 msgid "Failed to load configuration from file '%s': %s\n"
-msgstr ""
-
-#: src/xine-engine/configfile.c
-#, c-format
-msgid "configfile: WARNING: backing up configfile to %s failed\n"
 msgstr ""
 
 #: src/xine-engine/configfile.c

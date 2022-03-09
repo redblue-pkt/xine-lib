@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libxine1\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-03-06 20:53+0200\n"
+"POT-Creation-Date: 2022-03-09 14:27+0200\n"
 "PO-Revision-Date: 2008-01-05 18:22+0200\n"
 "Last-Translator: Server Acim <sacim@kde.org.tr>\n"
 "Language-Team: Türkçe <yerellestirme@kde.org.tr>\n"
@@ -6299,13 +6299,6 @@ msgstr ""
 
 #: src/xine-engine/configfile.c
 #, c-format
-msgid "configfile: WARNING: backing up configfile to %s failed\n"
-msgstr ""
-"configfile: UYARI: configfile dosyasının şuraya  %s yedeklenmesi "
-"başarılamadı\n"
-
-#: src/xine-engine/configfile.c
-#, c-format
 msgid "configfile: WARNING: your configuration will not be saved\n"
 msgstr "configfile: UYARI: yapılandırmanız kaydedilmeyecektir\n"
 
@@ -7315,6 +7308,12 @@ msgstr ""
 "işlemlerden biridir. Bu yüzden, xine bu kopyalamayı gerçekleştirmek için "
 "farklı ayarlanmış yöntemler sunar. Genellikle, en iyi yöntem otomatik olarak "
 "algılanacaktır."
+
+#, c-format
+#~ msgid "configfile: WARNING: backing up configfile to %s failed\n"
+#~ msgstr ""
+#~ "configfile: UYARI: configfile dosyasının şuraya  %s yedeklenmesi "
+#~ "başarılamadı\n"
 
 #, fuzzy
 #~ msgid "%s: audio: %s\n"
