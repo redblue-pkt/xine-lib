@@ -75,6 +75,7 @@ typedef struct {
   /* video information */
   unsigned int         video_type;
   xine_bmiheader       bih;
+  int64_t              last_frame_pts;
 
   /* audio information */
   unsigned int         audio_type;
@@ -194,7 +195,6 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
   unsigned int remaining_sample_bytes;
   unsigned char preamble[SMJPEG_CHUNK_PREAMBLE_SIZE];
   off_t current_file_pos;
-  int64_t last_frame_pts = 0;
   unsigned int audio_frame_count = 0;
 
   /* load the next sample */
@@ -255,12 +255,12 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
       buf->extra_info->input_time = pts / 90;
       buf->pts = pts;
 
-      if (last_frame_pts) {
+      if (this->last_frame_pts) {
         buf->decoder_flags |= BUF_FLAG_FRAMERATE;
-        buf->decoder_info[0] = buf->pts - last_frame_pts;
+        buf->decoder_info[0] = buf->pts - this->last_frame_pts;
       }
 
-      if ((int)remaining_sample_bytes > buf->max_size)
+      if (remaining_sample_bytes > (unsigned)buf->max_size)
         buf->size = buf->max_size;
       else
         buf->size = remaining_sample_bytes;
@@ -294,7 +294,7 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
   }
 
   if (chunk_tag == vidD_TAG)
-    last_frame_pts = buf->pts;
+    this->last_frame_pts = pts;
 
   return this->status;
 }
@@ -359,6 +359,7 @@ static int demux_smjpeg_seek (demux_plugin_t *this_gen, off_t start_pos, int sta
 
     this->status = DEMUX_OK;
   }
+  this->last_frame_pts = 0;
 
   return this->status;
 }
