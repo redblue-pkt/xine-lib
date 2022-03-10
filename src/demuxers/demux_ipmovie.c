@@ -616,8 +616,8 @@ static void demux_ipmovie_send_headers(demux_plugin_t *this_gen) {
 
   /* send init info to the audio decoder */
   if ((this->audio_fifo) && (this->audio_type)) {
-    this->wave.nSamplesPerSec = this->wave.nSamplesPerSec;
-    this->wave.wBitsPerSample = this->wave.wBitsPerSample;
+    //this->wave.nSamplesPerSec = this->wave.nSamplesPerSec;
+    //this->wave.wBitsPerSample = this->wave.wBitsPerSample;
     this->wave.nBlockAlign = (this->wave.wBitsPerSample / 8) * this->wave.nChannels;
     this->wave.nAvgBytesPerSec = this->wave.nBlockAlign * this->wave.nSamplesPerSec;
 
