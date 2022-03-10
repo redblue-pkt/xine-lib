@@ -218,10 +218,10 @@ static int open_dts_file(demux_dts_t *this) {
     switch (dts_version)
     {
     case 0: /* BE16 */
-    case 1: /* LE16 */
+  //case 1: /* LE16 */
 	this->frame_size = fsize * 8 / 16 * 2;
 	break;
-    case 2: /* BE14 */
+  //case 2: /* BE14 */
     case 3: /* LE14 */
 	this->frame_size = fsize * 8 / 14 * 2;
 	break;
