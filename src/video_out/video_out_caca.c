@@ -44,7 +44,7 @@
 #  define caca_get_canvas_height cucul_get_canvas_height
 #  define caca_free_canvas cucul_free_canvas
 #  define caca_dither_t cucul_dither_t
-#  define caca_create_dither define cucul_create_dither
+#  define caca_create_dither cucul_create_dither
 #  define caca_dither_bitmap cucul_dither_bitmap
 #  define caca_free_dither cucul_free_dither
 #endif
