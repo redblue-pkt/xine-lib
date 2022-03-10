@@ -242,12 +242,12 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
           /* printf("aaux %d: %2.2x %2.2x %2.2x %2.2x %2.2x\n",
            j, s[0], s[1], s[2], s[3], s[4]);
           */
-          int smp, flag;
+          int smp/*, flag*/;
 
           done = 1;
 
           smp = (s[4] >> 3) & 0x07;
-          flag = s[3] & 0x20;
+        /*flag = s[3] & 0x20;
 
           if (flag == 0) {
             switch (smp) {
@@ -261,7 +261,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
                 abuf->decoder_info[1] = 32000;
                 break;
             }
-          } else {
+          } else {*/
             switch (smp) {
               case 0:
                 abuf->decoder_info[1] = 48000;
@@ -273,7 +273,7 @@ static void demux_raw_dv_send_headers (demux_plugin_t *this_gen) {
                 abuf->decoder_info[1] = 32000;
                 break;
             }
-          }
+        /*}*/
         }
       }
     }
