@@ -1699,7 +1699,7 @@ static int ff_vc1_find_header(ff_video_decoder_t *this, buf_element_t *buf)
 
 static int ff_check_extradata(ff_video_decoder_t *this, unsigned int codec_type, buf_element_t *buf)
 {
-  if (this->context && this->context->extradata)
+  if (this->context->extradata)
     return 1;
 
   switch (codec_type) {
