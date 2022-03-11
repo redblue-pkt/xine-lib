@@ -1299,11 +1299,15 @@ xine_fast_text_t *xine_fast_text_load (const char *filename, size_t max_size) {
   f = fopen (filename, "rb");
   if (!f)
     return NULL;
-  if (fseek (f, 0, SEEK_END))
+  if (fseek (f, 0, SEEK_END)) {
+    fclose(f);
     return NULL;
+  }
   filesize = ftell (f);
-  if (fseek (f, 0, SEEK_SET))
+  if (fseek (f, 0, SEEK_SET)) {
+    fclose(f);
     return NULL;
+  }
 
   if (filesize > max_size)
     filesize = max_size;
