@@ -415,7 +415,7 @@ static int asf_header_parse_stream_extended_properties (asf_header_t *header, co
 
   /* get stream names */
   if (asf_stream_extension->stream_name_count) {
-    asf_stream_extension->stream_names = malloc (asf_stream_extension->stream_name_count * sizeof (void*));
+    asf_stream_extension->stream_names = calloc (asf_stream_extension->stream_name_count, sizeof (void*));
     for (i = 0; i < asf_stream_extension->stream_name_count; i++) {
       char *name;
       uint16_t length;
