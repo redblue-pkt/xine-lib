@@ -846,7 +846,7 @@ static void tdaan_port_put_buffer (
   if (pts) {
     int offs = (this->ring_put - this->ring_get) & RING_MASK;
     offs    -= this->samples_per_frame >> 1;
-    pts     -= 90000 * offs / (int)port->rate;
+    pts     -= INT64_C(90000) * offs / (int)port->rate;
   }
   /* buffer incoming audio */
   do {

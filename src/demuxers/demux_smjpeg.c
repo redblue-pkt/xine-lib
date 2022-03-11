@@ -228,9 +228,7 @@ static int demux_smjpeg_send_chunk(demux_plugin_t *this_gen) {
    * Therefore, manually compute the pts values for the audio samples.
    */
   if (chunk_tag == sndD_TAG) {
-    pts = audio_frame_count;
-    pts *= 90000;
-    pts /= (this->audio_sample_rate * this->audio_channels);
+    pts = INT64_C(90000) * audio_frame_count / ((int64_t)this->audio_sample_rate * this->audio_channels);
     audio_frame_count += ((remaining_sample_bytes - 4) * 2);
   } else {
     pts = _X_BE_32(&preamble[4]);
