@@ -583,13 +583,14 @@ static void read_chapter_comment (demux_ogg_t *this, ogg_packet *op) {
 
         if (!this->chapter_info) {
           this->chapter_info = (chapter_info_t *)calloc(1, sizeof(chapter_info_t));
-          this->chapter_info->current_chapter = -1;
         }
-        this->chapter_info->max_chapter = chapter_no;
-        this->chapter_info->entries = realloc( this->chapter_info->entries, chapter_no*sizeof(chapter_entry_t));
-        this->chapter_info->entries[chapter_no-1].name = chapter_name;
-        this->chapter_info->entries[chapter_no-1].start_pts = (msec + (1000.0 * sec) + (60000.0 * min) + (3600000.0 * hour))*90;
-
+        if (this->chapter_info) {
+          this->chapter_info->current_chapter = -1;
+          this->chapter_info->max_chapter = chapter_no;
+          this->chapter_info->entries = realloc( this->chapter_info->entries, chapter_no*sizeof(chapter_entry_t));
+          this->chapter_info->entries[chapter_no-1].name = chapter_name;
+          this->chapter_info->entries[chapter_no-1].start_pts = (msec + (1000.0 * sec) + (60000.0 * min) + (3600000.0 * hour))*90;
+        }
         free (chapter_time);
         chapter_no = 0;
         chapter_time = chapter_name = 0;
