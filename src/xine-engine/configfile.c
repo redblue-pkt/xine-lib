@@ -1596,7 +1596,7 @@ static size_t xine_realpath (char *buf, const char *filename, size_t bsize, int 
   size_t used;
   int try;
 
-  if (!filename || !buf || !bsize)
+  if (!buf || !bsize)
     return 0;
   if (!filename) {
     buf[0] = 0;
