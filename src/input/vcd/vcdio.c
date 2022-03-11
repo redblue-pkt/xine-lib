@@ -149,6 +149,7 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
     p_vcdplayer->track = (vcdplayer_play_item_info_t *)
       calloc(p_vcdplayer->i_tracks, sizeof(vcdplayer_play_item_info_t));
 
+    if (p_vcdplayer->track)
     for (i=0; i<p_vcdplayer->i_tracks; i++) {
       track_t i_track=i+1;
       p_vcdplayer->track[i].size
@@ -163,6 +164,7 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
     p_vcdplayer->entry = (vcdplayer_play_item_info_t *)
       calloc(p_vcdplayer->i_entries, sizeof(vcdplayer_play_item_info_t));
 
+    if (p_vcdplayer->entry)
     for (i=0; i<p_vcdplayer->i_entries; i++) {
       p_vcdplayer->entry[i].size
         = vcdinfo_get_entry_sect_count(p_vcdinfo, i);
@@ -176,6 +178,7 @@ vcdio_open(vcdplayer_t *p_vcdplayer, char *intended_vcd_device)
     p_vcdplayer->segment = (vcdplayer_play_item_info_t *)
       calloc(p_vcdplayer->i_segments,  sizeof(vcdplayer_play_item_info_t));
 
+    if (p_vcdplayer->segment)
     for (i=0; i<p_vcdplayer->i_segments; i++) {
       p_vcdplayer->segment[i].size
         = vcdinfo_get_seg_sector_count(p_vcdinfo, i);

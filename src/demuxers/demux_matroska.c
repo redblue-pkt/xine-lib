@@ -1538,6 +1538,8 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
         if (track->video_track)
           return 1;
         track->video_track = (matroska_video_track_t *)calloc(1, sizeof(matroska_video_track_t));
+        if (!track->video_track)
+          return 0;
         if (!ebml_read_master (ebml, &elem))
           return 0;
         if ((elem.len > 0) && !parse_video_track(this, track->video_track))
@@ -1549,6 +1551,8 @@ static int parse_track_entry(demux_matroska_t *this, matroska_track_t *track) {
         if (track->audio_track)
           return 1;
         track->audio_track = (matroska_audio_track_t *)calloc(1, sizeof(matroska_audio_track_t));
+        if (!track->audio_track)
+          return 0;
         if (!ebml_read_master (ebml, &elem))
           return 0;
         if ((elem.len > 0) && !parse_audio_track(this, track->audio_track))
@@ -1912,6 +1916,8 @@ static int parse_tracks(demux_matroska_t *this) {
 
         /* alloc and initialize a track with 0 */
         track = calloc(1, sizeof(matroska_track_t));
+        if (!track)
+          return 0;
         track->compress_algo = MATROSKA_COMPRESS_NONE;
         this->tracks[this->num_tracks] = track;
 
