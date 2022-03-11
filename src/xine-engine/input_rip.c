@@ -231,7 +231,7 @@ static off_t rip_plugin_read(input_plugin_t *this_gen, void *buf_gen, off_t len)
   lprintf("reading %"PRId64" bytes (curpos = %"PRId64", savepos = %"PRId64")\n", len, this->curpos, this->savepos);
 
   /* bail out on bogus args */
-  if (!this || !buf || (len < 0))
+  if (!buf || (len < 0))
     return -1;
   if (len == 0)
     return 0;
@@ -410,7 +410,7 @@ static buf_element_t *rip_plugin_read_block(input_plugin_t *this_gen, fifo_buffe
   lprintf("reading %"PRId64" bytes (curpos = %"PRId64", savepos = %"PRId64") (block)\n", len, this->curpos, this->savepos);
 
   /* bail out on bogus args */
-  if (!this || !fifo || (len <= 0))
+  if (!fifo || (len <= 0))
     return NULL;
   left = len;
 
