@@ -903,6 +903,7 @@ static int osd_renderer_load_font (osd_renderer_t *this, const char *filename) {
     if (!font)
       break;
     memcpy (font->name, b, sizeof (font->name));
+    font->name[sizeof(font->name) - 1] = 0;
     font->version = i;
     font->size = _X_LE_16 (b + sizeof (font->name) + 1 * 2);
     font->num_fontchars = _X_LE_16 (b + sizeof (font->name) + 2 * 2);
