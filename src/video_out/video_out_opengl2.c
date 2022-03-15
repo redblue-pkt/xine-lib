@@ -125,6 +125,34 @@ typedef struct {
   float relw, yuy2_mul, yuy2_div;
 } opengl2_yuvtex_t;
 
+typedef enum {
+  SPLINE_CATMULLROM = 0,
+  SPLINE_COS,
+  SPLINE_LAST
+} opengl2_spline_t;
+
+typedef enum {
+  SCALE_SIMPLE = 0,
+  SCALE_LINEAR,
+  SCALE_CATMULLROM,
+  SCALE_COS,
+  SCALE_LAST
+} opengl2_scale_t;
+
+static const char _opengl2_scale_names[SCALE_LAST][16] = {
+  [SCALE_SIMPLE]     = "Simple",
+  [SCALE_LINEAR]     = "Linear",
+  [SCALE_CATMULLROM] = "Catmullrom",
+  [SCALE_COS]        = "Cosinus"
+};
+
+static const float _opengl2_lut_y[SCALE_LAST] = {
+  [SCALE_SIMPLE]     = SPLINE_CATMULLROM + 0.5,
+  [SCALE_LINEAR]     = SPLINE_CATMULLROM + 0.5,
+  [SCALE_CATMULLROM] = SPLINE_CATMULLROM + 0.5,
+  [SCALE_COS]        = SPLINE_COS + 0.5
+};
+
 typedef struct {
   vo_driver_t        vo_driver;
   vo_scale_t         sc;
@@ -174,7 +202,9 @@ typedef struct {
     GLuint            pass1_texture;
     GLuint            fbo;
     int               pass1_tex_w, pass1_tex_h;
-    int               scale;
+    int               mode_changed, mode_changing, mode1;
+    opengl2_scale_t   mode2;
+    float             lut_y;
 #define OGL2_BC_LUT    1
 #define OGL2_BC_PROG_1 2
 #define OGL2_BC_PROG_2 4
@@ -327,54 +357,54 @@ static const char *bicubic_pass2_frag=
 "}\n";
 
 #define LUTWIDTH 1000
-#define N_SPLINES 2
-#define CATMULLROM_SPLINE   0
-#define COS_SPLINE          1
 
-static float compute_cos_spline( float x )
-{
-    if ( x < 0.0 )
-        x = -x;
-    return 0.5 * cos( M_PI * x / 2.0 ) + 0.5;
+/* TJ. This came out while experimenting with test://y_resolution.bmp :-)
+ * (0.00 +0.25 2.00) = { 1.0000 0,5971 0,3150 0,1199 0.0000 -0,0526 -0,0533 -0,0269 0.0000 } */
+static double _opengl2_cos_spline (double x) {
+  if (x < 0.0)
+    x = -x;
+  return cos (M_PI * 0.25 * x * (x + 1.0)) * pow (2.0, -2.8 * x);
 }
 
-static float compute_catmullrom_spline( float x )
-{
-    if ( x < 0.0 )
-        x = -x;
-    if ( x < 1.0 )
-        return ((9.0 * (x * x * x)) - (15.0 * (x * x)) + 6.0) / 6.0;
-    if ( x <= 2.0 )
-        return ((-3.0 * (x * x * x)) + (15.0 * (x * x)) - (24.0 * x) + 12.0) / 6.0;
-    return 0.0;
+/* (0.00 +0.25 2.00) = { 1.0000 0.8672 0.5625 0,2265 0.0000 -0,0703 -0,0625 -0,0234 0.0000 } */
+static double _opengl2_catmullrom_spline (double x) {
+  if (x < 0.0)
+    x = -x;
+  if (x < 1.0)
+    return 1.5 * x * x * x - 2.5 * x * x + 1.0;
+  return -0.5 * x * x * x + 2.5 * x * x - 4.0 * x + 2.0;
 }
+
+static double (* const _opengl2_spline[SPLINE_LAST]) (double x) = {
+  [SPLINE_CATMULLROM] = _opengl2_catmullrom_spline,
+  [SPLINE_COS]        = _opengl2_cos_spline
+};
 
 static int create_lut_texture( opengl2_driver_t *that )
 {
-  int i = 0;
-  float *lut = calloc( sizeof(float) * LUTWIDTH * 4 * N_SPLINES, 1 );
+  uint32_t i;
+  float *lut = calloc( sizeof(float) * LUTWIDTH * 4 * SPLINE_LAST, 1 );
   if ( !lut )
     return 0;
 
-  while ( i < LUTWIDTH ) {
-    float t, v1, v2, v3, v4, coefsum;
-    t = (float)i / (float)LUTWIDTH;
+  for (i = 0; i < LUTWIDTH; i++) {
+    opengl2_spline_t s;
+    float *p = lut + i * 4;
+    double t = (double)i / (double)LUTWIDTH;
 
-    v1 = compute_catmullrom_spline( t + 1.0 ); coefsum  = v1;
-    v2 = compute_catmullrom_spline( t );       coefsum += v2;
-    v3 = compute_catmullrom_spline( t - 1.0 ); coefsum += v3;
-    v4 = compute_catmullrom_spline( t - 2.0 ); coefsum += v4;
-    lut[i * 4]       = v1 / coefsum;
-    lut[(i * 4) + 1] = v2 / coefsum;
-    lut[(i * 4) + 2] = v3 / coefsum;
-    lut[(i * 4) + 3] = v4 / coefsum;
+    for (s = (opengl2_spline_t)0; s < SPLINE_LAST; s++) {
+      double v1, v2, v3, v4, coefsum;
 
-    lut[(i * 4) + (LUTWIDTH * 4)] = compute_cos_spline( t + 1.0 );
-    lut[(i * 4) + (LUTWIDTH * 4) + 1] = compute_cos_spline( t );
-    lut[(i * 4) + (LUTWIDTH * 4) + 2] = compute_cos_spline( t - 1.0 );
-    lut[(i * 4) + (LUTWIDTH * 4) + 3] = compute_cos_spline( t - 2.0 );
-
-    ++i;
+      v1 = _opengl2_spline[s] (t + 1.0); coefsum  = v1;
+      v2 = _opengl2_spline[s] (t);       coefsum += v2;
+      v3 = _opengl2_spline[s] (t - 1.0); coefsum += v3;
+      v4 = _opengl2_spline[s] (t - 2.0); coefsum += v4;
+      coefsum = 1.0 / coefsum;
+      p[(uint32_t)s * LUTWIDTH * 4 + 0] = v1 * coefsum;
+      p[(uint32_t)s * LUTWIDTH * 4 + 1] = v2 * coefsum;
+      p[(uint32_t)s * LUTWIDTH * 4 + 2] = v3 * coefsum;
+      p[(uint32_t)s * LUTWIDTH * 4 + 3] = v4 * coefsum;
+    }
   }
 
   that->bicubic.lut_texture = 0;
@@ -390,7 +420,7 @@ static int create_lut_texture( opengl2_driver_t *that )
   glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
   glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
   glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F, LUTWIDTH, N_SPLINES, 0, GL_RGBA, GL_FLOAT, lut );
+  glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F, LUTWIDTH, SPLINE_LAST, 0, GL_RGBA, GL_FLOAT, lut );
   free( lut );
   glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 );
   return 1;
@@ -809,7 +839,7 @@ static int opengl2_redraw_needed( vo_driver_t *this_gen )
     _x_vo_scale_compute_output_size( &this->sc );
     return 1;
   }
-  return this->update_csc | this->sharp.changed | this->transform.changed;
+  return this->update_csc | this->sharp.changed | this->transform.changed | this->bicubic.mode_changed;
 }
 
 
@@ -1108,7 +1138,7 @@ static int opengl2_draw_video_bicubic (opengl2_driver_t *that, const opengl2_dra
   glUseProgram (that->bicubic.pass1_program.program);
   glUniform1i (that->bicubic.pass1_program.args[0], 0);
   glUniform1i (that->bicubic.pass1_program.args[1], 1);
-  glUniform1f (that->bicubic.pass1_program.args[2], CATMULLROM_SPLINE);
+  glUniform1f (that->bicubic.pass1_program.args[2], that->bicubic.lut_y);
 
   glBegin (GL_QUADS);
     glTexCoord2f (info->sx1, info->sy1); glVertex3f (       0,        0, 0);
@@ -1136,7 +1166,7 @@ static int opengl2_draw_video_bicubic (opengl2_driver_t *that, const opengl2_dra
   glUseProgram (that->bicubic.pass2_program.program);
   glUniform1i (that->bicubic.pass2_program.args[0], 0);
   glUniform1i (that->bicubic.pass2_program.args[1], 1);
-  glUniform1f (that->bicubic.pass2_program.args[2], CATMULLROM_SPLINE);
+  glUniform1f (that->bicubic.pass2_program.args[2], that->bicubic.lut_y);
 
   glBegin (GL_QUADS);
     glTexCoord2f (       0,        0); glVertex3f (info->dx1, info->dy1, 0);
@@ -1172,7 +1202,7 @@ static int opengl2_draw_video_cubic_x (opengl2_driver_t *that, const opengl2_dra
   glUseProgram (that->bicubic.pass1_program.program);
   glUniform1i (that->bicubic.pass1_program.args[0], 0);
   glUniform1i (that->bicubic.pass1_program.args[1], 1);
-  glUniform1f (that->bicubic.pass1_program.args[2], CATMULLROM_SPLINE);
+  glUniform1f (that->bicubic.pass1_program.args[2], that->bicubic.lut_y);
 
   glBegin (GL_QUADS);
     glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
@@ -1208,7 +1238,7 @@ static int opengl2_draw_video_cubic_y (opengl2_driver_t *that, const opengl2_dra
   glUseProgram (that->bicubic.pass2_program.program);
   glUniform1i (that->bicubic.pass2_program.args[0], 0);
   glUniform1i (that->bicubic.pass2_program.args[1], 1);
-  glUniform1f (that->bicubic.pass2_program.args[2], CATMULLROM_SPLINE);
+  glUniform1f (that->bicubic.pass2_program.args[2], that->bicubic.lut_y);
 
   glBegin (GL_QUADS);
     glTexCoord2f (info->sx1, info->sy1); glVertex3f (info->dx1, info->dy1, 0);
@@ -1475,21 +1505,29 @@ static void opengl2_draw( opengl2_driver_t *that, opengl2_frame_t *frame )
     }
     that->transform.changed = 0;
 
-    if (that->bicubic.scale) {
-      if (that->sc.displayed_width != that->sc.output_width) {
-        if (that->sc.displayed_height != that->sc.output_height)
-          res = opengl2_draw_video_bicubic (that, &info);
-        else
-          res = opengl2_draw_video_cubic_x (that, &info);
-      } else {
-        if (that->sc.displayed_height != that->sc.output_height)
-          res = opengl2_draw_video_cubic_y (that, &info);
-        else
-          res = opengl2_draw_video_simple (that, &info);
-      }
+    switch (that->bicubic.mode2) {
+      case SCALE_CATMULLROM:
+      case SCALE_COS:
+        if (that->sc.displayed_width != that->sc.output_width) {
+          if (that->sc.displayed_height != that->sc.output_height)
+            res = opengl2_draw_video_bicubic (that, &info);
+          else
+            res = opengl2_draw_video_cubic_x (that, &info);
+        } else {
+          if (that->sc.displayed_height != that->sc.output_height)
+            res = opengl2_draw_video_cubic_y (that, &info);
+          else
+            res = opengl2_draw_video_simple (that, &info);
+        }
+        break;
+      case SCALE_SIMPLE:
+        res = opengl2_draw_video_simple (that, &info);
+        break;
+      default: ;
     }
     if (!res)
       opengl2_draw_video_bilinear (that, &info);
+    that->bicubic.mode_changed = 0;
   }
 
   // draw unscaled overlays
@@ -1733,14 +1771,46 @@ static uint32_t opengl2_get_capabilities( vo_driver_t *this_gen )
          VO_CAP_SHARPNESS;
 }
 
+static void opengl2_set_bicubic (void *this_gen, xine_cfg_entry_t *entry) {
+  opengl2_driver_t *this = (opengl2_driver_t *)this_gen;
+  int mode1 = !!entry->num_value;
 
+  if ((this->bicubic.mode1 == mode1) || this->bicubic.mode_changing)
+    return;
 
-static void opengl2_set_bicubic( void *this_gen, xine_cfg_entry_t *entry )
-{
-  opengl2_driver_t  *this  = (opengl2_driver_t *) this_gen;
+  this->bicubic.mode_changed = 1;
+  this->bicubic.mode_changing = 1;
+  this->bicubic.mode1 = mode1;
+  this->bicubic.mode2 = mode1 ? SCALE_CATMULLROM : SCALE_LINEAR;
+  this->bicubic.lut_y = _opengl2_lut_y[this->bicubic.mode2];
+  this->xine->config->update_num (this->xine->config, "video.output.opengl2_scale_mode", this->bicubic.mode2);
+  this->bicubic.mode_changing = 0;
 
-  this->bicubic.scale = entry->num_value;
-  xprintf( this->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": scale_bicubic=%d\n", this->bicubic.scale);
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    LOG_MODULE ": scale mode %s.\n", _opengl2_scale_names[this->bicubic.mode2]);
+}
+
+static void opengl2_set_scale_mode (void *this_gen, xine_cfg_entry_t *entry) {
+  opengl2_driver_t *this = (opengl2_driver_t *)this_gen;
+  opengl2_scale_t mode2 = entry->num_value;
+  int mode1;
+
+  if ((this->bicubic.mode2 == mode2) || this->bicubic.mode_changing)
+    return;
+
+  this->bicubic.mode_changed = 1;
+  this->bicubic.mode_changing = 1;
+  this->bicubic.mode2 = mode2;
+  this->bicubic.lut_y = _opengl2_lut_y[this->bicubic.mode2];
+  mode1 = mode2 <= SCALE_LINEAR ? 0 : 1;
+  if (mode1 != this->bicubic.mode1) {
+    this->bicubic.mode1 = mode1;
+    this->xine->config->update_num (this->xine->config, "video.output.opengl2_bicubic_scaling", mode1);
+  }
+  this->bicubic.mode_changing = 0;
+
+  xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+    LOG_MODULE ": scale mode %s.\n", _opengl2_scale_names[this->bicubic.mode2]);
 }
 
 static void opengl2_dispose (vo_driver_t *this_gen) {
@@ -1845,6 +1915,8 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
   this->bicubic.pass1_tex_w            = 0;
   this->bicubic.pass1_tex_h            = 0;
   this->bicubic.fbo                    = 0;
+  this->bicubic.mode_changed           = 0;
+  this->bicubic.mode_changing          = 0;
   this->ovl_changed                    = 0;
   this->num_ovls                       = 0;
   this->yuvtex.tex[OGL2_TEX_VIDEO_0]   = 0;
@@ -1989,14 +2061,49 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
         this->contrast = 128;
         cm_init (this);
 
-        if (this->texture_float) {
-          this->bicubic.scale = config->register_bool (config,
-            "video.output.opengl2_bicubic_scaling", 0,
-            _("opengl2: use a bicubic algo to scale the video"),
-            _("Set to true if you want bicubic scaling.\n\n"),
-            10, opengl2_set_bicubic, this);
-        } else {
-          this->bicubic.scale = 0;
+        {
+          opengl2_scale_t scale_max;
+
+          if (this->texture_float) {
+            scale_max = SCALE_LAST - 1;
+            this->bicubic.mode1 = config->register_bool (config,
+              "video.output.opengl2_bicubic_scaling", 0,
+              _("opengl2: use a bicubic algo to scale the video"),
+              _("Set to true if you want bicubic scaling.\n\n"),
+              10, opengl2_set_bicubic, this);
+          } else {
+            scale_max = SCALE_LINEAR;
+            this->bicubic.mode1 = 0;
+          }
+          this->bicubic.mode2 = config->register_range (config,
+            "video.output.opengl2_scale_mode", SCALE_LINEAR, 0, scale_max,
+            _("opengl2: video scale mode"),
+            _("0: Simple. Very fast, very sharp,\n"
+              "   but also stairsteps, uneven lines, and flickering movement.\n\n"
+              "1: Linear blending. Fast, very smooth, but also a bit blurry.\n\n"
+              "2: Catmullrom blending. Very smooth, sharp, but needs fast hardware.\n\n"
+              "3: Cosinus blending. Smooth, very sharp, but needs fast hardware.\n"),
+              10, opengl2_set_scale_mode, this);
+          if (this->bicubic.mode2 == SCALE_LINEAR) {
+            if (this->bicubic.mode1) {
+              this->bicubic.mode_changing = 1;
+              this->bicubic.mode2 = SCALE_CATMULLROM;
+              config->update_num (config, "video.output.opengl2_scale_mode", this->bicubic.mode2);
+              this->bicubic.mode_changing = 0;
+            }
+          } else {
+            int mode1 = this->bicubic.mode2 <= SCALE_LINEAR ? 0 : 1;
+
+            if (this->bicubic.mode1 != mode1) {
+              this->bicubic.mode_changing = 1;
+              this->bicubic.mode1 = mode1;
+              config->update_num (config, "video.output.opengl2_bicubic_scaling", mode1);
+              this->bicubic.mode_changing = 0;
+            }
+          }
+          this->bicubic.lut_y = _opengl2_lut_y[this->bicubic.mode2];
+          xprintf (this->xine, XINE_VERBOSITY_DEBUG,
+            LOG_MODULE ": scale mode %s.\n", _opengl2_scale_names[this->bicubic.mode2]);
         }
 
         this->hw = _x_hwdec_new(this->xine, &this->vo_driver, class->visual_type, visual_gen, 0);
@@ -2107,3 +2214,4 @@ const plugin_info_t xine_plugin_info[] EXPORTED = {
   { PLUGIN_VIDEO_OUT, 22, "opengl2", XINE_VERSION_CODE, &vo_info_opengl2_wl, opengl2_init_class_wl },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
+
