@@ -6,14 +6,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: xine-lib 1.2.2\n"
 "Report-Msgid-Bugs-To: xine-devel@lists.sourceforge.net\n"
-"POT-Creation-Date: 2022-03-09 14:27+0200\n"
+"POT-Creation-Date: 2022-03-16 19:29+0100\n"
 "PO-Revision-Date: 2007-04-18 11:00+0200\n"
 "Last-Translator: Torsten Jager <t.jager@gmx.de>\n"
 "Language-Team: German <de@li.org>\n"
-"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: de\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #: lib/hstrerror.c
@@ -1217,6 +1217,7 @@ msgid "If the machine freezes on mpeg2 decoding use mpeg2 software decoding."
 msgstr "Versuchen Sie dies, wenn das Abspielen von MPEG 1/2 hängen bleibt."
 
 #: src/combined/ffmpeg/ff_video_decoder.c
+#: src/video_out/vaapi/xine_hw_frame_vaapi.c
 msgid "Enable VAAPI"
 msgstr "VAAPI einschalten"
 
@@ -1584,7 +1585,7 @@ msgstr "Apple Quicktime (MOV) und MPEG-4 Demuxer"
 
 #: src/demuxers/demux_rawdv.c
 msgid "Raw DV Video stream"
-msgstr ""
+msgstr "Einfacher DV Video Datenstrom"
 
 #: src/demuxers/demux_realaudio.c
 msgid "RealAudio file demux plugin"
@@ -3611,8 +3612,8 @@ msgid ""
 "See the help for the title_format for the meanings of these."
 msgstr ""
 "Das selbe Format wie für Fenstertitel. Ähnlich dem Unix date-Befehl. "
-"Formatangaben starten mit einem Prozentzeichen. Formatfelder sind %A, %C, "
-"%c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, und %%.\n"
+"Formatangaben starten mit einem Prozentzeichen. Formatfelder sind %A, %C, %"
+"c, %F, %I, %L, %N, %P, %p, %S, %T, %V, %v, und %%.\n"
 "Siehe Hilfe für title_format bezüglich deren Bedeutung."
 
 #: src/input/vcd/xineplug_inp_vcd.c
@@ -4192,7 +4193,7 @@ msgstr ""
 
 #: src/post/planar/eq2.c
 msgid "Software video equalizer"
-msgstr ""
+msgstr "Software video Equalizer"
 
 #: src/post/planar/eq.c
 msgid ""
@@ -4224,7 +4225,7 @@ msgstr ""
 
 #: src/post/planar/eq.c
 msgid "soft video equalizer"
-msgstr ""
+msgstr "Software video Equalizer"
 
 #: src/post/planar/expand.c
 msgid ""
@@ -4878,6 +4879,24 @@ msgstr ""
 msgid "GL provider (GLX)"
 msgstr "GL-Anbieter (GLX)"
 
+#: src/video_out/vaapi/xine_hw_frame_vaapi.c
+msgid ""
+"Enable VAAPI video decoding with any video output driver. When disabled, "
+"only vaapi video output driver uses VAAPI accelerated decoding. Currently "
+"only opengl2 video output driver supports this."
+msgstr ""
+"Schalte VAAPI Beschleunigung für alle Videotreiber ein. Andernfalls versucht "
+"dies nur der VAAPI Videotreiber. Zur Zeit klappt das jedoch nur mit dem "
+"OpenGL2 Treiber."
+
+#: src/video_out/vaapi/xine_hw_frame_vaapi.c src/video_out/video_out_vaapi.c
+msgid "vaapi: set vaapi_guarded_render to 0 ( no ) 1 ( yes )"
+msgstr "vaapi: vaapi_guarded_render 0 (aus) 1 (ein)"
+
+#: src/video_out/vaapi/xine_hw_frame_vaapi.c
+msgid "VAAPI frame provider"
+msgstr "VAAPI Bildpuffer-Anbieter"
+
 #: src/video_out/video_out_aa.c
 msgid "xine video output plugin using the ascii-art library"
 msgstr "xine Bildusgabe über ASCII-Art Bibliothek"
@@ -5149,6 +5168,30 @@ msgstr ""
 "Bikubisches Vergrößern/Verkleinern des Bildes bewirkt (fast) keinen Verlust "
 "an Schärfe.\n"
 "Es benötigt aber eine schnelle Grafikkarte.\n"
+
+#: src/video_out/video_out_opengl2.c
+msgid "opengl2: video scale mode"
+msgstr "opengl2: Video Größenänderungsverfahren"
+
+#: src/video_out/video_out_opengl2.c
+msgid ""
+"0: Simple. Very fast, very sharp,\n"
+"   but also stairsteps, uneven lines, and flickering movement.\n"
+"\n"
+"1: Linear blending. Fast, very smooth, but also a bit blurry.\n"
+"\n"
+"2: Catmullrom blending. Very smooth, sharp, but needs fast hardware.\n"
+"\n"
+"3: Cosinus blending. Smooth, very sharp, but needs fast hardware.\n"
+msgstr ""
+"0: Einfach. Sehr schnell, sehr scharf,\n"
+"   aber auch Treppenstufen, unruhige Linien, und flackernde Bewegungen.\n"
+"\n"
+"1: Linear. Schnell, sehr weich, aber auch etwas verwaschen.\n"
+"\n"
+"2: Catmullrom. Sehr weich, scharf, braucht aber eine schnelle Grafikkarte.\n"
+"\n"
+"3: Cosinus. Weich, sehr scharf, braucht aber eine schnelle Grafikkarte..\n"
 
 #: src/video_out/video_out_opengl2.c
 msgid "xine video output plugin using opengl 2.0"
@@ -5434,7 +5477,7 @@ msgstr "vaapi: Ausgabe über OpenGL"
 
 #: src/video_out/video_out_vaapi.c
 msgid "vaapi: opengl rendering tfp"
-msgstr ""
+msgstr "vaapi: opengl tfp Modus"
 
 #: src/video_out/video_out_vaapi.c
 msgid "vaapi: VDR osd width workaround."
@@ -5448,10 +5491,6 @@ msgstr "vaapi: Abhilfe für fehlerhafte Höhe von VDR Einblendungen."
 msgid "vaapi: set deinterlace to 0 ( none ), 1 ( top field ), 2 ( bob )."
 msgstr ""
 "vaapi: Wähle Entflechtmethode: 0 (kein), 1 (verweben), 2 (weichzeichnen)."
-
-#: src/video_out/video_out_vaapi.c
-msgid "vaapi: set vaapi_guarded_render to 0 ( no ) 1 ( yes )"
-msgstr "vaapi: vaapi_guarded_render 0 (aus) 1 (ein)"
 
 #: src/video_out/video_out_vaapi.c
 msgid ""

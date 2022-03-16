@@ -190,6 +190,7 @@ src/video_dec/rgb.c
 src/video_dec/yuv.c
 src/video_out/color_matrix.c
 src/video_out/opengl/xine_glx.c
+src/video_out/vaapi/xine_hw_frame_vaapi.c
 src/video_out/video_out_aa.c
 src/video_out/video_out_caca.c
 src/video_out/video_out_directfb.c
