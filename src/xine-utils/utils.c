@@ -798,7 +798,7 @@ int _x_set_file_close_on_exec(int fd)
 #ifndef WIN32
   return fcntl(fd, F_SETFD, FD_CLOEXEC);
 #else
-  return SetHandleInformation((HANDLE)_get_osfhandle(fd), HANDLE_FLAG_INHERIT, 0);
+  return SetHandleInformation((HANDLE)_get_osfhandle(fd), HANDLE_FLAG_INHERIT, 0) ? 0 : -1;
 #endif
 }
 
@@ -807,7 +807,7 @@ int _x_set_socket_close_on_exec(int s)
 #ifndef WIN32
   return fcntl(s, F_SETFD, FD_CLOEXEC);
 #else
-  return SetHandleInformation((HANDLE)(intptr_t)s, HANDLE_FLAG_INHERIT, 0);
+  return SetHandleInformation((HANDLE)(intptr_t)s, HANDLE_FLAG_INHERIT, 0) ? 0 : -1;
 #endif
 }
 
