@@ -1,3 +1,5 @@
+  * Add dav1d 1.0.0 support.
+
 xine-lib (1.2.12) 2022-03-09
   * Add string tree library (generic info parser).
   * Add OpenSL ES audio output plugin.
