@@ -123,7 +123,7 @@ static int lavc_prepare_frame(lavc_data_t *this, dxr3_driver_t *drv, dxr3_frame_
 static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
 {
   lavc_data_t *this = (lavc_data_t *)drv->enc;
-  AVCodec *codec;
+  const AVCodec *codec;
   unsigned char use_quantizer;
 
   if (this->context) {
