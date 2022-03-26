@@ -289,12 +289,10 @@ static const char * const *_build_list_typed_plugins (xine_t *xine, int type, ui
   if (type == PLUGIN_VIDEO_OUT) {
     for (list_id = 0, i = 0; list_id < list_size; list_id++) {
       plugin_node_t *node = xine_sarray_get (list, list_id);
-      if (node->info) {
-        const vo_info_t *info = (const vo_info_t *)node->info->special_info;
-        if (info) {
-          if (!(mask & ((uint64_t)1 << info->visual_type)))
-            continue;
-        }
+      const vo_info_t *info = (const vo_info_t *)node->info->special_info;
+      if (info) {
+        if (!(mask & ((uint64_t)1 << info->visual_type)))
+          continue;
       }
       /* add only unique ids to the list */
       if (xine_sarray_add (a, (void *)node->info->id) >= 0)
