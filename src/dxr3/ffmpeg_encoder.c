@@ -223,7 +223,7 @@ static int lavc_on_update_format(dxr3_driver_t *drv, dxr3_frame_t *frame)
   this->context->gop_size = 0; /*intra frames only */
 /* TJ. this version is known to have that but maybe its not the first. */
 #if LIBAVCODEC_VERSION_INT >= XFF_INT_VERSION(56,56,101)
-  av_opt_set_int (codec, "motion_est", 0 /* "zero" */, 0);
+  av_opt_set_int (this->context->priv_data, "motion_est", 0 /* "zero" */, 0);
 #else
   this->context->me_method = ME_ZERO; /*motion estimation type*/
 #endif
