@@ -667,6 +667,8 @@ int _x_demux_read_header (input_plugin_t *input, void *buffer, off_t size) {
     want_size = input->read (input, buffer, want_size);
     if (input->seek (input, 0, SEEK_SET) != 0)
       return 0; /* no point to continue any further */
+    if (want_size <= 0)
+      return 0;
     return want_size;
   }
 
