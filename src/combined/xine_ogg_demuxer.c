@@ -590,10 +590,11 @@ static void read_chapter_comment (demux_ogg_t *this, ogg_packet *op) {
           this->chapter_info->entries = realloc( this->chapter_info->entries, chapter_no*sizeof(chapter_entry_t));
           this->chapter_info->entries[chapter_no-1].name = chapter_name;
           this->chapter_info->entries[chapter_no-1].start_pts = (msec + (1000.0 * sec) + (60000.0 * min) + (3600000.0 * hour))*90;
+        } else {
+          _x_freep (&chapter_name);
         }
-        free (chapter_time);
+        _x_freep (&chapter_time);
         chapter_no = 0;
-        chapter_time = chapter_name = 0;
       }
     }
     free(chapter_name);
