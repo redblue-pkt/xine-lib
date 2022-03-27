@@ -1722,7 +1722,8 @@ static void ff_init_mpeg12_mode(ff_video_decoder_t *this)
 
   if ( this->mpeg_parser == NULL ) {
     this->mpeg_parser = calloc(1, sizeof(mpeg_parser_t));
-    mpeg_parser_init(this->mpeg_parser, AV_INPUT_BUFFER_PADDING_SIZE);
+    if (this->mpeg_parser)
+      mpeg_parser_init(this->mpeg_parser, AV_INPUT_BUFFER_PADDING_SIZE);
   }
 }
 
@@ -2066,6 +2067,9 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
   if (!this->mpeg_parser) {
     /* initialize mpeg parser */
     ff_init_mpeg12_mode(this);
+    if (!this->mpeg_parser) {
+      return;
+    }
   }
 
 #ifdef DEBUG_MPEG_PARSER
