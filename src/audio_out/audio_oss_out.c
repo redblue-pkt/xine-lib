@@ -1002,6 +1002,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
     int audio_devs;
     char *parse;
 
+    this->mixer.fd = -1;
+    mixer_dev[0] = 0;
+
     mixer_num = config->register_num(config, "audio.device.oss_mixer_number", -1,
 				     _("OSS audio mixer number, -1 for none"),
 				     _("The full mixer device name is created by taking the "
@@ -1024,9 +1027,9 @@ static ao_driver_t *open_plugin (audio_driver_class_t *class_gen, const void *da
 	snprintf(mixer_dev, sizeof(mixer_dev), "%smixer", mixer_name);
       else
 	snprintf(mixer_dev, sizeof(mixer_dev), "%smixer%d", mixer_name, mixer_num);
-    }
 
-    this->mixer.fd = xine_open_cloexec(mixer_dev, O_RDONLY);
+      this->mixer.fd = xine_open_cloexec(mixer_dev, O_RDONLY);
+    }
 
     if(this->mixer.fd != -1) {
 
