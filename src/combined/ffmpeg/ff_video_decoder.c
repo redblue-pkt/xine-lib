@@ -127,7 +127,6 @@ struct ff_video_decoder_s {
 
   uint8_t           decoder_ok:1;
   uint8_t           decoder_init_mode:1;
-  uint8_t           is_mpeg12:1;
 #ifdef HAVE_POSTPROC
   uint8_t           pp_available:1;
 #endif
@@ -1713,8 +1712,6 @@ static int ff_check_extradata(ff_video_decoder_t *this, unsigned int codec_type,
 
 static void ff_init_mpeg12_mode(ff_video_decoder_t *this)
 {
-  this->is_mpeg12 = 1;
-
   if (this->decoder_init_mode) {
     _x_meta_info_set_utf8(this->stream, XINE_META_INFO_VIDEOCODEC,
                           "mpeg-1 (ffmpeg)");
@@ -1739,7 +1736,7 @@ static void ff_handle_preview_buffer (ff_video_decoder_t *this, buf_element_t *b
     ff_init_mpeg12_mode(this);
   }
 
-  if (this->decoder_init_mode && !this->is_mpeg12) {
+  else if (this->decoder_init_mode && !this->mpeg_parser) {
 
     if (!ff_check_extradata(this, codec_type, buf))
       return;
@@ -2066,7 +2063,7 @@ static void ff_handle_mpeg12_buffer (ff_video_decoder_t *this, buf_element_t *bu
 
   lprintf("handle_mpeg12_buffer\n");
 
-  if (!this->is_mpeg12) {
+  if (!this->mpeg_parser) {
     /* initialize mpeg parser */
     ff_init_mpeg12_mode(this);
   }
@@ -2653,7 +2650,7 @@ static void ff_decode_data (video_decoder_t *this_gen, buf_element_t *buf) {
       }
 
     } else {
-      if (this->decoder_init_mode && !this->is_mpeg12)
+      if (this->decoder_init_mode)
         ff_handle_preview_buffer(this, buf);
 
       /* decode */
@@ -2875,7 +2872,7 @@ static void ff_reset (video_decoder_t *this_gen) {
 #endif
   }
 
-  if (this->is_mpeg12)
+  if (this->mpeg_parser)
     mpeg_parser_reset(this->mpeg_parser);
 
   /* this->pts_tag_pass = 0; */
@@ -2997,7 +2994,6 @@ static video_decoder_t *ff_video_open_plugin (video_decoder_class_t *class_gen, 
 #ifndef HAVE_ZERO_SAFE_MEM
   this->size            = 0;
   this->decoder_ok      = 0;
-  this->is_mpeg12       = 0;
   this->aspect_ratio    = 0;
   this->pts_tag_pass    = 0;
 #ifdef HAVE_POSTPROC
