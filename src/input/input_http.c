@@ -204,8 +204,11 @@ typedef struct {
   uint8_t          sbuf[32 << 10];
   uint8_t          sbuf_pad[4];
 
-  int32_t          preview_size;
-  uint8_t          preview[MAX_PREVIEW_SIZE];
+  struct {
+    off_t          start;
+    int32_t        size;
+    uint8_t        buf[MAX_PREVIEW_SIZE];
+  }                preview;
 
   char             mrl[4096];
 } http_input_plugin_t;
@@ -934,6 +937,7 @@ error:
 static off_t http_plugin_read (input_plugin_t *this_gen, void *buf_gen, off_t nlen) {
   http_input_plugin_t *this = (http_input_plugin_t *) this_gen;
   char *buf = (char *)buf_gen;
+  off_t diff;
   size_t want, num_bytes;
 
   if (nlen < 0)
@@ -944,12 +948,13 @@ static off_t http_plugin_read (input_plugin_t *this_gen, void *buf_gen, off_t nl
     return 0;
 
   num_bytes = 0;
-  if (this->curpos < this->preview_size) {
-    uint32_t have = this->preview_size - this->curpos;
+  diff = this->preview.start + this->preview.size - this->curpos;
+  if (diff > 0) {
+    uint32_t have = diff, start = this->curpos - this->preview.start;
     if (have > want)
       have = want;
-    lprintf ("%u bytes from preview (which has %u bytes)\n", (unsigned int)have, (unsigned int)this->preview_size);
-    memcpy (buf, this->preview + this->curpos, have);
+    lprintf ("%u bytes from preview (which has %u bytes)\n", (unsigned int)have, (unsigned int)this->preview.size);
+    memcpy (buf, this->preview.buf + start, have);
     num_bytes += have;
     want -= have;
     this->curpos += have;
@@ -1056,7 +1061,7 @@ static off_t http_plugin_seek(input_plugin_t *this_gen, off_t offset, int origin
   off_t abs_offset;
 
   abs_offset = _x_input_seek_preview(this_gen, offset, origin,
-                                     &this->curpos, this->contentlength, this->preview_size);
+                                     &this->curpos, this->contentlength, this->preview.size);
 
   if (abs_offset < 0 && (this->mode & MODE_SEEKABLE)) {
 
@@ -1513,9 +1518,9 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
         this->mode |= MODE_HAVE_SBUF;
       /* skip non-document content */
       if ((this->status != 200) && (this->status != 206)) while (this->contentlength > 0) {
-        ssize_t s = sizeof (this->preview);
+        ssize_t s = sizeof (this->preview.buf);
         if ((uint64_t)s > this->contentlength) s = this->contentlength;
-        s = sbuf_get_bytes (this, this->preview, s);
+        s = sbuf_get_bytes (this, this->preview.buf, s);
         if (s <= 0) break;
         this->contentlength -= s;
       }
@@ -1595,18 +1600,18 @@ static xio_handshake_status_t http_plugin_handshake (void *userdata, int fh) {
     lprintf ("end of headers\n");
 
     if (mpegurl_redirect) {
-      ssize_t l = sbuf_get_bytes (this, this->preview, sizeof (this->preview) - 1);
+      ssize_t l = sbuf_get_bytes (this, this->preview.buf, sizeof (this->preview.buf) - 1);
       if (l > 0) {
-        uint8_t *p = this->preview;
+        uint8_t *p = this->preview.buf;
         p[l] = 0;
         while (p[0] & 0xe0)
           p++;
         /* If the newline can't be found, either the 4K buffer is too small, or
          * more likely something is fuzzy. */
-        if (p < this->preview + l) {
+        if (p < this->preview.buf + l) {
           *p = 0;
-          lprintf ("mpegurl pointing to %s\n", (char *)this->preview);
-          _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, (char *)this->preview);
+          lprintf ("mpegurl pointing to %s\n", (char *)this->preview.buf);
+          _x_merge_mrl (this->mrl, sizeof (this->mrl), this->mrl, (char *)this->preview.buf);
           this->mode |= MODE_AGAIN;
         }
       }
@@ -1693,20 +1698,20 @@ static int http_plugin_open (input_plugin_t *this_gen) {
 
   if (this->curpos > 0) {
     /* restarting after seek */
-    this->preview_size = 0;
+    this->preview.size = 0;
     return 1;
   }
 
   /* fill preview buffer */
-  this->preview_size = http_plugin_read_int (this, this->preview, MAX_PREVIEW_SIZE);
+  this->preview.size = http_plugin_read_int (this, this->preview.buf, sizeof (this->preview.buf));
   if (this->mode & MODE_NSV) {
 #define V_NSV (('N' << 24) | ('S' << 16) | ('V' << 8))
     int32_t max_bytes = 1 << 20;
     uint32_t v = 0;
-    uint8_t *p = this->preview, *e = p + this->preview_size;
+    uint8_t *p = this->preview.buf, *e = p + this->preview.size;
     lprintf ("resyncing NSV stream\n");
-    while (this->preview_size > 2) {
-      if ((max_bytes -= this->preview_size) <= 0)
+    while (this->preview.size > 2) {
+      if ((max_bytes -= this->preview.size) <= 0)
         break;
       while (p < e) {
         v = (v | *p++) << 8;
@@ -1715,11 +1720,11 @@ static int http_plugin_open (input_plugin_t *this_gen) {
       }
       if (v == V_NSV)
         break;
-      this->preview[0] = e[-2];
-      this->preview[1] = e[-1];
-      this->preview_size = http_plugin_read_int (this, this->preview + 2, MAX_PREVIEW_SIZE - 2);
-      p = this->preview + 2;
-      e = p + this->preview_size;
+      this->preview.buf[0] = e[-2];
+      this->preview.buf[1] = e[-1];
+      this->preview.size = http_plugin_read_int (this, this->preview.buf + 2, sizeof (this->preview.buf) - 2);
+      p = this->preview.buf + 2;
+      e = p + this->preview.size;
     }
     if (v != V_NSV) {
       xprintf (this->xine, XINE_VERBOSITY_DEBUG, "http: cannot resync NSV stream!\n");
@@ -1728,25 +1733,26 @@ static int http_plugin_open (input_plugin_t *this_gen) {
       this->fh = -1;
       return -11;
     }
-    this->preview_size = e - p + 3;
-    if (p - 3 > this->preview)
-      memmove (this->preview, p - 3, this->preview_size);
-    if (this->preview_size < MAX_PREVIEW_SIZE) {
-      int32_t r = http_plugin_read_int (this, this->preview + this->preview_size, MAX_PREVIEW_SIZE - this->preview_size);
+    this->preview.size = e - p + 3;
+    if (p - 3 > this->preview.buf)
+      memmove (this->preview.buf, p - 3, this->preview.size);
+    if (this->preview.size < (int)sizeof (this->preview.buf)) {
+      int32_t r = http_plugin_read_int (this,
+        this->preview.buf + this->preview.size, sizeof (this->preview.buf) - this->preview.size);
       if (r > 0)
-        this->preview_size += r;
+        this->preview.size += r;
     }
     lprintf ("NSV stream resynced\n");
   }
-  if (this->preview_size < 0) {
-    this->preview_size = 0;
+  if (this->preview.size < 0) {
+    this->preview.size = 0;
     xine_log (this->xine, XINE_LOG_MSG, _("input_http: read error %d\n"), errno);
     _x_tls_deinit (&this->tls);
     _x_io_tcp_close (this->stream, this->fh);
     this->fh = -1;
     return -12;
   }
-  lprintf ("preview_size=%d\n", this->preview_size);
+  lprintf ("preview_size=%d\n", this->preview.size);
   this->curpos = 0;
 
   this->ret = 1;
@@ -1778,23 +1784,46 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
 
   switch (data_type) {
     case INPUT_OPTIONAL_DATA_PREVIEW:
-      if (!data || (this->preview_size <= 0))
+      if (!data || (this->preview.size <= 0))
         break;
-      memcpy (data, this->preview, this->preview_size);
-      return this->preview_size;
+      memcpy (data, this->preview.buf, this->preview.size);
+      return this->preview.size;
 
     case INPUT_OPTIONAL_DATA_SIZED_PREVIEW:
-      if (!data || (this->preview_size <= 0))
+      if (!data || (this->preview.size <= 0))
         break;
       {
         int want;
         memcpy (&want, data, sizeof (want));
         want = want < 0 ? 0
-             : want > this->preview_size ? this->preview_size
+             : want > this->preview.size ? this->preview.size
              : want;
-        memcpy (data, this->preview, want);
+        memcpy (data, this->preview.buf, want);
         return want;
       }
+
+    case INPUT_OPTIONAL_DATA_NEW_PREVIEW:
+      {
+        uint32_t start = 0;
+        off_t diff = this->curpos - this->preview.start;
+
+        if (diff == 0)
+          return INPUT_OPTIONAL_SUCCESS;
+        if (diff > 0) {
+          start = diff;
+          diff = (off_t)this->preview.size - diff;
+          if (diff > 0) {
+            memmove (this->preview.buf, this->preview.buf + start, (uint32_t)diff);
+            start = diff;
+          } else {
+            start = 0;
+          }
+        }
+        this->preview.start = this->curpos;
+        this->preview.size = 0;
+        this->preview.size = start + http_plugin_read_int (this, this->preview.buf + start, sizeof (this->preview.buf) - start);
+      }
+      return INPUT_OPTIONAL_SUCCESS;
 
     case INPUT_OPTIONAL_DATA_MIME_TYPE:
       *ptr = this->mime_type;
@@ -1822,7 +1851,7 @@ static int http_plugin_get_optional_data (input_plugin_t *this_gen,
         this->mode                &= ~(MODE_DONE | MODE_SEEKABLE | MODE_NSV | MODE_LASTFM | MODE_SHOUTCAST);
         this->shoutcast_interval  = 0;
         this->shoutcast_left      = 0;
-        this->preview_size        = 0;
+        this->preview.size        = 0;
         if ((this->num_msgs < 0) || (this->num_msgs > 8))
           this->num_msgs = 8;
         if (!new_mrl[0])
@@ -1866,7 +1895,8 @@ static input_plugin_t *http_class_get_instance (input_class_t *cls_gen, xine_str
   this->shoutcast_interval  = 0;
   this->shoutcast_left      = 0;
   this->shoutcast_songtitle = NULL;
-  this->preview_size        = 0;
+  this->preview.start       = 0;
+  this->preview.size        = 0;
   this->url.proto           = NULL;
   this->url.host            = NULL;
   this->url.user            = NULL;

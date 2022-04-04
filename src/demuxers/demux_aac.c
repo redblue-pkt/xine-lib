@@ -56,90 +56,61 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
+  int                  id3v2_tag_size;
+
   int                  seek_flag;  /* this is set when a seek just occurred */
 } demux_aac_t;
 
 
 static int probe_aac_file(xine_stream_t *stream, input_plugin_t *input) {
-  int i;
-  uint8_t peak[MAX_PREVIEW_SIZE];
-  uint32_t signature;
+  uint8_t buf[MAX_PREVIEW_SIZE];
   uint16_t syncword = 0;
-  uint32_t id3size = 0;
-  off_t data_start = 0;
-
-  _x_assert(MAX_PREVIEW_SIZE > 10);
-
-  if (_x_demux_read_header(input, &signature, 4) != 4)
-      return 0;
+  int data_start = -1, bsize, i;
 
   /* Check if there's an ID3v2 tag at the start */
-  if ( id3v2_istag(signature) ) {
-    if (input->seek(input, 4, SEEK_SET) != 4)
-      return 0;
-
-    id3v2_parse_tag(input, stream, signature);
-  }
-
-  if (input->read(input, &signature, 4) != 4)
-    return 0;
+  data_start = xine_parse_id3v2_tag (stream, input);
+  lprintf("Getting a buffer of size %u\n", sizeof (buf));
+  bsize = _x_demux_read_stream_header (stream, input, buf, sizeof (buf));
+  if (bsize < 10)
+    return -1;
 
   /* Check for an ADIF header - should be at the start of the file */
-  if (_x_is_fourcc(&signature, "ADIF")) {
+  if (_x_is_fourcc (buf, "ADIF")) {
     lprintf("found ADIF header\n");
-    return 1;
+    return data_start;
   }
 
   /* Look for an ADTS header - might not be at the start of the file */
-  if (input->get_capabilities(input) & INPUT_CAP_SEEKABLE) {
-    lprintf("Getting a buffer of size %u\n", MAX_PREVIEW_SIZE);
-
-    if (input->read(input, peak, MAX_PREVIEW_SIZE) != MAX_PREVIEW_SIZE )
-      return 0;
-    if (input->seek(input, 0, SEEK_SET) != 0)
-      return 0;
-
-  } else if (_x_demux_read_header(input, peak, MAX_PREVIEW_SIZE) !=
-             MAX_PREVIEW_SIZE)
-    return 0;
-
-  for (i=0; i<MAX_PREVIEW_SIZE; i++) {
-    if ((syncword & 0xfff6) == 0xfff0) {
-      data_start = i - 2;
-      lprintf("found ADTS header at offset %d\n", i-2);
+  for (i = 0; i < bsize; i++) {
+    if ((syncword & 0xfff6) == 0xfff0)
       break;
-    }
-
-    syncword = (syncword << 8) | peak[i];
+    syncword = (syncword << 8) | buf[i];
   }
 
   /* did we really find the ADTS header? */
-  if (i == MAX_PREVIEW_SIZE)
-    return 0; /* No, we didn't */
+  if (i == bsize)
+    return -1; /* No, we didn't */
+
+  data_start += i - 2;
+  lprintf ("found ADTS header at offset %d\n", i - 2);
 
   /* Look for second ADTS header to confirm it's really aac */
-  if (data_start + 5 < MAX_PREVIEW_SIZE) {
-    int frame_size = ((peak[data_start+3] & 0x03) << 11) |
-                      (peak[data_start+4] << 3) |
-                     ((peak[data_start+5] & 0xe0) >> 5);
+  if (data_start + 5 < bsize) {
+    int frame_size = (_X_BE_32 (buf + data_start + 2) >> 5) & 0x1fff;
 
     lprintf("first frame size %d\n", frame_size);
 
-    if ((frame_size > 0) &&
-        (data_start+frame_size < MAX_PREVIEW_SIZE-1) &&
-        /* first 28 bits must be identical */
-	memcmp(&peak[data_start], &peak[data_start+frame_size], 4) == 0 &&
-        (peak[data_start+3]>>4==peak[data_start+frame_size+3]>>4))
-    {
+    if ((frame_size > 0) && (data_start + frame_size + 4 <= bsize) &&
+      /* first 28 bits must be identical */
+      !((_X_BE_32 (buf + data_start) ^ _X_BE_32 (buf + data_start + frame_size)) & 0xfffffff0)) {
       lprintf("found second ADTS header\n");
-
-      if (input->seek(input, data_start+id3size, SEEK_SET) < 0)
-        return 0;
-      return 1;
+      if (input->seek (input, data_start, SEEK_SET) < 0)
+        input->seek (input, data_start + frame_size, SEEK_SET);
+      return data_start;
     }
   }
 
-  return 0;
+  return -1;
 }
 
 static int demux_aac_send_chunk(demux_plugin_t *this_gen) {
@@ -251,12 +222,13 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
                                     input_plugin_t *input) {
 
   demux_aac_t    *this;
+  int id3v2_tag_size;
 
   switch (stream->content_detection_method) {
     case METHOD_BY_MRL:
     case METHOD_BY_CONTENT:
     case METHOD_EXPLICIT:
-      if (!probe_aac_file(stream, input))
+      if ((id3v2_tag_size = probe_aac_file (stream, input)) < 0)
         return NULL;
       break;
     default:
@@ -269,6 +241,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   this->stream = stream;
   this->input  = input;
+  this->id3v2_tag_size = id3v2_tag_size;
 
   this->demux_plugin.send_headers      = demux_aac_send_headers;
   this->demux_plugin.send_chunk        = demux_aac_send_chunk;
@@ -282,7 +255,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
 
   this->status = DEMUX_FINISHED;
 
-  _x_stream_info_set(stream, XINE_STREAM_INFO_HAS_VIDEO, 0);
+  /* _x_stream_info_set(stream, XINE_STREAM_INFO_HAS_VIDEO, 0); */
   _x_stream_info_set(stream, XINE_STREAM_INFO_HAS_AUDIO, 1);
 
   return &this->demux_plugin;
