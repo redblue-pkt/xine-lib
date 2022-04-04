@@ -123,7 +123,6 @@ xineplug_dmx_audio_la_SOURCES = \
 	demux_vox.c \
 	demux_wav.c \
 	flacutils.h \
-	id3.c \
 	id3.h
 xineplug_dmx_audio_la_LIBADD = $(XINE_LIB) $(LTLIBINTL)
 

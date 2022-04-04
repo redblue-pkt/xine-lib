@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -836,64 +836,30 @@ static int demux_mpgaudio_get_status (demux_plugin_t *this_gen) {
  * mp3 stream detection
  * return 1 if detected, 0 otherwise
  */
-static int detect_mpgaudio_file(input_plugin_t *input,
-				int *version, int *layer) {
+static int detect_mpgaudio_file (xine_stream_t *stream, input_plugin_t *input, int *version, int *layer) {
   uint8_t buf[MAX_PREVIEW_SIZE];
-  int preview_len;
+  int id3v2_tag_size, preview_len;
   uint32_t head;
 
   *version = *layer = 0;
-  preview_len = _x_demux_read_header(input, buf, sizeof(buf));
+  /* check if a mp3 frame follows the tag. id3v2 are not specific to mp3 files,
+   * flac files can contain id3v2 tags. */
+  id3v2_tag_size = xine_parse_id3v2_tag (stream, input);
+  preview_len = _x_demux_read_stream_header (stream, input, buf, sizeof (buf));
   if (preview_len < 4)
-    return 0;
+    return -1;
 
   head = _X_ME_32(buf);
 
   lprintf("got preview %08x\n", head);
 
-  if (id3v2_istag(head)) {
-    /* check if a mp3 frame follows the tag
-     * id3v2 are not specific to mp3 files,
-     * flac files can contain id3v2 tags
-     */
-    int tag_size = _X_BE_32_synchsafe(&buf[6]);
-    lprintf("try to skip id3v2 tag (%d bytes)\n", tag_size);
-    /* id3v2 tags may be larger than preview size (album artwork JPG or something).
-     * try to skip by seeking.
-     */
-    if (INPUT_IS_SEEKABLE (input)) {
-      if (input->seek (input, 10 + tag_size, SEEK_SET) < 0)
-        return 0;
-      preview_len = input->read (input, buf, MAX_PREVIEW_SIZE);
-      if (!sniff_buffer_looks_like_mp3 (buf, preview_len, version, layer)) {
-        lprintf ("sniff_buffer_looks_like_mp3 failed\n");
-        return 0;
-      } else {
-        lprintf ("a valid mp3 frame follows the id3v2 tag\n");
-        return 1;
-      }
-    }
-    if ((10 + tag_size) >= preview_len) {
-      lprintf("cannot skip id3v2 tag\n");
-      return 0;
-    }
-    if ((10 + tag_size + 4) >= preview_len) {
-      lprintf("cannot read mp3 frame header\n");
-      return 0;
-    }
-    if (!sniff_buffer_looks_like_mp3(&buf[10 + tag_size], preview_len - 10 - tag_size, version, layer)) {
-      lprintf ("sniff_buffer_looks_like_mp3 failed\n");
-      return 0;
-    } else {
-      lprintf ("a valid mp3 frame follows the id3v2 tag\n");
-    }
-  } else if (head == MPEG_MARKER) {
-    return 0;
+  if (head == MPEG_MARKER) {
+    return -1;
   } else if (!sniff_buffer_looks_like_mp3(buf, preview_len, version, layer)) {
     lprintf ("sniff_buffer_looks_like_mp3 failed\n");
-    return 0;
+    return -1;
   }
-  return 1;
+  return id3v2_tag_size;
 }
 
 static void demux_mpgaudio_send_headers (demux_plugin_t *this_gen) {
@@ -1175,7 +1141,7 @@ static demux_plugin_t *open_plugin (demux_class_t *class_gen, xine_stream_t *str
   switch (stream->content_detection_method) {
 
   case METHOD_BY_CONTENT: {
-    if (!detect_mpgaudio_file(input, &version, &layer))
+    if (detect_mpgaudio_file (stream, input, &version, &layer) < 0)
       return NULL;
   }
   break;

@@ -263,6 +263,7 @@ int _x_demux_start_thread          (xine_stream_t *stream) XINE_PROTECTED;
 int _x_demux_called_from           (xine_stream_t *stream) XINE_PROTECTED;
 int _x_demux_stop_thread           (xine_stream_t *stream) XINE_PROTECTED;
 int _x_demux_read_header           (input_plugin_t *input, void *buffer, off_t size) XINE_PROTECTED;
+int _x_demux_read_stream_header    (xine_stream_t *stream, input_plugin_t *input, void *buffer, size_t size) XINE_PROTECTED;
 int _x_demux_check_extension       (const char *mrl, const char *extensions);
 
 off_t _x_read_abort (xine_stream_t *stream, int fd, char *buf, off_t todo) XINE_PROTECTED;
@@ -392,3 +393,4 @@ typedef struct {
 #endif
 
 #endif
+

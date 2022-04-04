@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2018 the xine project
+ * Copyright (C) 2005-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -62,6 +62,7 @@ typedef struct {
   input_plugin_t      *input;
   int                  status;
 
+  int                  start;
   unsigned char        header[HEADER_SIZE];
   unsigned int         frames;
   double               samplerate;
@@ -80,35 +81,9 @@ static int open_mpc_file(demux_mpc_t *this) {
   unsigned int id3v2_size = 0;
 
   /* Read the file header */
+  this->start = xine_parse_id3v2_tag (this->stream, this->input);
   if (_x_demux_read_header(this->input, this->header, HEADER_SIZE) != HEADER_SIZE)
       return 0;
-
-  /* TODO: non-seeking version */
-  if (INPUT_IS_SEEKABLE(this->input)) {
-    /* Check for id3v2 tag */
-    if (id3v2_istag(_X_BE_32(this->header))) {
-
-      lprintf("found id3v2 header\n");
-
-      /* Read tag size */
-
-      id3v2_size = _X_BE_32_synchsafe(&this->header[6]) + 10;
-
-      /* Add footer size if one is present */
-      if (this->header[5] & 0x10)
-        id3v2_size += 10;
-
-      lprintf("id3v2 size: %u\n", id3v2_size);
-
-      /* Seek past tag */
-      if (this->input->seek(this->input, id3v2_size, SEEK_SET) < 0)
-        return 0;
-
-      /* Read musepack header */
-      if (this->input->read(this->input, this->header, HEADER_SIZE) != HEADER_SIZE)
-        return 0;
-    }
-  }
 
   /* Validate signature - We only support SV 7.x at the moment */
   if ( memcmp(this->header, "MP+", 3) != 0 ||

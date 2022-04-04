@@ -548,6 +548,9 @@ typedef struct xine_stream_private_st {
   /* 1 << side_stream_index (1, 2, 4, 8) */
   uint32_t                   id_flag;
 
+  /* a id3v2 tag of this many bytes has been parserd, or -1. */
+  int                        id3v2_tag_size;
+
   /* stream meta information */
   /* Grab lock, or use helpers (see info_helper.c). */
   xine_rwlock_t              info_lock;

@@ -906,6 +906,9 @@ static void close_internal (xine_stream_private_t *stream) {
     }
   }
 
+  /* reset leading id3v2 tag info */
+  stream->id3v2_tag_size = -1;
+
   /*
    * reset / free meta info
    * XINE_STREAM_INFO_MAX is at least 99 but the info arrays are sparsely used.
@@ -1110,6 +1113,8 @@ xine_stream_t *xine_stream_new (xine_t *this, xine_audio_port_t *ao, xine_video_
   stream->id_flag               = 1 << 0;
   stream->s.xine                = this;
   stream->status                = XINE_STATUS_IDLE;
+
+  stream->id3v2_tag_size        = -1;
 
   stream->video_source.name   = "video source";
   stream->video_source.type   = XINE_POST_DATA_VIDEO;
@@ -1358,6 +1363,8 @@ xine_stream_t *xine_get_side_stream (xine_stream_t *master, int index) {
   s->id_flag         = 1 << index;
   s->s.xine = m->s.xine;
   s->status = XINE_STATUS_IDLE;
+
+  s->id3v2_tag_size = -1;
 
   s->video_source.name   = "video source";
   s->video_source.type   = XINE_POST_DATA_VIDEO;

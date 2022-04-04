@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2008 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -150,7 +150,15 @@ typedef struct {
   uint8_t genre;
 } id3v1_tag_t;
 
-int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream);
+int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream) XINE_PROTECTED;
+
+/**
+ * @brief Check/parse/skip a possible initial ID3 v2 tag from the (side) stream.
+ * @param stream The xine stream currently being read.
+ * @param input The input plugin to use, or NULL for the stream default.
+ * @note  Safe to call during stream type detection.
+ * @return The byte count skipped or 0. */
+int xine_parse_id3v2_tag (xine_stream_t *stream, input_plugin_t *input) XINE_PROTECTED;
 
 /**
  * @brief Generic function for ID3v2 tags parsing.
@@ -164,7 +172,7 @@ int id3v1_parse_tag (input_plugin_t *input, xine_stream_t *stream);
  */
 int id3v2_parse_tag(input_plugin_t *input,
 		    xine_stream_t *stream,
-		    uint32_t id3_signature);
+		    uint32_t id3_signature) XINE_PROTECTED;
 
 /**
  * @brief Checks if the given buffer is an ID3 tag preamble

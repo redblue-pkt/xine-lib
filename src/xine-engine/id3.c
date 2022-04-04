@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2019 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -45,7 +45,8 @@
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
 #include "bswap.h"
-#include "id3.h"
+#include "../demuxers/id3.h"
+#include "xine_private.h"
 
 #define ID3_GENRE_COUNT (sizeof (id3_genre) / sizeof (id3_genre[0]))
 static const char id3_genre[][24] =
@@ -905,4 +906,49 @@ int id3v2_parse_tag(input_plugin_t *input,
   }
 
   return 0;
+}
+
+/* NOTE: leading id3v2 tags may be large (album artwork image and such).
+ * make sure to read it just once, especially with non seekable input.
+ * also, redirect file type detection (demux probing) behind the tag,
+ * and dont rely on MAX_PREVIEW_SIZE being big enough. */
+int xine_parse_id3v2_tag (xine_stream_t *stream, input_plugin_t *input) {
+  xine_stream_private_t *s = (xine_stream_private_t *)stream;
+  uint32_t signature;
+  int r;
+
+  if (!s)
+    return 0;
+
+  if (!input) {
+    input = s->s.input_plugin;
+    if (!input)
+      return 0;
+  }
+
+  if (s->id3v2_tag_size >= 0) {
+    input->seek (input, s->id3v2_tag_size, SEEK_SET);
+    return s->id3v2_tag_size;
+  }
+
+  if (_x_demux_read_header (input, &signature, 4) != 4)
+    return 0;
+  if (!id3v2_istag (signature)) {
+    s->id3v2_tag_size = 0;
+    return 0;
+  }
+
+  if (input->seek (input, 4, SEEK_SET) != 4)
+    return 0;
+  id3v2_parse_tag (input, &s->s, signature);
+  s->id3v2_tag_size = input->get_current_pos (input);
+  r = INPUT_OPTIONAL_UNSUPPORTED;
+  if (input->get_capabilities (input) & (INPUT_CAP_PREVIEW | INPUT_CAP_SIZED_PREVIEW))
+    r = input->get_optional_data (input, NULL, INPUT_OPTIONAL_DATA_NEW_PREVIEW);
+
+  xprintf (stream->xine, XINE_VERBOSITY_DEBUG,
+    LOG_MODULE ": initial ID3v2 tag (%p, %d bytes)%s.\n",
+    (void *)stream, s->id3v2_tag_size,
+    (r == INPUT_OPTIONAL_SUCCESS) ? ", new preview generated" : "");
+  return s->id3v2_tag_size;
 }
