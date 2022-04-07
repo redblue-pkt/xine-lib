@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2018 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -33,62 +33,20 @@
  * exported plugin catalog entries
  */
 
-static const demuxer_info_t demux_info_eawve = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_idcin = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_ipmovie = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_vqa = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_wc3movie = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_roq = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_str = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_film = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_smjpeg = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_fourxm = {
-  .priority = 10,
-};
-
-static const demuxer_info_t demux_info_vmd = {
-  .priority = 10,
-};
+static const demuxer_info_t demux_info_plus_10 = { .priority = 10 };
 
 const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_DEMUX, 27, "wve",      XINE_VERSION_CODE, &demux_info_eawve,    demux_eawve_init_plugin},
-  { PLUGIN_DEMUX, 27, "idcin",    XINE_VERSION_CODE, &demux_info_idcin,    demux_idcin_init_plugin },
-  { PLUGIN_DEMUX, 27, "ipmovie",  XINE_VERSION_CODE, &demux_info_ipmovie,  demux_ipmovie_init_plugin },
-  { PLUGIN_DEMUX, 27, "vqa",      XINE_VERSION_CODE, &demux_info_vqa,      demux_vqa_init_plugin },
-  { PLUGIN_DEMUX, 27, "wc3movie", XINE_VERSION_CODE, &demux_info_wc3movie, demux_wc3movie_init_plugin },
-  { PLUGIN_DEMUX, 27, "roq",      XINE_VERSION_CODE, &demux_info_roq,      demux_roq_init_plugin },
-  { PLUGIN_DEMUX, 27, "str",      XINE_VERSION_CODE, &demux_info_str,      demux_str_init_plugin },
-  { PLUGIN_DEMUX, 27, "film",     XINE_VERSION_CODE, &demux_info_film,     demux_film_init_plugin },
-  { PLUGIN_DEMUX, 27, "smjpeg",   XINE_VERSION_CODE, &demux_info_smjpeg,   demux_smjpeg_init_plugin },
-  { PLUGIN_DEMUX, 27, "fourxm",   XINE_VERSION_CODE, &demux_info_fourxm,   demux_fourxm_init_plugin },
-  { PLUGIN_DEMUX, 27, "vmd",      XINE_VERSION_CODE, &demux_info_vmd,      demux_vmd_init_plugin },
+  { PLUGIN_DEMUX, 27, "wve",      XINE_VERSION_CODE, &demux_info_plus_10, demux_eawve_init_plugin},
+  { PLUGIN_DEMUX, 27, "idcin",    XINE_VERSION_CODE, &demux_info_plus_10, demux_idcin_init_plugin },
+  { PLUGIN_DEMUX, 27, "ipmovie",  XINE_VERSION_CODE, &demux_info_plus_10, demux_ipmovie_init_plugin },
+  { PLUGIN_DEMUX, 27, "vqa",      XINE_VERSION_CODE, &demux_info_plus_10, demux_vqa_init_plugin },
+  { PLUGIN_DEMUX, 27, "wc3movie", XINE_VERSION_CODE, &demux_info_plus_10, demux_wc3movie_init_plugin },
+  { PLUGIN_DEMUX, 27, "roq",      XINE_VERSION_CODE, &demux_info_plus_10, demux_roq_init_plugin },
+  { PLUGIN_DEMUX, 27, "str",      XINE_VERSION_CODE, &demux_info_plus_10, demux_str_init_plugin },
+  { PLUGIN_DEMUX, 27, "film",     XINE_VERSION_CODE, &demux_info_plus_10, demux_film_init_plugin },
+  { PLUGIN_DEMUX, 27, "smjpeg",   XINE_VERSION_CODE, &demux_info_plus_10, demux_smjpeg_init_plugin },
+  { PLUGIN_DEMUX, 27, "fourxm",   XINE_VERSION_CODE, &demux_info_plus_10, demux_fourxm_init_plugin },
+  { PLUGIN_DEMUX, 27, "vmd",      XINE_VERSION_CODE, &demux_info_plus_10, demux_vmd_init_plugin },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
