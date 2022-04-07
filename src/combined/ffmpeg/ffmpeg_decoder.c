@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2020 the xine project
+ * Copyright (C) 2001-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -90,7 +90,7 @@ static const input_info_t input_info_avformat = {
 };
 
 static const demuxer_info_t demux_info_avformat = {
-  .priority = -1,
+  .priority = -2,
 };
 #endif /* HAVE_AVFORMAT */
 
