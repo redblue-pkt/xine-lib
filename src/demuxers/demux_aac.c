@@ -134,22 +134,26 @@ static int probe_aac_file (xine_stream_t *stream, input_plugin_t *input, demux_a
   return -1;
 }
 
+/* FIXME: both ADTS and AIDF allow the first 4 AAC object types only,
+ * and have no short frame bit like in a regular config bitstream.
+ * for now, just assume always 1024 frame samples. */
+static uint32_t demux_aac_samples_per_frame (uint32_t object_type) {
+  (void)object_type;
+  return 1024;
+}
+
+static const uint32_t demux_aac_sample_rates[16] = {
+  96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050,
+  16000, 12000, 11025,  8000,     0,     0,     0,     0
+};
+
 static void demux_aac_apply_adts (demux_aac_t *this, const uint8_t *buf) {
-  static const uint32_t sample_rates[16] = {
-    96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050,
-    16000, 12000, 11025,  8000,     0,     0,     0,     0
-  };
-  uint32_t samples_per_frame = 1024, samples_per_second = 48000;
+  uint32_t samples_per_frame, samples_per_second = 48000, object_type;
   uint32_t word = _X_BE_32 (buf);
 
-  if ((word & 0xfff60000) != 0xfff00000)
-    return;
-#if 0
-  type = (word >> 14) & 3;
-  if (type != 0) /* object type != AAC_LC */
-    return;
-#endif
-  samples_per_second = sample_rates[(word >> 10) & 15];
+  object_type = ((word >> 14) & 3) + 1;
+  samples_per_frame = demux_aac_samples_per_frame (object_type);
+  samples_per_second = demux_aac_sample_rates[(word >> 10) & 15];
   if (!samples_per_second)
     return;
   this->frame_count = (buf[6] & 3) + 1;
@@ -161,6 +165,94 @@ static void demux_aac_apply_adts (demux_aac_t *this, const uint8_t *buf) {
     this->samples_per_second = samples_per_second;
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
       LOG_MODULE ": ADTS frame duration %u/%u.\n",
+      (unsigned int)this->samples_per_frame, (unsigned int)this->samples_per_second);
+  }
+}
+
+static uint32_t demux_aac_get_bits (const uint8_t *buf, uint32_t bitpos, uint32_t bits) {
+  uint32_t word = _X_BE_32 (buf + (bitpos >> 3));
+
+  return (word << (bitpos & 7)) >> (32 - bits);
+}
+
+#undef _FULL_AIDF
+
+static void demux_aac_apply_aidf (demux_aac_t *this, const uint8_t *buf) {
+  uint32_t samples_per_frame, samples_per_second = 48000;
+  uint32_t word, bitpos = 0;
+  uint32_t object_type, sf_index, bitstream_type;
+#ifdef _FULL_AIDF
+  uint32_t num_program_config_elements, u;
+  uint32_t num_front_channel_elements, num_side_channel_elements;
+  uint32_t num_back_channel_elements, num_lfe_channel_elements;
+  uint32_t num_assoc_data_elements, num_valid_cc_elements;
+#endif
+
+  bitpos += 32; /* "AIDF" */
+  word = demux_aac_get_bits (buf, bitpos, 1); bitpos += 1; /* copyright */
+  if (word)
+    bitpos += 72; /* copyright_string */
+  bitpos += 2; /* original_copy:1, home:1 */
+  bitstream_type = demux_aac_get_bits (buf, bitpos, 1); bitpos += 1;
+  bitpos += 23; /* bitrate:23 */
+#ifdef _FULL_AIDF
+  num_program_config_elements = demux_aac_get_bits (buf, bitpos, 4) + 1;
+#endif
+  bitpos += 4;
+#ifdef _FULL_AIDF
+  for (u = 0; u < num_program_config_elements; u++)
+#endif
+  {
+    if (!bitstream_type)
+      bitpos += 20; /* buffer_fullness:20 */
+    bitpos += 4; /* element_instance_tag:4 */
+    object_type = demux_aac_get_bits (buf, bitpos, 2) + 1; bitpos += 2;
+    sf_index = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
+#ifdef _FULL_AIDF
+    num_front_channel_elements = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
+    num_side_channel_elements = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
+    num_back_channel_elements = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
+    num_lfe_channel_elements = demux_aac_get_bits (buf, bitpos, 2); bitpos += 2;
+    num_assoc_data_elements = demux_aac_get_bits (buf, bitpos, 3); bitpos += 3;
+    num_valid_cc_elements = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
+    word = demux_aac_get_bits (buf, bitpos, 1); bitpos += 1; /* mono_mixdown_present:1 */
+    if (word)
+      bitpos += 4; /* mono_mixdown_element_number:4 */
+    word = demux_aac_get_bits (buf, bitpos, 1); bitpos += 1; /* stereo_mixdown_present:1 */
+    if (word)
+      bitpos += 4; /* stereo_mixdown_element_number:4 */
+    word = demux_aac_get_bits (buf, bitpos, 1); bitpos += 1; /* matrix_mixdown_idx_present:1 */
+    if (word)
+      bitpos += 3; /* matrix_mixdown_idx:2, pseudo_surround_enable:1 */
+    bitpos += num_front_channel_elements * 5; /* front_element_is_cpe[i]:1, front_element_tag_select[i]:4 */
+    bitpos += num_side_channel_elements * 5; /* side_element_is_cpe[i]:1, side_element_tag_select[i]:4 */
+    bitpos += num_back_channel_elements * 5; /* back_element_is_cpe[i]:1, back_element_tag_select[i]:4 */
+    bitpos += num_lfe_channel_elements * 4; /* lfe_element_tag_select[i]:4 */
+    bitpos += num_assoc_data_elements * 4; /* assoc_data_element_tag_select[i]:4 */
+    bitpos += num_valid_cc_elements * 5; /* cc_element_is_ind_sw[i]:1, valid_cc_element_tag_select[i]:4 */
+    bitpos = (bitpos + 7) & ~7; /* byte align */
+    word = buf[bitpos >> 3]; /* comment_field_bytes */
+    bitpos += word << 3; /* comment_field_data[i] */
+#endif
+  }
+
+  samples_per_frame = demux_aac_samples_per_frame (object_type);
+  samples_per_second = demux_aac_sample_rates[sf_index];
+  if (!samples_per_second)
+    return;
+#ifdef _FULL_AIDF
+  this->frame_count = num_program_config_elements;
+#else
+  this->frame_count = 1;
+#endif
+  if ((this->samples_per_frame ^ samples_per_frame) | (this->samples_per_second ^ samples_per_second)) {
+    if (this->samples_per_second)
+      this->base_pts += (int64_t)this->frame_num * 90000 * (int64_t)this->samples_per_frame / (int64_t)this->samples_per_second;
+    this->frame_num = 0;
+    this->samples_per_frame = samples_per_frame;
+    this->samples_per_second = samples_per_second;
+    xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
+      LOG_MODULE ": AIDF frame duration %u/%u.\n",
       (unsigned int)this->samples_per_frame, (unsigned int)this->samples_per_second);
   }
 }
@@ -240,6 +332,7 @@ static int demux_aac_next (demux_aac_t *this, uint8_t *buf) {
       this->bgot += this->last_read_res;
     }
     if (word == _aidf.w) {
+      demux_aac_apply_aidf (this, this->buf + this->bdelivered);
       u -= 4 + this->bdelivered;
       memcpy (buf, this->buf + this->bdelivered, u);
       this->bdelivered += u;
@@ -459,4 +552,3 @@ void *demux_aac_init_plugin (xine_t *xine, const void *data) {
 
   return (void*)&demux_aac_class;
 }
-
