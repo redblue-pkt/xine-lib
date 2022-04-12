@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2021 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -2511,6 +2511,11 @@ static void ao_put_buffer (xine_audio_port_t *this_gen,
     buf->format.mode = s->stream_info[XINE_STREAM_INFO_AUDIO_MODE];
     xine_rwlock_unlock (&s->info_lock);
     _x_extra_info_merge (buf->extra_info, s->audio_decoder_extra_info);
+    /* containers like AAC-ADIF cannot provide correct input time
+     * without doing half the decoders work again.
+     * if decoder did set pts, use that here. */
+    if ((buf->extra_info->input_time == -1) && pts)
+      buf->extra_info->input_time = pts / 90;
     buf->vpts = s->s.metronom->got_audio_samples (s->s.metronom, pts, buf->num_frames);
     if ((s->first_frame.flag >= 2) && !s->video_decoder_plugin) {
       pthread_mutex_lock (&s->first_frame.lock);

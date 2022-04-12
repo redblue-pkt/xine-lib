@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2000-2020 the xine project
+ * Copyright (C) 2000-2022 the xine project
  *
  * This file is part of xine, a free video player.
  *
@@ -97,7 +97,7 @@ typedef struct faad_decoder_s {
   unsigned char   *dec_config;
   int              dec_config_size;
 
-  unsigned long    rate;
+  uint32_t         rate;
   int              bits_per_sample;
   unsigned char    num_channels;
   int              sbr;
@@ -114,6 +114,16 @@ typedef struct faad_decoder_s {
   uint32_t         adts_fake;
   uint8_t          adts_lasthead[2];
 
+  struct {
+    int64_t        base_pts;
+    uint32_t       seconds;
+    uint32_t       samples;
+    enum {
+      _ADIF_UNKNOWN = 0,
+      _ADIF_YES,
+      _ADIF_NO
+    }              mode;
+  }                adif;
 } faad_decoder_t;
 
 
@@ -196,7 +206,7 @@ static int faad_map_channels (faad_decoder_t *this) {
   this->out_channels = out_chan[this->out_mode];
   this->out_used     = out_used[this->out_mode];
   xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-    "faad_audio_decoder: channel layout: %s -> %s\n",
+    LOG_MODULE ": channel layout: %s -> %s\n",
     input_names[this->in_mode], out_names[this->out_mode]);
   return 1;
 }
@@ -352,7 +362,7 @@ static int faad_apply_conf (faad_decoder_t *this, uint8_t *conf, int len) {
     if (double_samplerates[(bits >> (32 - 5 - 4)) & 15] != ((bits >> (32 - 5 - 4 - 4 - 4)) & 15))
       break;
     conf[0] = (conf[0] & 7) | (AOT_SBR << 3);
-    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "faad_audio_decoder: using AOT_PS -> AOT_SBR hack\n");
+    xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": using AOT_PS -> AOT_SBR hack\n");
     res = NeAACDecInit2 (this->faac_dec, conf, len, &rate, &num_channels);
     conf[0] = save;
   } while (0);
@@ -368,6 +378,7 @@ static int faad_apply_conf (faad_decoder_t *this, uint8_t *conf, int len) {
       faad_open_output (this);
     faad_meta_info_set (this);
     this->used_last = 0;
+    this->adif.mode = _ADIF_NO;
     return res;
   }
   /* no, its not working */
@@ -391,6 +402,9 @@ static int faad_apply_frame (faad_decoder_t *this, uint8_t *frame, int len) {
       this->rate = rate;
       this->num_channels = num_channels;
       faad_close_output (this);
+      if (this->adif.mode == _ADIF_YES) {
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": got new AAC config from ADIF\n");
+      }
     }
     if (this->output_open <= 0)
       faad_open_output (this);
@@ -480,7 +494,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
             this->size--;
             continue;
           }
-          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "faad_audio_decoder: got new AAC config from ADTS\n");
+          xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": got new AAC config from ADTS\n");
           memcpy (this->adts_lasthead, q + 2, 2);
           /* TJ. A note on that nasty SBR hack below.
            * SBR (Spectral Band Replication) is a more efficient algorithm for encoding high pitched sound.
@@ -511,7 +525,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
             this->adts_fake |= AOT_AAC_LC << (32 - 5 - 4 - 4 - 4 - 5);
             /* + 3 more 0 bits: frameLength, dependsOnCoreCoder, extensionFlag1 = 25 bits = 4 bytes */
             this->adts_fake = bebf_ADJ32 (this->adts_fake);
-            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "faad_audio_decoder: trying fake AAC config to enable SBR\n");
+            xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": trying fake AAC config to enable SBR\n");
             if (faad_apply_conf (this, (uint8_t *)&this->adts_fake, 4) >= 0)
               break;
             this->adts_fake = 0;
@@ -550,7 +564,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         break;
       used = l;
       if (latm_state & BEBF_LATM_GOT_CONF) {
-        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, "faad_audio_decoder: got new AAC config from LATM\n");
+        xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": got new AAC config from LATM\n");
         if (faad_apply_conf (this, this->latm.config, this->latm.conflen) < 0) {
           inbuf++;
           this->size--;
@@ -634,7 +648,7 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
          * also does that. */
         this->used_last = used;
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
-          "faad_audio_decoder: empty outbuf, pts %" PRId64 ".\n", pts);
+          LOG_MODULE ": empty outbuf, pts %" PRId64 ".\n", pts);
       } else if (this->used_last > 0) {
         this->used_last = used;
       }
@@ -860,8 +874,15 @@ static void faad_decode_audio ( faad_decoder_t *this, int end_frame ) {
         }
 
         xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG + 1,
-          "faad_audio_decoder: outbuf samples %d, pts %" PRId64 ".\n",
+          LOG_MODULE ": outbuf samples %d, pts %" PRId64 ".\n",
           (int)audio_buffer->num_frames, audio_buffer->vpts);
+        if (this->adif.mode == _ADIF_YES) {
+          this->adif.samples += audio_buffer->num_frames;
+          if (this->adif.samples >= this->rate) {
+            this->adif.samples -= this->rate;
+            this->adif.seconds += 1;
+          }
+        }
         this->stream->audio_out->put_buffer (this->stream->audio_out, audio_buffer, this->stream);
 
         decoded -= done;
@@ -909,7 +930,7 @@ static void faad_get_conf (faad_decoder_t *this, const uint8_t *d, int len) {
   this->dec_config = b;
   this->dec_config_size = len;
   this->latm_mode = BEBF_LATM_IS_RAW;
-  xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, "faad_audio_decoder: got new AAC config from demuxer\n");
+  xprintf (this->class->xine, XINE_VERBOSITY_DEBUG, LOG_MODULE ": got new AAC config from demuxer\n");
 
   if (!this->faac_dec)
     return;
@@ -951,10 +972,26 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
     if ((int)buf->size <= 0)
       return;
 
+    if (this->adif.mode == _ADIF_UNKNOWN) {
+      if (buf->size >= 4) {
+        this->adif.mode = !memcmp (buf->content, "ADIF", 4) ? _ADIF_YES : _ADIF_NO;
+      }
+    }
+    if (this->adif.mode == _ADIF_YES) {
+      if (buf->pts != this->adif.base_pts) {
+        this->adif.base_pts = buf->pts;
+        this->adif.seconds = 0;
+        this->adif.samples = 0;
+      }
+      buf->pts = this->adif.base_pts
+               + (int64_t)90000 * this->adif.seconds
+               + 90000u * this->adif.samples / this->rate;
+    }
+
     /* Queue pts values as frames may overlap buffer boundaries (mpeg-ts). */
     faad_pts_add (this, buf->pts, buf->size);
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG + 1,
-      "faad_audio_decoder: inbuf bytes %d, pts %" PRId64 ".\n", buf->size, buf->pts);
+      LOG_MODULE ": inbuf bytes %d, pts %" PRId64 ".\n", buf->size, buf->pts);
 
     if (this->size + buf->size + 8 > this->max_audio_src_size) {
       size_t s = this->size + 2 * buf->size + 8;
@@ -992,7 +1029,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
           if ((buf->type & (BUF_MAJOR_MASK | BUF_DECODER_MASK)) == BUF_AUDIO_AAC_LATM)
 #endif
             xprintf (this->class->xine, XINE_VERBOSITY_DEBUG,
-              "faad_audio_decoder: stream says LATM but is ADTS\n");
+              LOG_MODULE ": stream says LATM but is ADTS\n");
         }
       }
     }
@@ -1003,6 +1040,7 @@ static void faad_decode_data (audio_decoder_t *this_gen, buf_element_t *buf) {
 
 static void faad_discontinuity (audio_decoder_t *this_gen) {
   faad_decoder_t *this = xine_container_of(this_gen, faad_decoder_t, audio_decoder);
+  this->adif.base_pts = -1;
   faad_pts_reset (this);
 }
 
@@ -1052,7 +1090,12 @@ static audio_decoder_t *open_plugin (audio_decoder_class_t *class_gen, xine_stre
   this->dec_config_size    = 0;
   this->rate               = 0;
   this->used_last          = 0;
+  this->adif.base_pts      = 0;
+  this->adif.seconds       = 0;
+  this->adif.samples       = 0;
+  this->adif.mode          = _ADIF_UNKNOWN;
 #endif
+  this->rate               = 1; /* no / 0 please */
 
   faad_pts_reset (this);
 
