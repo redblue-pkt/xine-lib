@@ -50,7 +50,7 @@
 
 typedef enum {
   DEMUX_AAC_ADTS = 0,
-  DEMUX_AAC_AIDF
+  DEMUX_AAC_ADIF
 } demux_aac_mode_t;
 
 typedef struct {
@@ -96,7 +96,7 @@ static int probe_aac_file (xine_stream_t *stream, input_plugin_t *input, demux_a
   /* Check for an ADIF header - should be at the start of the file */
   if (_x_is_fourcc (buf, "ADIF")) {
     lprintf("found ADIF header\n");
-    *mode = DEMUX_AAC_AIDF;
+    *mode = DEMUX_AAC_ADIF;
     return data_start;
   }
 
@@ -134,7 +134,7 @@ static int probe_aac_file (xine_stream_t *stream, input_plugin_t *input, demux_a
   return -1;
 }
 
-/* FIXME: both ADTS and AIDF allow the first 4 AAC object types only,
+/* FIXME: both ADTS and ADIF allow the first 4 AAC object types only,
  * and have no short frame bit like in a regular config bitstream.
  * for now, just assume always 1024 frame samples. */
 static uint32_t demux_aac_samples_per_frame (uint32_t object_type) {
@@ -175,13 +175,13 @@ static uint32_t demux_aac_get_bits (const uint8_t *buf, uint32_t bitpos, uint32_
   return (word << (bitpos & 7)) >> (32 - bits);
 }
 
-#undef _FULL_AIDF
+#undef _FULL_ADIF
 
-static void demux_aac_apply_aidf (demux_aac_t *this, const uint8_t *buf) {
+static void demux_aac_apply_adif (demux_aac_t *this, const uint8_t *buf) {
   uint32_t samples_per_frame, samples_per_second = 48000;
   uint32_t word, bitpos = 0;
   uint32_t object_type, sf_index, bitstream_type;
-#ifdef _FULL_AIDF
+#ifdef _FULL_ADIF
   uint32_t num_program_config_elements, u;
   uint32_t num_front_channel_elements, num_side_channel_elements;
   uint32_t num_back_channel_elements, num_lfe_channel_elements;
@@ -195,11 +195,11 @@ static void demux_aac_apply_aidf (demux_aac_t *this, const uint8_t *buf) {
   bitpos += 2; /* original_copy:1, home:1 */
   bitstream_type = demux_aac_get_bits (buf, bitpos, 1); bitpos += 1;
   bitpos += 23; /* bitrate:23 */
-#ifdef _FULL_AIDF
+#ifdef _FULL_ADIF
   num_program_config_elements = demux_aac_get_bits (buf, bitpos, 4) + 1;
 #endif
   bitpos += 4;
-#ifdef _FULL_AIDF
+#ifdef _FULL_ADIF
   for (u = 0; u < num_program_config_elements; u++)
 #endif
   {
@@ -208,7 +208,7 @@ static void demux_aac_apply_aidf (demux_aac_t *this, const uint8_t *buf) {
     bitpos += 4; /* element_instance_tag:4 */
     object_type = demux_aac_get_bits (buf, bitpos, 2) + 1; bitpos += 2;
     sf_index = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
-#ifdef _FULL_AIDF
+#ifdef _FULL_ADIF
     num_front_channel_elements = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
     num_side_channel_elements = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
     num_back_channel_elements = demux_aac_get_bits (buf, bitpos, 4); bitpos += 4;
@@ -240,7 +240,7 @@ static void demux_aac_apply_aidf (demux_aac_t *this, const uint8_t *buf) {
   samples_per_second = demux_aac_sample_rates[sf_index];
   if (!samples_per_second)
     return;
-#ifdef _FULL_AIDF
+#ifdef _FULL_ADIF
   this->frame_count = num_program_config_elements;
 #else
   this->frame_count = 1;
@@ -301,43 +301,20 @@ static int demux_aac_next (demux_aac_t *this, uint8_t *buf) {
       this->bdelivered += u;
       return u;
     }
-  } else { /* DEMUX_AAC_AIDF */
-    const union {uint8_t b[4]; uint32_t w;} _aidf = {{'A', 'I', 'D', 'F'}};
-    uint32_t u = this->bdelivered + 4, word = 0;
+  } else { /* DEMUX_AAC_ADIF */
+    /* SIGH. ADIF is merely a single head plus a sequence of raw frames.
+     * This can hardly do more than play from the beginning.
+     * nobody seems to use that anymore, and even ffmpeg doer not support all that.
+     * lets not repeat half the decoders work here just to count frames,
+     * and let decoder and engine add time info. */
+    int r = this->input->read (this->input, buf, 2048);
 
-    while (1) {
-      while (u < this->bgot) {
-        word = (word << 8) + this->buf[u++];
-        if (word == _aidf.w)
-          break;
-      }
-      if (word == _aidf.w)
-        break;
-      if (u > sizeof (this->buf) - 512) {
-        uint32_t l = this->bgot - this->bdelivered;
-
-        if (this->bdelivered < 512) /* a single frame of 8 kbyte ?? */
-          l = 4;
-        if (this->bdelivered >= l)
-          memcpy (this->buf, this->buf + this->bdelivered, l);
-        else
-          memmove (this->buf, this->buf + this->bdelivered, l);
-        u -= this->bdelivered;
-        this->bdelivered = 0;
-        this->bgot = l;
-      }
-      this->last_read_res = this->input->read (this->input, this->buf + this->bgot, 512);
-      if (this->last_read_res <= 0)
-        break;
-      this->bgot += this->last_read_res;
+    if (r > 0) {
+      if ((r > 4) && !memcmp (buf, "ADIF", 4))
+        demux_aac_apply_adif (this, buf);
     }
-    if (word == _aidf.w) {
-      demux_aac_apply_aidf (this, this->buf + this->bdelivered);
-      u -= 4 + this->bdelivered;
-      memcpy (buf, this->buf + this->bdelivered, u);
-      this->bdelivered += u;
-      return u;
-    }
+    this->frame_count = 0;
+    return r;
   }
   {
     uint32_t l = this->bgot - this->bdelivered;
@@ -366,11 +343,15 @@ static int demux_aac_send_chunk(demux_plugin_t *this_gen) {
   buf->decoder_flags |= BUF_FLAG_FRAME_END;
   buf->size = demux_aac_next (this, buf->content);
   if (buf->size > 0) {
-    if (this->samples_per_second) {
+    if (!this->frame_count) {
+      buf->pts = this->base_pts;
+      buf->extra_info->input_time = -1;
+    } else if (this->samples_per_second) {
       buf->pts = this->base_pts + this->pts_offs
                + (int64_t)this->frame_num * 90000 * (int64_t)this->samples_per_frame / (int64_t)this->samples_per_second;
       buf->extra_info->input_time = buf->pts / 90;
     } else if (bitrate > 0) {
+      buf->pts = this->base_pts;
       buf->extra_info->input_time = 8000 * current_pos / bitrate;
     }
     if (length > 0)
