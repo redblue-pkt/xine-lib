@@ -325,7 +325,7 @@ static void opengl2_accel_lock (vo_frame_t *frame, int lock) {
 }
 
 static const char * const bicubic_pass1_args[] = {"ARB", "tex", "lut", "spline", NULL};
-static const char *bicubic_pass1_frag=
+static const char bicubic_pass1_frag[] =
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex, lut;\n"
 "uniform float spline;\n"
@@ -341,7 +341,7 @@ static const char *bicubic_pass1_frag=
 "}\n";
 
 static const char * const bicubic_pass2_args[] = {"ARB", "tex", "lut", "spline", NULL};
-static const char *bicubic_pass2_frag=
+static const char bicubic_pass2_frag[] =
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex, lut;\n"
 "uniform float spline;\n"
@@ -427,7 +427,7 @@ static int create_lut_texture( opengl2_driver_t *that )
 }
 
 static const char * const blur_sharpen_args[] = {"ARB", "tex", "mid", "side", "corn", NULL};
-static const char *blur_sharpen_frag=
+static const char blur_sharpen_frag[] =
 "#extension GL_ARB_texture_rectangle : enable\n"
 "uniform sampler2DRect tex;\n"
 "uniform float mid, side, corn;\n"
@@ -447,7 +447,7 @@ static const char *blur_sharpen_frag=
 "}\n";
 
 static const char * const yuv420_args[] = {"r_coefs", "g_coefs", "b_coefs", "texY", "texU", "texV", NULL};
-static const char *yuv420_frag =
+static const char yuv420_frag[] =
 "uniform sampler2D texY, texU, texV;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
 "void main(void) {\n"
@@ -466,7 +466,7 @@ static const char *yuv420_frag =
 "}\n";
 
 static const char * const yuv420j_args[] = {"r_coefs", "g_coefs", "b_coefs", "texY", "tex_U_V", NULL};
-static const char *yuv420j_frag =
+static const char yuv420j_frag[] =
 "uniform sampler2D texY, tex_U_V;\n"
 "uniform vec4 r_coefs, g_coefs, b_coefs;\n"
 "void main(void) {\n"
@@ -486,46 +486,46 @@ static const char *yuv420j_frag =
 "}\n";
 
 static const char * const nv12_args[] = {"r_coefs", "g_coefs", "b_coefs", "texY", "texUV", NULL};
-#define nv12_frag                               \
-  "uniform sampler2D texY, texUV;\n"            \
-  "uniform vec4 r_coefs, g_coefs, b_coefs;\n"   \
-  "void main (void) {\n"                        \
-  "    vec4 rgb;\n"                             \
-  "    vec4 yuv;\n"                             \
-  "    vec2 coord = gl_TexCoord[0].xy;\n"       \
-  "    yuv.r = texture2D (texY, coord).r;\n"    \
-  "    yuv.g = texture2D (texUV, coord).r;\n"   \
-  "    yuv.b = texture2D (texUV, coord).%s;\n"  \
-  "    yuv.a = 1.0;\n"                          \
-  "    rgb.r = dot( yuv, r_coefs );\n"          \
-  "    rgb.g = dot( yuv, g_coefs );\n"          \
-  "    rgb.b = dot( yuv, b_coefs );\n"          \
-  "    rgb.a = 1.0;\n"                          \
-  "    gl_FragColor = rgb;\n"                   \
-  "}\n"
+static const char nv12_frag[] =
+"uniform sampler2D texY, texUV;\n"
+"uniform vec4 r_coefs, g_coefs, b_coefs;\n" 
+"void main (void) {\n"
+"    vec4 rgb;\n"
+"    vec4 yuv;\n"
+"    vec2 coord = gl_TexCoord[0].xy;\n"
+"    yuv.r = texture2D (texY, coord).r;\n"
+"    yuv.g = texture2D (texUV, coord).r;\n"
+"    yuv.b = texture2D (texUV, coord).$;\n"
+"    yuv.a = 1.0;\n"
+"    rgb.r = dot( yuv, r_coefs );\n"
+"    rgb.g = dot( yuv, g_coefs );\n"
+"    rgb.b = dot( yuv, b_coefs );\n"
+"    rgb.a = 1.0;\n"
+"    gl_FragColor = rgb;\n"
+"}\n";
 
 static const char * const yuv422_args[] = {"r_coefs", "g_coefs", "b_coefs", "texYUV", "yuy2vals", NULL};
-#define yuv422_frag                                             \
-  "uniform sampler2D texYUV;\n"                                 \
-  "uniform vec4 r_coefs, g_coefs, b_coefs;\n"                   \
-  "uniform vec2 yuy2vals;\n"                                    \
-  "void main(void) {\n"                                         \
-  "    vec4 rgba;\n"                                            \
-  "    vec4 yuv;\n"                                             \
-  "    vec4 coord = gl_TexCoord[0].xyxx;\n"                     \
-  "    float group_x = floor (coord.x * yuy2vals.x);\n"         \
-  "    coord.z = (group_x + 0.25) * yuy2vals.y;\n"              \
-  "    coord.w = (group_x + 0.75) * yuy2vals.y;\n"              \
-  "    yuv.r = texture2D (texYUV, coord.xy).r;\n"               \
-  "    yuv.g = texture2D (texYUV, coord.zy).%s;\n"              \
-  "    yuv.b = texture2D (texYUV, coord.wy).%s;\n"              \
-  "    yuv.a = 1.0;\n"                                          \
-  "    rgba.r = dot (yuv, r_coefs);\n"                          \
-  "    rgba.g = dot (yuv, g_coefs);\n"                          \
-  "    rgba.b = dot (yuv, b_coefs);\n"                          \
-  "    rgba.a = 1.0;\n"                                         \
-  "    gl_FragColor = rgba;\n"                                  \
-  "}\n"
+static const char yuv422_frag[] =
+"uniform sampler2D texYUV;\n"
+"uniform vec4 r_coefs, g_coefs, b_coefs;\n"
+"uniform vec2 yuy2vals;\n"
+"void main(void) {\n"
+"    vec4 rgba;\n"
+"    vec4 yuv;\n"
+"    vec4 coord = gl_TexCoord[0].xyxx;\n"
+"    float group_x = floor (coord.x * yuy2vals.x);\n"
+"    coord.z = (group_x + 0.25) * yuy2vals.y;\n"
+"    coord.w = (group_x + 0.75) * yuy2vals.y;\n"
+"    yuv.r = texture2D (texYUV, coord.xy).r;\n"
+"    yuv.g = texture2D (texYUV, coord.zy).$;\n"
+"    yuv.b = texture2D (texYUV, coord.wy).$;\n"
+"    yuv.a = 1.0;\n"
+"    rgba.r = dot (yuv, r_coefs);\n"
+"    rgba.g = dot (yuv, g_coefs);\n"
+"    rgba.b = dot (yuv, b_coefs);\n"
+"    rgba.a = 1.0;\n"
+"    gl_FragColor = rgba;\n"
+"}\n";
 
 static int opengl2_build_program (opengl2_driver_t *this,
   opengl2_program_t *prog, const char *source, const char *name,
@@ -2040,17 +2040,26 @@ static vo_driver_t *opengl2_open_plugin (video_driver_class_t *class_gen, const 
 #define INITHEIGHT 576
       do {
         char buf[1024];
-        const char *p2_swizzle = (this->fmt_2p == GL_RG) ? "g" : "a";
+        const char p2_swizzle = (this->fmt_2p == GL_RG) ? 'g' : 'a';
+        uint32_t u;
+
         if (!opengl2_check_textures_size (this, INITWIDTH, INITHEIGHT, 1))
           break;
         if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_yuv420], yuv420_frag, "yuv420_frag", yuv420_args))
           break;
         if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_yuv420j], yuv420j_frag, "yuv420j_frag", yuv420j_args))
           break;
-        snprintf (buf, sizeof (buf), nv12_frag, p2_swizzle);
+        memcpy (buf, nv12_frag, sizeof (nv12_frag));
+        /* gcc sees these "u" really are compile time constants :-)) */
+        u = strchr (nv12_frag, '$') - nv12_frag;
+        buf[u] = p2_swizzle;
         if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_nv12], buf, "nv12_frag", nv12_args))
           break;
-        snprintf (buf, sizeof (buf), yuv422_frag, p2_swizzle, p2_swizzle);
+        memcpy (buf, yuv422_frag, sizeof (yuv422_frag));
+        u = strchr (yuv422_frag, '$') - yuv422_frag;
+        buf[u] = p2_swizzle;
+        u = strchr (yuv422_frag + u + 1, '$') - yuv422_frag;
+        buf[u] = p2_swizzle;
         if (!opengl2_build_program (this, &this->csc_shaders[OGL2_cscs_yuv422], buf, "yuv422_frag", yuv422_args))
           break;
         this->gl->release_current (this->gl);
@@ -2139,7 +2148,7 @@ static uint32_t opengl2_check_platform (xine_t *xine, unsigned visual_type, cons
 
   if (gl->make_current (gl)) {
     xine_gl_extensions_t extensions;
-    const char *names = glGetString (GL_EXTENSIONS);
+    const char *names = (const char *)glGetString (GL_EXTENSIONS);
 
     xine_gl_extensions_load (&extensions, names);
     result  = xine_gl_extensions_test (&extensions, "GL_ARB_texture_float") ? 2 : 0;
@@ -2207,11 +2216,9 @@ static const vo_info_t vo_info_opengl2_wl = {
 /*
  * exported plugin catalog entry
  */
-
 const plugin_info_t xine_plugin_info[] EXPORTED = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_VIDEO_OUT, 22, "opengl2", XINE_VERSION_CODE, &vo_info_opengl2,    opengl2_init_class_x11 },
   { PLUGIN_VIDEO_OUT, 22, "opengl2", XINE_VERSION_CODE, &vo_info_opengl2_wl, opengl2_init_class_wl },
   { PLUGIN_NONE, 0, NULL, 0, NULL, NULL }
 };
-
