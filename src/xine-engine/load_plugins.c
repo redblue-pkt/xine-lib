@@ -1974,6 +1974,7 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
   xine_t *xine;
   plugin_catalog_t *catalog;
   input_plugin_t *plugin;
+  input_class_t *skip_class;
   uint32_t n;
 
   if (!stream || !mrl)
@@ -1984,8 +1985,12 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
   catalog = xine->plugin_catalog;
   plugin = NULL;
 
+  /* prevent recursion during input_plugin->open (). */
+  skip_class = s->s.input_plugin ? s->s.input_plugin->input_class : NULL;
+
   pthread_mutex_lock (&catalog->lock);
 
+  /* prevent recursion during input_class->get_instance (). */
   n = !s->query_input_plugins[0] ? 0
     : !s->query_input_plugins[1] ? 1 : 2;
   if (n != 2) {
@@ -2000,7 +2005,7 @@ input_plugin_t *_x_find_input_plugin (xine_stream_t *stream, const char *mrl) {
       }
       if (class) {
         s->query_input_plugins[n] = class;
-        if (s->query_input_plugins[0] != s->query_input_plugins[1]) {
+        if ((class != skip_class) && (s->query_input_plugins[0] != s->query_input_plugins[1])) {
           plugin = class->get_instance (class, stream, mrl);
           if (plugin) {
             inc_node_ref (node);
