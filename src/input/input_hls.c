@@ -46,6 +46,26 @@
 #include "group_network.h"
 #include "multirate_pref.c"
 
+typedef enum {
+  HLS_A_none = 0,
+  HLS_A_AUDIO,
+  HLS_A_AUTOSELECT,
+  HLS_A_AVERAGE_BANDWIDTH,
+  HLS_A_BANDWIDTH,
+  HLS_A_BYTERANGE,
+  HLS_A_CODECS,
+  HLS_A_DEFAULT,
+  HLS_A_FRAME_RATE,
+  HLS_A_GROUP_ID,
+  HLS_A_LANGUAGE,
+  HLS_A_NAME,
+  HLS_A_RESOLUTION,
+  HLS_A_TYPE,
+  HLS_A_URI,
+  HLS_A_VIDEO_RANGE,
+  HLS_A_last
+} hls_arg_type_t;
+
 typedef struct {
   input_class_t     input_class;
   xine_t           *xine;
@@ -100,8 +120,10 @@ typedef struct {
   struct timespec   frag_dur;   /** << != 0 if fixed duration live frags */
   struct timespec   next_stop;  /** << live timeline emulation */
   int               rewind;     /** << seconds */
-  const char       *items_mrl[20];
-  multirate_pref_t  items[20];
+#define HLS_MAX_ITEMS 20
+  uint32_t          items_mrl[HLS_MAX_ITEMS];
+  uint32_t          items_group[HLS_MAX_ITEMS];
+  multirate_pref_t  items[HLS_MAX_ITEMS];
   const char       *list_strtype;
   const char       *list_strseq;
   hls_byterange_t   list_rangeinit;
@@ -408,30 +430,9 @@ static const uint8_t hls_tab_char[256] = {
   ['"']  = 4,
   ['\''] = 8,
   [',']  = 16,
+  ['=']  = 32,
   [0]    = 128
 };
-
-static char *hls_unquote (char **s) {
-  uint8_t *p = (uint8_t *)*s;
-  char *ret;
-  if (*p == '"') {
-    ret = (char *)++p;
-    while (!(hls_tab_char[*p] & (4 | 128)))
-      p++;
-  } else if (*p == '\'') {
-    ret = (char *)++p;
-    while (!(hls_tab_char[*p] & (8 | 128)))
-      p++;
-  } else {
-    ret = (char *)p;
-    while (!(hls_tab_char[*p] & (16 | 128)))
-      p++;
-  }
-  if (*p)
-    *p++ = 0;
-  *s = (char *)p;
-  return ret;
-}
 
 static void hls_skip_spc (char **s) {
   uint8_t *p = (uint8_t *)*s;
@@ -454,11 +455,107 @@ static void hls_skip_line (char **s) {
   *s = (char *)p;
 }
 
-static void hls_skip_comma (char **s) {
+static void hls_reset_args (char **a) {
+  uint32_t u;
+  for (u = 0; u < HLS_A_last; u++)
+    a[u] = NULL;
+}
+
+static int hls_parse_args (char **a, char **s) {
   uint8_t *p = (uint8_t *)*s;
-  while (!(hls_tab_char[*p] & (16 | 128)))
+  int n = 0;
+
+  while (*p) {
+    uint8_t *key, *value = NULL;
+    uint32_t klen;
+    while (hls_tab_char[*p] & 1) /* spc */
+      p++;
+    key = p;
+    while (!(hls_tab_char[*p] & (1 | 16 | 32 | 128))) /* spc, ",", "=", end */
+      *p |= 0x20, p++;
+    klen = p - key;
+    while (hls_tab_char[*p] & 1) /* spc */
+      p++;
+    if (*p != '=') {
+      if (*p)
+        p++;
+      continue;
+    }
     p++;
+    while (hls_tab_char[*p] & 1) /* spc */
+      p++;
+    if (*p == '"') {
+      value = ++p;
+      while (!(hls_tab_char[*p] & (4 | 128))) /* """, end */
+        p++;
+    } else if (*p == '\'') {
+      value = ++p;
+      while (!(hls_tab_char[*p] & (8 | 128))) /* "'", end */
+        p++;
+    } else if (*p) {
+      value = p;
+      while (!(hls_tab_char[*p] & (16 | 128))) /* ",", end */
+        p++;
+    }
+    if (*p)
+      *p++ = 0;
+    switch (klen) {
+      case 3:
+        if (!memcmp (key, "uri", 3))
+          a[HLS_A_URI] = value, n++;
+        break;
+      case 4:
+        if (!memcmp (key, "name", 4))
+          a[HLS_A_NAME] = value, n++;
+        else if (!memcmp (key, "type", 4))
+          a[HLS_A_TYPE] = value, n++;
+        break;
+      case 5:
+        if (!memcmp (key, "audio", 5))
+          a[HLS_A_AUDIO] = value, n++;
+        break;
+      case 6:
+        if (!memcmp (key, "codecs", 6))
+          a[HLS_A_CODECS] = value, n++;
+        break;
+      case 7:
+        if (!memcmp (key, "default", 7))
+          a[HLS_A_DEFAULT] = value, n++;
+        break;
+      case 8:
+        if (!memcmp (key, "group-id", 8))
+          a[HLS_A_GROUP_ID] = value, n++;
+        else if (!memcmp (key, "language", 8))
+          a[HLS_A_LANGUAGE] = value, n++;
+        break;
+      case 9:
+        if (!memcmp (key, "bandwidth", 9))
+          a[HLS_A_BANDWIDTH] = value, n++;
+        else if (!memcmp (key, "byterange", 9))
+          a[HLS_A_BYTERANGE] = value, n++;
+        break;
+      case 10:
+        if (!memcmp (key, "autoselct", 10))
+          a[HLS_A_AUTOSELECT] = value, n++;
+        else if (!memcmp (key, "frame-rate", 10))
+          a[HLS_A_FRAME_RATE] = value, n++;
+        else if (!memcmp (key, "resolution", 10))
+          a[HLS_A_RESOLUTION] = value, n++;
+        break;
+      case 11:
+        if (!memcmp (key, "video-range", 11))
+          a[HLS_A_VIDEO_RANGE] = value, n++;
+        break;
+      case 17:
+        if (!memcmp (key, "average-bandwidth", 17))
+          a[HLS_A_AVERAGE_BANDWIDTH] = value, n++;
+        break;
+      default: ;
+    }
+  }
+
   *s = (char *)p;
+  return n;
 }
 
 static uint32_t str2uint32 (char **s) {
@@ -540,6 +637,7 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
   ssize_t size;
   char *line, *lend;
   uint32_t frag_duration, fixed_duration;
+  char *args[HLS_A_last];
 
   this->frag.mrl_offs = NULL;
   _x_freep (&this->frag.input_offs);
@@ -604,6 +702,8 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
   fixed_duration = 0;
   frag_duration = 0;
   lend = this->list_buf + 4;
+
+  hls_reset_args (args);
 
   if (strstr (lend, "#EXTINF:")) {
     uint32_t fragsize = ~0u;
@@ -670,23 +770,11 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
         } else if ((llen > 7) && !strncasecmp (line + 4, "-X-MAP:", 7)) {
           /* hls-ng extension: #EXT-X-MAP:URI="foo.mp4",BYTERANGE="854@0" */
           line += 11;
-          while (*line) {
-            hls_skip_spc (&line);
-            llen = lend - line;
-            if ((llen > 4) && !strncasecmp (line, "URI=", 4)) {
-              line += 4;
-              this->frag.mrl_offs[0] = hls_unquote (&line) - this->list_buf;
-            } else if ((llen > 10) && !strncasecmp (line, "BYTERANGE=", 10)) {
-              char *s;
-              line += 10;
-              s = hls_unquote (&line);
-              hls_parse_byterange (&this->list_rangeinit, &s);
-            } else {
-              hls_skip_comma (&line);
-            }
-            if (*line == ',')
-              line++;
-          }
+          hls_parse_args (args, &line);
+          if (args[HLS_A_URI])
+            this->frag.mrl_offs[0] = args[HLS_A_URI] - this->list_buf;
+          if (args[HLS_A_BYTERANGE])
+            hls_parse_byterange (&this->list_rangeinit, &args[HLS_A_BYTERANGE]);
           if (this->frag.mrl_offs[0]) {
             this->frag.input_offs[0] = this->list_rangeinit.offs + 1;
             xine_mfrag_set_index_frag (this->frag.list, 0, -1, this->list_rangeinit.len);
@@ -737,8 +825,8 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
       *lend++ = 0;
       if ((llen >=4) && !strncasecmp (line, "#EXT", 4)) {
         /* control tag */
-        if ((llen > 8) && !strncasecmp (line + 4, "-X-STREAM-INF:", 14)) {
-          if (n < sizeof (this->items_mrl) / sizeof (this->items_mrl[0])) {
+        if ((llen > 18) && !strncasecmp (line + 4, "-X-STREAM-INF:", 14)) {
+          if (n < HLS_MAX_ITEMS) {
             line += 18;
             xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
               LOG_MODULE ".%u: item #%u: %s.\n", this->side_index, (unsigned int)n, line);
@@ -746,35 +834,66 @@ static int hls_input_load_list (hls_input_plugin_t *this) {
             this->items[n].video_width = 0;
             this->items[n].video_height = 0;
             this->items[n].lang[0] = 0;
-            while (*line != 0) {
-              char *tagend;
-              lend[-1] = ',';
-              tagend = line;
-              while (*tagend != ',')
-                tagend++;
-              lend[-1] = 0;
-              if (!strncasecmp (line, "BANDWIDTH=", 10)) {
-                line += 10;
-                this->items[n].bitrate = str2uint32 (&line);
+            hls_reset_args (args);
+            hls_parse_args (args, &line);
+            this->items_group[n] = args[HLS_A_AUDIO] ? args[HLS_A_AUDIO] - this->list_buf : 0;
+            if (args[HLS_A_BANDWIDTH])
+              this->items[n].bitrate = str2uint32 (&args[HLS_A_BANDWIDTH]);
+            if (args[HLS_A_RESOLUTION]) {
+              line = args[HLS_A_RESOLUTION];
+              this->items[n].video_width = str2uint32 (&line);
+              if ((*line & 0xdf) == 'X') {
+                line += 1;
+                this->items[n].video_height = str2uint32 (&line);
               }
-              if (!strncasecmp (line, "RESOLUTION=", 11)) {
-                line += 11;
-                this->items[n].video_width = str2uint32 (&line);
-                if ((*line & 0xdf) == 'X') {
-                  line += 1;
-                  this->items[n].video_height = str2uint32 (&line);
+            }
+            if (args[HLS_A_LANGUAGE]) {
+              line = args[HLS_A_LANGUAGE];
+              if ((this->items[n].lang[0] = line[0])) {
+                if ((this->items[n].lang[1] = line[1])) {
+                  if ((this->items[n].lang[2] = line[2]))
+                    this->items[n].lang[3] = 0;
                 }
               }
-              line = tagend;
-              if (*line)
-                line++;
             }
+          }
+        } else if ((llen > 13) && !strncasecmp (line + 4, "-X-MEDIA:", 9)) {
+          line += 13;
+          hls_reset_args (args);
+          hls_parse_args (args, &line);
+          if (args[HLS_A_URI] && (n < HLS_MAX_ITEMS)) {
+            this->items_mrl[n] = args[HLS_A_URI] - this->list_buf;
+            this->items_group[n] = args[HLS_A_GROUP_ID] ? args[HLS_A_GROUP_ID] - this->list_buf : 0;
+            this->items[n].bitrate = args[HLS_A_BANDWIDTH] ? str2uint32 (&args[HLS_A_BANDWIDTH]) : 0;
+            if (args[HLS_A_RESOLUTION]) {
+              line = args[HLS_A_RESOLUTION];
+              this->items[n].video_width = str2uint32 (&line);
+              if ((*line & 0xdf) == 'X') {
+                line += 1;
+                this->items[n].video_height = str2uint32 (&line);
+              }
+            } else {
+              this->items[n].video_width = 0;
+              this->items[n].video_height = 0;
+            }
+            if (args[HLS_A_LANGUAGE]) {
+              line = args[HLS_A_LANGUAGE];
+              if ((this->items[n].lang[0] = line[0])) {
+                if ((this->items[n].lang[1] = line[1])) {
+                  if ((this->items[n].lang[2] = line[2]))
+                    this->items[n].lang[3] = 0;
+                }
+              }
+            } else {
+              this->items[n].lang[0] = 0;
+            }
+            n++;
           }
         }
       } else if ((llen >= 1) && (line[0] != '#')) {
         /* mrl */
-        if (n < sizeof (this->items_mrl) / sizeof (this->items_mrl[0]))
-          this->items_mrl[n++] = line;
+        if (n < HLS_MAX_ITEMS)
+          this->items_mrl[n++] = line - this->list_buf;
       }
     }
     this->items_num = n;
@@ -1198,7 +1317,7 @@ static int hls_input_open (input_plugin_t *this_gen) {
     }
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
       LOG_MODULE ".%u: auto selected item #%d.\n", this->side_index, n);
-    _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->items_mrl[n]);
+    _x_merge_mrl (this->item_mrl, HLS_MAX_MRL, this->list_mrl, this->list_buf + this->items_mrl[n]);
     xprintf (this->stream->xine, XINE_VERBOSITY_DEBUG,
       LOG_MODULE ".%u: trying %s.\n", this->side_index, this->item_mrl);
     if (!hls_input_switch_mrl (this))
@@ -1458,3 +1577,4 @@ void *input_hls_init_class (xine_t *xine, const void *data) {
 
   return this;
 }
+
